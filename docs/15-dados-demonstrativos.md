@@ -15,6 +15,46 @@ modelo, e todo módulo que o cria tem de estar ligado a algo que
 materiais, químicas, modos de transporte ou qualquer outro dado de exercício
 que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 
+## O que o catálogo demo tem hoje (D-107)
+
+Os **75 materiais demo** (5 em `app.db.seed` + 70 em `app.db.seed_extended`) têm
+todos ao menos uma designação e uma linha de composição, e curva de
+tensão–deformação onde ela existe fisicamente — tudo fictício, `is_demo=True`,
+fonte `Dataset Demo MaterialSelect`:
+
+| | Seed principal | `seed_extended` | Total |
+|---|---|---|---|
+| Designações (`designations_created`) | 8 | 148 | 156 |
+| Linhas de composição (`composition_entries_created`) | 19 | 361 | 380 |
+| Curvas (`curves_created`) | 3 | 114 | 117 |
+
+A única ausência decidida é a **Cerâmica Demo D**, sem curva: não tem resistência
+nem escoamento cadastrados para ancorar uma curva de ruptura, e inventá-los seria
+falsear o material (a razão está em `DEMO_KNOWN_GAPS`). As curvas são
+**derivadas das propriedades do próprio material** (módulo, escoamento,
+resistência, temperatura máxima), não digitadas; as premissas tomadas onde as
+propriedades fictícias se contradizem ou faltam estão na descrição de cada curva.
+
+O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designações
+`DEMO-…` e composição numa gramática de uma linha por material) e
+`apps/api/app/db/seed_extended_identity.py` (curvas), chamados por
+`python -m app.db.seed_extended` — o mesmo comando de `semear_demo`. O seed
+principal não ganhou linha de dado, de propósito: o `conftest` o reexecuta e a
+suíte tem contagens fixas.
+
+**Conferir a cobertura** (de qualquer material, demo ou não):
+
+```bash
+cd apps/api
+python -m app.db.demo_coverage            # todos os materiais ativos
+python -m app.db.demo_coverage --demo     # só os is_demo
+python -m app.db.demo_coverage --gaps     # só quem tem alguma ausência, com a razão
+```
+
+Depois do cutover oficial o mesmo comando lista quais materiais reais ainda estão
+"sem composição cadastrada", "sem designação cadastrada" ou "sem curva
+cadastrada" — a lista de cobrança à fonte.
+
 ## Se você (agente ou pessoa) for criar dado de demonstração novo
 
 1. **Marque `is_demo=True`** no registro (ou o campo equivalente do modelo —
@@ -142,11 +182,15 @@ esta regra é uma extensão dele.
 ## Ver também
 
 - [D-71](DECISIONS.md#d-71) — o defeito que motivou este documento.
+- [D-107](DECISIONS.md#d-107) — o demo completo: designação, composição e curva
+  para os 75 materiais.
 - [D-72](DECISIONS.md#d-72) — a decisão de consolidar a exclusão por
   `is_demo`, com `clear_demo.py` como único caminho.
 - [`docs/13-deploy.md` §5-ter](13-deploy.md) — quando disparar cada workflow
   depois de um merge.
 - `apps/api/app/db/seed.py`, `apps/api/app/db/seed_extended.py`,
+  `apps/api/app/db/seed_extended_identity.py`, `apps/api/app/db/demo_identity_data.py`,
+  `apps/api/app/db/demo_coverage.py`,
   `apps/api/app/db/seed_reference.py`, `apps/api/app/db/clear_demo.py` — o código
   que esta regra descreve. Depois do cutover oficial, produção usa
   `semear_referencia`; `semear_demo` fica reservado a desenvolvimento/demo.

@@ -8267,7 +8267,8 @@ executam —, com a forma de uma especificação (faixa, máximo, nominal, ppm,
 resto, ausente) e números alterados de propósito; nada de ASM, MatWeb, Total
 Materia nem Granta. Códigos com prefixo `DEMO-`: um código real colado num
 material fictício afirmaria que ele *é* aquela liga. Polímero, cerâmica e
-compósito ficam sem composição de propósito. O seed é idempotente por linha, e
+compósito ficavam sem composição de propósito nesta rodada; o [D-107](#d-107)
+passou a dar composição a todos os 75 materiais demo. O seed é idempotente por linha, e
 o próximo `semear_demo` preenche os materiais demo que já existem; o log conta
 `designations_created` e `composition_entries_created`. `clear_demo` apaga as
 linhas demo (por marca ou por material demo) com cascata em Python e aborta se
@@ -8527,7 +8528,8 @@ fictícia (a marca é da curva, para valer também num material real).
 CI e o `conftest` executam) põe três curvas fictícias: tensão–deformação do
 "Aço Demo B" (20/300/500 °C) e da "Liga Alumínio Demo A" (20/150/250 °C) e uma
 S–N com faixa na liga; idempotente por (material, tipo, título), só em material
-`is_demo`; o log conta `curves_created`.
+`is_demo`; o log conta `curves_created`. O [D-107](#d-107) estendeu o demo a
+todos os materiais demo, em módulo à parte, sem mexer nestas três.
 
 **(c) O que `clear_demo` cascateia** (`clear_demo_curves`, antes dos
 materiais): curva com `is_demo` **ou** de material demo → seus pontos, suas
@@ -8952,3 +8954,89 @@ backend foi reescrito. O que a rodada escolheu, e onde se afasta do contrato:
 
 Os resíduos TM7-a a TM7-d seguem em `docs/TODO.md` com o texto desta decisão;
 TM7-e (tela, seed, i18n e documentação) está quitado.
+## D-107 — Demo completo: designação, composição e curva fictícias para os 75 materiais demo, derivadas das propriedades de cada um
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 62)
+
+**O pedido.** Testar as telas de ficha, busca por composição e curvas com tudo
+preenchido. Antes: 8 designações, 19 linhas de composição e 3 curvas, todas nos
+dois metais (e no polímero, para a designação) do seed principal. Os outros 70
+materiais do `seed_extended` mostravam só "sem composição / sem curva".
+
+**O desenho.**
+
+- **Onde mora.** `app.db.seed_extended_identity.seed_extended_identity`, chamado
+  por `python -m app.db.seed_extended` — o módulo que `semear_demo` e
+  `scripts/seed.ps1` já executam (D-71), depois de criar os materiais. O seed
+  principal (`app.db.seed`), que o `conftest` reexecuta, **não ganhou linha de
+  dado**: nenhuma contagem fixa da suíte se moveu. Só os dois escritores
+  (`_seed_demo_identity`, `_seed_demo_curves`) passaram a aceitar a tabela como
+  argumento opcional — **um escritor serve os dois seeds**, em vez de dois
+  caminhos que poderiam divergir.
+- **Dados em Python, e isso não fere o princípio 1.** Tudo é `is_demo=True`,
+  fonte demo única (`Dataset Demo MaterialSelect`), citações fictícias, e a regra
+  de docs/15 permite dado de exercício em código desde que ligado a
+  `semear_demo`. Designações e composições estão em `app/db/demo_identity_data.py`
+  numa gramática de uma linha por material (`Fe=balance C<=0.07 Cr=17.5-19.5`,
+  `Mo=missing`, `Ti<=1500ppm`) com analisador e teste; código de designação
+  `DEMO-…` (nome comercial `Demo…`), nenhuma equivalência afirmada (TM1).
+- **Composição por classe.** Metal: faixas, máximos, mínimos, nominais e resto, na
+  ordem de grandeza de uma especificação pública, alterada de propósito.
+  Polímero, cerâmica, compósito e elastômero: o modelo só aceita **elementos**
+  (D-105), então entram os elementos principais da unidade de repetição ou da
+  fórmula do óxido/carbeto, em faixa, com o carbono (ou o oxigênio, o ânion) **declarado
+  resto — nunca calculado** — e alguns elementos "a fonte não deu valor"
+  declarados ausentes (`missing`, sem número). Nada de fase, carga ou pacote de
+  aditivos inventado além de um teto `≤`. Meta atingida: 75/75 com ao menos uma
+  designação e uma linha de composição com informação.
+- **Curvas derivadas, não digitadas.** O gerador lê do banco o módulo, o
+  escoamento, a resistência e a temperatura máxima **do próprio material** e só
+  escolhe a *forma* por classe: metal dúctil (limite convencional de 0,2 %,
+  encruamento, estricção) com **família por temperatura** de 20 °C até a máxima
+  de serviço, mais módulo × temperatura e S–N com faixa (padrão do alumínio
+  base); polímero dúctil ou frágil; cerâmica e compósito frágeis (quase lineares
+  até a ruptura, inclinação inicial exatamente o módulo); CMC pseudo-dúctil;
+  elastômero hiperelástico. Unidades pelo Pint (`to_canonical`), nenhum fator em
+  literal, escrita só por `build_curve` + `curve_rows`. 114 curvas novas (117 no
+  total).
+- **Quando as propriedades se contradizem** (o gerador estendido sorteia cada uma
+  sem relação com as outras: escoamento acima da resistência acontece) a
+  descrição da curva diz a premissa que tomou ("escoa em 0,9 × a resistência");
+  quando falta a resistência a descrição diz que o pico é premissa da curva, não
+  propriedade do material. Ausente não vira zero.
+- **Onde NÃO há curva, e por quê.** Cerâmica Demo D: sem resistência à tração nem
+  escoamento cadastrados — qualquer curva de ruptura inventaria a ancoragem. A
+  razão está em `DEMO_KNOWN_GAPS` e sai no relatório. Elastômeros e polímeros não
+  têm família por temperatura (a premissa de queda com a temperatura é só
+  metálica nesta rodada); alumínio 6061-T6 tem só a curva à temperatura ambiente
+  porque a temperatura máxima de serviço é ausente no cadastro dele.
+- **Relatório de cobertura.** `python -m app.db.demo_coverage [--demo] [--gaps]`
+  imprime, por material, quantas designações, linhas de composição e curvas
+  existem e, para cada ausência, a razão — a específica quando o seed a decidiu,
+  senão "sem … cadastrada" (D-24). Não depende de `is_demo`: serve de lista de
+  cobrança ao catálogo oficial.
+- **`clear_demo`** já cobria as tabelas (D-105/D-106); um teste prova que apaga
+  tudo do demo completo. O log de `seed_extended` ganhou
+  `designations_created`, `composition_entries_created` e `curves_created`.
+
+**Contagens do log** (banco limpo: `seed` e depois `seed_extended`): seed
+principal 8 / 19 / 3; `seed_extended` 148 / 361 / 114; total 156 designações, 380
+linhas de composição e 117 curvas. Segunda execução: 0 / 0 / 0.
+
+**Alternativas descartadas.** Pôr os 75 em `app.db.seed` (dobraria o baseline do
+`conftest` e quebraria dezenas de contagens fixas); módulo autônomo com
+`__main__` (o defeito do D-71); digitar os pontos das 117 curvas (números soltos
+que não conversam com o módulo e a resistência do material); inventar uma
+resistência para a Cerâmica Demo D só para ter curva; calcular o resto da
+composição.
+
+**Revisão humana sugerida.** (1) As composições de polímero e cerâmica seguem a
+estequiometria da unidade de repetição/fórmula, em faixa — conhecimento de
+química geral, não de fonte citável; se o autor preferir "sem composição
+cadastrada" para o que não é liga, basta tirar a chave de `COMPOSITIONS`.
+(2) As famílias por temperatura usam fatores de queda fixos (módulo −25 %,
+escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
+fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
+composição" no catálogo estendido; o estado vazio continua demonstrável pela
+Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
