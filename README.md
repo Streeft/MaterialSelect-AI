@@ -200,7 +200,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`CLAUDE.md`](CLAUDE.md), são **3864 testes de backend** e 778 de frontend.
+[`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md), são **4079 testes de backend** e 797 de frontend.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest com
@@ -290,6 +290,7 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 |---|---|
 | [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) | Estado do projeto, o que falta, riscos. |
 | [`docs/CLAUDE.md`](docs/CLAUDE.md) | Guia de desenvolvimento: regras, armadilhas, o que não alterar. |
+| [`docs/REGRAS_POR_AREA.md`](docs/REGRAS_POR_AREA.md) · [`docs/ESTADO_ATUAL.md`](docs/ESTADO_ATUAL.md) | Regras operacionais por área; histórico narrativo detalhado. |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Módulos, dados, APIs, banco. |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) · [`docs/adr/`](docs/adr/) | Por que foi decidido assim, com as alternativas. |
 | [`docs/TODO.md`](docs/TODO.md) | Backlog priorizado. |

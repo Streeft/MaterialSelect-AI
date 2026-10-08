@@ -139,9 +139,10 @@ o seed carregava 5 materiais.
 | `docs/DECISIONS.md` | Sempre que se escolhe um desenho entre alternativas: decisão nova (`D-NN`), com o porquê e o que foi descartado. Nunca reescreva uma decisão antiga para concordar com o código; registre a que a substitui. |
 | `docs/TODO.md` | Item entregue, item novo descoberto, pendência que mudou de estado. |
 | `docs/CHANGELOG_SESSION.md` | Toda sessão de trabalho, no topo. |
-| `docs/PROJECT_CONTEXT.md` | Estado atual, funcionalidades, limitações e riscos que mudaram. |
+| `docs/PROJECT_CONTEXT.md` | Estado atual, a contagem de testes, funcionalidades, limitações e riscos que mudaram. |
 | Documento da área | O de número que cobre o que foi tocado — `07-selecao-deterministica.md`, `09-camada-ia.md`, `10-relatorios.md`, `13-deploy.md`, `15-dados-demonstrativos.md`… |
-| `CLAUDE.md` (raiz) | "Estado atual" e a contagem de testes; uma regra nova só se ela valer para toda sessão. |
+| `docs/ESTADO_ATUAL.md` | Opcional: narrativa histórica, só quando houver decisão nova relevante. Não recebe contagem de testes. |
+| `CLAUDE.md` (raiz) | Uma regra nova só se ela valer para toda sessão; o "Estado atual" ali é curto e não leva narrativa. |
 | `.env.example` (`apps/api/`, raiz) | Toda variável de ambiente nova, renomeada ou com padrão novo, e a tabela do §6 deste arquivo. |
 
 **Um PR sem isso está incompleto**, do mesmo jeito que um PR sem teste — e o

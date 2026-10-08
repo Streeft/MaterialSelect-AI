@@ -41,7 +41,7 @@ Leia, nesta ordem, e **por inteiro**:
   que ela tornou falso: `README.md`, `docs/DECISIONS.md` (decisão nova quando se
   escolhe um desenho), `docs/TODO.md`, `docs/CHANGELOG_SESSION.md`,
   `docs/PROJECT_CONTEXT.md`, o documento da área (`docs/09-camada-ia.md`,
-  `docs/13-deploy.md`…), `CLAUDE.md` (Estado atual e contagem de testes) e
+  `docs/13-deploy.md`…), `docs/ESTADO_ATUAL.md` (opcional, só com decisão nova relevante; a contagem de testes vive em `docs/PROJECT_CONTEXT.md`) e
   `.env.example` quando a configuração muda. PR sem isso está incompleto —
   detalhe em `docs/CLAUDE.md` §1.12.
 
