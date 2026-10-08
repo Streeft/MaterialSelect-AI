@@ -24,7 +24,9 @@ FIELD_WIDTH = 10
 TITLE_MAX = 80
 
 FIELDS = {DENSITY.key: "RO", YOUNG.key: "E", POISSON.key: "PR"}
-_THERMAL = "fora do *MAT_ELASTIC; pertence a um material termico, nao exportado"
+_THERMAL = (
+    "fora do *MAT_ELASTIC; pertence a um material termico, nao exportado (formato lsdyna-thermal)"
+)
 OUTSIDE = {CTE.key: _THERMAL, CONDUCTIVITY.key: _THERMAL, SPECIFIC_HEAT.key: _THERMAL}
 REQUIRED = (DENSITY, YOUNG, POISSON)
 SUPPORTED = (DENSITY, YOUNG, POISSON)

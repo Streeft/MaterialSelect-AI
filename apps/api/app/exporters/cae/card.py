@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 
 from app.calculations.units import UnitError, from_canonical, to_canonical
 from app.exporters.cae.quantities import QUANTITIES, CaeQuantity, UnitSystem
+from app.exporters.identity import CompositionLine, DesignationLine
 from app.exporters.report import LIMITATION_NOTICE, OWN_RECORD_NOTICE
 
 #: The one phrase for a quantity the catalogue has no value for.
@@ -76,6 +77,9 @@ class MaterialInput:
     is_own_record: bool
     is_active: bool
     values: Mapping[str, CatalogueValue]
+    #: D-105 (TM2-d). Empty means "not registered" and is written as such.
+    composition: tuple[CompositionLine, ...] = ()
+    designations: tuple[DesignationLine, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,6 +122,8 @@ class CaeCard:
     system: UnitSystem
     values: dict[str, CardValue]
     notices: list[str] = field(default_factory=list)
+    composition: tuple[CompositionLine, ...] = ()
+    designations: tuple[DesignationLine, ...] = ()
 
     def get(self, quantity: CaeQuantity) -> CardValue:
         return self.values[quantity.key]
@@ -189,7 +195,12 @@ def _card_value(quantity: CaeQuantity, system: UnitSystem, stored: CatalogueValu
 def build_card(material: MaterialInput, system: UnitSystem) -> CaeCard:
     """Convert every quantity of ``material`` into ``system``, or say why not."""
     values = {q.key: _card_value(q, system, material.values.get(q.slug)) for q in QUANTITIES}
-    is_demo = material.is_demo or any(v.source_is_demo for v in values.values() if v.present)
+    is_demo = (
+        material.is_demo
+        or any(v.source_is_demo for v in values.values() if v.present)
+        or any(c.is_demo for c in material.composition)
+        or any(d.is_demo for d in material.designations)
+    )
     # The report's notices, in the report's order, minus the reproducibility
     # one: it speaks of re-running a study, and a card re-runs nothing.
     notices = [LIMITATION_NOTICE, CAE_NOTICE]
@@ -207,4 +218,6 @@ def build_card(material: MaterialInput, system: UnitSystem) -> CaeCard:
         system=system,
         values=values,
         notices=notices,
+        composition=material.composition,
+        designations=material.designations,
     )
