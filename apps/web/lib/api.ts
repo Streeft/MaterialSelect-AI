@@ -45,6 +45,9 @@ import type {
   MaterialSearch,
   MaterialUpdate,
   CompositionEntryIn,
+  CurveIn,
+  CurveKindSpec,
+  CurveSummary,
   DesignationIn,
   MyRecords,
   Notebook,
@@ -417,6 +420,32 @@ export function replaceMaterialDesignations(
     method: "PUT",
     body: JSON.stringify({ designations }),
   });
+}
+
+export function listCurveKinds(): Promise<CurveKindSpec[]> {
+  return request<CurveKindSpec[]>(`/api/materials/curvas-tipos`);
+}
+
+export function createMaterialCurve(materialId: number, payload: CurveIn): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function replaceMaterialCurve(
+  materialId: number,
+  curveId: number,
+  payload: CurveIn,
+): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas/${curveId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMaterialCurve(materialId: number, curveId: number): Promise<void> {
+  return request<void>(`/api/materials/${materialId}/curvas/${curveId}`, { method: "DELETE" });
 }
 
 export function deactivateMaterial(id: number): Promise<void> {

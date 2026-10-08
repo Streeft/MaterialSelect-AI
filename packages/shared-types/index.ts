@@ -2701,6 +2701,58 @@ export interface CurveSummary {
   point_count: number;
   source_label: string;
   is_demo: boolean;
+  /** From the official catalogue (D-102): read-only here. */
+  is_official?: boolean;
+}
+
+/** One point being written, in the curve's original units (TM4-d). */
+export interface CurvePointIn {
+  x: number;
+  y: number;
+  y_min?: number | null;
+  y_max?: number | null;
+}
+
+export interface CurveSeriesIn {
+  label?: string | null;
+  conditions?: string | null;
+  parameter?: number | null;
+  parameter_unit?: string | null;
+  points: CurvePointIn[];
+}
+
+/** A whole curve being written; an update replaces it entirely (TM4-d). */
+export interface CurveIn {
+  kind: CurveKind;
+  title: string;
+  description?: string | null;
+  x_quantity: string;
+  x_unit: string;
+  y_quantity: string;
+  y_unit: string;
+  x_label?: string | null;
+  y_label?: string | null;
+  parameter_quantity?: string | null;
+  series: CurveSeriesIn[];
+  source_label: string;
+  citation?: string | null;
+  data_quality?: DataQuality;
+}
+
+export interface CurveQuantityOption {
+  key: string;
+  name: string;
+  reading_unit: string;
+  units: { unit: string; label: string }[];
+}
+
+/** What a kind of curve admits — the form's vocabulary, from the backend's own table. */
+export interface CurveKindSpec {
+  kind: CurveKind;
+  label: string;
+  x_quantities: CurveQuantityOption[];
+  y_quantities: CurveQuantityOption[];
+  parameter_quantities: CurveQuantityOption[];
 }
 
 export interface MaterialCurves {

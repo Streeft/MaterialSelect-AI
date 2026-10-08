@@ -389,7 +389,7 @@ export default function MaterialDetailPage() {
             description={ptBR.curves.hint}
             className="min-w-0"
           >
-            <MaterialCurves materialId={data.id} />
+            <MaterialCurves materialId={data.id} canEdit={canEditIdentity} />
           </Section>
         </>
       )}

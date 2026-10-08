@@ -67,6 +67,7 @@ from app.schemas.material import (
 from app.schemas.property import PropertyGroup, PropertyValueOut
 from app.services.audit_service import diff_fields, record_change
 from app.services.process_service import ProcessService
+from app.services.record_permissions import ensure_identity_writable
 
 # Order in which categories are presented on the sheet.
 _CATEGORY_ORDER = [
@@ -526,12 +527,11 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
-        self._ensure_writable(material)
-        if self.repo.is_official(material.id):
-            raise ConflictError(
-                "Este material vem do catálogo oficial licenciado e não é editado pela "
-                "ficha. Para corrigir o dado, use uma nova versão do catálogo."
-            )
+        ensure_identity_writable(
+            material,
+            can_edit_shared=self.can_edit_shared,
+            is_official=self.repo.is_official(material.id),
+        )
         return material
 
     def _audit_update(self, material: Material, changes: dict) -> None:

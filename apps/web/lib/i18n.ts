@@ -1969,6 +1969,44 @@ export const ptBR = {
     noneHint:
       "Sem curva registrada não quer dizer curva nula: este material só não tem curvas cadastradas.",
     kindCounts: "Curvas cadastradas por tipo",
+    // TM4-d: escrever a curva pela ficha.
+    edit: {
+      newCurve: "Nova curva",
+      editCurve: "Editar curva",
+      deleteCurve: "Excluir curva",
+      confirmDelete: "Excluir esta curva? A exclusão fica registrada no histórico.",
+      officialReadOnly:
+        "Curva do catálogo oficial licenciado: não é editada pela ficha.",
+      kindsError: "Não foi possível carregar os tipos de curva.",
+      rule:
+        "Digite os pontos como a fonte os deu, na unidade dela: nada é reordenado, interpolado ou preenchido. O x tem de crescer ao longo da série e cada série precisa de ao menos dois pontos. Toda curva precisa de fonte. Salvar substitui a curva inteira.",
+      kind: "Tipo de curva",
+      titleField: "Título",
+      description: "Descrição",
+      source: "Fonte",
+      citation: "Onde, na fonte",
+      xQuantity: "Grandeza do eixo x",
+      xUnit: "Unidade de x",
+      xTitle: "Título do eixo x (opcional)",
+      yQuantity: "Grandeza do eixo y",
+      yUnit: "Unidade de y",
+      yTitle: "Título do eixo y (opcional)",
+      family: "Família por",
+      familyHint: "Uma série por valor deste parâmetro.",
+      noFamily: "Nenhuma (série única)",
+      seriesLabel: (n: number) => `Série ${n}`,
+      seriesName: (n: number) => `Nome da série ${n} (opcional)`,
+      conditions: "Condições (opcional)",
+      parameterValue: (name: string) => `Valor de ${name.toLowerCase()}`,
+      parameterUnit: "Unidade",
+      points: "Pontos",
+      pointsHint:
+        "Um ponto por linha: x; y — ou x; y; y mín.; y máx. quando a fonte dá a faixa. Vírgula decimal aceita.",
+      addSeries: "Adicionar série",
+      badLine: (series: number, line: number) =>
+        `Série ${series}, linha ${line}: use "x; y" ou "x; y; y mín.; y máx." com números.`,
+      badParameter: (series: number) => `Série ${series}: informe o valor do parâmetro da família.`,
+    },
     kindCount: (label: string, n: number) =>
       n === 0 ? `${label}: nenhuma` : `${label}: ${n}`,
     picker: "Curva",
