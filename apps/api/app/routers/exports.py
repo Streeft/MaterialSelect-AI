@@ -157,7 +157,9 @@ def export_study_laudo(
 @router.get("/materiais/{material_id}/cae")
 def export_material_cae(
     material_id: int,
-    formato: str = Query(description="mapdl, matml, abaqus, nastran ou lsdyna."),
+    formato: str = Query(
+        description="mapdl, matml, abaqus, nastran, lsdyna, nastran-thermal ou lsdyna-thermal."
+    ),
     unidades: str = Query(
         description=(
             "Sistema de unidades CAE consistente: m-kg-s, mm-t-s ou in-lbf-s. Não é a "

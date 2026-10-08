@@ -700,6 +700,11 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-112 (Sessão 67):** `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
+(`*MAT_THERMAL_ISOTROPIC`) exigem condutividade e calor específico (422 sem
+eles); composição e designação entram nos cartões como texto informativo,
+sempre com a ausência escrita, e nas planilhas "Composição"/"Designações".
+
 **O cartão de material para CAE saiu** ([D-104](DECISIONS.md), TM5,
 Sessão 59): `app/exporters/cae/` tem um renderizador por formato — Ansys MAPDL,
 MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` —, escrito a partir

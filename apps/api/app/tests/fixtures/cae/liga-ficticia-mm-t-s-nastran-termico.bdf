@@ -1,4 +1,5 @@
-$ MaterialSelect AI - cartao de material para Nastran (MAT1, campo largo)
+$ MaterialSelect AI - cartao de material para Nastran (MAT4, termico, campo
+$ largo)
 $
 $ ATENCAO: este cartao contem valores marcados como demonstrativos, que sao
 $ ficticios. Nao utilizar em projetos reais.
@@ -23,28 +24,23 @@ $ MPa, temperatura K
 $ Valores convertidos da unidade canonica do catalogo pelo Pint.
 $
 $ Propriedades (valor completo; um campo de largura fixa pode arredondar):
-$ densidade [MAT1 RHO] = 7.85E-09 t*mm^-3; qualidade: ESTIMADO; fonte: Fonte
+$ densidade [MAT4 RHO] = 7.85E-09 t*mm^-3; qualidade: ESTIMADO; fonte: Fonte
 $ ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio de
 $ demonstracao
-$ modulo de Young [MAT1 E] = 210000. MPa; qualidade: ESTIMADO; fonte: Fonte
-$ ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio de
-$ demonstracao
-$ faixa cadastrada 200000. a 220000. MPa: exportado o ponto representativo da
-$ faixa
-$ coeficiente de Poisson [MAT1 NU] = 0.3 adimensional; qualidade: ESTIMADO;
+$ modulo de Young: cadastrado, mas fora deste cartao (pertence ao MAT1, nao
+$ exportado neste cartao termico)
+$ coeficiente de Poisson: cadastrado, mas fora deste cartao (pertence ao MAT1,
+$ nao exportado neste cartao termico)
+$ coeficiente de expansao termica: cadastrado, mas fora deste cartao (pertence
+$ ao MAT1, nao exportado neste cartao termico)
+$ condutividade termica [MAT4 K] = 50. mW*mm^-1*K^-1; qualidade: ESTIMADO;
 $ fonte: Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado
 $ ficticio de demonstracao
-$ coeficiente de expansao termica [MAT1 A] = 1.2E-05 K^-1; qualidade: ESTIMADO;
+$ calor especifico [MAT4 CP] = 460000000. mJ*t^-1*K^-1; qualidade: ESTIMADO;
 $ fonte: Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado
 $ ficticio de demonstracao
-$ condutividade termica: cadastrado, mas fora deste cartao (pertence ao MAT4
-$ (formato nastran-thermal), nao exportado aqui)
-$ calor especifico: cadastrado, mas fora deste cartao (pertence ao MAT4 (formato
-$ nastran-thermal), nao exportado aqui)
 $
 $ MID = 1: troque se o numero ja estiver em uso no seu modelo.
-$ G em branco: o solver o calcula de E e NU.
-$ TREF e GE em branco: parametros do modelo, nao do material (o solver assume
-$ 0,0).
-MAT1*                  1         210000.                             0.3
-*               7.85E-09         1.2E-05
+$ H, MU, HGEN e REFENH em branco: parametros do modelo, nao do material.
+MAT4*                  1             50.      460000000.        7.85E-09
+*
