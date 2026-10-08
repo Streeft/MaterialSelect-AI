@@ -495,6 +495,7 @@ class StudyOut(BaseModel):
     # `stages` below is what carries the study's actual structure.
     combinator: str
     constraints: list[ConstraintIn]
+    root_group: ConstraintGroupIn | None = None
     stages: list[StageOut] = Field(default_factory=list)
     index: IndexIn | None = None
     normalization: str
