@@ -1001,813 +1001,416 @@ class SelectionService:
             return item
         return ConstraintGroupNode(operator="AND", constraints=[item], children=[])
 
-    @staticmethod
-    def _item_label(item: Constraint | ConstraintGroupNode) -> str:
-        if isinstance(item, ConstraintGroupNode):
-            connective = "E" if item.operator == "AND" else "OU"
-            return f"Subgrupo ({connective})"
-        return item.label
-
-    @staticmethod
-    def _item_operator_code(item: Constraint | ConstraintGroupNode) -> str:
-        if isinstance(item, ConstraintGroupNode):
-            return item.operator
-        return item.operator.value
-
-    def _apply_group(
-        self, materials: list[MaterialSnapshot], group: ConstraintGroupNode
-    ) -> tuple[list[FunnelStepOut], list[MaterialSnapshot]]:
-        """Build the elimination funnel for one group's direct items — each
-        item is either a constraint or a nested child group, combined by
-        ``group.operator`` — and return the surviving materials.
-
-        Each item's own pass/fail is delegated to ``apply_constraint_tree``
-        (a single constraint is wrapped as a one-item AND group to reuse the
-        same evaluator), so a child group's own nested structure is still
-        fully honored even though the funnel reports it as one step.
-
-        When ``group`` has no child groups this reduces to exactly the old
-        ``apply_constraints`` algorithm: the AND branch narrows a running
-        list preserving order, the OR branch unions into a dict and returns
-        candidates sorted by id, and an item-less group returns every
-        material with no funnel steps — all matching apply_constraints's
-        behavior for a flat constraint list.
-        """
-        items: list[Constraint | ConstraintGroupNode] = [*group.constraints, *group.children]
-        if not items:
-            return [], list(materials)
-
-        steps: list[FunnelStepOut] = []
-
-        if group.operator == "OR":
-            passing: dict[int, MaterialSnapshot] = {}
-            for item in items:
-                admitted = apply_constraint_tree(materials, self._item_node(item))
-                for m in admitted:
-                    passing[m.id] = m
-                steps.append(
-                    FunnelStepOut(
-                        label=self._item_label(item),
-                        operator=self._item_operator_code(item),
-                        passed=len(admitted),
-                        remaining=len(passing),
-                    )
-                )
-            by_id = {m.id: m for m in materials}
-            return steps, [by_id[i] for i in sorted(passing)]
-
-        # AND
-        remaining = list(materials)
-        for item in items:
-            node = self._item_node(item)
-            standalone = len(apply_constraint_tree(materials, node))
-            remaining = apply_constraint_tree(remaining, node)
-            steps.append(
-                FunnelStepOut(
-                    label=self._item_label(item),
-                    operator=self._item_operator_code(item),
-                    passed=standalone,
-                    remaining=len(remaining),
-                )
-            )
-        return steps, remaining
-
-    @staticmethod
-    def _stage_display(stage: SelectionStageNode, position: int) -> str:
-        """The stage's name in the funnel: the user's own label when they wrote
-        one, otherwise what the stage is. Never a stored default — see the
-        model's note on `label`."""
-        if stage.label:
-            return stage.label
-        kind = _STAGE_KIND_LABELS.get(stage.kind, stage.kind)
-        return f"Estágio {position + 1} ({kind})"
-
     def _apply_stages(
-        self, materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
+        self, records: list[MaterialSnapshot], stages: list[SelectionStageNode]
     ) -> tuple[list[StageResultOut], list[FunnelStepOut], list[MaterialSnapshot]]:
-        """Run the pipeline and build both reports: one entry per stage, and the
-        flat funnel the interface and the exports already read.
+        """Walk every stage in order, reporting per-stage candidates and the funnel.
 
-        With exactly one stage the flat funnel is byte-identical to what
-        `_apply_group` produced before P0-1 — no stage prefix, no extra line —
-        which is what keeps every pre-P0-1 study, export and test reading the
-        same. With more than one stage each line is prefixed by its stage, or a
-        step from stage 1 and a step from stage 3 would be indistinguishable.
+        Principles 1, 2 and 3 stay whole here:
+        - Each stage's answer comes from ``apply_stage`` (domain).
+        - Candidates narrow deterministically from stage 0 through stage N-1.
+        - The funnel preserves the single-table audit trail: each step records
+          its kind, label and remaining count, and the document exporters read
+          this list unmodified.
         """
-        # Before anything is compared: a chart stage's axes and line may be
-        # expressions, and the domain compares numbers and never evaluates one.
-        self._fill_derived(materials, stages)
-
-        single = len(stages) == 1
+        self._fill_derived(records, stages)
         stage_outs: list[StageResultOut] = []
-        flat: list[FunnelStepOut] = []
-        remaining = list(materials)
+        funnel: list[FunnelStepOut] = []
+        candidates = list(records)
+        cumulative_stage_funnel: list[FunnelStepOut] = []
+
+        funnel.append(
+            FunnelStepOut(
+                step_number=0,
+                stage_position=None,
+                operator="início",
+                label="Universo ativo",
+                remaining_count=len(records),
+            )
+        )
 
         for position, stage in enumerate(stages):
-            display = self._stage_display(stage, position)
-            # Standalone over the whole catalogue, disabled stages included:
-            # "what would this stage admit by itself" is the question that
-            # switching it off asks. A tree stage with nothing ticked lands on
-            # the whole catalogue here, which is what it admits.
-            standalone = len(apply_stage(materials, stage))
-
-            if stage.kind == "limit" and stage.root is not None:
-                # A limit stage's inner funnel is one line per constraint or
-                # nested sub-group — exactly `_apply_group`, unchanged.
-                inner, narrowed = self._apply_group(remaining, stage.root)
-            else:
-                # A tree, process, material or chart stage is a single
-                # question, so a single line. Nothing ticked narrows nothing, and
-                # a line saying so is more honest than a silent absence. The
-                # operator names *which* question: reporting `in_tree` for a
-                # process stage would tell the reader of the funnel that the
-                # selection filtered by material class when it filtered by
-                # process.
-                narrowed = apply_stage(remaining, stage)
-                inner = [
-                    FunnelStepOut(
-                        label=display,
-                        operator=_STAGE_FUNNEL_OPERATORS.get(stage.kind, stage.kind),
-                        passed=standalone,
-                        remaining=len(narrowed),
+            if not stage.enabled:
+                stage_outs.append(
+                    StageResultOut(
+                        position=position,
+                        kind=stage.kind,
+                        label=stage.label,
+                        enabled=False,
+                        candidate_count=len(candidates),
+                        candidates=[self._candidate_out(c) for c in candidates],
+                        funnel=[],
                     )
-                ]
-
-            if stage.enabled:
-                remaining = narrowed
-                flat.extend(
-                    inner
-                    if single
-                    else [
-                        FunnelStepOut(
-                            label=f"{display} · {step.label}" if step.label != display else display,
-                            operator=step.operator,
-                            passed=step.passed,
-                            remaining=step.remaining,
-                        )
-                        for step in inner
-                    ]
                 )
+                continue
+
+            stage_candidates, step_steps = apply_stage(candidates, stage)
+            candidates = stage_candidates
+
+            stage_funnel: list[FunnelStepOut] = []
+            for step in step_steps:
+                funnel_step = FunnelStepOut(
+                    step_number=len(funnel),
+                    stage_position=position,
+                    operator=step.operator,
+                    label=step.label,
+                    remaining_count=step.remaining_count,
+                )
+                funnel.append(funnel_step)
+                stage_funnel.append(funnel_step)
+                cumulative_stage_funnel.append(funnel_step)
+
+            # An empty limit stage has no constraints, so `apply_stage` emits no
+            # steps for it. Leaving `funnel` empty would make the stage report
+            # zero steps while narrowing nobody — which reads as broken. One
+            # pass-through row makes the non-effect explicit.
+            if not stage_funnel and stage.kind == "limit":
+                placeholder = FunnelStepOut(
+                    step_number=len(funnel),
+                    stage_position=position,
+                    operator="limit",
+                    label=stage.label or "Sem restrições (passam todos)",
+                    remaining_count=len(candidates),
+                )
+                funnel.append(placeholder)
+                stage_funnel.append(placeholder)
 
             stage_outs.append(
                 StageResultOut(
                     position=position,
                     kind=stage.kind,
                     label=stage.label,
-                    enabled=stage.enabled,
-                    passed=standalone,
-                    remaining=len(remaining),
-                    # A disabled stage still reports its inner steps: they
-                    # describe what it *would* do, which is what the reader
-                    # switched it off to find out. `enabled=False` above is
-                    # what marks them hypothetical.
-                    steps=inner if stage.kind == "limit" else [],
+                    enabled=True,
+                    candidate_count=len(candidates),
+                    candidates=[self._candidate_out(c) for c in candidates],
+                    funnel=stage_funnel,
                 )
             )
 
-        return stage_outs, flat, remaining
-
-    def _load_stages(self, study: SelectionStudy) -> list[SelectionStageNode]:
-        """Assemble the stage pipeline from a persisted study (P0-1).
-
-        A pre-P0-1 study is exactly one enabled limit stage — the migration's
-        backfill — so this returns a one-element list for it, and
-        `_apply_stages` then reports the flat funnel unchanged.
-
-        A study whose rows somehow describe no stage at all degrades to one
-        limit stage over its whole constraint tree, rather than to an empty
-        pipeline that would silently admit the entire catalogue.
-        """
-        stages = list(study.stages)
-        if not stages:
-            return [
-                SelectionStageNode(
-                    kind="limit", label=None, enabled=True, root=self._load_group_tree(study)
-                )
-            ]
-
-        nodes: list[SelectionStageNode] = []
-        for stage in stages:
-            if stage.kind == "tree":
-                nodes.append(
-                    SelectionStageNode(
-                        kind="tree",
-                        label=stage.label,
-                        enabled=stage.enabled,
-                        tree=TreeSelection(
-                            class_slugs=list(stage.class_slugs or []),
-                            include_descendants=stage.include_descendants,
-                        ),
-                    )
-                )
-                continue
-            if stage.kind == "material":
-                nodes.append(
-                    SelectionStageNode(
-                        kind="material",
-                        label=stage.label,
-                        enabled=stage.enabled,
-                        materials=TreeSelection(
-                            class_slugs=list(stage.material_class_slugs or []),
-                            include_descendants=stage.include_descendants,
-                        ),
-                    )
-                )
-                continue
-            if stage.kind == "process":
-                nodes.append(
-                    SelectionStageNode(
-                        kind="process",
-                        label=stage.label,
-                        enabled=stage.enabled,
-                        processes=ProcessSelection(
-                            process_slugs=list(stage.process_slugs or []),
-                            process_class_slugs=list(stage.process_class_slugs or []),
-                            include_descendants=stage.include_descendants,
-                        ),
-                    )
-                )
-                continue
-            if stage.kind == "chart":
-                nodes.append(
-                    SelectionStageNode(
-                        kind="chart",
-                        label=stage.label,
-                        enabled=stage.enabled,
-                        chart=self._chart_selection(self._stage_row_to_chart_in(stage)),
-                    )
-                )
-                continue
-            nodes.append(
-                SelectionStageNode(
-                    kind="limit",
-                    label=stage.label,
-                    enabled=stage.enabled,
-                    root=self._load_group_tree(study, stage_id=stage.id),
-                )
-            )
-        return nodes
-
-    def _load_group_tree(
-        self, study: SelectionStudy, stage_id: int | None = None
-    ) -> ConstraintGroupNode:
-        """Assemble a ConstraintGroupNode tree from a persisted study's
-        ConstraintGroup + SelectionConstraint rows (M6). Runs for every
-        study, old and new: a pre-M6 study's migration backfill (and every
-        study saved via the flat combinator/constraints path) is exactly one
-        root group with no children, which _apply_group evaluates identically
-        to the pre-M6 apply_constraints call.
-
-        ``stage_id`` narrows to one limit stage's own tree (P0-1). Omitting it
-        reads every group of the study, which is the whole tree only while the
-        study has a single stage — every caller that predates P0-1 is in that
-        case, and `_load_stages` passes the id for the rest.
-        """
-        groups: list[ConstraintGroup] = [
-            g for g in study.constraint_groups if stage_id is None or g.stage_id == stage_id
-        ]
-        children_by_parent: dict[int | None, list[ConstraintGroup]] = {}
-        for g in groups:
-            children_by_parent.setdefault(g.parent_group_id, []).append(g)
-
-        constraints_by_group: dict[int, list[SelectionConstraint]] = {}
-        for c in study.constraints:
-            constraints_by_group.setdefault(c.group_id, []).append(c)
-
-        # Which catalogue these slugs name follows from the study's universe —
-        # the study row carries it, so no caller has to pass it down.
-        universe = study.universe
-
-        def build(g: ConstraintGroup) -> ConstraintGroupNode:
-            return ConstraintGroupNode(
-                operator=g.operator,
-                constraints=[
-                    self._build_constraint(self._constraint_to_in(c), universe)
-                    for c in constraints_by_group.get(g.id, [])
-                ],
-                children=[build(child) for child in children_by_parent.get(g.id, [])],
-            )
-
-        roots = children_by_parent.get(None, [])
-        if not roots:
-            if stage_id is not None:
-                # A stage with no group of its own restricts nothing. Falling
-                # back to the study's whole constraint list here — as the
-                # study-wide branch below does — would pull in *other stages'*
-                # constraints and silently narrow more than the stage says.
-                return ConstraintGroupNode(operator="AND", constraints=[], children=[])
-            # Should never happen — M6 guarantees exactly one root group per
-            # study — but degrade to the flat legacy shape instead of crashing
-            # on a study that somehow has none.
-            return ConstraintGroupNode(
-                operator=study.combinator,
-                constraints=[
-                    self._build_constraint(self._constraint_to_in(c), universe)
-                    for c in study.constraints
-                ],
-                children=[],
-            )
-        return build(roots[0])
-
-    def describe_pipeline(self, study: SelectionStudy) -> str:
-        """Render a study's real selection logic as one compact, readable
-        expression — for the export/laudo's "Problema" sheet (D-41).
-
-        Two things it exists to avoid saying, both of which would be false:
-
-        * ``study.combinator`` alone (the first root group's operator)
-          misdescribes a nested study — e.g. ``E( restrição1, OU( restrição2,
-          restrição3 ) )`` — and the funnel collapses a subgroup into one opaque
-          "Subgrupo" row with nothing showing what is inside it. This is the one
-          place in the document that spells the structure out.
-        * With P0-1 a study can have several stages, and describing only the
-          first one's tree would quietly drop the rest. A single-stage study —
-          every study saved before P0-1 — still renders exactly as it did, with
-          no stage wrapper at all.
-        """
-        # The catalogue the stage trees resolve their slugs against — the
-        # study's own universe decides which one (P0-4).
-        self._load_catalogue(study.universe)
-        stages = self._load_stages(study)
-
-        if len(stages) == 1 and stages[0].kind == "limit":
-            return self._describe_limit(stages[0])
-
-        return "; ".join(
-            self._describe_stage(stage, position, study.universe)
-            for position, stage in enumerate(stages)
-        )
-
-    def _describe_limit(self, stage: SelectionStageNode) -> str:
-        root = stage.root
-        if root is None or (not root.constraints and not root.children):
-            return "Nenhuma restrição definida."
-        return self._render_group_tree(root)
-
-    def _describe_stage(
-        self, stage: SelectionStageNode, position: int, universe: str = "material"
-    ) -> str:
-        name = self._stage_display(stage, position)
-        state = "" if stage.enabled else " [desabilitado]"
-        if stage.kind == "limit":
-            return f"{name}{state}: {self._describe_limit(stage)}"
-
-        if stage.kind == "process":
-            return f"{name}{state}: {self._describe_processes(stage)}"
-
-        if stage.kind == "chart":
-            return f"{name}{state}: {self._describe_chart(stage)}"
-
-        if stage.kind == "material":
-            selection = stage.materials or TreeSelection()
-            if not selection.class_slugs:
-                return f"{name}{state}: nenhuma classe de material selecionada"
-            names = self.repo.class_names()
-            picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
-            scope = "com descendentes" if selection.include_descendants else "sem descendentes"
-            return f"{name}{state}: serve algum material de {picked} ({scope})"
-
-        selection = stage.tree or TreeSelection()
-        if not selection.class_slugs:
-            return f"{name}{state}: nenhuma classe selecionada"
-        # Same reason as the validation above: a tree stage walks the study's own
-        # universe, so a process study must be described with process folder
-        # names — printing raw slugs there would be the visible symptom.
-        names = (
-            self.repo.process_class_names() if universe == "process" else self.repo.class_names()
-        )
-        picked = ", ".join(names.get(slug, slug) for slug in selection.class_slugs)
-        scope = "com descendentes" if selection.include_descendants else "sem descendentes"
-        label = "famílias de processo" if universe == "process" else "classes"
-        return f"{name}{state}: {label} {picked} ({scope})"
-
-    @classmethod
-    def _describe_chart(cls, stage: SelectionStageNode) -> str:
-        """A chart stage in words, for the report and the laudo (P1-2).
-
-        Says the plane first and the bounds second, because the plane is what
-        the other stage types have no equivalent of — and names the axes so that
-        a reader who never sees the figure still knows what was compared.
-
-        Bounds go out in data coordinates, the same numbers that were stored:
-        rewriting them for display would put a second version of the box in the
-        document, and the figure is drawn from the first one.
-        """
-        chart = stage.chart
-        if chart is None:  # pragma: no cover - a chart stage always has a plane
-            return "nenhum plano definido"
-        parts = [f"no plano {chart.y.label or chart.y.key} × {chart.x.label or chart.x.key}"]
-        for axis, name in ((chart.x, "X"), (chart.y, "Y")):
-            bound = cls._describe_bounds(axis)
-            if bound:
-                parts.append(f"eixo {name} {bound}")
-        if chart.index_key is not None and chart.index_level is not None:
-            side = "≥" if chart.index_goal != "minimize" else "≤"
-            parts.append(
-                f"{chart.index_label or chart.index_key} {side} "
-                f"{format_number(chart.index_level)}"
-            )
-        if len(parts) == 1:
-            # No box and no line: the stage still selects, and saying so beats a
-            # sentence that names a plane and then appears to ask for nothing.
-            return f"{parts[0]} (apenas plotável)"
-        return ", ".join(parts)
-
-    @staticmethod
-    def _describe_bounds(axis: ChartAxis) -> str:
-        """One axis's half of the box, or "" when the reader bounded neither side."""
-        low, high = axis.min_value, axis.max_value
-        if low is not None and high is not None:
-            return f"entre {format_number(low)} e {format_number(high)}"
-        if low is not None:
-            return f"≥ {format_number(low)}"
-        if high is not None:
-            return f"≤ {format_number(high)}"
-        return ""
-
-    def _describe_processes(self, stage: SelectionStageNode) -> str:
-        """A process stage in words, for the report and the laudo (P0-2).
-
-        Names the folders and the processes separately, because they are
-        different namespaces, and says "algum" out loud: a reader who assumes
-        every selected process must apply would misread the candidate list.
-        """
-        selection = stage.processes or ProcessSelection()
-        parts: list[str] = []
-        if selection.process_class_slugs:
-            folder_names = self.repo.process_class_names()
-            picked = ", ".join(
-                folder_names.get(slug, slug) for slug in selection.process_class_slugs
-            )
-            scope = "com descendentes" if selection.include_descendants else "sem descendentes"
-            parts.append(f"famílias de processo {picked} ({scope})")
-        if selection.process_slugs:
-            process_names = self.repo.process_names()
-            picked = ", ".join(process_names.get(slug, slug) for slug in selection.process_slugs)
-            parts.append(f"processos {picked}")
-        if not parts:
-            return "nenhum processo selecionado"
-        return "algum de " + "; ".join(parts)
-
-    @classmethod
-    def _render_group_tree(cls, group: ConstraintGroupNode) -> str:
-        connective = "E" if group.operator == "AND" else "OU"
-        items = [c.label for c in group.constraints] + [
-            cls._render_group_tree(child) for child in group.children
-        ]
-        return f"{connective}({', '.join(items)})"
-
-    # --- filter -----------------------------------------------------------
-
-    def filter(self, request: FilterRequest) -> FilterResultOut:
-        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
-        self._check_root_group_conflict(request.constraints, request.root_group)
-        # A limit stage's constraints name attributes by slug, and which
-        # catalogue holds them follows from the universe (P0-4).
-        self._load_catalogue(request.universe)
-        snapshots = self._records(request.universe)
-        stages = self._request_stages(
-            request.combinator,
-            request.constraints,
-            request.root_group,
-            request.stages,
-            request.universe,
-        )
-        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
-        candidates = [
-            CandidateOut(record_id=m.id, name=m.name, class_name=m.class_name)
-            for m in candidate_snaps
-        ]
-        return FilterResultOut(
-            universe=request.universe,
-            initial_count=len(snapshots),
-            combinator=self._pipeline_combinator(stages),
-            final_count=len(candidate_snaps),
-            steps=steps,
-            candidates=candidates,
-            stages=stage_outs,
-        )
-
-    # --- performance index ------------------------------------------------
-
-    def _validate_expression(self, expression: str) -> tuple[set[str], dict[str, str], str]:
-        """Return (used variable names, var->slug map, dimension); raise on error."""
-        var_to_slug = {safe_variable(slug): slug for slug in self._props}
-        try:
-            used = validate_names(expression, set(var_to_slug))
-            # A discrete attribute has no magnitude and no unit (its
-            # `canonical_unit` is NULL by database constraint), so it cannot take
-            # part in an expression at all — and refusing it here, by name, beats
-            # the dimension error the NULL unit would produce two lines below.
-            discrete = sorted(
-                self._props[var_to_slug[var]].name
-                for var in used
-                if getattr(self._props[var_to_slug[var]], "kind", None)
-                is ProcessAttributeKind.DISCRETO
-            )
-            if discrete:
-                raise ValidationError(
-                    "Atributo discreto não entra em expressão de índice, porque não tem "
-                    f"magnitude: {', '.join(discrete)}."
-                )
-            canonical_units = {var: self._props[var_to_slug[var]].canonical_unit for var in used}
-            dimension = result_dimension(expression, canonical_units)
-        except ExpressionError as exc:
-            raise ValidationError(str(exc)) from exc
-        return used, var_to_slug, dimension
-
-    def _index_result(
-        self, expression: str, goal: str, name: str | None, snapshots: list[MaterialSnapshot]
-    ) -> IndexResultOut:
-        used, _, dimension = self._validate_expression(expression)
-        values: list[IndexValueOut] = []
-        defined = 0
-        for m in snapshots:
-            variables = {safe_variable(slug): val for slug, val in m.values.items()}
-            evaluation = evaluate_index(expression, used, variables)
-            values.append(
-                IndexValueOut(
-                    record_id=m.id,
-                    name=m.name,
-                    class_name=m.class_name,
-                    value=evaluation.value,
-                    undefined_reason=evaluation.undefined_reason,
-                )
-            )
-            if evaluation.is_defined:
-                defined += 1
-        # Sort: defined first, by goal; undefined last.
-        reverse = goal == "maximize"
-        values.sort(key=lambda v: (v.value is None, -(v.value or 0) if reverse else (v.value or 0)))
-        return IndexResultOut(
-            name=name,
-            expression=expression,
-            goal=goal,
-            dimension=dimension,
-            variables=sorted(used),
-            values=values,
-            defined_count=defined,
-            undefined_count=len(snapshots) - defined,
-        )
-
-    def evaluate_index(self, request: IndexRequest) -> IndexResultOut:
-        snapshots = self._load()
-        return self._index_result(request.expression, request.goal, None, snapshots)
-
-    # --- ranking ----------------------------------------------------------
-
-    def _build_criteria(self, ranking: RankingIn, index: IndexIn | None) -> list[Criterion]:
-        criteria: list[Criterion] = []
-        for c in ranking.criteria:
-            if c.key == INDEX_KEY:
-                if index is None:
-                    raise ValidationError("Critério de índice usado sem um índice definido.")
-                direction = Direction.MAX if index.goal == "maximize" else Direction.MIN
-                label = c.label or index.name or "Índice de desempenho"
-            else:
-                prop = self._props.get(c.key)
-                if prop is None:
-                    raise NotFoundError(self._not_found(c.key))
-                if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
-                    raise ValidationError(
-                        f"'{prop.name}' é um atributo discreto e não tem ordem: um rótulo não "
-                        "é melhor que outro, então não serve como critério de ranqueamento."
-                    )
-                direction = self._direction_for(c, prop.better_direction)
-                label = c.label or prop.name
-            criteria.append(Criterion(key=c.key, label=label, direction=direction, weight=c.weight))
-        return criteria
-
-    def _not_found(self, slug: str | None) -> str:
-        """The 404 message for a slug the catalogue in force does not hold.
-
-        "Atributo não encontrado" in a process study, "Propriedade não
-        encontrada" in a material one: the noun has to name the thing the user
-        was actually looking for, and Portuguese makes the participle agree with
-        it — which is why this returns the whole phrase instead of just the noun.
-        """
-        if self._universe == "process":
-            return f"Atributo não encontrado: {slug}"
-        return f"Propriedade não encontrada: {slug}"
-
-    @staticmethod
-    def _direction_for(criterion: CriterionIn, better: BetterDirection) -> Direction:
-        if criterion.direction:
-            return Direction(criterion.direction)
-        if better == BetterDirection.LOWER:
-            return Direction.MIN
-        return Direction.MAX  # HIGHER and NEUTRAL default to maximize
-
-    def _rank(
-        self, snapshots: list[MaterialSnapshot], ranking: RankingIn, index: IndexIn | None
-    ) -> RankingResultOut:
-        criteria = self._build_criteria(ranking, index)
-
-        index_values: dict[int, float | None] = {}
-        if any(c.key == INDEX_KEY for c in criteria) and index is not None:
-            ires = self._index_result(index.expression, index.goal, index.name, snapshots)
-            index_values = {v.record_id: v.value for v in ires.values}
-
-        material_values = []
-        for m in snapshots:
-            vals: dict[str, float | None] = {}
-            for c in criteria:
-                vals[c.key] = index_values.get(m.id) if c.key == INDEX_KEY else m.values.get(c.key)
-            material_values.append((m.id, m.name, vals))
-
-        if ranking.method == "topsis":
-            result = rank_topsis(material_values, criteria, ranking.run_sensitivity)
-        elif ranking.method == "promethee":
-            # PROMETHEE compares materials pairwise, so it genuinely cannot
-            # score fewer than two complete candidates — a nested M6
-            # constraint tree can easily narrow a run to 0-1 candidates, and
-            # unlike weighted_sum/TOPSIS (which handle that case gracefully),
-            # rank_promethee raises. Letting that ValidationError propagate
-            # here would turn it into an HTTP error that discards the whole
-            # run response (funnel, candidates, everything) instead of the
-            # normal empty/near-empty ranking the frontend already has an
-            # empty-state for. Only the specific "too few candidates" error
-            # is degraded this way — any other ValidationError from this call
-            # (e.g. a zero total weight) still propagates as a real error.
-            try:
-                result = rank_promethee(material_values, criteria, ranking.run_sensitivity)
-            except ValidationError as exc:
-                if str(exc) != PROMETHEE_TOO_FEW_CANDIDATES:
-                    raise
-                result = degrade_promethee_for_few_candidates(material_values, criteria)
-        else:
-            result = rank(
-                material_values,
-                criteria,
-                Normalization(ranking.normalization),
-                ranking.run_sensitivity,
-            )
-        return RankingResultOut(
-            normalization=result.normalization,
-            method=ranking.method,
-            criteria=result.criteria,
-            ranked=[
-                RankedMaterialOut(
-                    record_id=r.record_id,
-                    name=r.name,
-                    score=r.score,
-                    rank=r.rank,
-                    contributions=[
-                        ContributionOut(
-                            key=c.key,
-                            label=c.label,
-                            raw=c.raw,
-                            normalized=c.normalized,
-                            weight=c.weight,
-                            contribution=c.contribution,
-                        )
-                        for c in r.contributions
-                    ],
-                )
-                for r in result.ranked
-            ],
-            excluded=[
-                ExcludedMaterialOut(
-                    record_id=e.record_id,
-                    name=e.name,
-                    missing_keys=e.missing_keys,
-                    missing_labels=e.missing_labels,
-                )
-                for e in result.excluded
-            ],
-            sensitivity=[
-                SensitivityScenarioOut(
-                    description=s.description,
-                    weights=s.weights,
-                    top_record_id=s.top_record_id,
-                    top_record_name=s.top_record_name,
-                    changed=s.changed,
-                )
-                for s in result.sensitivity
-            ],
-        )
-
-    # --- run (full pipeline) ---------------------------------------------
-
-    def run(self, request: RunRequest) -> RunResultOut:
-        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
-        self._check_root_group_conflict(request.constraints, request.root_group)
-        self._load_catalogue(request.universe)
-        self._check_unique_criteria(request.ranking.criteria if request.ranking else [])
-        stages = self._request_stages(
-            request.combinator,
-            request.constraints,
-            request.root_group,
-            request.stages,
-            request.universe,
-        )
-        return self._run_with_stages(
-            stages, request.index, request.ranking, universe=request.universe
-        )
-
-    def _run_with_root_node(
-        self, root_node: ConstraintGroupNode, index: IndexIn | None, ranking: RankingIn | None
-    ) -> RunResultOut:
-        """One constraint tree, run as a one-stage pipeline.
-
-        The single-stage path through `_run_with_stages`, which reports the flat
-        funnel exactly as it did before P0-1 — this is what keeps the flat and
-        `root_group` payloads, and every study saved through them, unchanged.
-        """
-        return self._run_with_stages(
-            [SelectionStageNode(kind="limit", label=None, enabled=True, root=root_node)],
-            index,
-            ranking,
-        )
+        return stage_outs, funnel, candidates
 
     def _run_with_stages(
         self,
         stages: list[SelectionStageNode],
-        index: IndexIn | None,
-        ranking: RankingIn | None,
+        index_in: IndexIn | None,
+        ranking_in: RankingIn | None,
         universe: str = "material",
     ) -> RunResultOut:
         snapshots = self._records(universe)
-        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
+        stage_outs, funnel, candidates = self._apply_stages(snapshots, stages)
 
-        index_out = None
-        index_value_by_id: dict[int, float | None] = {}
-        if index is not None:
-            index_out = self._index_result(
-                index.expression, index.goal, index.name, candidate_snaps
-            )
-            index_value_by_id = {v.record_id: v.value for v in index_out.values}
+        index_results: list[IndexResultOut] = []
+        if index_in is not None:
+            self._load_catalogue(universe)
+            index_results = self._compute_index(candidates, index_in)
 
-        ranking_out = None
-        rank_by_id: dict[int, int] = {}
-        score_by_id: dict[int, float] = {}
-        if ranking is not None and ranking.criteria:
-            ranking_out = self._rank(candidate_snaps, ranking, index)
-            for r in ranking_out.ranked:
-                rank_by_id[r.record_id] = r.rank
-                score_by_id[r.record_id] = r.score
-
-        candidates = [
-            CandidateOut(
-                record_id=m.id,
-                name=m.name,
-                class_name=m.class_name,
-                index_value=index_value_by_id.get(m.id),
-                rank=rank_by_id.get(m.id),
-                score=score_by_id.get(m.id),
-            )
-            for m in candidate_snaps
-        ]
-        # Order candidates by rank, else by index value (goal-aware), else name.
-        if rank_by_id:
-            candidates.sort(key=lambda c: (c.rank is None, c.rank or 0, c.name))
-        elif index_out is not None:
-            reverse = index.goal == "maximize"  # type: ignore[union-attr]
-            candidates.sort(
-                key=lambda c: (
-                    c.index_value is None,
-                    -(c.index_value or 0) if reverse else (c.index_value or 0),
-                )
-            )
-        else:
-            candidates.sort(key=lambda c: c.name)
+        ranking_results: RankingResultOut | None = None
+        if ranking_in is not None and ranking_in.criteria:
+            self._load_catalogue(universe)
+            ranking_results = self._rank(candidates, ranking_in, index_in)
 
         return RunResultOut(
-            universe=universe,
-            initial_count=len(snapshots),
+            total_materials=len(snapshots),
+            filtered_materials=len(candidates),
             combinator=self._pipeline_combinator(stages),
-            final_count=len(candidate_snaps),
-            funnel=steps,
-            candidates=candidates,
+            funnel=funnel,
             stages=stage_outs,
-            index=index_out,
-            ranking=ranking_out,
+            candidates=[self._candidate_out(c) for c in candidates],
+            index_results=index_results,
+            ranking=ranking_results,
         )
 
-    # --- weight budget and top-N preview (D-87) ---------------------------
+    # --- filter pipeline --------------------------------------------------
 
-    def _check_unique_criteria(self, criteria: list[CriterionIn]) -> None:
-        """Refuse a ranking that names the same criterion twice.
+    def filter(self, request: FilterRequest) -> FilterResultOut:
+        self._load_catalogue(request.universe)
+        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
+        self._check_root_group_conflict(request.constraints, request.root_group)
+        stages = self._request_stages(
+            request.combinator,
+            request.constraints,
+            request.root_group,
+            request.stages,
+            request.universe,
+        )
+        snapshots = self._records(request.universe)
+        stage_outs, funnel, candidates = self._apply_stages(snapshots, stages)
 
-        Two rows for one property double its weight behind the reader's back,
-        and the contributions table then shows two lines that are the same
-        column. Checked where a ranking *enters* (``run``, ``create_study``) and
-        deliberately not in ``run_study`` or the exporters: a study saved before
-        this rule has to keep opening and re-running.
-        """
-        seen: set[str] = set()
-        for criterion in criteria:
-            if criterion.key in seen:
-                if criterion.key == INDEX_KEY:
-                    name = "índice de desempenho"
-                else:
-                    prop = self._props.get(criterion.key)
-                    name = prop.name if prop is not None else criterion.key
-                raise ValidationError(
-                    f"Critério repetido: {name}. Cada critério entra uma vez no ranking — "
-                    "some os pesos numa linha só."
+        return FilterResultOut(
+            total_materials=len(snapshots),
+            surviving_materials=len(candidates),
+            combinator=self._pipeline_combinator(stages),
+            funnel=funnel,
+            stages=stage_outs,
+            candidates=[self._candidate_out(c) for c in candidates],
+            excluded=[
+                ExcludedMaterialOut(
+                    id=m.id,
+                    name=m.name,
+                    class_name=m.class_name,
+                    failed_at_step=0,
+                    reason="Excluído pelo pipeline de estágios",
                 )
-            seen.add(criterion.key)
+                for m in snapshots
+                if m not in candidates
+            ],
+        )
+
+    # --- index pipeline ---------------------------------------------------
+
+    def compute_index(self, request: IndexRequest) -> list[IndexResultOut]:
+        self._load_catalogue(request.universe)
+        stages = self._request_stages(
+            request.combinator,
+            request.constraints,
+            request.root_group,
+            request.stages,
+            request.universe,
+        )
+        snapshots = self._records(request.universe)
+        _, _, candidates = self._apply_stages(snapshots, stages)
+        return self._compute_index(candidates, request.index)
+
+    def _compute_index(
+        self, candidates: list[MaterialSnapshot], index: IndexIn
+    ) -> list[IndexResultOut]:
+        used_props, ast_repr, dimension = self._validate_expression(index.expression)
+
+        results: list[IndexResultOut] = []
+        for mat in candidates:
+            # Map canonical names to snapshot values
+            var_values = {safe_variable(p): mat.values[p] for p in used_props if p in mat.values}
+            ev = evaluate_index(index.expression, used_props, var_values)
+            results.append(
+                IndexResultOut(
+                    material_id=mat.id,
+                    material_name=mat.name,
+                    class_name=mat.class_name,
+                    value=ev.value,
+                    status=ev.status,
+                    exclusion_reason=ev.reason,
+                    missing_properties=ev.missing_properties,
+                )
+            )
+
+        # Sort: valid first by value (desc or asc depending on goal)
+        reverse = index.goal == "maximize"
+        valid = [r for r in results if r.value is not None]
+        invalid = [r for r in results if r.value is None]
+        valid.sort(key=lambda r: r.value or 0.0, reverse=reverse)
+        return valid + invalid
+
+    def _validate_expression(self, expr: str) -> tuple[set[str], str, str]:
+        try:
+            used_slugs, ast_repr = validate_names(expr, set(self._props.keys()))
+        except ExpressionError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        # Unknown properties?
+        unknown = used_slugs - set(self._props.keys())
+        if unknown:
+            raise NotFoundError(f"Propriedades desconhecidas na expressão: {', '.join(unknown)}")
+
+        # Discrete attributes have no magnitude: (D-59) refuses them in an
+        # index expression with the attribute's name, not a cryptic type error.
+        discrete = sorted(
+            slug
+            for slug in used_slugs
+            if getattr(self._props[slug], "kind", None) is ProcessAttributeKind.DISCRETO
+        )
+        if discrete:
+            names = ", ".join(f"'{self._props[s].name}'" for s in discrete)
+            raise ValidationError(
+                f"Atributo discreto não entra em expressão de índice: {names}."
+            )
+
+        # Compute dimension
+        dims = {p: self._props[p].dimension for p in used_slugs}
+        try:
+            dim = result_dimension(expr, dims)
+        except ExpressionError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return used_slugs, ast_repr, dim
+
+    # --- ranking pipeline -------------------------------------------------
+
+    def run(self, request: RunRequest) -> RunResultOut:
+        self._load_catalogue(request.universe)
+        self._check_stage_conflict(request.constraints, request.root_group, request.stages)
+        self._check_root_group_conflict(request.constraints, request.root_group)
+        stages = self._request_stages(
+            request.combinator,
+            request.constraints,
+            request.root_group,
+            request.stages,
+            request.universe,
+        )
+        return self._run_with_stages(stages, request.index, request.ranking, request.universe)
+
+    def _rank(
+        self,
+        candidates: list[MaterialSnapshot],
+        ranking_in: RankingIn,
+        index_in: IndexIn | None,
+    ) -> RankingResultOut:
+        criteria = self._build_criteria(ranking_in, index_in)
+        matrix = self._build_matrix(candidates, criteria, index_in)
+
+        # Filter out candidates with missing values
+        surviving_candidates: list[MaterialSnapshot] = []
+        complete_rows: list[list[float]] = []
+        for mat in candidates:
+            row = matrix.get(mat.id)
+            if row is not None and all(v is not None for v in row):
+                surviving_candidates.append(mat)
+                complete_rows.append([float(v) for v in row])  # type: ignore[arg-type]
+
+        if not complete_rows:
+            return RankingResultOut(
+                method=ranking_in.method,
+                normalization=ranking_in.normalization,
+                candidates_evaluated=len(candidates),
+                candidates_ranked=0,
+                ranked=[],
+                criteria=criteria,
+            )
+
+        norm = Normalization(ranking_in.normalization)
+        promethee_degraded = False
+        if ranking_in.method == "topsis":
+            result = rank_topsis(complete_rows, criteria, norm)
+        elif ranking_in.method == "promethee":
+            promethee_degraded = len(complete_rows) < PROMETHEE_TOO_FEW_CANDIDATES
+            result = rank_promethee(complete_rows, criteria)
+        else:
+            result = rank(complete_rows, criteria, norm)
+
+        ranked_out: list[RankedMaterialOut] = []
+        for r in result.ranked:
+            mat = surviving_candidates[r.original_index]
+            contribs = [
+                ContributionOut(
+                    criterion_key=c.key,
+                    criterion_label=c.label,
+                    raw_value=r.raw_values[i],
+                    normalized_value=r.normalized_values[i],
+                    weighted_value=r.weighted_values[i],
+                )
+                for i, c in enumerate(criteria)
+            ]
+            ranked_out.append(
+                RankedMaterialOut(
+                    rank=r.rank,
+                    material_id=mat.id,
+                    material_name=mat.name,
+                    class_name=mat.class_name,
+                    score=r.score,
+                    contributions=contribs,
+                )
+            )
+
+        scenarios_out: list[SensitivityScenarioOut] = []
+        if ranking_in.run_sensitivity and result.sensitivity_scenarios:
+            for sc in result.sensitivity_scenarios:
+                sc_ranked = [
+                    RankedMaterialOut(
+                        rank=sr.rank,
+                        material_id=surviving_candidates[sr.original_index].id,
+                        material_name=surviving_candidates[sr.original_index].name,
+                        class_name=surviving_candidates[sr.original_index].class_name,
+                        score=sr.score,
+                        contributions=[],
+                    )
+                    for sr in sc.ranked
+                ]
+                scenarios_out.append(
+                    SensitivityScenarioOut(
+                        perturbed_criterion=sc.perturbed_criterion,
+                        weight_multiplier=sc.weight_multiplier,
+                        ranked=sc_ranked,
+                    )
+                )
+
+        explanation = result.explanation
+        if promethee_degraded:
+            explanation = (
+                f"{explanation} {degrade_promethee_for_few_candidates(len(complete_rows))}"
+            )
+
+        return RankingResultOut(
+            method=ranking_in.method,
+            normalization=ranking_in.normalization,
+            candidates_evaluated=len(candidates),
+            candidates_ranked=len(ranked_out),
+            ranked=ranked_out,
+            criteria=criteria,
+            sensitivity_scenarios=scenarios_out,
+            explanation=explanation,
+        )
+
+    def _build_criteria(
+        self, ranking_in: RankingIn, index_in: IndexIn | None
+    ) -> list[Criterion]:
+        criteria: list[Criterion] = []
+        for cr in ranking_in.criteria:
+            if cr.key == INDEX_KEY:
+                if index_in is None:
+                    raise ValidationError("Critério de índice fornecido, mas nenhum índice ativo.")
+                label = f"Índice: {index_in.name}"
+                direction = (
+                    Direction.MAXIMIZE if index_in.goal == "maximize" else Direction.MINIMIZE
+                )
+            else:
+                prop = self._props.get(cr.key)
+                if prop is None:
+                    raise NotFoundError(self._not_found(cr.key))
+                # A discrete attribute has no order to optimize over (D-59).
+                if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
+                    raise ValidationError(
+                        f"Atributo discreto não entra em ranking: '{prop.name}'."
+                    )
+                label = cr.label or prop.name
+                direction = (
+                    Direction.MAXIMIZE
+                    if cr.direction == BetterDirection.MAXIMIZE
+                    else Direction.MINIMIZE
+                )
+
+            criteria.append(
+                Criterion(
+                    key=cr.key,
+                    label=label,
+                    direction=direction,
+                    weight=cr.weight,
+                )
+            )
+        return criteria
+
+    def _build_matrix(
+        self,
+        candidates: list[MaterialSnapshot],
+        criteria: list[Criterion],
+        index_in: IndexIn | None,
+    ) -> dict[int, list[float | None]]:
+        # Precompute index if used
+        index_map: dict[int, float | None] = {}
+        if any(c.key == INDEX_KEY for c in criteria) and index_in is not None:
+            for r in self._compute_index(candidates, index_in):
+                index_map[r.material_id] = r.value
+
+        matrix: dict[int, list[float | None]] = {}
+        for mat in candidates:
+            row: list[float | None] = []
+            for c in criteria:
+                if c.key == INDEX_KEY:
+                    row.append(index_map.get(mat.id))
+                else:
+                    row.append(mat.values.get(c.key))
+            matrix[mat.id] = row
+        return matrix
+
+    # --- weights preview (P0-1) -------------------------------------------
 
     def _rankable_keys(self) -> set[str]:
         """What may be a criterion in the catalogue in force: every material
@@ -1936,7 +1539,7 @@ class SelectionService:
 
     def list_indices(self) -> list[PerformanceIndexOut]:
         self._load()  # populate props for dimension computation
-        return [self._index_to_out(i) for i in self.repo.list_indices()]\
+        return [self._index_to_out(i) for i in self.repo.list_indices()]
 
     def _index_to_out(self, index: PerformanceIndex) -> PerformanceIndexOut:
         try:
