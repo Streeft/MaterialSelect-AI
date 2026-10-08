@@ -35,6 +35,15 @@ falsear o material (a razão está em `DEMO_KNOWN_GAPS`). As curvas são
 resistência, temperatura máxima), não digitadas; as premissas tomadas onde as
 propriedades fictícias se contradizem ou faltam estão na descrição de cada curva.
 
+Desde o D-115 (TM1) o mesmo comando também liga **cinco grupos de equivalência
+declarada fictícios** entre designações `DEMO-…` já existentes, um de cada tipo
+(`app/db/seed_demo_equivalences.py`, chamado por `seed_extended.main()`; log
+`equivalence_groups_created`: 5 na primeira execução, 0 na segunda). São
+`is_demo=True` na própria linha, citam a fonte demo e `clear_demo` os apaga
+antes das designações a que se ligam (chave `equivalence_groups` do relatório).
+Não são uma tabela de correspondência de ligas: os códigos e a correspondência
+são inventados.
+
 O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designações
 `DEMO-…` e composição numa gramática de uma linha por material) e
 `apps/api/app/db/seed_extended_identity.py` (curvas), chamados por
@@ -61,7 +70,8 @@ cadastrada" — a lista de cobrança à fonte.
    `Material.is_demo`, `Source.is_demo`, `Process.is_demo`,
    `TransportMode.is_demo`, `BatteryChemistry.is_demo`,
    `PerformanceIndex.is_demo`, `MaterialDesignation.is_demo` e
-   `MaterialCompositionEntry.is_demo` — as duas últimas desde o D-105, marcadas
+   `MaterialCompositionEntry.is_demo` — as duas últimas desde o D-105 (e
+   `EquivalenceGroup.is_demo`, desde o D-115), marcadas
    na própria linha para que uma designação fictícia num material real também
    seja encontrada — e `CatalogDataset.is_demo`, desde o D-108: uma **release**
    fictícia do catálogo se declara na própria linha). É o único jeito de o

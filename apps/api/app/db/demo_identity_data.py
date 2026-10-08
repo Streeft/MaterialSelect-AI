@@ -24,7 +24,8 @@ What the numbers are, and are not:
   filler content or additive package is invented beyond a ``<=`` ceiling.
 * **Designations** all start with ``DEMO-`` (trade names with ``Demo``): a real
   code pasted on a fictitious material would assert it *is* that material.
-  Nothing here states an equivalence between two designations (that is TM1).
+  Nothing here states an equivalence between two designations: the few
+  fictitious ones live in ``app.db.seed_demo_equivalences`` (D-115, TM1).
 
 Grammar of a composition string, one token per element, separated by spaces::
 

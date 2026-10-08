@@ -9040,3 +9040,47 @@ escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
 fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
+
+
+## D-115 — Equivalência entre designações é declarada por uma fonte, com tipo e fonte obrigatórios, e nunca inferida
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 70, TM1)
+
+**O pedido (TM1).** Uma designação não declara equivalência (D-105). Falta dizer,
+na ficha, o que uma fonte afirma ser equivalente, com o grau que ela afirma.
+
+**Decisão.** Um **grupo** é a declaração de uma fonte: `EquivalenceGroup` com
+`kind` (`EQUIVALENTE`, `APROXIMADA`, `SIMILAR`, vocabulário fechado), `source_id`
+**obrigatório** (e, para dado real, com licença registrada), localização e
+observação da fonte, e `is_demo`. Os **membros** (`EquivalenceMember`) apontam
+para `MaterialDesignation`, não para `Material`: a fonte diz que `UNS S30400` ~
+`EN 1.4301`, e cada material que carrega uma delas herda a afirmação.
+
+- **Nunca inferida.** `app/domain/equivalence.py` não tem função que compare
+  códigos ou nomes; "parecido" continua sendo o Find Similar (D-63), pergunta
+  separada. Dois materiais com o mesmo código, sem grupo, não têm equivalência
+  (teste). A busca `norma:`/`designacao:` não expande por equivalência: seria
+  inferir.
+- **Tipo é afirmação da fonte.** A tela escreve o que a palavra significa *como
+  declaração*; o sistema não gradua a correspondência.
+- **Escrita só do curador** (`require_catalog_curator`), auditada
+  (`AuditEntityType.EQUIVALENCE_GROUP`); leitura para logados, filtrada pela
+  visibilidade do material (D-62). Só designações do catálogo compartilhado.
+- **Demo e real não se misturam.** Fonte, designações e materiais do grupo são
+  todos fictícios ou nenhum; `is_demo` do grupo sai disso. `clear_demo` apaga os
+  grupos demo antes das designações e **recusa** (falha fechada) um grupo real que
+  cite fonte demo ou ligue designação demo.
+- **Atualização de membros por diferença**, não por troca, para não esbarrar na
+  unicidade (grupo, designação) dentro de um mesmo flush.
+
+**Dado.** Só demo: cinco grupos fictícios sobre designações `DEMO-…`
+(`app/db/seed_demo_equivalences.py`, ligado a `seed_extended.main()`). Dado real
+espera fonte APROVADA em `docs/catalogo/fontes.md`.
+
+**Alternativas descartadas.** Ligar materiais em vez de designações (perde o que a
+fonte disse e faz dois materiais com a mesma designação virarem "o mesmo"); tipo
+em texto livre; inferir por `code_key` ou nome; expandir a busca por equivalência.
+
+**Resíduos.** Bundle do D-102 sem `equivalences.ndjson`; sem tela de edição
+(a API serve ao curador); dado real bloqueado pela fonte.
