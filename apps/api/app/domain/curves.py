@@ -445,7 +445,9 @@ class DrawnCurve:
     notes: list[str] = field(default_factory=list)
 
 
-def axis_reading(quantity: AxisQuantity, requested: str | None, axis: str) -> Reading:
+def axis_reading(
+    quantity: AxisQuantity, requested: str | None, axis: str, *, where: str | None = None
+) -> Reading:
     """The unit an axis is read in: the reader's choice, else the convention.
 
     Refused, never ignored (D-56, D-70): a unit outside the quantity's list is
@@ -455,7 +457,8 @@ def axis_reading(quantity: AxisQuantity, requested: str | None, axis: str) -> Re
     allowed = {quantity.canonical_unit, quantity.reading_unit, *quantity.accepted_units}
     if requested is not None and requested not in allowed:
         raise DisplayUnitError(
-            f"Unidade {requested!r} não é admitida no eixo {axis} ({quantity.name}). "
+            f"Unidade {requested!r} não é admitida {where or f'no eixo {axis}'} "
+            f"({quantity.name}). "
             f"Admitidas: {', '.join(sorted(allowed))}."
         )
     return reading_for(
@@ -533,6 +536,7 @@ def draw_curve(
     x_unit: str | None = None,
     y_unit: str | None = None,
     scale: str | None = None,
+    parameter_unit: str | None = None,
 ) -> DrawnCurve:
     """Everything the figure and its table need, in the reader's units.
 
@@ -570,16 +574,23 @@ def draw_curve(
             if reason:
                 raise CurveError(f"Escala logarítmica recusada no eixo {axis}: {reason}")
 
+    # TM4-e: the family parameter is read in the reader's unit too (converted
+    # by units.py through ``reading_for``), refused when the quantity does not
+    # admit it, and ignored only when the curve has no family at all.
     parameter_reading = (
-        reading_for(
-            canonical_unit=QUANTITIES[parameter_quantity].canonical_unit,
-            display_unit=QUANTITIES[parameter_quantity].reading_unit,
-            accepted_units=QUANTITIES[parameter_quantity].accepted_units,
-            requested=None,
+        axis_reading(
+            QUANTITIES[parameter_quantity],
+            parameter_unit,
+            "x",
+            where="no parâmetro da família",
         )
         if parameter_quantity
         else None
     )
+    if parameter_quantity is None and parameter_unit is not None:
+        raise CurveError(
+            "Esta curva não é uma família: não há parâmetro para ler em outra unidade."
+        )
 
     def fits(value: float, log: bool) -> bool:
         return value > 0 if log else True

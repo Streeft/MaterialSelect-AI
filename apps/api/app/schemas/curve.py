@@ -79,6 +79,9 @@ class CurveParameterOut(BaseModel):
     quantity_label: str
     unit: str
     unit_label: str
+    canonical_unit: str
+    #: The units the reader may choose for the parameter (TM4-e), as for an axis.
+    accepted_units: list[UnitOption]
 
 
 class CurvePointOut(BaseModel):

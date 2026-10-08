@@ -12,7 +12,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.calculations.units import pretty_unit
-from app.domain.curve_quantities import QUANTITIES
+from app.domain.curve_quantities import QUANTITIES, AxisQuantity
 from app.domain.curves import (
     KINDS,
     CurveError,
@@ -51,6 +51,14 @@ def _unit_label(unit: str) -> str:
 
 def _unit_option_label(unit: str) -> str:
     return "adimensional" if unit == "dimensionless" else pretty_unit(unit)
+
+
+def _unit_options(quantity: AxisQuantity) -> list[UnitOption]:
+    """The units a reader may choose for a quantity, the convention first."""
+    units = dict.fromkeys(
+        [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
+    )
+    return [UnitOption(unit=u, label=_unit_option_label(u)) for u in units]
 
 
 def _series_data(curve: MaterialCurve) -> list[SeriesData]:
@@ -148,6 +156,7 @@ class CurveService:
         x_unit: str | None,
         y_unit: str | None,
         scale: str | None,
+        parameter_unit: str | None = None,
     ) -> DrawnCurve:
         try:
             return draw_curve(
@@ -159,6 +168,7 @@ class CurveService:
                 x_unit=x_unit,
                 y_unit=y_unit,
                 scale=scale,
+                parameter_unit=parameter_unit,
             )
         except CurveError as exc:
             raise ValidationError(str(exc)) from exc
@@ -171,16 +181,20 @@ class CurveService:
         x_unit: str | None = None,
         y_unit: str | None = None,
         scale: str | None = None,
+        parameter_unit: str | None = None,
     ) -> CurveOut:
         curve = self._load(material_id, curve_id)
-        drawn = self._draw(curve, x_unit, y_unit, scale)
+        drawn = self._draw(curve, x_unit, y_unit, scale, parameter_unit)
         parameter = None
         if curve.parameter_quantity and drawn.parameter_reading is not None:
+            quantity = QUANTITIES[curve.parameter_quantity]
             parameter = CurveParameterOut(
                 quantity=curve.parameter_quantity,
-                quantity_label=QUANTITIES[curve.parameter_quantity].name,
+                quantity_label=quantity.name,
                 unit=drawn.parameter_reading.unit,
                 unit_label=_unit_label(drawn.parameter_reading.unit),
+                canonical_unit=quantity.canonical_unit,
+                accepted_units=_unit_options(quantity),
             )
         return CurveOut(
             id=curve.id,
@@ -238,11 +252,6 @@ class CurveService:
     @staticmethod
     def _axis(axis: DrawnAxis, curve: MaterialCurve, which: str) -> CurveAxisOut:
         quantity = axis.quantity
-        units = list(
-            dict.fromkeys(
-                [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
-            )
-        )
         return CurveAxisOut(
             quantity=quantity.key,
             quantity_label=quantity.name,
@@ -252,7 +261,7 @@ class CurveService:
             canonical_unit=quantity.canonical_unit,
             original_unit=getattr(curve, f"{which}_original_unit"),
             conversion_method=getattr(curve, f"{which}_conversion_method"),
-            accepted_units=[UnitOption(unit=u, label=_unit_option_label(u)) for u in units],
+            accepted_units=_unit_options(quantity),
             log=axis.log,
             log_refusal=log_refusal(quantity, axis.reading),
             domain=axis.domain,
