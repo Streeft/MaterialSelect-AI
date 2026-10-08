@@ -14,6 +14,10 @@ MAX_MANIFEST_BYTES = 1_000_000
 MAX_RECORD_BYTES = 10_000_000
 SCHEMA_VERSION = 1
 
+#: The catalogue a release belongs to (D-107): optional in the manifest, but a
+#: slug when present, so it can travel in a URL and never reads as a name.
+_LINEAGE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?")
+
 
 class BundleValidationError(ValueError):
     """The bundle is malformed, incomplete or fails an integrity check."""
@@ -133,6 +137,15 @@ def verify_bundle(path: str | Path) -> VerifiedBundle:
         if not _is_sha256(dataset.get("source_sha256")):
             raise BundleValidationError(
                 "dataset.source_sha256 precisa ser SHA-256 hexadecimal minúsculo."
+            )
+        lineage = dataset.get("lineage")
+        if lineage is not None and (
+            not isinstance(lineage, str) or _LINEAGE.fullmatch(lineage) is None
+        ):
+            raise BundleValidationError(
+                "dataset.lineage, quando declarada, precisa ser um slug de até 120 "
+                "caracteres (minúsculas, dígitos e hífen), por exemplo "
+                "'granta-edupack-l3-standard'."
             )
 
         declared = manifest.get("files")

@@ -287,10 +287,11 @@ jobs:
           ! grep -q "selection_study_name_key" schema.txt
 
       - name: A migração mais recente desce e sobe de volta em Postgres
-        # D-105/D-106: a última revisão tem de ser reversível no alvo de
+        # D-105/D-106/D-107: a última revisão tem de ser reversível no alvo de
         # produção, e os CHECKs da composição (resto e ausência sem número,
-        # elemento da lista fixa, um resto por material) e das curvas (pontos
-        # finitos, faixa que contém a linha) têm de chegar ao banco.
+        # elemento da lista fixa, um resto por material), das curvas (pontos
+        # finitos, faixa que contém a linha) e da linha das releases (nunca
+        # vazia) têm de chegar ao banco.
         env:
           DATABASE_URL: postgresql+psycopg://materialselect:materialselect@localhost:5432/materialselect
           PGPASSWORD: materialselect
@@ -315,6 +316,17 @@ jobs:
               echo "o CHECK de finitude aceitou ${bad}" && exit 1
             fi
           done
+          # D-107: a linha e a marca demo das releases chegam ao banco (a última
+          # revisão, que o downgrade -1 acima desceu e subiu), e a linha vazia é
+          # recusada pelo CHECK.
+          psql -h localhost -U materialselect -d materialselect -c "\d catalog_dataset" > releases.txt
+          grep -q "ck_catalog_dataset_lineage" releases.txt
+          grep -q "ix_catalog_dataset_lineage" releases.txt
+          grep -q "is_demo" releases.txt
+          if psql -h localhost -U materialselect -d materialselect -v ON_ERROR_STOP=1 -c \
+            "INSERT INTO catalog_dataset (slug, name, source_sha256, license_label, is_active, created_at, lineage) VALUES ('ci-vazia', 'ci', repeat('a', 64), 'ci', true, now(), '')"; then
+            echo "o CHECK da linha aceitou a cadeia vazia" && exit 1
+          fi
 
       - name: Testes de concorrência das cotas em PostgreSQL
         env:

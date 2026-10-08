@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
+from sqlalchemy import false as sa_false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -28,18 +29,35 @@ def _utcnow() -> datetime:
 
 
 class CatalogDataset(Base):
-    """One externally supplied catalogue/dataset and its immutable identity."""
+    """One externally supplied catalogue/dataset and its immutable identity.
+
+    One row is one **release** (the slug names the bytes, D-102). ``lineage``
+    names the catalogue the release belongs to, so two releases can be
+    compared (D-107): the slug cannot say it, and the free-text ``name`` is a
+    label, not an identity. NULL means the bundle never declared one — such a
+    release is comparable with nothing, never matched by its name.
+    """
 
     __tablename__ = "catalog_dataset"
+    __table_args__ = (
+        CheckConstraint("lineage IS NULL OR lineage <> ''", name="ck_catalog_dataset_lineage"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(240), nullable=False)
     release: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    lineage: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     license_label: Mapped[str] = mapped_column(String(240), nullable=False)
     provenance: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    #: A fictitious release (D-107 demo): declared on the row, like every other
+    #: demo marker, so ``clear_demo`` finds it and the official import refuses
+    #: to commit while one exists.
+    is_demo: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa_false(), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     import_runs: Mapped[list[CatalogImportRun]] = relationship(
