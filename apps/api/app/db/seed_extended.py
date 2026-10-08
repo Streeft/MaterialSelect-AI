@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_demo_releases import seed_demo_releases
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -459,10 +460,12 @@ def main() -> None:
             return
 
         created = seed_extended_materials(db, demo_source)
+        releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
+    print(f"[seed_extended] Releases demo: {releases}")
 
 
 if __name__ == "__main__":
