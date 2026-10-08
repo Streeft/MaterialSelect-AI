@@ -433,13 +433,67 @@ def test_a_saved_nested_stage_round_trips_its_parentheses(client):
     }
     study_id = client.post("/api/selection/studies", json=payload).json()["id"]
 
-    root = client.get(f"/api/selection/studies/{study_id}").json()["stages"][0]["root_group"]
+    body = client.get(f"/api/selection/studies/{study_id}").json()
+    root = body["stages"][0]["root_group"]
     assert root["operator"] == "OR"
     assert [g["operator"] for g in root["groups"]] == ["AND", "AND"]
     assert [g["constraints"][0]["property_slug"] for g in root["groups"]] == [
         "densidade",
         "modulo_young",
     ]
+    # M6: StudyOut.root_group also matches the stage's root_group
+    assert body["root_group"] == root
+
+
+def test_saved_nested_study_via_root_group_round_trips_to_study_out_and_stages(client):
+    """Saving a study with top-level root_group (legacy/standalone shape)
+    populates both StudyOut.root_group and stages[0].root_group without flattening."""
+    payload = {
+        "name": "Estudo aninhado via root_group",
+        "free_variables": [],
+        "criteria": [],
+        "root_group": {
+            "operator": "OR",
+            "constraints": [],
+            "groups": [
+                {
+                    "operator": "AND",
+                    "constraints": [
+                        {
+                            "operator": "lte",
+                            "property_slug": "densidade",
+                            "value": 2800,
+                            "unit": "kg/m**3",
+                        }
+                    ],
+                    "groups": [],
+                },
+                {
+                    "operator": "AND",
+                    "constraints": [
+                        {
+                            "operator": "gte",
+                            "property_slug": "modulo_young",
+                            "value": 200,
+                            "unit": "GPa",
+                        }
+                    ],
+                    "groups": [],
+                },
+            ],
+        },
+    }
+    resp = client.post("/api/selection/studies", json=payload)
+    assert resp.status_code == 201, resp.text
+    study_id = resp.json()["id"]
+
+    study = client.get(f"/api/selection/studies/{study_id}").json()
+    assert study["root_group"] is not None
+    assert study["root_group"]["operator"] == "OR"
+    assert len(study["root_group"]["groups"]) == 2
+    assert len(study["stages"]) == 1
+    assert study["stages"][0]["kind"] == "limit"
+    assert study["stages"][0]["root_group"] == study["root_group"]
 
 
 def test_the_study_summary_counts_stages(client):
@@ -595,6 +649,7 @@ def test_the_post_response_already_carries_the_pipeline(client):
     body = created.json()
     assert [s["kind"] for s in body["stages"]] == ["tree", "limit"]
     assert body["stages"][1]["root_group"]["constraints"][0]["property_slug"] == "densidade"
+    assert body["root_group"]["constraints"][0]["property_slug"] == "densidade"
 
 
 def test_filter_reports_the_stages_too(client):
