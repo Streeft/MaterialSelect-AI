@@ -91,7 +91,8 @@ erDiagram
   por vários valores e futura formatação de citações (ABNT/APA) no relatório.
 - **Condições de medição:** `measurement_condition` guarda o contexto (ex.:
   temperatura) de forma textual nesta fase; a arquitetura não impede evoluir para
-  propriedades dependentes de condição (curvas) no futuro.
+  propriedades dependentes de condição; as curvas completas ganharam tabelas
+  próprias no D-106 (seção "Curvas de material").
 - **Taxonomia hierárquica:** `MATERIAL_CLASS.parent_id` referencia a própria
   tabela, permitindo classes e subclasses configuráveis (não hardcoded na UI).
 
@@ -120,6 +121,33 @@ D-62), migração `0d3c39eb2f81`:
 Sem linha de composição o material está "sem composição cadastrada" — não com
 0 % de nada. A busca (`comp:`) lê a faixa por alcance em lógica de três
 valores; ver D-105.
+
+## Curvas de material (D-106, TM4)
+
+Três tabelas que pendem de `MATERIAL` (herdam a visibilidade do D-62), migração
+`0925e0787863`: **figura → série → ponto**.
+
+- **`MATERIAL_CURVE`** — a figura: `kind` (`CurveKind`: tensão–deformação,
+  temperatura, taxa, fadiga, fluência), `title`, por eixo a grandeza (lista
+  fixa), o rótulo da fonte e a trilha de unidade (original, canônica, método de
+  conversão), `parameter_quantity` (a grandeza ao longo da qual a família
+  varia), `source_id` **obrigatório**, `citation`, `data_quality`, `is_demo` e a
+  identidade externa do D-102 (`dataset_id`/`external_id`/`raw_sha256`).
+- **`MATERIAL_CURVE_SERIES`** — uma entrada da legenda: `position`, `label`,
+  `conditions` (texto declarado) e o valor do parâmetro com a trilha inteira.
+- **`MATERIAL_CURVE_POINT`** — `x_value`/`y_value` como a fonte escreveu e
+  `x_normalized`/`y_normalized` canônicos; a faixa (`y_min_*`/`y_max_*`) é
+  opcional e vem dos dois lados ou de nenhum.
+
+`CHECK`s portáveis: grandeza na lista fixa, título não vazio, identidade externa
+inteira ou nenhuma, valor **finito** (recusa ±Infinity e NaN), faixa contendo a
+linha. O que o banco não vê, o construtor puro `app/domain/curves.build_curve`
+recusa: x estritamente crescente, ao menos 2 pontos, unidade da dimensão certa,
+parâmetro presente em toda série de uma família. Nada é interpolado nem
+reamostrado, e uma curva **nunca vira escalar** (a objeção do D-69): quem a lê é
+a ficha, em `GET /api/materials/{id}/curvas`, com a geometria já na unidade de
+leitura (D-70) e o domínio dos eixos calculado no backend. Detalhe da tela em
+`08-visualizacao.md`.
 
 ## Migrations
 

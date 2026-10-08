@@ -25,6 +25,8 @@ KNOWN_FILES = [
     # D-105 (TM2): designações e composição química de materiais.
     "material_designations.ndjson",
     "material_compositions.ndjson",
+    # D-106 (TM4): curvas de material, tipadas (pontos com unidade e proveniência).
+    "material_curves.ndjson",
 ]
 
 

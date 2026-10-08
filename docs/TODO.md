@@ -104,10 +104,8 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
-- **TM4 — curvas dependentes de temperatura e taxa.** ▆ Exibir as curvas
-  (tensão-deformação, fadiga, fluência) que o D-102 já preserva em
-  `CatalogSupplementalValue`, sem achatá-las em escalar; geometria no backend
-  (ADR 0004).
+- **TM4 — curvas dependentes de temperatura e taxa.** ✔ Entregue (D-106,
+  Sessão 61); resíduos abaixo.
 - **TM5 — exportação para formatos CAE/CAD.** ✔ Entregue (D-104, Sessão 59);
   resíduos abaixo.
 - **TM6 — referência por valor visível e filtrável.** ▁ A proveniência já
@@ -135,6 +133,38 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - **TM2-e — dados reais.** ▁ Nenhum registro real tem composição ou designação:
   dependem do bundle do D-102 (C1) ou de fonte aberta APROVADA (C2, D-103).
 
+**Resíduos das curvas (TM4, [D-106](DECISIONS.md)).** O TM4 foi entregue (ver
+"Débitos já quitados"); ficou de fora, de propósito:
+
+- **TM4-a — dados reais.** ▁ Só o demo (3 curvas fictícias) tem curva; o resto
+  depende do bundle do D-102 (`material_curves.ndjson`) ou de fonte aberta
+  APROVADA (D-103). A tela já mostra "Nenhuma curva cadastrada" com a contagem
+  por tipo.
+- **TM4-b — ler um valor de uma curva.** ▆ "Valor a 20 °C" por interpolação ou
+  outra regra declarada, com referência ao dado original (docs/18 §6). Hoje
+  nada é interpolado, extrapolado nem reamostrado.
+- **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
+  Continuam em `CatalogSupplementalValue` até haver tipo.
+- **TM4-d — edição pela API e pela interface.** ▃ Com auditoria (M2),
+  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62);
+  hoje só o seed demo e o bundle escrevem.
+- **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
+  convenção da grandeza (°C para temperatura); a legenda da tela a repete.
+- **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
+  (`QUANTITIES`, 8) está escrita por extenso no `CHECK` da migração
+  `0925e0787863`; acrescentar uma grandeza sem migração nova deixa modelo e
+  banco divergentes. Achado da revisão do TM4.
+- **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
+  de outro dataset acrescenta curvas sem aposentar as da release anterior do
+  mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
+  curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
+- **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
+  leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
+  estético, nenhum ponto se perde.
+- **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
+  pede regra declarada de conversão engenharia → verdadeira e de origem da
+  deformação plástica — ver TM5-b abaixo.
+
 **Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
@@ -148,8 +178,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - **TM5-b — curva tensão-deformação plástica e dados dependentes de
   temperatura.** ▆ `*PLASTIC` (Abaqus), `TB,MISO`/`MPTEMP`/`MPDATA` (MAPDL),
   `MATS1`/`TABLES1` (Nastran), `*MAT_PIECEWISE_LINEAR_PLASTICITY` (LS-DYNA).
-  Depende do TM4: as curvas que o D-102 preserva em `CatalogSupplementalValue`
-  não entram em cálculo nem em exportação até haver regra determinística.
+  Depende do modelo do TM4 (D-106, entregue): a curva vem de `material_curve`,
+  mas não entra em cálculo nem em exportação até haver regra determinística de
+  conversão engenharia → verdadeira e de origem da deformação plástica.
 - **TM5-c — XML do Engineering Data do Ansys Workbench.** ▃ Não feito: o
   formato é um dialeto do MatML com metadados próprios, e a documentação pública
   acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo
@@ -309,6 +340,17 @@ continua lá, e a métrica para de medir no 3.
 ## Débitos já quitados
 
 Registrados para não voltarem por engano:
+
+- ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
+  `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →
+  ponto, `CHECK`s de finitude e de faixa, fonte obrigatória, migração
+  `0925e0787863`); geometria e unidade de leitura no backend
+  (`GET /api/materials/{id}/curvas[/{curva}]`); CSV/XLSX; importador do D-102;
+  demo fictício (3 curvas) e `clear_demo`; na ficha, a seção Curvas com gráfico
+  SVG próprio (família por cor, traço e marcador, faixa, `ChartTooltip`),
+  unidade e escala na URL, tabela de pontos (D-31) e "Exportar ▾". Resíduos
+  TM4-a a TM4-e em "Média prioridade". 4079 → 4164 testes de backend e 797 →
+  815 de frontend.
 
 - ~~**TM2 — busca por composição química e por designação (Sessão 60, [D-105](DECISIONS.md))**~~ —
   `MaterialDesignation` e `MaterialCompositionEntry` (% em massa, resto e

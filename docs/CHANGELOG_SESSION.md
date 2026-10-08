@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
 | [60](#sessão-60--071026--busca-por-composição-química-e-por-designação-tm2-d-105) | 07/10/2026 | Busca por composição química e por designação (TM2): `MaterialDesignation` e `MaterialCompositionEntry` com `CHECK`s, `comp:`/`norma:`/`designacao:` na linguagem do D-55, composição por alcance em três valores (ausência não passa e é contada), `GET /api/materials/busca`, seções na ficha, ajuda no catálogo, contrato do bundle e demo fictício (D-105) | 3938 → 4079 | 783 → 797 |
 | [59](#sessão-59--071026--o-cartão-de-material-para-cae-tm5-d-104) | 07/10/2026 | O cartão de material para CAE (TM5): MAPDL, MatML 3.1, Abaqus, Nastran `MAT1` e LS-DYNA `*MAT_ELASTIC`, a partir da documentação pública; três sistemas de unidades consistentes pelo Pint; ausente omitido, nunca 0; recusa 422 quando falta o mínimo do formato; "Exportar ▾" na ficha (D-104) | 3864 → 3938 | 778 → 783 |
 | [58](#sessão-58--071026--portão-de-licença-das-fontes-abertas-reconciliado-com-o-d-102) | 07/10/2026 | Só documentação: o rascunho F0 do portão de licença, escrito antes do PR #106, reconciliado com o D-102 — vira D-103 (rascunho) e `docs/20-catalogo-fontes-abertas.md`; `catalogo/fontes.md` reescrito para fontes abertas (nenhuma APROVADA, C0 pendente), bases comerciais recusadas para extração em massa, Total Materia como inspiração (TM1–TM7) e o Granta como trilha do D-102 com a autorização pendente de arquivo | 3864 (inalterado) | 778 (inalterado) |
@@ -75,6 +76,39 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 61 — 07/10/26 — Curvas de material (TM4, D-106)
+
+**O pedido.** Exibir curvas de um material sem achatá-las em escalar, com a
+geometria no backend (ADR 0004). O catálogo só tinha `CatalogSupplementalValue`
+com JSON opaco: sem unidade por eixo, sem `CHECK`, sem fonte por curva.
+
+**O que mudou.**
+
+- **Modelo** — três tabelas (figura → série → ponto), migração `0925e0787863`,
+  `CHECK`s de grandeza, finitude (±Infinity/NaN) e faixa; `build_curve` recusa
+  x fora de ordem, menos de 2 pontos e unidade de dimensão errada. Fonte
+  obrigatória; `is_demo` na curva. Job de migrações em PostgreSQL confere os
+  `CHECK`s.
+- **API** — `GET /api/materials/{id}/curvas` e `/curvas/{curva}` (unidade por
+  eixo, escala `linear|log-x|log-y|log-log`, 400 em português que nomeia as
+  admitidas), com visibilidade do D-62; CSV/XLSX em
+  `/api/exports/materiais/{id}/curvas/{curva}.{csv|xlsx}`.
+- **Importador e demo** — `material_curves.ndjson` no bundle (imutável por
+  identidade externa); três curvas fictícias no seed e `clear_demo` cobrindo-as.
+- **Tela** — seção "Curvas" na ficha: seletor de curva, gráfico SVG próprio
+  (`CurveChart`, série por cor, traço e marcador, faixa, `ChartTooltip`),
+  unidade de leitura e escala na URL, tabela de pontos (D-31) com a faixa
+  ausente escrita, estados de carregamento, erro e vazio, "Exportar ▾" com PNG,
+  SVG, CSV e XLSX, e auditoria de acessibilidade (axe). `ChartFrame` e
+  `ChartToolbar` ganharam `exportItems`/`extraItems` para o mesmo menu levar os
+  dados como arquivo.
+- **Documentação** — D-106, `03`, `08`, README, TODO (resíduos TM4-a a TM4-e,
+  dependência TM5-b) e PROJECT_CONTEXT.
+
+**Decisões que merecem o olho do autor.** x estritamente crescente em todo tipo
+(patamar de escoamento no mesmo x é recusado, não deduplicado); a escolha de
+unidade e escala fica na URL, como a unidade de leitura do D-70.
 
 ## Sessão 60 — 07/10/26 — Busca por composição química e por designação (TM2, D-105)
 

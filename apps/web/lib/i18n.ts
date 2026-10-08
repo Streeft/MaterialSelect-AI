@@ -1903,6 +1903,56 @@ export const ptBR = {
     noRegion: "Não restrita pela fonte",
     noCitation: "Sem localização na fonte",
   },
+  // D-106 (TM4): curvas do material na ficha.
+  curves: {
+    title: "Curvas",
+    hint:
+      "Curvas como a fonte as declarou — tensão–deformação, dependência de temperatura ou de taxa, fadiga e fluência. Nada é interpolado nem reduzido a um valor único.",
+    loading: "Carregando curvas…",
+    error: "Não foi possível carregar as curvas deste material.",
+    curveError: "Não foi possível desenhar esta curva.",
+    none: "Nenhuma curva cadastrada para este material",
+    noneHint:
+      "Sem curva registrada não quer dizer curva nula: este material só não tem curvas cadastradas.",
+    kindCounts: "Curvas cadastradas por tipo",
+    kindCount: (label: string, n: number) =>
+      n === 0 ? `${label}: nenhuma` : `${label}: ${n}`,
+    picker: "Curva",
+    unitX: (label: string) => `Unidade do eixo x (${label})`,
+    unitY: (label: string) => `Unidade do eixo y (${label})`,
+    scale: "Escala",
+    scales: {
+      linear: "Linear",
+      "log-x": "Log em x",
+      "log-y": "Log em y",
+      "log-log": "Log–log",
+    } as Record<string, string>,
+    figureLabel: (title: string) =>
+      `${title}. Figura; a tabela de pontos equivalente abre pelo botão “Tabela”.`,
+    tableCaption: (title: string) => `Pontos da curva “${title}”, como a fonte os declarou`,
+    columnSeries: "Série",
+    columnPoint: "Ponto",
+    columnBand: "Faixa declarada",
+    columnOriginal: "Como a fonte escreveu",
+    noBand: "Sem faixa declarada",
+    notDrawn: "Fora da figura nesta escala",
+    seriesFallback: (n: number) => `Série ${n}`,
+    parameterLegend: (value: string, unit: string, quantity: string) =>
+      unit ? `${value} ${unit}` : `${quantity} = ${value}`,
+    band: "Faixa mín.–máx. declarada",
+    source: (label: string) => `Fonte: ${label}`,
+    citation: (text: string) => `Onde, na fonte: ${text}`,
+    conditions: (text: string) => `Condições: ${text}`,
+    conversion: (axis: string, original: string, method: string) =>
+      `Eixo ${axis}: a fonte deu os valores em ${original}; conversão ${method}.`,
+    demo: "Curva fictícia — não é dado de ensaio.",
+    exportCsv: "Pontos (CSV)",
+    exportCsvHint: "Com aviso de limitação, proveniência e unidades",
+    exportXlsx: "Pontos (XLSX)",
+    exportXlsxHint: "A mesma tabela, como planilha",
+    seriesAria: (name: string, n: number) =>
+      `${name}: ${n} ${n === 1 ? "ponto" : "pontos"} na figura`,
+  },
   chart: {
     title: "Mapa de propriedades",
     scale: "Escala",

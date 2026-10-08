@@ -17,6 +17,7 @@ from app.models.enums import (
     AuditAction,
     AuditEntityType,
     BetterDirection,
+    CurveKind,
     DataQuality,
     DesignationSystem,
     DocumentKind,
@@ -31,6 +32,7 @@ from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmb
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_curve import MaterialCurve, MaterialCurvePoint, MaterialCurveSeries
 from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
@@ -86,6 +88,7 @@ __all__ = [
     "CatalogRecordRef",
     "CatalogSupplementalValue",
     "ConstraintGroup",
+    "CurveKind",
     "DataQuality",
     "DesignationSystem",
     "DocumentKind",
@@ -100,6 +103,9 @@ __all__ = [
     "Material",
     "MaterialClass",
     "MaterialCompositionEntry",
+    "MaterialCurve",
+    "MaterialCurvePoint",
+    "MaterialCurveSeries",
     "MaterialDesignation",
     "MaterialKeyword",
     "MaterialProcess",

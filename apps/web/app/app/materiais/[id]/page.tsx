@@ -26,6 +26,7 @@ import { PropertyChart } from "@/components/PropertyChart";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import { CompositionTable } from "@/components/material/CompositionTable";
 import { DesignationTable } from "@/components/material/DesignationTable";
+import { MaterialCurves } from "@/components/material/MaterialCurves";
 import {
   Badge,
   Button,
@@ -329,6 +330,18 @@ export default function MaterialDetailPage() {
               />
             </Section>
           </div>
+
+          {/* D-106 (TM4): the material's curves, each a figure with its table of
+              points (D-31). Full width: a family of curves needs the room, and a
+              curve is read across, not beside another section. */}
+          <Section
+            id="curvas"
+            title={ptBR.curves.title}
+            description={ptBR.curves.hint}
+            className="min-w-0"
+          >
+            <MaterialCurves materialId={data.id} />
+          </Section>
         </>
       )}
     </div>

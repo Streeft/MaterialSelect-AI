@@ -22,13 +22,18 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domain.curves import PointInput, SeriesInput, build_curve
 from app.integrations.http import get_http_transport, get_resolver
 from app.main import app
+from app.models.enums import CurveKind
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_curve import MaterialCurve
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
+from app.models.source import Source
 from app.models.user import User
+from app.repositories.curve_repository import curve_rows
 from app.tests.conftest import _ban_network
 
 #: Distinctive enough that finding it in any response body is unambiguous —
@@ -51,6 +56,8 @@ PATH_VALUES = {
     "source_id": "1",
     # D-94: filled with the private notebook's Studio artifact.
     "artifact_id": "1",
+    # D-106: filled with the private record's own curve by `_sweep`.
+    "curve_id": "1",
 }
 
 #: Query strings for the GETs that need one to return anything at all.
@@ -117,7 +124,31 @@ def private_record(db_session: Session, other_user: User) -> Material:
             )
         )
     db_session.flush()
+    # D-106: a curve on the private record, titled with the private name, so the
+    # curve list, the curve and its CSV are asked about it too.
+    db_session.add(
+        curve_rows(
+            build_curve(
+                CurveKind.TENSAO_DEFORMACAO,
+                x_quantity="deformacao",
+                x_unit="%",
+                y_quantity="tensao",
+                y_unit="MPa",
+                series=[SeriesInput(points=[PointInput(0, 0), PointInput(1, 300)])],
+            ),
+            material_id=material.id,
+            title=f"Curva da {PRIVATE_NAME}",
+            source_id=db_session.execute(select(Source.id)).scalars().first(),
+        )
+    )
+    db_session.flush()
     return material
+
+
+def _private_curve_id(db: Session, material: Material) -> int:
+    return db.execute(
+        select(MaterialCurve.id).where(MaterialCurve.material_id == material.id)
+    ).scalar_one()
 
 
 def _documented_get_paths() -> list[str]:
@@ -178,9 +209,16 @@ def private_notebook(client, login_as, other_user: User) -> dict[str, str]:
     }
 
 
-def _sweep(client, material_id: int, notebook: dict[str, str] | None = None) -> dict[str, str]:
+def _sweep(
+    client,
+    material_id: int,
+    notebook: dict[str, str] | None = None,
+    curve_id: int | None = None,
+) -> dict[str, str]:
     """Call every documented GET and return ``path -> response body``."""
     values = {**PATH_VALUES, **(notebook or {}), "material_id": str(material_id)}
+    if curve_id is not None:
+        values["curve_id"] = str(curve_id)
     bodies: dict[str, str] = {}
     for path in _documented_get_paths():
         url = path
@@ -206,13 +244,19 @@ def test_the_sweep_covers_the_whole_documented_get_surface() -> None:
 
 
 def test_the_owner_finds_their_record_across_the_api(
-    client, login_as, other_user: User, private_record: Material, private_notebook
+    client,
+    login_as,
+    other_user: User,
+    private_record: Material,
+    private_notebook,
+    db_session: Session,
 ) -> None:
     """The positive control, and the half that makes the other half mean
     something. Without it, hiding the record from *everyone* would read as a
     pass."""
+    curve_id = _private_curve_id(db_session, private_record)
     with login_as(other_user):
-        bodies = _sweep(client, private_record.id, private_notebook)
+        bodies = _sweep(client, private_record.id, private_notebook, curve_id)
 
     carrying = sorted(path for path, body in bodies.items() if PRIVATE_NAME in body)
     assert "/api/notebooks" in carrying
@@ -227,10 +271,14 @@ def test_the_owner_finds_their_record_across_the_api(
     assert "/api/exports/catalogo.{fmt}" in carrying
     assert "/api/exports/materiais/{material_id}/cae" in carrying
     assert "/api/materials/chart" in carrying
+    # D-106: the curve list, the curve and its points file.
+    assert "/api/materials/{material_id}/curvas" in carrying
+    assert "/api/materials/{material_id}/curvas/{curve_id}" in carrying
+    assert "/api/exports/materiais/{material_id}/curvas/{curve_id}.{fmt}" in carrying
 
 
 def test_no_documented_get_route_leaks_another_persons_record(
-    client, private_record: Material, private_notebook
+    client, private_record: Material, private_notebook, db_session: Session
 ) -> None:
     """The whole feature, asserted over the whole surface at once.
 
@@ -238,7 +286,9 @@ def test_no_documented_get_route_leaks_another_persons_record(
     ``other_user``. Any path that comes back carrying the name is a leak, and
     the failure names it.
     """
-    bodies = _sweep(client, private_record.id, private_notebook)
+    bodies = _sweep(
+        client, private_record.id, private_notebook, _private_curve_id(db_session, private_record)
+    )
 
     leaking = sorted(path for path, body in bodies.items() if PRIVATE_NAME in body)
     assert leaking == [], f"rotas vazando registro alheio: {leaking}"

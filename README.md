@@ -80,6 +80,12 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   a faixa de composição é lida por alcance, material sem o dado não passa e a
   busca diz quantos ficaram de fora. A ficha mostra composição (% em massa, com
   fonte) e designações (D-105).
+- **Curvas do material** — na ficha, tensão–deformação, dependência de
+  temperatura ou de taxa, fadiga (S–N) e fluência como gráfico SVG próprio:
+  uma série por parâmetro (cor, traço e marcador), faixa declarada, unidade de
+  leitura e escala escolhidas na URL, tabela de pontos como alternativa textual
+  e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
+  curva, a ficha diz "Nenhuma curva cadastrada" (D-106).
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
 - **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.

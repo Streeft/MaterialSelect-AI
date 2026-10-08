@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.base import Base, SessionLocal, engine
 from app.domain.composition import build_composition_entry, validate_composition
+from app.domain.curves import PointInput, SeriesInput, build_curve
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -31,6 +32,7 @@ from app.domain.data_quality import (
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.enums import (
     BetterDirection,
+    CurveKind,
     DataQuality,
     DesignationSystem,
     ProcessAttributeKind,
@@ -39,6 +41,7 @@ from app.models.enums import (
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_curve import MaterialCurve
 from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
@@ -49,6 +52,7 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
 from app.models.user import User, UserSession
+from app.repositories.curve_repository import curve_rows
 from app.repositories.material_repository import MaterialRepository
 from app.repositories.subscription_repository import SubscriptionRepository
 
@@ -2370,6 +2374,242 @@ def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
     return {"designations_created": designations, "composition_entries_created": entries}
 
 
+# --- Curves (D-106, TM4) -------------------------------------------------------
+#
+# ⚠️  FICTÍCIAS, como os materiais a que se ligam. Os pontos foram escritos à mão
+# com a *forma* das curvas de ensaio — trecho elástico, escoamento, encruamento e
+# estricção na tensão–deformação; o amolecimento com a temperatura; a queda da
+# resistência à fadiga com o número de ciclos, com uma faixa de dispersão — para
+# exercitar a figura, a família de curvas, a escala log e o envelope. Nenhum
+# número vem de ASM, MatWeb, Total Materia nem do Granta, nem de norma alguma; as
+# ordens de grandeza conversam com as propriedades fictícias dos próprios
+# materiais demo (módulo, resistência) e foram arredondadas de propósito.
+#
+# Os pontos estão em % e MPa, e a família em °C, de propósito: a trilha de
+# unidade (original → canônica) tem de aparecer na ficha e no CSV também para
+# curva. Polímero, cerâmica e compósito ficam sem curva: é o estado "nenhuma
+# curva cadastrada", que a ficha escreve com rótulo (D-24).
+DEMO_CURVE_CITATION = "Curva fictícia de demonstração — não é dado de ensaio."
+
+DEMO_CURVES: list[dict] = [
+    {
+        "material": "Aço Demo B",
+        "kind": CurveKind.TENSAO_DEFORMACAO,
+        "title": "Tensão–deformação de engenharia em três temperaturas (fictícia)",
+        "description": (
+            "Família fictícia de curvas de tração para demonstrar a figura; "
+            "não representa ensaio nenhum."
+        ),
+        "x": ("deformacao", "Deformação de engenharia", "%"),
+        "y": ("tensao", "Tensão de engenharia", "MPa"),
+        "parameter": ("temperatura", "degC"),
+        "series": [
+            {
+                "parameter": 20,
+                "conditions": "Tração uniaxial; ar ambiente (fictício).",
+                "points": [
+                    (0, 0),
+                    (0.1, 205),
+                    (0.15, 270),
+                    (0.3, 290),
+                    (1, 320),
+                    (3, 380),
+                    (8, 450),
+                    (15, 495),
+                    (25, 500),
+                    (35, 470),
+                    (42, 420),
+                ],
+            },
+            {
+                "parameter": 300,
+                "conditions": "Tração uniaxial; forno (fictício).",
+                "points": [
+                    (0, 0),
+                    (0.1, 185),
+                    (0.15, 230),
+                    (0.3, 245),
+                    (1, 270),
+                    (3, 320),
+                    (8, 380),
+                    (15, 415),
+                    (25, 420),
+                    (35, 395),
+                    (45, 340),
+                ],
+            },
+            {
+                "parameter": 500,
+                "conditions": "Tração uniaxial; forno (fictício).",
+                "points": [
+                    (0, 0),
+                    (0.1, 160),
+                    (0.15, 175),
+                    (0.3, 185),
+                    (1, 200),
+                    (3, 225),
+                    (8, 250),
+                    (15, 262),
+                    (25, 255),
+                    (40, 220),
+                    (55, 160),
+                ],
+            },
+        ],
+    },
+    {
+        "material": "Liga Alumínio Demo A",
+        "kind": CurveKind.TENSAO_DEFORMACAO,
+        "title": "Tensão–deformação de engenharia em três temperaturas (fictícia)",
+        "description": (
+            "Família fictícia de curvas de tração para demonstrar a figura; "
+            "não representa ensaio nenhum."
+        ),
+        "x": ("deformacao", "Deformação de engenharia", "%"),
+        "y": ("tensao", "Tensão de engenharia", "MPa"),
+        "parameter": ("temperatura", "degC"),
+        "series": [
+            {
+                "parameter": 20,
+                "points": [
+                    (0, 0),
+                    (0.2, 138),
+                    (0.35, 230),
+                    (0.6, 265),
+                    (2, 285),
+                    (5, 300),
+                    (9, 310),
+                    (12, 305),
+                    (15, 280),
+                ],
+            },
+            {
+                "parameter": 150,
+                "points": [
+                    (0, 0),
+                    (0.2, 128),
+                    (0.35, 205),
+                    (0.6, 230),
+                    (2, 245),
+                    (5, 255),
+                    (10, 258),
+                    (15, 245),
+                    (20, 215),
+                ],
+            },
+            {
+                "parameter": 250,
+                "points": [
+                    (0, 0),
+                    (0.2, 110),
+                    (0.35, 140),
+                    (0.6, 150),
+                    (2, 158),
+                    (5, 160),
+                    (12, 150),
+                    (20, 125),
+                    (28, 95),
+                ],
+            },
+        ],
+    },
+    {
+        "material": "Liga Alumínio Demo A",
+        "kind": CurveKind.FADIGA,
+        "title": "Curva S–N com faixa de dispersão (fictícia)",
+        "description": (
+            "Curva fictícia de fadiga com faixa mín.–máx. declarada, para demonstrar "
+            "a escala logarítmica e o envelope; não representa ensaio nenhum."
+        ),
+        "x": ("ciclos", "Número de ciclos até a falha, N", "dimensionless"),
+        "y": ("tensao", "Amplitude de tensão", "MPa"),
+        "parameter": ("razao_tensao", "dimensionless"),
+        "series": [
+            {
+                "parameter": -1,
+                "conditions": "Flexão rotativa, R = −1; corpos de prova polidos (fictício).",
+                "points": [
+                    (1e3, 260, 240, 280),
+                    (1e4, 205, 185, 225),
+                    (1e5, 160, 140, 180),
+                    (1e6, 125, 108, 142),
+                    (1e7, 100, 85, 115),
+                    (1e8, 90, 76, 104),
+                ],
+            },
+        ],
+    },
+]
+
+
+def _seed_demo_curves(db: Session, source: Source) -> int:
+    """Attach the fictitious curves to the demo metals, idempotent by (material, title).
+
+    Same shape as ``_seed_demo_identity``: runs on every ``seed()`` and touches
+    only ``is_demo`` materials, so a database that already holds the demo
+    materials gains the curves on the next ``semear_demo``. Built through the
+    domain builder, so a seed curve cannot be one the importer would refuse.
+    """
+    names = {spec["material"] for spec in DEMO_CURVES}
+    materials = {
+        m.name: m
+        for m in db.execute(
+            select(Material).where(Material.name.in_(names), Material.is_demo.is_(True))
+        ).scalars()
+    }
+    created = 0
+    for spec in DEMO_CURVES:
+        material = materials.get(spec["material"])
+        if material is None:
+            continue
+        exists = db.execute(
+            select(MaterialCurve.id).where(
+                MaterialCurve.material_id == material.id,
+                MaterialCurve.kind == spec["kind"],
+                MaterialCurve.title == spec["title"],
+            )
+        ).scalar_one_or_none()
+        if exists is not None:
+            continue
+        x_quantity, x_label, x_unit = spec["x"]
+        y_quantity, y_label, y_unit = spec["y"]
+        parameter_quantity, parameter_unit = spec["parameter"]
+        normalized = build_curve(
+            spec["kind"],
+            x_quantity=x_quantity,
+            x_unit=x_unit,
+            y_quantity=y_quantity,
+            y_unit=y_unit,
+            parameter_quantity=parameter_quantity,
+            series=[
+                SeriesInput(
+                    points=[PointInput(*point) for point in series["points"]],
+                    conditions=series.get("conditions"),
+                    parameter=series["parameter"],
+                    parameter_unit=parameter_unit,
+                )
+                for series in spec["series"]
+            ],
+        )
+        db.add(
+            curve_rows(
+                normalized,
+                material_id=material.id,
+                title=spec["title"],
+                description=spec["description"],
+                x_label=x_label,
+                y_label=y_label,
+                source_id=source.id,
+                citation=DEMO_CURVE_CITATION,
+                data_quality=DataQuality.ESTIMADO,
+                is_demo=True,
+            )
+        )
+        created += 1
+    db.flush()
+    return created
+
+
 def seed_reference(db: Session) -> dict[str, int]:
     """Populate reusable non-demo reference data only.
 
@@ -2460,6 +2700,7 @@ def seed(db: Session) -> dict[str, int]:
     db.flush()
     assert demo_source is not None
     identity_summary = _seed_demo_identity(db, demo_source)
+    curves_created = _seed_demo_curves(db, demo_source)
 
     process_summary = _seed_process_universe(db)
     transport_created = _seed_transport_modes(db, demo_source)
@@ -2469,6 +2710,7 @@ def seed(db: Session) -> dict[str, int]:
         **reference_summary,
         "materials_created": created_materials,
         **identity_summary,
+        "curves_created": curves_created,
         "transport_modes": transport_created,
         **process_summary,
     }

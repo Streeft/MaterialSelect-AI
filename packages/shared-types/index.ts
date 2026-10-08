@@ -2640,3 +2640,128 @@ export interface StudioList {
   /** Finished today against the daily limit; running ones already count. */
   usage: NotebookUsage;
 }
+
+// --- Material curves (D-106, TM4) -------------------------------------------
+
+/** What a curve answers. Closed: each kind pins its axes and opening scale. */
+export type CurveKind = "TENSAO_DEFORMACAO" | "TEMPERATURA" | "TAXA" | "FADIGA" | "FLUENCIA";
+
+export type CurveScale = "linear" | "log-x" | "log-y" | "log-log";
+
+/** How many curves of one kind a material has — zero included (D-24). */
+export interface CurveKindCount {
+  kind: CurveKind;
+  label: string;
+  count: number;
+}
+
+export interface CurveSummary {
+  id: number;
+  kind: CurveKind;
+  kind_label: string;
+  title: string;
+  x_quantity: string;
+  x_quantity_label: string;
+  y_quantity: string;
+  y_quantity_label: string;
+  parameter_quantity_label: string | null;
+  series_count: number;
+  point_count: number;
+  source_label: string;
+  is_demo: boolean;
+}
+
+export interface MaterialCurves {
+  material_id: number;
+  material_name: string;
+  total: number;
+  counts_by_kind: CurveKindCount[];
+  curves: CurveSummary[];
+}
+
+export interface CurveUnitOption {
+  unit: string;
+  label: string;
+}
+
+/**
+ * One axis of a curve, already resolved by the backend: the reading unit
+ * (D-70), whether it is logarithmic, and the padded data domain in reading
+ * units. The client maps data to pixels; it never computes the domain.
+ */
+export interface CurveAxis {
+  quantity: string;
+  quantity_label: string;
+  /** The source's own axis title, when it gave one. */
+  title: string | null;
+  unit: string;
+  /** Empty for a pure number (cycles, stress ratio). */
+  unit_label: string;
+  canonical_unit: string;
+  original_unit: string;
+  conversion_method: string;
+  accepted_units: CurveUnitOption[];
+  log: boolean;
+  /** Why this axis may not be logarithmic, or `null` when it may. */
+  log_refusal: string | null;
+  domain: [number, number] | null;
+}
+
+export interface CurveParameter {
+  quantity: string;
+  quantity_label: string;
+  unit: string;
+  unit_label: string;
+}
+
+/** One row of the points table: reading units, the source's numbers, drawn or not. */
+export interface CurvePoint {
+  position: number;
+  x: number;
+  y: number;
+  y_min: number | null;
+  y_max: number | null;
+  x_original: number;
+  y_original: number;
+  y_min_original: number | null;
+  y_max_original: number | null;
+  drawn: boolean;
+}
+
+export interface CurveSeries {
+  id: number;
+  position: number;
+  label: string | null;
+  conditions: string | null;
+  parameter_value: number | null;
+  parameter_original: number | null;
+  parameter_original_unit: string | null;
+  /** The polyline in data coordinates (reading units), in the source's order. */
+  path: [number, number][];
+  /** The band as a closed polygon, or `null` when there is none to draw. */
+  band: [number, number][] | null;
+  points: CurvePoint[];
+  excluded: number;
+}
+
+export interface Curve {
+  id: number;
+  material_id: number;
+  material_name: string;
+  kind: CurveKind;
+  kind_label: string;
+  title: string;
+  description: string | null;
+  scale: CurveScale;
+  available_scales: CurveScale[];
+  x_axis: CurveAxis;
+  y_axis: CurveAxis;
+  parameter: CurveParameter | null;
+  series: CurveSeries[];
+  notes: string[];
+  source_label: string;
+  citation: string | null;
+  data_quality: DataQuality;
+  is_demo: boolean;
+  is_own_record: boolean;
+}

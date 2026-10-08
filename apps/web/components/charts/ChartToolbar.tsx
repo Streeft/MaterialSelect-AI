@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import { ptBR } from "@/lib/i18n";
 import { downloadChartImage } from "@/lib/charts";
 import { RasterizeError } from "@/lib/rasterize";
@@ -23,6 +23,7 @@ export function ChartToolbar({
   target,
   fileName,
   disabled = false,
+  extraItems,
   className,
 }: {
   /** The element wrapping the rendered figure. */
@@ -30,6 +31,11 @@ export function ChartToolbar({
   /** Base name of the downloaded file, without extension. */
   fileName: string;
   disabled?: boolean;
+  /**
+   * Further entries of the same menu — the figure's data as a file (D-106) —
+   * after the two images, so there is still one "Exportar" per figure (D-91).
+   */
+  extraItems?: ReactNode;
   className?: string;
 }) {
   const [exporting, setExporting] = useState<"png" | "svg" | null>(null);
@@ -65,6 +71,7 @@ export function ChartToolbar({
           <MenuItem hint={t.exportSvgHint} onSelect={() => void handleExport("svg")}>
             {t.exportSvg}
           </MenuItem>
+          {extraItems}
         </MenuButton>
       </div>
       {error ? (
