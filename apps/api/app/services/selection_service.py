@@ -552,8 +552,7 @@ class SelectionService:
         The two wrong combinations are the ones a reader would most plausibly
         write: a process stage in a process study (they meant the *tree* stage),
         and a material stage in a material study (same). Saying so beats
-        evaluating something they did not ask for.
-        """
+        evaluating something they did not ask for."""
         allowed = self._KINDS_BY_UNIVERSE[universe]
         if stage_in.kind in allowed:
             return
@@ -1937,7 +1936,7 @@ class SelectionService:
 
     def list_indices(self) -> list[PerformanceIndexOut]:
         self._load()  # populate props for dimension computation
-        return [self._index_to_out(i) for i in self.repo.list_indices()]
+        return [self._index_to_out(i) for i in self.repo.list_indices()]\
 
     def _index_to_out(self, index: PerformanceIndex) -> PerformanceIndexOut:
         try:
@@ -2303,9 +2302,7 @@ class SelectionService:
             constraints_by_group.setdefault(c.group_id, []).append(c)
 
         if not study.stages:
-            root_group = self._group_rows_to_in(
-                list(study.constraint_groups), constraints_by_group
-            )
+            root_group = self._group_rows_to_in(list(study.constraint_groups), constraints_by_group)
             return [
                 StageOut(
                     position=0,
@@ -2329,9 +2326,7 @@ class SelectionService:
                 stage_groups = groups_by_stage.get(stage.id, [])
                 if not stage_groups and len(study.stages) == 1 and None in groups_by_stage:
                     stage_groups = groups_by_stage[None]
-                root_group = self._group_rows_to_in(
-                    stage_groups, constraints_by_group
-                )
+                root_group = self._group_rows_to_in(stage_groups, constraints_by_group)
             outs.append(
                 StageOut(
                     position=stage.position,
