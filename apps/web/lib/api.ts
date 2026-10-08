@@ -263,6 +263,8 @@ export function listMaterialCurves(materialId: number): Promise<MaterialCurves> 
 export interface CurveReading {
   x?: string;
   y?: string;
+  /** Unit the family parameter is read in (TM4-e). */
+  parameter?: string;
   scale?: CurveScale;
 }
 
@@ -270,6 +272,7 @@ function curveQuery(reading: CurveReading): string {
   const params = new URLSearchParams();
   if (reading.x) params.set("unidade_x", reading.x);
   if (reading.y) params.set("unidade_y", reading.y);
+  if (reading.parameter) params.set("unidade_parametro", reading.parameter);
   if (reading.scale) params.set("escala", reading.scale);
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -297,7 +300,7 @@ export function curveExportUrl(
   format: "csv" | "xlsx",
   reading: Pick<CurveReading, "x" | "y"> = {},
 ): string {
-  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery(reading)}`;
+  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery({ x: reading.x, y: reading.y })}`;
 }
 
 // --- Changes between catalogue releases (D-108) -----------------------------

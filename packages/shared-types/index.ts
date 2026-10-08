@@ -2712,6 +2712,9 @@ export interface CurveParameter {
   quantity_label: string;
   unit: string;
   unit_label: string;
+  canonical_unit: string;
+  /** The units the reader may choose for the parameter (TM4-e). */
+  accepted_units: CurveUnitOption[];
 }
 
 /** One row of the points table: reading units, the source's numbers, drawn or not. */
