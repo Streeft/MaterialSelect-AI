@@ -1914,6 +1914,48 @@ export const ptBR = {
     columnRegion: "Região",
     noRegion: "Não restrita pela fonte",
     noCitation: "Sem localização na fonte",
+    // TM2-a: edição da composição e das designações pela ficha.
+    systemNames: {
+      UNS: "UNS",
+      AISI_SAE: "AISI/SAE",
+      ASTM: "ASTM",
+      EN: "EN",
+      ISO: "ISO",
+      DIN: "DIN",
+      JIS: "JIS",
+      GB: "GB",
+      ABNT: "ABNT NBR",
+      COMERCIAL: "Nome comercial",
+    },
+    edit: {
+      editComposition: "Editar composição",
+      editDesignations: "Editar designações",
+      officialReadOnly:
+        "Registro do catálogo oficial licenciado: a composição e as designações não são editadas pela ficha.",
+      compositionRule:
+        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Salvar substitui a composição inteira.",
+      designationRule:
+        "Cada código com a fonte que o afirma. Uma designação não declara equivalência com outro material. Salvar substitui todas as designações.",
+      rowLabel: (n: number) => `Linha ${n}`,
+      element: "Elemento",
+      state: "Tipo",
+      stateRange: "Faixa ou limite",
+      stateBalance: "Resto (declarado)",
+      stateAbsent: "Ausente (sem dado)",
+      min: "Mínimo",
+      max: "Máximo",
+      nominal: "Nominal",
+      unit: "Unidade",
+      source: "Fonte",
+      citation: "Onde, na fonte",
+      system: "Norma",
+      code: "Código",
+      region: "Região",
+      addElement: "Adicionar elemento",
+      addDesignation: "Adicionar designação",
+      emptyComposition: "Sem linhas: salvar deixa a composição não cadastrada (não é 0 %).",
+      invalidNumber: (element: string) => `${element || "Linha"}: número inválido.`,
+    },
   },
   // D-106 (TM4): curvas do material na ficha.
   curves: {

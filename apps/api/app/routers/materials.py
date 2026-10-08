@@ -19,6 +19,8 @@ from app.models.user import User
 from app.schemas.curve import CurveOut, MaterialCurvesOut
 from app.schemas.material import (
     ChartData,
+    CompositionReplaceIn,
+    DesignationsReplaceIn,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
@@ -198,6 +200,41 @@ def replace_values(
     """Replace all property values of a material with the provided set."""
     return MaterialService(db, user, unit_choices, can_edit_shared).replace_property_values(
         material_id, values
+    )
+
+
+@router.put("/{material_id}/composicao", response_model=MaterialDetail)
+def replace_composition(
+    material_id: int,
+    payload: CompositionReplaceIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Replace the composition (TM2-a, D-105): owner of an own record, or a curator.
+
+    The service refuses the shared catalogue to a non-curator (403), a record
+    from the official catalogue (409) and any row the composition rules reject
+    (400). The balance is declared, never computed.
+    """
+    return MaterialService(db, user, unit_choices, can_edit_shared).replace_composition(
+        material_id, payload
+    )
+
+
+@router.put("/{material_id}/designacoes", response_model=MaterialDetail)
+def replace_designations(
+    material_id: int,
+    payload: DesignationsReplaceIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Replace the designations (TM2-a, D-105); same permission rule as the composition."""
+    return MaterialService(db, user, unit_choices, can_edit_shared).replace_designations(
+        material_id, payload
     )
 
 

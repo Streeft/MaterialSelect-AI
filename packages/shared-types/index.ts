@@ -139,6 +139,29 @@ export interface CompositionEntry {
   is_demo: boolean;
 }
 
+/** One element being written (TM2-a). `resto` and `ausente` carry no number. */
+export interface CompositionEntryIn {
+  element: string;
+  state: CompositionState;
+  value_min?: number | null;
+  value_max?: number | null;
+  value_nominal?: number | null;
+  unit?: string | null;
+  source_label: string;
+  citation?: string | null;
+  notes?: string | null;
+  data_quality?: DataQuality;
+}
+
+/** One designation being written (TM2-a). */
+export interface DesignationIn {
+  system: DesignationSystem;
+  code: string;
+  region?: string | null;
+  source_label: string;
+  citation?: string | null;
+}
+
 /** Why a composition condition could not be decided, counted per material. */
 export interface UndeterminedBreakdown {
   sem_composicao: number;
@@ -209,6 +232,8 @@ export interface MaterialDetail {
   is_active: boolean;
   /** Same flag, same reason, as on `MaterialListItem`. */
   is_own_record: boolean;
+  /** TM2-a: from the licensed official catalogue; composition/designations are read-only. */
+  is_official?: boolean;
   keywords: string[];
   property_groups: PropertyGroup[];
   /**

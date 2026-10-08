@@ -44,6 +44,8 @@ import type {
   MaterialListItem,
   MaterialSearch,
   MaterialUpdate,
+  CompositionEntryIn,
+  DesignationIn,
   MyRecords,
   Notebook,
   NotebookChat,
@@ -394,6 +396,26 @@ export function replaceMaterialValues(
   return request<MaterialDetail>(`/api/materials/${id}/values`, {
     method: "PUT",
     body: JSON.stringify(values),
+  });
+}
+
+export function replaceMaterialComposition(
+  id: number,
+  entries: CompositionEntryIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao`, {
+    method: "PUT",
+    body: JSON.stringify({ entries }),
+  });
+}
+
+export function replaceMaterialDesignations(
+  id: number,
+  designations: DesignationIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/designacoes`, {
+    method: "PUT",
+    body: JSON.stringify({ designations }),
   });
 }
 

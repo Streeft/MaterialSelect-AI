@@ -11,13 +11,20 @@ from collections.abc import Mapping
 from sqlalchemy.orm import Session
 
 from app.calculations.units import UnitError
-from app.domain.composition import RULE_TEXT, UndeterminedReason
+from app.domain.composition import (
+    RULE_TEXT,
+    CompositionError,
+    NormalizedComposition,
+    UndeterminedReason,
+    build_composition_entry,
+    validate_composition,
+)
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
     missing_value,
 )
-from app.domain.designation import system_label
+from app.domain.designation import DesignationError, designation_key, system_label
 from app.domain.display_units import Reading, reading_for
 from app.domain.elements import element_for
 from app.domain.errors import (
@@ -40,11 +47,15 @@ from app.schemas.material import (
     ChartData,
     ChartPoint,
     CompositionConditionOut,
+    CompositionEntryIn,
     CompositionEntryOut,
+    CompositionReplaceIn,
     CompositionSearchOut,
     DataQualitySummary,
     DesignationBrief,
+    DesignationIn,
     DesignationOut,
+    DesignationsReplaceIn,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
@@ -253,6 +264,7 @@ class MaterialService:
             is_demo=material.is_demo,
             is_active=material.is_active,
             is_own_record=material.owner_id is not None,
+            is_official=self.repo.is_official(material.id),
             keywords=list(material.keywords or []),
             property_groups=self._group_properties(material),
             processes=self.processes.processes_for_material(material.id),
@@ -377,6 +389,195 @@ class MaterialService:
                 action=AuditAction.EXCLUIDO,
             )
         self.repo.commit()
+
+    # --- composition and designations (TM2-a, D-105) -----------------------
+
+    def replace_composition(
+        self, material_id: int, payload: CompositionReplaceIn
+    ) -> MaterialDetail:
+        """Replace a material's whole composition, with audit.
+
+        Every row is built by ``build_composition_entry`` — the same constructor
+        the seed and the official importer use — so a hand-typed row obeys the
+        rules the database ``CHECK``s pin: balance and absent rows carry no
+        number, nothing is computed (no ``100 − Σ``), the unit goes through
+        ``units.py``. The whole set is validated before anything is deleted, so a
+        refusal leaves the stored composition untouched. An empty list is allowed
+        and means "no composition registered" (never 0 %).
+        """
+        material = self._writable_identity(material_id)
+        before = self._composition_snapshot(material)
+
+        built: list[tuple[CompositionEntryIn, NormalizedComposition]] = []
+        for entry_in in payload.entries:
+            try:
+                built.append(
+                    (
+                        entry_in,
+                        build_composition_entry(
+                            entry_in.element,
+                            value_min=entry_in.value_min,
+                            value_max=entry_in.value_max,
+                            value_nominal=entry_in.value_nominal,
+                            unit=entry_in.unit,
+                            is_balance=entry_in.state == "resto",
+                            is_missing=entry_in.state == "ausente",
+                        ),
+                    )
+                )
+            except CompositionError as exc:
+                raise ValidationError(str(exc)) from exc
+        try:
+            validate_composition(row for _, row in built)
+        except CompositionError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        rows: list[MaterialCompositionEntry] = []
+        for position, (entry_in, row) in enumerate(built):
+            source = self.repo.get_or_create_source(
+                entry_in.source_label.strip(), is_demo=material.is_demo
+            )
+            rows.append(
+                MaterialCompositionEntry(
+                    material_id=material.id,
+                    element=row.element,
+                    position=position,
+                    is_balance=row.is_balance,
+                    is_missing=row.is_missing,
+                    value_min=row.value_min,
+                    value_max=row.value_max,
+                    value_nominal=row.value_nominal,
+                    original_unit=row.original_unit,
+                    normalized_min=row.normalized_min,
+                    normalized_max=row.normalized_max,
+                    normalized_nominal=row.normalized_nominal,
+                    canonical_unit=row.canonical_unit,
+                    conversion_method=row.conversion_method,
+                    notes=entry_in.notes,
+                    source_id=source.id,
+                    citation=entry_in.citation,
+                    data_quality=entry_in.data_quality,
+                    is_demo=material.is_demo,
+                )
+            )
+        self.repo.replace_composition(material, rows)
+
+        changes = diff_fields(before, self._composition_snapshot_rows(rows))
+        self._audit_update(material, changes)
+        self.repo.commit()
+        return self.get_material_detail(material_id)
+
+    def replace_designations(
+        self, material_id: int, payload: DesignationsReplaceIn
+    ) -> MaterialDetail:
+        """Replace a material's designations, with audit.
+
+        The system is the closed vocabulary (the schema's enum); the code is kept
+        as written. Two rows with the same system and code (compared by
+        ``designation_key``) are one fact written twice and are refused. No
+        equivalence is ever inferred between materials (D-105).
+        """
+        material = self._writable_identity(material_id)
+        before = self._designation_snapshot(material)
+
+        seen: set[tuple[str, str]] = set()
+        for item in payload.designations:
+            try:
+                key = designation_key(item.code)
+            except DesignationError as exc:
+                raise ValidationError(str(exc)) from exc
+            if (item.system.value, key) in seen:
+                raise ValidationError(
+                    f"Designação repetida: {system_label(item.system)} {item.code.strip()}."
+                )
+            seen.add((item.system.value, key))
+
+        rows = [self._designation_row(material, item) for item in payload.designations]
+        self.repo.replace_designations(material, rows)
+
+        after = {
+            f"designação {system_label(r.system)} {r.code}": self._designation_repr(r) for r in rows
+        }
+        self._audit_update(material, diff_fields(before, after))
+        self.repo.commit()
+        return self.get_material_detail(material_id)
+
+    def _designation_row(self, material: Material, item: DesignationIn) -> MaterialDesignation:
+        source = self.repo.get_or_create_source(item.source_label.strip(), is_demo=material.is_demo)
+        return MaterialDesignation(
+            material_id=material.id,
+            system=item.system,
+            code=item.code,
+            region=item.region,
+            source_id=source.id,
+            citation=item.citation,
+            is_demo=material.is_demo,
+        )
+
+    def _writable_identity(self, material_id: int) -> Material:
+        """The material, if this viewer may write its composition/designations.
+
+        A record another user owns is a 404 (visibility). The shared catalogue
+        needs the curator rule (D-83) — an own record only its owner. A record
+        that came from the licensed official catalogue (D-102) is not edited by
+        hand: its values are the dataset's, and a manual edit would put a claim
+        next to them that the dataset never made.
+        """
+        material = self.repo.get_material(material_id)
+        if material is None:
+            raise NotFoundError(f"Material não encontrado: {material_id}")
+        self._ensure_writable(material)
+        if self.repo.is_official(material.id):
+            raise ConflictError(
+                "Este material vem do catálogo oficial licenciado e não é editado pela "
+                "ficha. Para corrigir o dado, use uma nova versão do catálogo."
+            )
+        return material
+
+    def _audit_update(self, material: Material, changes: dict) -> None:
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
+
+    @staticmethod
+    def _composition_repr(row: MaterialCompositionEntry) -> str:
+        if row.is_balance:
+            return "resto"
+        if row.is_missing:
+            return "ausente"
+        if row.value_min is not None and row.value_max is not None:
+            return f"{row.value_min:g}–{row.value_max:g} {row.original_unit}"
+        if row.value_max is not None:
+            return f"≤ {row.value_max:g} {row.original_unit}"
+        if row.value_min is not None:
+            return f"≥ {row.value_min:g} {row.original_unit}"
+        return f"{row.value_nominal:g} {row.original_unit}"
+
+    @classmethod
+    def _composition_snapshot_rows(cls, rows) -> dict[str, str]:
+        return {f"composição {r.element}": cls._composition_repr(r) for r in rows}
+
+    @classmethod
+    def _composition_snapshot(cls, material: Material) -> dict[str, str]:
+        return cls._composition_snapshot_rows(material.composition)
+
+    @staticmethod
+    def _designation_repr(row: MaterialDesignation) -> str:
+        return f"{row.region or '—'}; fonte {row.source.label if row.source else '—'}"
+
+    @classmethod
+    def _designation_snapshot(cls, material: Material) -> dict[str, str]:
+        return {
+            f"designação {system_label(r.system)} {r.code}": cls._designation_repr(r)
+            for r in material.designations
+        }
 
     def _ensure_writable(self, material: Material) -> None:
         # A row another user owns never reaches here: the visibility filter
