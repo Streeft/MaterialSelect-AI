@@ -425,7 +425,7 @@ export interface MaterialClass {
   /**
    * Materials filed **directly** here, so an empty branch reads as empty
    * instead of borrowing its children's contents. The subtree total is
-   * `MaterialClassDetail.descendant_material_count`.
+   * `MaterialClassDetail.descendant_material_count``.
    */
   material_count: number;
 }
@@ -1080,6 +1080,7 @@ export interface StudyDetail {
   free_variables: string[];
   combinator: Combinator;
   constraints: ConstraintIn[];
+  root_group?: ConstraintGroupIn | null;
   /** P0-1: the study's real structure. `constraints` above stays the flat list. */
   stages: StageOut[];
   index: IndexIn | null;

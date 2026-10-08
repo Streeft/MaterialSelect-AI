@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import type {
   Combinator,
+  ConstraintGroupIn,
   SelectionUniverse,
   CriterionIn,
   Goal,
@@ -166,7 +167,11 @@ const nextId = () => `criterion-${counter++}`;
  * the fallback, so reopening a saved study would quietly turn a process stage
  * into an empty limit stage — and the type checker would be satisfied.
  */
-function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
+function stageFromPayload(
+  stage: StageOut,
+  combinator: Combinator,
+  fallbackRootGroup?: ConstraintGroupIn | null,
+): StageState {
   const common = {
     id: nextEditorId("stage"),
     label: stage.label ?? "",
@@ -208,14 +213,16 @@ function stageFromPayload(stage: StageOut, combinator: Combinator): StageState {
         indexGoal: stage.chart?.index_goal ?? "maximize",
         indexLevel: boundToField(stage.chart?.index_level),
       };
-    case "limit":
+    case "limit": {
+      const groupPayload = stage.root_group ?? fallbackRootGroup;
       return {
         ...common,
         kind: "limit",
-        group: stage.root_group
-          ? fromConstraintPayload(stage.root_group)
+        group: groupPayload
+          ? fromConstraintPayload(groupPayload)
           : emptyGroup(nextEditorId("group"), combinator),
       };
+    }
   }
 }
 
@@ -669,30 +676,34 @@ function SelectionWizard() {
       // P0-1 closes M6's read-side gap: `StudyOut.stages` carries each stage's
       // real tree, so reopening a nested study restores its parentheses instead
       // of flattening them. A study whose payload somehow has no stage falls
-      // back to the flat list — the pre-M6 shape — rather than opening empty.
+      // back to root_group or the flat list — the pre-M6 shape — rather than opening empty.
+      const limitStagesCount = s.stages.filter((st) => st.kind === "limit").length;
+      const fallbackRoot = limitStagesCount === 1 ? s.root_group : null;
       const reopened: StageState[] =
         s.stages.length > 0
-          ? s.stages.map((stage) => stageFromPayload(stage, s.combinator))
+          ? s.stages.map((stage) => stageFromPayload(stage, s.combinator, fallbackRoot))
           : [
               {
                 id: nextEditorId("stage"),
                 kind: "limit",
                 label: "",
                 enabled: true,
-                group: {
-                  ...emptyGroup(nextEditorId("group"), s.combinator),
-                  constraints: s.constraints.map((c) => ({
-                    ...emptyConstraint(nextEditorId("row")),
-                    operator: c.operator,
-                    property_slug: c.property_slug ?? "",
-                    value: c.value?.toString() ?? "",
-                    value_min: c.value_min?.toString() ?? "",
-                    value_max: c.value_max?.toString() ?? "",
-                    unit: c.unit ?? "",
-                    class_slugs: c.class_slugs ?? [],
-                    text: c.text ?? "",
-                  })),
-                },
+                group: s.root_group
+                  ? fromConstraintPayload(s.root_group)
+                  : {
+                      ...emptyGroup(nextEditorId("group"), s.combinator),
+                      constraints: s.constraints.map((c) => ({
+                        ...emptyConstraint(nextEditorId("row")),
+                        operator: c.operator,
+                        property_slug: c.property_slug ?? "",
+                        value: c.value?.toString() ?? "",
+                        value_min: c.value_min?.toString() ?? "",
+                        value_max: c.value_max?.toString() ?? "",
+                        unit: c.unit ?? "",
+                        class_slugs: c.class_slugs ?? [],
+                        text: c.text ?? "",
+                      })),
+                    },
               },
             ];
       setStages(reopened);
