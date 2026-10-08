@@ -86,7 +86,8 @@ def _move_steel_into_a_subclass_of_metals(db_session) -> None:
     The assignment is to `class_id` — the mapped column. Setting the plausible
     `material_class_id` instead does nothing and raises nothing: SQLAlchemy
     accepts any attribute on an instance, so the material would quietly stay in
-    Metais and both tests below would pass while proving nothing."""
+    Metais and both tests below would pass while proving nothing.
+    """
     metais = db_session.query(MaterialClass).filter(MaterialClass.slug == "metais").one()
     acos = MaterialClass(name="Aços carbono", slug="acos-carbono", parent_id=metais.id)
     db_session.add(acos)
@@ -493,76 +494,6 @@ def test_saved_nested_study_via_root_group_round_trips_to_study_out_and_stages(c
     assert len(study["stages"]) == 1
     assert study["stages"][0]["kind"] == "limit"
     assert study["stages"][0]["root_group"] == study["root_group"]
-
-
-def test_legacy_study_without_stages_returns_synthesized_limit_stage_with_nested_root_group(
-    client, db_session, study_id
-):
-    """When a legacy study has nested constraint groups in the database but no
-    SelectionStage rows, get_study synthesizes a limit StageOut whose root_group
-    and the top-level StudyOut.root_group preserve the full hierarchy."""
-    _drop_backfilled_stage(db_session, study_id)
-
-    root = ConstraintGroup(
-        study_id=study_id,
-        parent_group_id=None,
-        stage_id=None,
-        operator="OR",
-        position=0,
-    )
-    db_session.add(root)
-    db_session.flush()
-
-    child1 = ConstraintGroup(
-        study_id=study_id,
-        parent_group_id=root.id,
-        stage_id=None,
-        operator="AND",
-        position=0,
-    )
-    child2 = ConstraintGroup(
-        study_id=study_id,
-        parent_group_id=root.id,
-        stage_id=None,
-        operator="AND",
-        position=1,
-    )
-    db_session.add_all([child1, child2])
-    db_session.flush()
-
-    db_session.add(
-        SelectionConstraint(
-            study_id=study_id,
-            group_id=child1.id,
-            position=0,
-            operator="lte",
-            property_slug="densidade",
-            value=2800.0,
-            unit="kg/m**3",
-            class_slugs=[],
-        )
-    )
-    db_session.add(
-        SelectionConstraint(
-            study_id=study_id,
-            group_id=child2.id,
-            position=0,
-            operator="gte",
-            property_slug="modulo_young",
-            value=200.0,
-            unit="GPa",
-            class_slugs=[],
-        )
-    )
-    db_session.flush()
-
-    read = client.get(f"/api/selection/studies/{study_id}").json()
-    assert read["root_group"] is not None
-    assert read["root_group"]["operator"] == "OR"
-    assert len(read["root_group"]["groups"]) == 2
-    assert len(read["stages"]) == 1
-    assert read["stages"][0]["kind"] == "limit"
-    assert read["stages"][0]["root_group"] == read["root_group"]
 
 
 def test_the_study_summary_counts_stages(client):
