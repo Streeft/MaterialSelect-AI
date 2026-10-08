@@ -233,7 +233,8 @@ modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
 previa. Ver M4 em [TODO.md](TODO.md).
 
 **RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
-mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,\npassou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
+passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
 (léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
 `app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
 (`provider.simulated`, não o nome do provedor — a mesma disciplina de
@@ -714,7 +715,8 @@ na entrada.
 
 ### Seleção determinística (o núcleo sem IA)
 - Restrições com 11 operadores, combináveis por AND/OR em **grupos aninhados**
-  (M6, parênteses lógicos de verdade), com funil de eliminação.
+  (M6, parênteses lógicos de verdade), com funil de eliminação e preservação
+  fiel da árvore hierárquica ao reabrir estudos salvos (`StudyOut.root_group` e `StageOut.root_group`).
 - Índices de desempenho com **parser seguro sem `eval`** e **dimensão derivada**
   por análise dimensional.
 - Ranking por **três métodos** (M5): soma ponderada normalizada, TOPSIS
@@ -1055,12 +1057,6 @@ que mais afetam quem for mexer no código:
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
-- **Reabrir um estudo com grupos de restrição aninhados (M6) achata a
-  árvore no editor.** `GET /api/selection/studies/{id}` ainda devolve as
-  restrições como lista plana — não é perda de dado (a árvore real continua
-  intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
-  "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
-  ("M6" em "Débitos já quitados").
 - **A busca semântica do Cérebro chega aos poucos.** Os vetores são gerados com
   a sobra da cota diária gratuita do Gemini (~1 000 pedidos por dia, divididos
   com o próprio produto): de 1 a 2 noites se o endpoint aceitar lote, até 2 a 4
