@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
 | [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
 | [60](#sessão-60--071026--busca-por-composição-química-e-por-designação-tm2-d-105) | 07/10/2026 | Busca por composição química e por designação (TM2): `MaterialDesignation` e `MaterialCompositionEntry` com `CHECK`s, `comp:`/`norma:`/`designacao:` na linguagem do D-55, composição por alcance em três valores (ausência não passa e é contada), `GET /api/materials/busca`, seções na ficha, ajuda no catálogo, contrato do bundle e demo fictício (D-105) | 3938 → 4079 | 783 → 797 |
 | [59](#sessão-59--071026--o-cartão-de-material-para-cae-tm5-d-104) | 07/10/2026 | O cartão de material para CAE (TM5): MAPDL, MatML 3.1, Abaqus, Nastran `MAT1` e LS-DYNA `*MAT_ELASTIC`, a partir da documentação pública; três sistemas de unidades consistentes pelo Pint; ausente omitido, nunca 0; recusa 422 quando falta o mínimo do formato; "Exportar ▾" na ficha (D-104) | 3864 → 3938 | 778 → 783 |
@@ -74,6 +75,48 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 62 — 08/10/26 — Demo completo: designação, composição e curva para os 75 materiais demo (D-107)
+
+**O pedido.** O autor quer testar as telas com tudo preenchido. O demo tinha 8
+designações, 19 linhas de composição e 3 curvas, só nos materiais do seed
+principal; os 70 do `seed_extended` mostravam "sem composição / sem curva".
+
+**O que mudou.**
+
+- **Dados** — `app/db/demo_identity_data.py` (designações `DEMO-…` e composição
+  numa gramática de uma linha por material, com analisador) e
+  `app/db/seed_extended_identity.py` (gerador de curvas), chamados por
+  `python -m app.db.seed_extended`, o módulo que `semear_demo` já executa. O
+  seed principal só ganhou parâmetros opcionais nos dois escritores
+  (`_seed_demo_identity`, `_seed_demo_curves`): nenhuma contagem fixa da suíte
+  se moveu.
+- **Curvas derivadas** das propriedades do próprio material (módulo, escoamento,
+  resistência, temperatura máxima), com a forma por classe; família por
+  temperatura, módulo × temperatura e S–N nos metais. Premissas tomadas onde
+  as propriedades fictícias se contradizem ou faltam ficam na descrição da
+  curva. Só a Cerâmica Demo D fica sem curva (sem resistência cadastrada).
+- **`python -m app.db.demo_coverage [--demo] [--gaps]`** — por material, o que
+  existe e a razão de cada ausência; não depende de `is_demo`.
+- **Log** — `seed_extended` imprime `designations_created` (148),
+  `composition_entries_created` (361) e `curves_created` (114); total com o seed
+  principal: 156 / 380 / 117.
+- **Testes** — 32 novos (`test_demo_completo.py`): cobertura dos 75, contagens,
+  idempotência, `clear_demo`, soma da composição ≤ 100 %, elementos válidos, curvas
+  ancoradas no módulo e na resistência, relatório de cobertura.
+- **Documentação** — D-107, `15`, `REGRAS_POR_AREA`, README, TODO (resíduo DC-a) e
+  PROJECT_CONTEXT.
+
+**Decisões que merecem o olho do autor.** Composição de polímero, cerâmica,
+compósito e elastômero por estequiometria da unidade de repetição, em faixa e
+com o resto declarado; fatores de queda com a temperatura fixos e declarados
+como premissa; ver "Revisão humana sugerida" do D-107.
+
+**Depois do merge** (o autor roda): `semear_demo` em `admin-banco.yml` e conferir
+no log de `seed_extended` as três contagens; `python -m app.db.demo_coverage
+--demo --gaps` deve listar só a Cerâmica Demo D.
 
 ---
 

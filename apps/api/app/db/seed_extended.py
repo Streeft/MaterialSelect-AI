@@ -13,6 +13,13 @@ Executar com::
 Idempotente: não duplica registros em execuções repetidas.
 Pode ser executado antes ou depois do seed principal (python -m app.db.seed).
 O seed principal (5 materiais) permanece inalterado para não quebrar os testes.
+
+Depois dos materiais, o mesmo comando dá a **todos** os 75 materiais demo
+(os 5 do seed principal e estes 70) designações, composição química e curvas
+fictícias, marcadas ``is_demo`` (``app.db.seed_extended_identity``, D-107). O
+log conta ``designations_created``, ``composition_entries_created`` e
+``curves_created``; ``python -m app.db.demo_coverage`` lista o que cada material
+tem e o que falta.
 """
 
 from __future__ import annotations
@@ -23,6 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_extended_identity import seed_extended_identity
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -459,10 +467,12 @@ def main() -> None:
             return
 
         created = seed_extended_materials(db, demo_source)
+        identity = seed_extended_identity(db, demo_source)
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
+    print(f"[seed_extended] Identidade e curvas demo: {identity}")
 
 
 if __name__ == "__main__":

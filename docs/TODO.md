@@ -136,7 +136,7 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 **Resíduos das curvas (TM4, [D-106](DECISIONS.md)).** O TM4 foi entregue (ver
 "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM4-a — dados reais.** ▁ Só o demo (3 curvas fictícias) tem curva; o resto
+- **TM4-a — dados reais.** ▁ Só o demo (117 curvas fictícias, D-107) tem curva; o resto
   depende do bundle do D-102 (`material_curves.ndjson`) ou de fonte aberta
   APROVADA (D-103). A tela já mostra "Nenhuma curva cadastrada" com a contagem
   por tipo.
@@ -340,6 +340,17 @@ continua lá, e a métrica para de medir no 3.
 ## Débitos já quitados
 
 Registrados para não voltarem por engano:
+
+- ~~**Demo completo — designação, composição e curva para os 75 materiais demo (Sessão 62, [D-107](DECISIONS.md))**~~ —
+  156 designações `DEMO-…`, 380 linhas de composição (resto e ausente declarados,
+  nunca calculados) e 117 curvas derivadas das propriedades de cada material
+  (família por temperatura nos metais, ruptura frágil em cerâmica e compósito,
+  elastômero hiperelástico), todas `is_demo`, em `seed_extended` (`semear_demo`),
+  idempotente e coberta por `clear_demo`; `python -m app.db.demo_coverage` lista
+  quem tem o quê e a razão de cada ausência (só a Cerâmica Demo D fica sem curva).
+  Resíduo: **DC-a** — o demo não exemplifica mais "material sem composição" no
+  catálogo estendido (o estado vazio segue testado por unidade e na Cerâmica Demo
+  D, sem curva).
 
 - ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
   `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →

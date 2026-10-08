@@ -2234,9 +2234,10 @@ def _seed_battery_chemistries(db: Session, source: Source | None) -> int:
 # aquela liga, com propriedades inventadas. O prefixo deixa a busca demonstrável
 # (`norma:UNS`, `designacao:DEMO-304`, `designacao:DEMO-*`) sem essa afirmação.
 #
-# Polímero, cerâmica e compósito ficam sem composição **de propósito**: é o
-# estado "sem composição cadastrada", que a ficha escreve com rótulo e que a
-# busca por composição conta como excluído por falta de dado (D-24).
+# Estas tabelas são só as dos dois metais do baseline, que o `conftest` e os
+# testes de contagem fixa reexecutam. Os outros 73 materiais demo recebem a
+# sua em `app.db.seed_extended_identity` (D-107), pelo mesmo escritor
+# (`_seed_demo_identity`), chamado por `python -m app.db.seed_extended`.
 DEMO_DESIGNATION_CITATION = "Tabela fictícia de demonstração — não é designação real."
 DEMO_COMPOSITION_CITATION = "Tabela fictícia de demonstração — não é composição real."
 
@@ -2288,8 +2289,17 @@ DEMO_COMPOSITIONS: dict[str, list[dict]] = {
 }
 
 
-def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
+def _seed_demo_identity(
+    db: Session,
+    source: Source,
+    designations_by_material: dict[str, list[dict]] | None = None,
+    compositions_by_material: dict[str, list[dict]] | None = None,
+) -> dict[str, int]:
     """Attach the fictitious designations and compositions to the demo materials.
+
+    The two optional tables default to the five-material baseline above; the
+    extended catalogue (``app.db.seed_extended_identity``) passes its own, so
+    one writer serves both and a row can never be written two ways.
 
     Runs on every ``seed()`` and is idempotent by row, not by material: a
     database that already holds the five demo materials (production before the
@@ -2297,16 +2307,22 @@ def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
     being skipped because the material exists. Only ``is_demo`` materials are
     touched — a real material with one of these names is left alone.
     """
+    designation_table = (
+        DEMO_DESIGNATIONS if designations_by_material is None else designations_by_material
+    )
+    composition_table = (
+        DEMO_COMPOSITIONS if compositions_by_material is None else compositions_by_material
+    )
     designations = 0
     entries = 0
-    names = set(DEMO_DESIGNATIONS) | set(DEMO_COMPOSITIONS)
+    names = set(designation_table) | set(composition_table)
     materials = {
         m.name: m
         for m in db.execute(
             select(Material).where(Material.name.in_(names), Material.is_demo.is_(True))
         ).scalars()
     }
-    for name, specs in DEMO_DESIGNATIONS.items():
+    for name, specs in designation_table.items():
         material = materials.get(name)
         if material is None:
             continue
@@ -2326,7 +2342,7 @@ def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
             db.add(row)
             designations += 1
 
-    for name, specs in DEMO_COMPOSITIONS.items():
+    for name, specs in composition_table.items():
         material = materials.get(name)
         if material is None:
             continue
@@ -2387,8 +2403,9 @@ def _seed_demo_identity(db: Session, source: Source) -> dict[str, int]:
 #
 # Os pontos estão em % e MPa, e a família em °C, de propósito: a trilha de
 # unidade (original → canônica) tem de aparecer na ficha e no CSV também para
-# curva. Polímero, cerâmica e compósito ficam sem curva: é o estado "nenhuma
-# curva cadastrada", que a ficha escreve com rótulo (D-24).
+# curva. As curvas dos demais materiais demo vêm de
+# `app.db.seed_extended_identity` (D-107), derivadas das propriedades de cada um;
+# o que não tem curva ali tem a razão escrita em `DEMO_KNOWN_GAPS` (D-24).
 DEMO_CURVE_CITATION = "Curva fictícia de demonstração — não é dado de ensaio."
 
 DEMO_CURVES: list[dict] = [
@@ -2542,15 +2559,20 @@ DEMO_CURVES: list[dict] = [
 ]
 
 
-def _seed_demo_curves(db: Session, source: Source) -> int:
+def _seed_demo_curves(db: Session, source: Source, specs: list[dict] | None = None) -> int:
     """Attach the fictitious curves to the demo metals, idempotent by (material, title).
+
+    ``specs`` defaults to ``DEMO_CURVES``; the extended catalogue passes the
+    curves it derives from each material's own properties. A spec whose
+    ``parameter`` is ``None`` is a single curve, not a family.
 
     Same shape as ``_seed_demo_identity``: runs on every ``seed()`` and touches
     only ``is_demo`` materials, so a database that already holds the demo
     materials gains the curves on the next ``semear_demo``. Built through the
     domain builder, so a seed curve cannot be one the importer would refuse.
     """
-    names = {spec["material"] for spec in DEMO_CURVES}
+    curve_specs = DEMO_CURVES if specs is None else specs
+    names = {spec["material"] for spec in curve_specs}
     materials = {
         m.name: m
         for m in db.execute(
@@ -2558,7 +2580,7 @@ def _seed_demo_curves(db: Session, source: Source) -> int:
         ).scalars()
     }
     created = 0
-    for spec in DEMO_CURVES:
+    for spec in curve_specs:
         material = materials.get(spec["material"])
         if material is None:
             continue
@@ -2573,7 +2595,7 @@ def _seed_demo_curves(db: Session, source: Source) -> int:
             continue
         x_quantity, x_label, x_unit = spec["x"]
         y_quantity, y_label, y_unit = spec["y"]
-        parameter_quantity, parameter_unit = spec["parameter"]
+        parameter_quantity, parameter_unit = spec["parameter"] or (None, None)
         normalized = build_curve(
             spec["kind"],
             x_quantity=x_quantity,
@@ -2585,7 +2607,7 @@ def _seed_demo_curves(db: Session, source: Source) -> int:
                 SeriesInput(
                     points=[PointInput(*point) for point in series["points"]],
                     conditions=series.get("conditions"),
-                    parameter=series["parameter"],
+                    parameter=series.get("parameter"),
                     parameter_unit=parameter_unit,
                 )
                 for series in spec["series"]
