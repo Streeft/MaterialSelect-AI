@@ -203,6 +203,39 @@ taxa, fadiga (S–N) e fluência — como SVG próprio, sem Plotly. Regras:
   (`/api/exports/materiais/{id}/curvas/{curva}.{csv|xlsx}`), com aviso de
   limitação e proveniência. Curva fictícia leva a marca de demonstração.
 
+## Mudanças entre releases (D-108, TM7)
+
+A página `/app/catalogo/releases` (`ReleaseChanges` + `ReleaseRecordDetail`,
+ligada ao catálogo por um link discreto, não ao menu lateral) mostra o que mudou
+de uma release do catálogo oficial para outra. É uma leitura de manutenção, não
+uma figura: tabela, sem gráfico. Regras:
+
+- **Nenhum cálculo no cliente** (ADR 0004). O backend casa os registros pela
+  identidade externa, compara no canônico e converte cada número; a tela
+  escolhe, imprime em pt-BR (D-30) e escreve a ausência. `lib/releaseDiff.ts`
+  só escolhe quais releases se comparam (mesma linha, ambas reais ou ambas
+  fictícias) e monta a frase de cada mudança.
+- **Tudo na URL:** `?base=&alvo=&tipo=&classe=&pagina=&tabela=&registro=`. O
+  registro aberto é endereçado por (tabela externa, id externo), nunca pelo
+  nome; se não está na página, a tela o busca em `…/diff/…/registro`. Sem
+  `base`/`alvo`, abre a release mais recente contra a anterior (real antes de
+  fictícia). Menos de duas releases comparáveis: mensagem em português, sem
+  tela vazia.
+- **Resumo** com a contagem dos quatro tipos (novo, alterado, desativado,
+  inalterado — zero incluído) e a regra do casamento por extenso; filtros por
+  situação e classe; lista paginada pela contagem de páginas do backend.
+- **Detalhe campo a campo:** campo, natureza, antes e depois, na unidade de
+  leitura, com "Fonte: …" quando a fonte escreveu em outra unidade. A natureza
+  "**só a escrita da fonte**" (mesmo valor físico) tem etiqueta própria, contorno
+  tracejado e linha esmaecida, para nunca ser lida como mudança de valor — nem
+  escondida. **Dado que apareceu ou sumiu é escrito por extenso** ("declarado
+  ausente pela fonte", "não cadastrado nesta release") e numa frase ("Passou de
+  declarado ausente pela fonte para 0,25 W/(m·K)."); nunca `0`, `—` ou célula
+  vazia (D-24). A tabela de mudanças é a alternativa textual.
+- **Estados** de carregamento, erro (com a recusa do backend em português e um
+  caminho de volta) e vazio. **Exportar ▾** com CSV e XLSX, que levam os filtros
+  e não a página. Release fictícia leva o aviso de demonstração.
+
 ## Endpoints
 
 | Método | Rota | Função |
@@ -213,6 +246,9 @@ taxa, fadiga (S–N) e fluência — como SVG próprio, sem Plotly. Regras:
 | GET | `/api/dashboard/distribution/{property_slug}` | quartis por classe para uma propriedade |
 | GET | `/api/materials/{id}/curvas` | curvas do material e contagem por tipo (D-106) |
 | GET | `/api/materials/{id}/curvas/{curva}` | uma curva pronta para desenhar, na unidade de leitura |
+| GET | `/api/catalogo/releases` | releases do catálogo oficial, por linha, com a anterior (D-108) |
+| GET | `/api/catalogo/releases/{base}/diff/{alvo}` | o que mudou: contagens, filtros, página e mudanças por campo |
+| GET | `/api/catalogo/releases/{base}/diff/{alvo}/registro` | um registro do diff pela identidade externa |
 
 Os dois primeiros são POST porque a entrada é estruturada (par de eixos, filtro
 de classes, conjuntos de materiais, expressão do índice e níveis) e não caberia

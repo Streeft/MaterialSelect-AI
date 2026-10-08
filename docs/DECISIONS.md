@@ -8914,3 +8914,41 @@ estudos presos ao id da release antiga (TM7-a) e, se for trocado, o diff passa a
 exigir versões guardadas. (4) Releases endereçadas por slug na URL (um slug com
 `/` não seria endereçável; nenhum existe). (5) O portão é o do produto (login +
 assinatura fora do modo aberto), como a leitura dos materiais.
+
+### Atualização (Sessão 63): a rodada da tela, do seed e da documentação
+
+Entregue o que "Contrato para o frontend e o demo" deixava para depois; nada do
+backend foi reescrito. O que a rodada escolheu, e onde se afasta do contrato:
+
+- **A tela** é `/app/catalogo/releases` (`ReleaseChanges`, `ReleaseRecordDetail`,
+  `lib/releaseDiff.ts`), ligada ao catálogo por um link `ghost` no cabeçalho —
+  não ao menu lateral: é leitura de manutenção, e o menu fica para o que se usa
+  todo dia. Releases, filtros, página e registro aberto vivem na URL
+  (`base`, `alvo`, `tipo`, `classe`, `pagina`, `tabela`, `registro`); o registro
+  é aberto por identidade externa e, se não está na página, pela rota
+  `…/registro`. O seletor oferece como alvo só as releases comparáveis (mesma
+  linha, ambas reais ou ambas fictícias) — a recusa 400 do backend continua a
+  defesa, mas a interface não leva o leitor até ela. Sem tela vazia: menos de
+  duas releases comparáveis dizem isso em português, e citam as que não
+  declaram linha.
+- **"Só a escrita da fonte" é distinguida por texto, forma e peso**, não só por
+  cor: etiqueta própria, contorno tracejado, linha esmaecida e a frase "Mesmo
+  valor físico, escrito de outro modo". Ausente → valor e valor → ausente saem
+  numa frase ("Passou de declarado ausente pela fonte para 0,25 W/(m·K).") ao
+  lado das duas células, que também escrevem o estado (D-24).
+- **Desvio 1 — onde o seed mora.** O contrato sugeria `app.db.seed` ou um módulo
+  ligado a `admin-banco.yml`. As releases estão em `app/db/seed_demo_releases.py`,
+  chamado por **uma linha** de `seed_extended.main()` (o módulo que
+  `semear_demo` e `scripts/seed.ps1` já executam, D-71). Ficam **fora do baseline
+  de teste** (`seed()` do `conftest`), como os 70 materiais estendidos: dez
+  materiais a mais ali mexeriam em toda contagem de materiais demo. Os testes
+  chamam `seed_demo_releases(db_session)` explicitamente.
+- **Desvio 2 — tamanho.** Seis registros por release no roteiro (cinco em cada
+  uma, `demo-001` a `demo-006`): 10 materiais, 18 valores, 2 releases, 2 fontes.
+  O log imprime `catalog_releases_created`, `catalog_records_created` e
+  `catalog_release_values_created`.
+- **A lista pede `por_pagina=25`**, e não os 50 padrão da API: uma página é uma
+  tela, e a tabela de detalhe vem logo abaixo.
+
+Os resíduos TM7-a a TM7-d seguem em `docs/TODO.md` com o texto desta decisão;
+TM7-e (tela, seed, i18n e documentação) está quitado.

@@ -23,7 +23,8 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
    `PerformanceIndex.is_demo`, `MaterialDesignation.is_demo` e
    `MaterialCompositionEntry.is_demo` — as duas últimas desde o D-105, marcadas
    na própria linha para que uma designação fictícia num material real também
-   seja encontrada). É o único jeito de o
+   seja encontrada — e `CatalogDataset.is_demo`, desde o D-108: uma **release**
+   fictícia do catálogo se declara na própria linha). É o único jeito de o
    sistema saber depois que a linha é fictícia — nenhuma outra convenção
    (nome do arquivo, comentário, prefixo no nome do registro) é lida por
    código nenhum.
@@ -53,6 +54,27 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
    `apps/api/app/tests/test_clear_demo.py` e de
    `apps/api/app/tests/test_admin_grant_subscription.py` — lógica testável
    separada do `main()` que só faz I/O de linha de comando.
+
+### Releases fictícias do catálogo (D-108)
+
+`app/db/seed_demo_releases.py` escreve **duas releases fictícias comparáveis**
+(`catalogo-demo-r1` e `catalogo-demo-r2`, mesma linha `catalogo-demo`) para a
+tela "Mudanças entre releases". O importador oficial **recusa** dado de
+demonstração, então o seed escreve direto, como o importador escreveria uma
+release real: **um `Material` por registro por release** (nunca o mesmo nas
+duas, ou todo registro sairia "inalterado"), uma `CatalogRecordRef` por
+material, uma fonte demo por release e os valores pelos construtores de
+`app.domain.data_quality`. O roteiro cobre um registro inalterado, um que sai,
+um novo noutra classe, um número que muda junto com a unidade (7850 kg/m³ →
+7,9 g/cm³), um só reescrito (200 GPa → 200000 MPa), um dado declarado ausente
+que passa a ter valor, uma propriedade não cadastrada que passa a existir e um
+renomeado. É chamado por `seed_extended.main()` (o módulo que `semear_demo` e
+`scripts/seed.ps1` executam), é idempotente por slug da release e por (release,
+tabela, id externo), e o log imprime `catalog_releases_created`,
+`catalog_records_created` e `catalog_release_values_created` — na primeira
+execução, 2, 10 e 18; na segunda, 0, 0 e 0. `clear_demo` apaga as duas releases
+com seus materiais, refs e fontes. Os 10 materiais entram na contagem de
+materiais demo.
 
 ## Quando for a hora de trocar o catálogo de demonstração pelo oficial
 

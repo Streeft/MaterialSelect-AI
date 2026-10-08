@@ -86,6 +86,16 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   leitura e escala escolhidas na URL, tabela de pontos como alternativa textual
   e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
   curva, a ficha diz "Nenhuma curva cadastrada" (D-106).
+- **Mudanças entre releases** — em `/app/catalogo/releases` (link discreto no
+  catálogo), duas releases do mesmo catálogo oficial lado a lado: contagem de
+  registros novos, alterados, desativados e inalterados, filtros por situação e
+  classe, lista paginada e, por registro, cada campo "antes → depois" com a
+  unidade e a natureza da mudança — valor, presença do dado, ou **só a escrita da
+  fonte** (mesmo valor físico em outra unidade). Dado que apareceu ou sumiu é
+  escrito por extenso ("declarado ausente pela fonte", "não cadastrado nesta
+  release"), nunca como 0. Releases, filtros e registro aberto vivem na URL;
+  CSV/XLSX no "Exportar ▾". O backend compara e converte; a tela só mostra
+  (D-108). O seed demo traz duas releases fictícias para ver tudo isso.
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
 - **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.

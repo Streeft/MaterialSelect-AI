@@ -111,9 +111,32 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM6 — referência por valor visível e filtrável.** ▁ A proveniência já
   existe; falta mostrar a contagem de referências por registro e um filtro
   "só valores com referência bibliográfica".
-- **TM7 — o que mudou entre releases.** ▃ Com `CatalogDataset` imutável por
-  release (D-102), uma página que lista registros novos, alterados e
-  desativados entre duas releases do catálogo.
+- **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
+  resíduos abaixo.
+
+**Resíduos das mudanças entre releases (TM7, [D-108](DECISIONS.md)).** O TM7 foi
+entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
+
+- **TM7-a — promover uma release.** ▆ O importador cria `Material` novo a cada
+  release e **nunca desativa** a release anterior: depois da segunda importação
+  as duas ficam ativas lado a lado, com registros em dobro no catálogo. Falta a
+  ação administrativa que, ao vigorar a release nova de uma linha, ponha
+  `is_active=False` na anterior e nos materiais dela (nunca `DELETE`). E a
+  **segunda release com processos falha** por colisão de slug ("Slug de
+  processo … já existe sem identidade externa deste dataset"): o importador não
+  reaproveita o processo da release anterior (o modal reaproveita pelo slug e
+  ganha uma ref nova). Nenhum dos dois é corrigido pelo TM7.
+- **TM7-b — imutabilidade no banco.** ▃ Um curador pode editar valor de material
+  oficial pela API de materiais; o diff lê o que está gravado e passaria a
+  refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
+  ou marcar "editado após a importação" a partir da auditoria.
+- **TM7-c — outros universos no diff.** ▃ O diff cobre **só materiais**:
+  processos, modais, valores suplementares, valores do dataset, composição,
+  designações e curvas ficam de fora.
+- **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
+  consultas por release, tudo em memória). Com o catálogo Granta inteiro
+  (milhares de registros × dezenas de propriedades) pode passar de segundos;
+  materializar no import se medir lento. O CSV/XLSX não pagina.
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -340,6 +363,17 @@ continua lá, e a métrica para de medir no 3.
 ## Débitos já quitados
 
 Registrados para não voltarem por engano:
+
+- ~~**TM7 — o que mudou entre releases (Sessão 63, [D-108](DECISIONS.md))**~~ —
+  `catalog_dataset.lineage` (a que catálogo a release pertence, do manifest,
+  sem backfill) e `is_demo` (migração `73a9b5da72b2`); diff derivado do que cada
+  release gravou, casado pela identidade externa e comparado no canônico, com a
+  natureza da mudança (valor, presença, forma, só a escrita da fonte,
+  metadado); `GET /api/catalogo/releases[/…/diff/…]`, CSV/XLSX; `clear_demo`
+  apaga releases fictícias; na interface, `/app/catalogo/releases` (resumo,
+  filtros, lista paginada, detalhe campo a campo, estados escritos,
+  "Exportar ▾", tudo na URL) e duas releases demo (`seed_demo_releases`,
+  chamadas por `seed_extended`). Resíduos TM7-a a TM7-d em "Média prioridade".
 
 - ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
   `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →
