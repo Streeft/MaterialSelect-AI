@@ -105,6 +105,8 @@ def curve_rows(
         x_conversion_method=normalized.x_conversion_method,
         y_conversion_method=normalized.y_conversion_method,
         parameter_quantity=normalized.parameter_quantity,
+        strain_measure=normalized.strain_measure,
+        modulus_kind=normalized.modulus_kind,
         source_id=source_id,
         citation=citation,
         data_quality=data_quality,

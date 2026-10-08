@@ -189,9 +189,16 @@ def _curve_from_record(record: dict) -> NormalizedCurve:
             y_unit=str(axes["y"]["unit"]),
             parameter_quantity=str(parameter["quantity"]) if parameter else None,
             series=series,
+            # D-119: optional, declared by the bundle; absent stays "not declared".
+            strain_measure=_optional_text(record.get("strain_measure")),
+            modulus_kind=_optional_text(record.get("modulus_kind")),
         )
     except CurveError as exc:
         raise OfficialCatalogImportError(f"{where}: {exc}") from exc
+
+
+def _optional_text(value: object) -> str | None:
+    return None if value is None else str(value)
 
 
 def _optional_float(value: object) -> float | None:

@@ -12,7 +12,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.calculations.units import pretty_unit
-from app.domain.curve_quantities import QUANTITIES
+from app.domain.curve_quantities import MODULUS_KINDS, QUANTITIES, STRAIN_MEASURES
 from app.domain.curves import (
     KINDS,
     CurveError,
@@ -78,6 +78,19 @@ def _series_data(curve: MaterialCurve) -> list[SeriesData]:
         )
         for series in curve.series
     ]
+
+
+def _declared(curve: MaterialCurve, field: str) -> str | None:
+    """The label of a declared measure (D-119), "não declarada" when it applies and is
+    missing, None when it does not apply to this curve."""
+    if field == "strain_measure":
+        applies, labels = curve.kind is CurveKind.TENSAO_DEFORMACAO, STRAIN_MEASURES
+    else:
+        applies, labels = curve.y_quantity == "modulo", MODULUS_KINDS
+    if not applies:
+        return None
+    value = getattr(curve, field)
+    return labels[value] if value else "não declarada pela fonte"
 
 
 def _is_demo(curve: MaterialCurve) -> bool:
@@ -197,6 +210,10 @@ class CurveService:
             x_axis=self._axis(drawn.x, curve, "x"),
             y_axis=self._axis(drawn.y, curve, "y"),
             parameter=parameter,
+            strain_measure=curve.strain_measure,
+            strain_measure_label=_declared(curve, "strain_measure"),
+            modulus_kind=curve.modulus_kind,
+            modulus_kind_label=_declared(curve, "modulus_kind"),
             series=[
                 CurveSeriesOut(
                     id=s.id,
@@ -287,6 +304,14 @@ class CurveService:
             _unit_option_label(drawn.parameter_reading.unit) if drawn.parameter_reading else ""
         )
 
+        declared = [
+            [label, value]
+            for label, field in (
+                ("Medida (engenharia ou verdadeira)", "strain_measure"),
+                ("Tipo de módulo", "modulus_kind"),
+            )
+            if (value := _declared(curve, field)) is not None
+        ]
         about = Sheet(
             name="Curva",
             header=["Campo", "Valor"],
@@ -307,6 +332,7 @@ class CurveService:
                     "Família de curvas",
                     f"por {lower_first(parameter.name)} ({parameter_unit})" if parameter else "não",
                 ],
+                *declared,
                 ["Fonte", curve.source.label],
                 ["Citação", curve.citation or "não informada"],
                 ["Qualidade do dado", DATA_QUALITY_LABELS.get(curve.data_quality.value, "")],

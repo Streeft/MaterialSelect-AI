@@ -125,6 +125,12 @@ class CurveOut(BaseModel):
     x_axis: CurveAxisOut
     y_axis: CurveAxisOut
     parameter: CurveParameterOut | None = None
+    #: D-119: as declared by the source; None is "not declared" (stress–strain
+    #: curves: engineering or true; ``modulo`` y axis: which modulus).
+    strain_measure: str | None = None
+    strain_measure_label: str | None = None
+    modulus_kind: str | None = None
+    modulus_kind_label: str | None = None
     series: list[CurveSeriesOut]
     notes: list[str]
     source_label: str
