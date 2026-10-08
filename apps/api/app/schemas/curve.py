@@ -136,3 +136,48 @@ class CurveOut(BaseModel):
     #: The curve or its source is fictitious (the D-104 rule).
     is_demo: bool
     is_own_record: bool
+
+
+class CurveSeriesValueOut(BaseModel):
+    """One series at the asked x: a declared point, or the written absence."""
+
+    series_id: int
+    label: str | None = None
+    conditions: str | None = None
+    parameter_value: float | None = None
+    parameter_original: float | None = None
+    parameter_original_unit: str | None = None
+    found: bool
+    #: Position of the declared point in the series — the reference to the stored row.
+    position: int | None = None
+    x_original: float | None = None
+    y: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
+    y_original: float | None = None
+    y_min_original: float | None = None
+    y_max_original: float | None = None
+    #: Written when ``found`` is false; the number is absent, never zero (D-24).
+    absence: str | None = None
+
+
+class CurveValueOut(BaseModel):
+    """The value of a curve at a declared x, by the declared rule (TM4-b, D-110)."""
+
+    curve_id: int
+    material_id: int
+    title: str
+    rule: str
+    at: float
+    at_unit: str
+    at_unit_label: str
+    x_quantity_label: str
+    y_quantity_label: str
+    y_unit: str
+    y_unit_label: str
+    parameter_unit_label: str | None = None
+    found_count: int
+    series: list[CurveSeriesValueOut]
+    source_label: str
+    citation: str | None = None
+    is_demo: bool

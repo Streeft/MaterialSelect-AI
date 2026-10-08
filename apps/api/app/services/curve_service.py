@@ -15,6 +15,7 @@ from app.calculations.units import pretty_unit
 from app.domain.curve_quantities import QUANTITIES, AxisQuantity
 from app.domain.curves import (
     KINDS,
+    READ_RULE,
     CurveError,
     DrawnAxis,
     DrawnCurve,
@@ -24,6 +25,7 @@ from app.domain.curves import (
     draw_curve,
     log_refusal,
     lower_first,
+    read_at_declared_x,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.report import Report, Sheet, standard_notices
@@ -37,7 +39,9 @@ from app.schemas.curve import (
     CurveParameterOut,
     CurvePointOut,
     CurveSeriesOut,
+    CurveSeriesValueOut,
     CurveSummaryOut,
+    CurveValueOut,
     MaterialCurvesOut,
     UnitOption,
 )
@@ -247,6 +251,64 @@ class CurveService:
             data_quality=curve.data_quality,
             is_demo=_is_demo(curve),
             is_own_record=curve.material.owner_id is not None,
+        )
+
+    def read_value(
+        self,
+        material_id: int,
+        curve_id: int,
+        *,
+        at: float,
+        at_unit: str,
+        y_unit: str | None = None,
+        parameter_unit: str | None = None,
+    ) -> CurveValueOut:
+        """The curve at a declared x, by the rule of D-110 (never interpolated)."""
+        curve = self._load(material_id, curve_id)
+        try:
+            readings, ry, rp = read_at_declared_x(
+                curve.x_quantity,
+                curve.y_quantity,
+                curve.parameter_quantity,
+                _series_data(curve),
+                at=at,
+                at_unit=at_unit,
+                y_unit=y_unit,
+                parameter_unit=parameter_unit,
+            )
+        except CurveError as exc:
+            raise ValidationError(str(exc)) from exc
+        at_label = _unit_option_label(at_unit)
+        shown = f"{at:g} {at_label}".strip()
+        series = [
+            CurveSeriesValueOut(
+                **r.__dict__,
+                absence=(
+                    None
+                    if r.found
+                    else f"Sem ponto declarado em {shown} nesta série; nada foi interpolado."
+                ),
+            )
+            for r in readings
+        ]
+        return CurveValueOut(
+            curve_id=curve.id,
+            material_id=curve.material_id,
+            title=curve.title,
+            rule=READ_RULE,
+            at=at,
+            at_unit=at_unit,
+            at_unit_label=at_label,
+            x_quantity_label=curve.x_label or QUANTITIES[curve.x_quantity].name,
+            y_quantity_label=curve.y_label or QUANTITIES[curve.y_quantity].name,
+            y_unit=ry.unit,
+            y_unit_label=_unit_option_label(ry.unit),
+            parameter_unit_label=_unit_label(rp.unit) if rp else None,
+            found_count=sum(1 for r in readings if r.found),
+            series=series,
+            source_label=curve.source.label,
+            citation=curve.citation,
+            is_demo=_is_demo(curve),
         )
 
     @staticmethod

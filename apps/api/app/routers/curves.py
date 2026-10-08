@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.curve import CurveOut
+from app.schemas.curve import CurveOut, CurveValueOut
 from app.services.curve_service import CurveService
 
 router = APIRouter(prefix="/materials", tags=["materials"])
@@ -56,5 +56,31 @@ def get_material_curve(
         x_unit=unidade_x,
         y_unit=unidade_y,
         scale=escala,
+        parameter_unit=unidade_parametro,
+    )
+
+
+@router.get("/{material_id}/curvas/{curve_id}/valor", response_model=CurveValueOut)
+def get_material_curve_value(
+    material_id: int,
+    curve_id: int,
+    em: float = Query(description="Valor de x em que se quer ler a curva (ex.: 20)."),
+    unidade_em: str = Query(description="Unidade de `em` (ex.: degC); sem ela não há leitura."),
+    unidade_y: str | None = Query(default=None, description="Unidade de leitura do eixo y."),
+    unidade_parametro: str | None = Query(default=None, description="Unidade do parâmetro."),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> CurveValueOut:
+    """The curve at a declared x (TM4-b, D-110): the declared point, or its absence.
+
+    Never interpolated or extrapolated: a series without a point at exactly that
+    x answers ``found = false`` with the absence written.
+    """
+    return CurveService(db, user.id).read_value(
+        material_id,
+        curve_id,
+        at=em,
+        at_unit=unidade_em,
+        y_unit=unidade_y,
         parameter_unit=unidade_parametro,
     )

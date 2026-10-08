@@ -9040,3 +9040,47 @@ escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
 fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
+
+## D-110 — Curvas: uma lista de grandezas, unidade do parâmetro à escolha do leitor e leitura de valor só no ponto declarado
+
+**Contexto.** Três resíduos do TM4 (D-106): a lista de grandezas de eixo estava
+duplicada entre o domínio e o `CHECK` da migração (TM4-f); o parâmetro da
+família saía só na convenção da grandeza (TM4-e); e "o valor a 20 °C" de uma
+curva não tinha regra (TM4-b), com o risco de virar uma propriedade escalar
+inventada.
+
+**Decisão.**
+
+1. **Fonte única (TM4-f).** `app/domain/curve_quantities.py::QUANTITIES` é a
+   única lista; o modelo monta o `CHECK` dela. A migração `0925e0787863` é texto
+   congelado e continua assim — não houve migração nova, porque a lista coincide.
+   `test_curve_quantities_schema.py` roda as migrações até `head` em SQLite e
+   falha, com a receita na mensagem, se os três `CHECK`s (x, y, parâmetro) do
+   banco migrado divergirem do domínio ou do modelo. Acrescentar uma grandeza
+   exige, portanto, uma migração que recrie os `CHECK`s.
+2. **Unidade do parâmetro (TM4-e).** `?unidade_parametro=` em
+   `GET /materials/{id}/curvas/{curva}`; a conversão é só por `reading_for`
+   (units.py), unidade fora da lista da grandeza é 400 com as admitidas, e pedir
+   unidade numa curva sem família é 400. O que a fonte escreveu
+   (`parameter_original`) não muda. A resposta traz `canonical_unit` e
+   `accepted_units` do parâmetro; a ficha ganha um seletor rotulado ("Unidade do
+   parâmetro da família (Temperatura)"), guardado na URL (`curva_param`), e a
+   legenda das séries usa a unidade escolhida. A rota passou para
+   `routers/curves.py`, registrada antes da de `materials.py` (mesmo caminho).
+   A exportação CSV/XLSX segue na convenção: o cabeçalho do arquivo declara a
+   unidade.
+3. **Valor numa curva (TM4-b).** Regra conservadora, em docs/18 §6: só o ponto
+   declarado exatamente no x pedido, após conversão por units.py; nunca
+   interpolação, extrapolação nem vizinho mais próximo; sem ponto, ausência
+   escrita. `GET .../curvas/{curva}/valor?em=&unidade_em=`. O resultado carrega
+   a referência ao dado original e não vira propriedade escalar nem entra em
+   ranking.
+
+**Alternativa recusada.** Interpolar linearmente entre pontos vizinhos: o
+formato da curva entre dois pontos é uma afirmação que a fonte não fez
+(princípio 1). Se um dia houver método declarado por tipo de curva, é decisão
+nova.
+
+**Resíduos.** Tela para a leitura de valor (hoje só API); parâmetro na
+exportação.
+
