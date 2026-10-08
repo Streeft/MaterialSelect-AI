@@ -101,9 +101,11 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   aprovada que publique equivalências.
 - **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
   Sessão 60); resíduos abaixo.
-- **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
-  de registros, com composição e propriedades lado a lado, mantendo a tabela
-  como alternativa textual de toda figura (D-31).
+- **TM3 — comparação de muitos materiais.** ✔ Entregue em parte (D-113,
+  Sessão 68): teto 60 x 20, tabela com cabeçalho e coluna fixos, figuras com
+  teto de legibilidade e aviso escrito. **TM3-a (▃):** composição química lado a
+  lado no comparador — o contrato `CompareOut` ainda só leva propriedades
+  escalares.
 - **TM4 — curvas dependentes de temperatura e taxa.** ✔ Entregue (D-106,
   Sessão 61); resíduos abaixo.
 - **TM5 — exportação para formatos CAE/CAD.** ✔ Entregue (D-104, Sessão 59);
@@ -194,9 +196,8 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   de outro dataset acrescenta curvas sem aposentar as da release anterior do
   mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
   curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
-- **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
-  leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
-  estético, nenhum ponto se perde.
+- ~~**TM4-h — folga do eixo em °C/°F.**~~ ✔ Entregue (D-113): `_padded` só prende
+  o zero em unidade de razão.
 - **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
   pede regra declarada de conversão engenharia → verdadeira e de origem da
   deformação plástica — ver TM5-b abaixo.

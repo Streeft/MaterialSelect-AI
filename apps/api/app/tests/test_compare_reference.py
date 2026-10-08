@@ -368,3 +368,20 @@ def test_trocar_a_unidade_de_leitura_nao_move_a_diferenca_percentual(
     modulo_lido = lida["materials"][0]["cells"][1]
     assert modulo_canonico["display_unit"] == "GPa"
     assert modulo_lido["display_unit"] == "MPa"
+
+
+def test_the_ceiling_admits_dozens_and_refuses_beyond() -> None:
+    """TM3 (D-113): the table is the wide view, so the request takes dozens of
+    materials; past the ceiling it is refused at the schema, not truncated."""
+    import pytest
+    from pydantic import ValidationError
+
+    from app.schemas.charts import MAX_COMPARE_MATERIALS, CompareRequest
+
+    assert MAX_COMPARE_MATERIALS >= 40
+    ok = CompareRequest(
+        material_ids=list(range(1, MAX_COMPARE_MATERIALS + 1)), property_slugs=["a"]
+    )
+    assert len(ok.material_ids) == MAX_COMPARE_MATERIALS
+    with pytest.raises(ValidationError):
+        CompareRequest(material_ids=list(range(1, MAX_COMPARE_MATERIALS + 2)), property_slugs=["a"])

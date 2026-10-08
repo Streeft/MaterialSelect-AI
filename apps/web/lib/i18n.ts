@@ -2374,6 +2374,15 @@ export const ptBR = {
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
     noMaterialsFound: "Nenhum material corresponde ao filtro.",
     figure: "Comparação de materiais",
+    // TM3 (D-113): a tabela comporta dezenas; cada figura tem o seu teto de
+    // legibilidade e diz por escrito quando para de desenhar.
+    wideHint: (n: number) =>
+      n > 12
+        ? `${n} materiais: a tabela e o mapa de calor comportam todos; barras, radar e coordenadas paralelas têm limite de legibilidade.`
+        : null,
+    figureTooMany: (view: string, max: number, n: number) =>
+      `A vista "${view}" só é desenhada com até ${max} materiais (há ${n}). Os valores continuam na tabela abaixo; use o mapa de calor ou reduza a seleção.`,
+    tableRegion: (n: number, p: number) => `Tabela de comparação, ${n} materiais por ${p} propriedades`,
   },
   categories: {
     FISICA: "Física",

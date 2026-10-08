@@ -9040,3 +9040,23 @@ escoamento −45 %, resistência −40 % na máxima de serviço): são premissa
 fictícia declarada na descrição. (3) O demo deixou de exemplificar "material sem
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
+
+
+## D-113 — Comparador largo: o teto da requisição é 60 x 20, e cada figura tem o seu teto de legibilidade, dito por escrito
+
+**Contexto.** O TM3 pedia dezenas de materiais lado a lado. O teto de 12 em
+`schemas/charts.py` existia pela leitura das figuras, não pelo custo no servidor.
+
+**Decisão.** (1) `MAX_COMPARE_MATERIALS` passa a 60 e `MAX_COMPARE_PROPERTIES` a
+20; acima disso o schema recusa (422), nunca trunca. (2) A tela decide **só se
+desenha**: barras até 12 materiais, radar até 8, coordenadas paralelas até 30;
+mapa de calor e tabela sem teto (`COMPARISON_FIGURE_LIMITS`). Passado o teto, a
+figura não é desenhada, um aviso escrito diz o limite e a tabela (D-31) aparece
+no lugar. Escores e geometria continuam do backend. (3) A tabela larga tem
+cabeçalho e coluna de material fixos e altura própria (70vh) acima de 12 linhas.
+(4) TM4-h: a folga do eixo (`_padded`) só prende o zero quando a unidade de
+leitura tem zero verdadeiro (`is_ratio_scale`); em °C/°F o eixo de 20 a 600 °C
+deixa de começar em 0 °C. Continua no backend, em unidade de leitura.
+
+**Fora do escopo.** Composição química lado a lado no comparador: o contrato
+`CompareOut` só leva propriedades escalares; fica como resíduo TM3-a.
