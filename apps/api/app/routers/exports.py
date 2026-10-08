@@ -158,7 +158,11 @@ def export_study_laudo(
 def export_material_cae(
     material_id: int,
     formato: str = Query(
-        description="mapdl, matml, abaqus, nastran, lsdyna, nastran-thermal ou lsdyna-thermal."
+        description=(
+            "mapdl, matml, abaqus, nastran, lsdyna, nastran-thermal, lsdyna-thermal, ou um "
+            "cartão elastoplástico: mapdl-plastic, abaqus-plastic, nastran-plastic, "
+            "lsdyna-plastic (D-119)."
+        )
     ),
     unidades: str = Query(
         description=(
@@ -166,6 +170,20 @@ def export_material_cae(
             "unidade de leitura por propriedade do D-70: um solver precisa de um "
             "sistema inteiro, e não de uma escolha por grandeza."
         )
+    ),
+    curva: int | None = Query(
+        default=None,
+        description=(
+            "Só nos formatos *-plastic, e obrigatório neles: id da curva tensão–deformação "
+            "do material que vira a tabela plástica (D-119)."
+        ),
+    ),
+    serie: int | None = Query(
+        default=None,
+        description=(
+            "Posição da série dentro da curva (0 = primeira), obrigatória quando a curva "
+            "tem mais de uma; a exportação nunca escolhe a série."
+        ),
     ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -175,7 +193,9 @@ def export_material_cae(
     Always an attachment: a deck is a file to be read by a solver, and the
     MatML is XML that must not render on the API's origin.
     """
-    card = CaeExportService(db, user.id).material_card(material_id, formato, unidades)
+    card = CaeExportService(db, user.id).material_card(
+        material_id, formato, unidades, curve_id=curva, series_position=serie
+    )
     filename = f"{_ascii_filename(card.material_name)}{card.suffix}"
     headers = {
         "X-Content-Type-Options": "nosniff",

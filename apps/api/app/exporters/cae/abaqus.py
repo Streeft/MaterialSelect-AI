@@ -11,6 +11,12 @@ read as zero — so a material without Poisson's ratio is refused (D-104).
 ``*EXPANSION`` is written without ``ZERO``: for a constant coefficient the
 reference temperature does not change the thermal strain, and it is a model
 choice the catalogue does not hold.
+
+**Elastoplastic card** (``abaqus-plastic``, D-119): the same block plus
+``*PLASTIC``, whose data lines read ``yield stress, plastic strain`` — true
+stress against true plastic strain, the first line at plastic strain zero (the
+public Abaqus documentation of the option). No temperature column: the card
+holds one series, at one temperature, declared in the comments.
 """
 
 from __future__ import annotations
@@ -28,6 +34,7 @@ from app.exporters.cae.quantities import (
 from app.exporters.cae.text import comment_block, real, solver_label
 
 LABEL = "Abaqus (.inp, *MATERIAL)"
+PLASTIC_LABEL = "Abaqus (.inp, *MATERIAL com *ELASTIC e *PLASTIC)"
 NAME_MAX = 80
 
 FIELDS = {
@@ -39,6 +46,8 @@ FIELDS = {
     SPECIFIC_HEAT.key: "*SPECIFIC HEAT",
 }
 REQUIRED = (YOUNG, POISSON)
+#: The plastic card also requires the hardening table (``CaeFormat.plastic``).
+PLASTIC_REQUIRED = (YOUNG, POISSON)
 SUPPORTED = (DENSITY, YOUNG, POISSON, CTE, CONDUCTIVITY, SPECIFIC_HEAT)
 
 _SINGLE = (
@@ -50,7 +59,8 @@ _SINGLE = (
 
 
 def render(card: CaeCard) -> str:
-    out = comment_block("** ", header_lines(card, LABEL, FIELDS))
+    label = PLASTIC_LABEL if card.plastic is not None else LABEL
+    out = comment_block("** ", header_lines(card, label, FIELDS))
     out.append(f"*MATERIAL, NAME={solver_label(card.name, NAME_MAX)}")
     young, poisson = card.get(YOUNG), card.get(POISSON)
     # Refused upstream when either is missing; the guard keeps a direct caller
@@ -67,4 +77,9 @@ def render(card: CaeCard) -> str:
             out.append(real(value.value))
         else:
             out += comment_block("** ", [f"{keyword} omitido: {value.omitted_reason}"])
+    if card.plastic is not None:
+        out += comment_block("** ", ["Tensao verdadeira, deformacao plastica verdadeira"])
+        out.append("*PLASTIC")
+        for row in card.plastic.rows:
+            out.append(f"{real(row.stress)}, {real(row.plastic_strain)}")
     return "\n".join(out) + "\n"
