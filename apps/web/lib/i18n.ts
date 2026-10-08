@@ -472,7 +472,18 @@ export const ptBR = {
       // a process study — no material property is discrete.
       has_any_label: "∈ tem algum dos rótulos",
       has_no_label: "∉ não tem nenhum dos rótulos",
+      // TM2-b (D-105): composição química, só no universo de materiais.
+      composition: "composição (alcance da faixa)",
+      not_composition: "composição (garantia: NOT)",
     },
+    compositionCondition: "Condição de composição",
+    compositionHint:
+      "Mesma sintaxe da busca: Cr>=12, C<=0,08, Ni:8-10 ou Fe. Em % em massa.",
+    sentenceComposition: (guarantee: boolean, condition: string) =>
+      guarantee
+        ? `Nenhuma corrida da faixa declarada atende ${condition} (garantia)`
+        : `Alguma corrida da faixa declarada atende ${condition} (alcance)`,
+    undeterminedNote: (n: number) => `${n} sem o dado de composição`,
     constraintNumber: (n: number) => `Restrição ${n}`,
     // D-85: a linha lida como frase, e uma dica por campo na primeira linha.
     operatorSymbols: { gte: "≥", gt: ">", lte: "≤", lt: "<" },

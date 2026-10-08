@@ -619,7 +619,12 @@ export type ConstraintOperator =
   // Never applicable to a material property — none of them is discrete — which
   // is why the editor offers these two only in a process study.
   | "has_any_label"
-  | "has_no_label";
+  | "has_no_label"
+  // TM2-b (D-105): chemical composition, the condition in `text` in the search's
+  // syntax ("Cr>=12"). `not_composition` is the guarantee side. Material studies
+  // only.
+  | "composition"
+  | "not_composition";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -900,6 +905,8 @@ export interface FunnelStep {
   operator: string;
   passed: number;
   remaining: number;
+  /** Composition criteria only: candidates it could not decide for lack of data. */
+  undetermined?: number | null;
 }
 
 /**
