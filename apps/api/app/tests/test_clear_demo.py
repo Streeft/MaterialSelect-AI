@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.db.clear_demo import clear_demo_data, clear_demo_materials
 from app.models.battery_chemistry import BatteryChemistry
+from app.models.catalog import CatalogDataset
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
@@ -139,6 +140,10 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
     # D-106: e as curvas fictícias, com séries e pontos.
     demo_curves = db_session.scalar(select(func.count(MaterialCurve.id)))
     assert demo_curves
+    # D-108: releases fictícias do catálogo (o seed demo pode trazê-las).
+    demo_releases = db_session.scalar(
+        select(func.count(CatalogDataset.id)).where(CatalogDataset.is_demo.is_(True))
+    )
     assert demo_materials and demo_materials > 0
     assert demo_processes and demo_processes > 0
     assert demo_transports and demo_transports > 0
@@ -159,6 +164,7 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         "designations": demo_designations,
         "composition_entries": demo_entries,
         "curves": demo_curves,
+        "catalog_releases": demo_releases,
     }
     # The cascade is written in Python: no series or point outlives its curve.
     assert db_session.scalar(select(func.count(MaterialCurve.id))) == 0

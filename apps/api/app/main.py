@@ -38,6 +38,7 @@ from app.routers import (
     auth,
     battery,
     billing,
+    catalog,
     charts,
     classes,
     dashboard,
@@ -199,6 +200,9 @@ app.include_router(
 )
 app.include_router(
     classes.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    catalog.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     properties.router, prefix="/api", dependencies=[Depends(require_active_subscription)]

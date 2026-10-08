@@ -30,6 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_demo_releases import seed_demo_releases
 from app.db.seed_extended_identity import seed_extended_identity
 from app.domain.data_quality import (
     build_interval_value,
@@ -467,11 +468,13 @@ def main() -> None:
             return
 
         created = seed_extended_materials(db, demo_source)
+        releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         identity = seed_extended_identity(db, demo_source)
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
+    print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
 
 

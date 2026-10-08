@@ -1,5 +1,6 @@
 """Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML,
-one material as a CAE card (D-104), and a material curve's points (D-106).
+one material as a CAE card (D-104), a material curve's points (D-106), and what
+changed between two releases of the official catalogue (D-108).
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -38,6 +39,7 @@ from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
 from app.services.cae_export_service import CaeExportService
+from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
 from app.services.export_service import ExportService
 
@@ -208,6 +210,38 @@ def export_material_curve(
         )
     report = CurveService(db, user.id).curve_report(
         material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y
+    )
+    return _file_response(report, fmt)
+
+
+RELEASE_DIFF_SUPPORTED_FORMATS = ("csv", "xlsx")
+
+
+@router.get("/catalogo/releases/{base}/diff/{target}.{fmt}")
+def export_release_diff(
+    base: str,
+    target: str,
+    fmt: str,
+    tipo: str | None = Query(default=None, description="Filtro: tipo de mudança."),
+    classe: str | None = Query(default=None, description="Filtro: slug da classe."),
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> Response:
+    """What changed between two releases of the official catalogue (D-108).
+
+    The whole diff with the filters applied and no page: the releases and their
+    provenance (slug, licence, hashes, the sources the values cite), the counts,
+    one row per record and one per changed field, with the three units of every
+    number. Every cell goes through ``cells.py``.
+    """
+    if fmt not in RELEASE_DIFF_SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de exportação do diff não suportado: '{fmt}'. "
+            f"Use {', '.join(RELEASE_DIFF_SUPPORTED_FORMATS)}."
+        )
+    report = CatalogReleaseService(db, unit_choices).diff_report(
+        base, target, tipo=tipo, classe=classe
     )
     return _file_response(report, fmt)
 

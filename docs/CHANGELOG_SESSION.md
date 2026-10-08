@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
 | [61](#sessão-61--071026--curvas-de-material-tm4-d-106) | 07/10/2026 | Curvas de material (TM4): `MaterialCurve`/série/ponto com `CHECK`s de finitude, construtor puro que recusa x fora de ordem, geometria e unidade de leitura no backend, CSV/XLSX, importador do D-102, demo fictício e `clear_demo`; na ficha, a seção Curvas com gráfico SVG próprio, tabela de pontos e "Exportar ▾" (D-106) | 4079 → 4164 | 797 → 815 |
 | [60](#sessão-60--071026--busca-por-composição-química-e-por-designação-tm2-d-105) | 07/10/2026 | Busca por composição química e por designação (TM2): `MaterialDesignation` e `MaterialCompositionEntry` com `CHECK`s, `comp:`/`norma:`/`designacao:` na linguagem do D-55, composição por alcance em três valores (ausência não passa e é contada), `GET /api/materials/busca`, seções na ficha, ajuda no catálogo, contrato do bundle e demo fictício (D-105) | 3938 → 4079 | 783 → 797 |
@@ -78,6 +79,51 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
+
+**O pedido.** Com `CatalogDataset` imutável por release (D-102), dizer quais
+registros são novos, alterados ou saíram entre duas releases do catálogo
+oficial, com o campo, o antes e o depois, na unidade certa. O trabalho foi em
+duas etapas: a arquitetura e o backend (três commits, D-108) e a tela, o seed
+demo, os testes de frontend e a documentação (esta sessão). A decisão nasceu
+como D-107 e foi renumerada para **D-108** — o PR #113 já usa D-107 e a Sessão 62.
+
+**O que mudou.**
+
+- **Modelo** — `catalog_dataset.lineage` (a que catálogo a release pertence, do
+  manifest, sem backfill, `CHECK` contra cadeia vazia) e `is_demo`; migração
+  `73a9b5da72b2`, conferida em PostgreSQL 16 e no job de migrações.
+- **Diff** — `app/domain/release_diff.py`, puro: casa pela identidade externa
+  (nunca pelo nome), compara no canônico com tolerância relativa, separa valor,
+  presença, forma, **só a escrita da fonte** e metadado; ausência é estado
+  escrito, nunca 0; ordem determinística; só o que é compartilhado (D-62).
+- **API e exportação** — `GET /api/catalogo/releases`, `…/diff/{alvo}` e
+  `…/registro`; CSV/XLSX com aviso de limitação e proveniência das duas releases.
+- **Tela** — `/app/catalogo/releases` (link discreto no catálogo): seletor das
+  releases comparáveis, resumo por tipo, filtros por situação e classe, lista
+  paginada, detalhe campo a campo e "Exportar ▾". Releases, filtros, página e
+  registro aberto na URL; estados de carregamento, erro e vazio; ausência escrita
+  por extenso e numa frase; a natureza "só a escrita da fonte" com etiqueta,
+  contorno e peso próprios.
+- **Seed demo** — `app/db/seed_demo_releases.py`: duas releases fictícias da
+  linha `catalogo-demo`, cinco registros em cada (um inalterado, um que sai, um
+  novo noutra classe, um com número e unidade alterados e outro só reescrito, um
+  ausente → valor e um não cadastrado → valor, um renomeado), chamado por uma
+  linha de `seed_extended.main()`; idempotente; `clear_demo` apaga tudo (testado).
+  Log: `catalog_releases_created` 2, `catalog_records_created` 10,
+  `catalog_release_values_created` 18; na segunda execução, 0, 0, 0.
+- **Testes** — 4196 → 4252 de backend (4246 passam, 6 pulam sem
+  `POSTGRES_TEST_URL`) e 815 → 846 de frontend (página, helper puro, link do
+  catálogo e a auditoria axe da rota com um registro aberto).
+- **Documentação** — D-108 (com a atualização desta rodada), README, TODO (TM7
+  quitado; resíduos TM7-a a TM7-d), `08`, `15`, `18` e PROJECT_CONTEXT.
+
+**Decisões que merecem o olho do autor.** O seed está em `seed_extended`, fora
+do baseline de teste (dez materiais a mais mexeriam em toda contagem de demo);
+a lista pede 25 por página; o alvo do seletor só oferece releases comparáveis.
+Os resíduos TM7-a (o importador nunca desativa a release anterior, e uma segunda
+release com processos falha por colisão de slug) e TM7-b (o curador pode editar
+valor oficial pela API) afetam o uso real assim que houver uma segunda release.
 ## Sessão 62 — 08/10/26 — Demo completo: designação, composição e curva para os 75 materiais demo (D-107)
 
 **O pedido.** O autor quer testar as telas com tudo preenchido. O demo tinha 8

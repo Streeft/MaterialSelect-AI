@@ -12,6 +12,7 @@ import type {
   BillingStatus,
   ChartData,
   CheckoutSession,
+  CatalogRelease,
   CommitResult,
   Comparison,
   ComparisonRequest,
@@ -27,6 +28,9 @@ import type {
   EcoComparisonResult,
   Explanation,
   Interpretation,
+  ReleaseDiff,
+  ReleaseDiffItem,
+  ReleaseRecordStatus,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -294,6 +298,68 @@ export function curveExportUrl(
   reading: Pick<CurveReading, "x" | "y"> = {},
 ): string {
   return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery(reading)}`;
+}
+
+// --- Changes between catalogue releases (D-108) -----------------------------
+
+/** Every release of the official catalogue, grouped by lineage, in write order. */
+export function listCatalogReleases(): Promise<CatalogRelease[]> {
+  return request<CatalogRelease[]>(`/api/catalogo/releases`);
+}
+
+/** What the reader asks of one comparison; every field but the pair is optional. */
+export interface ReleaseDiffQuery {
+  tipo?: ReleaseRecordStatus;
+  classe?: string;
+  pagina?: number;
+  porPagina?: number;
+}
+
+function releaseDiffQuery(query: ReleaseDiffQuery, withPage: boolean): string {
+  const params = new URLSearchParams();
+  if (query.tipo) params.set("tipo", query.tipo);
+  if (query.classe) params.set("classe", query.classe);
+  if (withPage && query.pagina && query.pagina > 1) params.set("pagina", String(query.pagina));
+  if (withPage && query.porPagina) params.set("por_pagina", String(query.porPagina));
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
+
+/**
+ * The diff from `base` to `target`, derived by the backend (ADR 0004: the client
+ * never compares or converts). Releases are addressed by slug.
+ */
+export function getReleaseDiff(
+  base: string,
+  target: string,
+  query: ReleaseDiffQuery = {},
+): Promise<ReleaseDiff> {
+  return request<ReleaseDiff>(
+    `/api/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}${releaseDiffQuery(query, true)}`,
+  );
+}
+
+/** One record of the diff by its external identity — never by name. */
+export function getReleaseDiffRecord(
+  base: string,
+  target: string,
+  table: string,
+  id: string,
+): Promise<ReleaseDiffItem> {
+  const params = new URLSearchParams({ tabela: table, id });
+  return request<ReleaseDiffItem>(
+    `/api/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}/registro?${params.toString()}`,
+  );
+}
+
+/** The comparison as a file: the filter applies, the page does not. */
+export function releaseDiffExportUrl(
+  base: string,
+  target: string,
+  format: "csv" | "xlsx",
+  query: Pick<ReleaseDiffQuery, "tipo" | "classe"> = {},
+): string {
+  return `${API_URL}/api/exports/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}.${format}${releaseDiffQuery(query, false)}`;
 }
 
 export function getChart(x: string, y: string): Promise<ChartData> {

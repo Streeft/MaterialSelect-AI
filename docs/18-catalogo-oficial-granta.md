@@ -163,11 +163,20 @@ Exemplo mínimo de `dataset.json`:
   "slug": "granta-edupack-2025r2-l3-standard",
   "name": "Granta EduPack L3 Standard",
   "release": "2025 R2",
+  "lineage": "granta-edupack-l3-standard",
   "source_sha256": "<sha256 do data.gdb de origem>",
   "license_label": "Uso autorizado/licenciado",
   "provenance": "Extraído de instalação licenciada e revisado antes da carga"
 }
 ```
+
+`lineage` é opcional e diz a **qual catálogo a release pertence** (slug em
+`[a-z0-9-]`, validado no `verify_bundle`): é ela que torna duas releases
+comparáveis na tela "Mudanças entre releases" ([D-108](DECISIONS.md)). Releases
+com a mesma linha se comparam; sem linha, uma release não se compara com
+nenhuma (nunca se deduz pelo nome). O importador recusa reimportar a mesma
+release com outra linha. Declare a mesma `lineage` em todas as releases do
+mesmo catálogo (por exemplo, a versão seguinte do EduPack L3 Standard).
 
 O slug identifica **uma release imutável**. Se os bytes de origem mudarem,
 cria-se outro slug/release; o importador nunca aceita que o mesmo dataset passe

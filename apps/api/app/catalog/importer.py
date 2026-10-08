@@ -453,6 +453,12 @@ class OfficialCatalogImporter:
                 select(func.count(MaterialCurve.id)).where(MaterialCurve.is_demo.is_(True))
             )
             or 0,
+            # D-108: a fictitious release would otherwise sit in the same
+            # lineage listing as the official one.
+            "catalog_datasets": self.db.scalar(
+                select(func.count(CatalogDataset.id)).where(CatalogDataset.is_demo.is_(True))
+            )
+            or 0,
         }
         if any(remaining.values()):
             raise OfficialCatalogImportError(
@@ -490,6 +496,12 @@ class OfficialCatalogImporter:
                 raise OfficialCatalogImportError(
                     "A licença declarada diverge da registrada para este dataset."
                 )
+            if dataset.lineage != meta.get("lineage"):
+                # D-108: the lineage decides what a release is compared with, so
+                # it is part of the release's identity and never rewritten.
+                raise OfficialCatalogImportError(
+                    "A linha (lineage) declarada diverge da registrada para este dataset."
+                )
             committed_manifests = set(
                 self.db.execute(
                     select(CatalogImportRun.manifest_sha256).where(
@@ -508,10 +520,12 @@ class OfficialCatalogImporter:
                 slug=meta["slug"],
                 name=meta["name"],
                 release=meta.get("release"),
+                lineage=meta.get("lineage"),
                 source_sha256=meta["source_sha256"],
                 license_label=meta["license_label"],
                 provenance=meta.get("provenance"),
                 is_active=True,
+                is_demo=False,
             )
             self.db.add(dataset)
             self.db.flush()

@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.domain.curves import PointInput, SeriesInput, build_curve
 from app.integrations.http import get_http_transport, get_resolver
 from app.main import app
+from app.models.catalog import CatalogDataset, CatalogRecordRef
 from app.models.enums import CurveKind
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -58,6 +59,10 @@ PATH_VALUES = {
     "artifact_id": "1",
     # D-106: filled with the private record's own curve by `_sweep`.
     "curve_id": "1",
+    # D-108: two releases of one catalogue; the second one carries an identity
+    # row pointing at the private record (see `private_record`).
+    "base": "isolamento-r1",
+    "target": "isolamento-r2",
 }
 
 #: Query strings for the GETs that need one to return anything at all.
@@ -70,6 +75,8 @@ QUERY_STRINGS = {
     # D-104: MatML, the one CAE format the private record (density and Young's
     # modulus, no Poisson's ratio) can be written in.
     "/api/exports/materiais/{material_id}/cae": "?formato=matml&unidades=m-kg-s",
+    # D-108: the diff record route, asked for the private record's own identity.
+    "/api/catalogo/releases/{base}/diff/{target}/registro": "?tabela=MaterialUniverse&id=privado",
 }
 
 
@@ -141,6 +148,42 @@ def private_record(db_session: Session, other_user: User) -> Material:
             source_id=db_session.execute(select(Source.id)).scalars().first(),
         )
     )
+    db_session.flush()
+    # D-108: two releases of one catalogue, each with a shared record, and an
+    # identity row of the second pointing at the private record. Nothing the
+    # importer would write — which is the point: the diff must leave it out
+    # even when the provenance tables are wrong.
+    for slug in ("isolamento-r1", "isolamento-r2"):
+        dataset = CatalogDataset(
+            slug=slug,
+            name="Catálogo do teste de isolamento",
+            release=slug[-2:],
+            lineage="isolamento",
+            source_sha256="0" * 64,
+            license_label="Fixture de teste",
+        )
+        shared = Material(name=f"Registro compartilhado {slug}", class_id=klass.id, keywords=[])
+        db_session.add_all([dataset, shared])
+        db_session.flush()
+        db_session.add(
+            CatalogRecordRef(
+                dataset_id=dataset.id,
+                external_table="MaterialUniverse",
+                external_record_id="compartilhado",
+                raw_record_sha256="1" * 64,
+                material_id=shared.id,
+            )
+        )
+        if slug == "isolamento-r2":
+            db_session.add(
+                CatalogRecordRef(
+                    dataset_id=dataset.id,
+                    external_table="MaterialUniverse",
+                    external_record_id="privado",
+                    raw_record_sha256="2" * 64,
+                    material_id=material.id,
+                )
+            )
     db_session.flush()
     return material
 
@@ -317,6 +360,25 @@ def test_another_persons_outside_source_neither_leaks_nor_fetches(
         response = client.post(notebook + path, json=payload)
         assert response.status_code == 404, (path, response.text)
         assert PRIVATE_NAME not in response.text
+
+
+def test_the_release_diff_is_swept_and_never_carries_a_private_record(
+    client, login_as, other_user: User, private_record: Material
+) -> None:
+    """D-108. The sweep reaches the diff with two real releases (200, not a 404
+    that would prove nothing), and the private record is absent for its owner
+    too: the diff describes the shared catalogue only."""
+    diff = "/api/catalogo/releases/isolamento-r1/diff/isolamento-r2"
+    for viewer in (None, other_user):
+        if viewer is None:
+            response = client.get(diff)
+        else:
+            with login_as(viewer):
+                response = client.get(diff)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["total"] == 1 and PRIVATE_NAME not in response.text
+        assert [i["external_record_id"] for i in body["items"]] == ["compartilhado"]
 
 
 def test_the_datasheet_of_another_persons_record_is_not_found(

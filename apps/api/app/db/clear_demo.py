@@ -4,7 +4,8 @@
 
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
 transporte, química de bateria, índice de desempenho, fonte, designação e linha de
-composição (D-105) e curva (D-106, com séries e pontos) fictícios são removidos
+composição (D-105), curva (D-106, com séries e pontos) e release do catálogo
+(D-108, com suas referências externas e execuções de importação) fictícios são removidos
 independentemente do módulo que os criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
 catálogo oficial.
@@ -32,6 +33,13 @@ from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal
 from app.models.battery_chemistry import BatteryChemistry
+from app.models.catalog import (
+    CatalogDataset,
+    CatalogDatasetValue,
+    CatalogImportRun,
+    CatalogRecordRef,
+    CatalogSupplementalValue,
+)
 from app.models.material import Material
 from app.models.material_composition import MaterialCompositionEntry
 from app.models.material_curve import MaterialCurve, MaterialCurvePoint, MaterialCurveSeries
@@ -96,11 +104,67 @@ def _delete_curves(db: Session, curve_ids: list[int]) -> None:
     db.execute(delete(MaterialCurve).where(MaterialCurve.id.in_(curve_ids)))
 
 
+def clear_demo_catalog_releases(db: Session) -> int:
+    """Delete fictitious catalogue releases (D-108) with everything they own.
+
+    A demo release owns its identity rows (``CatalogRecordRef``), its import
+    runs and its supplemental/dataset values — all fictitious by construction,
+    so they go with it, in Python (the test database does not apply
+    ``ON DELETE``). The materials those refs point to are *not* deleted here:
+    a demo material leaves through ``clear_demo_materials`` by its own marker,
+    and a real material is never deleted by this command.
+
+    One case fails closed, like a demo source cited by a real row: a **real**
+    curve whose official identity points at a demo release. Deleting the
+    release would orphan (or, in PostgreSQL, cascade-delete) a real record.
+    """
+    demo_ids = list(
+        db.execute(select(CatalogDataset.id).where(CatalogDataset.is_demo.is_(True))).scalars()
+    )
+    if not demo_ids:
+        return 0
+    real_curves = (
+        db.scalar(
+            select(func.count(MaterialCurve.id)).where(
+                MaterialCurve.dataset_id.in_(demo_ids), MaterialCurve.is_demo.is_(False)
+            )
+        )
+        or 0
+    )
+    if real_curves:
+        raise RuntimeError(
+            "Release demo ainda é citada por curva real; limpeza recusada para "
+            f"preservar proveniência: {{'material_curves': {real_curves}}}"
+        )
+    demo_curves = list(
+        db.execute(select(MaterialCurve.id).where(MaterialCurve.dataset_id.in_(demo_ids))).scalars()
+    )
+    if demo_curves:
+        _delete_curves(db, demo_curves)
+    for model in (
+        CatalogRecordRef,
+        CatalogSupplementalValue,
+        CatalogDatasetValue,
+        CatalogImportRun,
+    ):
+        db.execute(delete(model).where(model.dataset_id.in_(demo_ids)))
+    db.execute(delete(CatalogDataset).where(CatalogDataset.id.in_(demo_ids)))
+    return len(demo_ids)
+
+
 def clear_demo_materials(db: Session) -> int:
     """Delete every `Material` with `is_demo=True`; return the count removed."""
     demo_ids = list(db.execute(select(Material.id).where(Material.is_demo.is_(True))).scalars())
     if not demo_ids:
         return 0
+
+    # D-108: an identity row of any release pointing at a demo material is as
+    # fictitious as the material (the FK would cascade in PostgreSQL; the test
+    # database needs it written out).
+    db.execute(delete(CatalogRecordRef).where(CatalogRecordRef.material_id.in_(demo_ids)))
+    db.execute(
+        delete(CatalogSupplementalValue).where(CatalogSupplementalValue.material_id.in_(demo_ids))
+    )
 
     # A real synthesized record may have used a demo material as a parent.
     # Preserve the real record and mirror the schema's SET NULL semantics.
@@ -247,6 +311,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     """
     identity = clear_demo_identity(db)
     curves = clear_demo_curves(db)
+    catalog_releases = clear_demo_catalog_releases(db)
     materials = clear_demo_materials(db)
     processes = clear_demo_processes(db)
     transport_modes = clear_demo_transport_modes(db)
@@ -262,6 +327,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
         "sources": sources,
         **identity,
         "curves": curves,
+        "catalog_releases": catalog_releases,
     }
 
 

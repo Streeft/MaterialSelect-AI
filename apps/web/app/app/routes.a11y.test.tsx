@@ -8,6 +8,7 @@ import { Landing } from "@/components/marketing/Landing";
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { curveList, stressStrain } from "@/components/charts/curveFixtures";
+import { releaseDiff, releaseList, steelItem } from "@/components/catalog/releaseFixtures";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
 import { screen as shadowScreen } from "shadow-dom-testing-library";
@@ -1245,6 +1246,12 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listMaterialCurves: () => Promise.resolve(curveList),
   getMaterialCurve: () => Promise.resolve(stressStrain),
   curveExportUrl: (id: number, curveId: number, format: string) => `#${id}-${curveId}-${format}`,
+  // D-108: "Mudanças entre releases", audited with one record open.
+  listCatalogReleases: () => Promise.resolve(releaseList),
+  getReleaseDiff: () => Promise.resolve(releaseDiff),
+  getReleaseDiffRecord: () => Promise.resolve(steelItem),
+  releaseDiffExportUrl: (base: string, target: string, format: string) =>
+    `#${base}-${target}-${format}`,
   getChart: () => Promise.resolve(chart),
   listStudies: () => Promise.resolve(studies),
   getDashboardOverview: () => Promise.resolve(overview),
@@ -1346,6 +1353,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 // Imported after the mocks so each page picks them up.
 const { default: HomePage } = await import("./page");
 const { default: CatalogPage } = await import("./catalogo/page");
+const { default: ReleaseChangesPage } = await import("./catalogo/releases/page");
 const { default: MapsPage } = await import("./mapas/page");
 const { default: ComparePage } = await import("./comparar/page");
 const { default: MaterialPage } = await import("./materiais/[id]/page");
@@ -1411,6 +1419,15 @@ describe("acessibilidade das telas principais", () => {
 
   it("catálogo", async () => {
     await auditRoute(<CatalogPage />, ptBR.catalog.title);
+  });
+
+  it("catálogo: mudanças entre releases, com um registro aberto", async () => {
+    nav.query =
+      "base=catalogo-demo-r1&alvo=catalogo-demo-r2&tabela=MaterialUniverse&registro=demo-002";
+    await auditRoute(<ReleaseChangesPage />, ptBR.releases.title);
+    await screen.findByRole("table", {
+      name: ptBR.releases.changesCaption("Aço Demo Inoxidável"),
+    });
   });
 
   it("mapas", async () => {

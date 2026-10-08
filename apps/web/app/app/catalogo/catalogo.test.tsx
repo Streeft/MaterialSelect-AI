@@ -110,6 +110,12 @@ describe("catálogo", () => {
     search.reject = null;
   });
 
+  it("links, quietly, to the changes between releases (D-108)", async () => {
+    await renderCatalog();
+    const link = screen.getByRole("link", { name: t.releasesLink });
+    expect(link).toHaveAttribute("href", "/app/catalogo/releases");
+  });
+
   it("states the composition rule and who was left out for lack of data (D-105)", async () => {
     search.composition = {
       rule: "Composição por alcance da faixa.",

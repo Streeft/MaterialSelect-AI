@@ -8586,6 +8586,374 @@ fechado e pequeno; `modulo` e `tensao` são grandezas distintas só pela unidade
 de leitura. (3) Seed, `clear_demo` e CSV ficaram neste commit, embora o escopo
 final da sessão os entregasse a outro agente.
 
+## D-108 — O que mudou entre releases do catálogo oficial: diff derivado do que cada release gravou, casado por identidade externa, com a release declarando a que catálogo pertence
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 63, TM7 — parte de arquitetura; tela, seed demo,
+documentação de área e contagens ficam para a rodada seguinte, ver "Contrato")
+
+**O pedido (TM7).** Com `CatalogDataset` imutável por release (D-102), dizer
+quais registros são novos, quais foram alterados (que campo, de quanto para
+quanto, em que unidade) e quais saíram entre duas releases do catálogo.
+
+### O estado encontrado (investigação)
+
+- **Uma linha de `CatalogDataset` é uma release**, nomeada pelo slug (os bytes);
+  não havia nada que dissesse que duas releases são do **mesmo catálogo**. O
+  `name` é rótulo livre do manifest ("Granta EduPack L3 Standard") e decidir
+  comparabilidade por ele seria casar por nome.
+- **A identidade externa é por release**: `CatalogRecordRef` é única por
+  (dataset, tabela externa, id externo) e guarda o GRUID e o SHA-256 da linha
+  bruta de `materials.ndjson` — que **não cobre os valores** (eles vêm de
+  `material_values.ndjson`, sem hash por valor).
+- **O importador grava cada release em linhas próprias.** `_existing_ref`
+  procura a identidade só no dataset que está sendo importado, então a segunda
+  release cria `Material` e `MaterialPropertyValue` novos e não toca os da
+  primeira. Classe e propriedade são compartilhadas por slug (a unidade canônica
+  não pode divergir — o importador recusa). Consequência: **o que a release A
+  gravou continua no banco depois da release B**, e o diff pode ser derivado
+  sem guardar nada novo por registro.
+- **Nada é desativado hoje.** O importador nunca põe `is_active=False`; depois
+  de uma segunda importação, as duas releases ficam ativas lado a lado
+  (registros em dobro no catálogo). E uma segunda release **com processos
+  falha**: o slug do processo colide ("Slug de processo … já existe sem
+  identidade externa deste dataset"). Modal reaproveita a linha pelo slug e
+  ganha uma ref na release nova. Nenhum dos dois é corrigido aqui (TM7-a).
+- `CatalogImportRun` guarda bundle, manifest e contagens por execução, não
+  valores. Nenhum bundle oficial foi importado em produção (o corpus fica fora
+  do Git), então nenhuma linha existente precisa de migração de dados.
+
+### A decisão
+
+**O diff é derivado do que cada release gravou — sem tabela de snapshot.** Os
+valores por release já existem como linhas da própria release; uma tabela de
+versões copiaria o mesmo dado e passaria a ter duas verdades sobre ele. O
+schema ganha **duas colunas** em `catalog_dataset` (migração `73a9b5da72b2`,
+autogerada e revisada — a deriva antiga de `battery_chemistry`/`subscription`
+retirada, como no D-105/D-106, e o default booleano trocado por `sa.false()`,
+porque o `'0'` proposto não é default booleano no PostgreSQL):
+
+- **`lineage`** (`String(120)`, anulável, indexada; `CHECK lineage IS NULL OR
+  lineage <> ''`): o catálogo ao qual a release pertence. Vem do manifest
+  (`dataset.lineage`, opcional, **slug** `[a-z0-9-]`, validado no
+  `verify_bundle`); o importador grava e **recusa reimportar a mesma release
+  com outra linha** — ela decide com quem a release se compara, então é parte
+  da identidade. **Sem backfill**: uma release sem linha declarada não é
+  comparável com nenhuma, em vez de ganhar uma linha deduzida do nome.
+- **`is_demo`** (`server_default` falso): release fictícia marcada na própria
+  linha (docs/15), para o `clear_demo` encontrá-la e o import oficial recusar
+  commit enquanto ela existir (`catalog_datasets` em `_assert_demo_cleared`).
+
+Conferida em PostgreSQL 16 local (up, seed, down, up, seed; o `CHECK` recusa
+`''`) e no job `Migrações (PostgreSQL)`, que agora confere coluna, índice e
+`CHECK` e tenta gravar a linha vazia.
+
+**Se um dia o importador passar a manter o mesmo `Material` entre releases**
+(atualizando valores no lugar, para que favoritos e estudos sigam o registro),
+o diff derivado deixa de ser possível — a release anterior seria
+sobrescrita — e aí sim será preciso guardar a versão dos valores por release.
+O domínio não muda: só o repositório que monta os instantâneos.
+
+### As regras do diff
+
+Moram em `app/domain/release_diff.py`, puro (sem SQLAlchemy nem FastAPI); o
+repositório (`catalog_release_repository.py`) só lê, em duas consultas por
+release; o serviço resolve as releases, recusa o par e monta a resposta.
+
+1. **Comparáveis:** duas releases **diferentes** da **mesma linha**, ambas reais
+   ou ambas fictícias. Releases de catálogos diferentes, sem linha, iguais ou
+   real × demo → **400** em português, com o motivo. Releases são endereçadas
+   pelo **slug** (o mesmo em qualquer banco, para a URL reproduzir o
+   documento). A direção é a pedida: `base → alvo`; invertida, novo e
+   desativado trocam de lugar.
+2. **Identidade externa, nunca o nome:** dois registros são o mesmo quando
+   (tabela externa, id externo) coincidem. Renomear é **alterado** (campo
+   "Nome"); dois registros de mesmo nome e ids diferentes são um que saiu e
+   outro que entrou. Só registros de material nesta rodada (TM7-c).
+3. **Situação:** `novo` (só no alvo), `desativado` (só na base — o registro que
+   o catálogo deve desativar quando o alvo vigorar, nunca apagar), `alterado`
+   (algum campo difere), `inalterado`. Hash bruto diferente sem campo mapeado
+   diferente continua **inalterado** — a linha bruta pode trazer colunas que o
+   catálogo não lê —, e sai como `raw_record_changed`, informativo.
+4. **Campos comparados:** nome, classe (por slug, mostrada pelo nome),
+   subclasse, descrição, GRUID e cada propriedade. Fonte, qualidade e notas do
+   valor **não** entram: a fonte muda por construção a cada release, e a
+   qualidade é sempre `IMPORTADO`.
+5. **Valor no canônico.** A comparação é na unidade canônica, por
+   `units.to_canonical` (limites e típico da faixa convertidos da unidade
+   original, como gravados), com `math.isclose(rel_tol=1e-9)`. A natureza da
+   mudança, da mais forte para a mais fraca: `ausencia` (número apareceu ou
+   sumiu: declarado ausente ↔ valor, não cadastrado ↔ valor ou ↔ ausente),
+   `forma` (único ↔ faixa), `valor` (número canônico diferente), `escrita_da_fonte`
+   (mesmo número canônico escrito com outra unidade ou outro número na mesma —
+   7850 kg/m³ → 7,85 g/cm³), `metadado` (condição de medição ou incerteza,
+   comparada como **diferença**: ±5 °C = ±5 K). Uma propriedade gera no máximo
+   uma mudança, com a natureza mais forte.
+6. **Ausência é estado, nunca 0 (D-24):** `nao_cadastrado` ("não cadastrado
+   nesta release") e `ausente` ("declarado ausente pela fonte") saem com os
+   três conjuntos de números `null` e o rótulo escrito; um zero verdadeiro e uma
+   ausência nunca se igualam.
+7. **Leitura (D-70):** cada número sai em três unidades — como a fonte
+   escreveu, canônica e de leitura (convenção `display_unit` da propriedade ou
+   `unidades=slug:unid` na URL, restrita a `accepted_units`, 400 fora delas) —,
+   convertido no backend (`Reading`, `from_canonical`).
+8. **Ordem determinística:** situação (alterado, novo, desativado, inalterado),
+   nome atual sem caixa, identidade externa. Mesmo resultado para a mesma
+   entrada em qualquer ordem; o diff não grava nada (teste confere linhas e
+   contagens antes/depois, e reimportar a release base não muda a resposta).
+9. **Visibilidade (D-62):** toda leitura passa por `visible_materials(None)` —
+   **só o compartilhado**. Uma ref que apontasse para registro próprio (o
+   importador não faz isso; o teste força) fica fora para todos, **inclusive o
+   dono**: o diff descreve o catálogo compartilhado. O canário de isolamento
+   ganhou duas releases e varre as quatro rotas novas.
+10. **Classe:** o filtro casa a classe de **qualquer** lado (um registro que
+    mudou de classe aparece nas duas), e as contagens por classe seguem a mesma
+    regra — a soma pode passar do total pelo número de mudanças de classe.
+
+### Contrato para o frontend e o demo
+
+**(a) Rotas** (todas `GET`, só leitura, login + portão do produto do router —
+o mesmo dos materiais; erro → `{"detail": "<mensagem em pt-BR>"}`):
+
+- `GET /api/catalogo/releases` → `CatalogReleaseOut[]`, agrupadas por linha
+  (sem linha por último) e, dentro dela, em ordem de gravação.
+
+  ```json
+  [{"slug": "ficticio-r1", "name": "Catálogo Fictício de Teste", "release": "R1",
+    "lineage": "catalogo-ficticio-teste", "license_label": "Fixture fictícia de teste",
+    "provenance": "Dados inventados…", "source_sha256": "…", "is_active": true,
+    "is_demo": false, "created_at": "2026-10-08T12:00:00Z",
+    "imported_at": "2026-10-08T12:00:01Z", "bundle_sha256": "…", "manifest_sha256": "…",
+    "material_count": 5, "previous_slug": null},
+   {"slug": "ficticio-r2", "…": "…", "previous_slug": "ficticio-r1"}]
+  ```
+
+  `previous_slug` é a release gravada logo antes na mesma linha — a base
+  natural do seletor ("comparar com a anterior"). `imported_at`/hashes são
+  `null` numa release que não passou pelo importador (a demo).
+- `GET /api/catalogo/releases/{base}/diff/{target}?tipo=&classe=&pagina=1&por_pagina=50&unidades=`
+  → `ReleaseDiffOut`. `tipo` ∈ `novo|alterado|desativado|inalterado` (outro →
+  400 com a lista); `classe` = slug de `MaterialClass` (inexistente → 400);
+  `por_pagina` 1–200; página além da última → 400 ("A página 3 não existe: o
+  resultado tem 2 páginas."); resultado vazio tem página 1 vazia. 404: slug
+  inexistente. 400: as recusas da regra 1.
+
+  ```json
+  {"base": {"slug": "ficticio-r1", "…": "…"}, "target": {"slug": "ficticio-r2", "…": "…"},
+   "lineage": "catalogo-ficticio-teste", "is_demo": false, "rule": "Registros casados pela identidade externa…",
+   "counts": [{"status": "alterado", "label": "Alterado", "count": 3},
+              {"status": "novo", "label": "Novo nesta release", "count": 1},
+              {"status": "desativado", "label": "Desativado (saiu da release)", "count": 1},
+              {"status": "inalterado", "label": "Inalterado", "count": 1}],
+   "total": 6, "classes": [{"slug": "metais", "name": "Metais", "count": 5}],
+   "filters": {"tipo": null, "classe": null},
+   "filtered_total": 6, "page": 1, "page_size": 50, "page_count": 1,
+   "items": [{"external_table": "MaterialUniverse", "external_record_id": "mat-c",
+     "status": "alterado", "status_label": "Alterado",
+     "base": {"material_id": 41, "name": "Liga Fictícia C", "class_slug": "metais",
+              "class_name": "Metais", "subclass": null, "external_gruid": "G-mat-c",
+              "raw_record_sha256": "…", "is_active": true},
+     "target": {"material_id": 47, "…": "…"},
+     "raw_record_changed": false, "change_count": 2,
+     "changes": [{"field": "propriedade:densidade", "label": "Densidade",
+       "kind": "valor", "kind_label": "Valor", "property_slug": "densidade",
+       "before_text": null, "after_text": null,
+       "reading_unit": "g/cm**3", "reading_unit_label": "g/cm³", "canonical_unit": "kg/m**3",
+       "before": {"state": "escalar", "state_label": "valor único",
+         "original": {"value": 7850.0, "min": null, "max": null, "typical": null, "uncertainty": null, "unit": "kg/m**3"},
+         "canonical": {"value": 7850.0, "min": null, "max": null, "typical": null, "uncertainty": null, "unit": "kg/m**3"},
+         "reading": {"value": 7.85, "min": null, "max": null, "typical": null, "uncertainty": null, "unit": "g/cm**3", "unit_label": "g/cm³"},
+         "conversion_method": "identity:kg/m**3", "measurement_condition": null},
+       "after": {"state": "escalar", "state_label": "valor único",
+         "original": {"value": 7.9, "…": null, "unit": "g/cm**3"},
+         "canonical": {"value": 7899.999999999999, "…": null, "unit": "kg/m**3"},
+         "reading": {"value": 7.9, "…": null, "unit": "g/cm**3", "unit_label": "g/cm³"},
+         "conversion_method": "pint:g/cm**3->kg/m**3", "measurement_condition": null}}]},
+    {"external_record_id": "mat-d", "status": "alterado", "changes": [
+      {"field": "propriedade:densidade", "kind": "ausencia", "kind_label": "Presença do dado",
+       "before": {"state": "ausente", "state_label": "declarado ausente pela fonte",
+                  "original": null, "canonical": null, "reading": null,
+                  "conversion_method": null, "measurement_condition": null},
+       "after": {"state": "escalar", "…": "…"}}]},
+    {"external_record_id": "mat-r", "status": "alterado", "changes": [
+      {"field": "nome", "label": "Nome", "kind": "texto", "kind_label": "Campo do registro",
+       "before_text": "Liga Fictícia R", "after_text": "Liga Fictícia R renomeada",
+       "property_slug": null, "before": null, "after": null}]},
+    {"external_record_id": "mat-b", "status": "desativado", "base": {"…": "…"}, "target": null,
+     "raw_record_changed": null, "change_count": 0, "changes": []}]}
+  ```
+
+  Para a tela: **toda** mudança de propriedade traz `before` **e** `after`
+  (lado sem linha = estado `nao_cadastrado`, nunca objeto ausente); escreva
+  `state_label` quando `reading` for `null` — nunca `0`, `—` ou célula vazia.
+  Texto `null` (`before_text`/`after_text`) é "não informado". `kind`
+  `escrita_da_fonte` merece rótulo discreto ("mesmo valor físico"). Uma
+  release `is_demo` pede o aviso de fictício. Números já vêm convertidos; o
+  cliente só formata no pt-BR (D-30).
+- `GET /api/catalogo/releases/{base}/diff/{target}/registro?tabela=MaterialUniverse&id=mat-c&unidades=`
+  → `DiffItemOut` (o mesmo item acima). Sem `tabela` ou `id` → 400; identidade
+  em nenhuma das duas releases → 404. Nunca por nome.
+- `GET /api/exports/catalogo/releases/{base}/diff/{target}.{csv|xlsx}?tipo=&classe=&unidades=`
+  → arquivo (`attachment`, `nosniff`; outro formato → 400), mesmas recusas;
+  **sem paginação** (o filtro vale, a página não).
+
+**(b) O seed demo (para a rodada seguinte; não feito aqui).** O importador
+**recusa** demo, então o seed escreve direto, por `app.db.seed` (o baseline que
+`semear_demo`, a CI e o `conftest` executam — ou um módulo ligado a
+`admin-banco.yml` e `scripts/seed.ps1`, regra do D-71), idempotente por slug da
+release e por (release, id externo). Para existirem **duas releases fictícias
+comparáveis**:
+
+1. Duas `CatalogDataset` com `is_demo=True`, **a mesma** `lineage` (sugestão:
+   `catalogo-demo`), slugs `catalogo-demo-r1`/`catalogo-demo-r2`, `release`
+   "Demo R1"/"Demo R2", `name` "Catálogo Demo MaterialSelect",
+   `license_label` dizendo que é fictício, `source_sha256` qualquer SHA-256
+   hexadecimal minúsculo (por exemplo `hashlib.sha256(b"catalogo-demo-r1")`).
+   Grave a R1 antes da R2 (a ordem da lista é a de gravação).
+2. **Um `Material` por release** para cada registro (`is_demo=True`,
+   `owner_id=None`) — nunca o mesmo material nas duas: duas refs para a mesma
+   linha leem os mesmos valores e o registro sairia sempre "inalterado". É o
+   que o importador faz com release real.
+3. Uma `CatalogRecordRef` por material: `dataset_id` da release,
+   `external_table="MaterialUniverse"`, `external_record_id` estável entre as
+   releases (`demo-001`…), `raw_record_sha256` SHA-256 hexadecimal,
+   `external_gruid` opcional, `material_id`.
+4. Valores pelos construtores de sempre (`build_scalar_value`,
+   `build_interval_value`, `missing_value`) com **fonte demo**
+   (`Source.is_demo=True`; uma por release, para a proveniência do CSV dizer
+   "Demo R1"/"Demo R2").
+5. Cobrir os casos que a tela tem de mostrar: um inalterado, um que sai (só na
+   R1), um novo (só na R2, de preferência noutra classe), um número que muda
+   **com** a unidade (densidade 7850 kg/m³ → 7,9 g/cm³), um que vai de
+   declarado ausente a valor, uma propriedade não cadastrada que passa a
+   existir e um renomeado. Números alterados de propósito, sem Granta, MatWeb
+   nem ASM (o mesmo cuidado do D-105).
+6. Contar no log (`catalog_releases_created`, `catalog_records_created`) e
+   escrever um teste com `db_session` que confira as contagens e o diff
+   `catalogo-demo-r1 → catalogo-demo-r2` (o roteiro de
+   `test_two_demo_releases_compare_and_clear_demo_removes_them` serve de
+   modelo; `_demo_release` ali é o mínimo de uma release demo).
+
+Atenção à contagem dos materiais demo: os materiais por release entram em
+`materials_created` e em telas que contam materiais demo; prefira poucos
+registros (cinco a sete por release).
+
+**(c) O que `clear_demo` cascateia — já implementado**
+(`clear_demo_catalog_releases`, antes dos materiais): release com
+`is_demo=True` → suas curvas oficiais (se fictícias), `CatalogRecordRef`,
+`CatalogSupplementalValue`, `CatalogDatasetValue`, `CatalogImportRun` e a
+release, em Python (o SQLite dos testes não aplica `ON DELETE`).
+**Falha fechada** se uma curva **real** citar release demo. Os materiais demo
+saem pelo `clear_demo_materials`, que agora também apaga as refs e os valores
+suplementares de material demo de qualquer release. A chave
+`"catalog_releases"` entra no retorno.
+
+**(d) O CSV/XLSX.** Um `Report` (`to_csv` com BOM UTF-8, `to_xlsx` com capa
+"Aviso"; toda célula por `cells.py` — nome em forma de fórmula sai com
+apóstrofo; número, inclusive negativo, sai como célula numérica). Título
+`Mudanças entre releases — <nome>: <release base> → <release alvo>`; subtítulo
+com as quatro contagens e a linha; avisos padrão (fictício primeiro quando
+alguma release ou fonte de valor é demo, limitação, reprodutibilidade). Seções:
+
+- **Releases** (`Campo, Base, Alvo`): slug, nome, release, linha, licença,
+  proveniência, SHA-256 da origem, importada em, SHA-256 do bundle e do
+  manifest, fontes citadas pelos valores, registros de material, release
+  ativa, dado fictício.
+- **Resumo** (`Situação, Registros` + total): a regra em palavras e os filtros
+  aplicados (ou "Sem filtro").
+- **Registros**: `Situação, Tabela externa, ID externo, GRUID, Nome na base,
+  Nome no alvo, Classe na base, Classe no alvo, Campos alterados, Registro de
+  origem mudou` — lado ausente como "não está nesta release"; GRUID ausente
+  "não informado"; hash sem os dois lados "não se aplica".
+- **Alterações** (uma linha por campo alterado): `Tabela externa, ID externo,
+  Material, Campo, Natureza da mudança, Antes (leitura), Antes mín. (leitura),
+  Antes máx. (leitura), Depois (leitura), Depois mín. (leitura), Depois máx.
+  (leitura), Unidade de leitura, Antes, como a fonte escreveu, Antes: unidade
+  original, Depois, como a fonte escreveu, Depois: unidade original, Unidade
+  canônica, Antes (canônico), Depois (canônico), Antes: método de conversão,
+  Depois: método de conversão`. Lado sem número escreve o estado ("declarado
+  ausente pela fonte", "não cadastrado nesta release") em toda coluna numérica;
+  mín./máx. de valor único, "não se aplica (valor único)"; campo de texto, o
+  texto em Antes/Depois e "não se aplica (campo de texto)" no resto.
+
+### Fora desta decisão (resíduos)
+
+- **TM7-a — promover uma release.** Ação administrativa que, ao vigorar a
+  release nova de uma linha, ponha `is_active=False` na anterior e nos
+  materiais dela (nunca `DELETE`); e resolver a colisão de slug de processo na
+  segunda release. Hoje as duas releases ficam ativas e uma segunda release
+  com processos não importa.
+- **TM7-b — imutabilidade no banco.** Um curador pode editar valor de material
+  oficial pela API de materiais; o diff lê o que está gravado e passaria a
+  refletir a edição. Proposta: recusar edição de material com
+  `CatalogRecordRef` (ou marcar `editado após a importação` a partir da
+  auditoria).
+- **TM7-c — outros universos.** Processos, modais, valores suplementares,
+  valores do dataset, composição, designações e curvas no diff.
+- **TM7-d — desempenho.** O diff é recalculado a cada requisição (duas
+  consultas por release, tudo em memória); com o catálogo Granta inteiro
+  (milhares de registros × dezenas de propriedades) pode passar de segundos.
+  Materializar no import, se medir lento.
+- **TM7-e — tela, seed demo, i18n e documentação de área** (docs/18 §4 com
+  `lineage` no `dataset.json`, docs/15 com a release demo, README, TODO,
+  CHANGELOG, PROJECT_CONTEXT, CLAUDE.md) — a rodada seguinte.
+
+**Alternativas descartadas.** Tabela de versões por registro (duplica o que a
+release já gravou; volta a ser necessária só com o modelo de material estável
+entre releases); comparabilidade pelo `name` do dataset ou pelo prefixo do slug
+(casar por nome/aparência); deduzir `lineage` das releases existentes na
+migração (o mesmo); comparar valores por igualdade exata (toda conversão de
+unidade viraria "mudança") ou só pelo valor original (7850 kg/m³ e 7,85 g/cm³
+seriam valores diferentes); contar mudança de escrita como inalterado (esconde
+que a fonte reescreveu o dado); calcular o diff no cliente (ADR 0004).
+
+**Revisão humana sugerida.** (1) Mudança só de escrita da fonte (mesmo valor
+físico) conta como **alterado**, com natureza própria — a alternativa é contá-la
+como inalterada. (2) `lineage` é opcional no manifest e sem backfill: uma release
+real já importada sem linha só fica comparável com nova importação. (3) O modelo
+"um `Material` por release" é o que o importador já faz; ele custa favoritos e
+estudos presos ao id da release antiga (TM7-a) e, se for trocado, o diff passa a
+exigir versões guardadas. (4) Releases endereçadas por slug na URL (um slug com
+`/` não seria endereçável; nenhum existe). (5) O portão é o do produto (login +
+assinatura fora do modo aberto), como a leitura dos materiais.
+
+### Atualização (Sessão 63): a rodada da tela, do seed e da documentação
+
+Entregue o que "Contrato para o frontend e o demo" deixava para depois; nada do
+backend foi reescrito. O que a rodada escolheu, e onde se afasta do contrato:
+
+- **A tela** é `/app/catalogo/releases` (`ReleaseChanges`, `ReleaseRecordDetail`,
+  `lib/releaseDiff.ts`), ligada ao catálogo por um link `ghost` no cabeçalho —
+  não ao menu lateral: é leitura de manutenção, e o menu fica para o que se usa
+  todo dia. Releases, filtros, página e registro aberto vivem na URL
+  (`base`, `alvo`, `tipo`, `classe`, `pagina`, `tabela`, `registro`); o registro
+  é aberto por identidade externa e, se não está na página, pela rota
+  `…/registro`. O seletor oferece como alvo só as releases comparáveis (mesma
+  linha, ambas reais ou ambas fictícias) — a recusa 400 do backend continua a
+  defesa, mas a interface não leva o leitor até ela. Sem tela vazia: menos de
+  duas releases comparáveis dizem isso em português, e citam as que não
+  declaram linha.
+- **"Só a escrita da fonte" é distinguida por texto, forma e peso**, não só por
+  cor: etiqueta própria, contorno tracejado, linha esmaecida e a frase "Mesmo
+  valor físico, escrito de outro modo". Ausente → valor e valor → ausente saem
+  numa frase ("Passou de declarado ausente pela fonte para 0,25 W/(m·K).") ao
+  lado das duas células, que também escrevem o estado (D-24).
+- **Desvio 1 — onde o seed mora.** O contrato sugeria `app.db.seed` ou um módulo
+  ligado a `admin-banco.yml`. As releases estão em `app/db/seed_demo_releases.py`,
+  chamado por **uma linha** de `seed_extended.main()` (o módulo que
+  `semear_demo` e `scripts/seed.ps1` já executam, D-71). Ficam **fora do baseline
+  de teste** (`seed()` do `conftest`), como os 70 materiais estendidos: dez
+  materiais a mais ali mexeriam em toda contagem de materiais demo. Os testes
+  chamam `seed_demo_releases(db_session)` explicitamente.
+- **Desvio 2 — tamanho.** Seis registros por release no roteiro (cinco em cada
+  uma, `demo-001` a `demo-006`): 10 materiais, 18 valores, 2 releases, 2 fontes.
+  O log imprime `catalog_releases_created`, `catalog_records_created` e
+  `catalog_release_values_created`.
+- **A lista pede `por_pagina=25`**, e não os 50 padrão da API: uma página é uma
+  tela, e a tabela de detalhe vem logo abaixo.
+
+Os resíduos TM7-a a TM7-d seguem em `docs/TODO.md` com o texto desta decisão;
+TM7-e (tela, seed, i18n e documentação) está quitado.
 ## D-107 — Demo completo: designação, composição e curva fictícias para os 75 materiais demo, derivadas das propriedades de cada um
 
 **Data:** 08/10/2026
