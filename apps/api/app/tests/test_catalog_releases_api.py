@@ -442,16 +442,23 @@ def test_the_diff_is_idempotent_and_writes_nothing(
     assert client.get("/api/exports/catalogo/releases/ficticio-r1/diff/ficticio-r2.csv")
     assert state() == before
 
-    # Re-importing release 1 (the importer is idempotent) changes neither the
+    # Re-importing release 1 after release 2 vigorou is refused (D-114: a retired
+    # release is not re-activated) and rolls back: nothing stored changes.
+    with pytest.raises(OfficialCatalogImportError, match="substituída"):
+        import_bundle(db_session, write_bundle(tmp_path, "ficticio-r1", "R1", RELEASE_1), reviewer)
+    assert state() == before
+    assert client.get(url).json() == first
+
+    # Re-importing release 2 (the importer is idempotent) changes neither the
     # stored release nor the answer — only the audit of its imports (a new run).
     result = import_bundle(
-        db_session, write_bundle(tmp_path, "ficticio-r1", "R1", RELEASE_1), reviewer
+        db_session, write_bundle(tmp_path, "ficticio-r2", "R2", RELEASE_2), reviewer
     )
     assert result["counts"].get("materials_created", 0) == 0
     again = client.get(url).json()
-    assert again["base"]["imported_at"] != first["base"]["imported_at"]
-    assert {k: v for k, v in again.items() if k != "base"} == {
-        k: v for k, v in first.items() if k != "base"
+    assert again["target"]["imported_at"] != first["target"]["imported_at"]
+    assert {k: v for k, v in again.items() if k != "target"} == {
+        k: v for k, v in first.items() if k != "target"
     }
 
 

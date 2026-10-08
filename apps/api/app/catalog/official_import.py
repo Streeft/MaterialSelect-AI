@@ -6,7 +6,7 @@ import argparse
 import json
 
 from app.catalog.bundle import verify_bundle
-from app.catalog.importer import OfficialCatalogImporter, validate_semantics
+from app.catalog.importer import OfficialCatalogImporter, plan_promotion, validate_semantics
 from app.db.base import SessionLocal
 
 
@@ -17,6 +17,14 @@ def _parser() -> argparse.ArgumentParser:
         "--commit",
         action="store_true",
         help="Commit to DATABASE_URL. Without this flag the command is read-only.",
+    )
+    parser.add_argument(
+        "--sem-banco",
+        action="store_true",
+        help=(
+            "Dry-run without DATABASE_URL: bytes and references only, without the "
+            "promotion plan (what the release would retire, D-114)."
+        ),
     )
     parser.add_argument(
         "--reviewer-email",
@@ -38,6 +46,12 @@ def main() -> None:
     }
 
     if not args.commit:
+        if not args.sem_banco:
+            # D-114: what this release would retire, read from the database and
+            # never written. Identities only — the Actions log is public.
+            with SessionLocal() as db:
+                summary["promotion_plan"] = plan_promotion(db, bundle)
+                db.rollback()
         print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
         return
 
