@@ -136,7 +136,20 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
   consultas por release, tudo em memória). Com o catálogo Granta inteiro
   (milhares de registros × dezenas de propriedades) pode passar de segundos;
-  materializar no import se medir lento. O CSV/XLSX não pagina.
+  materializar no import se medir lento. O CSV/XLSX não pagina. A rota de um
+  só registro também monta o diff inteiro e devolve um item (achado da revisão).
+- **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
+  releases que passa de ativo para inativo sai como "inalterado", porque
+  `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
+  entra junto com o TM7-a, que passa a desativar a release anterior.
+- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
+  representativo de uma faixa que tem `normalized_value` de um lado e nada do
+  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
+  importador não gera esse caso hoje.
+- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
+  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
+  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
+  vez de `ValidationError`; a chave estrangeira impede hoje.
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
