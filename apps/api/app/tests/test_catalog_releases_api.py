@@ -378,7 +378,7 @@ def test_filters_by_kind_and_class(client, two_releases) -> None:
     body = client.get(url, params={"tipo": "novo"}).json()
     assert [i["external_record_id"] for i in body["items"]] == ["mat-e"]
     assert body["filtered_total"] == 1 and body["total"] == 6
-    assert body["filters"] == {"tipo": "novo", "classe": None}
+    assert body["filters"] == {"tipo": "novo", "classe": None, "universo": None}
 
     body = client.get(url, params={"classe": "ceramicas-ficticias-diff"}).json()
     assert [i["external_record_id"] for i in body["items"]] == ["mat-e"]
@@ -623,8 +623,8 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
         "Liga Fictícia R renomeada",
     )
     records_header = next(row for row in rows if row and row[0] == "Situação" and "GRUID" in row)
-    removed = next(row for row in rows if len(row) == len(records_header) and row[2] == "mat-b")
-    assert removed[5] == "não está nesta release"
+    removed = next(row for row in rows if len(row) == len(records_header) and row[3] == "mat-b")
+    assert removed[6] == "não está nesta release"
 
 
 def test_the_export_applies_the_filters(client, two_releases) -> None:

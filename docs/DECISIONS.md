@@ -9140,6 +9140,14 @@ sairiam "alterados" pela promoção e não pela fonte. Fica fora de propósito; 
 estado da release vem em `is_active` da própria release (lista e CSV) e de cada
 lado do item (`base.is_active`/`target.is_active`, já no contrato).
 
+**Esta decisão revoga o item 5 da [D-109](DECISIONS.md) (TM7-e):** a D-109 fez
+`is_active` diferente virar mudança de `metadado` (campo `ativo`); depois de uma
+promoção isso marcaria todo registro da release base como "alterado" e o diff do
+D-108 perderia sentido. O campo `ativo` e o rótulo "Registro ativo" saíram de
+`app/domain/release_diff.py`; dois registros iguais exceto por `is_active` são
+`inalterado`. O resto da D-109 (processos, modais, composição, curvas, forma e
+presença) segue valendo. O texto da D-109 não foi reescrito.
+
 ### Alternativas descartadas
 
 - **Atualizar o material no lugar** (a leitura literal da delegação): quebra o
@@ -9177,3 +9185,101 @@ processo e modal reaproveitados. (2) A recusa de reimportar release antiga ou
 substituída (a alternativa seria aceitar como no-op). (3) O dry-run da CLI lê o
 banco por padrão (`--sem-banco` para não ler). (4) Os valores do modal que a
 release nova não traz passam a ausentes, em vez de herdados.
+
+---
+
+## D-112 — Composição e designações nas exportações; cartões térmicos CAE
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 67, TM2-d e TM5-d)
+
+**Composição e designações (TM2-d).** `app/exporters/identity.py` é o único lugar
+que escreve a frase de uma linha de composição ("16 a 18 %", "≤ 0.08 %", "resto
+(declarado pela fonte, não calculado)", "ausente (declarado pela fonte)") e as
+planilhas "Composição" e "Designações", usadas pelo catálogo, pelos relatórios de
+estudo de materiais (não de processos) e pelos cartões CAE. Regras: material sem
+linha sai com a linha "sem composição cadastrada"/"sem designação cadastrada",
+nunca célula vazia nem 0 %; o limite que a fonte não escreveu não é escrito; o
+resto nunca é `100 − Σ`. O escape continua por formato: `cells.py` nas planilhas,
+`html.escape` no HTML, ASCII nos decks (que por isso usam `<=`/`>=`, pois
+`ascii_fold` apagaria `≤` e um máximo leria como nominal) e XML no MatML. Nos
+cartões a composição é **informativa**, no cabeçalho de cada deck e em `Notes`
+do MatML.
+
+**MatML sem `ChemicalComposition`.** Não foi possível ler o XSD 3.1 (rede
+bloqueada); da memória, `Characterization` exige `Formula`, que o catálogo não
+tem. Escrever elementos que talvez não validem violaria a regra do D-104 (só a
+especificação pública), então composição e designação vão em texto livre, em
+`BulkDetails/Notes`. Estruturar é resíduo.
+
+**Cartões térmicos (TM5-d).** Dois formatos novos: `nastran-thermal` (`MAT4*`,
+campo largo: K, CP, RHO) e `lsdyna-thermal` (`*MAT_THERMAL_ISOTROPIC_TITLE`: TRO,
+HC, TC). **Exigidos:** condutividade e calor específico — em branco, o solver
+assumiria zero ou deixaria o material sem capacidade térmica. A densidade é
+opcional mas **declarada** quando falta (o `MAT4` assume RHO = 1,0). Parâmetros
+de modelo (convecção, geração, mudança de fase) ficam em branco com comentário.
+Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
+exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
+
+## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 64, resíduos TM7-c/e/f/g do [D-108](DECISIONS.md))
+
+**O que mudou no desenho.** O `RecordSnapshot` ganhou `universe` (`material`,
+`processo`, `modal`), `record_id` (o id na tabela do próprio registro; o
+`material_id` da API só vem preenchido para material) e, para material,
+`composition` e `curves`. A identidade continua `(tabela externa, id externo)`
+— `catalog_record_ref` já guarda os três universos —, e um registro que muda de
+universo entre as releases é recusado (400), não casado.
+
+**Regras (todas no `release_diff.py`, puro):**
+
+1. **Atributo de processo** é comparado como propriedade de material (mesmo
+   `compare_values`, no canônico). O conjunto de **rótulos** de um atributo
+   discreto é um estado novo (`rotulos`) e é comparado como conjunto: ordem
+   diferente não é mudança; conjunto diferente é `valor`; rótulos ↔ número é
+   `forma`; rótulos ↔ ausência é `ausencia`. Campo `atributo:<slug>`.
+2. **Composição** é comparada por elemento, em % de massa (o normalizado — a
+   unidade da fonte, `wt%`, não é unidade do Pint). Elemento que aparece ou
+   some é `ausencia`. **O resto (balanço) nunca vira número**: balanço dos dois
+   lados não é mudança; balanço ↔ faixa sai como texto (`forma`), sem inventar o
+   valor do balanço. Campo `composicao:<elemento>`.
+3. **Curva** é casada pelo id externo dentro do material. Título, descrição,
+   rótulos dos eixos, tipo e grandezas/unidades dos eixos são `texto`; a curva
+   que só existe de um lado é `ausencia`; séries e pontos (casados por posição,
+   comparados nos números **normalizados**) são `valor`, com a contagem de
+   pontos diferentes; os mesmos pontos físicos digitados em outra unidade são
+   `escrita_da_fonte`; só rótulo/condição de série diferente é `metadado`. Um
+   limite `y_min`/`y_max` de um lado só conta como ponto diferente.
+4. **Modal** entra com nome, descrição, ativo e as duas intensidades (MJ/(t·km)
+   e kg CO₂/(t·km), como gravadas). Como o importador **reaproveita a linha do
+   modal pelo slug**, entre duas releases só a presença difere hoje; os valores
+   já são lidos para o dia em que o modal for gravado por release (TM7-a).
+5. **TM7-e:** `is_active` diferente é mudança de `metadado` (campo `ativo`);
+   o registro deixa de sair "inalterado".
+6. **TM7-f:** numa faixa, um número (representativo, mínimo, máximo ou típico)
+   que existe de um lado só é mudança de `forma` — checada **antes** de comparar
+   valores, para que nunca se compare número com vazio e nunca apareça uma
+   "mudança de valor" que ninguém mediu.
+7. **TM7-g:** a grafia da unidade (`kg/m^3` × `kg/m³`) continua sendo
+   `escrita_da_fonte` — o registro muda de bytes e a rastreabilidade (princípio
+   4) quer isso dito —, mas a regra e a tela agora o explicam. Propriedade sem
+   definição é `ValidationError` (400), não `ValueError` (500).
+
+**Contrato (aditivo).** `GET …/diff/…` aceita `universo=material|processo|modal`
+(outro valor → 400) e devolve `universes` (contagem sobre o diff inteiro, zero
+incluído); cada item traz `universe` e `universe_label`; o lado do registro
+traz `record_id`/`universe` (e `material_id` só para material); o lado de um
+valor traz `labels`. O filtro `classe` aceita também classe de processo e o
+slug `modal-de-transporte`. O CSV/XLSX ganha a coluna "Universo" em
+Registros e o filtro `universo`.
+
+**Alternativas descartadas.** Uma tabela de diff por universo (o contrato do
+D-108 é uma lista só, ordenada e paginada); comparar composição na unidade
+original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
+"inalterado" (esconderia uma mudança na linha gravada).
+
+**Resíduos.** Designações, valores suplementares e valores do dataset ainda não
+entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
+adicionado: composição e curvas somam consultas por release.

@@ -563,9 +563,9 @@ def test_the_diff_of_the_two_releases_still_works(
     body = response.json()
     assert {c["status"]: c["count"] for c in body["counts"]} == {
         "alterado": 0,
-        "novo": 1,
-        "desativado": 1,
-        "inalterado": 1,
+        "novo": 2,
+        "desativado": 3,
+        "inalterado": 3,
     }
     items = {item["external_record_id"]: item for item in body["items"]}
     # The superseded row is inactive, and that is not a change of the record.

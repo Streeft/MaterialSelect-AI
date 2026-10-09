@@ -552,8 +552,7 @@ class SelectionService:
         The two wrong combinations are the ones a reader would most plausibly
         write: a process stage in a process study (they meant the *tree* stage),
         and a material stage in a material study (same). Saying so beats
-        evaluating something they did not ask for.
-        """
+        evaluating something they did not ask for."""
         allowed = self._KINDS_BY_UNIVERSE[universe]
         if stage_in.kind in allowed:
             return
@@ -1582,8 +1581,8 @@ class SelectionService:
     def _not_found(self, slug: str | None) -> str:
         """The 404 message for a slug the catalogue in force does not hold.
 
-        "Atributo não encontrado" in a process study, "Propriedade não
-        encontrada" in a material one: the noun has to name the thing the user
+        \"Atributo não encontrado\" in a process study, \"Propriedade não
+        encontrada\" in a material one: the noun has to name the thing the user
         was actually looking for, and Portuguese makes the participle agree with
         it — which is why this returns the whole phrase instead of just the noun.
         """
@@ -2229,6 +2228,18 @@ class SelectionService:
                 expression=study.index_expression,
                 goal=study.index_goal or "maximize",
             )
+        stages_out = self._stages_to_out(study)
+        root_group_out = None
+        first_limit = next((s for s in stages_out if s.kind == "limit"), None)
+        if first_limit is not None and first_limit.root_group is not None:
+            root_group_out = first_limit.root_group
+        elif study.constraint_groups:
+            constraints_by_group: dict[int, list[SelectionConstraint]] = {}
+            for c in study.constraints:
+                constraints_by_group.setdefault(c.group_id, []).append(c)
+            root_group_out = self._group_rows_to_in(
+                list(study.constraint_groups), constraints_by_group
+            )
         return StudyOut(
             id=study.id,
             name=study.name,
@@ -2239,7 +2250,8 @@ class SelectionService:
             free_variables=list(study.free_variables or []),
             combinator=study.combinator,
             constraints=[self._constraint_to_in(c) for c in study.constraints],
-            stages=self._stages_to_out(study),
+            root_group=root_group_out,
+            stages=stages_out,
             index=index,
             normalization=study.normalization,
             method=study.method,
@@ -2281,7 +2293,7 @@ class SelectionService:
         nested study used to come back as a flat constraint list, so reopening
         it silently dropped the parentheses.
         """
-        groups_by_stage: dict[int, list[ConstraintGroup]] = {}
+        groups_by_stage: dict[int | None, list[ConstraintGroup]] = {}
         for group in study.constraint_groups:
             groups_by_stage.setdefault(group.stage_id, []).append(group)
 
@@ -2289,13 +2301,32 @@ class SelectionService:
         for c in study.constraints:
             constraints_by_group.setdefault(c.group_id, []).append(c)
 
+        if not study.stages:
+            root_group = self._group_rows_to_in(list(study.constraint_groups), constraints_by_group)
+            return [
+                StageOut(
+                    position=0,
+                    kind="limit",
+                    label=None,
+                    enabled=True,
+                    root_group=root_group,
+                    class_slugs=[],
+                    process_slugs=[],
+                    process_class_slugs=[],
+                    material_class_slugs=[],
+                    chart=None,
+                    include_descendants=True,
+                )
+            ]
+
         outs: list[StageOut] = []
         for stage in study.stages:
             root_group = None
             if stage.kind == "limit":
-                root_group = self._group_rows_to_in(
-                    groups_by_stage.get(stage.id, []), constraints_by_group
-                )
+                stage_groups = groups_by_stage.get(stage.id, [])
+                if not stage_groups and len(study.stages) == 1 and None in groups_by_stage:
+                    stage_groups = groups_by_stage[None]
+                root_group = self._group_rows_to_in(stage_groups, constraints_by_group)
             outs.append(
                 StageOut(
                     position=stage.position,
@@ -2332,11 +2363,17 @@ class SelectionService:
         if not roots:
             return None
 
+        roots.sort(key=lambda x: x.position if x.position is not None else 0)
+
         def build(g: ConstraintGroup) -> ConstraintGroupIn:
+            raw_constraints = list(constraints_by_group.get(g.id, []))
+            raw_constraints.sort(key=lambda x: x.position if x.position is not None else 0)
+            child_groups = list(children_by_parent.get(g.id, []))
+            child_groups.sort(key=lambda x: x.position if x.position is not None else 0)
             return ConstraintGroupIn(
                 operator=g.operator,
-                constraints=[self._constraint_to_in(c) for c in constraints_by_group.get(g.id, [])],
-                groups=[build(child) for child in children_by_parent.get(g.id, [])],
+                constraints=[self._constraint_to_in(c) for c in raw_constraints],
+                groups=[build(child) for child in child_groups],
             )
 
         return build(roots[0])

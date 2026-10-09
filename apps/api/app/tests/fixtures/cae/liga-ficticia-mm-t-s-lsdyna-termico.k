@@ -1,5 +1,5 @@
 *KEYWORD
-$ MaterialSelect AI - cartao de material para LS-DYNA (*MAT_ELASTIC)
+$ MaterialSelect AI - cartao de material para LS-DYNA (*MAT_THERMAL_ISOTROPIC)
 $
 $ ATENCAO: este cartao contem valores marcados como demonstrativos, que sao
 $ ficticios. Nao utilizar em projetos reais.
@@ -24,28 +24,27 @@ $ MPa, temperatura K
 $ Valores convertidos da unidade canonica do catalogo pelo Pint.
 $
 $ Propriedades (valor completo; um campo de largura fixa pode arredondar):
-$ densidade [RO] = 7.85E-09 t*mm^-3; qualidade: ESTIMADO; fonte: Fonte ficticia
+$ densidade [TRO] = 7.85E-09 t*mm^-3; qualidade: ESTIMADO; fonte: Fonte ficticia
 $ de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio de demonstracao
-$ modulo de Young [E] = 210000. MPa; qualidade: ESTIMADO; fonte: Fonte ficticia
-$ de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio de demonstracao
-$ faixa cadastrada 200000. a 220000. MPa: exportado o ponto representativo da
-$ faixa
-$ coeficiente de Poisson [PR] = 0.3 adimensional; qualidade: ESTIMADO; fonte:
+$ modulo de Young: cadastrado, mas fora deste cartao (pertence ao material
+$ mecanico (*MAT_ELASTIC), nao exportado neste cartao termico)
+$ coeficiente de Poisson: cadastrado, mas fora deste cartao (pertence ao
+$ material mecanico (*MAT_ELASTIC), nao exportado neste cartao termico)
+$ coeficiente de expansao termica: cadastrado, mas fora deste cartao (pertence
+$ ao material mecanico (*MAT_ELASTIC), nao exportado neste cartao termico)
+$ condutividade termica [TC] = 50. mW*mm^-1*K^-1; qualidade: ESTIMADO; fonte:
 $ Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio
 $ de demonstracao
-$ coeficiente de expansao termica: cadastrado, mas fora deste cartao (fora do
-$ *MAT_ELASTIC; pertence a um material termico, nao exportado (formato
-$ lsdyna-thermal))
-$ condutividade termica: cadastrado, mas fora deste cartao (fora do
-$ *MAT_ELASTIC; pertence a um material termico, nao exportado (formato
-$ lsdyna-thermal))
-$ calor especifico: cadastrado, mas fora deste cartao (fora do *MAT_ELASTIC;
-$ pertence a um material termico, nao exportado (formato lsdyna-thermal))
+$ calor especifico [HC] = 460000000. mJ*t^-1*K^-1; qualidade: ESTIMADO; fonte:
+$ Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio
+$ de demonstracao
 $
-$ MID = 1: troque se o numero ja estiver em uso no seu modelo.
-$ DA e DB (amortecimento) em branco: parametros do modelo.
-*MAT_ELASTIC_TITLE
+$ TMID = 1: troque se o numero ja estiver em uso no seu modelo.
+$ TGRLC, TGMULT, TLAT e HLAT em branco: mudanca de fase e parametro do modelo.
+*MAT_THERMAL_ISOTROPIC_TITLE
 Liga Ficticia CAE-1 (demonstracao)
-$#     mid        ro         e        pr        da        db  not used
-         1  7.85E-09   210000.       0.3
+$#    tmid       tro     tgrlc    tgmult      tlat      hlat
+         1  7.85E-09
+$#      hc        tc
+460000000.       50.
 *END

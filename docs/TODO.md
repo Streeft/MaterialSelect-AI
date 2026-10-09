@@ -125,9 +125,14 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   oficial pela API de materiais; o diff lê o que está gravado e passaria a
   refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
   ou marcar "editado após a importação" a partir da auditoria.
-- **TM7-c — outros universos no diff.** ▃ O diff cobre **só materiais**:
-  processos, modais, valores suplementares, valores do dataset, composição,
-  designações e curvas ficam de fora.
+- ~~**TM7-c — outros universos no diff.**~~ ✔ Parcial (D-109, Sessão 64):
+  processos, modais, atributos de processo, composição e curvas entram no diff
+  (mesma identidade externa, comparação no canônico, filtro `universo`).
+  **Resíduo:** designações, valores suplementares e valores do dataset ainda
+  ficam de fora; e o **modal** é reaproveitado pelo slug entre releases (uma
+  linha só, com uma ref nova por release), então hoje só a presença dele
+  difere — os valores do modal só mudam entre releases quando o TM7-a decidir
+  como gravar o modal por release.
 - **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
   consultas por release, tudo em memória). Com o catálogo Granta inteiro
   (milhares de registros × dezenas de propriedades) pode passar de segundos;
@@ -145,16 +150,14 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   como toda ficha de material inativo, sem dizer qual registro da mesma
   identidade está vigente.
 - ~~**TM7-e — `is_active` não entra no diff.**~~ ✔ Resolvido por decisão
-  ([D-114](DECISIONS.md)): com a promoção, todo registro da release base fica
-  inativo por construção, então `is_active` fica fora do diff de propósito.
-- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
-  representativo de uma faixa que tem `normalized_value` de um lado e nada do
-  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
-  importador não gera esse caso hoje.
-- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
-  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
-  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
-  vez de `ValidationError`; a chave estrangeira impede hoje.
+  ([D-114](DECISIONS.md)), que revoga a parte `is_active` da D-109: com a
+  promoção, todo registro da release base fica inativo por construção, então
+  `is_active` fica fora do diff de propósito.
+- ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ (D-109): é
+  mudança de forma, escrita; nunca número contra vazio.
+- ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ (D-109): a
+  grafia (`kg/m^3` × `kg/m³`) segue sendo "só a escrita da fonte", agora dita
+  na regra e na tela; propriedade sem definição é `ValidationError` (400).
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -169,8 +172,13 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   a composição inteira e as massas atômicas (cálculo, não unidade); composição
   por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
   em `CatalogSupplementalValue` se vierem no bundle.
-- **TM2-d — composição nas exportações e no comparador.** ▃ CSV/XLSX/relatório
-  e MatML (`ChemicalComposition`) ainda não a levam; o comparador amplo é o TM3.
+- ~~**TM2-d — composição nas exportações e no comparador.**~~ Entregue em parte
+  (Sessão 67, [D-112](DECISIONS.md)): planilhas "Composição" e "Designações" no
+  catálogo e nos relatórios de estudo (CSV/XLSX/HTML) e linhas informativas nos
+  cartões CAE, com ausência escrita. **Resíduos:** (a) ▃ o MatML leva composição
+  e designação em `Notes`, não em `ChemicalComposition`/`Specification`: o XSD
+  3.1 não pôde ser lido nesta sessão (rede bloqueada) e `Characterization`
+  exige `Formula`, que o catálogo não tem; (b) ▃ o comparador amplo é o TM3.
 - **TM2-e — dados reais.** ▁ Nenhum registro real tem composição ou designação:
   dependem do bundle do D-102 (C1) ou de fonte aberta APROVADA (C2, D-103).
 
@@ -226,9 +234,12 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   formato é um dialeto do MatML com metadados próprios, e a documentação pública
   acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo
   exportado — o que a regra do D-104 proíbe.
-- **TM5-d — cartões térmicos.** ▃ Condutividade e calor específico no `MAT4`
-  do Nastran e num material térmico do LS-DYNA; hoje são declarados "fora deste
-  cartão" no comentário.
+- ~~**TM5-d — cartões térmicos.**~~ Entregue (Sessão 67,
+  [D-112](DECISIONS.md)): formatos `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
+  (`*MAT_THERMAL_ISOTROPIC_TITLE`); condutividade e calor específico são
+  exigidos (422 sem eles). Hoje nenhum material do catálogo os tem (TM5-a), então
+  na prática só recusam. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
+  `lib/api.ts`, `i18n.ts`) ainda lista só os cinco formatos antigos.
 - **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
   a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem
   LS-DYNA, e sem validar o MatML contra o XSD 3.1 (rede bloqueada). Abrir cada
@@ -581,7 +592,7 @@ Registrados para não voltarem por engano:
     opacidade (também em `filter`), `clip`/`clip-path`, deslocamento para fora
     da página (qualquer caixa posicionada, `margin`, `translate` em
     comprimento), caixa zero com overflow cortado e escala a quase nada. Fonte
-    minúscula e tinta transparente são **herdadas** e o filho pode desfazê-las,
+    minúscula e tinta transparente são **herdadas** e o filho pode desfaz-las,
     então só o texto ilegível sai — a coluna de `font-size:16px` dentro de uma
     linha `font-size:0` fica. **Qualquer** declaração que oculta conta, não só a
     última (`display:none;display:x` passava), com `var()`, `calc()` e escapes
@@ -1177,15 +1188,20 @@ Registrados para não voltarem por engano:
   árvore recursivo — cada grupo com seu próprio alternador AND/OR e
   "Adicionar grupo"/"Adicionar restrição" em qualquer profundidade — e
   `/selecao` passa a enviar `root_group` ao rodar ou salvar. ~~**Limitação
-  conhecida, registrada e não corrigida nesta entrega:**~~ `GET
-  /api/selection/studies/{id}` devolvia as restrições como lista plana, então
-  reabrir um estudo aninhado mostrava tudo achatado num único grupo AND, sem
-  aviso na tela. **Fechada no P0-1** ([D-56](DECISIONS.md)):
-  `StageOut.root_group` devolve a árvore inteira e `fromConstraintPayload` a
-  reconstrói no editor — a leitura por estágio precisava da estrutura de
-  qualquer jeito. Ver `docs/07-selecao-deterministica.md` para a descrição
-  do modelo de árvore e o exemplo trabalhado. 862 testes de backend (nenhum
-  skip, antes 852) e 176 de frontend (antes 171), todos verdes ao final.
+  conhecida, registrada e não corrigida na entrega inicial:**~~ `GET
+  /api/selection/studies/{id}` devolvia as restrições apenas no formato plano,
+  então reabrir um estudo aninhado podia achatar a exibição num único grupo.
+  **Fechada integralmente no P0-1 ([D-56](DECISIONS.md)) e na Opção 1 (M6 round-trip)**:
+  `StudyOut.root_group` e `StageOut.root_group` reconstroem fielmente a árvore
+  recursiva `ConstraintGroupIn` com ordenação determinística por `position` e
+  fallback robusto para estudos legados sem estágios (sintetizando `LimitStage`
+  com a árvore intacta), `StudyDetail` em `@materialselect/shared-types`
+  espelha o contrato, e `apps/web/app/app/selecao/page.tsx` (`loadStudy`)
+  hidrata a árvore sem qualquer achatamento ao reabrir. Ver
+  `docs/07-selecao-deterministica.md` para a descrição do modelo de árvore e
+  o exemplo trabalhado. 862 testes de backend (nenhum skip, antes 852) e 176
+  de frontend (antes 171), todos verdes ao final, expandidos com regressões de
+  round-trip em `test_selection_stages.py`.
   **Addendo da revisão final de branch (corrigido na mesma sessão):** o
   laudo de engenharia (D-41) descrevia a lógica de um estudo aninhado como
   um único combinador achatado, com linhas de subgrupo opacas — corrigido

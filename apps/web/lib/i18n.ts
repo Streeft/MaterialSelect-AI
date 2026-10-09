@@ -1996,6 +1996,9 @@ export const ptBR = {
     filtersTitle: "Filtros",
     filterStatus: "Situação",
     allStatuses: "Todas as situações",
+    filterUniverse: "Tipo de registro",
+    allUniverses: "Material, processo e modal",
+    universeOption: (name: string, count: number) => `${name} (${count})`,
     filterClass: "Classe",
     allClasses: "Todas as classes",
     classOption: (name: string, count: number) => `${name} (${count})`,
@@ -2052,23 +2055,25 @@ export const ptBR = {
     writingSentence: (before: string, after: string) =>
       `Mesmo valor físico, escrito de outro modo: ${before} na base e ${after} no alvo.`,
     sourceWritingTag: "Só a escrita da fonte",
-    sourceWritingHint: "mesmo valor físico",
+    sourceWritingHint: "mesmo valor físico, inclusive a grafia da unidade (kg/m^3 ou kg/m³)",
     kindTags: {
       texto: "Campo do registro",
       ausencia: "Presença do dado",
       forma: "Forma do valor",
       valor: "Mudança de valor",
       escrita_da_fonte: "Só a escrita da fonte",
-      metadado: "Condição ou incerteza",
+      metadado: "Condição, incerteza ou rótulos",
     } as Record<string, string>,
     kindHints: {
       texto: "Um campo de texto do registro mudou.",
       ausencia: "O dado passou a existir ou deixou de existir.",
-      forma: "O valor passou de único para faixa, ou o contrário.",
+      forma:
+        "O valor passou de único para faixa (ou rótulos), ou a faixa declara outros números: um ponto ou limite que só existe de um lado.",
       valor: "O número, convertido para a unidade canônica, é outro.",
       escrita_da_fonte:
-        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma ou em outra unidade.",
-      metadado: "O número é o mesmo; a condição de medição ou a incerteza mudou.",
+        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma, em outra unidade ou com outra grafia da unidade.",
+      metadado:
+        "O número é o mesmo; a condição de medição, a incerteza ou os rótulos mudaram.",
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
