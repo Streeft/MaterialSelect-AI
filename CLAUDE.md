@@ -109,7 +109,7 @@ garantias são da camada. Duas delas não são negociáveis (D-35): **o modelo
 escolhe um índice pelo slug** e a expressão é lida do catálogo depois — não peça
 esse campo ao modelo — e **as ressalvas da explicação são do backend**
 (`app/ai/caveats.py`), fora do esquema enviado. Um provedor real não é
-determinístico, e é por isso que o padrão continua `mock`.
+determinístico, e é por isso que o padrão continua `mock` .
 
 No `openai-compat`, duas coisas parecem descuido e são decisão (D-36):
 `AI_BASE_URL` **não tem padrão** (um padrão escolheria um fornecedor pelo
@@ -248,7 +248,7 @@ uvicorn app.main:app --reload
 pytest
 
 # Frontend
-cd apps\web
+cd apps\\web
 npm run dev
 npm run typecheck; npm run test; npm run build
 ```
@@ -303,7 +303,7 @@ pelo GitHub Actions, com busca por palavras e vetores (D-101). A IA oficial é o
 Gemini gratuito via `openai-compat` (D-93); o `mock` segue o padrão do código e
 dos testes.
 
-Testes: 4424 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4418
+Testes: 4428 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4422
 passam e 6 pulam) e 863 de frontend, todos verdes. A contagem vive em
 `docs/PROJECT_CONTEXT.md`.
 
