@@ -9041,7 +9041,6 @@ fictícia declarada na descrição. (3) O demo deixou de exemplificar "material 
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
 
-
 ## D-113 — Comparador largo: o teto da requisição é 60 x 20, e cada figura tem o seu teto de legibilidade, dito por escrito
 
 **Contexto.** O TM3 pedia dezenas de materiais lado a lado. O teto de 12 em
@@ -9093,6 +9092,90 @@ opcional mas **declarada** quando falta (o `MAT4` assume RHO = 1,0). Parâmetros
 de modelo (convecção, geração, mudança de fase) ficam em branco com comentário.
 Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
 exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
+
+## D-111 — Composição como critério de seleção e edição à mão de composição, designações e curvas, com a permissão do material
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 66, TM2-b, TM2-a e TM4-d)
+
+**O pedido.** Fechar três resíduos do D-105/D-106: a composição como estágio da
+seleção (TM2-b), e escrever composição, designações (TM2-a) e curvas (TM4-d) pela
+API e pela ficha, com auditoria e a permissão certa.
+
+### Composição como critério de um estágio `limit` (TM2-b)
+
+- **Dois operadores novos**, `composition` e `not_composition`, no mesmo estágio
+  `limit` e na mesma árvore AND/OR (M6). A condição vai em `text`, **na sintaxe da
+  busca** (`Cr>=12`, `C<=0,08`, `Ni:8-10`, `Fe`) e é lida pelo mesmo
+  `parse_condition`: estudo e busca não podem discordar do que a condição quer
+  dizer. Sem coluna nova e sem migração (o estudo salvo guarda operador + texto).
+- **A regra não foi reescrita.** O veredito vem de `app.domain.composition.evaluate`
+  (alcance da faixa, três valores). `composition` passa só o verdadeiro;
+  `not_composition` passa só o **falso decidido** — é a garantia, o que
+  `NOT comp:Cr<12` significa na busca. O indeterminado (sem composição, elemento
+  não declarado, declarado ausente, resto comparado com número) **não passa em
+  nenhum dos dois**: a negação não libera a ausência (D-59/D-105).
+- **Por que dois operadores e não um `NOT` genérico.** A árvore de restrições não
+  tem negação; abrir uma só para composição criaria um construtor que o resto do
+  motor não conhece. O par espelha o par `in_class`/`not_in_class`.
+- **Funil e laudo.** O passo do funil leva o rótulo com a regra ("alcance da faixa"
+  ou "garantia") e `undetermined`, a contagem dos candidatos que o passo não
+  conseguiu decidir por falta de dado. A planilha "Restrições e funil" (e o laudo
+  HTML) imprime `RULE_TEXT` e uma nota por passo ("N candidato(s) sem o dado de
+  composição … não passam"). Geometria e ranking não mudam: o estágio só estreita
+  o conjunto.
+- **Só no universo de materiais.** Num estudo de processos é 400. Os snapshots
+  recebem a composição por leitura única, preguiçosa (só quem usa o critério paga),
+  já filtrada por visibilidade (D-62).
+
+### Escrever composição, designações e curvas (TM2-a, TM4-d)
+
+- **Rotas.** `PUT /api/materials/{id}/composicao`, `PUT …/designacoes`, `POST`,
+  `PUT` e `DELETE …/curvas[/{curva}]` e `GET /api/materials/curvas-tipos` (o
+  vocabulário do formulário, lido da tabela do próprio construtor). Cada `PUT`
+  **substitui o conjunto inteiro**, como `PUT …/values`: o que não vem sai, e uma
+  lista vazia de composição é "sem composição cadastrada" (nunca 0 %).
+- **Mesmos construtores do seed e do importador.** `build_composition_entry` /
+  `validate_composition` e `build_curve`: resto e ausente sem número, nada de
+  `100 − Σ`, unidade só por `units.py`, x crescente, faixa que contém a linha.
+  Tudo é validado **antes** de apagar qualquer coisa — recusa (400) não toca no
+  que está gravado. A fonte é obrigatória em cada linha/curva (422 sem ela); a
+  qualidade padrão é `ESTIMADO`, como nos valores de propriedade.
+- **Permissão: a do material, num lugar só** (`services/record_permissions.py`).
+  Material de outro usuário é 404 (visibilidade, D-62); registro próprio é do dono;
+  no catálogo compartilhado só o curador (403 em acesso aberto sem assinatura,
+  D-83) — a checagem é no serviço, e não por `require_catalog_curator` na rota,
+  porque a mesma rota atende o dono de um registro próprio, a quem a dependência
+  de rota recusaria; o efeito sobre o compartilhado é o mesmo da rota `PATCH`
+  existente. **Material ou curva do catálogo oficial (D-102) é 409**: um registro
+  com `CatalogRecordRef` (`is_official` na ficha) e uma curva com identidade de
+  dataset não se editam à mão, ou a próxima carga leria "curva alterada" e
+  recusaria (D-102), e a edição poria na ficha uma afirmação que a fonte nunca fez.
+- **Auditoria** (M2) como `ATUALIZADO` do material, com o diff por elemento
+  (`composição Cr`), por código (`designação UNS S30400`) e por curva
+  (`curva <título>`); uma escrita idêntica não gera evento.
+- **Ficha.** Botões "Editar composição", "Editar designações" e "Nova/Editar/
+  Excluir curva" só aparecem quando o servidor aceitaria a escrita. Os números
+  voltam ao formulário **como a fonte os escreveu** (`value_*`/`*_original`, na
+  unidade original), nunca o canônico. Os pontos da curva entram como texto, um por
+  linha (`x; y` ou `x; y; mín.; máx.`, vírgula decimal): só leitura do que foi
+  digitado; ordem, completude e conversão são do servidor.
+
+**Alternativas descartadas.** Um estágio novo `composition` (duplicaria a árvore de
+restrições e o funil); coluna `composition_condition` no `SelectionConstraint`
+(migração para um texto que já cabe em `text`); reescrever a regra de alcance em
+outro lugar; `PATCH` linha a linha da composição (dois jeitos de deixar o resto
+duplicado e de apagar sem querer); permitir editar o oficial "porque o curador
+pode" (TM7-b já registra o problema para os valores).
+
+**Revisão humana sugerida.** (1) `not_composition` como garantia, e não um
+"complemento" simples, é a leitura do D-105 para `NOT`; se o autor preferir só o
+operador de alcance, basta tirá-lo de `_COMPOSITION_OPS`. (2) A qualidade padrão
+`ESTIMADO` para o que se digita à mão segue os valores de propriedade; o curador
+muda no formulário de valores, mas **os formulários novos ainda não expõem a
+qualidade** (resíduo TM2-f). (3) Substituir o conjunto inteiro apaga linhas que
+outra pessoa tenha acabado de acrescentar (último a gravar vence, como em
+`PUT …/values`).
 
 ## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
 
@@ -9156,3 +9239,4 @@ original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
 **Resíduos.** Designações, valores suplementares e valores do dataset ainda não
 entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
 adicionado: composição e curvas somam consultas por release.
+

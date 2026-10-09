@@ -22,6 +22,10 @@ OperatorLiteral = Literal[
     # P0-4: set membership over a discrete process attribute's closed vocabulary.
     "has_any_label",
     "has_no_label",
+    # TM2-b (D-105): chemical composition, with the condition in ``text`` in the
+    # search's own syntax (``Cr>=12``). ``not_composition`` is the guarantee side.
+    "composition",
+    "not_composition",
 ]
 GoalLiteral = Literal["maximize", "minimize"]
 DirectionLiteral = Literal["max", "min"]
@@ -275,6 +279,11 @@ class FunnelStepOut(BaseModel):
     operator: str
     passed: int
     remaining: int
+    # TM2-b: only for a composition criterion — how many of the candidates the
+    # step looked at could not be decided because the composition data is absent
+    # (no composition, element not declared, declared absent, balance). They are
+    # not in ``passed``; the count keeps "not satisfied" from reading as "no data".
+    undetermined: int | None = None
 
 
 class StageResultOut(BaseModel):

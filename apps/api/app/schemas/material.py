@@ -148,6 +148,50 @@ class CompositionEntryOut(BaseModel):
     is_demo: bool = False
 
 
+class CompositionEntryIn(BaseModel):
+    """One element of a composition being written (TM2-a, D-105).
+
+    ``state`` picks the shape, exactly as on output: ``faixa`` takes at least one
+    of ``value_min``/``value_max``/``value_nominal`` plus ``unit`` (mass basis);
+    ``resto`` and ``ausente`` take **no number** — the balance is declared, never
+    computed, and absence is never 0. The source is required: a content nobody
+    stated is not data.
+    """
+
+    element: str = Field(min_length=1, max_length=3)
+    state: CompositionState = "faixa"
+    value_min: float | None = Field(default=None, allow_inf_nan=False)
+    value_max: float | None = Field(default=None, allow_inf_nan=False)
+    value_nominal: float | None = Field(default=None, allow_inf_nan=False)
+    unit: str | None = Field(default=None, max_length=40)
+    source_label: str = Field(min_length=1, max_length=160)
+    citation: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, max_length=500)
+    data_quality: DataQuality = DataQuality.ESTIMADO
+
+
+class CompositionReplaceIn(BaseModel):
+    """The whole composition of a material; what is not listed is removed."""
+
+    entries: list[CompositionEntryIn] = Field(default_factory=list, max_length=118)
+
+
+class DesignationIn(BaseModel):
+    """One designation being written: a code in a closed vocabulary of systems."""
+
+    system: DesignationSystem
+    code: str = Field(min_length=1, max_length=120)
+    region: str | None = Field(default=None, max_length=80)
+    source_label: str = Field(min_length=1, max_length=160)
+    citation: str | None = Field(default=None, max_length=500)
+
+
+class DesignationsReplaceIn(BaseModel):
+    """All designations of a material; what is not listed is removed."""
+
+    designations: list[DesignationIn] = Field(default_factory=list, max_length=60)
+
+
 class MaterialListItem(BaseModel):
     """Compact material representation for the catalogue list."""
 
@@ -189,6 +233,9 @@ class MaterialDetail(BaseModel):
     is_active: bool = True
     # Same boolean, same reason, as on the list item.
     is_own_record: bool = False
+    # TM2-a: the record came from the licensed official catalogue (D-102) and its
+    # composition and designations are not edited from the sheet.
+    is_official: bool = False
     keywords: list[str] = []
     property_groups: list[PropertyGroup]
     # P0-2: the processes this material can be made with — the datasheet half of

@@ -13,6 +13,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 |---|---|---|---|---|
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
+| [66](#sessão-66--081026--composição-na-seleção-e-edição-à-mão-de-composição-designações-e-curvas-tm2-b-tm2-a-tm4-d-d-111) | 08/10/2026 | Composição como critério de estágio `limit` (`composition`/`not_composition`, três valores, funil com a contagem dos indecididos, laudo com a regra) e edição à mão de composição, designações e curvas (API + formulários na ficha, construtores do seed, auditoria, permissão do material, 409 para o oficial) (D-111) | 4252 → 4318 | 846 → 858 |
 | [64](#sessão-64--081026--o-diff-entre-releases-cobre-processos-modais-composição-e-curvas-d-109) | 08/10/2026 | O diff entre releases cobre processos, modais, atributos de processo, composição e curvas (TM7-c); `is_active` (TM7-e), faixa de um lado só (TM7-f) e grafia da unidade/`ValidationError` (TM7-g) (D-109) | 4252 → 4274 | 846 → 847 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
@@ -104,6 +105,39 @@ dois novos. Não feitos: MatML estruturado (XSD inacessível) e o diálogo do
 front. Detalhes e porquês em [D-112](DECISIONS.md).
 
 ---
+
+## Sessão 66 — 08/10/26 — Composição na seleção e edição à mão de composição, designações e curvas (TM2-b, TM2-a, TM4-d, D-111)
+
+**O pedido.** Três resíduos do TM2/TM4, nesta ordem: a composição como estágio de
+seleção (TM2-b), editar composição e designações por API e ficha (TM2-a) e editar
+curvas do mesmo jeito (TM4-d), sem tocar em % atômica (TM2-c) nem em dados reais
+(TM2-e).
+
+**O que mudou.**
+
+- **TM2-b** — `Operator.COMPOSITION`/`NOT_COMPOSITION` em `app/domain/filters.py`,
+  lendo o veredito de `composition.evaluate`; condição em `text` na sintaxe da
+  busca, sem migração; `FunnelStepOut.undetermined`; nota de regra e contagem na
+  planilha "Restrições e funil" e no laudo; o editor de restrições ganhou os dois
+  operadores (só em estudo de materiais) e o funil escreve "(N sem o dado de
+  composição)".
+- **TM2-a** — `PUT /api/materials/{id}/composicao` e `/designacoes`; `is_official`
+  na ficha; `components/material/IdentityEditors.tsx`.
+- **TM4-d** — `POST`/`PUT`/`DELETE /api/materials/{id}/curvas[/{curva}]`,
+  `GET /api/materials/curvas-tipos`, `is_official` no resumo da curva;
+  `components/material/CurveEditor.tsx`.
+- **Permissão e auditoria** — `app/services/record_permissions.py` (404 de outro
+  usuário, 403 para o compartilhado sem ser curador, 409 para o oficial), diff por
+  elemento/código/curva no histórico.
+- **Testes** — 4252 → 4318 testes de backend (4312 passam e 6 pulam sem `POSTGRES_TEST_URL`) e 846 → 858 de frontend. Com a pilha #118 + #119 mesclada: 4387 coletados (4381 passam) e 862 de frontend.
+- **Documentação** — D-111, TODO (TM2-a, TM2-b e TM4-d quitados; resíduos TM2-f e
+  TM2-g), `REGRAS_POR_AREA`, PROJECT_CONTEXT.
+
+**Decisões que merecem o olho do autor.** `not_composition` como garantia; a
+permissão checada no serviço e não por `require_catalog_curator` na rota (para o
+dono de um registro próprio continuar editando); o oficial é só leitura.
+Sem migração e sem seed: nada a rodar depois do merge além do deploy da API.
+
 ## Sessão 64 — 08/10/26 — O diff entre releases cobre processos, modais, composição e curvas (D-109)
 
 **O pedido.** Quitar os resíduos TM7-e, TM7-f, TM7-g e TM7-c do D-108, sem
@@ -119,6 +153,7 @@ de registro" e mostra o universo na coluna Classe. 22 testes novos
 [D-109](DECISIONS.md).
 
 **Pós-merge.** Só a API (deploy da API). Sem migração e sem seed.
+
 
 ## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
 

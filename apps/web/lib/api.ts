@@ -45,6 +45,11 @@ import type {
   MaterialListItem,
   MaterialSearch,
   MaterialUpdate,
+  CompositionEntryIn,
+  CurveIn,
+  CurveKindSpec,
+  CurveSummary,
+  DesignationIn,
   MyRecords,
   Notebook,
   NotebookChat,
@@ -398,6 +403,52 @@ export function replaceMaterialValues(
     method: "PUT",
     body: JSON.stringify(values),
   });
+}
+
+export function replaceMaterialComposition(
+  id: number,
+  entries: CompositionEntryIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao`, {
+    method: "PUT",
+    body: JSON.stringify({ entries }),
+  });
+}
+
+export function replaceMaterialDesignations(
+  id: number,
+  designations: DesignationIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/designacoes`, {
+    method: "PUT",
+    body: JSON.stringify({ designations }),
+  });
+}
+
+export function listCurveKinds(): Promise<CurveKindSpec[]> {
+  return request<CurveKindSpec[]>(`/api/materials/curvas-tipos`);
+}
+
+export function createMaterialCurve(materialId: number, payload: CurveIn): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function replaceMaterialCurve(
+  materialId: number,
+  curveId: number,
+  payload: CurveIn,
+): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas/${curveId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMaterialCurve(materialId: number, curveId: number): Promise<void> {
+  return request<void>(`/api/materials/${materialId}/curvas/${curveId}`, { method: "DELETE" });
 }
 
 export function deactivateMaterial(id: number): Promise<void> {

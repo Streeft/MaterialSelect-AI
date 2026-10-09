@@ -48,7 +48,9 @@ function FunnelRow({
   initial,
   eliminated,
   tone = "brand",
+  undetermined = null,
 }: {
+  undetermined?: number | null;
   label: string;
   remaining: number;
   initial: number;
@@ -70,6 +72,11 @@ function FunnelRow({
         {eliminated !== null && eliminated > 0 ? (
           <span className="ml-1.5 text-2xs font-normal text-ink-subtle">
             −{eliminated} {t.eliminated}
+          </span>
+        ) : null}
+        {undetermined ? (
+          <span className="ml-1.5 text-2xs font-normal text-ink-subtle">
+            ({t.undeterminedNote(undetermined)})
           </span>
         ) : null}
       </span>
@@ -553,6 +560,7 @@ export function ResultsView({
             <FunnelRow
               key={i}
               label={step.label}
+              undetermined={step.undetermined ?? null}
               remaining={step.remaining}
               initial={result.initial_count}
               // What this stage removed, from the counts the backend sent.
