@@ -218,6 +218,8 @@ export interface MaterialListItem {
   quality: DataQualitySummary;
   /** D-105: the codes, so a card can show the one a reader searched for. */
   designations: DesignationBrief[];
+  /** TM6: contagem de propriedades com referência bibliográfica associada. */
+  reference_count?: number;
 }
 
 export interface MaterialDetail {
