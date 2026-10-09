@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
 | [64](#sessão-64--081026--o-diff-entre-releases-cobre-processos-modais-composição-e-curvas-d-109) | 08/10/2026 | O diff entre releases cobre processos, modais, atributos de processo, composição e curvas (TM7-c); `is_active` (TM7-e), faixa de um lado só (TM7-f) e grafia da unidade/`ValidationError` (TM7-g) (D-109) | 4252 → 4274 | 846 → 847 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
@@ -78,6 +79,18 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 68 — 08/10/26 — Comparador largo (TM3, D-113)
+
+**O pedido.** Comparar dezenas de materiais sem poluir a leitura, e corrigir a
+folga do eixo de temperatura em °C/°F (TM4-h). **O que mudou.** Teto da
+requisição 60 x 20; tabela com cabeçalho/coluna fixos e altura própria; barras,
+radar e paralelas param de desenhar acima de 12/8/30 materiais com aviso e a
+tabela no lugar; `_padded` respeita o zero só em unidade de razão. Testes:
+backend +4, frontend +3 (pilha após o merge com `main`: 4321 coletados, 4315
+passam, 850 de frontend). Detalhe em D-113.
 
 ---
 
