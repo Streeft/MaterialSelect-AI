@@ -192,21 +192,22 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   depende do bundle do D-102 (`material_curves.ndjson`) ou de fonte aberta
   APROVADA (D-103). A tela já mostra "Nenhuma curva cadastrada" com a contagem
   por tipo.
-- **TM4-b — ler um valor de uma curva.** ▆ "Valor a 20 °C" por interpolação ou
-  outra regra declarada, com referência ao dado original (docs/18 §6). Hoje
-  nada é interpolado, extrapolado nem reamostrado.
+- ~~**TM4-b — ler um valor de uma curva.**~~ Entregue em parte (Sessão 65,
+  [D-110](DECISIONS.md)): regra conservadora em docs/18 §6 — só o ponto
+  declarado exatamente no x pedido, convertido por units.py, sem interpolar,
+  com ausência escrita; `GET .../curvas/{curva}/valor`. **Resíduo:** não há
+  tela para a leitura (só API).
 - **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
   Continuam em `CatalogSupplementalValue` até haver tipo.
 - ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
   [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
   `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
   catálogo oficial fica só leitura.
-- **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
-  convenção da grandeza (°C para temperatura); a legenda da tela a repete.
-- **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
-  (`QUANTITIES`, 8) está escrita por extenso no `CHECK` da migração
-  `0925e0787863`; acrescentar uma grandeza sem migração nova deixa modelo e
-  banco divergentes. Achado da revisão do TM4.
+- ~~**TM4-e — escolher a unidade do parâmetro da família.**~~ Entregue (Sessão 65,
+  D-110): `?unidade_parametro=` e seletor rotulado na ficha. **Resíduo:** a
+  exportação CSV/XLSX ainda não aceita a unidade do parâmetro.
+- ~~**TM4-f — nova grandeza de eixo exige migração.**~~ Entregue (Sessão 65,
+  D-110): fonte única no domínio e teste que falha se o `CHECK` migrado divergir.
 - **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
   de outro dataset acrescenta curvas sem aposentar as da release anterior do
   mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a

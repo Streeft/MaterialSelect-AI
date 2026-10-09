@@ -14,6 +14,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
 | [66](#sessão-66--081026--composição-na-seleção-e-edição-à-mão-de-composição-designações-e-curvas-tm2-b-tm2-a-tm4-d-d-111) | 08/10/2026 | Composição como critério de estágio `limit` (`composition`/`not_composition`, três valores, funil com a contagem dos indecididos, laudo com a regra) e edição à mão de composição, designações e curvas (API + formulários na ficha, construtores do seed, auditoria, permissão do material, 409 para o oficial) (D-111) | 4252 → 4318 | 846 → 858 |
+| [65](#sessão-65--081026--curvas-grandezas-unidade-do-parâmetro-e-valor-no-ponto-declarado-tm4-d-110) | 08/10/2026 | Curvas (TM4-b/e/f): teste de fonte única das grandezas de eixo contra o `CHECK` migrado, unidade de leitura do parâmetro da família e leitura de valor só no ponto declarado (sem interpolação) | 4252 → 4279 | 846 → 847 |
 | [64](#sessão-64--081026--o-diff-entre-releases-cobre-processos-modais-composição-e-curvas-d-109) | 08/10/2026 | O diff entre releases cobre processos, modais, atributos de processo, composição e curvas (TM7-c); `is_active` (TM7-e), faixa de um lado só (TM7-f) e grafia da unidade/`ValidationError` (TM7-g) (D-109) | 4252 → 4274 | 846 → 847 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
@@ -137,6 +138,25 @@ curvas do mesmo jeito (TM4-d), sem tocar em % atômica (TM2-c) nem em dados reai
 permissão checada no serviço e não por `require_catalog_curator` na rota (para o
 dono de um registro próprio continuar editando); o oficial é só leitura.
 Sem migração e sem seed: nada a rodar depois do merge além do deploy da API.
+
+## Sessão 65 — 08/10/26 — Curvas: grandezas, unidade do parâmetro e valor no ponto declarado (TM4, D-110)
+
+**O pedido.** Quitar TM4-f, TM4-e e TM4-b do D-106, nessa ordem.
+
+**O que mudou.** (1) `test_curve_quantities_schema.py` migra até `head` e compara
+os três `CHECK`s de grandeza com `QUANTITIES` e com o modelo — sem migração nova.
+(2) `unidade_parametro` na leitura da curva (`routers/curves.py`, registrado antes
+de `materials.py`), `canonical_unit`/`accepted_units` no parâmetro, seletor na
+ficha (`curva_param`). (3) `read_at_declared_x` e `GET .../valor`: só o ponto
+declarado, convertido por units.py, ausência escrita; regra em docs/18 §6.
+
+**Não feito.** TM4-a, c, d, g (outra faixa/decisão do autor); tela para a leitura
+de valor; parâmetro na exportação.
+
+**Pós-merge com #119.** O `GET /curvas/{curva}` antigo de `materials.py`, que
+ficou morto atrás de `curves.py`, foi removido; o `POST`/`PUT`/`DELETE` de curvas
+do D-111 seguem em `materials.py`. Pilha #118 + #119 + #120: 4414 coletados
+(4408 passam) e 863 de frontend.
 
 ## Sessão 64 — 08/10/26 — O diff entre releases cobre processos, modais, composição e curvas (D-109)
 

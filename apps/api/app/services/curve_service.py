@@ -12,9 +12,10 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.calculations.units import pretty_unit
-from app.domain.curve_quantities import QUANTITIES
+from app.domain.curve_quantities import QUANTITIES, AxisQuantity
 from app.domain.curves import (
     KINDS,
+    READ_RULE,
     CurveError,
     DrawnAxis,
     DrawnCurve,
@@ -27,6 +28,7 @@ from app.domain.curves import (
     draw_curve,
     log_refusal,
     lower_first,
+    read_at_declared_x,
 )
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.exporters.report import Report, Sheet, standard_notices
@@ -45,7 +47,9 @@ from app.schemas.curve import (
     CurvePointOut,
     CurveQuantityOut,
     CurveSeriesOut,
+    CurveSeriesValueOut,
     CurveSummaryOut,
+    CurveValueOut,
     MaterialCurvesOut,
     UnitOption,
 )
@@ -61,6 +65,14 @@ def _unit_label(unit: str) -> str:
 
 def _unit_option_label(unit: str) -> str:
     return "adimensional" if unit == "dimensionless" else pretty_unit(unit)
+
+
+def _unit_options(quantity: AxisQuantity) -> list[UnitOption]:
+    """The units a reader may choose for a quantity, the convention first."""
+    units = dict.fromkeys(
+        [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
+    )
+    return [UnitOption(unit=u, label=_unit_option_label(u)) for u in units]
 
 
 def _series_data(curve: MaterialCurve) -> list[SeriesData]:
@@ -339,6 +351,7 @@ class CurveService:
         x_unit: str | None,
         y_unit: str | None,
         scale: str | None,
+        parameter_unit: str | None = None,
     ) -> DrawnCurve:
         try:
             return draw_curve(
@@ -350,6 +363,7 @@ class CurveService:
                 x_unit=x_unit,
                 y_unit=y_unit,
                 scale=scale,
+                parameter_unit=parameter_unit,
             )
         except CurveError as exc:
             raise ValidationError(str(exc)) from exc
@@ -362,16 +376,20 @@ class CurveService:
         x_unit: str | None = None,
         y_unit: str | None = None,
         scale: str | None = None,
+        parameter_unit: str | None = None,
     ) -> CurveOut:
         curve = self._load(material_id, curve_id)
-        drawn = self._draw(curve, x_unit, y_unit, scale)
+        drawn = self._draw(curve, x_unit, y_unit, scale, parameter_unit)
         parameter = None
         if curve.parameter_quantity and drawn.parameter_reading is not None:
+            quantity = QUANTITIES[curve.parameter_quantity]
             parameter = CurveParameterOut(
                 quantity=curve.parameter_quantity,
-                quantity_label=QUANTITIES[curve.parameter_quantity].name,
+                quantity_label=quantity.name,
                 unit=drawn.parameter_reading.unit,
                 unit_label=_unit_label(drawn.parameter_reading.unit),
+                canonical_unit=quantity.canonical_unit,
+                accepted_units=_unit_options(quantity),
             )
         return CurveOut(
             id=curve.id,
@@ -426,14 +444,67 @@ class CurveService:
             is_own_record=curve.material.owner_id is not None,
         )
 
+    def read_value(
+        self,
+        material_id: int,
+        curve_id: int,
+        *,
+        at: float,
+        at_unit: str,
+        y_unit: str | None = None,
+        parameter_unit: str | None = None,
+    ) -> CurveValueOut:
+        """The curve at a declared x, by the rule of D-110 (never interpolated)."""
+        curve = self._load(material_id, curve_id)
+        try:
+            readings, ry, rp = read_at_declared_x(
+                curve.x_quantity,
+                curve.y_quantity,
+                curve.parameter_quantity,
+                _series_data(curve),
+                at=at,
+                at_unit=at_unit,
+                y_unit=y_unit,
+                parameter_unit=parameter_unit,
+            )
+        except CurveError as exc:
+            raise ValidationError(str(exc)) from exc
+        at_label = _unit_option_label(at_unit)
+        shown = f"{at:g} {at_label}".strip()
+        series = [
+            CurveSeriesValueOut(
+                **r.__dict__,
+                absence=(
+                    None
+                    if r.found
+                    else f"Sem ponto declarado em {shown} nesta série; nada foi interpolado."
+                ),
+            )
+            for r in readings
+        ]
+        return CurveValueOut(
+            curve_id=curve.id,
+            material_id=curve.material_id,
+            title=curve.title,
+            rule=READ_RULE,
+            at=at,
+            at_unit=at_unit,
+            at_unit_label=at_label,
+            x_quantity_label=curve.x_label or QUANTITIES[curve.x_quantity].name,
+            y_quantity_label=curve.y_label or QUANTITIES[curve.y_quantity].name,
+            y_unit=ry.unit,
+            y_unit_label=_unit_option_label(ry.unit),
+            parameter_unit_label=_unit_label(rp.unit) if rp else None,
+            found_count=sum(1 for r in readings if r.found),
+            series=series,
+            source_label=curve.source.label,
+            citation=curve.citation,
+            is_demo=_is_demo(curve),
+        )
+
     @staticmethod
     def _axis(axis: DrawnAxis, curve: MaterialCurve, which: str) -> CurveAxisOut:
         quantity = axis.quantity
-        units = list(
-            dict.fromkeys(
-                [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
-            )
-        )
         return CurveAxisOut(
             quantity=quantity.key,
             quantity_label=quantity.name,
@@ -443,7 +514,7 @@ class CurveService:
             canonical_unit=quantity.canonical_unit,
             original_unit=getattr(curve, f"{which}_original_unit"),
             conversion_method=getattr(curve, f"{which}_conversion_method"),
-            accepted_units=[UnitOption(unit=u, label=_unit_option_label(u)) for u in units],
+            accepted_units=_unit_options(quantity),
             log=axis.log,
             log_refusal=log_refusal(quantity, axis.reading),
             domain=axis.domain,

@@ -2012,6 +2012,7 @@ export const ptBR = {
     picker: "Curva",
     unitX: (label: string) => `Unidade do eixo x (${label})`,
     unitY: (label: string) => `Unidade do eixo y (${label})`,
+    unitParameter: (label: string) => `Unidade do parâmetro da família (${label})`,
     scale: "Escala",
     scales: {
       linear: "Linear",

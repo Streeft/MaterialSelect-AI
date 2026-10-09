@@ -35,6 +35,7 @@ export const CURVE_PARAMS = {
   curve: "curva",
   x: "curva_x",
   y: "curva_y",
+  parameter: "curva_param",
   scale: "curva_escala",
 } as const;
 
@@ -78,13 +79,14 @@ export function MaterialCurves({
   const reading = {
     x: sameCurve ? search.get(CURVE_PARAMS.x) ?? undefined : undefined,
     y: sameCurve ? search.get(CURVE_PARAMS.y) ?? undefined : undefined,
+    parameter: sameCurve ? search.get(CURVE_PARAMS.parameter) ?? undefined : undefined,
     scale: sameCurve
       ? ((search.get(CURVE_PARAMS.scale) as CurveScale | null) ?? undefined)
       : undefined,
   };
 
   const curve = useQuery({
-    queryKey: ["material-curve", materialId, selected?.id, reading.x, reading.y, reading.scale],
+    queryKey: ["material-curve", materialId, selected?.id, reading.x, reading.y, reading.parameter, reading.scale],
     queryFn: () => getMaterialCurve(materialId, selected!.id, reading),
     enabled: selected !== undefined,
     // Changing a unit keeps the previous figure on screen instead of flashing
@@ -159,7 +161,7 @@ export function MaterialCurves({
           label={t.picker}
           value={String(selected.id)}
           onChange={(event) =>
-            update({ curve: event.target.value, x: null, y: null, scale: null })
+            update({ curve: event.target.value, x: null, y: null, parameter: null, scale: null })
           }
           className="max-w-xl"
         >
@@ -179,7 +181,7 @@ export function MaterialCurves({
             // A stale link with a unit the axis refuses is fixed by dropping
             // the choice, not by asking again.
             curve.error instanceof ApiError && curve.error.status === 400
-              ? update({ x: null, y: null, scale: null })
+              ? update({ x: null, y: null, parameter: null, scale: null })
               : void curve.refetch()
           }
         />
@@ -247,7 +249,7 @@ function CurveControls({
   onChange,
 }: {
   curve: Curve;
-  onChange: (changes: { x?: string; y?: string; scale?: string }) => void;
+  onChange: (changes: { x?: string; y?: string; parameter?: string; scale?: string }) => void;
 }) {
   const axisLabel = (axis: Curve["x_axis"]) => axis.title ?? axis.quantity_label;
   return (
@@ -272,6 +274,19 @@ function CurveControls({
           onChange={(event) => onChange({ y: event.target.value })}
         >
           {curve.y_axis.accepted_units.map((option) => (
+            <SelectOption key={option.unit} value={option.unit}>
+              {option.label}
+            </SelectOption>
+          ))}
+        </Select>
+      ) : null}
+      {curve.parameter && curve.parameter.accepted_units.length > 1 ? (
+        <Select
+          label={t.unitParameter(curve.parameter.quantity_label)}
+          value={curve.parameter.unit}
+          onChange={(event) => onChange({ parameter: event.target.value })}
+        >
+          {curve.parameter.accepted_units.map((option) => (
             <SelectOption key={option.unit} value={option.unit}>
               {option.label}
             </SelectOption>

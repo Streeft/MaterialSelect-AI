@@ -21,7 +21,10 @@ config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # `disable_existing_loggers=False`: o padrão desliga todo logger já criado
+    # (`app.*`), e um processo que migra e depois segue rodando (os testes que
+    # chamam `command.upgrade`) ficaria mudo para o resto da sessão.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
