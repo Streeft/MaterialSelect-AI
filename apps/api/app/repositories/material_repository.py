@@ -82,7 +82,7 @@ def _designation_match(atom: DesignationAtom) -> ColumnElement[bool]:
     if atom.exact:
         return _code_exists(MaterialDesignation.code_key == atom.key)
     return _code_exists(
-        MaterialDesignation.code_key.like(to_designation_pattern(atom), escape="\\")
+        MaterialDesignation.code_key.like(to_designation_pattern(atom), escape="\\\\")
     )
 
 
@@ -97,14 +97,14 @@ def _matches(term: Term) -> ColumnElement[bool]:
     keyword_match = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\"),
+            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\\\"),
         )
     )
     return or_(
-        func.lower(Material.name).like(pattern, escape="\\"),
-        func.lower(MaterialClass.name).like(pattern, escape="\\"),
+        func.lower(Material.name).like(pattern, escape="\\\\"),
+        func.lower(MaterialClass.name).like(pattern, escape="\\\\"),
         keyword_match,
-        _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\")),
+        _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\\\")),
     )
 
 
@@ -171,11 +171,15 @@ class MaterialRepository:
             .where(visible_materials(self.viewer_id))
         )
 
-    def list_materials(self, search: str | None = None) -> list[Material]:
+    def list_materials(
+        self, search: str | None = None, com_referencia: bool = False
+    ) -> list[Material]:
         """Return active materials, optionally filtered by a search query."""
-        return self.search_materials(search)[0]
+        return self.search_materials(search, com_referencia=com_referencia)[0]
 
-    def search_materials(self, search: str | None = None) -> tuple[list[Material], SearchFacts]:
+    def search_materials(
+        self, search: str | None = None, com_referencia: bool = False
+    ) -> tuple[list[Material], SearchFacts]:
         """Active materials matching a query (D-55, D-105), with what the search knows.
 
         The search is case-insensitive and matches the material name, its class
@@ -193,6 +197,16 @@ class MaterialRepository:
             selectinload(Material.property_values),
             selectinload(Material.designations),
         )
+        has_reference_cond = exists(
+            select(MaterialPropertyValue.id).where(
+                MaterialPropertyValue.material_id == Material.id,
+                MaterialPropertyValue.source_id.is_not(None),
+                MaterialPropertyValue.is_missing.is_(False),
+            )
+        )
+        if com_referencia:
+            stmt = stmt.where(has_reference_cond)
+
         facts = SearchFacts()
 
         if not (search and search.strip()):
@@ -205,11 +219,14 @@ class MaterialRepository:
         true_side, false_side = _compile(parsed, tallies)
         stmt = stmt.where(true_side)
         if conditions:
-            facts.undetermined = self.db.execute(
+            undetermined_query = (
                 self._catalogue()
                 .with_only_columns(func.count(Material.id))
                 .where(not_(true_side), not_(false_side))
-            ).scalar_one()
+            )
+            if com_referencia:
+                undetermined_query = undetermined_query.where(has_reference_cond)
+            facts.undetermined = self.db.execute(undetermined_query).scalar_one()
 
         score_terms = [_term_score(term) for term in extract_positive_terms(parsed)]
         score_terms += [_designation_score(atom) for atom in positive_designations(parsed)]
@@ -477,7 +494,7 @@ class MaterialRepository:
 
 
 def _escape(term: str) -> str:
-    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return term.replace("\\\\", "\\\\\\\\").replace("%", "\\\\%").replace("_", "\\\\_")
 
 
 def _term_score(term: str):
@@ -494,17 +511,17 @@ def _term_score(term: str):
     kw_sub = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
+            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\\\"),
         )
     )
     code_exact = _code_exists(func.lower(MaterialDesignation.code_key) == term)
-    code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\"))
+    code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\\\"))
     return (
         case((func.lower(Material.name) == term, 100), else_=0)
-        + case((func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0)
-        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
+        + case((func.lower(Material.name).like(prefix_pat, escape="\\\\"), 50), else_=0)
+        + case((func.lower(Material.name).like(sub_pat, escape="\\\\"), 25), else_=0)
         + case((func.lower(MaterialClass.name) == term, 20), else_=0)
-        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0)
+        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\\\"), 10), else_=0)
         + case((kw_exact, 15), else_=0)
         + case((kw_sub, 5), else_=0)
         # D-105: a code typed exactly is as strong a signal as an exact name —

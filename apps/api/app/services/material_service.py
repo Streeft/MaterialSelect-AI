@@ -204,10 +204,14 @@ class MaterialService:
         self.processes = ProcessService(db)
         self.user = user
 
-    def list_materials(self, search: str | None = None) -> list[MaterialListItem]:
-        return self.search(search).items
+    def list_materials(
+        self, search: str | None = None, com_referencia: bool = False
+    ) -> list[MaterialListItem]:
+        return self.search(search, com_referencia=com_referencia).items
 
-    def search(self, query: str | None = None) -> MaterialSearchOut:
+    def search(
+        self, query: str | None = None, com_referencia: bool = False
+    ) -> MaterialSearchOut:
         """The catalogue search (D-55), with the composition report when asked (D-105).
 
         A query the reader mistyped is their problem to fix, not a server
@@ -217,7 +221,7 @@ class MaterialService:
         give.
         """
         try:
-            materials, facts = self.repo.search_materials(query)
+            materials, facts = self.repo.search_materials(query, com_referencia=com_referencia)
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
         items = [self.list_item(m) for m in materials]
@@ -234,6 +238,11 @@ class MaterialService:
         builders would let the catalogue and the favourites list disagree about
         what a material looks like.
         """
+        reference_count = sum(
+            1
+            for v in material.property_values
+            if v.source_id is not None and not v.is_missing
+        )
         return MaterialListItem(
             id=material.id,
             name=material.name,
@@ -248,6 +257,7 @@ class MaterialService:
                 DesignationBrief(system=d.system, system_label=system_label(d.system), code=d.code)
                 for d in material.designations
             ],
+            reference_count=reference_count,
         )
 
     def get_material_detail(self, material_id: int) -> MaterialDetail:
@@ -581,7 +591,7 @@ class MaterialService:
 
     def _ensure_writable(self, material: Material) -> None:
         # A row another user owns never reaches here: the visibility filter
-        # already answered 404. What is left to decide is the shared catalogue.
+        # already answered 404. What is left to delete/update is the shared catalogue.
         if material.owner_id is None and not self.can_edit_shared:
             raise CatalogReadOnlyError()
 
