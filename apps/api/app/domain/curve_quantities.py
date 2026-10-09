@@ -61,4 +61,24 @@ QUANTITIES: dict[str, AxisQuantity] = {
     )
 }
 
-__all__ = ["QUANTITIES", "AxisQuantity"]
+#: What a stress–strain curve's axes measure, as the source declares it (D-119,
+#: TM5-b). Engineering (nominal) and true (logarithmic) curves of the same test
+#: differ by more than rounding past a few percent of strain, and nothing in the
+#: points says which one they are — so the curve declares it, and a curve that
+#: does not is never presumed to be either.
+STRAIN_MEASURES: dict[str, str] = {
+    "engineering": "Engenharia (tensão e deformação nominais)",
+    "true": "Verdadeira (tensão verdadeira, deformação logarítmica)",
+}
+
+#: Which elastic modulus a ``modulo`` axis carries, as the source declares it
+#: (D-119). The axis quantity alone does not tell Young's modulus from the shear
+#: one; a CAE card that reads E from a curve reads only a curve declared
+#: ``young``.
+MODULUS_KINDS: dict[str, str] = {
+    "young": "Módulo de Young (E)",
+    "shear": "Módulo de cisalhamento (G)",
+    "bulk": "Módulo volumétrico (K)",
+}
+
+__all__ = ["MODULUS_KINDS", "QUANTITIES", "STRAIN_MEASURES", "AxisQuantity"]

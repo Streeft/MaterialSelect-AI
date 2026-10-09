@@ -9074,3 +9074,167 @@ de modelo (convecção, geração, mudança de fase) ficam em branco com coment�
 Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
 exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
 
+
+## D-119 — Curva plástica nos cartões CAE: medida declarada, E do mesmo material na temperatura da série e ancoragem só no limite elástico
+
+**Data:** 08/10/2026
+**Status:** aceita — decidida pelo assistente por delegação do autor
+("eu decido o que você decidir melhor para o projeto"), **revisável** (Sessão
+74, TM5-b). Três complementos à regra delegada, marcados **[correção]** abaixo,
+cada um com o porquê.
+
+**O pedido (TM5-b).** Levar a curva tensão–deformação de `material_curve`
+(D-106) aos cartões de material — `*PLASTIC` (Abaqus), `TB` MISO (MAPDL),
+`MATS1` (Nastran), `*MAT_PIECEWISE_LINEAR_PLASTICITY` (LS-DYNA) — sem presumir
+a medida da curva, sem interpolar e sem inventar o ponto de escoamento.
+
+**A regra delegada, como foi implementada.**
+
+1. **Medida declarada.** A curva declara `strain_measure` (`engineering` ou
+   `true`); nulo é "não declarado" e a exportação plástica é **422** — nunca
+   presumida. Coluna nova com migração `81adb0b92f72` (sem backfill: nenhuma
+   curva existente ganha valor), `CHECK` portável que só a admite em
+   tensão–deformação; o bundle do D-102 pode declará-la; a API e o CSV da curva
+   escrevem "não declarada pela fonte".
+2. **Engenharia → verdadeira** por σ_t = σ(1 + ε) e ε_t = ln(1 + ε).
+3. **ε_p = ε_t − σ_t/E**, com **E do mesmo material na temperatura da série,
+   ponto exato**: lido de uma curva `TEMPERATURA` do material com eixo y
+   `modulo`, num ponto cuja temperatura coincide com o parâmetro da série
+   (tolerância de 10⁻⁶ K, só o resíduo de conversão: 68 °F é
+   293,15000000000003 K). Sem esse ponto, ou com dois valores diferentes nessa
+   temperatura, **422**; nada é interpolado nem tomado de outra temperatura. A
+   série tem de declarar a temperatura (família por `temperatura`); senão 422.
+4. **Descarte e ancoragem.** Pontos com ε_p < 0 são descartados e contados; o
+   primeiro ponto da tabela é ancorado em ε_p = 0 **só se a série começa no
+   limite elástico**; senão 422.
+5. Tudo no backend (`app/domain/plasticity.py`, puro), determinístico, em
+   unidades canônicas; a conversão para o sistema do usuário é
+   `units.from_canonical` (princípio 4). Formatos a partir só da documentação
+   pública; `REQUIRED` declarado por formato; aviso de limitação em todo
+   arquivo.
+
+**[correção 1] Qual módulo.** A regra diz "E do mesmo material", mas a
+grandeza `modulo` do D-106 não distingue E de G: uma curva de módulo de
+cisalhamento (≈ E/2,6) lida como E daria uma deformação plástica muito errada
+sem erro nenhum. Por isso a curva também declara `modulus_kind` (`young`,
+`shear`, `bulk`; nulo = não declarado, `CHECK` que só o admite num eixo y de
+módulo), e o cartão só lê E de curva declarada `young`. O E representativo do
+catálogo (`modulo_young`) **não** é usado: o modelo numérico não guarda a
+temperatura dele, e casá-lo com a série seria presumir. O arquivo o cita como
+"não usado".
+
+**[correção 2] O que é "começar no limite elástico".** Aplicada ao pé da
+letra, a regra mantém a origem (ε_p = 0 exatamente, σ = 0, não é < 0) e todo
+ponto do trecho elástico com resíduo positivo de arredondamento — e um deles
+viraria o "escoamento". A regra implementada: um ponto está **sobre a reta
+elástica** quando |ε_p| ≤ 5 % da sua própria deformação elástica (σ_t/E) —
+absorve o arredondamento de uma tabela publicada (0,13 % por 0,125 %) e a
+diferença entre o E da curva de módulo e a inclinação do corpo de prova, e
+nada mais. O **limite elástico** é o último ponto sobre a reta antes do
+primeiro ponto claramente plástico; ele é ancorado em ε_p = 0 com a sua
+tensão, e os pontos anteriores (trecho elástico, origem) são descartados e
+contados. Recusa (422): série cujo primeiro ponto já é plástico (o escoamento
+não é inventado); último ponto elástico à esquerda da reta além da tolerância
+(curva mais rígida que o E — E incompatível); série que salta da origem para o
+trecho plástico; nenhum ponto plástico; deformação plástica que não cresce
+(não se reordena); tensão nula depois do escoamento; deformação ou tensão
+negativa (a tabela dos cartões é de tração). Depois do escoamento, ε_p < 0 é
+descartado e contado, como manda a regra. A tolerância é argumento, não dado:
+mudar é revisão de código.
+
+**[correção 3] Estricção.** σ(1 + ε) e ln(1 + ε) só valem enquanto a
+deformação é uniforme, isto é, até a tensão máxima de engenharia — o que a
+documentação pública do Abaqus diz da mesma conversão. Converter os pontos
+depois do máximo escreveria uma tensão verdadeira que o corpo de prova não
+teve. Numa curva de engenharia, os pontos depois do **primeiro** máximo são
+descartados e contados no arquivo; numa curva verdadeira, nada é truncado.
+
+**O cartão.** Quatro formatos novos, à parte dos sete elásticos e térmicos
+(`PLASTIC_FORMATS`, com `CaeFormat.plastic`): `abaqus-plastic`,
+`mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`. A rota ganha `curva`
+(obrigatória nesses formatos; dada a outro formato é 400) e `serie`
+(obrigatória quando a curva tem mais de uma; 400 que lista as posições e as
+temperaturas) — a exportação **nunca escolhe** a curva nem a série. Curva de
+outro material ou de registro alheio é 404 (D-62); curva de outro tipo é 400.
+O **mesmo E** que separou a deformação plástica entra no campo elástico do
+cartão (`*ELASTIC`, `MP,EX`, `MAT1 E`, `E` do `*MAT_024`), para que a reta
+elástica do solver e a tabela plástica não discordem. O cartão vale **numa
+temperatura**: a tabela não tem coluna de temperatura, e a temperatura sai nos
+comentários em K, °C e °F; as demais propriedades continuam pontos
+representativos. O aviso `CAE_NOTICE` ("sem curvas de plasticidade") é
+trocado por `CAE_PLASTIC_NOTICE`; a marca de fictício vale também quando a
+curva, a curva de módulo ou a fonte de uma delas é demo. A trilha inteira
+(curva, série, condições, temperatura, medida, curva de E, conversão, pontos
+descartados por motivo, resíduo da ancoragem e a tabela) sai em comentário.
+
+| Formato | Escreve | Exige |
+|---|---|---|
+| `abaqus-plastic` | `*ELASTIC` + `*PLASTIC` (σ verdadeira, ε_p; 1ª linha em ε_p = 0) | E(T), ν, tabela |
+| `mapdl-plastic` | `MP` + `TB,PLAS,MATID,1,n,MISO` e `TBPT,DEFI,ε_p,σ` | E(T), ν, tabela de até 100 pontos |
+| `nastran-plastic` | `MAT1*` + `MATS1*` (`PLASTIC`, YF = 1, HR = 1, LIMIT1 = σ_y) + `TABLES1*` | E(T), ν, tabela |
+| `lsdyna-plastic` | `*MAT_PIECEWISE_LINEAR_PLASTICITY_TITLE` com `LCSS` → `*DEFINE_CURVE` (ε_p, σ) | ρ, E(T), ν, tabela |
+
+Três escolhas de formato, com o que foi descartado:
+
+- **MAPDL: `TB,PLAS,,,,MISO`, não o `TB,MISO` avulso.** A ajuda pública atual
+  chama a tabela de plasticidade de acesso preferido ao MISO e mantém o
+  `TB,MISO` como arquivado; ele lê deformação **total** com o primeiro ponto na
+  reta elástica, e a tabela de plasticidade lê ε_p, que é o que a conversão
+  produz. O limite de 100 pontos por temperatura é o que a ajuda dá para o
+  `TB,MISO`, mantido como teto conservador; tabela maior é **recusada**, nunca
+  reamostrada.
+- **Nastran: tabela de deformação total**, pela regra pública clássica do
+  `MATS1` `TYPE = PLASTIC`: primeiro ponto na origem, segundo no escoamento, e
+  a inclinação entre eles igual ao E do `MAT1`. A ancoragem dá isso por
+  construção (ε_total do escoamento = σ_y/E com o mesmo E). O campo `IT`, que
+  noutras versões trocaria a tabela para deformação plástica, fica em branco.
+- **LS-DYNA: curva `LCSS`, não os oito pares `EPS`/`ES`**, para que nenhum
+  ponto tenha de ser descartado para caber. `SIGY` recebe a tensão de
+  escoamento da tabela (as descrições públicas divergem sobre se ele é lido com
+  `LCSS`; o número é o mesmo nos dois casos); `ETAN`, `EPS`/`ES`, `C`, `P`,
+  `LCSR`, `VP`, `FAIL` e `TDEL` em branco, com o porquê no comentário.
+
+**O que foi e o que não foi verificado.** A rede da sessão bloqueou a leitura
+direta das páginas (como no D-104); só resultados de busca foram lidos. Por
+eles: o `*PLASTIC` lê tensão verdadeira × deformação plástica verdadeira com a
+primeira em zero, e a conversão nominal → verdadeira vale só antes da
+estricção; o `TB,PLAS,,,,MISO` é o acesso preferido e o `TB,MISO` está
+arquivado, com 100 pontos no máximo por temperatura; os campos do `MATS1`, a
+regra de origem/escoamento/inclinação E da tabela de deformação total e o
+`LIMIT1` como escoamento inicial (descrições de Altair e Autodesk, não do MSC);
+os cartões 1 a 4 do `*MAT_024` e que `LCSS` substitui `EPS`/`ES`. **Não
+verificados**, a conferir num solver (TM5-e): que `TB,PLAS` sem `TBTEMP` com
+`NTEMP = 1` vale para toda temperatura; se o `MATS1` do Nastran lê a tabela em
+deformação verdadeira ou de engenharia em cada solução (o arquivo declara que
+escreveu verdadeira); que as duas linhas em branco dos cartões 3 e 4 do
+`*MAT_024` são lidas como cartões de padrão; o layout de campo largo do
+`TABLES1*` com `ENDT` num campo. Nenhum arquivo foi aberto num solver.
+
+**Alternativas descartadas.** Presumir engenharia quando a curva não declara
+(é o erro que o pedido proíbe); usar o E representativo do catálogo (sem
+temperatura); interpolar E entre duas temperaturas (docs/18 §6); calcular E
+pela inclinação inicial da própria curva (seria inventar propriedade);
+exportar todas as séries de uma família com coluna de temperatura (exigiria E
+dependente de temperatura também no campo elástico — resíduo); ancorar
+qualquer primeiro ponto restante em zero (inventaria o escoamento); reamostrar
+a tabela para caber no MAPDL; acrescentar a curva plástica aos formatos
+elásticos existentes (mudaria o arquivo de quem já os usa e misturaria
+`REQUIRED` de dois cartões diferentes).
+
+**Fora desta decisão (resíduos, no `TODO.md`).** TM5-b1 — família de
+temperaturas num cartão só (`*PLASTIC` com coluna de temperatura, `TBTEMP`,
+`MATT1`/`TABLEST`, `*MAT_106`), com E(T) também no campo elástico. TM5-b2 —
+o diálogo de exportação do front (`CaeExportDialog`, `lib/api.ts`, `i18n.ts`)
+ainda não oferece os formatos plásticos nem a escolha de curva e série. Nenhum
+material do catálogo tem hoje curva com medida declarada nem curva de E
+declarada `young` (o demo não as declara, de propósito: declarar a medida de
+uma curva fictícia já gravada seria presumir) — na prática, os quatro formatos
+só saem para curvas importadas ou cadastradas com as duas declarações, e
+herdam o TM5-a (sem `coef_poisson`, recusam). Validação em solver: TM5-e.
+
+**Revisão humana sugerida.** (1) A tolerância de 5 % da deformação elástica
+para "sobre a reta". (2) Recusar em vez de descartar quando o último ponto
+elástico fica à esquerda da reta. (3) O truncamento no primeiro máximo da
+tensão de engenharia. (4) `modulus_kind` como coluna em vez de grandeza nova
+(`modulo_young`) no vocabulário do D-106, que exigiria migrar o `CHECK` das
+grandezas (TM4-f).

@@ -49,7 +49,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.domain.curve_quantities import QUANTITIES
+from app.domain.curve_quantities import MODULUS_KINDS, QUANTITIES, STRAIN_MEASURES
 from app.models.enums import CurveKind, DataQuality
 
 
@@ -58,6 +58,8 @@ def _utcnow() -> datetime:
 
 
 _QUANTITY_LIST = ", ".join(f"'{key}'" for key in sorted(QUANTITIES))
+_STRAIN_MEASURE_LIST = ", ".join(f"'{key}'" for key in sorted(STRAIN_MEASURES))
+_MODULUS_KIND_LIST = ", ".join(f"'{key}'" for key in sorted(MODULUS_KINDS))
 #: Literal bounds, not ``'Infinity'``: the same text must parse on both engines.
 _FINITE_BOUND = "1e308"
 
@@ -84,6 +86,17 @@ class MaterialCurve(Base):
             name="ck_material_curve_external_identity",
         ),
         UniqueConstraint("dataset_id", "external_id", name="uq_material_curve_external"),
+        # D-119: declared, never presumed; and only where it means something.
+        CheckConstraint(
+            f"strain_measure IS NULL OR (strain_measure IN ({_STRAIN_MEASURE_LIST}) "
+            "AND kind = 'TENSAO_DEFORMACAO')",
+            name="ck_material_curve_strain_measure",
+        ),
+        CheckConstraint(
+            f"modulus_kind IS NULL OR (modulus_kind IN ({_MODULUS_KIND_LIST}) "
+            "AND y_quantity = 'modulo')",
+            name="ck_material_curve_modulus_kind",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -111,6 +124,14 @@ class MaterialCurve(Base):
     #: What the family of series varies along, declared by the source. NULL is
     #: a single curve with no family, not a family whose parameter is unknown.
     parameter_quantity: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    #: D-119 (TM5-b). Whether a stress–strain curve is engineering or true, as
+    #: the source declares it. NULL is "not declared", never a default: the
+    #: plastic CAE cards refuse such a curve instead of presuming either.
+    strain_measure: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    #: D-119. Which modulus a ``modulo`` y axis carries (Young's, shear, bulk),
+    #: as declared. NULL is "not declared": the curve is still drawn, but no
+    #: CAE card reads E from it.
+    modulus_kind: Mapped[str | None] = mapped_column(String(12), nullable=True)
 
     source_id: Mapped[int] = mapped_column(ForeignKey("source.id"), nullable=False, index=True)
     citation: Mapped[str | None] = mapped_column(String(500), nullable=True)

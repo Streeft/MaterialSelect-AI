@@ -202,9 +202,8 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
   leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
   estético, nenhum ponto se perde.
-- **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
-  pede regra declarada de conversão engenharia → verdadeira e de origem da
-  deformação plástica — ver TM5-b abaixo.
+- ~~**Dependência TM5-b**~~ — resolvida pelo [D-119](DECISIONS.md) (Sessão 74):
+  a curva declara `strain_measure` e `modulus_kind`.
 
 **Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -216,12 +215,21 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   compatível), os decks de MAPDL, Abaqus, Nastran e LS-DYNA recusam todo
   material por falta de ν e só o MatML sai. Não semear definição vazia: ela
   ficaria em ~0 % no painel (a objeção do D-69).
-- **TM5-b — curva tensão-deformação plástica e dados dependentes de
-  temperatura.** ▆ `*PLASTIC` (Abaqus), `TB,MISO`/`MPTEMP`/`MPDATA` (MAPDL),
-  `MATS1`/`TABLES1` (Nastran), `*MAT_PIECEWISE_LINEAR_PLASTICITY` (LS-DYNA).
-  Depende do modelo do TM4 (D-106, entregue): a curva vem de `material_curve`,
-  mas não entra em cálculo nem em exportação até haver regra determinística de
-  conversão engenharia → verdadeira e de origem da deformação plástica.
+- ~~**TM5-b — curva tensão-deformação plástica.**~~ Entregue (Sessão 74,
+  [D-119](DECISIONS.md)): formatos `abaqus-plastic`, `mapdl-plastic`
+  (`TB,PLAS` MISO), `nastran-plastic` (`MATS1`/`TABLES1`) e `lsdyna-plastic`
+  (`*MAT_024` + `*DEFINE_CURVE`), com `curva` e `serie` na rota; medida
+  declarada na curva (migração `81adb0b92f72`), E(T) de ponto exato de curva
+  declarada `young`, truncamento na estricção, ancoragem só no limite elástico;
+  tudo o mais é 422 com o motivo. **Resíduos:**
+  - **TM5-b1 — família de temperaturas num cartão só.** ▃ `*PLASTIC` com
+    coluna de temperatura, `TBTEMP`, `MATT1`/`TABLEST`, `*MAT_106`, com E(T)
+    também no campo elástico; hoje o cartão vale numa temperatura.
+  - **TM5-b2 — diálogo do front.** ▃ `CaeExportDialog`/`lib/api.ts`/`i18n.ts`
+    não oferecem os formatos plásticos nem a escolha de curva e série.
+  - Nenhuma curva do catálogo declara medida nem E `young` hoje (o demo não, de
+    propósito); os formatos saem para curvas importadas/cadastradas com as duas
+    declarações, e herdam o TM5-a.
 - **TM5-c — XML do Engineering Data do Ansys Workbench.** ▃ Não feito: o
   formato é um dialeto do MatML com metadados próprios, e a documentação pública
   acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo

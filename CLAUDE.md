@@ -326,7 +326,7 @@ Regras literais por área em [`docs/REGRAS_POR_AREA.md`](docs/REGRAS_POR_AREA.md
 | Demo e seed | Demo e seed | D-71, D-72 |
 | Cadernos e Estúdio | Estúdio e Cadernos | D-92, D-94, D-97, D-98 |
 | Cérebro, ingestão, RAG | Cérebro e ingestão | D-47, D-100, D-101 |
-| Cartão CAE | Exportação CAE | D-104 |
+| Cartão CAE | Exportação CAE | D-104, D-112, D-119 |
 | Composição e busca | Composição e busca | D-105 |
 | Catálogo oficial, fontes abertas | Catálogo oficial e fontes abertas | D-102, D-103 |
 
