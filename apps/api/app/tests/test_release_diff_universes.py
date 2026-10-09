@@ -95,15 +95,15 @@ def changes_of(base: RecordSnapshot, target: RecordSnapshot, props=None):
     return diff
 
 
-# -- TM7-e: is_active ------------------------------------------------------------
+# -- TM7-e: is_active stays out of the diff (D-114) ------------------------------
 
 
-def test_switching_a_record_off_is_a_metadata_change_not_unchanged() -> None:
+def test_switching_a_record_off_is_not_a_change() -> None:
+    # After a promotion (D-114) every base-release record is inactive by
+    # construction; comparing the flag would mark the whole diff as "changed".
     diff = changes_of(rec(is_active=True), rec(is_active=False))
-    assert diff.status is RecordStatus.CHANGED
-    (change,) = diff.changes
-    assert (change.field, change.kind) == ("ativo", ChangeKind.METADATA)
-    assert (change.before_text, change.after_text) == ("ativo", "inativo")
+    assert diff.status is RecordStatus.UNCHANGED
+    assert not diff.changes
 
 
 def test_the_same_active_flag_is_unchanged() -> None:
@@ -516,7 +516,7 @@ def test_the_service_diffs_processes_modes_composition_and_curves(
     assert items["m-u"]["base"]["material_id"] is not None
 
     process_fields = {c["field"]: c for c in items["p-u"]["changes"]}
-    assert set(process_fields) == {"ativo", "atributo:espessura-max-u", "atributo:acabamento-u"}
+    assert set(process_fields) == {"atributo:espessura-max-u", "atributo:acabamento-u"}
     thickness = process_fields["atributo:espessura-max-u"]
     assert thickness["kind"] == "valor"
     assert thickness["before"]["reading"]["value"] == 10.0  # read in mm

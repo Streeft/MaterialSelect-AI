@@ -2154,7 +2154,7 @@ export const ptBR = {
       forma: "Forma do valor",
       valor: "Mudança de valor",
       escrita_da_fonte: "Só a escrita da fonte",
-      metadado: "Condição, incerteza ou situação",
+      metadado: "Condição, incerteza ou rótulos",
     } as Record<string, string>,
     kindHints: {
       texto: "Um campo de texto do registro mudou.",
@@ -2165,7 +2165,7 @@ export const ptBR = {
       escrita_da_fonte:
         "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma, em outra unidade ou com outra grafia da unidade.",
       metadado:
-        "O número é o mesmo; a condição de medição, a incerteza ou a situação (ativo ou inativo) do registro mudou.",
+        "O número é o mesmo; a condição de medição, a incerteza ou os rótulos mudaram.",
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",

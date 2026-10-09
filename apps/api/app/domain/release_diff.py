@@ -29,9 +29,11 @@ transport modes, each matched by the same external identity. A process carries
 its attribute values (compared exactly like a material property, discrete label
 sets included); a material carries its composition (compared in mass percent,
 element by element) and its curves (matched by external id, compared point by
-point in canonical units). A record's ``is_active`` flag is a metadata change
-(TM7-e), and a range with a representative point on one side only is a change
-of *form*, never a number compared with ``None`` (TM7-f).
+point in canonical units). A record's ``is_active`` flag is deliberately *not*
+compared (D-114 revokes that part of D-109: after a promotion every record of
+the base release is inactive by construction, so comparing it would mark
+everything as changed), and a range with a representative point on one side
+only is a change of *form*, never a number compared with ``None`` (TM7-f).
 """
 
 from __future__ import annotations
@@ -137,7 +139,7 @@ KIND_LABELS: dict[ChangeKind, str] = {
     ChangeKind.FORM: "Forma do valor (único ↔ faixa, ou números declarados)",
     ChangeKind.VALUE: "Valor",
     ChangeKind.WRITING: "Só a escrita da fonte (mesmo valor físico)",
-    ChangeKind.METADATA: "Condição de medição, incerteza ou situação do registro",
+    ChangeKind.METADATA: "Condição de medição, incerteza ou rótulos",
 }
 
 #: The record fields compared besides the values: (attribute, field id, label).
@@ -498,22 +500,9 @@ def _text_changes(base: RecordSnapshot, target: RecordSnapshot) -> list[FieldCha
                 after_text=after or None,
             )
         )
-    if base.is_active != target.is_active:
-        # TM7-e: a record that is in both releases but was switched off (or on)
-        # is not "unchanged"; the flag is metadata of the record, not of a value.
-        changes.append(
-            FieldChange(
-                field="ativo",
-                label="Registro ativo",
-                kind=ChangeKind.METADATA,
-                before_text=ACTIVE_LABELS[base.is_active],
-                after_text=ACTIVE_LABELS[target.is_active],
-            )
-        )
     return changes
 
 
-ACTIVE_LABELS = {True: "ativo", False: "inativo"}
 ABSENT_TEXT = STATE_LABELS[ValueState.NOT_REGISTERED]
 
 

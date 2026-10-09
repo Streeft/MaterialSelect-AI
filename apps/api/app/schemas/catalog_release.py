@@ -88,7 +88,7 @@ class ValueSideOut(BaseModel):
 
 
 class FieldChangeOut(BaseModel):
-    #: ``nome``, ``classe``, ``subclasse``, ``descricao``, ``gruid``, ``ativo``,
+    #: ``nome``, ``classe``, ``subclasse``, ``descricao``, ``gruid``,
     #: ``propriedade:<slug>``, ``atributo:<slug>`` (process), ``modal:<campo>``,
     #: ``composicao:<elemento>`` or ``curva:<id externo>[:<aspecto>]``.
     field: str

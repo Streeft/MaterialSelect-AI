@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.models.material import Material
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import (
     ProcessAttributeDefinition,
@@ -94,10 +95,18 @@ class ProcessRepository:
         return self.db.execute(stmt).scalars().unique().one_or_none()
 
     def material_counts_by_process(self) -> dict[int, int]:
-        """How many materials each process applies to — one statement, not one
-        per process."""
-        stmt = select(MaterialProcess.process_id, func.count(MaterialProcess.material_id)).group_by(
-            MaterialProcess.process_id
+        """How many active materials each process applies to — one statement, not
+        one per process.
+
+        Active only (D-114): a process reused across releases of the official
+        catalogue keeps the links of the retired release's materials, and
+        counting them would show the same record twice.
+        """
+        stmt = (
+            select(MaterialProcess.process_id, func.count(MaterialProcess.material_id))
+            .join(Material, Material.id == MaterialProcess.material_id)
+            .where(Material.is_active.is_(True))
+            .group_by(MaterialProcess.process_id)
         )
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 

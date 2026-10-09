@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4317 → 4327 | 847 (inalterado) |
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
 | [66](#sessão-66--081026--composição-na-seleção-e-edição-à-mão-de-composição-designações-e-curvas-tm2-b-tm2-a-tm4-d-d-111) | 08/10/2026 | Composição como critério de estágio `limit` (`composition`/`not_composition`, três valores, funil com a contagem dos indecididos, laudo com a regra) e edição à mão de composição, designações e curvas (API + formulários na ficha, construtores do seed, auditoria, permissão do material, 409 para o oficial) (D-111) | 4252 → 4318 | 846 → 858 |
@@ -81,6 +82,52 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 69 — 08/10/26 — Promover uma release do catálogo oficial (TM7-a + TM4-g, D-114)
+
+**O pedido.** Depois da segunda importação de uma linha, as duas releases
+ficavam ativas lado a lado (registros em dobro), uma segunda release com
+processos falhava por colisão de slug e uma curva podia aparecer duas vezes.
+Decisão delegada pelo autor, registrada como D-114 (revisável), com uma
+correção: material **não** é atualizado no lugar, porque isso apagaria a base
+do diff do D-108.
+
+**O que mudou.**
+
+- **Promoção** — `app/catalog/promotion.py` e o planejador puro
+  `app/domain/release_promotion.py`: depois de gravar tudo, na mesma transação,
+  o importador desativa as releases ativas anteriores da mesma `lineage`, os
+  materiais delas e os processos/modais que a nova não traz. Nunca `DELETE`.
+- **Processo e modal reaproveitados** pela identidade externa na mesma linha
+  (nova `CatalogRecordRef`, valores da release nova com a fonte dela);
+  colisão de slug só com registro de fora da linha, como antes.
+- **Fail-closed** — `run()` faz rollback em qualquer exceção; release já
+  substituída ou mais antiga que a vigente é recusada antes de escrever.
+- **Curvas (TM4-g)** — a antiga fica no material inativo, com todos os pontos;
+  a ficha vigente lista uma por identidade. Sem migração.
+- **Dry-run** — a CLI sem `--commit` imprime `promotion_plan` (lê o banco;
+  `--sem-banco` para não ler), por identidade, sem nomes (log público); o
+  commit grava o mesmo relatório em `CatalogImportRun.report["promotion"]`.
+- **Contagem de materiais por processo** só conta material ativo.
+- **Testes** — 4317 → 4327 de backend (4321 passam, 6 pulam sem
+  `POSTGRES_TEST_URL`): duas releases sintéticas (processo com o mesmo slug,
+  curva repetida byte a byte, modal com valor novo) provando que nada duplica,
+  nada é apagado, o diff do D-108 funciona, a falha no meio e a falha depois
+  da promoção voltam o banco igual, e o dry-run prevê o que o commit faz. O
+  teste do D-108 que reimportava a release base passou a provar a recusa.
+- **Reconciliação com o D-109** — `is_active` saiu da comparação de metadados
+  do diff (campo `ativo`, rótulo "Registro ativo"); o D-114 revoga essa parte
+  da D-109, e o teste que esperava `ativo` passou a esperar `inalterado`.
+- **Documentação** — D-114, TODO (TM7-a, TM7-e e TM4-g quitados; resíduos
+  TM7-h a TM7-j), `18`, REGRAS_POR_AREA e PROJECT_CONTEXT.
+
+**Pilha.** Depois do merge com a pilha #118→#120: 4424 coletados, 4418
+passam e 6 pulam; 863 de frontend.
+
+**Pós-merge.** Sem migração e sem seed: só **Deploy da API**. A ação
+`catalogo_oficial_validar` passa a ler o banco para o plano.
 
 ---
 

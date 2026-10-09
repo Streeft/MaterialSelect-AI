@@ -119,15 +119,10 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 **Resíduos das mudanças entre releases (TM7, [D-108](DECISIONS.md)).** O TM7 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM7-a — promover uma release.** ▆ O importador cria `Material` novo a cada
-  release e **nunca desativa** a release anterior: depois da segunda importação
-  as duas ficam ativas lado a lado, com registros em dobro no catálogo. Falta a
-  ação administrativa que, ao vigorar a release nova de uma linha, ponha
-  `is_active=False` na anterior e nos materiais dela (nunca `DELETE`). E a
-  **segunda release com processos falha** por colisão de slug ("Slug de
-  processo … já existe sem identidade externa deste dataset"): o importador não
-  reaproveita o processo da release anterior (o modal reaproveita pelo slug e
-  ganha uma ref nova). Nenhum dos dois é corrigido pelo TM7.
+- ~~**TM7-a — promover uma release.**~~ ✔ Quitado ([D-114](DECISIONS.md),
+  Sessão 69): o import da release nova de uma linha desativa a anterior na
+  mesma transação, sem apagar nada; processo e modal reaproveitados pela
+  identidade externa. Ver "Débitos já quitados".
 - **TM7-b — imutabilidade no banco.** ▃ Um curador pode editar valor de material
   oficial pela API de materiais; o diff lê o que está gravado e passaria a
   refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
@@ -145,8 +140,21 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   (milhares de registros × dezenas de propriedades) pode passar de segundos;
   materializar no import se medir lento. O CSV/XLSX não pagina. A rota de um
   só registro também monta o diff inteiro e devolve um item (achado da revisão).
-- ~~**TM7-e — `is_active` não entra no diff.**~~ ✔ (D-109): a troca de
-  ativo ↔ inativo é mudança de metadado ("Registro ativo").
+- **TM7-h — favoritos, recentes e estudos presos à release antiga.** ▃ Depois
+  da promoção (D-114) eles apontam para o material inativo (o favorito some da
+  lista). Redirecionar pela identidade externa é decisão de produto.
+- **TM7-i — histórico de valor de processo e modal.** ▃ Processo e modal são
+  reaproveitados e atualizados no lugar (D-114); o valor anterior só sobrevive
+  na linha bruta da release antiga. O diff de processos (TM7-c) exigirá versões
+  guardadas. Valor de processo que a release nova não traz fica com a fonte da
+  anterior.
+- **TM7-j — a ficha do material substituído não aponta o sucessor.** ▁ Abre
+  como toda ficha de material inativo, sem dizer qual registro da mesma
+  identidade está vigente.
+- ~~**TM7-e — `is_active` não entra no diff.**~~ ✔ Resolvido por decisão
+  ([D-114](DECISIONS.md)), que revoga a parte `is_active` da D-109: com a
+  promoção, todo registro da release base fica inativo por construção, então
+  `is_active` fica fora do diff de propósito.
 - ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ (D-109): é
   mudança de forma, escrita; nunca número contra vazio.
 - ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ (D-109): a
@@ -208,10 +216,10 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   exportação CSV/XLSX ainda não aceita a unidade do parâmetro.
 - ~~**TM4-f — nova grandeza de eixo exige migração.**~~ Entregue (Sessão 65,
   D-110): fonte única no domínio e teste que falha se o `CHECK` migrado divergir.
-- **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
-  de outro dataset acrescenta curvas sem aposentar as da release anterior do
-  mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
-  curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
+- ~~**TM4-g — curvas duplicadas depois de um segundo cutover.**~~ ✔ Quitado
+  ([D-114](DECISIONS.md), Sessão 69): a curva da release anterior fica no
+  material antigo, inativo, preservada para o diff; a ficha vigente lista uma
+  curva por identidade.
 - ~~**TM4-h — folga do eixo em °C/°F.**~~ ✔ Entregue (D-113): `_padded` só prende
   o zero em unidade de razão.
 - **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
@@ -397,6 +405,15 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**TM7-a + TM4-g — promover uma release (Sessão 69, [D-114](DECISIONS.md))**~~ —
+  o import de uma release nova da mesma `lineage` grava tudo e, só então, na
+  mesma transação, desativa a release anterior, os materiais dela (substituídos
+  ou retirados), e os processos/modais que a nova não traz — nunca `DELETE`;
+  processo e modal reaproveitados pela identidade externa (sem colisão de slug,
+  valores da release nova com a fonte dela); curva antiga preservada no material
+  inativo; falha em qualquer ponto = rollback total; release substituída ou
+  mais antiga recusada; o dry-run (`promotion_plan`) diz o que seria
+  desativado, por identidade. Resíduos TM7-h a TM7-j.
 - ~~**TM7 — o que mudou entre releases (Sessão 63, [D-108](DECISIONS.md))**~~ —
   `catalog_dataset.lineage` (a que catálogo a release pertence, do manifest,
   sem backfill) e `is_demo` (migração `73a9b5da72b2`); diff derivado do que cada
