@@ -757,6 +757,13 @@ importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
 [`docs/20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 Só documentação.
 
+**Diff entre releases ([D-108](DECISIONS.md), [D-109](DECISIONS.md)).** Cobre
+material, processo e modal, casados pela identidade externa; composição por
+elemento (o resto nunca vira número), curvas por id externo e rótulos discretos.
+Faixa com número de um lado só é mudança de forma, nunca número contra vazio;
+`is_active` diferente é mudança de metadado; a grafia da unidade é "só a escrita
+da fonte". Propriedade sem definição é 400.
+
 4079 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4073 passam
 e 6 pulam) e 797 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job

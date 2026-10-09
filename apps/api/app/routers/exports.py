@@ -226,6 +226,7 @@ def export_release_diff(
     fmt: str,
     tipo: str | None = Query(default=None, description="Filtro: tipo de mudança."),
     classe: str | None = Query(default=None, description="Filtro: slug da classe."),
+    universo: str | None = Query(default=None, description="Filtro: material, processo ou modal."),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
@@ -243,7 +244,7 @@ def export_release_diff(
             f"Use {', '.join(RELEASE_DIFF_SUPPORTED_FORMATS)}."
         )
     report = CatalogReleaseService(db, unit_choices).diff_report(
-        base, target, tipo=tipo, classe=classe
+        base, target, tipo=tipo, classe=classe, universo=universo
     )
     return _file_response(report, fmt)
 

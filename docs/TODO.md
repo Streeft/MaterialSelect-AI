@@ -130,26 +130,26 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   oficial pela API de materiais; o diff lê o que está gravado e passaria a
   refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
   ou marcar "editado após a importação" a partir da auditoria.
-- **TM7-c — outros universos no diff.** ▃ O diff cobre **só materiais**:
-  processos, modais, valores suplementares, valores do dataset, composição,
-  designações e curvas ficam de fora.
+- ~~**TM7-c — outros universos no diff.**~~ ✔ Parcial (D-109, Sessão 64):
+  processos, modais, atributos de processo, composição e curvas entram no diff
+  (mesma identidade externa, comparação no canônico, filtro `universo`).
+  **Resíduo:** designações, valores suplementares e valores do dataset ainda
+  ficam de fora; e o **modal** é reaproveitado pelo slug entre releases (uma
+  linha só, com uma ref nova por release), então hoje só a presença dele
+  difere — os valores do modal só mudam entre releases quando o TM7-a decidir
+  como gravar o modal por release.
 - **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
   consultas por release, tudo em memória). Com o catálogo Granta inteiro
   (milhares de registros × dezenas de propriedades) pode passar de segundos;
   materializar no import se medir lento. O CSV/XLSX não pagina. A rota de um
   só registro também monta o diff inteiro e devolve um item (achado da revisão).
-- **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
-  releases que passa de ativo para inativo sai como "inalterado", porque
-  `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
-  entra junto com o TM7-a, que passa a desativar a release anterior.
-- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
-  representativo de uma faixa que tem `normalized_value` de um lado e nada do
-  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
-  importador não gera esse caso hoje.
-- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
-  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
-  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
-  vez de `ValidationError`; a chave estrangeira impede hoje.
+- ~~**TM7-e — `is_active` não entra no diff.**~~ ✔ (D-109): a troca de
+  ativo ↔ inativo é mudança de metadado ("Registro ativo").
+- ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ (D-109): é
+  mudança de forma, escrita; nunca número contra vazio.
+- ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ (D-109): a
+  grafia (`kg/m^3` × `kg/m³`) segue sendo "só a escrita da fonte", agora dita
+  na regra e na tela; propriedade sem definição é `ValidationError` (400).
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
