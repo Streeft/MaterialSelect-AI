@@ -138,7 +138,9 @@ export default function MaterialDetailPage() {
         <ErrorState title={t.error} onRetry={() => void material.refetch()} />
       )}
 
-      {data && (\n        <>\n          <Card>
+      {data && (
+        <>
+          <Card>
             {/* Wraps at 375 px: unwrapped, the action pair pushed the page 33 px
                 past the viewport and the whole document scrolled sideways. */}
             <CardBody className="flex flex-wrap items-start justify-between gap-3">
