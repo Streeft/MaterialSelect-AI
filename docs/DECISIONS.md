@@ -9041,6 +9041,39 @@ fictícia declarada na descrição. (3) O demo deixou de exemplificar "material 
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
 
+## D-112 — Composição e designações nas exportações; cartões térmicos CAE
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 67, TM2-d e TM5-d)
+
+**Composição e designações (TM2-d).** `app/exporters/identity.py` é o único lugar
+que escreve a frase de uma linha de composição ("16 a 18 %", "≤ 0.08 %", "resto
+(declarado pela fonte, não calculado)", "ausente (declarado pela fonte)") e as
+planilhas "Composição" e "Designações", usadas pelo catálogo, pelos relatórios de
+estudo de materiais (não de processos) e pelos cartões CAE. Regras: material sem
+linha sai com a linha "sem composição cadastrada"/"sem designação cadastrada",
+nunca célula vazia nem 0 %; o limite que a fonte não escreveu não é escrito; o
+resto nunca é `100 − Σ`. O escape continua por formato: `cells.py` nas planilhas,
+`html.escape` no HTML, ASCII nos decks (que por isso usam `<=`/`>=`, pois
+`ascii_fold` apagaria `≤` e um máximo leria como nominal) e XML no MatML. Nos
+cartões a composição é **informativa**, no cabeçalho de cada deck e em `Notes`
+do MatML.
+
+**MatML sem `ChemicalComposition`.** Não foi possível ler o XSD 3.1 (rede
+bloqueada); da memória, `Characterization` exige `Formula`, que o catálogo não
+tem. Escrever elementos que talvez não validem violaria a regra do D-104 (só a
+especificação pública), então composição e designação vão em texto livre, em
+`BulkDetails/Notes`. Estruturar é resíduo.
+
+**Cartões térmicos (TM5-d).** Dois formatos novos: `nastran-thermal` (`MAT4*`,
+campo largo: K, CP, RHO) e `lsdyna-thermal` (`*MAT_THERMAL_ISOTROPIC_TITLE`: TRO,
+HC, TC). **Exigidos:** condutividade e calor específico — em branco, o solver
+assumiria zero ou deixaria o material sem capacidade térmica. A densidade é
+opcional mas **declarada** quando falta (o `MAT4` assume RHO = 1,0). Parâmetros
+de modelo (convecção, geração, mudança de fase) ficam em branco com comentário.
+Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
+exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
+
 ## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
 
 **Data:** 08/10/2026

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
 | [64](#sessão-64--081026--o-diff-entre-releases-cobre-processos-modais-composição-e-curvas-d-109) | 08/10/2026 | O diff entre releases cobre processos, modais, atributos de processo, composição e curvas (TM7-c); `is_active` (TM7-e), faixa de um lado só (TM7-f) e grafia da unidade/`ValidationError` (TM7-g) (D-109) | 4252 → 4274 | 846 → 847 |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
@@ -80,6 +81,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 67 — 08/10/26 — Composição nas exportações e cartões térmicos CAE (TM2-d, TM5-d, D-112)
+
+**O que mudou.** `exporters/identity.py` (texto e planilhas de composição e
+designação) usado por `catalogue_report`, `study_report`/`study_laudo`
+(universo de materiais) e pelo cartão CAE; dois formatos térmicos
+(`nastran-thermal`, `lsdyna-thermal`) com K e CP exigidos; goldens regenerados e
+dois novos. Não feitos: MatML estruturado (XSD inacessível) e o diálogo do
+front. Detalhes e porquês em [D-112](DECISIONS.md).
+
+---
 ## Sessão 64 — 08/10/26 — O diff entre releases cobre processos, modais, composição e curvas (D-109)
 
 **O pedido.** Quitar os resíduos TM7-e, TM7-f, TM7-g e TM7-c do D-108, sem

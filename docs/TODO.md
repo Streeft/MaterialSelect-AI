@@ -164,8 +164,13 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   a composição inteira e as massas atômicas (cálculo, não unidade); composição
   por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
   em `CatalogSupplementalValue` se vierem no bundle.
-- **TM2-d — composição nas exportações e no comparador.** ▃ CSV/XLSX/relatório
-  e MatML (`ChemicalComposition`) ainda não a levam; o comparador amplo é o TM3.
+- ~~**TM2-d — composição nas exportações e no comparador.**~~ Entregue em parte
+  (Sessão 67, [D-112](DECISIONS.md)): planilhas "Composição" e "Designações" no
+  catálogo e nos relatórios de estudo (CSV/XLSX/HTML) e linhas informativas nos
+  cartões CAE, com ausência escrita. **Resíduos:** (a) ▃ o MatML leva composição
+  e designação em `Notes`, não em `ChemicalComposition`/`Specification`: o XSD
+  3.1 não pôde ser lido nesta sessão (rede bloqueada) e `Characterization`
+  exige `Formula`, que o catálogo não tem; (b) ▃ o comparador amplo é o TM3.
 - **TM2-e — dados reais.** ▁ Nenhum registro real tem composição ou designação:
   dependem do bundle do D-102 (C1) ou de fonte aberta APROVADA (C2, D-103).
 
@@ -221,9 +226,12 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   formato é um dialeto do MatML com metadados próprios, e a documentação pública
   acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo
   exportado — o que a regra do D-104 proíbe.
-- **TM5-d — cartões térmicos.** ▃ Condutividade e calor específico no `MAT4`
-  do Nastran e num material térmico do LS-DYNA; hoje são declarados "fora deste
-  cartão" no comentário.
+- ~~**TM5-d — cartões térmicos.**~~ Entregue (Sessão 67,
+  [D-112](DECISIONS.md)): formatos `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
+  (`*MAT_THERMAL_ISOTROPIC_TITLE`); condutividade e calor específico são
+  exigidos (422 sem eles). Hoje nenhum material do catálogo os tem (TM5-a), então
+  na prática só recusam. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
+  `lib/api.ts`, `i18n.ts`) ainda lista só os cinco formatos antigos.
 - **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
   a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem
   LS-DYNA, e sem validar o MatML contra o XSD 3.1 (rede bloqueada). Abrir cada
