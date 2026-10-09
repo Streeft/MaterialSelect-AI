@@ -733,3 +733,172 @@ def test_unidade_de_leitura_invalida_e_400_e_nao_500(client):
     malformado = client.get(f"/api/materials/{created['id']}", params={"unidades": "modulo_young"})
     assert malformado.status_code == 400
     assert "malformado" in malformado.json()["detail"]
+
+
+# --- Contagem de referências e filtro no catálogo (TM6) -------------------
+
+
+def test_material_list_item_reference_count(client):
+    """reference_count conta valores onde source_id não é nulo e não é ausente."""
+    created_sem = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Material Sem Referência Demo",
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 2.5,
+                    "unit": "g/cm**3",
+                },
+            ],
+        ),
+    ).json()
+
+    created_com = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Material Com Uma Referência Demo",
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 2.7,
+                    "unit": "g/cm**3",
+                    "source_label": "Callister 9ª ed.",
+                },
+                {
+                    "property_slug": "modulo_young",
+                    "kind": "scalar",
+                    "value": 70.0,
+                    "unit": "GPa",
+                },
+            ],
+        ),
+    ).json()
+
+    materials = client.get("/api/materials").json()
+    sem_item = next(m for m in materials if m["id"] == created_sem["id"])
+    com_item = next(m for m in materials if m["id"] == created_com["id"])
+
+    assert sem_item["reference_count"] == 0
+    assert com_item["reference_count"] == 1
+
+
+def test_missing_value_with_source_not_counted_in_reference_count(client):
+    """Propriedade explicitamente ausente não conta como referência, mesmo se trouxer source_label."""
+    created = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Material Ausente Com Fonte Demo",
+            values=[
+                {
+                    "property_slug": "condutividade_termica",
+                    "kind": "missing",
+                    "source_label": "ASM Handbook Vol. 2",
+                },
+            ],
+        ),
+    ).json()
+
+    materials = client.get("/api/materials").json()
+    item = next(m for m in materials if m["id"] == created["id"])
+    assert item["reference_count"] == 0
+
+
+def test_filter_materials_com_referencia(client):
+    """GET /api/materials?com_referencia=true retorna apenas materiais com reference_count > 0."""
+    com = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Material Exclusivo Com Ref Demo",
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 3.0,
+                    "unit": "g/cm**3",
+                    "source_label": "MatWeb 2026",
+                },
+            ],
+        ),
+    ).json()
+    sem = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Material Exclusivo Sem Ref Demo",
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 3.0,
+                    "unit": "g/cm**3",
+                },
+            ],
+        ),
+    ).json()
+
+    todos = client.get("/api/materials").json()
+    todos_ids = {m["id"] for m in todos}
+    assert com["id"] in todos_ids
+    assert sem["id"] in todos_ids
+
+    filtrados = client.get(
+        "/api/materials", params={"com_referencia": "true"}
+    ).json()
+    filtrados_ids = {m["id"] for m in filtrados}
+    assert com["id"] in filtrados_ids
+    assert sem["id"] not in filtrados_ids
+    assert all(m["reference_count"] > 0 for m in filtrados)
+
+
+def test_search_materials_com_referencia(client):
+    """GET /api/materials/busca?q=...&com_referencia=true aplica o filtro de referência junto com a busca."""
+    com = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Titânio Ref Alpha Demo",
+            keywords=["titanio_ref_teste"],
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 4.5,
+                    "unit": "g/cm**3",
+                    "source_label": "Manual de Ligas de Titânio",
+                },
+            ],
+        ),
+    ).json()
+    sem = client.post(
+        "/api/materials",
+        json=_new_material_payload(
+            client,
+            name="Titânio Ref Beta Demo",
+            keywords=["titanio_ref_teste"],
+            values=[
+                {
+                    "property_slug": "densidade",
+                    "kind": "scalar",
+                    "value": 4.5,
+                    "unit": "g/cm**3",
+                },
+            ],
+        ),
+    ).json()
+
+    resp = client.get(
+        "/api/materials/busca",
+        params={"q": "titanio_ref_teste", "com_referencia": "true"},
+    ).json()
+    items = resp["items"]
+    items_ids = {m["id"] for m in items}
+    assert com["id"] in items_ids
+    assert sem["id"] not in items_ids
+    assert all(m["reference_count"] > 0 for m in items)
