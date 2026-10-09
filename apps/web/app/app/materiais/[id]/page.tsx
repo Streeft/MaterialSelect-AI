@@ -200,7 +200,8 @@ export default function MaterialDetailPage() {
                 {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}
-                {(data.is_own_record || canEditCatalog) && (\n                  <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
+                {(data.is_own_record || canEditCatalog) && (
+                  <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
                     {ptBR.actions.edit}
                   </ButtonLink>
                 )}
@@ -276,7 +277,7 @@ export default function MaterialDetailPage() {
                           ];
                           return byFamily;
                         }, {}),
-                      ).map(([family, list]) => (
+                      ).map(([family, list]) => (\
                         <div key={family} className="flex flex-col gap-1">
                           <span className="text-caption font-semibold text-ink-muted">
                             {family}
@@ -338,7 +339,7 @@ export default function MaterialDetailPage() {
               description={t.compositionHint}
               className="min-w-0"
             >
-              {editing === "composition" ? (
+              {editing === "composition" ? (\
                 <CompositionEditor
                   materialId={data.id}
                   entries={data.composition}
