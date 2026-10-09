@@ -138,9 +138,7 @@ export default function MaterialDetailPage() {
         <ErrorState title={t.error} onRetry={() => void material.refetch()} />
       )}
 
-      {data && (
-        <>
-          <Card>
+      {data && (\n        <>\n          <Card>
             {/* Wraps at 375 px: unwrapped, the action pair pushed the page 33 px
                 past the viewport and the whole document scrolled sideways. */}
             <CardBody className="flex flex-wrap items-start justify-between gap-3">
@@ -277,7 +275,7 @@ export default function MaterialDetailPage() {
                           ];
                           return byFamily;
                         }, {}),
-                      ).map(([family, list]) => (\
+                      ).map(([family, list]) => (
                         <div key={family} className="flex flex-col gap-1">
                           <span className="text-caption font-semibold text-ink-muted">
                             {family}
@@ -339,7 +337,7 @@ export default function MaterialDetailPage() {
               description={t.compositionHint}
               className="min-w-0"
             >
-              {editing === "composition" ? (\
+              {editing === "composition" ? (
                 <CompositionEditor
                   materialId={data.id}
                   entries={data.composition}
