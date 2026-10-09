@@ -209,9 +209,7 @@ class MaterialService:
     ) -> list[MaterialListItem]:
         return self.search(search, com_referencia=com_referencia).items
 
-    def search(
-        self, query: str | None = None, com_referencia: bool = False
-    ) -> MaterialSearchOut:
+    def search(self, query: str | None = None, com_referencia: bool = False) -> MaterialSearchOut:
         """The catalogue search (D-55), with the composition report when asked (D-105).
 
         A query the reader mistyped is their problem to fix, not a server
@@ -239,9 +237,7 @@ class MaterialService:
         what a material looks like.
         """
         reference_count = sum(
-            1
-            for v in material.property_values
-            if v.source_id is not None and not v.is_missing
+            1 for v in material.property_values if v.source_id is not None and not v.is_missing
         )
         return MaterialListItem(
             id=material.id,
@@ -591,7 +587,7 @@ class MaterialService:
 
     def _ensure_writable(self, material: Material) -> None:
         # A row another user owns never reaches here: the visibility filter
-        # already answered 404. What is left to delete/update is the shared catalogue.
+        # already answered 404. What is left to decide is the shared catalogue.
         if material.owner_id is None and not self.can_edit_shared:
             raise CatalogReadOnlyError()
 
