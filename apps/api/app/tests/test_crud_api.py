@@ -133,7 +133,7 @@ def test_create_property_accepts_a_reading_unit(client):
         },
     )
     assert resp.status_code == 201
-    assert resp.json()[\"display_unit\"] == "GPa"
+    assert resp.json()["display_unit"] == "GPa"
 
 
 def test_reading_unit_must_be_dimensionally_compatible(client):
@@ -170,7 +170,7 @@ def test_reading_unit_must_be_among_the_accepted_ones(client):
         },
     )
     assert resp.status_code == 400
-    assert "aceitas" in resp.json()[\"detail\"]
+    assert "aceitas" in resp.json()["detail"]
 
 
 def test_delete_property_in_use_conflicts(client):
@@ -295,7 +295,7 @@ def test_replace_values(client):
         ],
     )
     assert resp.status_code == 200
-    all_props = [p for g in resp.json()[\"property_groups\"] for p in g["properties"]]
+    all_props = [p for g in resp.json()["property_groups"] for p in g["properties"]]
     slugs = {p["property_slug"] for p in all_props}
     assert slugs == {"dureza"}  # previous values replaced
 
@@ -308,7 +308,7 @@ def test_deactivate_removes_from_catalogue(client):
     # But the detail is still reachable (soft delete) and marked inactive.
     detail = client.get(f"/api/materials/{created['id']}")
     assert detail.status_code == 200
-    assert detail.json()[\"is_active\"] is False
+    assert detail.json()["is_active"] is False
 
 
 # --- Regressions from the Phase 2 adversarial review -----------------------
@@ -327,7 +327,7 @@ def test_replace_values_response_reflects_new_values(client):
         json=[{"property_slug": "modulo_young", "kind": "scalar", "value": 999.0, "unit": "GPa"}],
     )
     assert resp.status_code == 200
-    all_props = [p for g in resp.json()[\"property_groups\"] for p in g["properties"]]
+    all_props = [p for g in resp.json()["property_groups"] for p in g["properties"]]
     modulo = next(p for p in all_props if p["property_slug"] == "modulo_young")
     assert modulo["value_scalar"] == 999.0  # new, not the old 70.0
     assert abs(modulo["normalized_value"] - 999e9) < 1e-3
@@ -395,7 +395,7 @@ def test_update_property_name_only_with_values_succeeds(client):
     }
     resp = client.put(f"/api/properties/{densidade['id']}", json=payload)
     assert resp.status_code == 200
-    assert resp.json()[\"name\"] == "Densidade (massa específica)"
+    assert resp.json()["name"] == "Densidade (massa específica)"
 
 
 def test_duplicate_property_slugs_in_payload_rejected(client):
@@ -443,7 +443,7 @@ def test_nonfinite_value_rejected_at_schema_boundary(client):
             {"property_slug": "densidade", "kind": "scalar", "value": "__INF__", "unit": "g/cm**3"}
         ],
     )
-    raw = json.dumps(payload).replace('\"__INF__\"', "Infinity")
+    raw = json.dumps(payload).replace('"__INF__"', "Infinity")
     resp = client.post("/api/materials", content=raw, headers={"Content-Type": "application/json"})
     assert resp.status_code == 422  # rejected by Pydantic (allow_inf_nan=False)
 
@@ -469,7 +469,7 @@ def test_duplicate_property_in_one_payload_is_rejected(client):
     )
     resp = client.post("/api/materials", json=payload)
     assert resp.status_code == 400
-    assert "densidade" in resp.json()[\"detail\"]
+    assert "densidade" in resp.json()["detail"]
 
 
 def test_database_refuses_a_second_value_for_the_same_pair(db_session):
@@ -728,11 +728,11 @@ def test_unidade_de_leitura_invalida_e_400_e_nao_500(client):
 
     resp = client.get(f"/api/materials/{created['id']}", params={"unidades": "modulo_young:kg"})
     assert resp.status_code == 400
-    assert "não é admitida" in resp.json()[\"detail\"]
+    assert "não é admitida" in resp.json()["detail"]
 
     malformado = client.get(f"/api/materials/{created['id']}", params={"unidades": "modulo_young"})
     assert malformado.status_code == 400
-    assert "malformado" in malformado.json()[\"detail\"]
+    assert "malformado" in malformado.json()["detail"]
 
 
 # --- Contagem de referências e filtro no catálogo (TM6) -------------------
@@ -856,7 +856,9 @@ def test_filter_materials_com_referencia(client):
 
 
 def test_search_materials_com_referencia(client):
-    """GET /api/materials/busca?q=...&com_referencia=true aplica o filtro de referência junto com a busca."""
+    """GET /api/materials/busca?q=...&com_referencia=true aplica o filtro de
+    referência junto com a busca.
+    """
     com = client.post(
         "/api/materials",
         json=_new_material_payload(
