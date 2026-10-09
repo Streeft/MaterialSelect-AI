@@ -708,7 +708,7 @@ class TestCompare:
     def test_too_many_materials_is_rejected(self, client: TestClient) -> None:
         response = client.post(
             COMPARE_URL,
-            json={"material_ids": list(range(1, 40)), "property_slugs": ["densidade"]},
+            json={"material_ids": list(range(1, 80)), "property_slugs": ["densidade"]},
         )
         assert response.status_code == 422
 

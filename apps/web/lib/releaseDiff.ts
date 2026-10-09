@@ -94,6 +94,7 @@ export function originalText(original: ReleaseNumbers | null): string | null {
  */
 export function sideText(side: ReleaseValueSide | null): string {
   if (!side) return t.notRegistered;
+  if (side.state === "rotulos" && side.labels.length > 0) return side.labels.join(", ");
   return readingText(side.reading) ?? side.state_label;
 }
 

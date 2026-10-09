@@ -2087,6 +2087,9 @@ export const ptBR = {
     filtersTitle: "Filtros",
     filterStatus: "Situação",
     allStatuses: "Todas as situações",
+    filterUniverse: "Tipo de registro",
+    allUniverses: "Material, processo e modal",
+    universeOption: (name: string, count: number) => `${name} (${count})`,
     filterClass: "Classe",
     allClasses: "Todas as classes",
     classOption: (name: string, count: number) => `${name} (${count})`,
@@ -2143,23 +2146,25 @@ export const ptBR = {
     writingSentence: (before: string, after: string) =>
       `Mesmo valor físico, escrito de outro modo: ${before} na base e ${after} no alvo.`,
     sourceWritingTag: "Só a escrita da fonte",
-    sourceWritingHint: "mesmo valor físico",
+    sourceWritingHint: "mesmo valor físico, inclusive a grafia da unidade (kg/m^3 ou kg/m³)",
     kindTags: {
       texto: "Campo do registro",
       ausencia: "Presença do dado",
       forma: "Forma do valor",
       valor: "Mudança de valor",
       escrita_da_fonte: "Só a escrita da fonte",
-      metadado: "Condição ou incerteza",
+      metadado: "Condição, incerteza ou situação",
     } as Record<string, string>,
     kindHints: {
       texto: "Um campo de texto do registro mudou.",
       ausencia: "O dado passou a existir ou deixou de existir.",
-      forma: "O valor passou de único para faixa, ou o contrário.",
+      forma:
+        "O valor passou de único para faixa (ou rótulos), ou a faixa declara outros números: um ponto ou limite que só existe de um lado.",
       valor: "O número, convertido para a unidade canônica, é outro.",
       escrita_da_fonte:
-        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma ou em outra unidade.",
-      metadado: "O número é o mesmo; a condição de medição ou a incerteza mudou.",
+        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma, em outra unidade ou com outra grafia da unidade.",
+      metadado:
+        "O número é o mesmo; a condição de medição, a incerteza ou a situação (ativo ou inativo) do registro mudou.",
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
@@ -2465,6 +2470,15 @@ export const ptBR = {
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
     noMaterialsFound: "Nenhum material corresponde ao filtro.",
     figure: "Comparação de materiais",
+    // TM3 (D-113): a tabela comporta dezenas; cada figura tem o seu teto de
+    // legibilidade e diz por escrito quando para de desenhar.
+    wideHint: (n: number) =>
+      n > 12
+        ? `${n} materiais: a tabela e o mapa de calor comportam todos; barras, radar e coordenadas paralelas têm limite de legibilidade.`
+        : null,
+    figureTooMany: (view: string, max: number, n: number) =>
+      `A vista "${view}" só é desenhada com até ${max} materiais (há ${n}). Os valores continuam na tabela abaixo; use o mapa de calor ou reduza a seleção.`,
+    tableRegion: (n: number, p: number) => `Tabela de comparação, ${n} materiais por ${p} propriedades`,
   },
   categories: {
     FISICA: "Física",

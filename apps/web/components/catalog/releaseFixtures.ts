@@ -72,6 +72,7 @@ function scalar(
     reading: { ...numbers(reading.value, reading.unit), unit_label: reading.label },
     conversion_method: null,
     measurement_condition: null,
+    labels: [],
   };
 }
 
@@ -83,6 +84,7 @@ const noNumber = (state: "ausente" | "nao_cadastrado", label: string): ReleaseVa
   reading: null,
   conversion_method: null,
   measurement_condition: null,
+  labels: [],
 });
 
 const declaredAbsent = noNumber("ausente", "declarado ausente pela fonte");
@@ -121,7 +123,9 @@ function side(
   subclass: string | null = null,
 ): ReleaseRecordSide {
   return {
+    record_id: id,
     material_id: id,
+    universe: "material",
     name,
     class_slug: classSlug,
     class_name: className,
@@ -204,6 +208,8 @@ export const unchangedItem: ReleaseDiffItem = {
   external_record_id: "demo-001",
   status: "inalterado",
   status_label: "Inalterado",
+  universe: "material",
+  universe_label: "Material",
   base: side(1, "Aço Demo Estrutural", "metais", "Metais", "Aços"),
   target: side(11, "Aço Demo Estrutural", "metais", "Metais", "Aços"),
   raw_record_changed: false,
@@ -216,6 +222,8 @@ export const steelItem: ReleaseDiffItem = {
   external_record_id: "demo-002",
   status: "alterado",
   status_label: "Alterado",
+  universe: "material",
+  universe_label: "Material",
   base: side(2, "Aço Demo Inoxidável", "metais", "Metais", "Aços"),
   target: side(12, "Aço Demo Inoxidável", "metais", "Metais", "Aços"),
   raw_record_changed: false,
@@ -228,6 +236,8 @@ export const polymerItem: ReleaseDiffItem = {
   external_record_id: "demo-003",
   status: "alterado",
   status_label: "Alterado",
+  universe: "material",
+  universe_label: "Material",
   base: side(3, "Polímero Demo Técnico", "polimeros", "Polímeros"),
   target: side(13, "Polímero Demo Técnico", "polimeros", "Polímeros"),
   raw_record_changed: false,
@@ -240,6 +250,8 @@ export const removedItem: ReleaseDiffItem = {
   external_record_id: "demo-004",
   status: "desativado",
   status_label: "Desativado (saiu da release)",
+  universe: "material",
+  universe_label: "Material",
   base: side(4, "Cerâmica Demo Refratária", "ceramicas", "Cerâmicas"),
   target: null,
   raw_record_changed: null,
@@ -252,6 +264,8 @@ export const renamedItem: ReleaseDiffItem = {
   external_record_id: "demo-005",
   status: "alterado",
   status_label: "Alterado",
+  universe: "material",
+  universe_label: "Material",
   base: side(5, "Liga Demo de Cobre", "metais", "Metais", "Ligas de Cobre"),
   target: side(15, "Liga Demo de Cobre (revisada)", "metais", "Metais", "Ligas de Cobre"),
   raw_record_changed: false,
@@ -264,6 +278,8 @@ export const newItem: ReleaseDiffItem = {
   external_record_id: "demo-006",
   status: "novo",
   status_label: "Novo nesta release",
+  universe: "material",
+  universe_label: "Material",
   base: null,
   target: side(16, "Compósito Demo Laminado", "compositos", "Compósitos"),
   raw_record_changed: null,
@@ -299,7 +315,12 @@ export const releaseDiff: ReleaseDiff = {
     { slug: "metais", name: "Metais", count: 3 },
     { slug: "polimeros", name: "Polímeros", count: 1 },
   ],
-  filters: { tipo: null, classe: null },
+  universes: [
+    { universe: "material", label: "Material", count: 6 },
+    { universe: "processo", label: "Processo", count: 0 },
+    { universe: "modal", label: "Modal de transporte", count: 0 },
+  ],
+  filters: { tipo: null, classe: null, universo: null },
   filtered_total: 6,
   page: 1,
   page_size: 25,
