@@ -40,7 +40,7 @@ const t = ptBR.catalog;
  * student asks is whether a material's data has holes in it, and whether
  * anything in it was actually measured.
  */
-type QualityFilter = "any" | "complete" | "gaps" | "measured";
+type QualityFilter = "any" | "complete" | "gaps" | "measured" | "referenced";
 
 function matchesQuality(material: MaterialListItem, filter: QualityFilter): boolean {
   const q = material.quality;
@@ -53,6 +53,8 @@ function matchesQuality(material: MaterialListItem, filter: QualityFilter): bool
       return q.missing > 0;
     case "measured":
       return q.medido > 0;
+    case "referenced":
+      return (material.reference_count ?? 0) > 0;
   }
 }
 
@@ -156,6 +158,7 @@ export default function CatalogPage() {
             <SelectOption value="complete">{t.qualityComplete}</SelectOption>
             <SelectOption value="gaps">{t.qualityWithGaps}</SelectOption>
             <SelectOption value="measured">{t.qualityMeasured}</SelectOption>
+            <SelectOption value="referenced">{t.qualityReferenced}</SelectOption>
           </Select>
 
           <Button

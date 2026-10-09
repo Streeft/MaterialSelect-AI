@@ -1842,6 +1842,10 @@ export const ptBR = {
     qualityComplete: "Sem lacunas cadastradas",
     qualityWithGaps: "Com lacunas",
     qualityMeasured: "Tem valor medido",
+    qualityReferenced: "Com referência bibliográfica",
+    referenceCount: (n: number) =>
+      `${n} ${n === 1 ? "com fonte" : "com fontes"}`,
+    noReferences: "Sem referências cadastradas",
     // The summary badge on a row/card. Absence is stated, never left blank.
     qualityBreakdown: "Composição dos dados",
     noValues: "Nenhuma propriedade cadastrada",

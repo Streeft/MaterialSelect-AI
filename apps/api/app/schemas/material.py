@@ -214,6 +214,8 @@ class MaterialListItem(BaseModel):
     # D-105: the codes, so a card can show (and highlight) the one a reader
     # searched for. Empty means none registered, not "has no designation".
     designations: list[DesignationBrief] = []
+    # TM6: contagem de propriedades com referência bibliográfica (source_id não nulo e não ausente)
+    reference_count: int = 0
 
 
 class MaterialDetail(BaseModel):

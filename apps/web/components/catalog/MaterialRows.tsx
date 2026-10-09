@@ -38,25 +38,38 @@ const PARTS: { state: QualityState; of: (q: DataQualitySummary) => number }[] = 
  * sheet — which is where a reader finds out too late that the shortlist they
  * just built rests on estimates. Absence is one of the counts, never a blank.
  */
-export function QualityBar({ quality }: { quality: DataQualitySummary }) {
+export function QualityBar({
+  quality,
+  referenceCount,
+}: {
+  quality: DataQualitySummary;
+  referenceCount?: number;
+}) {
   const present = PARTS.filter((p) => p.of(quality) > 0);
   if (present.length === 0) {
     return <span className="text-2xs italic text-ink-subtle">{t.noValues}</span>;
   }
   return (
-    <span className="flex flex-wrap items-center gap-1" aria-label={t.qualityBreakdown}>
-      {present.map((p) => (
-        <DataQualityBadge
-          key={p.state}
-          state={p.state}
-          className="tabular-nums"
-          showLabel={false}
-        />
-      ))}
-      <span className="ml-0.5 text-2xs text-ink-subtle">
-        {present.map((p) => `${p.of(quality)} ${ptBR.quality[p.state].toLowerCase()}`).join(" · ")}
+    <div className="flex flex-col gap-1">
+      <span className="flex flex-wrap items-center gap-1" aria-label={t.qualityBreakdown}>
+        {present.map((p) => (
+          <DataQualityBadge
+            key={p.state}
+            state={p.state}
+            className="tabular-nums"
+            showLabel={false}
+          />
+        ))}
+        <span className="ml-0.5 text-2xs text-ink-subtle">
+          {present.map((p) => `${p.of(quality)} ${ptBR.quality[p.state].toLowerCase()}`).join(" · ")}
+        </span>
       </span>
-    </span>
+      {typeof referenceCount === "number" && (
+        <span className="text-2xs text-ink-muted">
+          {referenceCount > 0 ? t.referenceCount(referenceCount) : t.noReferences}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -117,7 +130,7 @@ export function MaterialTable({
                 <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
               </Td>
               <Td>
-                <QualityBar quality={m.quality} />
+                <QualityBar quality={m.quality} referenceCount={m.reference_count} />
               </Td>
               <Td>
                 <span className="flex flex-wrap gap-1">

@@ -107,6 +107,14 @@ export default function MaterialDetailPage() {
   }
 
   const data = material.data;
+  const referencedCount =
+    data?.property_groups.reduce(
+      (acc, g) =>
+        acc +
+        g.properties.filter((p) => Boolean(p.source_label) && !p.is_missing).length,
+      0,
+    ) ?? 0;
+
   // TM2-a: which block of the sheet is being edited, if any. Offered only where
   // the server would accept the write (own record, or a curator on the shared
   // catalogue) and never on a record of the official catalogue (D-102).
@@ -152,6 +160,13 @@ export default function MaterialDetailPage() {
                     <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
                   )}
                   {!data.is_active && <Badge>{t.inactive}</Badge>}
+                  {referencedCount > 0 ? (
+                    <Badge tone="neutral">
+                      {ptBR.catalog.referenceCount(referencedCount)}
+                    </Badge>
+                  ) : (
+                    <Badge tone="neutral">{ptBR.catalog.noReferences}</Badge>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <ClassBadge

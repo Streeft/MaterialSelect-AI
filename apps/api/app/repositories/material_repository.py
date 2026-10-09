@@ -171,11 +171,15 @@ class MaterialRepository:
             .where(visible_materials(self.viewer_id))
         )
 
-    def list_materials(self, search: str | None = None) -> list[Material]:
+    def list_materials(
+        self, search: str | None = None, com_referencia: bool = False
+    ) -> list[Material]:
         """Return active materials, optionally filtered by a search query."""
-        return self.search_materials(search)[0]
+        return self.search_materials(search, com_referencia=com_referencia)[0]
 
-    def search_materials(self, search: str | None = None) -> tuple[list[Material], SearchFacts]:
+    def search_materials(
+        self, search: str | None = None, com_referencia: bool = False
+    ) -> tuple[list[Material], SearchFacts]:
         """Active materials matching a query (D-55, D-105), with what the search knows.
 
         The search is case-insensitive and matches the material name, its class
@@ -193,6 +197,16 @@ class MaterialRepository:
             selectinload(Material.property_values),
             selectinload(Material.designations),
         )
+        has_reference_cond = exists(
+            select(MaterialPropertyValue.id).where(
+                MaterialPropertyValue.material_id == Material.id,
+                MaterialPropertyValue.source_id.is_not(None),
+                MaterialPropertyValue.is_missing.is_(False),
+            )
+        )
+        if com_referencia:
+            stmt = stmt.where(has_reference_cond)
+
         facts = SearchFacts()
 
         if not (search and search.strip()):
@@ -205,11 +219,14 @@ class MaterialRepository:
         true_side, false_side = _compile(parsed, tallies)
         stmt = stmt.where(true_side)
         if conditions:
-            facts.undetermined = self.db.execute(
+            undetermined_query = (
                 self._catalogue()
                 .with_only_columns(func.count(Material.id))
                 .where(not_(true_side), not_(false_side))
-            ).scalar_one()
+            )
+            if com_referencia:
+                undetermined_query = undetermined_query.where(has_reference_cond)
+            facts.undetermined = self.db.execute(undetermined_query).scalar_one()
 
         score_terms = [_term_score(term) for term in extract_positive_terms(parsed)]
         score_terms += [_designation_score(atom) for atom in positive_designations(parsed)]

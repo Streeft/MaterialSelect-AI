@@ -50,12 +50,18 @@ def list_materials(
             "aceita comp:, norma: e designacao: (D-105)"
         ),
     ),
+    com_referencia: bool = Query(
+        default=False,
+        description="Filtra apenas materiais que possuem ao menos uma propriedade com referência bibliográfica (TM6).",
+    ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term."""
-    return MaterialService(db, user, unit_choices).list_materials(search)
+    return MaterialService(db, user, unit_choices).list_materials(
+        search, com_referencia=com_referencia
+    )
 
 
 @router.get("/busca", response_model=MaterialSearchOut)
@@ -67,6 +73,10 @@ def search_materials(
             "comp:Cr>=12, comp:Ni:8-10, comp:Fe; norma:UNS; designacao:S30400"
         ),
     ),
+    com_referencia: bool = Query(
+        default=False,
+        description="Filtra apenas materiais que possuem ao menos uma propriedade com referência bibliográfica (TM6).",
+    ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
@@ -77,7 +87,7 @@ def search_materials(
     query asks about composition, which rule ran and how many materials were
     left out for lack of data. Declared before ``/{material_id}``.
     """
-    return MaterialService(db, user, unit_choices).search(q)
+    return MaterialService(db, user, unit_choices).search(q, com_referencia=com_referencia)
 
 
 @router.post("", response_model=MaterialDetail, status_code=status.HTTP_201_CREATED)
