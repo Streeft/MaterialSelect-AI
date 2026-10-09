@@ -86,7 +86,7 @@ function MaterialCard({
             confidence, and a reader who can't tell green from amber needs
             the word. */}
         <div className="flex flex-wrap items-center gap-1.5 border-t border-edge-subtle pt-3">
-          <QualityBar quality={quality} />
+          <QualityBar quality={quality} referenceCount={material.reference_count} />
         </div>
 
         {material.keywords.length > 0 && (
