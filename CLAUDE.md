@@ -23,7 +23,7 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    valor normalizado + unidade canônica + método de conversão. Conversão só via
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
-   (`.env`, ignorado). Há `.env.example`.
+   (`.env`, ignorado). Há `.env.example` .
 6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
    interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
@@ -176,7 +176,8 @@ ficou sem objeto. Três regras que não são questão de gosto:
     nunca do hover do Plotly.
   - **Canto do cartão:** botões de ícone (`ChartFrame` `views` para trocar o
     tipo, "Tabela", "Exportar").
-  - **Eixo:** um só, **nunca eixo duplo**.\n
+  - **Eixo:** um só, **nunca eixo duplo**.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum
@@ -215,7 +216,8 @@ em cálculo até existir regra determinística. Operação e cutover:
 - Python: SQLAlchemy 2.0 style (`Mapped[...]`/`mapped_column`), Pydantic v2,
   type hints. Lint/format: `ruff` + `black` (config em `pyproject.toml`).
 - TypeScript: modo **estrito** (`strict`, `noUncheckedIndexedAccess`). Componentes
-  acessíveis, estados de loading/erro/vazio sempre tratados.\n- Migrations: Alembic é a fonte de verdade do schema. Gere com
+  acessíveis, estados de loading/erro/vazio sempre tratados.
+- Migrations: Alembic é a fonte de verdade do schema. Gere com
   `alembic revision --autogenerate` após alterar models; nunca edite o banco à
   mão. `Base.metadata.create_all` só é usado como conveniência no seed/testes.
 - Testes: todo cálculo (unidades, dado ausente, índices, ranking, geometria)
