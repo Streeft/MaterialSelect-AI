@@ -19,6 +19,7 @@ from app.calculations.expressions import (
 )
 from app.calculations.performance import evaluate_index
 from app.calculations.units import UnitError, to_canonical
+from app.domain.composition import CompositionError, parse_condition
 from app.domain.errors import ConflictError, DomainError, NotFoundError, ValidationError
 from app.domain.filters import (
     ChartAxis,
@@ -35,6 +36,7 @@ from app.domain.filters import (
     TreeSelection,
     apply_constraint_tree,
     apply_stage,
+    composition_verdict,
 )
 from app.domain.ranking import (
     PROMETHEE_TOO_FEW_CANDIDATES,
@@ -121,6 +123,10 @@ _NUMERIC_OPS = {
 #: Set-membership operators over a discrete attribute's closed vocabulary (P0-4).
 _LABEL_OPS = {Operator.HAS_ANY_LABEL, Operator.HAS_NO_LABEL}
 
+#: Chemical-composition criteria (TM2-b): the true side and the guarantee side of
+#: the same three-valued verdict.
+_COMPOSITION_OPS = {Operator.COMPOSITION, Operator.NOT_COMPOSITION}
+
 
 #: How an unnamed stage is described in the funnel and in the documents. A
 #: table and not an if-chain so a fourth kind cannot be added to the engine and
@@ -179,6 +185,7 @@ class SelectionService:
         self.project_id = project_id
         self._snapshots: list[MaterialSnapshot] | None = None
         self._process_snapshots: list[ProcessSnapshot] | None = None
+        self._composition_loaded = False
         self._props: dict = {}
         #: Which catalogue ``_props`` currently holds — "material" or "process".
         #: Set by `_load` / `_load_catalogue`, read where a message has to name
@@ -356,6 +363,9 @@ class SelectionService:
         if op in _LABEL_OPS:
             return self._build_label_constraint(payload, op, label)
 
+        if op in _COMPOSITION_OPS:
+            return self._build_composition_constraint(payload, op, label, universe)
+
         if op in _NUMERIC_OPS:
             prop = self._props.get(payload.property_slug)
             if prop is None:
@@ -424,6 +434,39 @@ class SelectionService:
             raise ValidationError("Informe o texto a pesquisar.")
         return Constraint(operator=op, label=label, text=payload.text)
 
+    def _build_composition_constraint(
+        self, payload: ConstraintIn, op: Operator, label: str, universe: str
+    ) -> Constraint:
+        """A chemical-composition criterion (TM2-b, D-105).
+
+        The condition travels as the same text the search accepts (``Cr>=12``,
+        ``C<=0,08``, ``Ni:8-10``, ``Fe``) and is parsed by the one parser the
+        search uses, so a study and a query cannot disagree about what a
+        condition means. Percent is the only basis — mass percent, as stored.
+        """
+        if universe == "process":
+            raise ValidationError("Composição química só existe no universo de materiais.")
+        try:
+            condition = parse_condition(payload.text or "")
+        except CompositionError as exc:
+            raise ValidationError(str(exc)) from exc
+        self._attach_composition()
+        return Constraint(operator=op, label=label, text=payload.text, composition=condition)
+
+    def _attach_composition(self) -> None:
+        """Give every material snapshot its declared composition, once.
+
+        Lazy on purpose: only a study with a composition criterion pays the
+        extra read. ``None`` stays for a material with no row — "no composition
+        registered" is not an empty composition and is not 0 % (D-24).
+        """
+        if self._composition_loaded:
+            return
+        facts = self.repo.composition_facts_by_material()
+        for snapshot in self._load():
+            snapshot.composition = facts.get(snapshot.id)
+        self._composition_loaded = True
+
     def _build_label_constraint(
         self, payload: ConstraintIn, op: Operator, label: str
     ) -> Constraint:
@@ -457,6 +500,20 @@ class SelectionService:
             property_slug=payload.property_slug,
             labels=list(payload.labels),
         )
+
+    @staticmethod
+    def _composition_label(payload: ConstraintIn, *, guarantee: bool) -> str:
+        """The criterion in words, naming the rule so a guarantee never reads as
+        a reach (the funnel, the report and the laudo all print this)."""
+        if payload.operator not in ("composition", "not_composition"):
+            return ""
+        try:
+            condition = parse_condition(payload.text or "")
+        except CompositionError:
+            return payload.text or ""
+        if guarantee:
+            return f"Composição: nenhuma corrida atende '{condition.label()}' (garantia)"
+        return f"Composição: {condition.label()} (alcance da faixa)"
 
     def _default_label(self, payload: ConstraintIn) -> str:
         prop = self._props.get(payload.property_slug) if payload.property_slug else None
@@ -495,6 +552,8 @@ class SelectionService:
             "text_contains": f"Texto contém '{payload.text}'",
             "has_any_label": f"{prop_name} ∈ {{{', '.join(payload.labels)}}}",
             "has_no_label": f"{prop_name} ∉ {{{', '.join(payload.labels)}}}",
+            "composition": self._composition_label(payload, guarantee=False),
+            "not_composition": self._composition_label(payload, guarantee=True),
         }
         return labels.get(payload.operator, payload.operator)
 
@@ -1009,6 +1068,17 @@ class SelectionService:
         return item.label
 
     @staticmethod
+    def _undetermined(item: Constraint | ConstraintGroupNode, records: list) -> int | None:
+        """For a composition criterion, how many of ``records`` it could not decide.
+
+        ``None`` for everything else: the count is a statement about missing
+        composition data and means nothing for another kind of criterion.
+        """
+        if isinstance(item, ConstraintGroupNode) or item.composition is None:
+            return None
+        return sum(1 for record in records if composition_verdict(item, record).value is None)
+
+    @staticmethod
     def _item_operator_code(item: Constraint | ConstraintGroupNode) -> str:
         if isinstance(item, ConstraintGroupNode):
             return item.operator
@@ -1051,6 +1121,7 @@ class SelectionService:
                         operator=self._item_operator_code(item),
                         passed=len(admitted),
                         remaining=len(passing),
+                        undetermined=self._undetermined(item, materials),
                     )
                 )
             by_id = {m.id: m for m in materials}
@@ -1061,6 +1132,7 @@ class SelectionService:
         for item in items:
             node = self._item_node(item)
             standalone = len(apply_constraint_tree(materials, node))
+            undetermined = self._undetermined(item, materials)
             remaining = apply_constraint_tree(remaining, node)
             steps.append(
                 FunnelStepOut(
@@ -1068,6 +1140,7 @@ class SelectionService:
                     operator=self._item_operator_code(item),
                     passed=standalone,
                     remaining=len(remaining),
+                    undetermined=undetermined,
                 )
             )
         return steps, remaining
@@ -1144,6 +1217,7 @@ class SelectionService:
                             operator=step.operator,
                             passed=step.passed,
                             remaining=step.remaining,
+                            undetermined=step.undetermined,
                         )
                         for step in inner
                     ]

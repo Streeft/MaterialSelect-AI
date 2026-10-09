@@ -111,3 +111,19 @@ describe("a change in words (D-24)", () => {
     expect(recordName(removedItem)).toBe("Cerâmica Demo Refratária");
   });
 });
+
+describe("sideText with labels (TM7-c)", () => {
+  it("prints the labels of a discrete side, in words", () => {
+    const side = {
+      state: "rotulos",
+      state_label: "rótulos de um vocabulário",
+      original: null,
+      canonical: null,
+      reading: null,
+      conversion_method: null,
+      measurement_condition: null,
+      labels: ["anodizado", "pintado"],
+    } as const;
+    expect(sideText({ ...side, labels: [...side.labels] })).toBe("anodizado, pintado");
+  });
+});

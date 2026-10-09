@@ -472,7 +472,18 @@ export const ptBR = {
       // a process study — no material property is discrete.
       has_any_label: "∈ tem algum dos rótulos",
       has_no_label: "∉ não tem nenhum dos rótulos",
+      // TM2-b (D-105): composição química, só no universo de materiais.
+      composition: "composição (alcance da faixa)",
+      not_composition: "composição (garantia: NOT)",
     },
+    compositionCondition: "Condição de composição",
+    compositionHint:
+      "Mesma sintaxe da busca: Cr>=12, C<=0,08, Ni:8-10 ou Fe. Em % em massa.",
+    sentenceComposition: (guarantee: boolean, condition: string) =>
+      guarantee
+        ? `Nenhuma corrida da faixa declarada atende ${condition} (garantia)`
+        : `Alguma corrida da faixa declarada atende ${condition} (alcance)`,
+    undeterminedNote: (n: number) => `${n} sem o dado de composição`,
     constraintNumber: (n: number) => `Restrição ${n}`,
     // D-85: a linha lida como frase, e uma dica por campo na primeira linha.
     operatorSymbols: { gte: "≥", gt: ">", lte: "≤", lt: "<" },
@@ -1903,6 +1914,48 @@ export const ptBR = {
     columnRegion: "Região",
     noRegion: "Não restrita pela fonte",
     noCitation: "Sem localização na fonte",
+    // TM2-a: edição da composição e das designações pela ficha.
+    systemNames: {
+      UNS: "UNS",
+      AISI_SAE: "AISI/SAE",
+      ASTM: "ASTM",
+      EN: "EN",
+      ISO: "ISO",
+      DIN: "DIN",
+      JIS: "JIS",
+      GB: "GB",
+      ABNT: "ABNT NBR",
+      COMERCIAL: "Nome comercial",
+    },
+    edit: {
+      editComposition: "Editar composição",
+      editDesignations: "Editar designações",
+      officialReadOnly:
+        "Registro do catálogo oficial licenciado: a composição e as designações não são editadas pela ficha.",
+      compositionRule:
+        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Salvar substitui a composição inteira.",
+      designationRule:
+        "Cada código com a fonte que o afirma. Uma designação não declara equivalência com outro material. Salvar substitui todas as designações.",
+      rowLabel: (n: number) => `Linha ${n}`,
+      element: "Elemento",
+      state: "Tipo",
+      stateRange: "Faixa ou limite",
+      stateBalance: "Resto (declarado)",
+      stateAbsent: "Ausente (sem dado)",
+      min: "Mínimo",
+      max: "Máximo",
+      nominal: "Nominal",
+      unit: "Unidade",
+      source: "Fonte",
+      citation: "Onde, na fonte",
+      system: "Norma",
+      code: "Código",
+      region: "Região",
+      addElement: "Adicionar elemento",
+      addDesignation: "Adicionar designação",
+      emptyComposition: "Sem linhas: salvar deixa a composição não cadastrada (não é 0 %).",
+      invalidNumber: (element: string) => `${element || "Linha"}: número inválido.`,
+    },
   },
   // D-106 (TM4): curvas do material na ficha.
   curves: {
@@ -1916,6 +1969,44 @@ export const ptBR = {
     noneHint:
       "Sem curva registrada não quer dizer curva nula: este material só não tem curvas cadastradas.",
     kindCounts: "Curvas cadastradas por tipo",
+    // TM4-d: escrever a curva pela ficha.
+    edit: {
+      newCurve: "Nova curva",
+      editCurve: "Editar curva",
+      deleteCurve: "Excluir curva",
+      confirmDelete: "Excluir esta curva? A exclusão fica registrada no histórico.",
+      officialReadOnly:
+        "Curva do catálogo oficial licenciado: não é editada pela ficha.",
+      kindsError: "Não foi possível carregar os tipos de curva.",
+      rule:
+        "Digite os pontos como a fonte os deu, na unidade dela: nada é reordenado, interpolado ou preenchido. O x tem de crescer ao longo da série e cada série precisa de ao menos dois pontos. Toda curva precisa de fonte. Salvar substitui a curva inteira.",
+      kind: "Tipo de curva",
+      titleField: "Título",
+      description: "Descrição",
+      source: "Fonte",
+      citation: "Onde, na fonte",
+      xQuantity: "Grandeza do eixo x",
+      xUnit: "Unidade de x",
+      xTitle: "Título do eixo x (opcional)",
+      yQuantity: "Grandeza do eixo y",
+      yUnit: "Unidade de y",
+      yTitle: "Título do eixo y (opcional)",
+      family: "Família por",
+      familyHint: "Uma série por valor deste parâmetro.",
+      noFamily: "Nenhuma (série única)",
+      seriesLabel: (n: number) => `Série ${n}`,
+      seriesName: (n: number) => `Nome da série ${n} (opcional)`,
+      conditions: "Condições (opcional)",
+      parameterValue: (name: string) => `Valor de ${name.toLowerCase()}`,
+      parameterUnit: "Unidade",
+      points: "Pontos",
+      pointsHint:
+        "Um ponto por linha: x; y — ou x; y; y mín.; y máx. quando a fonte dá a faixa. Vírgula decimal aceita.",
+      addSeries: "Adicionar série",
+      badLine: (series: number, line: number) =>
+        `Série ${series}, linha ${line}: use "x; y" ou "x; y; y mín.; y máx." com números.`,
+      badParameter: (series: number) => `Série ${series}: informe o valor do parâmetro da família.`,
+    },
     kindCount: (label: string, n: number) =>
       n === 0 ? `${label}: nenhuma` : `${label}: ${n}`,
     picker: "Curva",
@@ -1997,6 +2088,9 @@ export const ptBR = {
     filtersTitle: "Filtros",
     filterStatus: "Situação",
     allStatuses: "Todas as situações",
+    filterUniverse: "Tipo de registro",
+    allUniverses: "Material, processo e modal",
+    universeOption: (name: string, count: number) => `${name} (${count})`,
     filterClass: "Classe",
     allClasses: "Todas as classes",
     classOption: (name: string, count: number) => `${name} (${count})`,
@@ -2053,23 +2147,25 @@ export const ptBR = {
     writingSentence: (before: string, after: string) =>
       `Mesmo valor físico, escrito de outro modo: ${before} na base e ${after} no alvo.`,
     sourceWritingTag: "Só a escrita da fonte",
-    sourceWritingHint: "mesmo valor físico",
+    sourceWritingHint: "mesmo valor físico, inclusive a grafia da unidade (kg/m^3 ou kg/m³)",
     kindTags: {
       texto: "Campo do registro",
       ausencia: "Presença do dado",
       forma: "Forma do valor",
       valor: "Mudança de valor",
       escrita_da_fonte: "Só a escrita da fonte",
-      metadado: "Condição ou incerteza",
+      metadado: "Condição, incerteza ou situação",
     } as Record<string, string>,
     kindHints: {
       texto: "Um campo de texto do registro mudou.",
       ausencia: "O dado passou a existir ou deixou de existir.",
-      forma: "O valor passou de único para faixa, ou o contrário.",
+      forma:
+        "O valor passou de único para faixa (ou rótulos), ou a faixa declara outros números: um ponto ou limite que só existe de um lado.",
       valor: "O número, convertido para a unidade canônica, é outro.",
       escrita_da_fonte:
-        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma ou em outra unidade.",
-      metadado: "O número é o mesmo; a condição de medição ou a incerteza mudou.",
+        "O número canônico é o mesmo: a fonte só escreveu o valor de outra forma, em outra unidade ou com outra grafia da unidade.",
+      metadado:
+        "O número é o mesmo; a condição de medição, a incerteza ou a situação (ativo ou inativo) do registro mudou.",
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
@@ -2375,6 +2471,15 @@ export const ptBR = {
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
     noMaterialsFound: "Nenhum material corresponde ao filtro.",
     figure: "Comparação de materiais",
+    // TM3 (D-113): a tabela comporta dezenas; cada figura tem o seu teto de
+    // legibilidade e diz por escrito quando para de desenhar.
+    wideHint: (n: number) =>
+      n > 12
+        ? `${n} materiais: a tabela e o mapa de calor comportam todos; barras, radar e coordenadas paralelas têm limite de legibilidade.`
+        : null,
+    figureTooMany: (view: string, max: number, n: number) =>
+      `A vista "${view}" só é desenhada com até ${max} materiais (há ${n}). Os valores continuam na tabela abaixo; use o mapa de calor ou reduza a seleção.`,
+    tableRegion: (n: number, p: number) => `Tabela de comparação, ${n} materiais por ${p} propriedades`,
   },
   categories: {
     FISICA: "Física",

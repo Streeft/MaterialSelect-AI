@@ -503,11 +503,16 @@ def available_scales(x: AxisQuantity, rx: Reading, y: AxisQuantity, ry: Reading)
     ]
 
 
-def _padded(values: list[float], log: bool) -> tuple[float, float] | None:
+def _padded(
+    values: list[float], log: bool, zero_is_floor: bool = True
+) -> tuple[float, float] | None:
     """The data range with a little air, in the space the axis is drawn in.
 
     Linear: 4 % of the span each side, never crossing zero when the data does
-    not (a strain axis that starts at 0 starts at 0). Log: 0.04 decade.
+    not (a strain axis that starts at 0 starts at 0) — but only when zero is a
+    true origin of the reading unit. On an offset scale (°C, °F) 0 is an
+    arbitrary mark, so data from 20 to 600 °C must not be pulled down to 0 °C
+    (TM4-h). Log: 0.04 decade.
     """
     if not values:
         return None
@@ -519,10 +524,11 @@ def _padded(values: list[float], log: bool) -> tuple[float, float] | None:
     span = hi - lo
     pad = span * 0.04 if span > 0 else (abs(lo) * 0.1 or 1.0)
     low, high = lo - pad, hi + pad
-    if lo >= 0 > low:
-        low = 0.0
-    if hi <= 0 < high:
-        high = 0.0
+    if zero_is_floor:
+        if lo >= 0 > low:
+            low = 0.0
+        if hi <= 0 < high:
+            high = 0.0
     return low, high
 
 
@@ -679,8 +685,8 @@ def draw_curve(
 
     return DrawnCurve(
         scale=chosen,
-        x=DrawnAxis(xq, rx, x_log, _padded(xs, x_log)),
-        y=DrawnAxis(yq, ry, y_log, _padded(ys, y_log)),
+        x=DrawnAxis(xq, rx, x_log, _padded(xs, x_log, is_ratio_scale(rx.unit))),
+        y=DrawnAxis(yq, ry, y_log, _padded(ys, y_log, is_ratio_scale(ry.unit))),
         parameter_reading=parameter_reading,
         series=tuple(drawn),
         notes=notes,

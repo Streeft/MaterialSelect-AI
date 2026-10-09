@@ -16,9 +16,16 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import can_edit_shared_catalog, get_current_user, get_unit_choices
 from app.models.user import User
-from app.schemas.curve import CurveOut, MaterialCurvesOut
+from app.schemas.curve import (
+    CurveIn,
+    CurveKindSpecOut,
+    CurveSummaryOut,
+    MaterialCurvesOut,
+)
 from app.schemas.material import (
     ChartData,
+    CompositionReplaceIn,
+    DesignationsReplaceIn,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
@@ -101,6 +108,15 @@ def material_chart(
     return MaterialService(db, user, unit_choices).build_chart(x, y)
 
 
+@router.get("/curvas-tipos", response_model=list[CurveKindSpecOut])
+def curve_kinds(user: User = Depends(get_current_user)) -> list[CurveKindSpecOut]:
+    """What each kind of curve admits (axes, parameter, units) — the form's vocabulary.
+
+    Declared before ``/{material_id}`` so the literal path wins.
+    """
+    return CurveService.kind_specs()
+
+
 @router.get("/{material_id}", response_model=MaterialDetail)
 def get_material(
     material_id: int,
@@ -110,6 +126,55 @@ def get_material(
 ) -> MaterialDetail:
     """Return a material's full sheet, with properties grouped by category."""
     return MaterialService(db, user, unit_choices).get_material_detail(material_id)
+
+
+@router.post(
+    "/{material_id}/curvas", response_model=CurveSummaryOut, status_code=status.HTTP_201_CREATED
+)
+def create_material_curve(
+    material_id: int,
+    payload: CurveIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> CurveSummaryOut:
+    """Write a curve by hand (TM4-d), validated by the builder the seed and importer use.
+
+    Permission follows the material: the owner of an own record, or a curator on
+    the shared catalogue (403); a record of the official catalogue is 409.
+    """
+    return CurveService(db, user.id, user=user, can_edit_shared=can_edit_shared).create_curve(
+        material_id, payload
+    )
+
+
+@router.put("/{material_id}/curvas/{curve_id}", response_model=CurveSummaryOut)
+def replace_material_curve(
+    material_id: int,
+    curve_id: int,
+    payload: CurveIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> CurveSummaryOut:
+    """Replace a hand-written curve whole (same id); an official curve is 409."""
+    return CurveService(db, user.id, user=user, can_edit_shared=can_edit_shared).replace_curve(
+        material_id, curve_id, payload
+    )
+
+
+@router.delete("/{material_id}/curvas/{curve_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_material_curve(
+    material_id: int,
+    curve_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> Response:
+    CurveService(db, user.id, user=user, can_edit_shared=can_edit_shared).delete_curve(
+        material_id, curve_id
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{material_id}/curvas", response_model=MaterialCurvesOut)
@@ -125,33 +190,6 @@ def list_material_curves(
     material this viewer may not see is 404, like its sheet (D-62).
     """
     return CurveService(db, user.id).list_curves(material_id)
-
-
-@router.get("/{material_id}/curvas/{curve_id}", response_model=CurveOut)
-def get_material_curve(
-    material_id: int,
-    curve_id: int,
-    unidade_x: str | None = Query(
-        default=None, description="Unidade de leitura do eixo x (D-70); omitida, a convenção."
-    ),
-    unidade_y: str | None = Query(
-        default=None, description="Unidade de leitura do eixo y (D-70); omitida, a convenção."
-    ),
-    escala: str | None = Query(
-        default=None,
-        description="linear, log-x, log-y ou log-log; omitida, a convenção do tipo de curva.",
-    ),
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> CurveOut:
-    """One curve, ready to draw: points, band and domain in the reading units.
-
-    A unit outside the axis's list, or a log scale on an axis that cannot be
-    logarithmic, is a 400 that names what is admitted — never ignored.
-    """
-    return CurveService(db, user.id).get_curve(
-        material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y, scale=escala
-    )
 
 
 @router.post("/{material_id}/similares", response_model=SimilarOut)
@@ -198,6 +236,41 @@ def replace_values(
     """Replace all property values of a material with the provided set."""
     return MaterialService(db, user, unit_choices, can_edit_shared).replace_property_values(
         material_id, values
+    )
+
+
+@router.put("/{material_id}/composicao", response_model=MaterialDetail)
+def replace_composition(
+    material_id: int,
+    payload: CompositionReplaceIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Replace the composition (TM2-a, D-105): owner of an own record, or a curator.
+
+    The service refuses the shared catalogue to a non-curator (403), a record
+    from the official catalogue (409) and any row the composition rules reject
+    (400). The balance is declared, never computed.
+    """
+    return MaterialService(db, user, unit_choices, can_edit_shared).replace_composition(
+        material_id, payload
+    )
+
+
+@router.put("/{material_id}/designacoes", response_model=MaterialDetail)
+def replace_designations(
+    material_id: int,
+    payload: DesignationsReplaceIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Replace the designations (TM2-a, D-105); same permission rule as the composition."""
+    return MaterialService(db, user, unit_choices, can_edit_shared).replace_designations(
+        material_id, payload
     )
 
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import CurveKind, DataQuality
 
@@ -39,6 +39,8 @@ class CurveSummaryOut(BaseModel):
     point_count: int
     source_label: str
     is_demo: bool
+    #: Carries a dataset identity from the official catalogue (D-102): not edited by hand.
+    is_official: bool = False
 
 
 class MaterialCurvesOut(BaseModel):
@@ -181,3 +183,64 @@ class CurveValueOut(BaseModel):
     source_label: str
     citation: str | None = None
     is_demo: bool
+
+
+# --- Writing a curve (TM4-d) ---------------------------------------------------
+
+
+class CurvePointIn(BaseModel):
+    """One point as the source wrote it, in the curve's original units."""
+
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
+    #: A band has both sides or none; the domain refuses one side only.
+    y_min: float | None = Field(default=None, allow_inf_nan=False)
+    y_max: float | None = Field(default=None, allow_inf_nan=False)
+
+
+class CurveSeriesIn(BaseModel):
+    label: str | None = Field(default=None, max_length=160)
+    conditions: str | None = Field(default=None, max_length=500)
+    parameter: float | None = Field(default=None, allow_inf_nan=False)
+    parameter_unit: str | None = Field(default=None, max_length=40)
+    points: list[CurvePointIn] = Field(max_length=2000)
+
+
+class CurveIn(BaseModel):
+    """A whole curve being written; an update replaces it entirely.
+
+    Validated by ``app.domain.curves.build_curve`` — the builder the seed and the
+    official importer use — so a hand-written curve obeys the same rules:
+    quantities the kind admits, units through ``units.py``, x strictly
+    increasing, no point invented, no series reordered.
+    """
+
+    kind: CurveKind
+    title: str = Field(min_length=1, max_length=240)
+    description: str | None = Field(default=None, max_length=1000)
+    x_quantity: str
+    x_unit: str = Field(min_length=1, max_length=40)
+    y_quantity: str
+    y_unit: str = Field(min_length=1, max_length=40)
+    x_label: str | None = Field(default=None, max_length=160)
+    y_label: str | None = Field(default=None, max_length=160)
+    parameter_quantity: str | None = None
+    series: list[CurveSeriesIn] = Field(max_length=24)
+    source_label: str = Field(min_length=1, max_length=160)
+    citation: str | None = Field(default=None, max_length=500)
+    data_quality: DataQuality = DataQuality.ESTIMADO
+
+
+class CurveQuantityOut(BaseModel):
+    key: str
+    name: str
+    reading_unit: str
+    units: list[UnitOption]
+
+
+class CurveKindSpecOut(BaseModel):
+    kind: CurveKind
+    label: str
+    x_quantities: list[CurveQuantityOut]
+    y_quantities: list[CurveQuantityOut]
+    parameter_quantities: list[CurveQuantityOut]

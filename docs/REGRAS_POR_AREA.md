@@ -700,6 +700,11 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-112 (Sessão 67):** `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
+(`*MAT_THERMAL_ISOTROPIC`) exigem condutividade e calor específico (422 sem
+eles); composição e designação entram nos cartões como texto informativo,
+sempre com a ausência escrita, e nas planilhas "Composição"/"Designações".
+
 **O cartão de material para CAE saiu** ([D-104](DECISIONS.md), TM5,
 Sessão 59): `app/exporters/cae/` tem um renderizador por formato — Ansys MAPDL,
 MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` —, escrito a partir
@@ -743,6 +748,17 @@ cópia em SQL; designação **não** declara equivalência (`code_key` só tira 
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
+**Composição na seleção e edição à mão** ([D-111](DECISIONS.md), Sessão 66): a
+composição é critério de um estágio `limit` por `composition` (passa o verdadeiro)
+e `not_composition` (passa só o **falso decidido**, a garantia); o indeterminado
+não passa em nenhum e o funil o conta (`undetermined`). Composição, designações e
+curvas se escrevem por `PUT …/composicao`, `PUT …/designacoes` e `…/curvas`
+substituindo o conjunto inteiro, pelos **mesmos construtores do seed**, com fonte
+obrigatória e auditoria; a permissão é a do material
+(`services/record_permissions.py`): dono, ou curador no compartilhado, e **409 para
+registro ou curva do catálogo oficial**. Não crie uma segunda regra de alcance nem
+um caminho de escrita que pule `build_composition_entry`/`build_curve`.
+
 ## Catálogo oficial e fontes abertas (D-102, D-103)
 
 **O portão de licença das fontes abertas foi reconciliado com o D-102**
@@ -751,6 +767,13 @@ veredito APROVADA em `docs/catalogo/fontes.md` e pelo pipeline do D-102, sem
 importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
 [`docs/20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 Só documentação.
+
+**Diff entre releases ([D-108](DECISIONS.md), [D-109](DECISIONS.md)).** Cobre
+material, processo e modal, casados pela identidade externa; composição por
+elemento (o resto nunca vira número), curvas por id externo e rótulos discretos.
+Faixa com número de um lado só é mudança de forma, nunca número contra vazio;
+`is_active` diferente é mudança de metadado; a grafia da unidade é "só a escrita
+da fonte". Propriedade sem definição é 400.
 
 4079 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4073 passam
 e 6 pulam) e 797 de frontend, todos verdes. CI no

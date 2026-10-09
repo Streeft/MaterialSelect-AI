@@ -23,6 +23,15 @@ in a release (no row) or *declared missing* by the source (a row with
 ``is_missing``). Moving between either of those and a number is a change of
 presence, written in words; nothing here ever substitutes ``0`` for a side that
 has no number.
+
+**Three universes (TM7-c).** Besides materials the diff reads processes and
+transport modes, each matched by the same external identity. A process carries
+its attribute values (compared exactly like a material property, discrete label
+sets included); a material carries its composition (compared in mass percent,
+element by element) and its curves (matched by external id, compared point by
+point in canonical units). A record's ``is_active`` flag is a metadata change
+(TM7-e), and a range with a representative point on one side only is a change
+of *form*, never a number compared with ``None`` (TM7-f).
 """
 
 from __future__ import annotations
@@ -70,13 +79,34 @@ STATUS_LABELS: dict[RecordStatus, str] = {
 }
 
 
+class Universe(str, Enum):
+    """Which table of the catalogue a record belongs to."""
+
+    MATERIAL = "material"
+    PROCESS = "processo"
+    TRANSPORT = "modal"
+
+
+UNIVERSE_LABELS: dict[Universe, str] = {
+    Universe.MATERIAL: "Material",
+    Universe.PROCESS: "Processo",
+    Universe.TRANSPORT: "Modal de transporte",
+}
+
+#: A transport mode has no class table; this is the label its class column shows.
+TRANSPORT_CLASS_SLUG = "modal-de-transporte"
+TRANSPORT_CLASS_NAME = "Modal de transporte"
+
+
 class ValueState(str, Enum):
-    """The four states a property can be in for one record of one release."""
+    """The states a value can be in for one record of one release."""
 
     NOT_REGISTERED = "nao_cadastrado"
     MISSING = "ausente"
     SCALAR = "escalar"
     INTERVAL = "faixa"
+    #: A process attribute that is a set of labels from a vocabulary.
+    DISCRETE = "rotulos"
 
 
 STATE_LABELS: dict[ValueState, str] = {
@@ -84,6 +114,7 @@ STATE_LABELS: dict[ValueState, str] = {
     ValueState.MISSING: "declarado ausente pela fonte",
     ValueState.SCALAR: "valor único",
     ValueState.INTERVAL: "faixa",
+    ValueState.DISCRETE: "rótulos de um vocabulário",
 }
 
 _NUMERIC_STATES = frozenset({ValueState.SCALAR, ValueState.INTERVAL})
@@ -103,10 +134,10 @@ class ChangeKind(str, Enum):
 KIND_LABELS: dict[ChangeKind, str] = {
     ChangeKind.TEXT: "Campo do registro",
     ChangeKind.PRESENCE: "Presença do dado",
-    ChangeKind.FORM: "Forma do valor (único ↔ faixa)",
+    ChangeKind.FORM: "Forma do valor (único ↔ faixa, ou números declarados)",
     ChangeKind.VALUE: "Valor",
     ChangeKind.WRITING: "Só a escrita da fonte (mesmo valor físico)",
-    ChangeKind.METADATA: "Condição de medição ou incerteza",
+    ChangeKind.METADATA: "Condição de medição, incerteza ou situação do registro",
 }
 
 #: The record fields compared besides the values: (attribute, field id, label).
@@ -124,7 +155,10 @@ RULE_TEXT = (
     "Registros casados pela identidade externa (tabela e id da fonte), nunca pelo "
     "nome. Valores comparados na unidade canônica; mesma grandeza escrita de outro "
     "jeito é mudança de escrita, não de valor. Dado ausente ou não cadastrado é um "
-    "estado, nunca zero."
+    "estado, nunca zero. A grafia da unidade (kg/m^3 ou kg/m³) não muda o valor: "
+    "o mesmo número físico escrito de outro jeito conta como escrita da fonte. "
+    "Faixa com ponto representativo só de um lado, ou com limites declarados de "
+    "um lado só, é mudança de forma, nunca comparação de número com vazio."
 )
 
 
@@ -147,9 +181,13 @@ class ValueSnapshot:
     conversion_method: str | None = None
     uncertainty: float | None = None
     measurement_condition: str | None = None
+    #: Process attributes only: the labels of a discrete value.
+    labels: tuple[str, ...] = ()
 
     @property
     def state(self) -> ValueState:
+        if self.labels:
+            return ValueState.DISCRETE
         if self.is_missing:
             return ValueState.MISSING
         if self.value_min is not None or self.value_max is not None:
@@ -175,13 +213,75 @@ class PropertyInfo:
 
 
 @dataclass(frozen=True)
+class CompositionSnapshot:
+    """One element of a material's composition, in mass percent.
+
+    ``value`` carries the **normalized** numbers as if they were the original
+    (the source's unit — ``wt%``, ``% massa`` — is not a Pint unit, and the
+    comparison is in mass percent anyway). A balance row carries no number:
+    its state is "the rest", never an absence and never a computed figure.
+    """
+
+    value: ValueSnapshot
+    is_balance: bool = False
+
+
+@dataclass(frozen=True)
+class CurvePointSnapshot:
+    """One point: as written (original unit) and normalized (canonical unit)."""
+
+    x_value: float
+    y_value: float
+    y_min_value: float | None
+    y_max_value: float | None
+    x_normalized: float
+    y_normalized: float
+    y_min_normalized: float | None
+    y_max_normalized: float | None
+
+
+@dataclass(frozen=True)
+class CurveSeriesSnapshot:
+    position: int
+    label: str | None
+    conditions: str | None
+    parameter_value: float | None
+    parameter_original_unit: str | None
+    parameter_normalized: float | None
+    points: tuple[CurvePointSnapshot, ...] = ()
+
+
+@dataclass(frozen=True)
+class CurveSnapshot:
+    """One curve of one material in one release, keyed by its external id."""
+
+    external_id: str
+    title: str
+    kind: str
+    description: str | None
+    x_label: str | None
+    y_label: str | None
+    x_quantity: str
+    y_quantity: str
+    x_original_unit: str
+    y_original_unit: str
+    x_canonical_unit: str
+    y_canonical_unit: str
+    series: tuple[CurveSeriesSnapshot, ...] = ()
+
+
+@dataclass(frozen=True)
 class RecordSnapshot:
-    """One material record of one release, keyed by its external identity."""
+    """One record (material, process or transport mode) of one release.
+
+    Keyed by its external identity. ``record_id`` is the internal id in the
+    record's own table, kept only so the screen can link to it.
+    """
 
     external_table: str
     external_record_id: str
     raw_record_sha256: str
-    material_id: int
+    record_id: int
     name: str
     class_slug: str
     class_name: str
@@ -189,9 +289,15 @@ class RecordSnapshot:
     subclass: str | None = None
     description: str | None = None
     is_active: bool = True
-    #: Property slug → stored value. A slug absent from the map is "not
-    #: registered in this release", which is a state of its own.
+    universe: Universe = Universe.MATERIAL
+    #: Value key → stored value. A key absent from the map is "not registered in
+    #: this release", which is a state of its own. Material properties use the
+    #: plain slug; other keys carry a prefix (``atributo:``, ``modal:``).
     values: Mapping[str, ValueSnapshot] = field(default_factory=dict)
+    #: Element symbol → its composition row (materials only).
+    composition: Mapping[str, CompositionSnapshot] = field(default_factory=dict)
+    #: Curve external id → the curve (materials only).
+    curves: Mapping[str, CurveSnapshot] = field(default_factory=dict)
 
     @property
     def key(self) -> tuple[str, str]:
@@ -261,17 +367,26 @@ def compare_values(
     """The most significant change between two stored values, or ``None``.
 
     Order of significance: presence (a number appeared or disappeared), form
-    (single value ↔ range), value (canonical numbers differ), writing (same
-    canonical numbers, different original number or unit), metadata
-    (measurement condition or uncertainty).
+    (single value ↔ range ↔ labels, or a range that declares other numbers),
+    value (canonical numbers or labels differ), writing (same canonical
+    numbers, different original number or unit — the spelling of the unit
+    included), metadata (measurement condition or uncertainty).
     """
     state_before, state_after = state_of(before), state_of(after)
     if state_before is not state_after:
-        if state_before in _NUMERIC_STATES and state_after in _NUMERIC_STATES:
-            return ChangeKind.FORM
-        return ChangeKind.PRESENCE
+        both_present = all(
+            state in _NUMERIC_STATES or state is ValueState.DISCRETE
+            for state in (state_before, state_after)
+        )
+        return ChangeKind.FORM if both_present else ChangeKind.PRESENCE
     if before is None or after is None:
         return None  # both not registered
+    if state_before is ValueState.DISCRETE:
+        if frozenset(before.labels) != frozenset(after.labels):
+            return ChangeKind.VALUE
+        if not _same_text(before.measurement_condition, after.measurement_condition):
+            return ChangeKind.METADATA
+        return None
     if state_before not in _NUMERIC_STATES:
         # Both declared missing: only what the source said about it can differ.
         if not _same_text(before.measurement_condition, after.measurement_condition):
@@ -281,7 +396,16 @@ def compare_values(
     numbers_before = canonical_numbers(before, canonical_unit)
     numbers_after = canonical_numbers(after, canonical_unit)
     assert numbers_before is not None and numbers_after is not None
-    for attribute in ("value", "min", "max", "typical"):
+    attributes = ("value", "min", "max", "typical")
+    # A number on one side and nothing on the other is a different *shape* of
+    # the declaration (TM7-f): it is never compared as a number against None,
+    # which would read as a change of value that nobody measured.
+    for attribute in attributes:
+        if (getattr(numbers_before, attribute) is None) != (
+            getattr(numbers_after, attribute) is None
+        ):
+            return ChangeKind.FORM
+    for attribute in attributes:
         if not _same_number(getattr(numbers_before, attribute), getattr(numbers_after, attribute)):
             return ChangeKind.VALUE
     written_before = (
@@ -374,12 +498,33 @@ def _text_changes(base: RecordSnapshot, target: RecordSnapshot) -> list[FieldCha
                 after_text=after or None,
             )
         )
+    if base.is_active != target.is_active:
+        # TM7-e: a record that is in both releases but was switched off (or on)
+        # is not "unchanged"; the flag is metadata of the record, not of a value.
+        changes.append(
+            FieldChange(
+                field="ativo",
+                label="Registro ativo",
+                kind=ChangeKind.METADATA,
+                before_text=ACTIVE_LABELS[base.is_active],
+                after_text=ACTIVE_LABELS[target.is_active],
+            )
+        )
     return changes
+
+
+ACTIVE_LABELS = {True: "ativo", False: "inativo"}
+ABSENT_TEXT = STATE_LABELS[ValueState.NOT_REGISTERED]
 
 
 def _property_order(slug: str, properties: Mapping[str, PropertyInfo]) -> tuple[str, str]:
     info = properties.get(slug)
     return ((info.name if info else slug).casefold(), slug)
+
+
+def _value_field(key: str) -> str:
+    """Material properties keep ``propriedade:<slug>``; other keys carry their prefix."""
+    return key if ":" in key else f"propriedade:{key}"
 
 
 def _value_changes(
@@ -392,19 +537,256 @@ def _value_changes(
     for slug in slugs:
         info = properties.get(slug)
         if info is None:
-            raise ValueError(f"Propriedade sem definição no diff: {slug!r}")
+            # Defence in depth (TM7-g): the foreign key keeps this from happening
+            # today, and if it ever does it is a refusal in words, not a 500.
+            raise ValidationError(
+                f"O valor '{slug}' não tem definição de propriedade no catálogo; "
+                "a comparação não pode ler o que não sabe medir."
+            )
         before, after = base.values.get(slug), target.values.get(slug)
         kind = compare_values(before, after, info.canonical_unit)
         if kind is None:
             continue
         changes.append(
             FieldChange(
-                field=f"propriedade:{slug}",
+                field=_value_field(slug),
                 label=info.name,
                 kind=kind,
                 property_slug=slug,
                 before_value=before,
                 after_value=after,
+            )
+        )
+    return changes
+
+
+#: Composition is compared in mass percent (``app.domain.composition``).
+COMPOSITION_UNIT = "percent"
+COMPOSITION_PREFIX = "composicao:"
+
+
+def _fmt(number: float) -> str:
+    """A number the way pt-BR writes it, for the sentences built here."""
+    return f"{number:.6g}".replace(".", ",")
+
+
+def _describe_composition(entry: CompositionSnapshot | None) -> str:
+    if entry is None:
+        return ABSENT_TEXT
+    if entry.is_balance:
+        return "o resto da composição (balanço, não calculado)"
+    numbers = canonical_numbers(entry.value, COMPOSITION_UNIT)
+    if numbers is None:
+        return STATE_LABELS[entry.value.state]
+    if entry.value.state is ValueState.SCALAR:
+        return f"{_fmt(numbers.value)} %" if numbers.value is not None else ABSENT_TEXT
+    parts = []
+    if numbers.min is not None:
+        parts.append(f"mín. {_fmt(numbers.min)} %")
+    if numbers.max is not None:
+        parts.append(f"máx. {_fmt(numbers.max)} %")
+    if numbers.typical is not None:
+        parts.append(f"nominal {_fmt(numbers.typical)} %")
+    return ", ".join(parts) or ABSENT_TEXT
+
+
+def _composition_changes(base: RecordSnapshot, target: RecordSnapshot) -> list[FieldChange]:
+    changes = []
+    for element in sorted(set(base.composition) | set(target.composition)):
+        before, after = base.composition.get(element), target.composition.get(element)
+        label = f"Composição: {element}"
+        key = f"{COMPOSITION_PREFIX}{element}"
+        if (before is not None and before.is_balance) or (after is not None and after.is_balance):
+            if before is not None and after is not None and before.is_balance == after.is_balance:
+                continue  # the rest on both sides: nothing was declared that could differ
+            kind = ChangeKind.PRESENCE if before is None or after is None else ChangeKind.FORM
+            changes.append(
+                FieldChange(
+                    field=key,
+                    label=label,
+                    kind=kind,
+                    before_text=_describe_composition(before),
+                    after_text=_describe_composition(after),
+                )
+            )
+            continue
+        kind_or_none = compare_values(
+            before.value if before else None, after.value if after else None, COMPOSITION_UNIT
+        )
+        if kind_or_none is None:
+            continue
+        changes.append(
+            FieldChange(
+                field=key,
+                label=label,
+                kind=kind_or_none,
+                property_slug=key,
+                before_value=before.value if before else None,
+                after_value=after.value if after else None,
+            )
+        )
+    return changes
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _curve_summary(curve: CurveSnapshot | None) -> str:
+    if curve is None:
+        return ABSENT_TEXT
+    points = sum(len(series.points) for series in curve.series)
+    return (
+        f"{_plural(len(curve.series), 'série', 'séries')}, " f"{_plural(points, 'ponto', 'pontos')}"
+    )
+
+
+def _curve_axes(curve: CurveSnapshot) -> str:
+    return (
+        f"x: {curve.x_quantity} em {curve.x_canonical_unit}; "
+        f"y: {curve.y_quantity} em {curve.y_canonical_unit}"
+    )
+
+
+#: (field suffix, label, reader) of the descriptive fields of a curve.
+_CURVE_TEXT_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("titulo", "Título", "title"),
+    ("descricao", "Descrição", "description"),
+    ("rotulo_x", "Rótulo do eixo X", "x_label"),
+    ("rotulo_y", "Rótulo do eixo Y", "y_label"),
+    ("tipo", "Tipo da curva", "kind"),
+)
+
+
+def _same_optional(a: float | None, b: float | None) -> bool:
+    return _same_number(a, b)
+
+
+def _curve_data_change(
+    before: CurveSnapshot, after: CurveSnapshot
+) -> tuple[ChangeKind, int] | None:
+    """The kind of change in the series and points of one curve, and how many points differ.
+
+    Points are matched by position inside a series, series by position inside a
+    curve; the comparison is on the normalized (canonical) numbers, so the same
+    curve digitised in other units is not a change of value. A bound on one
+    side only is a difference, never a number compared with ``None``.
+    """
+    differing = 0
+    shape_changed = len(before.series) != len(after.series)
+    value_changed = shape_changed
+    writing_changed = False
+    metadata_changed = False
+    if before.x_original_unit != after.x_original_unit or (
+        before.y_original_unit != after.y_original_unit
+    ):
+        writing_changed = True
+    for series_before, series_after in zip(before.series, after.series, strict=False):
+        if not _same_optional(
+            series_before.parameter_normalized, series_after.parameter_normalized
+        ):
+            value_changed = True
+        if (
+            series_before.parameter_value != series_after.parameter_value
+            or series_before.parameter_original_unit != series_after.parameter_original_unit
+        ):
+            writing_changed = True
+        if not _same_text(series_before.label, series_after.label) or not _same_text(
+            series_before.conditions, series_after.conditions
+        ):
+            metadata_changed = True
+        if len(series_before.points) != len(series_after.points):
+            value_changed = True
+            differing += abs(len(series_before.points) - len(series_after.points))
+        for pb, pa in zip(series_before.points, series_after.points, strict=False):
+            same = (
+                _same_number(pb.x_normalized, pa.x_normalized)
+                and _same_number(pb.y_normalized, pa.y_normalized)
+                and _same_optional(pb.y_min_normalized, pa.y_min_normalized)
+                and _same_optional(pb.y_max_normalized, pa.y_max_normalized)
+            )
+            if not same:
+                value_changed = True
+                differing += 1
+            elif (pb.x_value, pb.y_value, pb.y_min_value, pb.y_max_value) != (
+                pa.x_value,
+                pa.y_value,
+                pa.y_min_value,
+                pa.y_max_value,
+            ):
+                writing_changed = True
+    if value_changed:
+        return ChangeKind.VALUE, differing
+    if writing_changed:
+        return ChangeKind.WRITING, 0
+    if metadata_changed:
+        return ChangeKind.METADATA, 0
+    return None
+
+
+def _curve_changes(base: RecordSnapshot, target: RecordSnapshot) -> list[FieldChange]:
+    changes = []
+    for external_id in sorted(set(base.curves) | set(target.curves)):
+        before, after = base.curves.get(external_id), target.curves.get(external_id)
+        key = f"curva:{external_id}"
+        current = after or before
+        assert current is not None
+        label = f"Curva: {current.title}"
+        if before is None or after is None:
+            changes.append(
+                FieldChange(
+                    field=key,
+                    label=label,
+                    kind=ChangeKind.PRESENCE,
+                    before_text=_curve_summary(before),
+                    after_text=_curve_summary(after),
+                )
+            )
+            continue
+        for suffix, field_label, attribute in _CURVE_TEXT_FIELDS:
+            old, new = getattr(before, attribute), getattr(after, attribute)
+            if not _same_text(old, new):
+                changes.append(
+                    FieldChange(
+                        field=f"{key}:{suffix}",
+                        label=f"{label} — {field_label}",
+                        kind=ChangeKind.TEXT,
+                        before_text=old or None,
+                        after_text=new or None,
+                    )
+                )
+        axes_before = (before.x_quantity, before.y_quantity, before.x_canonical_unit)
+        axes_after = (after.x_quantity, after.y_quantity, after.x_canonical_unit)
+        if axes_before != axes_after or before.y_canonical_unit != after.y_canonical_unit:
+            changes.append(
+                FieldChange(
+                    field=f"{key}:eixos",
+                    label=f"{label} — Grandezas e unidades dos eixos",
+                    kind=ChangeKind.TEXT,
+                    before_text=_curve_axes(before),
+                    after_text=_curve_axes(after),
+                )
+            )
+        data = _curve_data_change(before, after)
+        if data is None:
+            continue
+        kind, differing = data
+        note = {
+            ChangeKind.VALUE: (
+                f"; {_plural(differing, 'ponto', 'pontos')} com valor diferente"
+                if differing
+                else "; séries ou parâmetros com valor diferente"
+            ),
+            ChangeKind.WRITING: "; mesmos valores físicos, escritos de outro modo",
+            ChangeKind.METADATA: "; rótulos ou condições das séries diferentes",
+        }[kind]
+        changes.append(
+            FieldChange(
+                field=f"{key}:pontos",
+                label=f"{label} — Séries e pontos",
+                kind=kind,
+                before_text=_curve_summary(before),
+                after_text=_curve_summary(after) + note,
             )
         )
     return changes
@@ -450,7 +832,18 @@ def diff_releases(
         if new is None:
             diffs.append(RecordDiff(key[0], key[1], RecordStatus.REMOVED, old, None))
             continue
-        changes = tuple(_text_changes(old, new) + _value_changes(old, new, properties))
+        if old.universe is not new.universe:
+            raise ValidationError(
+                f"O registro {key[0]}/{key[1]} mudou de universo entre as releases "
+                f"({UNIVERSE_LABELS[old.universe]} → {UNIVERSE_LABELS[new.universe]}); "
+                "a identidade externa não pode apontar para duas tabelas."
+            )
+        changes = tuple(
+            _text_changes(old, new)
+            + _value_changes(old, new, properties)
+            + _composition_changes(old, new)
+            + _curve_changes(old, new)
+        )
         status = RecordStatus.CHANGED if changes else RecordStatus.UNCHANGED
         diffs.append(RecordDiff(key[0], key[1], status, old, new, changes))
     return sorted(diffs, key=_sort_key)
@@ -496,6 +889,7 @@ def filter_diffs(
     *,
     status: RecordStatus | None = None,
     class_slug: str | None = None,
+    universe: Universe | None = None,
 ) -> list[RecordDiff]:
     """The records matching the filters; a class matches on either side."""
     return [
@@ -503,7 +897,27 @@ def filter_diffs(
         for diff in diffs
         if (status is None or diff.status is status)
         and (class_slug is None or class_slug in diff.class_slugs)
+        and (universe is None or diff.current.universe is universe)
     ]
+
+
+def count_by_universe(diffs: Sequence[RecordDiff]) -> dict[Universe, int]:
+    """Counts for every universe, zero included, in declaration order."""
+    counts = dict.fromkeys(Universe, 0)
+    for diff in diffs:
+        counts[diff.current.universe] += 1
+    return counts
+
+
+def parse_universe(raw: str | None) -> Universe | None:
+    """``universo`` from the URL; an unknown value is refused with the admitted list."""
+    if raw is None or raw == "":
+        return None
+    try:
+        return Universe(raw)
+    except ValueError as exc:
+        admitted = ", ".join(u.value for u in Universe)
+        raise ValidationError(f"Universo desconhecido: {raw!r}. Admitidos: {admitted}.") from exc
 
 
 def parse_status(raw: str | None) -> RecordStatus | None:
@@ -600,6 +1014,8 @@ class ValueView:
     reading: NumbersView | None
     conversion_method: str | None
     measurement_condition: str | None
+    #: The labels of a discrete value (process attributes); empty otherwise.
+    labels: tuple[str, ...] = ()
 
 
 def value_view(value: ValueSnapshot | None, reading: Reading) -> ValueView:
@@ -619,6 +1035,7 @@ def value_view(value: ValueSnapshot | None, reading: Reading) -> ValueView:
             reading=None,
             conversion_method=None,
             measurement_condition=value.measurement_condition if value else None,
+            labels=value.labels if value else (),
         )
     canonical = canonical_numbers(value, reading.canonical_unit)
     assert canonical is not None

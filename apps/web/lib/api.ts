@@ -31,6 +31,7 @@ import type {
   ReleaseDiff,
   ReleaseDiffItem,
   ReleaseRecordStatus,
+  ReleaseUniverse,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -44,6 +45,11 @@ import type {
   MaterialListItem,
   MaterialSearch,
   MaterialUpdate,
+  CompositionEntryIn,
+  CurveIn,
+  CurveKindSpec,
+  CurveSummary,
+  DesignationIn,
   MyRecords,
   Notebook,
   NotebookChat,
@@ -314,6 +320,7 @@ export function listCatalogReleases(): Promise<CatalogRelease[]> {
 export interface ReleaseDiffQuery {
   tipo?: ReleaseRecordStatus;
   classe?: string;
+  universo?: ReleaseUniverse;
   pagina?: number;
   porPagina?: number;
 }
@@ -322,6 +329,7 @@ function releaseDiffQuery(query: ReleaseDiffQuery, withPage: boolean): string {
   const params = new URLSearchParams();
   if (query.tipo) params.set("tipo", query.tipo);
   if (query.classe) params.set("classe", query.classe);
+  if (query.universo) params.set("universo", query.universo);
   if (withPage && query.pagina && query.pagina > 1) params.set("pagina", String(query.pagina));
   if (withPage && query.porPagina) params.set("por_pagina", String(query.porPagina));
   const text = params.toString();
@@ -360,7 +368,7 @@ export function releaseDiffExportUrl(
   base: string,
   target: string,
   format: "csv" | "xlsx",
-  query: Pick<ReleaseDiffQuery, "tipo" | "classe"> = {},
+  query: Pick<ReleaseDiffQuery, "tipo" | "classe" | "universo"> = {},
 ): string {
   return `${API_URL}/api/exports/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}.${format}${releaseDiffQuery(query, false)}`;
 }
@@ -398,6 +406,52 @@ export function replaceMaterialValues(
     method: "PUT",
     body: JSON.stringify(values),
   });
+}
+
+export function replaceMaterialComposition(
+  id: number,
+  entries: CompositionEntryIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao`, {
+    method: "PUT",
+    body: JSON.stringify({ entries }),
+  });
+}
+
+export function replaceMaterialDesignations(
+  id: number,
+  designations: DesignationIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/designacoes`, {
+    method: "PUT",
+    body: JSON.stringify({ designations }),
+  });
+}
+
+export function listCurveKinds(): Promise<CurveKindSpec[]> {
+  return request<CurveKindSpec[]>(`/api/materials/curvas-tipos`);
+}
+
+export function createMaterialCurve(materialId: number, payload: CurveIn): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function replaceMaterialCurve(
+  materialId: number,
+  curveId: number,
+  payload: CurveIn,
+): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas/${curveId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMaterialCurve(materialId: number, curveId: number): Promise<void> {
+  return request<void>(`/api/materials/${materialId}/curvas/${curveId}`, { method: "DELETE" });
 }
 
 export function deactivateMaterial(id: number): Promise<void> {

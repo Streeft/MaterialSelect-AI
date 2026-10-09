@@ -14,6 +14,9 @@
 ! Material: Liga Ficticia CAE-1 (demonstracao) (id 901; classe Metais)
 ! MATERIAL FICTICIO: dado de demonstracao, valores inventados para ensino. Nao
 ! usar em projeto real.
+! Designacoes: sem designacao cadastrada
+! Composicao quimica (% em massa): sem composicao cadastrada
+! Composicao e designacoes sao informativas: nenhum campo do cartao as le.
 ! Sistema de unidades: SI mm-t-s (mm, t, s, N, MPa, K)
 ! Unidades base: comprimento mm, massa t (tonelada), tempo s, forca N, tensao
 ! MPa, temperatura K

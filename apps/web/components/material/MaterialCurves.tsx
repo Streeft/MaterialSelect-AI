@@ -1,19 +1,22 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
   curveExportUrl,
+  deleteMaterialCurve,
   getMaterialCurve,
   listMaterialCurves,
 } from "@/lib/api";
 import type { Curve, CurveScale } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { CurveChart } from "@/components/charts/CurveChart";
+import { CurveEditor } from "@/components/material/CurveEditor";
 import { MenuItem } from "@/components/ui/Menu";
 import {
+  Button,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -46,7 +49,17 @@ export const CURVE_PARAMS = {
  * and every choice is a new question to the backend, which converts and lays
  * out the points (ADR 0004).
  */
-export function MaterialCurves({ materialId }: { materialId: number }) {
+export function MaterialCurves({
+  materialId,
+  canEdit = false,
+}: {
+  materialId: number;
+  /** The server would accept a write here (own record or curator, not official). */
+  canEdit?: boolean;
+}) {
+  const qc = useQueryClient();
+  // TM4-d: "new" | "edit" while the editor is open.
+  const [editing, setEditing] = useState<"new" | "edit" | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -95,6 +108,14 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
     [pathname, router, search],
   );
 
+  const remove = useMutation({
+    mutationFn: (curveId: number) => deleteMaterialCurve(materialId, curveId),
+    onSuccess: async () => {
+      update({ curve: null, x: null, y: null, scale: null });
+      await qc.invalidateQueries({ queryKey: ["material-curves", materialId] });
+    },
+  });
+
   if (list.isLoading) return <LoadingState label={t.loading} />;
   if (list.isError) return <ErrorState title={t.error} onRetry={() => void list.refetch()} />;
   if (!list.data) return null;
@@ -107,11 +128,28 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
     </ul>
   );
 
+  if (editing === "new" || (editing === "edit" && curve.data)) {
+    return (
+      <CurveEditor
+        materialId={materialId}
+        curve={editing === "edit" ? curve.data : undefined}
+        onDone={() => setEditing(null)}
+      />
+    );
+  }
+
+  const newCurveButton = canEdit ? (
+    <Button size="sm" className="self-start" onClick={() => setEditing("new")}>
+      {t.edit.newCurve}
+    </Button>
+  ) : null;
+
   if (list.data.total === 0 || selected === undefined) {
     return (
       <div className="flex flex-col gap-3">
         <EmptyState title={t.none} description={t.noneHint} />
         {counts}
+        {newCurveButton}
       </div>
     );
   }
@@ -172,6 +210,30 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
         />
       ) : (
         <LoadingState label={t.loading} />
+      )}
+      {canEdit && (
+        <div className="flex flex-wrap items-center gap-2">
+          {newCurveButton}
+          {selected.is_official ? (
+            <p className="text-xs text-ink-muted">{t.edit.officialReadOnly}</p>
+          ) : (
+            <>
+              <Button size="sm" disabled={!curve.data} onClick={() => setEditing("edit")}>
+                {t.edit.editCurve}
+              </Button>
+              <Button
+                size="sm"
+                variant="danger-quiet"
+                loading={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(t.edit.confirmDelete)) remove.mutate(selected.id);
+                }}
+              >
+                {t.edit.deleteCurve}
+              </Button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

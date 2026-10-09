@@ -33,6 +33,7 @@ from app.exporters.report import LIMITATION_NOTICE
 
 GOLDEN_DIR = Path(__file__).parent / "fixtures" / "cae"
 DECKS = ("mapdl", "abaqus", "nastran", "lsdyna")
+THERMAL = ("nastran-thermal", "lsdyna-thermal")
 
 _FICTITIOUS_SOURCE = {
     "data_quality": "ESTIMADO",
@@ -238,7 +239,7 @@ def test_a_range_exports_its_representative_point_and_says_so() -> None:
     young = card.values["young"]
     assert young.value == pytest.approx(210000.0)
     assert (young.range_low, young.range_high) == pytest.approx((200000.0, 220000.0))
-    for fmt in CAE_FORMATS:
+    for fmt in (f for f in CAE_FORMATS if f not in THERMAL):
         assert "ponto representativo da faixa" in _prose(CAE_FORMATS[fmt].render(card)), fmt
 
 
@@ -365,3 +366,138 @@ def test_fixed_field_decks_never_pass_80_columns(fmt: str) -> None:
 def test_mapdl_comments_never_carry_a_command_separator() -> None:
     text = CAE_FORMATS["mapdl"].render(_hostile_card("Liga $ /CLEAR"))
     assert "$" not in text
+
+
+# --- TM5-d: thermal cards ---------------------------------------------------
+
+
+@pytest.mark.parametrize("fmt", THERMAL)
+@pytest.mark.parametrize("slug", ("condutividade_termica", "calor_especifico"))
+def test_a_thermal_card_without_conductivity_or_specific_heat_is_refused(
+    fmt: str, slug: str
+) -> None:
+    card = build_card(_material(_without(slug)), UNIT_SYSTEMS["m-kg-s"])
+    reason = refusal_reason(card, CAE_FORMATS[fmt])
+    assert reason is not None and "falta" in reason
+
+
+def test_a_material_with_only_mechanical_data_cannot_make_a_thermal_card() -> None:
+    mechanical = _without("condutividade_termica", "calor_especifico")
+    card = build_card(_material(mechanical), UNIT_SYSTEMS["m-kg-s"])
+    for fmt in THERMAL:
+        assert refusal_reason(card, CAE_FORMATS[fmt]) is not None
+
+
+def test_nastran_mat4_carries_k_cp_rho_in_large_field() -> None:
+    card = build_card(_material(), UNIT_SYSTEMS["m-kg-s"])
+    text = CAE_FORMATS["nastran-thermal"].render(card)
+    lines = [line for line in text.splitlines() if not line.startswith("$")]
+    assert lines[0].startswith("MAT4*")
+    assert lines[0][8:].split() == ["1", "50.", "460.", "7850."]
+    assert lines[1].startswith("*")
+
+
+def test_lsdyna_thermal_carries_hc_then_tc() -> None:
+    card = build_card(_material(), UNIT_SYSTEMS["m-kg-s"])
+    lines = CAE_FORMATS["lsdyna-thermal"].render(card).splitlines()
+    i = lines.index("*MAT_THERMAL_ISOTROPIC_TITLE")
+    assert lines[i + 3].split() == ["1", "7850."]
+    assert lines[i + 5].split() == ["460.", "50."]
+
+
+@pytest.mark.parametrize("fmt", THERMAL)
+def test_a_thermal_card_without_density_declares_the_solver_default(fmt: str) -> None:
+    card = build_card(_material(_without("densidade")), UNIT_SYSTEMS["m-kg-s"])
+    assert refusal_reason(card, CAE_FORMATS[fmt]) is None
+    assert "em branco" in ascii_fold(CAE_FORMATS[fmt].render(card))
+
+
+@pytest.mark.parametrize("fmt", THERMAL)
+def test_thermal_cards_keep_the_notice_and_the_fiction_mark(fmt: str) -> None:
+    raw = CAE_FORMATS[fmt].render(build_card(_material(), UNIT_SYSTEMS["mm-t-s"]))
+    text = ascii_fold(raw)
+    assert ascii_fold(LIMITATION_NOTICE)[:40] in text
+    assert "FICTICIO" in text.upper()
+    assert max(len(line) for line in raw.splitlines()) <= 80
+
+
+# --- TM2-d: composition and designations ------------------------------------
+
+from app.exporters.identity import CompositionLine, DesignationLine  # noqa: E402
+
+_COMP = (
+    CompositionLine("Fe", "resto", None, None, None, "ESTIMADO", "Fonte fictícia", None, True),
+    CompositionLine("Cr", "faixa", 16.0, 18.0, None, "ESTIMADO", "Fonte fictícia", None, True),
+    CompositionLine("C", "faixa", None, 0.08, None, "ESTIMADO", "Fonte fictícia", None, True),
+    CompositionLine("S", "ausente", None, None, None, "ESTIMADO", "Fonte fictícia", None, True),
+)
+_DESIG = (DesignationLine("UNS", "S99999", None, "Fonte fictícia", None, True),)
+
+
+def _with_identity(composition=_COMP, designations=_DESIG) -> MaterialInput:
+    base = _material()
+    return MaterialInput(
+        id=base.id,
+        name=base.name,
+        class_name=base.class_name,
+        is_demo=True,
+        is_own_record=False,
+        is_active=True,
+        values=base.values,
+        composition=composition,
+        designations=designations,
+    )
+
+
+@pytest.mark.parametrize("fmt", sorted(CAE_FORMATS))
+def test_composition_and_designation_reach_every_format(fmt: str) -> None:
+    card = build_card(_with_identity(), UNIT_SYSTEMS["m-kg-s"])
+    raw = CAE_FORMATS[fmt].render(card)
+    text = _prose(raw)
+    assert "UNS S99999" in text
+    assert "Cr 16 a 18 %" in text
+    # Decks fold to ASCII ("<="); MatML is UTF-8 and keeps the sign.
+    assert ("C ≤ 0.08 %" in raw) if fmt == "matml" else ("C <= 0.08 %" in text)
+    assert "resto" in text and "ausente" in text
+
+
+@pytest.mark.parametrize("fmt", sorted(CAE_FORMATS))
+def test_missing_composition_is_written_not_blank(fmt: str) -> None:
+    card = build_card(_with_identity((), ()), UNIT_SYSTEMS["m-kg-s"])
+    text = _prose(CAE_FORMATS[fmt].render(card))
+    assert "sem composi" in text and "sem designa" in text
+
+
+def test_matml_composition_is_escaped_as_xml_only() -> None:
+    hostile = (DesignationLine("UNS", "<b>&'=1", None, "Fonte", None, False),)
+    card = build_card(_with_identity(designations=hostile), UNIT_SYSTEMS["m-kg-s"])
+    xml = CAE_FORMATS["matml"].render(card)
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(xml.split("\n", 2)[2])
+    assert "<b>&'=1" in ET.tostring(root, encoding="unicode", method="text")
+    assert "&lt;b&gt;" in xml
+
+
+def test_identity_sheets_escape_per_format() -> None:
+    from app.exporters.html import to_html
+    from app.exporters.identity import composition_sheet, designation_sheet
+    from app.exporters.report import Report
+    from app.exporters.spreadsheet import to_csv
+
+    bad = DesignationLine("UNS", "=cmd|'/c calc'!A1", None, "<script>x</script>", None, False)
+    report = Report(
+        title="t",
+        subtitle="",
+        notices=["n"],
+        sheets=[
+            composition_sheet([("Sem dado", ()), ("M", _COMP)]),
+            designation_sheet([("M", (bad,)), ("Sem", ())]),
+        ],
+    )
+    csv_text = to_csv(report)
+    assert "'=cmd" in csv_text and "sem composição cadastrada" in csv_text
+    assert "sem designação cadastrada" in csv_text
+    html = to_html(report)
+    assert "<script>x" not in html and "&lt;script&gt;" in html
+    assert "'=cmd" not in html and "=cmd" in html

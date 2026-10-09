@@ -13,9 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.domain.curves import NormalizedCurve
+from app.models.catalog import CatalogRecordRef
 from app.models.enums import DataQuality
 from app.models.material import Material
 from app.models.material_curve import MaterialCurve, MaterialCurvePoint, MaterialCurveSeries
+from app.models.source import Source
 from app.repositories.visibility import visible_materials
 
 
@@ -35,6 +37,37 @@ class CurveRepository:
             .scalars()
             .one_or_none()
         )
+
+    def is_official(self, material_id: int) -> bool:
+        """Whether the licensed official catalogue (D-102) owns this record's identity."""
+        return (
+            self.db.execute(
+                select(CatalogRecordRef.id).where(CatalogRecordRef.material_id == material_id)
+            ).first()
+            is not None
+        )
+
+    def get_or_create_source(self, label: str, *, is_demo: bool = False) -> Source:
+        """A hand-entered curve names its source by label, like a property value does."""
+        existing = self.db.execute(select(Source).where(Source.label == label)).scalars().first()
+        if existing is not None:
+            return existing
+        source = Source(label=label, is_demo=is_demo)
+        self.db.add(source)
+        self.db.flush()
+        return source
+
+    def add(self, curve: MaterialCurve) -> None:
+        self.db.add(curve)
+
+    def delete(self, curve: MaterialCurve) -> None:
+        self.db.delete(curve)
+
+    def flush(self) -> None:
+        self.db.flush()
+
+    def commit(self) -> None:
+        self.db.commit()
 
     def list_for_material(self, material_id: int) -> list[MaterialCurve]:
         """Every curve of a visible material, with series and points for the counts."""
