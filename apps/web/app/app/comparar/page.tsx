@@ -36,8 +36,8 @@ const t = ptBR.compare;
 
 // Mirrors MAX_COMPARE_* in apps/api/app/schemas/charts.py; the server rejects
 // anything larger, and the UI should not let the user get that far.
-const MAX_MATERIALS = 12;
-const MAX_PROPERTIES = 12;
+const MAX_MATERIALS = 60;
+const MAX_PROPERTIES = 20;
 
 function parseIds(raw: string | null): number[] {
   if (!raw) return [];

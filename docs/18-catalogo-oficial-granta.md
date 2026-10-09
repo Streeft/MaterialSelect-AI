@@ -219,6 +219,20 @@ um ponto a 20 °C não autoriza transformá-la em propriedade escalar. Quando um
 feature determinística for criada para consumir a curva, ela deve declarar como
 o ponto foi escolhido/interpolado e manter a referência ao dado original.
 
+**Leitura de um valor numa curva (D-110, TM4-b).** A regra declarada é a mais
+conservadora possível: `GET /api/materials/{id}/curvas/{curva}/valor?em=20&unidade_em=degC`
+devolve, por série, **só o ponto que a fonte declarou exatamente naquele x**,
+depois de converter o pedido e o ponto para a unidade canônica por
+`app/calculations/units.py` (20 °C encontra o ponto escrito como 293,15 K; a
+tolerância é de 1e-9 relativo, só ruído de ponto flutuante). Nunca se
+interpola, extrapola, reamostra nem se toma o ponto mais próximo. Sem ponto
+declarado naquele x, a série responde `found = false` com a ausência escrita
+("Sem ponto declarado em 20 °C nesta série; nada foi interpolado."), nunca
+zero. O ponto vem com a referência ao dado original: posição na série, x e y
+como a fonte os escreveu, a faixa declarada e a fonte/citação da curva. Esse
+valor **não** vira propriedade escalar (`MaterialPropertyValue`) nem entra em
+ranking: é uma leitura da curva, com a curva ao lado.
+
 `CatalogDatasetValue` faz a mesma coisa para fatos que pertencem ao dataset
 como um todo, por exemplo defaults econômicos, combustíveis, dados por país e
 parâmetros de fim de vida.

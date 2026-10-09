@@ -41,6 +41,7 @@ from app.routers import (
     catalog,
     charts,
     classes,
+    curves,
     dashboard,
     eco,
     exports,
@@ -195,6 +196,11 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+# `curves` antes de `materials`: mesmo caminho de uma curva, com a unidade do
+# parâmetro da família (TM4-e); a primeira rota registrada responde.
+app.include_router(
+    curves.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
 app.include_router(
     materials.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )

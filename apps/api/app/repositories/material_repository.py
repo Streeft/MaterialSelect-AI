@@ -32,6 +32,7 @@ from app.domain.search_query import (
     to_designation_pattern,
     to_like_pattern,
 )
+from app.models.catalog import CatalogRecordRef
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
@@ -430,6 +431,36 @@ class MaterialRepository:
         """Remove all property values of a material (used when replacing them)."""
         self.db.execute(
             delete(MaterialPropertyValue).where(MaterialPropertyValue.material_id == material_id)
+        )
+
+    def replace_composition(self, material: Material, rows: list) -> None:
+        """Swap the composition rows in one flush (delete first, then insert).
+
+        Through the relationship, so the ORM's delete-orphan cascade does the
+        delete and the unique ``(material, element)`` index never sees both the
+        old and the new row of one element.
+        """
+        material.composition.clear()
+        self.db.flush()
+        for row in rows:
+            material.composition.append(row)
+        self.db.flush()
+
+    def replace_designations(self, material: Material, rows: list) -> None:
+        """Swap the designation rows, same reasoning as ``replace_composition``."""
+        material.designations.clear()
+        self.db.flush()
+        for row in rows:
+            material.designations.append(row)
+        self.db.flush()
+
+    def is_official(self, material_id: int) -> bool:
+        """Whether the licensed official catalogue (D-102) owns this record's identity."""
+        return (
+            self.db.execute(
+                select(CatalogRecordRef.id).where(CatalogRecordRef.material_id == material_id)
+            ).first()
+            is not None
         )
 
     def add(self, obj: object) -> None:

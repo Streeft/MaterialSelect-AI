@@ -139,6 +139,29 @@ export interface CompositionEntry {
   is_demo: boolean;
 }
 
+/** One element being written (TM2-a). `resto` and `ausente` carry no number. */
+export interface CompositionEntryIn {
+  element: string;
+  state: CompositionState;
+  value_min?: number | null;
+  value_max?: number | null;
+  value_nominal?: number | null;
+  unit?: string | null;
+  source_label: string;
+  citation?: string | null;
+  notes?: string | null;
+  data_quality?: DataQuality;
+}
+
+/** One designation being written (TM2-a). */
+export interface DesignationIn {
+  system: DesignationSystem;
+  code: string;
+  region?: string | null;
+  source_label: string;
+  citation?: string | null;
+}
+
 /** Why a composition condition could not be decided, counted per material. */
 export interface UndeterminedBreakdown {
   sem_composicao: number;
@@ -209,6 +232,8 @@ export interface MaterialDetail {
   is_active: boolean;
   /** Same flag, same reason, as on `MaterialListItem`. */
   is_own_record: boolean;
+  /** TM2-a: from the licensed official catalogue; composition/designations are read-only. */
+  is_official?: boolean;
   keywords: string[];
   property_groups: PropertyGroup[];
   /**
@@ -619,7 +644,12 @@ export type ConstraintOperator =
   // Never applicable to a material property — none of them is discrete — which
   // is why the editor offers these two only in a process study.
   | "has_any_label"
-  | "has_no_label";
+  | "has_no_label"
+  // TM2-b (D-105): chemical composition, the condition in `text` in the search's
+  // syntax ("Cr>=12"). `not_composition` is the guarantee side. Material studies
+  // only.
+  | "composition"
+  | "not_composition";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -900,6 +930,8 @@ export interface FunnelStep {
   operator: string;
   passed: number;
   remaining: number;
+  /** Composition criteria only: candidates it could not decide for lack of data. */
+  undetermined?: number | null;
 }
 
 /**
@@ -2670,6 +2702,58 @@ export interface CurveSummary {
   point_count: number;
   source_label: string;
   is_demo: boolean;
+  /** From the official catalogue (D-102): read-only here. */
+  is_official?: boolean;
+}
+
+/** One point being written, in the curve's original units (TM4-d). */
+export interface CurvePointIn {
+  x: number;
+  y: number;
+  y_min?: number | null;
+  y_max?: number | null;
+}
+
+export interface CurveSeriesIn {
+  label?: string | null;
+  conditions?: string | null;
+  parameter?: number | null;
+  parameter_unit?: string | null;
+  points: CurvePointIn[];
+}
+
+/** A whole curve being written; an update replaces it entirely (TM4-d). */
+export interface CurveIn {
+  kind: CurveKind;
+  title: string;
+  description?: string | null;
+  x_quantity: string;
+  x_unit: string;
+  y_quantity: string;
+  y_unit: string;
+  x_label?: string | null;
+  y_label?: string | null;
+  parameter_quantity?: string | null;
+  series: CurveSeriesIn[];
+  source_label: string;
+  citation?: string | null;
+  data_quality?: DataQuality;
+}
+
+export interface CurveQuantityOption {
+  key: string;
+  name: string;
+  reading_unit: string;
+  units: { unit: string; label: string }[];
+}
+
+/** What a kind of curve admits — the form's vocabulary, from the backend's own table. */
+export interface CurveKindSpec {
+  kind: CurveKind;
+  label: string;
+  x_quantities: CurveQuantityOption[];
+  y_quantities: CurveQuantityOption[];
+  parameter_quantities: CurveQuantityOption[];
 }
 
 export interface MaterialCurves {
@@ -2713,6 +2797,9 @@ export interface CurveParameter {
   quantity_label: string;
   unit: string;
   unit_label: string;
+  canonical_unit: string;
+  /** The units the reader may choose for the parameter (TM4-e). */
+  accepted_units: CurveUnitOption[];
 }
 
 /** One row of the points table: reading units, the source's numbers, drawn or not. */

@@ -445,7 +445,9 @@ class DrawnCurve:
     notes: list[str] = field(default_factory=list)
 
 
-def axis_reading(quantity: AxisQuantity, requested: str | None, axis: str) -> Reading:
+def axis_reading(
+    quantity: AxisQuantity, requested: str | None, axis: str, *, where: str | None = None
+) -> Reading:
     """The unit an axis is read in: the reader's choice, else the convention.
 
     Refused, never ignored (D-56, D-70): a unit outside the quantity's list is
@@ -455,7 +457,8 @@ def axis_reading(quantity: AxisQuantity, requested: str | None, axis: str) -> Re
     allowed = {quantity.canonical_unit, quantity.reading_unit, *quantity.accepted_units}
     if requested is not None and requested not in allowed:
         raise DisplayUnitError(
-            f"Unidade {requested!r} não é admitida no eixo {axis} ({quantity.name}). "
+            f"Unidade {requested!r} não é admitida {where or f'no eixo {axis}'} "
+            f"({quantity.name}). "
             f"Admitidas: {', '.join(sorted(allowed))}."
         )
     return reading_for(
@@ -500,11 +503,16 @@ def available_scales(x: AxisQuantity, rx: Reading, y: AxisQuantity, ry: Reading)
     ]
 
 
-def _padded(values: list[float], log: bool) -> tuple[float, float] | None:
+def _padded(
+    values: list[float], log: bool, zero_is_floor: bool = True
+) -> tuple[float, float] | None:
     """The data range with a little air, in the space the axis is drawn in.
 
     Linear: 4 % of the span each side, never crossing zero when the data does
-    not (a strain axis that starts at 0 starts at 0). Log: 0.04 decade.
+    not (a strain axis that starts at 0 starts at 0) — but only when zero is a
+    true origin of the reading unit. On an offset scale (°C, °F) 0 is an
+    arbitrary mark, so data from 20 to 600 °C must not be pulled down to 0 °C
+    (TM4-h). Log: 0.04 decade.
     """
     if not values:
         return None
@@ -516,10 +524,11 @@ def _padded(values: list[float], log: bool) -> tuple[float, float] | None:
     span = hi - lo
     pad = span * 0.04 if span > 0 else (abs(lo) * 0.1 or 1.0)
     low, high = lo - pad, hi + pad
-    if lo >= 0 > low:
-        low = 0.0
-    if hi <= 0 < high:
-        high = 0.0
+    if zero_is_floor:
+        if lo >= 0 > low:
+            low = 0.0
+        if hi <= 0 < high:
+            high = 0.0
     return low, high
 
 
@@ -533,6 +542,7 @@ def draw_curve(
     x_unit: str | None = None,
     y_unit: str | None = None,
     scale: str | None = None,
+    parameter_unit: str | None = None,
 ) -> DrawnCurve:
     """Everything the figure and its table need, in the reader's units.
 
@@ -570,16 +580,23 @@ def draw_curve(
             if reason:
                 raise CurveError(f"Escala logarítmica recusada no eixo {axis}: {reason}")
 
+    # TM4-e: the family parameter is read in the reader's unit too (converted
+    # by units.py through ``reading_for``), refused when the quantity does not
+    # admit it, and ignored only when the curve has no family at all.
     parameter_reading = (
-        reading_for(
-            canonical_unit=QUANTITIES[parameter_quantity].canonical_unit,
-            display_unit=QUANTITIES[parameter_quantity].reading_unit,
-            accepted_units=QUANTITIES[parameter_quantity].accepted_units,
-            requested=None,
+        axis_reading(
+            QUANTITIES[parameter_quantity],
+            parameter_unit,
+            "x",
+            where="no parâmetro da família",
         )
         if parameter_quantity
         else None
     )
+    if parameter_quantity is None and parameter_unit is not None:
+        raise CurveError(
+            "Esta curva não é uma família: não há parâmetro para ler em outra unidade."
+        )
 
     def fits(value: float, log: bool) -> bool:
         return value > 0 if log else True
@@ -668,9 +685,114 @@ def draw_curve(
 
     return DrawnCurve(
         scale=chosen,
-        x=DrawnAxis(xq, rx, x_log, _padded(xs, x_log)),
-        y=DrawnAxis(yq, ry, y_log, _padded(ys, y_log)),
+        x=DrawnAxis(xq, rx, x_log, _padded(xs, x_log, is_ratio_scale(rx.unit))),
+        y=DrawnAxis(yq, ry, y_log, _padded(ys, y_log, is_ratio_scale(ry.unit))),
         parameter_reading=parameter_reading,
         series=tuple(drawn),
         notes=notes,
     )
+
+
+# --- Reading a value at a declared x (TM4-b, D-110) -----------------------------
+
+#: The rule, in the words the screen, the API and docs/18 §6 all repeat.
+READ_RULE = (
+    "Só se lê o ponto que a fonte declarou exatamente neste valor de x; nada é "
+    "interpolado, extrapolado nem reamostrado. Sem ponto declarado ali, o valor "
+    "está ausente."
+)
+#: Relative slack for comparing two conversions of the same number to the
+#: canonical unit — float noise only, never a tolerance on the physics.
+_SAME_X_TOLERANCE = 1e-9
+
+
+@dataclass(frozen=True)
+class SeriesReading:
+    """What one series says at the asked x: its declared point, or an absence."""
+
+    series_id: int
+    label: str | None
+    conditions: str | None
+    parameter_value: float | None
+    parameter_original: float | None
+    parameter_original_unit: str | None
+    found: bool
+    #: Position of the declared point in its series (the reference to the stored row).
+    position: int | None = None
+    x_original: float | None = None
+    y: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
+    y_original: float | None = None
+    y_min_original: float | None = None
+    y_max_original: float | None = None
+
+
+def read_at_declared_x(
+    x_quantity: str,
+    y_quantity: str,
+    parameter_quantity: str | None,
+    series: Sequence[SeriesData],
+    *,
+    at: float,
+    at_unit: str,
+    y_unit: str | None = None,
+    parameter_unit: str | None = None,
+) -> tuple[list[SeriesReading], Reading, Reading | None]:
+    """The value of each series at ``at`` — only where the source declared that x.
+
+    ``at`` is converted with ``units.to_canonical`` (so 20 °C finds the point the
+    source wrote as 293.15 K) and compared with the stored canonical x. **No
+    interpolation, no extrapolation, no nearest point**: a series without a
+    point at exactly that x answers ``found=False``, never a number. The point
+    comes back with the numbers the source wrote beside the converted ones.
+    Returns the readings plus the reading units of y and of the parameter.
+    """
+    xq, yq = QUANTITIES[x_quantity], QUANTITIES[y_quantity]
+    axis_reading(xq, at_unit, "x")  # validates the unit; the value is converted below
+    ry = axis_reading(yq, y_unit, "y")
+    rp = (
+        axis_reading(
+            QUANTITIES[parameter_quantity], parameter_unit, "x", where="no parâmetro da família"
+        )
+        if parameter_quantity
+        else None
+    )
+    target = _convert(_number(at, "Valor pedido"), at_unit, xq, "Valor pedido")[0]
+    out: list[SeriesReading] = []
+    for item in series:
+        hit = next(
+            (
+                (index, point)
+                for index, point in enumerate(item.points)
+                if abs(point.x - target) <= _SAME_X_TOLERANCE * max(1.0, abs(target))
+            ),
+            None,
+        )
+        common = {
+            "series_id": item.id,
+            "label": item.label,
+            "conditions": item.conditions,
+            "parameter_value": rp.value(item.parameter) if rp else None,
+            "parameter_original": item.parameter_original,
+            "parameter_original_unit": item.parameter_original_unit,
+        }
+        if hit is None:
+            out.append(SeriesReading(found=False, **common))  # type: ignore[arg-type]
+            continue
+        index, point = hit
+        out.append(
+            SeriesReading(
+                found=True,
+                position=index,
+                x_original=point.x_original,
+                y=ry.value(point.y),
+                y_min=ry.value(point.y_min),
+                y_max=ry.value(point.y_max),
+                y_original=point.y_original,
+                y_min_original=point.y_min_original,
+                y_max_original=point.y_max_original,
+                **common,  # type: ignore[arg-type]
+            )
+        )
+    return out, ry, rp

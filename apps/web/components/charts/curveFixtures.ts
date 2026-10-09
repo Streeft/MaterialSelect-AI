@@ -51,7 +51,18 @@ export const stressStrain: Curve = {
     domain: [0, 5.2],
   }),
   y_axis: axis({ title: "Tensão de engenharia" }),
-  parameter: { quantity: "temperatura", quantity_label: "Temperatura", unit: "degC", unit_label: "°C" },
+  parameter: {
+    quantity: "temperatura",
+    quantity_label: "Temperatura",
+    unit: "degC",
+    unit_label: "°C",
+    canonical_unit: "K",
+    accepted_units: [
+      { unit: "degC", label: "°C" },
+      { unit: "K", label: "K" },
+      { unit: "degF", label: "°F" },
+    ],
+  },
   series: [
     {
       id: 101,

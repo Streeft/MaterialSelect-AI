@@ -45,6 +45,11 @@ import type {
   MaterialListItem,
   MaterialSearch,
   MaterialUpdate,
+  CompositionEntryIn,
+  CurveIn,
+  CurveKindSpec,
+  CurveSummary,
+  DesignationIn,
   MyRecords,
   Notebook,
   NotebookChat,
@@ -264,6 +269,8 @@ export function listMaterialCurves(materialId: number): Promise<MaterialCurves> 
 export interface CurveReading {
   x?: string;
   y?: string;
+  /** Unit the family parameter is read in (TM4-e). */
+  parameter?: string;
   scale?: CurveScale;
 }
 
@@ -271,6 +278,7 @@ function curveQuery(reading: CurveReading): string {
   const params = new URLSearchParams();
   if (reading.x) params.set("unidade_x", reading.x);
   if (reading.y) params.set("unidade_y", reading.y);
+  if (reading.parameter) params.set("unidade_parametro", reading.parameter);
   if (reading.scale) params.set("escala", reading.scale);
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -298,7 +306,7 @@ export function curveExportUrl(
   format: "csv" | "xlsx",
   reading: Pick<CurveReading, "x" | "y"> = {},
 ): string {
-  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery(reading)}`;
+  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery({ x: reading.x, y: reading.y })}`;
 }
 
 // --- Changes between catalogue releases (D-108) -----------------------------
@@ -398,6 +406,52 @@ export function replaceMaterialValues(
     method: "PUT",
     body: JSON.stringify(values),
   });
+}
+
+export function replaceMaterialComposition(
+  id: number,
+  entries: CompositionEntryIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao`, {
+    method: "PUT",
+    body: JSON.stringify({ entries }),
+  });
+}
+
+export function replaceMaterialDesignations(
+  id: number,
+  designations: DesignationIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/designacoes`, {
+    method: "PUT",
+    body: JSON.stringify({ designations }),
+  });
+}
+
+export function listCurveKinds(): Promise<CurveKindSpec[]> {
+  return request<CurveKindSpec[]>(`/api/materials/curvas-tipos`);
+}
+
+export function createMaterialCurve(materialId: number, payload: CurveIn): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function replaceMaterialCurve(
+  materialId: number,
+  curveId: number,
+  payload: CurveIn,
+): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas/${curveId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMaterialCurve(materialId: number, curveId: number): Promise<void> {
+  return request<void>(`/api/materials/${materialId}/curvas/${curveId}`, { method: "DELETE" });
 }
 
 export function deactivateMaterial(id: number): Promise<void> {

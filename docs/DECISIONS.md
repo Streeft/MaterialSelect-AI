@@ -9188,6 +9188,27 @@ release nova não traz passam a ausentes, em vez de herdados.
 
 ---
 
+## D-113 — Comparador largo: o teto da requisição é 60 x 20, e cada figura tem o seu teto de legibilidade, dito por escrito
+
+**Contexto.** O TM3 pedia dezenas de materiais lado a lado. O teto de 12 em
+`schemas/charts.py` existia pela leitura das figuras, não pelo custo no servidor.
+
+**Decisão.** (1) `MAX_COMPARE_MATERIALS` passa a 60 e `MAX_COMPARE_PROPERTIES` a
+20; acima disso o schema recusa (422), nunca trunca. (2) A tela decide **só se
+desenha**: barras até 12 materiais, radar até 8, coordenadas paralelas até 30;
+mapa de calor e tabela sem teto (`COMPARISON_FIGURE_LIMITS`). Passado o teto, a
+figura não é desenhada, um aviso escrito diz o limite e a tabela (D-31) aparece
+no lugar. Escores e geometria continuam do backend. (3) A tabela larga tem
+cabeçalho e coluna de material fixos e altura própria (70vh) acima de 12 linhas.
+(4) TM4-h: a folga do eixo (`_padded`) só prende o zero quando a unidade de
+leitura tem zero verdadeiro (`is_ratio_scale`); em °C/°F o eixo de 20 a 600 °C
+deixa de começar em 0 °C. Continua no backend, em unidade de leitura.
+
+**Fora do escopo.** Composição química lado a lado no comparador: o contrato
+`CompareOut` só leva propriedades escalares; fica como resíduo TM3-a.
+
+---
+
 ## D-112 — Composição e designações nas exportações; cartões térmicos CAE
 
 **Data:** 08/10/2026
@@ -9220,6 +9241,133 @@ opcional mas **declarada** quando falta (o `MAT4` assume RHO = 1,0). Parâmetros
 de modelo (convecção, geração, mudança de fase) ficam em branco com comentário.
 Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
 exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
+
+## D-111 — Composição como critério de seleção e edição à mão de composição, designações e curvas, com a permissão do material
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 66, TM2-b, TM2-a e TM4-d)
+
+**O pedido.** Fechar três resíduos do D-105/D-106: a composição como estágio da
+seleção (TM2-b), e escrever composição, designações (TM2-a) e curvas (TM4-d) pela
+API e pela ficha, com auditoria e a permissão certa.
+
+### Composição como critério de um estágio `limit` (TM2-b)
+
+- **Dois operadores novos**, `composition` e `not_composition`, no mesmo estágio
+  `limit` e na mesma árvore AND/OR (M6). A condição vai em `text`, **na sintaxe da
+  busca** (`Cr>=12`, `C<=0,08`, `Ni:8-10`, `Fe`) e é lida pelo mesmo
+  `parse_condition`: estudo e busca não podem discordar do que a condição quer
+  dizer. Sem coluna nova e sem migração (o estudo salvo guarda operador + texto).
+- **A regra não foi reescrita.** O veredito vem de `app.domain.composition.evaluate`
+  (alcance da faixa, três valores). `composition` passa só o verdadeiro;
+  `not_composition` passa só o **falso decidido** — é a garantia, o que
+  `NOT comp:Cr<12` significa na busca. O indeterminado (sem composição, elemento
+  não declarado, declarado ausente, resto comparado com número) **não passa em
+  nenhum dos dois**: a negação não libera a ausência (D-59/D-105).
+- **Por que dois operadores e não um `NOT` genérico.** A árvore de restrições não
+  tem negação; abrir uma só para composição criaria um construtor que o resto do
+  motor não conhece. O par espelha o par `in_class`/`not_in_class`.
+- **Funil e laudo.** O passo do funil leva o rótulo com a regra ("alcance da faixa"
+  ou "garantia") e `undetermined`, a contagem dos candidatos que o passo não
+  conseguiu decidir por falta de dado. A planilha "Restrições e funil" (e o laudo
+  HTML) imprime `RULE_TEXT` e uma nota por passo ("N candidato(s) sem o dado de
+  composição … não passam"). Geometria e ranking não mudam: o estágio só estreita
+  o conjunto.
+- **Só no universo de materiais.** Num estudo de processos é 400. Os snapshots
+  recebem a composição por leitura única, preguiçosa (só quem usa o critério paga),
+  já filtrada por visibilidade (D-62).
+
+### Escrever composição, designações e curvas (TM2-a, TM4-d)
+
+- **Rotas.** `PUT /api/materials/{id}/composicao`, `PUT …/designacoes`, `POST`,
+  `PUT` e `DELETE …/curvas[/{curva}]` e `GET /api/materials/curvas-tipos` (o
+  vocabulário do formulário, lido da tabela do próprio construtor). Cada `PUT`
+  **substitui o conjunto inteiro**, como `PUT …/values`: o que não vem sai, e uma
+  lista vazia de composição é "sem composição cadastrada" (nunca 0 %).
+- **Mesmos construtores do seed e do importador.** `build_composition_entry` /
+  `validate_composition` e `build_curve`: resto e ausente sem número, nada de
+  `100 − Σ`, unidade só por `units.py`, x crescente, faixa que contém a linha.
+  Tudo é validado **antes** de apagar qualquer coisa — recusa (400) não toca no
+  que está gravado. A fonte é obrigatória em cada linha/curva (422 sem ela); a
+  qualidade padrão é `ESTIMADO`, como nos valores de propriedade.
+- **Permissão: a do material, num lugar só** (`services/record_permissions.py`).
+  Material de outro usuário é 404 (visibilidade, D-62); registro próprio é do dono;
+  no catálogo compartilhado só o curador (403 em acesso aberto sem assinatura,
+  D-83) — a checagem é no serviço, e não por `require_catalog_curator` na rota,
+  porque a mesma rota atende o dono de um registro próprio, a quem a dependência
+  de rota recusaria; o efeito sobre o compartilhado é o mesmo da rota `PATCH`
+  existente. **Material ou curva do catálogo oficial (D-102) é 409**: um registro
+  com `CatalogRecordRef` (`is_official` na ficha) e uma curva com identidade de
+  dataset não se editam à mão, ou a próxima carga leria "curva alterada" e
+  recusaria (D-102), e a edição poria na ficha uma afirmação que a fonte nunca fez.
+- **Auditoria** (M2) como `ATUALIZADO` do material, com o diff por elemento
+  (`composição Cr`), por código (`designação UNS S30400`) e por curva
+  (`curva <título>`); uma escrita idêntica não gera evento.
+- **Ficha.** Botões "Editar composição", "Editar designações" e "Nova/Editar/
+  Excluir curva" só aparecem quando o servidor aceitaria a escrita. Os números
+  voltam ao formulário **como a fonte os escreveu** (`value_*`/`*_original`, na
+  unidade original), nunca o canônico. Os pontos da curva entram como texto, um por
+  linha (`x; y` ou `x; y; mín.; máx.`, vírgula decimal): só leitura do que foi
+  digitado; ordem, completude e conversão são do servidor.
+
+**Alternativas descartadas.** Um estágio novo `composition` (duplicaria a árvore de
+restrições e o funil); coluna `composition_condition` no `SelectionConstraint`
+(migração para um texto que já cabe em `text`); reescrever a regra de alcance em
+outro lugar; `PATCH` linha a linha da composição (dois jeitos de deixar o resto
+duplicado e de apagar sem querer); permitir editar o oficial "porque o curador
+pode" (TM7-b já registra o problema para os valores).
+
+**Revisão humana sugerida.** (1) `not_composition` como garantia, e não um
+"complemento" simples, é a leitura do D-105 para `NOT`; se o autor preferir só o
+operador de alcance, basta tirá-lo de `_COMPOSITION_OPS`. (2) A qualidade padrão
+`ESTIMADO` para o que se digita à mão segue os valores de propriedade; o curador
+muda no formulário de valores, mas **os formulários novos ainda não expõem a
+qualidade** (resíduo TM2-f). (3) Substituir o conjunto inteiro apaga linhas que
+outra pessoa tenha acabado de acrescentar (último a gravar vence, como em
+`PUT …/values`).
+
+## D-110 — Curvas: uma lista de grandezas, unidade do parâmetro à escolha do leitor e leitura de valor só no ponto declarado
+
+**Contexto.** Três resíduos do TM4 (D-106): a lista de grandezas de eixo estava
+duplicada entre o domínio e o `CHECK` da migração (TM4-f); o parâmetro da
+família saía só na convenção da grandeza (TM4-e); e "o valor a 20 °C" de uma
+curva não tinha regra (TM4-b), com o risco de virar uma propriedade escalar
+inventada.
+
+**Decisão.**
+
+1. **Fonte única (TM4-f).** `app/domain/curve_quantities.py::QUANTITIES` é a
+   única lista; o modelo monta o `CHECK` dela. A migração `0925e0787863` é texto
+   congelado e continua assim — não houve migração nova, porque a lista coincide.
+   `test_curve_quantities_schema.py` roda as migrações até `head` em SQLite e
+   falha, com a receita na mensagem, se os três `CHECK`s (x, y, parâmetro) do
+   banco migrado divergirem do domínio ou do modelo. Acrescentar uma grandeza
+   exige, portanto, uma migração que recrie os `CHECK`s.
+2. **Unidade do parâmetro (TM4-e).** `?unidade_parametro=` em
+   `GET /materials/{id}/curvas/{curva}`; a conversão é só por `reading_for`
+   (units.py), unidade fora da lista da grandeza é 400 com as admitidas, e pedir
+   unidade numa curva sem família é 400. O que a fonte escreveu
+   (`parameter_original`) não muda. A resposta traz `canonical_unit` e
+   `accepted_units` do parâmetro; a ficha ganha um seletor rotulado ("Unidade do
+   parâmetro da família (Temperatura)"), guardado na URL (`curva_param`), e a
+   legenda das séries usa a unidade escolhida. A rota passou para
+   `routers/curves.py`, registrada antes da de `materials.py` (mesmo caminho).
+   A exportação CSV/XLSX segue na convenção: o cabeçalho do arquivo declara a
+   unidade.
+3. **Valor numa curva (TM4-b).** Regra conservadora, em docs/18 §6: só o ponto
+   declarado exatamente no x pedido, após conversão por units.py; nunca
+   interpolação, extrapolação nem vizinho mais próximo; sem ponto, ausência
+   escrita. `GET .../curvas/{curva}/valor?em=&unidade_em=`. O resultado carrega
+   a referência ao dado original e não vira propriedade escalar nem entra em
+   ranking.
+
+**Alternativa recusada.** Interpolar linearmente entre pontos vizinhos: o
+formato da curva entre dois pontos é uma afirmação que a fonte não fez
+(princípio 1). Se um dia houver método declarado por tipo de curva, é decisão
+nova.
+
+**Resíduos.** Tela para a leitura de valor (hoje só API); parâmetro na
+exportação.
 
 ## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
 
@@ -9283,3 +9431,5 @@ original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
 **Resíduos.** Designações, valores suplementares e valores do dataset ainda não
 entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
 adicionado: composição e curvas somam consultas por release.
+
+

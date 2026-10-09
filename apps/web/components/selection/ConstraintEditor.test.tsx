@@ -453,3 +453,19 @@ describe("restrição lida como frase, com a unidade à vista (D-85)", () => {
     expect(screen.getByText("Módulo de Young ≥ 70 Pa")).toBeInTheDocument();
   });
 });
+
+describe("composição química como restrição (TM2-b)", () => {
+  it("sends the condition as text and reads the row as a sentence", () => {
+    const row = { ...emptyConstraint("c1"), operator: "composition" as const, text: " Cr>=12 " };
+    const payload = toConstraintPayload({ ...emptyGroup("g"), constraints: [row] });
+    expect(payload.constraints).toEqual([{ operator: "composition", text: "Cr>=12" }]);
+    expect(describeConstraintRow(row, undefined, [])).toContain("Cr>=12");
+    const guarantee = { ...row, operator: "not_composition" as const };
+    expect(describeConstraintRow(guarantee, undefined, [])).toContain("garantia");
+  });
+
+  it("does not send a composition row with no condition", () => {
+    const row = { ...emptyConstraint("c1"), operator: "composition" as const };
+    expect(toConstraintPayload({ ...emptyGroup("g"), constraints: [row] }).constraints).toEqual([]);
+  });
+});

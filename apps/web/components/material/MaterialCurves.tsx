@@ -1,19 +1,22 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
   curveExportUrl,
+  deleteMaterialCurve,
   getMaterialCurve,
   listMaterialCurves,
 } from "@/lib/api";
 import type { Curve, CurveScale } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { CurveChart } from "@/components/charts/CurveChart";
+import { CurveEditor } from "@/components/material/CurveEditor";
 import { MenuItem } from "@/components/ui/Menu";
 import {
+  Button,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -32,6 +35,7 @@ export const CURVE_PARAMS = {
   curve: "curva",
   x: "curva_x",
   y: "curva_y",
+  parameter: "curva_param",
   scale: "curva_escala",
 } as const;
 
@@ -45,7 +49,17 @@ export const CURVE_PARAMS = {
  * and every choice is a new question to the backend, which converts and lays
  * out the points (ADR 0004).
  */
-export function MaterialCurves({ materialId }: { materialId: number }) {
+export function MaterialCurves({
+  materialId,
+  canEdit = false,
+}: {
+  materialId: number;
+  /** The server would accept a write here (own record or curator, not official). */
+  canEdit?: boolean;
+}) {
+  const qc = useQueryClient();
+  // TM4-d: "new" | "edit" while the editor is open.
+  const [editing, setEditing] = useState<"new" | "edit" | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -65,13 +79,14 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
   const reading = {
     x: sameCurve ? search.get(CURVE_PARAMS.x) ?? undefined : undefined,
     y: sameCurve ? search.get(CURVE_PARAMS.y) ?? undefined : undefined,
+    parameter: sameCurve ? search.get(CURVE_PARAMS.parameter) ?? undefined : undefined,
     scale: sameCurve
       ? ((search.get(CURVE_PARAMS.scale) as CurveScale | null) ?? undefined)
       : undefined,
   };
 
   const curve = useQuery({
-    queryKey: ["material-curve", materialId, selected?.id, reading.x, reading.y, reading.scale],
+    queryKey: ["material-curve", materialId, selected?.id, reading.x, reading.y, reading.parameter, reading.scale],
     queryFn: () => getMaterialCurve(materialId, selected!.id, reading),
     enabled: selected !== undefined,
     // Changing a unit keeps the previous figure on screen instead of flashing
@@ -93,6 +108,14 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
     [pathname, router, search],
   );
 
+  const remove = useMutation({
+    mutationFn: (curveId: number) => deleteMaterialCurve(materialId, curveId),
+    onSuccess: async () => {
+      update({ curve: null, x: null, y: null, scale: null });
+      await qc.invalidateQueries({ queryKey: ["material-curves", materialId] });
+    },
+  });
+
   if (list.isLoading) return <LoadingState label={t.loading} />;
   if (list.isError) return <ErrorState title={t.error} onRetry={() => void list.refetch()} />;
   if (!list.data) return null;
@@ -105,11 +128,28 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
     </ul>
   );
 
+  if (editing === "new" || (editing === "edit" && curve.data)) {
+    return (
+      <CurveEditor
+        materialId={materialId}
+        curve={editing === "edit" ? curve.data : undefined}
+        onDone={() => setEditing(null)}
+      />
+    );
+  }
+
+  const newCurveButton = canEdit ? (
+    <Button size="sm" className="self-start" onClick={() => setEditing("new")}>
+      {t.edit.newCurve}
+    </Button>
+  ) : null;
+
   if (list.data.total === 0 || selected === undefined) {
     return (
       <div className="flex flex-col gap-3">
         <EmptyState title={t.none} description={t.noneHint} />
         {counts}
+        {newCurveButton}
       </div>
     );
   }
@@ -121,7 +161,7 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
           label={t.picker}
           value={String(selected.id)}
           onChange={(event) =>
-            update({ curve: event.target.value, x: null, y: null, scale: null })
+            update({ curve: event.target.value, x: null, y: null, parameter: null, scale: null })
           }
           className="max-w-xl"
         >
@@ -141,7 +181,7 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
             // A stale link with a unit the axis refuses is fixed by dropping
             // the choice, not by asking again.
             curve.error instanceof ApiError && curve.error.status === 400
-              ? update({ x: null, y: null, scale: null })
+              ? update({ x: null, y: null, parameter: null, scale: null })
               : void curve.refetch()
           }
         />
@@ -171,6 +211,30 @@ export function MaterialCurves({ materialId }: { materialId: number }) {
       ) : (
         <LoadingState label={t.loading} />
       )}
+      {canEdit && (
+        <div className="flex flex-wrap items-center gap-2">
+          {newCurveButton}
+          {selected.is_official ? (
+            <p className="text-xs text-ink-muted">{t.edit.officialReadOnly}</p>
+          ) : (
+            <>
+              <Button size="sm" disabled={!curve.data} onClick={() => setEditing("edit")}>
+                {t.edit.editCurve}
+              </Button>
+              <Button
+                size="sm"
+                variant="danger-quiet"
+                loading={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(t.edit.confirmDelete)) remove.mutate(selected.id);
+                }}
+              >
+                {t.edit.deleteCurve}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -185,7 +249,7 @@ function CurveControls({
   onChange,
 }: {
   curve: Curve;
-  onChange: (changes: { x?: string; y?: string; scale?: string }) => void;
+  onChange: (changes: { x?: string; y?: string; parameter?: string; scale?: string }) => void;
 }) {
   const axisLabel = (axis: Curve["x_axis"]) => axis.title ?? axis.quantity_label;
   return (
@@ -210,6 +274,19 @@ function CurveControls({
           onChange={(event) => onChange({ y: event.target.value })}
         >
           {curve.y_axis.accepted_units.map((option) => (
+            <SelectOption key={option.unit} value={option.unit}>
+              {option.label}
+            </SelectOption>
+          ))}
+        </Select>
+      ) : null}
+      {curve.parameter && curve.parameter.accepted_units.length > 1 ? (
+        <Select
+          label={t.unitParameter(curve.parameter.quantity_label)}
+          value={curve.parameter.unit}
+          onChange={(event) => onChange({ parameter: event.target.value })}
+        >
+          {curve.parameter.accepted_units.map((option) => (
             <SelectOption key={option.unit} value={option.unit}>
               {option.label}
             </SelectOption>

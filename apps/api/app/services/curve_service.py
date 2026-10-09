@@ -12,35 +12,49 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.calculations.units import pretty_unit
-from app.domain.curve_quantities import QUANTITIES
+from app.domain.curve_quantities import QUANTITIES, AxisQuantity
 from app.domain.curves import (
     KINDS,
+    READ_RULE,
     CurveError,
     DrawnAxis,
     DrawnCurve,
     PointData,
+    PointInput,
     SeriesData,
+    SeriesInput,
     available_scales,
+    build_curve,
     draw_curve,
     log_refusal,
     lower_first,
+    read_at_declared_x,
 )
-from app.domain.errors import NotFoundError, ValidationError
+from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.exporters.report import Report, Sheet, standard_notices
-from app.models.enums import CurveKind
+from app.models.enums import AuditAction, AuditEntityType, CurveKind
 from app.models.material_curve import MaterialCurve
-from app.repositories.curve_repository import CurveRepository
+from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
+from app.repositories.curve_repository import CurveRepository, curve_rows
 from app.schemas.curve import (
     CurveAxisOut,
+    CurveIn,
     CurveKindCount,
+    CurveKindSpecOut,
     CurveOut,
     CurveParameterOut,
     CurvePointOut,
+    CurveQuantityOut,
     CurveSeriesOut,
+    CurveSeriesValueOut,
     CurveSummaryOut,
+    CurveValueOut,
     MaterialCurvesOut,
     UnitOption,
 )
+from app.services.audit_service import diff_fields, record_change
+from app.services.record_permissions import OFFICIAL_READ_ONLY, ensure_identity_writable
 
 DATA_QUALITY_LABELS = {"MEDIDO": "Medido", "IMPORTADO": "Importado", "ESTIMADO": "Estimado"}
 
@@ -51,6 +65,14 @@ def _unit_label(unit: str) -> str:
 
 def _unit_option_label(unit: str) -> str:
     return "adimensional" if unit == "dimensionless" else pretty_unit(unit)
+
+
+def _unit_options(quantity: AxisQuantity) -> list[UnitOption]:
+    """The units a reader may choose for a quantity, the convention first."""
+    units = dict.fromkeys(
+        [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
+    )
+    return [UnitOption(unit=u, label=_unit_option_label(u)) for u in units]
 
 
 def _series_data(curve: MaterialCurve) -> list[SeriesData]:
@@ -86,8 +108,167 @@ def _is_demo(curve: MaterialCurve) -> bool:
 
 
 class CurveService:
-    def __init__(self, db: Session, viewer_id: int | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        viewer_id: int | None = None,
+        *,
+        user: User | None = None,
+        can_edit_shared: bool = True,
+    ) -> None:
         self.repo = CurveRepository(db, viewer_id)
+        self.audit_repo = AuditRepository(db)
+        # Only the writes below read these; the reads are unchanged. Same
+        # defaults as MaterialService: callers outside the router act as curators.
+        self.user = user
+        self.can_edit_shared = can_edit_shared
+
+    # --- writes (TM4-d) -------------------------------------------------------
+
+    @staticmethod
+    def kind_specs() -> list[CurveKindSpecOut]:
+        """What each kind of curve admits, for the form — the same table the builder reads."""
+
+        def quantity(key: str) -> CurveQuantityOut:
+            q = QUANTITIES[key]
+            units = list(dict.fromkeys([q.reading_unit, *q.accepted_units, q.canonical_unit]))
+            return CurveQuantityOut(
+                key=q.key,
+                name=q.name,
+                reading_unit=q.reading_unit,
+                units=[UnitOption(unit=u, label=_unit_option_label(u)) for u in units],
+            )
+
+        return [
+            CurveKindSpecOut(
+                kind=kind,
+                label=spec.label,
+                x_quantities=[quantity(k) for k in spec.x_quantities],
+                y_quantities=[quantity(k) for k in spec.y_quantities],
+                parameter_quantities=[quantity(k) for k in spec.parameter_quantities],
+            )
+            for kind, spec in KINDS.items()
+        ]
+
+    def _writable_material(self, material_id: int):
+        material = self.repo.get_material(material_id)
+        if material is None:
+            raise NotFoundError(f"Material não encontrado: {material_id}")
+        ensure_identity_writable(
+            material,
+            can_edit_shared=self.can_edit_shared,
+            is_official=self.repo.is_official(material.id),
+        )
+        return material
+
+    @staticmethod
+    def _summary(curve: MaterialCurve) -> str:
+        points = sum(len(s.points) for s in curve.series)
+        return (
+            f"{KINDS[curve.kind].label}; x em {curve.x_original_unit}, y em "
+            f"{curve.y_original_unit}; {len(curve.series)} série(s); {points} ponto(s); "
+            f"fonte {curve.source.label}"
+        )
+
+    def _build_rows(self, material, payload: CurveIn) -> MaterialCurve:
+        try:
+            normalized = build_curve(
+                payload.kind,
+                x_quantity=payload.x_quantity,
+                x_unit=payload.x_unit,
+                y_quantity=payload.y_quantity,
+                y_unit=payload.y_unit,
+                parameter_quantity=payload.parameter_quantity,
+                series=[
+                    SeriesInput(
+                        label=s.label,
+                        conditions=s.conditions,
+                        parameter=s.parameter,
+                        parameter_unit=s.parameter_unit,
+                        points=[PointInput(p.x, p.y, p.y_min, p.y_max) for p in s.points],
+                    )
+                    for s in payload.series
+                ],
+            )
+        except CurveError as exc:
+            raise ValidationError(str(exc)) from exc
+        source = self.repo.get_or_create_source(
+            payload.source_label.strip(), is_demo=material.is_demo
+        )
+        return curve_rows(
+            normalized,
+            material_id=material.id,
+            title=payload.title.strip(),
+            source_id=source.id,
+            description=payload.description,
+            x_label=payload.x_label,
+            y_label=payload.y_label,
+            citation=payload.citation,
+            data_quality=payload.data_quality,
+            is_demo=material.is_demo,
+        )
+
+    def _audit(self, material, changes: dict) -> None:
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
+
+    def create_curve(self, material_id: int, payload: CurveIn) -> CurveSummaryOut:
+        material = self._writable_material(material_id)
+        curve = self._build_rows(material, payload)
+        self.repo.add(curve)
+        self.repo.flush()
+        self._audit(
+            material, {f"curva {curve.title}": {"before": None, "after": self._summary(curve)}}
+        )
+        self.repo.commit()
+        return self._summary_out(self._load(material_id, curve.id), material)
+
+    def replace_curve(self, material_id: int, curve_id: int, payload: CurveIn) -> CurveSummaryOut:
+        """Replace one curve in place (same id), refusing an official one."""
+        material = self._writable_material(material_id)
+        current = self._load(material_id, curve_id)
+        self._ensure_hand_written(current)
+        before = {f"curva {current.title}": self._summary(current)}
+        fresh = self._build_rows(material, payload)
+        # Delete and re-insert under the same id rather than patching the rows:
+        # the series and their points are replaced whole anyway, and a curve the
+        # builder accepted is exactly the rows ``curve_rows`` writes.
+        fresh.id = current.id
+        fresh.created_at = current.created_at
+        self.repo.delete(current)
+        self.repo.flush()
+        self.repo.add(fresh)
+        self.repo.flush()
+        current = fresh
+        after = {f"curva {current.title}": self._summary(current)}
+        self._audit(material, diff_fields(before, after))
+        self.repo.commit()
+        return self._summary_out(self._load(material_id, curve_id), material)
+
+    def delete_curve(self, material_id: int, curve_id: int) -> None:
+        material = self._writable_material(material_id)
+        current = self._load(material_id, curve_id)
+        self._ensure_hand_written(current)
+        before = {f"curva {current.title}": self._summary(current)}
+        self.repo.delete(current)
+        self._audit(material, diff_fields(before, {}))
+        self.repo.commit()
+
+    @staticmethod
+    def _ensure_hand_written(curve: MaterialCurve) -> None:
+        # An official curve is identified by its dataset identity and hash, which
+        # a re-import compares: editing it here would make the next import read a
+        # changed curve and refuse it (D-102).
+        if curve.dataset_id is not None:
+            raise ConflictError(OFFICIAL_READ_ONLY)
 
     # --- reads ---------------------------------------------------------------
 
@@ -131,9 +312,31 @@ class CurveService:
                     point_count=sum(len(s.points) for s in curve.series),
                     source_label=curve.source.label,
                     is_demo=curve.is_demo or material.is_demo or curve.source.is_demo,
+                    is_official=curve.dataset_id is not None,
                 )
                 for curve in curves
             ],
+        )
+
+    @staticmethod
+    def _summary_out(curve: MaterialCurve, material) -> CurveSummaryOut:
+        return CurveSummaryOut(
+            id=curve.id,
+            kind=curve.kind,
+            kind_label=KINDS[curve.kind].label,
+            title=curve.title,
+            x_quantity=curve.x_quantity,
+            x_quantity_label=curve.x_label or QUANTITIES[curve.x_quantity].name,
+            y_quantity=curve.y_quantity,
+            y_quantity_label=curve.y_label or QUANTITIES[curve.y_quantity].name,
+            parameter_quantity_label=(
+                QUANTITIES[curve.parameter_quantity].name if curve.parameter_quantity else None
+            ),
+            series_count=len(curve.series),
+            point_count=sum(len(s.points) for s in curve.series),
+            source_label=curve.source.label,
+            is_demo=curve.is_demo or material.is_demo or curve.source.is_demo,
+            is_official=curve.dataset_id is not None,
         )
 
     def _load(self, material_id: int, curve_id: int) -> MaterialCurve:
@@ -148,6 +351,7 @@ class CurveService:
         x_unit: str | None,
         y_unit: str | None,
         scale: str | None,
+        parameter_unit: str | None = None,
     ) -> DrawnCurve:
         try:
             return draw_curve(
@@ -159,6 +363,7 @@ class CurveService:
                 x_unit=x_unit,
                 y_unit=y_unit,
                 scale=scale,
+                parameter_unit=parameter_unit,
             )
         except CurveError as exc:
             raise ValidationError(str(exc)) from exc
@@ -171,16 +376,20 @@ class CurveService:
         x_unit: str | None = None,
         y_unit: str | None = None,
         scale: str | None = None,
+        parameter_unit: str | None = None,
     ) -> CurveOut:
         curve = self._load(material_id, curve_id)
-        drawn = self._draw(curve, x_unit, y_unit, scale)
+        drawn = self._draw(curve, x_unit, y_unit, scale, parameter_unit)
         parameter = None
         if curve.parameter_quantity and drawn.parameter_reading is not None:
+            quantity = QUANTITIES[curve.parameter_quantity]
             parameter = CurveParameterOut(
                 quantity=curve.parameter_quantity,
-                quantity_label=QUANTITIES[curve.parameter_quantity].name,
+                quantity_label=quantity.name,
                 unit=drawn.parameter_reading.unit,
                 unit_label=_unit_label(drawn.parameter_reading.unit),
+                canonical_unit=quantity.canonical_unit,
+                accepted_units=_unit_options(quantity),
             )
         return CurveOut(
             id=curve.id,
@@ -235,14 +444,67 @@ class CurveService:
             is_own_record=curve.material.owner_id is not None,
         )
 
+    def read_value(
+        self,
+        material_id: int,
+        curve_id: int,
+        *,
+        at: float,
+        at_unit: str,
+        y_unit: str | None = None,
+        parameter_unit: str | None = None,
+    ) -> CurveValueOut:
+        """The curve at a declared x, by the rule of D-110 (never interpolated)."""
+        curve = self._load(material_id, curve_id)
+        try:
+            readings, ry, rp = read_at_declared_x(
+                curve.x_quantity,
+                curve.y_quantity,
+                curve.parameter_quantity,
+                _series_data(curve),
+                at=at,
+                at_unit=at_unit,
+                y_unit=y_unit,
+                parameter_unit=parameter_unit,
+            )
+        except CurveError as exc:
+            raise ValidationError(str(exc)) from exc
+        at_label = _unit_option_label(at_unit)
+        shown = f"{at:g} {at_label}".strip()
+        series = [
+            CurveSeriesValueOut(
+                **r.__dict__,
+                absence=(
+                    None
+                    if r.found
+                    else f"Sem ponto declarado em {shown} nesta série; nada foi interpolado."
+                ),
+            )
+            for r in readings
+        ]
+        return CurveValueOut(
+            curve_id=curve.id,
+            material_id=curve.material_id,
+            title=curve.title,
+            rule=READ_RULE,
+            at=at,
+            at_unit=at_unit,
+            at_unit_label=at_label,
+            x_quantity_label=curve.x_label or QUANTITIES[curve.x_quantity].name,
+            y_quantity_label=curve.y_label or QUANTITIES[curve.y_quantity].name,
+            y_unit=ry.unit,
+            y_unit_label=_unit_option_label(ry.unit),
+            parameter_unit_label=_unit_label(rp.unit) if rp else None,
+            found_count=sum(1 for r in readings if r.found),
+            series=series,
+            source_label=curve.source.label,
+            citation=curve.citation,
+            is_demo=_is_demo(curve),
+        )
+
     @staticmethod
     def _axis(axis: DrawnAxis, curve: MaterialCurve, which: str) -> CurveAxisOut:
         quantity = axis.quantity
-        units = list(
-            dict.fromkeys(
-                [quantity.reading_unit, *quantity.accepted_units, quantity.canonical_unit]
-            )
-        )
         return CurveAxisOut(
             quantity=quantity.key,
             quantity_label=quantity.name,
@@ -252,7 +514,7 @@ class CurveService:
             canonical_unit=quantity.canonical_unit,
             original_unit=getattr(curve, f"{which}_original_unit"),
             conversion_method=getattr(curve, f"{which}_conversion_method"),
-            accepted_units=[UnitOption(unit=u, label=_unit_option_label(u)) for u in units],
+            accepted_units=_unit_options(quantity),
             log=axis.log,
             log_refusal=log_refusal(quantity, axis.reading),
             domain=axis.domain,
