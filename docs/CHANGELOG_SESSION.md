@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
 | [63](#sessão-63--081026--o-que-mudou-entre-releases-do-catálogo-tm7-d-108) | 08/10/2026 | O que mudou entre releases do catálogo oficial (TM7): `lineage` e `is_demo` na release (migração `73a9b5da72b2`), diff derivado casado pela identidade externa e comparado no canônico (valor, presença, forma, só a escrita da fonte), API e CSV/XLSX, página `/app/catalogo/releases`, duas releases demo | 4196 → 4252 | 815 → 846 |
 | [62](#sessão-62--081026--demo-completo-designação-composição-e-curva-para-os-75-materiais-demo-d-107) | 08/10/2026 | Demo completo: designação, composição química e curva fictícias para os 75 materiais demo (156 / 380 / 117), curvas derivadas das propriedades de cada material, em `seed_extended` (`semear_demo`), idempotente e coberta por `clear_demo`; relatório `python -m app.db.demo_coverage` (D-107) | 4164 → 4196 | 815 (inalterado) |
@@ -77,6 +78,20 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 74 — 09/10/26 — Curva plástica nos cartões CAE (TM5-b, D-119)
+
+**O que mudou.** `material_curve` ganha `strain_measure` e `modulus_kind`
+declarados (migração `81adb0b92f72`, sem backfill; construtor, bundle, API e
+CSV da curva); `app/domain/plasticity.py` converte uma série em tabela plástica
+(engenharia → verdadeira até a estricção, ε_p = ε_t − σ_t/E, ancoragem só no
+limite elástico); quatro formatos elastoplásticos em `exporters/cae/` com
+`curva`/`serie` na rota e E(T) de ponto exato de curva declarada `young`;
+quatro golden files novos. Não feitos: família de temperaturas num cartão
+(TM5-b1) e o diálogo do front (TM5-b2). Detalhes, três correções à regra
+delegada e o que não foi verificado em [D-119](DECISIONS.md).
 
 ---
 
