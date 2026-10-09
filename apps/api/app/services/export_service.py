@@ -33,6 +33,7 @@ from app.exporters.figures import (
     render_bars,
     render_scatter,
 )
+from app.exporters.identity import composition_sheet, designation_sheet
 from app.exporters.report import Report, Sheet, standard_notices
 from app.models.enums import ProcessAttributeKind
 from app.models.user import User
@@ -42,6 +43,7 @@ from app.schemas.charts import PropertyMapRequest
 from app.schemas.selection import ChartStageIn, IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.chart_service import ChartService
+from app.services.identity_lines import composition_lines, designation_lines
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
@@ -132,8 +134,19 @@ class ExportService:
             sheets.append(self._contributions_sheet(result))
             sheets.append(self._excluded_sheet(result))
             sheets.append(self._sensitivity_sheet(result))
+        if result.universe != "process":
+            sheets.extend(self._identity_sheets(result, records))
         sheets.append(self._provenance_sheet(study, result, records))
         return sheets
+
+    @staticmethod
+    def _identity_sheets(result: RunResultOut, records: dict) -> list[Sheet]:
+        """Composition and designations of the candidates (D-105, TM2-d)."""
+        materials = [records[c.record_id] for c in result.candidates if c.record_id in records]
+        return [
+            composition_sheet([(m.name, composition_lines(m)) for m in materials]),
+            designation_sheet([(m.name, designation_lines(m)) for m in materials]),
+        ]
 
     def study_report(self, study_id: int, project_id: int) -> Report:
         study, result, records, root_group_description = self._run(study_id, project_id)
@@ -1083,6 +1096,8 @@ class ExportService:
                     rows=rows,
                     notes=["Valores em unidade canônica. 'ausente' significa dado não cadastrado."],
                 ),
+                composition_sheet([(m.name, composition_lines(m)) for m in materials]),
+                designation_sheet([(m.name, designation_lines(m)) for m in materials]),
                 Sheet(
                     name="Proveniência",
                     header=[

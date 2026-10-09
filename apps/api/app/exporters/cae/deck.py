@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from app.exporters.cae.card import CaeCard, CardValue
 from app.exporters.cae.quantities import QUANTITIES
 from app.exporters.cae.text import real
+from app.exporters.identity import composition_summary, designation_summary
 
 FICTITIOUS_LINE = (
     "MATERIAL FICTICIO: dado de demonstracao, valores inventados para ensino. "
@@ -56,6 +57,9 @@ def header_lines(
     if not card.is_active:
         lines.append("Registro desativado no catalogo.")
     lines += [
+        f"Designacoes: {designation_summary(card.designations)}",
+        f"Composicao quimica (% em massa): {composition_summary(card.composition, ascii_only=True)}",
+        "Composicao e designacoes sao informativas: nenhum campo do cartao as le.",
         f"Sistema de unidades: {card.system.label}",
         f"Unidades base: {card.system.base}",
         "Valores convertidos da unidade canonica do catalogo pelo Pint.",

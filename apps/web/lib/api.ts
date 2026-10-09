@@ -31,6 +31,7 @@ import type {
   ReleaseDiff,
   ReleaseDiffItem,
   ReleaseRecordStatus,
+  ReleaseUniverse,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -311,6 +312,7 @@ export function listCatalogReleases(): Promise<CatalogRelease[]> {
 export interface ReleaseDiffQuery {
   tipo?: ReleaseRecordStatus;
   classe?: string;
+  universo?: ReleaseUniverse;
   pagina?: number;
   porPagina?: number;
 }
@@ -319,6 +321,7 @@ function releaseDiffQuery(query: ReleaseDiffQuery, withPage: boolean): string {
   const params = new URLSearchParams();
   if (query.tipo) params.set("tipo", query.tipo);
   if (query.classe) params.set("classe", query.classe);
+  if (query.universo) params.set("universo", query.universo);
   if (withPage && query.pagina && query.pagina > 1) params.set("pagina", String(query.pagina));
   if (withPage && query.porPagina) params.set("por_pagina", String(query.porPagina));
   const text = params.toString();
@@ -357,7 +360,7 @@ export function releaseDiffExportUrl(
   base: string,
   target: string,
   format: "csv" | "xlsx",
-  query: Pick<ReleaseDiffQuery, "tipo" | "classe"> = {},
+  query: Pick<ReleaseDiffQuery, "tipo" | "classe" | "universo"> = {},
 ): string {
   return `${API_URL}/api/exports/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}.${format}${releaseDiffQuery(query, false)}`;
 }

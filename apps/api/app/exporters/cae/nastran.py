@@ -15,8 +15,7 @@ four or five significant digits. ``$`` opens a comment line.
   reader expects a catalogued one.
 * **RHO and A blank are declared**, because the solver reads them as 0.0: the
   comment says what that means for the analysis.
-* Conductivity and specific heat belong to ``MAT4``, which this file does not
-  write; TREF and GE are model parameters, not material data.
+* Conductivity and specific heat belong to ``MAT4``, written by ``nastran_thermal.py``; TREF and GE are model parameters, not material data.
 """
 
 from __future__ import annotations
@@ -36,8 +35,8 @@ FIELDS = {
     CTE.key: "MAT1 A",
 }
 OUTSIDE = {
-    CONDUCTIVITY.key: "pertence ao MAT4, nao exportado",
-    SPECIFIC_HEAT.key: "pertence ao MAT4, nao exportado",
+    CONDUCTIVITY.key: "pertence ao MAT4 (formato nastran-thermal), nao exportado aqui",
+    SPECIFIC_HEAT.key: "pertence ao MAT4 (formato nastran-thermal), nao exportado aqui",
 }
 REQUIRED = (YOUNG, POISSON)
 SUPPORTED = (YOUNG, POISSON, DENSITY, CTE)

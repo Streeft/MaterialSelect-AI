@@ -56,7 +56,7 @@ def record(
         external_table="MaterialUniverse",
         external_record_id=external_id,
         raw_record_sha256="a" * 64,
-        material_id=hash(external_id) % 10_000,
+        record_id=hash(external_id) % 10_000,
         name=name,
         class_slug="metais",
         class_name="Metais",

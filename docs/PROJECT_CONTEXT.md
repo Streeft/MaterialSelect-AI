@@ -66,7 +66,7 @@ extração em massa; o Total Materia ficou como inspiração de funcionalidade
 autorização dele está pendente de arquivo em `catalogo/autorizacoes/`. Regra
 em [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 
-**Testes: 4256 backend (4250 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 849 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
+**Testes: 4321 backend (4315 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 850 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
 
 **Fases 1 a 9 concluídas.** Fase 7 fechou por completo — todas as exportações (CSV, XLSX, HTML, DOCX e PPTX) entregues para catálogo, relatório de estudo e laudo de engenharia, além do lote quádruplo de melhorias funcionais (3395 → 3407 backend, 753 → 762 frontend), na Sessão 48 a figura de barras por fase no Eco Audit e reordenação por arraste em seleção (Opções 1 e 2, 3743 backend e 762 → 778 frontend), na Sessão 54 a vinculação automática de processos demo aos materiais de teste por classe (3854 → 3857 backend e 778 frontend), na Sessão 55 a padronização do seletor de modo do Eco Audit para ButtonGroup/ButtonGroupItem (Segmented Control MSDS 2.0, 3857 backend e 778 frontend), e na Sessão 56 a auditoria de conformidade das Frentes 1 a 4 com o Design System (MSDS 2.0, D-80/D-91) e acessibilidade (WCAG 2.1 AA), a auditoria técnica do Mapa de Ashby 2D (`AshbyMap.tsx`, `chart_service.py`, `palette.ts`, `figureExport.ts`) e a quitação formal de A7 (Cérebro em produção no Neon executado pelo autor) (3857 backend e 778 frontend). A Sessão 57 adiciona a fundação do catálogo oficial (D-102) e sete regressões novas, levando o backend a 3864 testes; frontend em 778. A Sessão 59 entrega o **cartão de material para CAE** (TM5, D-104 — MAPDL, MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC`), levando o backend a 3938 testes e o frontend a 783. A Sessão 60 entrega a **busca por composição química e por designação** (TM2, D-105), levando o backend a **4079 testes** (4073 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **797**. A Sessão 61 entrega as **curvas de material** (TM4, D-106 — modelo figura → série → ponto, geometria no backend, seção Curvas na ficha, CSV/XLSX), levando o backend a **4164 testes** (4158 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **815**. A Sessão 62 entrega o **demo completo** (D-107): designação, composição e curva fictícias para os 75 materiais demo (156 designações, 380 linhas de composição, 117 curvas), por `seed_extended`, com o relatório `python -m app.db.demo_coverage`. A Sessão 63 entrega o **que mudou entre releases** (TM7, D-108 — `lineage` e `is_demo` na release, diff derivado casado pela identidade externa, página `/app/catalogo/releases`, duas releases demo, CSV/XLSX), levando o backend a **4252 testes** (4246 passam e 6 pulam sem `POSTGRES_TEST_URL`) e o frontend a **846**. A Sessão 68 entrega o **comparador largo** (TM3, D-113) e a folga do eixo em °C/°F (TM4-h), levando o backend a **4256** e o frontend a **849**.
 
@@ -233,7 +233,8 @@ modo de falha silenciosa que a decisão original ([D-16](DECISIONS.md)) já
 previa. Ver M4 em [TODO.md](TODO.md).
 
 **RAG sobre o Cérebro entregue.** O Cérebro, hospedado em `main` desde D-45
-mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,\npassou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
+mas inerte até aqui — íntegro, mas sem nada em `app/ai/` que o lesse —,
+passou a alimentar `interpret()`/`explain()` de verdade: busca híbrida
 (léxica BM25 + semântica, fundidas por *reciprocal rank fusion*) em
 `app/knowledge/retrieval.py`, ligada só quando o provedor não é o `mock`
 (`provider.simulated`, não o nome do provedor — a mesma disciplina de
@@ -638,9 +639,9 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Saúde do código:** 4252 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 4246 passam e 6 pulam — os 4 das cotas e os 2
-da ingestão do Cérebro contra PostgreSQL) e 846 de frontend, todos
+**Saúde do código:** 4321 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 4315 passam e 6 pulam — os 4 das cotas e os 2
+da ingestão do Cérebro contra PostgreSQL) e 850 de frontend, todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -714,7 +715,8 @@ na entrada.
 
 ### Seleção determinística (o núcleo sem IA)
 - Restrições com 11 operadores, combináveis por AND/OR em **grupos aninhados**
-  (M6, parênteses lógicos de verdade), com funil de eliminação.
+  (M6, parênteses lógicos de verdade), com funil de eliminação e preservação
+  fiel da árvore hierárquica ao reabrir estudos salvos (`StudyOut.root_group` e `StageOut.root_group`).
 - Índices de desempenho com **parser seguro sem `eval`** e **dimensão derivada**
   por análise dimensional.
 - Ranking por **três métodos** (M5): soma ponderada normalizada, TOPSIS
@@ -1055,12 +1057,6 @@ que mais afetam quem for mexer no código:
 - **Sem multiusuário, sem colaboração.** Login com Google e projetos existem
   (A5), mas cada `Project` tem dono único e nenhuma tela troca entre dois
   projetos de um mesmo usuário ainda ([D-42](DECISIONS.md)).
-- **Reabrir um estudo com grupos de restrição aninhados (M6) achata a
-  árvore no editor.** `GET /api/selection/studies/{id}` ainda devolve as
-  restrições como lista plana — não é perda de dado (a árvore real continua
-  intacta no banco e avalia corretamente ao **reexecutar** o estudo), mas
-  "Abrir" mostra tudo num único grupo AND, sem aviso na tela. Ver TODO.md
-  ("M6" em "Débitos já quitados").
 - **A busca semântica do Cérebro chega aos poucos.** Os vetores são gerados com
   a sobra da cota diária gratuita do Gemini (~1 000 pedidos por dia, divididos
   com o próprio produto): de 1 a 2 noites se o endpoint aceitar lote, até 2 a 4
@@ -1114,7 +1110,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 4252 testes de backend e 846 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 4321 testes de backend e 850 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log publicado foi apagado pelo dono em 06/10/2026, pela interface do Actions ([TODO](TODO.md), "Débitos já quitados"); apagar não desfaz uma cópia feita enquanto esteve público. |
