@@ -82,7 +82,7 @@ def _designation_match(atom: DesignationAtom) -> ColumnElement[bool]:
     if atom.exact:
         return _code_exists(MaterialDesignation.code_key == atom.key)
     return _code_exists(
-        MaterialDesignation.code_key.like(to_designation_pattern(atom), escape="\\\\")
+        MaterialDesignation.code_key.like(to_designation_pattern(atom), escape="\\")
     )
 
 
@@ -97,14 +97,14 @@ def _matches(term: Term) -> ColumnElement[bool]:
     keyword_match = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\\\"),
+            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\"),
         )
     )
     return or_(
-        func.lower(Material.name).like(pattern, escape="\\\\"),
-        func.lower(MaterialClass.name).like(pattern, escape="\\\\"),
+        func.lower(Material.name).like(pattern, escape="\\"),
+        func.lower(MaterialClass.name).like(pattern, escape="\\"),
         keyword_match,
-        _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\\\")),
+        _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\")),
     )
 
 
@@ -494,7 +494,7 @@ class MaterialRepository:
 
 
 def _escape(term: str) -> str:
-    return term.replace("\\\\", "\\\\\\\\").replace("%", "\\\\%").replace("_", "\\\\_")
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _term_score(term: str):
@@ -511,17 +511,17 @@ def _term_score(term: str):
     kw_sub = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\\\"),
+            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
         )
     )
     code_exact = _code_exists(func.lower(MaterialDesignation.code_key) == term)
-    code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\\\"))
+    code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\"))
     return (
         case((func.lower(Material.name) == term, 100), else_=0)
-        + case((func.lower(Material.name).like(prefix_pat, escape="\\\\"), 50), else_=0)
-        + case((func.lower(Material.name).like(sub_pat, escape="\\\\"), 25), else_=0)
+        + case((func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0)
+        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
         + case((func.lower(MaterialClass.name) == term, 20), else_=0)
-        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\\\"), 10), else_=0)
+        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0)
         + case((kw_exact, 15), else_=0)
         + case((kw_sub, 5), else_=0)
         # D-105: a code typed exactly is as strong a signal as an exact name —
