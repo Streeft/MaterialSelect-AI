@@ -224,7 +224,8 @@ export default function CatalogPage() {
       >
         {materials.isLoading && <LoadingState label={t.loading} />}
         {materials.isError &&
-          (queryError ? (\n            <ErrorState title={t.searchError} description={queryError} />
+          (queryError ? (
+            <ErrorState title={t.searchError} description={queryError} />
           ) : (
             <ErrorState title={t.error} onRetry={() => void materials.refetch()} />
           ))}
