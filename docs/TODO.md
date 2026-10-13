@@ -120,22 +120,23 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 **Resíduos das mudanças entre releases (TM7, [D-108](DECISIONS.md)).** O TM7 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM7-a — promover uma release.** ▆ O importador cria `Material` novo a cada
-  release e **nunca desativa** a release anterior: depois da segunda importação
-  as duas ficam ativas lado a lado, com registros em dobro no catálogo. Falta a
-  ação administrativa que, ao vigorar a release nova de uma linha, ponha
-  `is_active=False` na anterior e nos materiais dela (nunca `DELETE`). E a
-  **segunda release com processos falha** por colisão de slug ("Slug de
-  processo … já existe sem identidade externa deste dataset"): o importador não
-  reaproveita o processo da release anterior (o modal reaproveita pelo slug e
-  ganha uma ref nova). Nenhum dos dois é corrigido pelo TM7.
-- **TM7-b — imutabilidade no banco.** ▃ Um curador pode editar valor de material
-  oficial pela API de materiais; o diff lê o que está gravado e passaria a
-  refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
-  ou marcar "editado após a importação" a partir da auditoria.
-- **TM7-c — outros universos no diff.** ▃ O diff cobre **só materiais**:
-  processos, modais, valores suplementares, valores do dataset, composição,
-  designações e curvas ficam de fora.
+- ~~**TM7-a — promover uma release.**~~ ✔ Quitado ([D-114](DECISIONS.md),
+  Sessão 69): o import da release nova de uma linha desativa a anterior na
+  mesma transação, sem apagar nada; processo e modal reaproveitados pela
+  identidade externa. Ver "Débitos já quitados".
+- ~~**TM7-b — imutabilidade no banco.**~~ ✔ (D-116, Sessão 71): toda rota de
+  escrita de material recusa o registro com `CatalogRecordRef` (409, pt-BR) por
+  `ensure_identity_writable`; canário que enumera as rotas; ficha com "Editar"
+  desabilitado e "Criar cópia própria". **Resíduo:** a recusa não é auditada
+  (a ação de auditoria é enum persistido; exigiria migração).
+- ~~**TM7-c — outros universos no diff.**~~ ✔ Parcial (D-109, Sessão 64):
+  processos, modais, atributos de processo, composição e curvas entram no diff
+  (mesma identidade externa, comparação no canônico, filtro `universo`).
+  **Resíduo:** designações, valores suplementares e valores do dataset ainda
+  ficam de fora; e o **modal** é reaproveitado pelo slug entre releases (uma
+  linha só, com uma ref nova por release), então hoje só a presença dele
+  difere — os valores do modal só mudam entre releases quando o TM7-a decidir
+  como gravar o modal por release.
 - **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
   consultas por release, tudo em memória). Com o catálogo Granta inteiro
   (milhares de registros × dezenas de propriedades) pode passar de segundos;

@@ -586,11 +586,7 @@ class MaterialService:
         material = self.repo.get_material(material_id)
         if material is None:
             raise NotFoundError(f"Material não encontrado: {material_id}")
-        ensure_identity_writable(
-            material,
-            can_edit_shared=self.can_edit_shared,
-            is_official=self.repo.is_official(material.id),
-        )
+        self._ensure_writable(material)
         return material
 
     def _audit_update(self, material: Material, changes: dict) -> None:
@@ -644,9 +640,13 @@ class MaterialService:
 
     def _ensure_writable(self, material: Material) -> None:
         # A row another user owns never reaches here: the visibility filter
-        # already answered 404. What is left to decide is the shared catalogue.
-        if material.owner_id is None and not self.can_edit_shared:
-            raise CatalogReadOnlyError()
+        # already answered 404. What is left to decide is the shared catalogue
+        # and the official one (D-116) — both in ``record_permissions``.
+        ensure_identity_writable(
+            material,
+            can_edit_shared=self.can_edit_shared,
+            is_official=self.repo.is_official(material.id),
+        )
 
     @staticmethod
     def _identity_snapshot(material: Material) -> dict:

@@ -303,8 +303,8 @@ pelo GitHub Actions, com busca por palavras e vetores (D-101). A IA oficial é o
 Gemini gratuito via `openai-compat` (D-93); o `mock` segue o padrão do código e
 dos testes.
 
-Testes: 4616 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4610
-passam e 6 pulam) e 877 de frontend, todos verdes. A contagem vive em
+Testes: 4627 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4621
+passam e 6 pulam) e 879 de frontend, todos verdes. A contagem vive em
 `docs/PROJECT_CONTEXT.md`.
 
 Histórico detalhado: `docs/ESTADO_ATUAL.md`; estado resumido:

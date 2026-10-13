@@ -9205,6 +9205,41 @@ em texto livre; inferir por `code_key` ou nome; expandir a busca por equivalênc
 
 **Resíduos.** Bundle do D-102 sem `equivalences.ndjson`; sem tela de edição
 (a API serve ao curador); dado real bloqueado pela fonte.
+## D-116 — Material com referência de catálogo oficial é somente leitura em toda rota de escrita; o ajuste é uma cópia própria
+
+**Data:** 13/10/2026
+**Status:** aceita — **decidida pelo assistente por delegação do autor,
+revisável** (Sessão 71, TM7-b)
+
+**O pedido.** O D-111 recusou (409) a edição de composição, designações e curvas
+de um material com `CatalogRecordRef`, mas `PATCH /materials/{id}`,
+`PUT /materials/{id}/values` e `DELETE /materials/{id}` só checavam o dono e o
+curador: um curador editava valor de material oficial, e o diff entre releases
+(D-108), que lê o que está gravado, passaria a refletir a edição.
+
+**A decisão.** (1) Uma só guarda, `ensure_identity_writable`
+(`app/services/record_permissions.py`), agora usada por **toda** rota de escrita
+de material — valores, dados gerais, desativação, composição, designações,
+curvas; `MaterialService._ensure_writable` virou só uma chamada a ela. (2) A
+recusa é 409 com a mensagem `OFFICIAL_READ_ONLY` em pt-BR, que já diz o caminho:
+criar cópia própria (D-62) ou, para corrigir o dado oficial, uma nova versão do
+catálogo. (3) A cópia própria é um registro novo pela rota ordinária de criação
+(`is_own_record`): não tem `CatalogRecordRef`, logo não é oficial e é editável.
+Na ficha, o botão "Editar" de material oficial aparece desabilitado com a razão
+escrita, ao lado de "Criar cópia própria" (`/app/materiais/novo?copiar=<id>`,
+que pré-preenche o formulário; o original não muda); "Desativar" não é
+oferecido. (4) `test_material_write_guard.py` lê o OpenAPI, enumera as rotas de
+escrita sob `/materials/{id}` e **falha** se uma não estiver na tabela de
+sondas — cada sonda prova o 409 no material oficial. É o canário de isolamento
+aplicado à regra.
+
+**Alternativas descartadas.** "Marcar como editado após a importação": exige
+migração e deixa o dado oficial adulterável. Auditar a recusa: a ação de
+auditoria é um enum persistido (migração) e a recusa não escreve nada; o log da
+requisição já a registra.
+
+**Resíduos.** A cópia leva os valores e as fontes do original como ponto de
+partida, que o usuário edita; não herda a identidade externa.
 
 ---
 
