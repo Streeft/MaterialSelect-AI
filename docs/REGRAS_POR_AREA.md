@@ -748,6 +748,17 @@ cópia em SQL; designação **não** declara equivalência (`code_key` só tira 
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
+**Equivalência é declarada, nunca inferida** ([D-115](DECISIONS.md), TM1, Sessão
+70): `EquivalenceGroup` (tipo `EQUIVALENTE`/`APROXIMADA`/`SIMILAR` + `Source`
+obrigatória, com licença para dado real) liga `EquivalenceMember`s, que apontam
+para **designações**, não para materiais. Só o curador escreve
+(`require_catalog_curator`); a ficha mostra tipo, fonte, licença e localização, e
+"nenhuma equivalência declarada" por extenso. Nenhuma função compara códigos ou
+nomes (teste: dois materiais com o mesmo código, sem grupo, não têm equivalência);
+a busca por `norma:`/`designacao:` **não** expande por equivalência. Demo e real
+não se misturam no mesmo grupo, e `clear_demo` recusa apagar designação demo
+ligada por grupo real.
+
 **Composição na seleção e edição à mão** ([D-111](DECISIONS.md), Sessão 66): a
 composição é critério de um estágio `limit` por `composition` (passa o verdadeiro)
 e `not_composition` (passa só o **falso decidido**, a garantia); o indeterminado
