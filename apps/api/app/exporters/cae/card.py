@@ -22,10 +22,12 @@ The rules it holds:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from app.calculations.units import UnitError, from_canonical, to_canonical
-from app.exporters.cae.quantities import QUANTITIES, CaeQuantity, UnitSystem
+from app.domain.plasticity import PlasticTable
+from app.exporters.cae.quantities import QUANTITIES, YOUNG, CaeQuantity, UnitSystem
+from app.exporters.cae.text import real
 from app.exporters.identity import CompositionLine, DesignationLine
 from app.exporters.report import LIMITATION_NOTICE, OWN_RECORD_NOTICE
 
@@ -46,6 +48,19 @@ CAE_NOTICE = (
     "plasticidade, fadiga ou fluência. Propriedade não cadastrada foi omitida, "
     "nunca preenchida com zero nem com valor padrão. Confira cada valor e o "
     "sistema de unidades antes de usar o cartão num modelo."
+)
+
+
+#: Replaces ``CAE_NOTICE`` on an elastoplastic card (D-119, TM5-b).
+CAE_PLASTIC_NOTICE = (
+    "Cartão elastoplástico de uma temperatura para pré-processamento CAE. O módulo "
+    "de Young e a curva plástica valem na temperatura da série exportada e saem da "
+    "curva tensão-deformação cadastrada, convertida por regra declarada no próprio "
+    "arquivo; as demais propriedades são pontos representativos de catálogo, "
+    "independentes de temperatura. Nada foi interpolado nem extrapolado, e "
+    "propriedade não cadastrada foi omitida, nunca preenchida com zero nem com "
+    "valor padrão. Confira cada valor e o sistema de unidades antes de usar o "
+    "cartão num modelo."
 )
 
 
@@ -109,6 +124,73 @@ class CardValue:
 
 
 @dataclass(frozen=True)
+class CurveProvenance:
+    """Where one curve came from, as the service read it (D-106)."""
+
+    curve_id: int
+    title: str
+    source_label: str
+    source_is_demo: bool
+    license_label: str | None
+    citation: str | None
+    data_quality: str
+    is_demo: bool
+
+
+@dataclass(frozen=True)
+class PlasticInput:
+    """What the plastic card is built from, besides the table itself (D-119)."""
+
+    curve: CurveProvenance
+    series_position: int
+    series_label: str | None
+    conditions: str | None
+    #: The series' temperature, canonical (K).
+    temperature: float
+    #: The curve E(T) was read from.
+    modulus_curve: CurveProvenance
+
+
+@dataclass(frozen=True)
+class PlasticRow:
+    """One row of the hardening table, in the chosen system."""
+
+    plastic_strain: float
+    stress: float
+    #: ``plastic_strain + stress/E``: the true total strain, for the solvers that
+    #: read the table on total strain (Nastran ``MATS1``/``TABLES1``).
+    total_strain: float
+    #: 0-based position of the point in the stored series.
+    source_position: int
+
+
+@dataclass(frozen=True)
+class PlasticCard:
+    """The plastic part of a card, already in the chosen system (D-119)."""
+
+    source: PlasticInput
+    strain_measure: str
+    rows: tuple[PlasticRow, ...]
+    stress_unit: str
+    #: The series' temperature as written in a comment, in K, degC and degF.
+    temperature_label: str
+    discarded_elastic: int
+    discarded_after_necking: int
+    discarded_negative: int
+    anchor_residual: float
+
+    @property
+    def yield_stress(self) -> float:
+        return self.rows[0].stress
+
+    @property
+    def is_demo(self) -> bool:
+        return any(
+            c.is_demo or c.source_is_demo for c in (self.source.curve, self.source.modulus_curve)
+        )
+
+
+@dataclass(frozen=True)
 class CaeCard:
     """Everything a renderer needs, in the order it is read."""
 
@@ -124,6 +206,11 @@ class CaeCard:
     notices: list[str] = field(default_factory=list)
     composition: tuple[CompositionLine, ...] = ()
     designations: tuple[DesignationLine, ...] = ()
+    #: D-119: present only on an elastoplastic card.
+    plastic: PlasticCard | None = None
+    #: The catalogue's representative E, kept to say it was **not** used when
+    #: ``plastic`` replaced it with E at the series' temperature.
+    catalogue_young: CardValue | None = None
 
     def get(self, quantity: CaeQuantity) -> CardValue:
         return self.values[quantity.key]
@@ -220,4 +307,68 @@ def build_card(material: MaterialInput, system: UnitSystem) -> CaeCard:
         notices=notices,
         composition=material.composition,
         designations=material.designations,
+    )
+
+
+def _temperature_label(kelvin: float) -> str:
+    celsius = from_canonical(kelvin, "K", "degC")
+    fahrenheit = from_canonical(kelvin, "K", "degF")
+    return f"{real(kelvin, 8)} K = {real(celsius, 8)} degC = {real(fahrenheit, 8)} degF"
+
+
+def with_plastic(card: CaeCard, plastic: PlasticInput, table: PlasticTable) -> CaeCard:
+    """``card`` made elastoplastic: E at the series' temperature, and the hardening table.
+
+    The E that split elastic from plastic strain is the E written in the
+    card's elastic field — one number, so the solver's elastic line and its
+    plastic table cannot disagree. Every stress leaves the canonical Pa by
+    ``units.from_canonical`` into the system's stress unit (principle 4).
+    """
+    system = card.system
+    stress_target = system.pint_unit(YOUNG.key)
+
+    def stress(value_pa: float) -> float:
+        return from_canonical(value_pa, "Pa", stress_target)
+
+    rows = tuple(
+        PlasticRow(
+            plastic_strain=p.plastic_strain,
+            stress=stress(p.true_stress),
+            total_strain=p.plastic_strain + p.true_stress / table.youngs_modulus,
+            source_position=p.source_position,
+        )
+        for p in table.points
+    )
+    modulus = plastic.modulus_curve
+    young = CardValue(
+        quantity=YOUNG,
+        unit=system.symbol(YOUNG.key),
+        value=stress(table.youngs_modulus),
+        data_quality=modulus.data_quality,
+        source_label=modulus.source_label,
+        source_is_demo=modulus.source_is_demo or modulus.is_demo,
+        license_label=modulus.license_label,
+    )
+    plastic_card = PlasticCard(
+        source=plastic,
+        strain_measure=table.strain_measure,
+        rows=rows,
+        stress_unit=system.symbol(YOUNG.key),
+        temperature_label=_temperature_label(plastic.temperature),
+        discarded_elastic=table.discarded_elastic,
+        discarded_after_necking=table.discarded_after_necking,
+        discarded_negative=table.discarded_negative,
+        anchor_residual=table.anchor_residual,
+    )
+    is_demo = card.is_demo or plastic_card.is_demo
+    notices = [CAE_PLASTIC_NOTICE if n == CAE_NOTICE else n for n in card.notices]
+    if is_demo and CAE_DEMO_NOTICE not in notices:
+        notices.insert(0, CAE_DEMO_NOTICE)
+    return replace(
+        card,
+        values={**card.values, YOUNG.key: young},
+        notices=notices,
+        is_demo=is_demo,
+        plastic=plastic_card,
+        catalogue_young=card.get(YOUNG),
     )

@@ -11,6 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
+| [70](#sessão-70--081026--equivalência-declarada-entre-designações-tm1-d-115) | 08/10/2026 | Equivalência declarada entre designações (TM1): grupo com tipo (equivalente, aproximada, similar) e fonte obrigatória, membros ligados a designações, escrita só do curador, seção "Equivalências" na ficha, 5 grupos demo (migração `129a7dbbd361`) | 4277 | 851 |
 | [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4317 → 4327 | 847 (inalterado) |
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
@@ -82,6 +84,60 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 74 — 09/10/26 — Curva plástica nos cartões CAE (TM5-b, D-119)
+
+**O que mudou.** `material_curve` ganha `strain_measure` e `modulus_kind`
+declarados (migração `81adb0b92f72`, sem backfill; construtor, bundle, API e
+CSV da curva); `app/domain/plasticity.py` converte uma série em tabela plástica
+(engenharia → verdadeira até a estricção, ε_p = ε_t − σ_t/E, ancoragem só no
+limite elástico); quatro formatos elastoplásticos em `exporters/cae/` com
+`curva`/`serie` na rota e E(T) de ponto exato de curva declarada `young`;
+quatro golden files novos. Não feitos: família de temperaturas num cartão
+(TM5-b1) e o diálogo do front (TM5-b2). Detalhes, três correções à regra
+delegada e o que não foi verificado em [D-119](DECISIONS.md).
+
+**Pilha.** Depois do merge com #122: 4544 coletados, 4538 passam e 6 pulam;
+868 de frontend; uma só cabeça Alembic (`81adb0b92f72` sobre `129a7dbbd361`).
+
+---
+
+## Sessão 70 — 08/10/26 — Equivalência declarada entre designações (TM1, D-115)
+
+**O pedido.** Mostrar, na ficha, quais designações uma fonte declara equivalentes
+às do material, com o grau que a fonte afirma — sem nunca inferir por nome. Sem
+fonte aprovada que publique equivalências, só o mecanismo e o demo.
+
+**O que mudou.**
+
+- **Modelo e migração** — `EquivalenceGroup` (tipo, `Source` obrigatória,
+  localização, observação, `is_demo`) e `EquivalenceMember` (aponta para
+  `MaterialDesignation`, único por grupo); migração `129a7dbbd361` (só as duas
+  tabelas; o autogenerate também apontou deriva alheia em `battery_chemistry` e
+  `subscription`, deixada de fora).
+- **Domínio puro** — `app/domain/equivalence.py`: vocabulário fechado de tipos,
+  mínimo de duas designações distintas, demo e real não se misturam. Não existe
+  função que compare códigos.
+- **API** — `GET /api/materials/{id}/equivalencias` e `GET /api/equivalencias/{id}`
+  (logados); `POST/PUT/DELETE /api/equivalencias` só com `require_catalog_curator`,
+  auditados (`equivalence_group`). Fonte com licença para dado real; só designações
+  do catálogo compartilhado.
+- **Ficha** — seção "Equivalências": tipo e o que ele significa como afirmação da
+  fonte, fonte, licença, localização e observação (ausência por extenso), membros
+  com link; vazio diz "nenhuma equivalência declarada".
+- **Demo** — `seed_demo_equivalences` (5 grupos), ligado a `seed_extended.main()`
+  (`semear_demo`); `clear_demo` apaga antes das designações.
+- **Testes** — 4252 → 4277 de backend e 846 → 851 de frontend, incluindo o de
+  "mesmo código em dois materiais não é equivalência".
+- **Documentação** — D-115, TODO (TM1; resíduos), `15`, `03`, REGRAS_POR_AREA, README.
+
+**Pilha.** Depois do merge com a `main` (#118 a #124): 4453 coletados, 4447
+passam e 6 pulam; 868 de frontend; uma só cabeça Alembic (`129a7dbbd361`).
+
+**Depois do merge.** Disparar *Deploy da API* (migração). `semear_demo` só em
+desenvolvimento/demo; em produção pós-cutover não há dado de equivalência.
 
 ---
 
@@ -221,6 +277,7 @@ de registro" e mostra o universo na coluna Classe. 22 testes novos
 
 **Pós-merge.** Só a API (deploy da API). Sem migração e sem seed.
 
+---
 
 ## Sessão 63 — 08/10/26 — O que mudou entre releases do catálogo (TM7, D-108)
 

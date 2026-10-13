@@ -93,92 +93,76 @@ só nas páginas públicas do produto ([`catalogo/fontes.md`
 dele. Cada item é desenhado com dado de fonte APROVADA e passa pelas regras de
 sempre (princípios 1 a 4, D-24, ADR 0004).
 
-- **TM1 — equivalência de designações entre normas.** ▆ Um material pode ter
-  várias designações (norma, grau, região); a tela mostra os registros
-  **declarados** equivalentes por uma fonte, com o grau de equivalência que a
-  fonte afirma. Nunca inferida por semelhança de nome — o "parecido" já é o
-  Find Similar (D-63), e as duas perguntas ficam separadas. Depende de fonte
-  aprovada que publique equivalências.
+- **TM1 — equivalência de designações entre normas.** ✔ Mecanismo entregue
+  (D-115, Sessão 70): grupo de equivalência com tipo (equivalente, aproximada,
+  similar), fonte obrigatória e membros ligados a designações; escrita só do
+  curador; seção "Equivalências" na ficha; nunca inferida por nome ou código
+  (o "parecido" segue sendo o Find Similar, D-63). **Só há dado demo**
+  (`seed_demo_equivalences`, 5 grupos fictícios). Resíduos: (a) **dado real**,
+  bloqueado até haver fonte APROVADA em `docs/catalogo/fontes.md` que publique
+  equivalências (nenhuma está; condição C0); (b) o bundle do D-102 ainda não
+  aceita `equivalences.ndjson`; (c) não há tela de edição — o curador usa a API
+  (`/api/equivalencias`); (d) a busca (`norma:`/`designacao:`) não expande por
+  equivalência, de propósito: seria inferir.
 - **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
   Sessão 60); resíduos abaixo.
-- **TM3 — comparação de muitos materiais.** ✔ Entregue em parte (D-113,
-  Sessão 68): teto 60 x 20, tabela com cabeçalho e coluna fixos, figuras com
-  teto de legibilidade e aviso escrito. **TM3-a (▃):** composição química lado a
-  lado no comparador — o contrato `CompareOut` ainda só leva propriedades
-  escalares.
+- **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
+  de registros, com composição e propriedades lado a lado, mantendo a tabela
+  como alternativa textual de toda figura (D-31).
 - **TM4 — curvas dependentes de temperatura e taxa.** ✔ Entregue (D-106,
   Sessão 61); resíduos abaixo.
 - **TM5 — exportação para formatos CAE/CAD.** ✔ Entregue (D-104, Sessão 59);
   resíduos abaixo.
-- ~~**TM6 — referência por valor visível e filtrável.**~~ ✔ Entregue (D-115, Sessão 70, registrado pelo autor em 09/10; texto original abaixo mantido como histórico). A proveniência já
-  existe; falta mostrar a contagem de referências por registro e um filtro
-  "só valores com referência bibliográfica".
+- **TM6 — referência por valor visível e filtrável.** ✔ Entregue (D-115, Sessão 70).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
 
 **Resíduos das mudanças entre releases (TM7, [D-108](DECISIONS.md)).** O TM7 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- ~~**TM7-a — promover uma release.**~~ ✔ Quitado ([D-114](DECISIONS.md),
-  Sessão 69): o import da release nova de uma linha desativa a anterior na
-  mesma transação, sem apagar nada; processo e modal reaproveitados pela
-  identidade externa. Ver "Débitos já quitados".
+- **TM7-a — promover uma release.** ▆ O importador cria `Material` novo a cada
+  release e **nunca desativa** a release anterior: depois da segunda importação
+  as duas ficam ativas lado a lado, com registros em dobro no catálogo. Falta a
+  ação administrativa que, ao vigorar a release nova de uma linha, ponha
+  `is_active=False` na anterior e nos materiais dela (nunca `DELETE`). E a
+  **segunda release com processos falha** por colisão de slug ("Slug de
+  processo … já existe sem identidade externa deste dataset"): o importador não
+  reaproveita o processo da release anterior (o modal reaproveita pelo slug e
+  ganha uma ref nova). Nenhum dos dois é corrigido pelo TM7.
 - **TM7-b — imutabilidade no banco.** ▃ Um curador pode editar valor de material
   oficial pela API de materiais; o diff lê o que está gravado e passaria a
   refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
   ou marcar "editado após a importação" a partir da auditoria.
-- ~~**TM7-c — outros universos no diff.**~~ ✔ Parcial (D-109, Sessão 64):
-  processos, modais, atributos de processo, composição e curvas entram no diff
-  (mesma identidade externa, comparação no canônico, filtro `universo`).
-  **Resíduo:** designações, valores suplementares e valores do dataset ainda
-  ficam de fora; e o **modal** é reaproveitado pelo slug entre releases (uma
-  linha só, com uma ref nova por release), então hoje só a presença dele
-  difere — os valores do modal só mudam entre releases quando o TM7-a decidir
-  como gravar o modal por release.
+- **TM7-c — outros universos no diff.** ▃ O diff cobre **só materiais**:
+  processos, modais, valores suplementares, valores do dataset, composição,
+  designações e curvas ficam de fora.
 - **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
   consultas por release, tudo em memória). Com o catálogo Granta inteiro
   (milhares de registros × dezenas de propriedades) pode passar de segundos;
   materializar no import se medir lento. O CSV/XLSX não pagina. A rota de um
   só registro também monta o diff inteiro e devolve um item (achado da revisão).
-- **TM7-h — favoritos, recentes e estudos presos à release antiga.** ▃ Depois
-  da promoção (D-114) eles apontam para o material inativo (o favorito some da
-  lista). Redirecionar pela identidade externa é decisão de produto.
-- **TM7-i — histórico de valor de processo e modal.** ▃ Processo e modal são
-  reaproveitados e atualizados no lugar (D-114); o valor anterior só sobrevive
-  na linha bruta da release antiga. O diff de processos (TM7-c) exigirá versões
-  guardadas. Valor de processo que a release nova não traz fica com a fonte da
-  anterior.
-- **TM7-j — a ficha do material substituído não aponta o sucessor.** ▁ Abre
-  como toda ficha de material inativo, sem dizer qual registro da mesma
-  identidade está vigente.
-- ~~**TM7-e — `is_active` não entra no diff.**~~ ✔ Resolvido por decisão
-  ([D-114](DECISIONS.md)), que revoga a parte `is_active` da D-109: com a
-  promoção, todo registro da release base fica inativo por construção, então
-  `is_active` fica fora do diff de propósito.
-- ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ (D-109): é
-  mudança de forma, escrita; nunca número contra vazio.
-- ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ (D-109): a
-  grafia (`kg/m^3` × `kg/m³`) segue sendo "só a escrita da fonte", agora dita
-  na regra e na tela; propriedade sem definição é `ValidationError` (400).
+- **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
+  releases que passa de ativo para inativo sai como "inalterado", porque
+  `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
+  entra junto com o TM7-a, que passa a desativar a release anterior.
+- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
+  representativo de uma faixa que tem `normalized_value` de um lado e nada do
+  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
+  importador não gera esse caso hoje.
+- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
+  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
+  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
+  vez de `ValidationError`; a chave estrangeira impede hoje.
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- ~~**TM2-a — editar composição e designações.**~~ ✔ Entregue (Sessão 66,
-  [D-111](DECISIONS.md)): `PUT /api/materials/{id}/composicao` e `/designacoes`,
-  formulário na ficha, auditoria, permissão do material (dono ou curador; 409 para
-  registro do catálogo oficial). Resíduos **TM2-f** e **TM2-g** abaixo.
-- ~~**TM2-b — composição como estágio de seleção.**~~ ✔ Entregue (Sessão 66,
-  [D-111](DECISIONS.md)): operadores `composition` e `not_composition` num estágio
-  `limit`, pela regra de alcance em três valores; o funil conta quem ficou sem
-  dado e o laudo diz a regra.
-- **TM2-f — qualidade e fonte reaproveitada nos formulários novos.** ▁ Os
-  formulários de composição, designações e curvas gravam `ESTIMADO` e não expõem a
-  qualidade do dado; também não sugerem fontes já cadastradas (digita-se o
-  rótulo). Aberto pela Sessão 66.
-- **TM2-g — edição por linha.** ▁ As escritas substituem o conjunto inteiro
-  (último a gravar vence). Um `PATCH` por elemento/curva só se houver edição
-  concorrente real. Aberto pela Sessão 66.
+- **TM2-a — editar composição e designações.** ▃ Hoje só o seed demo e o bundle
+  oficial escrevem as duas tabelas. Falta API e formulário, com auditoria (M2),
+  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62).
+- **TM2-b — composição como estágio de seleção.** ▃ Um estágio `limit` sobre
+  elemento, no motor, no funil e no laudo, pela mesma regra de alcance em três
+  valores (`app/domain/composition.evaluate`).
 - **TM2-c — % atômica e composição por condição.** ▆ Converter % atômica exige
   a composição inteira e as massas atômicas (cálculo, não unidade); composição
   por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
@@ -200,31 +184,29 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   depende do bundle do D-102 (`material_curves.ndjson`) ou de fonte aberta
   APROVADA (D-103). A tela já mostra "Nenhuma curva cadastrada" com a contagem
   por tipo.
-- ~~**TM4-b — ler um valor de uma curva.**~~ Entregue em parte (Sessão 65,
-  [D-110](DECISIONS.md)): regra conservadora em docs/18 §6 — só o ponto
-  declarado exatamente no x pedido, convertido por units.py, sem interpolar,
-  com ausência escrita; `GET .../curvas/{curva}/valor`. **Resíduo:** não há
-  tela para a leitura (só API).
+- **TM4-b — ler um valor de uma curva.** ▆ "Valor a 20 °C" por interpolação ou
+  outra regra declarada, com referência ao dado original (docs/18 §6). Hoje
+  nada é interpolado, extrapolado nem reamostrado.
 - **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
   Continuam em `CatalogSupplementalValue` até haver tipo.
-- ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
-  [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
-  `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
-  catálogo oficial fica só leitura.
-- ~~**TM4-e — escolher a unidade do parâmetro da família.**~~ Entregue (Sessão 65,
-  D-110): `?unidade_parametro=` e seletor rotulado na ficha. **Resíduo:** a
-  exportação CSV/XLSX ainda não aceita a unidade do parâmetro.
-- ~~**TM4-f — nova grandeza de eixo exige migração.**~~ Entregue (Sessão 65,
-  D-110): fonte única no domínio e teste que falha se o `CHECK` migrado divergir.
-- ~~**TM4-g — curvas duplicadas depois de um segundo cutover.**~~ ✔ Quitado
-  ([D-114](DECISIONS.md), Sessão 69): a curva da release anterior fica no
-  material antigo, inativo, preservada para o diff; a ficha vigente lista uma
-  curva por identidade.
-- ~~**TM4-h — folga do eixo em °C/°F.**~~ ✔ Entregue (D-113): `_padded` só prende
-  o zero em unidade de razão.
-- **Dependência TM5-b:** a curva plástica dos decks de CAE lê `material_curve` e
-  pede regra declarada de conversão engenharia → verdadeira e de origem da
-  deformação plástica — ver TM5-b abaixo.
+- **TM4-d — edição pela API e pela interface.** ▃ Com auditoria (M2),
+  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62);
+  hoje só o seed demo e o bundle escrevem.
+- **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
+  convenção da grandeza (°C para temperatura); a legenda da tela a repete.
+- **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
+  (`QUANTITIES`, 8) está escrita por extenso no `CHECK` da migração
+  `0925e0787863`; acrescentar uma grandeza sem migração nova deixa modelo e
+  banco divergentes. Achado da revisão do TM4.
+- **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
+  de outro dataset acrescenta curvas sem aposentar as da release anterior do
+  mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
+  curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
+- **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
+  leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
+  estético, nenhum ponto se perde.
+- ~~**Dependência TM5-b**~~ — resolvida pelo [D-119](DECISIONS.md) (Sessão 74):
+  a curva declara `strain_measure` e `modulus_kind`.
 
 **Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -236,12 +218,21 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   compatível), os decks de MAPDL, Abaqus, Nastran e LS-DYNA recusam todo
   material por falta de ν e só o MatML sai. Não semear definição vazia: ela
   ficaria em ~0 % no painel (a objeção do D-69).
-- **TM5-b — curva tensão-deformação plástica e dados dependentes de
-  temperatura.** ▆ `*PLASTIC` (Abaqus), `TB,MISO`/`MPTEMP`/`MPDATA` (MAPDL),
-  `MATS1`/`TABLES1` (Nastran), `*MAT_PIECEWISE_LINEAR_PLASTICITY` (LS-DYNA).
-  Depende do modelo do TM4 (D-106, entregue): a curva vem de `material_curve`,
-  mas não entra em cálculo nem em exportação até haver regra determinística de
-  conversão engenharia → verdadeira e de origem da deformação plástica.
+- ~~**TM5-b — curva tensão-deformação plástica.**~~ Entregue (Sessão 74,
+  [D-119](DECISIONS.md)): formatos `abaqus-plastic`, `mapdl-plastic`
+  (`TB,PLAS` MISO), `nastran-plastic` (`MATS1`/`TABLES1`) e `lsdyna-plastic`
+  (`*MAT_024` + `*DEFINE_CURVE`), com `curva` e `serie` na rota; medida
+  declarada na curva (migração `81adb0b92f72`), E(T) de ponto exato de curva
+  declarada `young`, truncamento na estricção, ancoragem só no limite elástico;
+  tudo o mais é 422 com o motivo. **Resíduos:**
+  - **TM5-b1 — família de temperaturas num cartão só.** ▃ `*PLASTIC` com
+    coluna de temperatura, `TBTEMP`, `MATT1`/`TABLEST`, `*MAT_106`, com E(T)
+    também no campo elástico; hoje o cartão vale numa temperatura.
+  - **TM5-b2 — diálogo do front.** ▃ `CaeExportDialog`/`lib/api.ts`/`i18n.ts`
+    não oferecem os formatos plásticos nem a escolha de curva e série.
+  - Nenhuma curva do catálogo declara medida nem E `young` hoje (o demo não, de
+    propósito); os formatos saem para curvas importadas/cadastradas com as duas
+    declarações, e herdam o TM5-a.
 - **TM5-c — XML do Engineering Data do Ansys Workbench.** ▃ Não feito: o
   formato é um dialeto do MatML com metadados próprios, e a documentação pública
   acessível nesta sessão não bastou para escrevê-lo sem copiar um arquivo
@@ -405,15 +396,6 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
-- ~~**TM7-a + TM4-g — promover uma release (Sessão 69, [D-114](DECISIONS.md))**~~ —
-  o import de uma release nova da mesma `lineage` grava tudo e, só então, na
-  mesma transação, desativa a release anterior, os materiais dela (substituídos
-  ou retirados), e os processos/modais que a nova não traz — nunca `DELETE`;
-  processo e modal reaproveitados pela identidade externa (sem colisão de slug,
-  valores da release nova com a fonte dela); curva antiga preservada no material
-  inativo; falha em qualquer ponto = rollback total; release substituída ou
-  mais antiga recusada; o dry-run (`promotion_plan`) diz o que seria
-  desativado, por identidade. Resíduos TM7-h a TM7-j.
 - ~~**TM7 — o que mudou entre releases (Sessão 63, [D-108](DECISIONS.md))**~~ —
   `catalog_dataset.lineage` (a que catálogo a release pertence, do manifest,
   sem backfill) e `is_demo` (migração `73a9b5da72b2`); diff derivado do que cada
@@ -435,13 +417,6 @@ Registrados para não voltarem por engano:
   catálogo estendido (o estado vazio segue testado por unidade e na Cerâmica Demo
   D, sem curva).
 
-- ~~**TM2-a, TM2-b e TM4-d — composição na seleção e edição à mão (Sessão 66, [D-111](DECISIONS.md))**~~ —
-  `composition`/`not_composition` num estágio `limit` (alcance em três valores,
-  funil com a contagem dos indecididos, laudo com a regra); `PUT
-  …/composicao`, `PUT …/designacoes` e `POST`/`PUT`/`DELETE …/curvas` com os
-  construtores do seed, auditoria e a permissão do material
-  (`services/record_permissions.py`; 409 para o oficial); formulários na ficha.
-  Resíduos TM2-f e TM2-g em "Média prioridade". 4252 → 4318 testes de backend (4312 passam e 6 pulam sem `POSTGRES_TEST_URL`) e 846 → 858 de frontend.
 - ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
   `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →
   ponto, `CHECK`s de finitude e de faixa, fonte obrigatória, migração

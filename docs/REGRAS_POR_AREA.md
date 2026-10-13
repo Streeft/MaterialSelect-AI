@@ -700,6 +700,16 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-119 (Sessão 74, TM5-b):** `abaqus-plastic`, `mapdl-plastic`,
+`nastran-plastic` e `lsdyna-plastic` exigem `curva` (e `serie` quando há mais
+de uma) — nunca escolhidas pela exportação. A curva declara `strain_measure`
+(engenharia/verdadeira; nulo = 422, nunca presumida) e o E sai de ponto exato
+de curva E × T do mesmo material declarada `modulus_kind = young`, na
+temperatura da série (sem interpolação; sem ponto = 422). Engenharia →
+verdadeira só até a tensão máxima; ancoragem em ε_p = 0 só no limite elástico
+(tolerância de 5 % da deformação elástica). O mesmo E vai ao campo elástico.
+Conversão pura em `app/domain/plasticity.py`.
+
 **D-112 (Sessão 67):** `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
 (`*MAT_THERMAL_ISOTROPIC`) exigem condutividade e calor específico (422 sem
 eles); composição e designação entram nos cartões como texto informativo,
@@ -747,6 +757,17 @@ faixa é lida por **alcance** (`≥ x` quando o máximo chega a x; "≤ máx." a
 cópia em SQL; designação **não** declara equivalência (`code_key` só tira caixa
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
+
+**Equivalência é declarada, nunca inferida** ([D-115](DECISIONS.md), TM1, Sessão
+70): `EquivalenceGroup` (tipo `EQUIVALENTE`/`APROXIMADA`/`SIMILAR` + `Source`
+obrigatória, com licença para dado real) liga `EquivalenceMember`s, que apontam
+para **designações**, não para materiais. Só o curador escreve
+(`require_catalog_curator`); a ficha mostra tipo, fonte, licença e localização, e
+"nenhuma equivalência declarada" por extenso. Nenhuma função compara códigos ou
+nomes (teste: dois materiais com o mesmo código, sem grupo, não têm equivalência);
+a busca por `norma:`/`designacao:` **não** expande por equivalência. Demo e real
+não se misturam no mesmo grupo, e `clear_demo` recusa apagar designação demo
+ligada por grupo real.
 
 **Composição na seleção e edição à mão** ([D-111](DECISIONS.md), Sessão 66): a
 composição é critério de um estágio `limit` por `composition` (passa o verdadeiro)

@@ -3,8 +3,7 @@
 ⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
 
 70 materiais adicionais distribuídos nas cinco famílias, exercitando
-todas as 12 propriedades, conversões de unidade, intervalos, valores
-ausentes e incerteza.
+todas as 12 propriedades, conversões de unidade, intervalos e incerteza.
 
 Executar com::
 
@@ -18,7 +17,9 @@ Depois dos materiais, o mesmo comando dá a **todos** os 75 materiais demo
 (os 5 do seed principal e estes 70) designações, composição química e curvas
 fictícias, marcadas ``is_demo`` (``app.db.seed_extended_identity``, D-107). O
 log conta ``designations_created``, ``composition_entries_created`` e
-``curves_created``; ``python -m app.db.demo_coverage`` lista o que cada material
+``curves_created``, e liga cinco grupos de equivalência declarada fictícios
+(``app.db.seed_demo_equivalences``, D-115; log ``equivalence_groups_created``);
+``python -m app.db.demo_coverage`` lista o que cada material
 tem e o que falta.
 """
 
@@ -30,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_demo_equivalences import seed_demo_equivalences
 from app.db.seed_demo_releases import seed_demo_releases
 from app.db.seed_extended_identity import seed_extended_identity
 from app.domain.data_quality import (
@@ -218,7 +220,6 @@ def _generate_materials() -> list[dict]:
     rng = random.Random(42)
     materials: list[dict] = []
 
-    missing_count = 0
     non_canon_count = 0
     uncertain_count = 0
     meas_cond_count = 0
@@ -242,23 +243,6 @@ def _generate_materials() -> list[dict]:
             }
 
             for slug, vmin, vmax, unit in props:
-                # ~15% de chance de valor ausente (máximo 10 no total),
-                # exceto densidade e limite_escoamento que são sempre preenchidos.
-                if (
-                    missing_count < 10
-                    and rng.random() < 0.15
-                    and slug not in ("densidade", "limite_escoamento")
-                ):
-                    mat["values"].append(
-                        {
-                            "slug": slug,
-                            "kind": "missing",
-                            "notes": "Não disponível no dataset demo.",
-                        }
-                    )
-                    missing_count += 1
-                    continue
-
                 val_min = vmin + rng.random() * (vmax - vmin) * 0.8
                 val_max = val_min + rng.random() * (vmax - val_min) * 0.2
                 val_scalar = (val_min + val_max) / 2.0
@@ -404,8 +388,7 @@ def _build_value_row(
 def seed_extended_materials(db: Session, source: Source) -> int:
     """Semeia os 70 materiais estendidos. Idempotente.
 
-    Retorna o número de materiais criados nesta execução.
-    """
+    Retorna o número de materiais criados nesta execução."""
     prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
     material_repo = MaterialRepository(db)
 
@@ -470,12 +453,14 @@ def main() -> None:
         created = seed_extended_materials(db, demo_source)
         releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         identity = seed_extended_identity(db, demo_source)
+        equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
     print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
+    print(f"[seed_extended] Equivalências demo: {equivalences}")
 
 
 if __name__ == "__main__":
