@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [70](#sessão-70--081026--equivalência-declarada-entre-designações-tm1-d-115) | 08/10/2026 | Equivalência declarada entre designações (TM1): grupo com tipo (equivalente, aproximada, similar) e fonte obrigatória, membros ligados a designações, escrita só do curador, seção "Equivalências" na ficha, 5 grupos demo (migração `129a7dbbd361`) | 4277 | 851 |
 | [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4317 → 4327 | 847 (inalterado) |
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
@@ -83,6 +84,23 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 74 — 09/10/26 — Curva plástica nos cartões CAE (TM5-b, D-119)
+
+**O que mudou.** `material_curve` ganha `strain_measure` e `modulus_kind`
+declarados (migração `81adb0b92f72`, sem backfill; construtor, bundle, API e
+CSV da curva); `app/domain/plasticity.py` converte uma série em tabela plástica
+(engenharia → verdadeira até a estricção, ε_p = ε_t − σ_t/E, ancoragem só no
+limite elástico); quatro formatos elastoplásticos em `exporters/cae/` com
+`curva`/`serie` na rota e E(T) de ponto exato de curva declarada `young`;
+quatro golden files novos. Não feitos: família de temperaturas num cartão
+(TM5-b1) e o diálogo do front (TM5-b2). Detalhes, três correções à regra
+delegada e o que não foi verificado em [D-119](DECISIONS.md).
+
+**Pilha.** Depois do merge com #122: 4544 coletados, 4538 passam e 6 pulam;
+868 de frontend; uma só cabeça Alembic (`81adb0b92f72` sobre `129a7dbbd361`).
 
 ---
 
