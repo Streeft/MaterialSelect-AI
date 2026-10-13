@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from app.calculations.units import ureg
-from app.exporters.cae import CAE_FORMATS, refusal_reason
+from app.exporters.cae import ALL_FORMATS, CAE_FORMATS, refusal_reason
 from app.exporters.cae.card import (
     CAE_DEMO_NOTICE,
     NOT_REGISTERED,
@@ -97,7 +97,8 @@ def test_each_format_matches_its_golden_file(fmt: str) -> None:
 
 def test_golden_files_are_marked_fictitious() -> None:
     files = sorted(GOLDEN_DIR.iterdir())
-    assert len(files) == len(CAE_FORMATS)
+    # One golden file per format, the elastoplastic ones (D-119) included.
+    assert len(files) == len(ALL_FORMATS)
     for path in files:
         text = path.read_text(encoding="utf-8")
         assert "FICTICIO" in ascii_fold(text).upper(), path.name

@@ -22,7 +22,7 @@ existente — ambos escritos à mão aqui. Ele também propôs mexer em
 no D-106, alheia a este item); essas linhas foram retiradas.
 
 Revision ID: 703bbf25ce90
-Revises: 73a9b5da72b2
+Revises: 81adb0b92f72
 Create Date: 2026-10-13
 """
 from __future__ import annotations
@@ -35,7 +35,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '703bbf25ce90'
-down_revision: Union[str, None] = '73a9b5da72b2'
+down_revision: Union[str, None] = '81adb0b92f72'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

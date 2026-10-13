@@ -105,6 +105,49 @@ export interface Designation extends DesignationBrief {
   is_demo: boolean;
 }
 
+/** How closely a source says two designations correspond (D-115, TM1). */
+export type EquivalenceKind = "EQUIVALENTE" | "APROXIMADA" | "SIMILAR";
+
+/** One designation of a declared group, with the material that carries it. */
+export interface EquivalenceMember {
+  designation_id: number;
+  system: DesignationSystem;
+  system_label: string;
+  code: string;
+  region: string | null;
+  material_id: number;
+  material_name: string;
+  /** The material was withdrawn from the catalogue; the declaration stays. */
+  material_is_active: boolean;
+  /** One of the designations of the material whose sheet is open. */
+  is_self: boolean;
+}
+
+/**
+ * What a source declares about a set of designations (D-115, TM1): the kind and
+ * the source are always present. Never inferred from a name or a shared code.
+ */
+export interface EquivalenceGroup {
+  id: number;
+  kind: EquivalenceKind;
+  kind_label: string;
+  /** What the word means as the source's claim. */
+  kind_meaning: string;
+  source_id: number;
+  source_label: string;
+  license_label: string | null;
+  citation: string | null;
+  note: string | null;
+  is_demo: boolean;
+  members: EquivalenceMember[];
+}
+
+/** Empty `groups` means none declared — written on the sheet, never blank. */
+export interface MaterialEquivalences {
+  material_id: number;
+  groups: EquivalenceGroup[];
+}
+
 /**
  * What a composition row says: a number (`faixa` — a range, a single bound or a
  * nominal value), `resto` (balance, never computed) or `ausente` (the source

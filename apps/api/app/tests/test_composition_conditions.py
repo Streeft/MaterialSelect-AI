@@ -279,7 +279,7 @@ class TestDatabase:
 
 # --- migration ----------------------------------------------------------------------
 
-PRE_REVISION = "73a9b5da72b2"
+PRE_REVISION = "81adb0b92f72"
 REVISION = "703bbf25ce90"
 
 

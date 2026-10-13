@@ -303,8 +303,8 @@ pelo GitHub Actions, com busca por palavras e vetores (D-101). A IA oficial é o
 Gemini gratuito via `openai-compat` (D-93); o `mock` segue o padrão do código e
 dos testes.
 
-Testes: 4428 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4422
-passam e 6 pulam) e 863 de frontend, todos verdes. A contagem vive em
+Testes: 4616 de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4610
+passam e 6 pulam) e 877 de frontend, todos verdes. A contagem vive em
 `docs/PROJECT_CONTEXT.md`.
 
 Histórico detalhado: `docs/ESTADO_ATUAL.md`; estado resumido:
@@ -326,7 +326,7 @@ Regras literais por área em [`docs/REGRAS_POR_AREA.md`](docs/REGRAS_POR_AREA.md
 | Demo e seed | Demo e seed | D-71, D-72 |
 | Cadernos e Estúdio | Estúdio e Cadernos | D-92, D-94, D-97, D-98 |
 | Cérebro, ingestão, RAG | Cérebro e ingestão | D-47, D-100, D-101 |
-| Cartão CAE | Exportação CAE | D-104 |
+| Cartão CAE | Exportação CAE | D-104, D-112, D-119 |
 | Composição e busca | Composição e busca | D-105 |
 | Catálogo oficial, fontes abertas | Catálogo oficial e fontes abertas | D-102, D-103 |
 
