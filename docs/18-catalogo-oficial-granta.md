@@ -233,6 +233,13 @@ como a fonte os escreveu, a faixa declarada e a fonte/citação da curva. Esse
 valor **não** vira propriedade escalar (`MaterialPropertyValue`) nem entra em
 ranking: é uma leitura da curva, com a curva ao lado.
 
+**Trajetórias (D-118, TM4-c).** Uma curva declarada `path_kind = "path"` (laço
+de histerese, carga e descarga) guarda os pontos na ordem da fonte e pode ter o
+mesmo x em mais de um trecho. A leitura de valor acima **recusa** essa curva
+com 422 e a razão escrita — escolher um ramo seria uma escolha que a fonte não
+fez —, e o cartão plástico CAE também. No bundle, `path_kind` é opcional no
+registro de `material_curves`; ausente é `"function"` (x estritamente crescente).
+
 `CatalogDatasetValue` faz a mesma coisa para fatos que pertencem ao dataset
 como um todo, por exemplo defaults econômicos, combustíveis, dados por país e
 parâmetros de fim de vida.
