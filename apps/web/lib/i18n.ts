@@ -2040,7 +2040,7 @@ export const ptBR = {
         "Curva do catálogo oficial licenciado: não é editada pela ficha.",
       kindsError: "Não foi possível carregar os tipos de curva.",
       rule:
-        "Digite os pontos como a fonte os deu, na unidade dela: nada é reordenado, interpolado ou preenchido. O x tem de crescer ao longo da série e cada série precisa de ao menos dois pontos. Toda curva precisa de fonte. Salvar substitui a curva inteira.",
+        "Digite os pontos como a fonte os deu, na unidade dela: nada é reordenado, interpolado ou preenchido. O x tem de crescer ao longo da série (exceto numa trajetória, como um laço de histerese) e cada série precisa de ao menos dois pontos. Toda curva precisa de fonte. Salvar substitui a curva inteira.",
       kind: "Tipo de curva",
       titleField: "Título",
       description: "Descrição",
@@ -2055,6 +2055,13 @@ export const ptBR = {
       family: "Família por",
       familyHint: "Uma série por valor deste parâmetro.",
       noFamily: "Nenhuma (série única)",
+      pathKind: "Traçado",
+      pathKindHint:
+        "Trajetória: pontos na ordem digitada; o x pode repetir ou voltar. Não admite faixa nem leitura de valor num x.",
+      pathKinds: {
+        function: "Função (x crescente)",
+        path: "Trajetória (ex.: histerese)",
+      } as Record<"function" | "path", string>,
       seriesLabel: (n: number) => `Série ${n}`,
       seriesName: (n: number) => `Nome da série ${n} (opcional)`,
       conditions: "Condições (opcional)",

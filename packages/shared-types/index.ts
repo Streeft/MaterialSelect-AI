@@ -2816,6 +2816,13 @@ export interface CurveSeriesIn {
   points: CurvePointIn[];
 }
 
+/**
+ * How the points of a series relate (D-118, TM4-c): `function` is one y per x
+ * (x strictly increasing); `path` is a trajectory in the declared order, where
+ * x may repeat or turn back (a hysteresis loop). A path has no value "at x".
+ */
+export type CurvePathKind = "function" | "path";
+
 /** A whole curve being written; an update replaces it entirely (TM4-d). */
 export interface CurveIn {
   kind: CurveKind;
@@ -2828,6 +2835,8 @@ export interface CurveIn {
   x_label?: string | null;
   y_label?: string | null;
   parameter_quantity?: string | null;
+  /** D-118; omitted is `function`. */
+  path_kind?: CurvePathKind;
   series: CurveSeriesIn[];
   source_label: string;
   citation?: string | null;
@@ -2939,6 +2948,9 @@ export interface Curve {
   x_axis: CurveAxis;
   y_axis: CurveAxis;
   parameter: CurveParameter | null;
+  /** D-118: absent on an older response means `function`. */
+  path_kind?: CurvePathKind;
+  path_kind_label?: string;
   series: CurveSeries[];
   notes: string[];
   source_label: string;

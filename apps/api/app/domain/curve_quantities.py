@@ -81,4 +81,15 @@ MODULUS_KINDS: dict[str, str] = {
     "bulk": "Módulo volumétrico (K)",
 }
 
-__all__ = ["MODULUS_KINDS", "QUANTITIES", "STRAIN_MEASURES", "AxisQuantity"]
+#: How the points of a series relate to each other (D-118, TM4-c). A
+#: ``function`` gives one y per x, so x strictly increases along each series —
+#: every curve stored before D-118 is one. A ``path`` is a trajectory read in
+#: the order the source wrote it: x may repeat or turn back (a hysteresis loop,
+#: a loading–unloading cycle). Asking "the value at x" of a path is ambiguous,
+#: so nothing that reads one value per x accepts a path.
+PATH_KINDS: dict[str, str] = {
+    "function": "Função (um valor de y por valor de x, x crescente)",
+    "path": "Trajetória (pontos na ordem declarada; x pode repetir ou voltar)",
+}
+
+__all__ = ["MODULUS_KINDS", "PATH_KINDS", "QUANTITIES", "STRAIN_MEASURES", "AxisQuantity"]

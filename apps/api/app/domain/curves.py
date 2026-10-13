@@ -33,7 +33,13 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.calculations.units import UnitError, is_ratio_scale, pretty_unit, to_canonical
-from app.domain.curve_quantities import MODULUS_KINDS, QUANTITIES, STRAIN_MEASURES, AxisQuantity
+from app.domain.curve_quantities import (
+    MODULUS_KINDS,
+    PATH_KINDS,
+    QUANTITIES,
+    STRAIN_MEASURES,
+    AxisQuantity,
+)
 from app.domain.display_units import DisplayUnitError, Reading, reading_for
 from app.models.enums import CurveKind
 
@@ -61,9 +67,9 @@ class KindSpec:
     parameter_quantities: tuple[str, ...]
     #: The scale the figure opens in when the reader chose none.
     default_scale: Scale
-    #: Every kind today is a monotonic loading or a sweep: x strictly increases
-    #: along a series. A hysteresis loop would not, and has no kind yet — it
-    #: stays in ``CatalogSupplementalValue`` (TM4-c).
+    #: A ``function`` curve of any kind has x strictly increasing along a
+    #: series. A hysteresis loop does not: it is declared ``path_kind='path'``
+    #: (D-118), not a kind of its own, because the axes are the same.
     x_strictly_increasing: bool = True
 
 
@@ -180,6 +186,23 @@ class NormalizedCurve:
     #: D-119: declared by the source, or None ("not declared").
     strain_measure: str | None = None
     modulus_kind: str | None = None
+    #: D-118: ``function`` (x strictly increasing) or ``path`` (ordered trajectory).
+    path_kind: str = "function"
+
+
+#: What a path curve answers when asked for one value per x (D-118).
+PATH_AMBIGUOUS = (
+    "Esta curva é uma trajetória (ex.: laço de histerese): o mesmo x pode ter "
+    "mais de um y, conforme o trecho do caminho. Ler um valor num x é ambíguo, "
+    "e nada é interpolado nem escolhido; consulte a tabela de pontos, na ordem "
+    "declarada pela fonte."
+)
+
+
+def require_function(path_kind: str, what: str) -> None:
+    """Refuse, with the reason, anything that needs one y per x on a path curve."""
+    if path_kind != "function":
+        raise CurveError(f"{what}: {PATH_AMBIGUOUS}")
 
 
 def _number(value: object, what: str) -> float:
@@ -219,6 +242,7 @@ def build_curve(
     parameter_quantity: str | None = None,
     strain_measure: str | None = None,
     modulus_kind: str | None = None,
+    path_kind: str = "function",
 ) -> NormalizedCurve:
     """Validate a curve as the source wrote it and normalise every number.
 
@@ -236,8 +260,18 @@ def build_curve(
     ``strain_measure`` (stress–strain only) and ``modulus_kind`` (a ``modulo``
     y axis only) are what the source declares (D-119); None is "not declared",
     and a value where it means nothing, or outside the list, is refused.
+
+    ``path_kind`` (D-118): ``function`` keeps the rule above (x strictly
+    increasing); ``path`` keeps the points in the order written and lets x
+    repeat or turn back. A path refuses a band (y_min/y_max): a band is drawn
+    as a polygon over x, which a trajectory that turns back does not have.
     """
     spec = KINDS[kind]
+    if path_kind not in PATH_KINDS:
+        raise CurveError(
+            f"Tipo de traçado desconhecido: {path_kind!r} (admitidos: {', '.join(PATH_KINDS)})."
+        )
+    is_path = path_kind == "path"
     if strain_measure is not None:
         if strain_measure not in STRAIN_MEASURES:
             raise CurveError(
@@ -324,6 +358,11 @@ def build_curve(
             at = f"{where}, ponto {p_index + 1}"
             x = _number(point.x, f"{at}, x")
             y = _number(point.y, f"{at}, y")
+            if is_path and (point.y_min is not None or point.y_max is not None):
+                raise CurveError(
+                    f"{at}: uma trajetória não admite faixa (y mín./y máx.); a faixa só "
+                    "tem sentido numa curva com um y por x."
+                )
             if (point.y_min is None) != (point.y_max is None):
                 raise CurveError(
                     f"{at}: faixa com um lado só; a fonte tem de dar o mínimo e o máximo."
@@ -342,7 +381,12 @@ def build_curve(
                 _convert(y_max, y_unit, yq, f"{at}, y máx.")[0] if y_max is not None else None
             )
 
-            if spec.x_strictly_increasing and previous_x is not None and x_norm <= previous_x:
+            if (
+                not is_path
+                and spec.x_strictly_increasing
+                and previous_x is not None
+                and x_norm <= previous_x
+            ):
                 raise CurveError(
                     f"{at}: x tem de crescer ao longo da série (curva de {lower_first(spec.label)}); "
                     "pontos fora de ordem ou repetidos não são reordenados."
@@ -386,6 +430,7 @@ def build_curve(
         series=tuple(built),
         strain_measure=strain_measure,
         modulus_kind=modulus_kind,
+        path_kind=path_kind,
     )
 
 
@@ -572,6 +617,7 @@ def draw_curve(
     y_unit: str | None = None,
     scale: str | None = None,
     parameter_unit: str | None = None,
+    path_kind: str = "function",
 ) -> DrawnCurve:
     """Everything the figure and its table need, in the reader's units.
 
@@ -700,6 +746,11 @@ def draw_curve(
         )
 
     notes: list[str] = []
+    if path_kind == "path":
+        notes.append(
+            "Trajetória (D-118): os pontos são ligados na ordem em que a fonte os declarou; "
+            "o mesmo x pode aparecer em mais de um trecho, e nada é interpolado."
+        )
     if excluded_total:
         notes.append(
             f"{excluded_total} ponto(s) com valor menor ou igual a zero não aparecem em escala "
@@ -767,6 +818,7 @@ def read_at_declared_x(
     at_unit: str,
     y_unit: str | None = None,
     parameter_unit: str | None = None,
+    path_kind: str = "function",
 ) -> tuple[list[SeriesReading], Reading, Reading | None]:
     """The value of each series at ``at`` — only where the source declared that x.
 
@@ -776,7 +828,11 @@ def read_at_declared_x(
     point at exactly that x answers ``found=False``, never a number. The point
     comes back with the numbers the source wrote beside the converted ones.
     Returns the readings plus the reading units of y and of the parameter.
+
+    A ``path`` curve (D-118) is refused: the same x may sit on two branches of
+    a loop, and picking one would be a choice the source did not make.
     """
+    require_function(path_kind, "Leitura de valor")
     xq, yq = QUANTITIES[x_quantity], QUANTITIES[y_quantity]
     axis_reading(xq, at_unit, "x")  # validates the unit; the value is converted below
     ry = axis_reading(yq, y_unit, "y")

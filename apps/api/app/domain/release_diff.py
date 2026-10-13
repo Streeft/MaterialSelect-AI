@@ -270,6 +270,8 @@ class CurveSnapshot:
     x_canonical_unit: str
     y_canonical_unit: str
     series: tuple[CurveSeriesSnapshot, ...] = ()
+    #: D-118: a function and a path with the same points say different things.
+    path_kind: str = "function"
 
 
 @dataclass(frozen=True)
@@ -644,6 +646,7 @@ _CURVE_TEXT_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("rotulo_x", "Rótulo do eixo X", "x_label"),
     ("rotulo_y", "Rótulo do eixo Y", "y_label"),
     ("tipo", "Tipo da curva", "kind"),
+    ("tracado", "Traçado (função ou trajetória)", "path_kind"),
 )
 
 

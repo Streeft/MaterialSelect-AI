@@ -23,7 +23,8 @@ without passing through a service. Two of them deserve a note:
   SQLite stores NaN as NULL, which ``NOT NULL`` already refuses.
 * **A band has both sides or none**, and contains its line.
 
-What a ``CHECK`` cannot see — x increasing along a series, a parameter repeated
+What a ``CHECK`` cannot see — x increasing along a series of a ``function``
+(D-118), a parameter repeated
 across series, the kind admitting the axis quantity — is the builder's job.
 
 No point row is a number the source did not give: a point is a measured pair,
@@ -49,7 +50,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.domain.curve_quantities import MODULUS_KINDS, QUANTITIES, STRAIN_MEASURES
+from app.domain.curve_quantities import MODULUS_KINDS, PATH_KINDS, QUANTITIES, STRAIN_MEASURES
 from app.models.enums import CurveKind, DataQuality
 
 
@@ -59,6 +60,7 @@ def _utcnow() -> datetime:
 
 _QUANTITY_LIST = ", ".join(f"'{key}'" for key in sorted(QUANTITIES))
 _STRAIN_MEASURE_LIST = ", ".join(f"'{key}'" for key in sorted(STRAIN_MEASURES))
+_PATH_KIND_LIST = ", ".join(f"'{key}'" for key in sorted(PATH_KINDS))
 _MODULUS_KIND_LIST = ", ".join(f"'{key}'" for key in sorted(MODULUS_KINDS))
 #: Literal bounds, not ``'Infinity'``: the same text must parse on both engines.
 _FINITE_BOUND = "1e308"
@@ -97,6 +99,11 @@ class MaterialCurve(Base):
             "AND y_quantity = 'modulo')",
             name="ck_material_curve_modulus_kind",
         ),
+        # D-118: a function (x increasing) or an ordered path (hysteresis).
+        CheckConstraint(
+            f"path_kind IN ({_PATH_KIND_LIST})",
+            name="ck_material_curve_path_kind",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -132,6 +139,10 @@ class MaterialCurve(Base):
     #: as declared. NULL is "not declared": the curve is still drawn, but no
     #: CAE card reads E from it.
     modulus_kind: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    #: D-118: ``function`` or ``path``; every curve before D-118 is a function.
+    path_kind: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="function", server_default="function"
+    )
 
     source_id: Mapped[int] = mapped_column(ForeignKey("source.id"), nullable=False, index=True)
     citation: Mapped[str | None] = mapped_column(String(500), nullable=True)

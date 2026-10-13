@@ -183,6 +183,13 @@ class CaeExportService:
                 f"curva “{curve.title}”: {why}"
             )
 
+        if curve.path_kind != "function":
+            # D-118: a loop (loading and unloading) is not a hardening law.
+            raise refuse(
+                "a curva é uma trajetória (ex.: laço de histerese, carga e descarga), e a "
+                "tabela plástica exige um ramo monotônico, com um valor de tensão por "
+                "deformação. Nenhum ramo é escolhido pela exportação."
+            )
         if curve.strain_measure is None:
             raise refuse(
                 "a curva não declara se é de engenharia ou verdadeira, e a conversão não "
@@ -199,6 +206,8 @@ class CaeExportService:
             if c.kind is CurveKind.TEMPERATURA
             and c.y_quantity == "modulo"
             and c.modulus_kind == "young"
+            # D-118: E at one temperature is read only from a function curve.
+            and c.path_kind == "function"
         ]
         if not modulus_curves:
             raise refuse(

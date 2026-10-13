@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createMaterialCurve, listCurveKinds, replaceMaterialCurve } from "@/lib/api";
-import type { Curve, CurveIn, CurveKind, CurveKindSpec, CurveQuantityOption } from "@/lib/types";
+import type {
+  Curve,
+  CurveIn,
+  CurveKind,
+  CurveKindSpec,
+  CurvePathKind,
+  CurveQuantityOption,
+} from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import {
   Button,
@@ -152,6 +159,7 @@ function Form({
   const [xLabel, setXLabel] = useState(curve?.x_axis.title ?? "");
   const [yLabel, setYLabel] = useState(curve?.y_axis.title ?? "");
   const [pq, setPq] = useState(curve?.parameter?.quantity ?? "");
+  const [pathKind, setPathKind] = useState<CurvePathKind>(curve?.path_kind ?? "function");
   const [source, setSource] = useState(curve?.source_label ?? "");
   const [citation, setCitation] = useState(curve?.citation ?? "");
   const [series, setSeries] = useState<SeriesState[]>(() =>
@@ -225,6 +233,7 @@ function Form({
       x_label: xLabel.trim() || null,
       y_label: yLabel.trim() || null,
       parameter_quantity: pq || null,
+      path_kind: pathKind,
       series: built,
       source_label: source.trim(),
       citation: citation.trim() || null,
@@ -322,6 +331,19 @@ function Form({
           {spec.parameter_quantities.map((q) => (
             <SelectOption key={q.key} value={q.key}>
               {q.name}
+            </SelectOption>
+          ))}
+        </Select>
+        <Select
+          label={t.pathKind}
+          hint={t.pathKindHint}
+          className="w-56"
+          value={pathKind}
+          onChange={(e) => setPathKind(e.target.value as CurvePathKind)}
+        >
+          {(["function", "path"] as const).map((k) => (
+            <SelectOption key={k} value={k}>
+              {t.pathKinds[k]}
             </SelectOption>
           ))}
         </Select>

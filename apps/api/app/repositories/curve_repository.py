@@ -140,6 +140,7 @@ def curve_rows(
         parameter_quantity=normalized.parameter_quantity,
         strain_measure=normalized.strain_measure,
         modulus_kind=normalized.modulus_kind,
+        path_kind=normalized.path_kind,
         source_id=source_id,
         citation=citation,
         data_quality=data_quality,

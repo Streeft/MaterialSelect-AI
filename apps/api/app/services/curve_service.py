@@ -14,12 +14,14 @@ from sqlalchemy.orm import Session
 from app.calculations.units import pretty_unit
 from app.domain.curve_quantities import (
     MODULUS_KINDS,
+    PATH_KINDS,
     QUANTITIES,
     STRAIN_MEASURES,
     AxisQuantity,
 )
 from app.domain.curves import (
     KINDS,
+    PATH_AMBIGUOUS,
     READ_RULE,
     CurveError,
     DrawnAxis,
@@ -35,7 +37,12 @@ from app.domain.curves import (
     lower_first,
     read_at_declared_x,
 )
-from app.domain.errors import ConflictError, NotFoundError, ValidationError
+from app.domain.errors import (
+    AmbiguousReadingError,
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 from app.exporters.report import Report, Sheet, standard_notices
 from app.models.enums import AuditAction, AuditEntityType, CurveKind
 from app.models.material_curve import MaterialCurve
@@ -197,6 +204,7 @@ class CurveService:
                 y_quantity=payload.y_quantity,
                 y_unit=payload.y_unit,
                 parameter_quantity=payload.parameter_quantity,
+                path_kind=payload.path_kind,
                 series=[
                     SeriesInput(
                         label=s.label,
@@ -382,6 +390,7 @@ class CurveService:
                 y_unit=y_unit,
                 scale=scale,
                 parameter_unit=parameter_unit,
+                path_kind=curve.path_kind,
             )
         except CurveError as exc:
             raise ValidationError(str(exc)) from exc
@@ -428,6 +437,8 @@ class CurveService:
             strain_measure_label=_declared(curve, "strain_measure"),
             modulus_kind=curve.modulus_kind,
             modulus_kind_label=_declared(curve, "modulus_kind"),
+            path_kind=curve.path_kind,  # type: ignore[arg-type]
+            path_kind_label=PATH_KINDS[curve.path_kind],
             series=[
                 CurveSeriesOut(
                     id=s.id,
@@ -478,6 +489,9 @@ class CurveService:
     ) -> CurveValueOut:
         """The curve at a declared x, by the rule of D-110 (never interpolated)."""
         curve = self._load(material_id, curve_id)
+        if curve.path_kind != "function":
+            # D-118: two branches of a loop can share an x; 422, never a choice.
+            raise AmbiguousReadingError(f"Leitura de valor recusada. {PATH_AMBIGUOUS}")
         try:
             readings, ry, rp = read_at_declared_x(
                 curve.x_quantity,
@@ -600,6 +614,7 @@ class CurveService:
                     f"por {lower_first(parameter.name)} ({parameter_unit})" if parameter else "não",
                 ],
                 *declared,
+                ["Traçado", PATH_KINDS[curve.path_kind]],
                 ["Fonte", curve.source.label],
                 ["Citação", curve.citation or "não informada"],
                 ["Qualidade do dado", DATA_QUALITY_LABELS.get(curve.data_quality.value, "")],

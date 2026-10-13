@@ -329,6 +329,7 @@ class CatalogReleaseRepository:
                 y_original_unit=curve.y_original_unit,
                 x_canonical_unit=curve.x_canonical_unit,
                 y_canonical_unit=curve.y_canonical_unit,
+                path_kind=curve.path_kind,
                 series=tuple(
                     CurveSeriesSnapshot(
                         position=series.position,
