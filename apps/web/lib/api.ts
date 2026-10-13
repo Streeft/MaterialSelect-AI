@@ -28,9 +28,11 @@ import type {
   EcoComparisonResult,
   Explanation,
   Interpretation,
+  MaterialEquivalences,
   ReleaseDiff,
   ReleaseDiffItem,
   ReleaseRecordStatus,
+  ReleaseUniverse,
   ImportJobOut,
   ImportMapping,
   ImportTemplate,
@@ -44,6 +46,11 @@ import type {
   MaterialListItem,
   MaterialSearch,
   MaterialUpdate,
+  CompositionEntryIn,
+  CurveIn,
+  CurveKindSpec,
+  CurveSummary,
+  DesignationIn,
   MyRecords,
   Notebook,
   NotebookChat,
@@ -252,6 +259,13 @@ export function getMaterial(
   );
 }
 
+// --- Declared equivalences (D-115) ------------------------------------------
+
+/** What a source declares equivalent to this material's designations. */
+export function listMaterialEquivalences(materialId: number): Promise<MaterialEquivalences> {
+  return request<MaterialEquivalences>(`/api/materials/${materialId}/equivalencias`);
+}
+
 // --- Material curves (D-106) -----------------------------------------------
 
 /** The material's curves, with a count for every kind — zero included. */
@@ -263,6 +277,8 @@ export function listMaterialCurves(materialId: number): Promise<MaterialCurves> 
 export interface CurveReading {
   x?: string;
   y?: string;
+  /** Unit the family parameter is read in (TM4-e). */
+  parameter?: string;
   scale?: CurveScale;
 }
 
@@ -270,6 +286,7 @@ function curveQuery(reading: CurveReading): string {
   const params = new URLSearchParams();
   if (reading.x) params.set("unidade_x", reading.x);
   if (reading.y) params.set("unidade_y", reading.y);
+  if (reading.parameter) params.set("unidade_parametro", reading.parameter);
   if (reading.scale) params.set("escala", reading.scale);
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -297,7 +314,7 @@ export function curveExportUrl(
   format: "csv" | "xlsx",
   reading: Pick<CurveReading, "x" | "y"> = {},
 ): string {
-  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery(reading)}`;
+  return `${API_URL}/api/exports/materiais/${materialId}/curvas/${curveId}.${format}${curveQuery({ x: reading.x, y: reading.y })}`;
 }
 
 // --- Changes between catalogue releases (D-108) -----------------------------
@@ -311,6 +328,7 @@ export function listCatalogReleases(): Promise<CatalogRelease[]> {
 export interface ReleaseDiffQuery {
   tipo?: ReleaseRecordStatus;
   classe?: string;
+  universo?: ReleaseUniverse;
   pagina?: number;
   porPagina?: number;
 }
@@ -319,6 +337,7 @@ function releaseDiffQuery(query: ReleaseDiffQuery, withPage: boolean): string {
   const params = new URLSearchParams();
   if (query.tipo) params.set("tipo", query.tipo);
   if (query.classe) params.set("classe", query.classe);
+  if (query.universo) params.set("universo", query.universo);
   if (withPage && query.pagina && query.pagina > 1) params.set("pagina", String(query.pagina));
   if (withPage && query.porPagina) params.set("por_pagina", String(query.porPagina));
   const text = params.toString();
@@ -357,7 +376,7 @@ export function releaseDiffExportUrl(
   base: string,
   target: string,
   format: "csv" | "xlsx",
-  query: Pick<ReleaseDiffQuery, "tipo" | "classe"> = {},
+  query: Pick<ReleaseDiffQuery, "tipo" | "classe" | "universo"> = {},
 ): string {
   return `${API_URL}/api/exports/catalogo/releases/${encodeURIComponent(base)}/diff/${encodeURIComponent(target)}.${format}${releaseDiffQuery(query, false)}`;
 }
@@ -395,6 +414,52 @@ export function replaceMaterialValues(
     method: "PUT",
     body: JSON.stringify(values),
   });
+}
+
+export function replaceMaterialComposition(
+  id: number,
+  entries: CompositionEntryIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao`, {
+    method: "PUT",
+    body: JSON.stringify({ entries }),
+  });
+}
+
+export function replaceMaterialDesignations(
+  id: number,
+  designations: DesignationIn[],
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/designacoes`, {
+    method: "PUT",
+    body: JSON.stringify({ designations }),
+  });
+}
+
+export function listCurveKinds(): Promise<CurveKindSpec[]> {
+  return request<CurveKindSpec[]>(`/api/materials/curvas-tipos`);
+}
+
+export function createMaterialCurve(materialId: number, payload: CurveIn): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function replaceMaterialCurve(
+  materialId: number,
+  curveId: number,
+  payload: CurveIn,
+): Promise<CurveSummary> {
+  return request<CurveSummary>(`/api/materials/${materialId}/curvas/${curveId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMaterialCurve(materialId: number, curveId: number): Promise<void> {
+  return request<void>(`/api/materials/${materialId}/curvas/${curveId}`, { method: "DELETE" });
 }
 
 export function deactivateMaterial(id: number): Promise<void> {

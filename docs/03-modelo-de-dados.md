@@ -106,7 +106,12 @@ D-62), migração `0d3c39eb2f81`:
   comercial), `code` como a fonte escreveu, `code_key` (NFKC, maiúsculas, sem
   espaços — só isso; pontuação fica), `region`, `source_id` **obrigatório**,
   `citation`, `is_demo`. Única por (material, sistema, `code_key`). Uma
-  designação não declara equivalência com outro material (TM1).
+  designação não declara equivalência com outro material; quem declara é o
+  `EQUIVALENCE_GROUP` (D-115, TM1).
+- **`EQUIVALENCE_GROUP`** / **`EQUIVALENCE_MEMBER`** — um grupo é o que uma fonte
+  declara: `kind` (`EQUIVALENTE`, `APROXIMADA`, `SIMILAR`), `source_id`
+  **obrigatório**, `citation`, `note`, `is_demo`. Cada membro aponta para uma
+  `MATERIAL_DESIGNATION` (única por grupo), nunca para um material. Nunca inferida.
 - **`MATERIAL_COMPOSITION`** — uma linha por elemento (símbolo da lista fixa de
   118, `app/domain/elements.py`), em **% em massa**: `value_min`/`value_max`/
   `value_nominal` na `original_unit` (`%`, `wt%`, `ppm`, fração mássica) e

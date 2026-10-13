@@ -10,7 +10,13 @@ import {
   listCatalogReleases,
   releaseDiffExportUrl,
 } from "@/lib/api";
-import type { CatalogRelease, ReleaseDiff, ReleaseDiffItem, ReleaseRecordStatus } from "@/lib/types";
+import type {
+  CatalogRelease,
+  ReleaseDiff,
+  ReleaseDiffItem,
+  ReleaseRecordStatus,
+  ReleaseUniverse,
+} from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import {
@@ -56,6 +62,7 @@ export const RELEASE_PARAMS = {
   target: "alvo",
   status: "tipo",
   classSlug: "classe",
+  universe: "universo",
   page: "pagina",
   table: "tabela",
   record: "registro",
@@ -72,6 +79,12 @@ const STATUS_TONE: Record<ReleaseRecordStatus, BadgeTone> = {
   desativado: "danger",
   inalterado: "neutral",
 };
+
+const UNIVERSES: ReleaseUniverse[] = ["material", "processo", "modal"];
+
+function isUniverse(value: string | null): value is ReleaseUniverse {
+  return UNIVERSES.includes(value as ReleaseUniverse);
+}
 
 function isStatus(value: string | null): value is ReleaseRecordStatus {
   return STATUSES.includes(value as ReleaseRecordStatus);
@@ -191,16 +204,19 @@ function ReleaseComparison({
   const statusParam = search.get(RELEASE_PARAMS.status);
   const tipo = isStatus(statusParam) ? statusParam : undefined;
   const classe = search.get(RELEASE_PARAMS.classSlug) ?? undefined;
+  const universeParam = search.get(RELEASE_PARAMS.universe);
+  const universo = isUniverse(universeParam) ? universeParam : undefined;
   const pageNumber = Math.max(1, Number(search.get(RELEASE_PARAMS.page)) || 1);
   const openTable = search.get(RELEASE_PARAMS.table);
   const openRecord = search.get(RELEASE_PARAMS.record);
 
   const diff = useQuery({
-    queryKey: ["catalog-release-diff", baseSlug, targetSlug, tipo, classe, pageNumber],
+    queryKey: ["catalog-release-diff", baseSlug, targetSlug, tipo, classe, universo, pageNumber],
     queryFn: () =>
       getReleaseDiff(baseSlug, targetSlug, {
         tipo,
         classe,
+        universo,
         pagina: pageNumber,
         porPagina: PAGE_SIZE,
       }),
@@ -324,7 +340,7 @@ function ReleaseComparison({
 
           <Card>
             <CardHeader headingLevel={2} title={t.filtersTitle} />
-            <CardBody className="grid items-end gap-3 md:grid-cols-[14rem_16rem_auto]">
+            <CardBody className="grid items-end gap-3 md:grid-cols-[14rem_14rem_16rem_auto]">
               <Select
                 label={t.filterStatus}
                 value={tipo ?? ""}
@@ -336,6 +352,26 @@ function ReleaseComparison({
                 {data.counts.map((c) => (
                   <SelectOption key={c.status} value={c.status}>
                     {c.label}
+                  </SelectOption>
+                ))}
+              </Select>
+              <Select
+                label={t.filterUniverse}
+                value={universo ?? ""}
+                onChange={(event) =>
+                  update({
+                    universe: event.target.value || null,
+                    classSlug: null,
+                    page: null,
+                    table: null,
+                    record: null,
+                  })
+                }
+              >
+                <SelectOption value="">{t.allUniverses}</SelectOption>
+                {data.universes.map((u) => (
+                  <SelectOption key={u.universe} value={u.universe}>
+                    {t.universeOption(u.label, u.count)}
                   </SelectOption>
                 ))}
               </Select>
@@ -361,8 +397,17 @@ function ReleaseComparison({
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!tipo && !classe}
-                onClick={() => update({ status: null, classSlug: null, page: null, table: null, record: null })}
+                disabled={!tipo && !classe && !universo}
+                onClick={() =>
+                  update({
+                    status: null,
+                    classSlug: null,
+                    universe: null,
+                    page: null,
+                    table: null,
+                    record: null,
+                  })
+                }
               >
                 {t.clearFilters}
               </Button>
@@ -378,14 +423,14 @@ function ReleaseComparison({
             actions={
               <MenuButton label={t.exportMenu} icon={<IconDownload className="h-4 w-4" />}>
                 <MenuItem
-                  href={releaseDiffExportUrl(baseSlug, targetSlug, "csv", { tipo, classe })}
+                  href={releaseDiffExportUrl(baseSlug, targetSlug, "csv", { tipo, classe, universo })}
                   download
                   hint={t.exportCsvHint}
                 >
                   {t.exportCsv}
                 </MenuItem>
                 <MenuItem
-                  href={releaseDiffExportUrl(baseSlug, targetSlug, "xlsx", { tipo, classe })}
+                  href={releaseDiffExportUrl(baseSlug, targetSlug, "xlsx", { tipo, classe, universo })}
                   download
                   hint={t.exportXlsxHint}
                 >
@@ -398,10 +443,10 @@ function ReleaseComparison({
               <ErrorState title={t.diffError} description={rejected} onRetry={() => void diff.refetch()} />
             ) : data.items.length === 0 ? (
               <EmptyState
-                title={tipo || classe ? t.emptyFiltered : t.empty}
-                description={tipo || classe ? t.emptyFilteredHint : t.emptyHint}
+                title={tipo || classe || universo ? t.emptyFiltered : t.empty}
+                description={tipo || classe || universo ? t.emptyFilteredHint : t.emptyHint}
                 action={
-                  tipo || classe ? (
+                  tipo || classe || universo ? (
                     <Button
                       size="sm"
                       onClick={() => update({ status: null, classSlug: null, page: null })}
@@ -609,7 +654,12 @@ function RecordList({
                     </span>
                   ) : null}
                 </RowHeader>
-                <Td>{side?.class_name}</Td>
+                <Td>
+                  {side?.class_name}
+                  {item.universe !== "material" ? (
+                    <span className="block text-caption text-ink-subtle">{item.universe_label}</span>
+                  ) : null}
+                </Td>
                 <Td>{changesSummary(item)}</Td>
                 <Td>
                   <span className="font-mono text-caption text-ink-muted">

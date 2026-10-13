@@ -79,7 +79,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   `comp:Ni:8-10`, `norma:UNS` e `designacao:S30400` se combinam com AND/OR/NOT;
   a faixa de composição é lida por alcance, material sem o dado não passa e a
   busca diz quantos ficaram de fora. A ficha mostra composição (% em massa, com
-  fonte) e designações (D-105).
+  fonte) e designações (D-105), com a equivalência entre designações
+  **declarada por fonte** (D-115), nunca inferida.
 - **Curvas do material** — na ficha, tensão–deformação, dependência de
   temperatura ou de taxa, fadiga (S–N) e fluência como gráfico SVG próprio:
   uma série por parâmetro (cor, traço e marcador), faixa declarada, unidade de

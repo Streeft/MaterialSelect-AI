@@ -175,6 +175,10 @@ const OPERATORS: ConstraintOperator[] = [
  */
 export const LABEL_OPERATORS: ConstraintOperator[] = ["has_any_label", "has_no_label"];
 
+/** Chemical composition (TM2-b): material studies only, the mirror of LABEL_OPERATORS. */
+export const COMPOSITION_OPERATORS: ConstraintOperator[] = ["composition", "not_composition"];
+const COMPOSITION_OPS = new Set<ConstraintOperator>(COMPOSITION_OPERATORS);
+
 const NUMERIC = new Set<ConstraintOperator>(["gt", "gte", "lt", "lte", "between", "outside"]);
 const LABEL_OPS = new Set<ConstraintOperator>(LABEL_OPERATORS);
 const NEEDS_PROPERTY = new Set<ConstraintOperator>([
@@ -312,6 +316,9 @@ export function describeConstraintRow(
   if (LABEL_OPS.has(op)) {
     return name && row.labels.length ? t.sentenceLabels(name, op === "has_any_label", row.labels.join(", ")) : "";
   }
+  if (COMPOSITION_OPS.has(op)) {
+    return row.text.trim() ? t.sentenceComposition(op === "not_composition", row.text.trim()) : "";
+  }
   if (op === "text_contains") {
     return row.text.trim() ? t.sentenceText(row.text.trim()) : "";
   }
@@ -343,7 +350,9 @@ function ConstraintRowFields({
   const isLabelOp = LABEL_OPS.has(row.operator);
   const prop = properties.find((p) => p.slug === row.property_slug);
   const isProcessStudy = universe === "process";
-  const operators = isProcessStudy ? [...OPERATORS, ...LABEL_OPERATORS] : OPERATORS;
+  const operators = isProcessStudy
+    ? [...OPERATORS, ...LABEL_OPERATORS]
+    : [...OPERATORS, ...COMPOSITION_OPERATORS];
   const offered = selectableFor(row.operator, properties);
   const unitChoices = !isProcessStudy ? (prop?.accepted_units ?? []) : [];
   const sentence = describeConstraintRow(row, prop, classes);
@@ -512,6 +521,17 @@ function ConstraintRowFields({
             label={t.text}
             className="w-56"
             value={row.text}
+            onChange={(e) => onUpdate({ text: e.target.value })}
+          />
+        )}
+
+        {COMPOSITION_OPS.has(row.operator) && (
+          <Input
+            label={t.compositionCondition}
+            hint={t.compositionHint}
+            className="w-56"
+            value={row.text}
+            placeholder="Cr>=12"
             onChange={(e) => onUpdate({ text: e.target.value })}
           />
         )}

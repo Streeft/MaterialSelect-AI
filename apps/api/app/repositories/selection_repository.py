@@ -5,8 +5,10 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 
+from app.domain.composition import EntryFacts
 from app.models.material import Material
 from app.models.material_class import MaterialClass
+from app.models.material_composition import MaterialCompositionEntry
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
@@ -49,6 +51,41 @@ class SelectionRepository:
             .order_by(Material.name)
         )
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def composition_facts_by_material(self) -> dict[int, dict[str, EntryFacts]]:
+        """Declared composition of every **visible**, active material (TM2-b).
+
+        Canonical numbers only, as ``app.domain.composition.evaluate`` reads
+        them. A material with no row is simply absent from the result — the
+        caller reads that as "no composition registered", never as zero. Rows of
+        materials the viewer cannot see are never selected (D-62).
+        """
+        visible = (
+            select(Material.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+        )
+        rows = self.db.execute(
+            select(
+                MaterialCompositionEntry.material_id,
+                MaterialCompositionEntry.element,
+                MaterialCompositionEntry.is_balance,
+                MaterialCompositionEntry.is_missing,
+                MaterialCompositionEntry.normalized_min,
+                MaterialCompositionEntry.normalized_max,
+                MaterialCompositionEntry.normalized_nominal,
+            ).where(MaterialCompositionEntry.material_id.in_(visible))
+        ).all()
+        facts: dict[int, dict[str, EntryFacts]] = {}
+        for material_id, element, is_balance, is_missing, low, high, nominal in rows:
+            facts.setdefault(material_id, {})[element] = EntryFacts(
+                is_balance=is_balance,
+                is_missing=is_missing,
+                normalized_min=low,
+                normalized_max=high,
+                normalized_nominal=nominal,
+            )
+        return facts
 
     def list_properties(self) -> list[PropertyDefinition]:
         stmt = select(PropertyDefinition).order_by(PropertyDefinition.slug)

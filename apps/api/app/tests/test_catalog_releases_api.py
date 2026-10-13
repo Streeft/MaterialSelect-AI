@@ -378,7 +378,7 @@ def test_filters_by_kind_and_class(client, two_releases) -> None:
     body = client.get(url, params={"tipo": "novo"}).json()
     assert [i["external_record_id"] for i in body["items"]] == ["mat-e"]
     assert body["filtered_total"] == 1 and body["total"] == 6
-    assert body["filters"] == {"tipo": "novo", "classe": None}
+    assert body["filters"] == {"tipo": "novo", "classe": None, "universo": None}
 
     body = client.get(url, params={"classe": "ceramicas-ficticias-diff"}).json()
     assert [i["external_record_id"] for i in body["items"]] == ["mat-e"]
@@ -442,16 +442,23 @@ def test_the_diff_is_idempotent_and_writes_nothing(
     assert client.get("/api/exports/catalogo/releases/ficticio-r1/diff/ficticio-r2.csv")
     assert state() == before
 
-    # Re-importing release 1 (the importer is idempotent) changes neither the
+    # Re-importing release 1 after release 2 vigorou is refused (D-114: a retired
+    # release is not re-activated) and rolls back: nothing stored changes.
+    with pytest.raises(OfficialCatalogImportError, match="substituída"):
+        import_bundle(db_session, write_bundle(tmp_path, "ficticio-r1", "R1", RELEASE_1), reviewer)
+    assert state() == before
+    assert client.get(url).json() == first
+
+    # Re-importing release 2 (the importer is idempotent) changes neither the
     # stored release nor the answer — only the audit of its imports (a new run).
     result = import_bundle(
-        db_session, write_bundle(tmp_path, "ficticio-r1", "R1", RELEASE_1), reviewer
+        db_session, write_bundle(tmp_path, "ficticio-r2", "R2", RELEASE_2), reviewer
     )
     assert result["counts"].get("materials_created", 0) == 0
     again = client.get(url).json()
-    assert again["base"]["imported_at"] != first["base"]["imported_at"]
-    assert {k: v for k, v in again.items() if k != "base"} == {
-        k: v for k, v in first.items() if k != "base"
+    assert again["target"]["imported_at"] != first["target"]["imported_at"]
+    assert {k: v for k, v in again.items() if k != "target"} == {
+        k: v for k, v in first.items() if k != "target"
     }
 
 
@@ -616,8 +623,8 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
         "Liga Fictícia R renomeada",
     )
     records_header = next(row for row in rows if row and row[0] == "Situação" and "GRUID" in row)
-    removed = next(row for row in rows if len(row) == len(records_header) and row[2] == "mat-b")
-    assert removed[5] == "não está nesta release"
+    removed = next(row for row in rows if len(row) == len(records_header) and row[3] == "mat-b")
+    assert removed[6] == "não está nesta release"
 
 
 def test_the_export_applies_the_filters(client, two_releases) -> None:

@@ -20,7 +20,7 @@ O autogenerate também propôs mexer em ``battery_chemistry`` e ``subscription``
 linhas foram retiradas desta revisão.
 
 Revision ID: 81adb0b92f72
-Revises: 73a9b5da72b2
+Revises: 129a7dbbd361
 Create Date: 2026-10-08
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '81adb0b92f72'
-down_revision: Union[str, None] = '73a9b5da72b2'
+down_revision: Union[str, None] = '129a7dbbd361'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

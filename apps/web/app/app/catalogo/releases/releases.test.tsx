@@ -265,7 +265,7 @@ describe("Mudanças entre releases (D-108)", () => {
       ...releaseDiff,
       items: [],
       filtered_total: 0,
-      filters: { tipo: "novo", classe: null },
+      filters: { tipo: "novo", classe: null, universo: null },
     });
     mount();
     expect(await screen.findByText(t.emptyFiltered)).toBeInTheDocument();

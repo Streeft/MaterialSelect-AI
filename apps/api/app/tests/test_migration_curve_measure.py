@@ -21,7 +21,7 @@ from alembic.config import Config
 from alembic import command
 from app.config import settings
 
-PRE_REVISION = "73a9b5da72b2"
+PRE_REVISION = "129a7dbbd361"
 REVISION = "81adb0b92f72"
 
 

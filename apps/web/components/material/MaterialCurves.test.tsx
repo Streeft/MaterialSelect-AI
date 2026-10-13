@@ -78,11 +78,25 @@ describe("MaterialCurves (D-106)", () => {
     expect(api.getMaterialCurve).toHaveBeenCalledWith(2, 11, {
       x: undefined,
       y: undefined,
+      parameter: undefined,
       scale: undefined,
     });
 
     await userEvent.selectOptions(screen.getByLabelText(t.unitY("Tensão de engenharia")), "GPa");
     expect(nav.replace).toHaveBeenCalledWith("/app/materiais/2?curva=11&curva_y=GPa", {
+      scroll: false,
+    });
+  });
+
+  it("lets the reader choose the family parameter's unit, labelled, and puts it in the URL", async () => {
+    api.listMaterialCurves.mockResolvedValue(curveList);
+    api.getMaterialCurve.mockResolvedValue(stressStrain);
+    mount();
+    const select = await screen.findByLabelText(t.unitParameter("Temperatura"));
+    const options = Array.from((select as HTMLSelectElement).options).map((o) => o.value);
+    expect(options).toEqual(["degC", "K", "degF"]);
+    await userEvent.selectOptions(select, "K");
+    expect(nav.replace).toHaveBeenCalledWith("/app/materiais/2?curva=11&curva_param=K", {
       scroll: false,
     });
   });
@@ -109,6 +123,7 @@ describe("MaterialCurves (D-106)", () => {
       expect(api.getMaterialCurve).toHaveBeenCalledWith(2, 11, {
         x: undefined,
         y: "GPa",
+        parameter: undefined,
         scale: "log-x",
       }),
     );

@@ -37,7 +37,8 @@ def release_diff(
     tipo: str | None = Query(
         default=None, description="Filtro: novo, alterado, desativado ou inalterado."
     ),
-    classe: str | None = Query(default=None, description="Filtro: slug da classe de material."),
+    classe: str | None = Query(default=None, description="Filtro: slug da classe."),
+    universo: str | None = Query(default=None, description="Filtro: material, processo ou modal."),
     pagina: int = Query(default=1, description="Página, a partir de 1."),
     por_pagina: int = Query(default=DEFAULT_PAGE_SIZE, description="Registros por página (1–200)."),
     db: Session = Depends(get_db),
@@ -46,7 +47,7 @@ def release_diff(
 ) -> ReleaseDiffOut:
     """What changed from release ``base`` to release ``target`` of one catalogue."""
     return CatalogReleaseService(db, unit_choices).diff(
-        base, target, tipo=tipo, classe=classe, page=pagina, page_size=por_pagina
+        base, target, tipo=tipo, classe=classe, universo=universo, page=pagina, page_size=por_pagina
     )
 
 

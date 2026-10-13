@@ -41,8 +41,10 @@ from app.routers import (
     catalog,
     charts,
     classes,
+    curves,
     dashboard,
     eco,
+    equivalences,
     exports,
     health,
     imports,
@@ -195,6 +197,11 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+# `curves` antes de `materials`: mesmo caminho de uma curva, com a unidade do
+# parâmetro da família (TM4-e); a primeira rota registrada responde.
+app.include_router(
+    curves.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
 app.include_router(
     materials.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
@@ -267,6 +274,11 @@ app.include_router(
 # catalogue, so no route here needs `require_catalog_curator`.
 app.include_router(
     notebooks.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# Equivalência declarada entre designações (D-115): leitura para logados,
+# escrita só do curador (`require_catalog_curator` no próprio router).
+app.include_router(
+    equivalences.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 

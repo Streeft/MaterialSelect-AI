@@ -93,12 +93,17 @@ só nas páginas públicas do produto ([`catalogo/fontes.md`
 dele. Cada item é desenhado com dado de fonte APROVADA e passa pelas regras de
 sempre (princípios 1 a 4, D-24, ADR 0004).
 
-- **TM1 — equivalência de designações entre normas.** ▆ Um material pode ter
-  várias designações (norma, grau, região); a tela mostra os registros
-  **declarados** equivalentes por uma fonte, com o grau de equivalência que a
-  fonte afirma. Nunca inferida por semelhança de nome — o "parecido" já é o
-  Find Similar (D-63), e as duas perguntas ficam separadas. Depende de fonte
-  aprovada que publique equivalências.
+- **TM1 — equivalência de designações entre normas.** ✔ Mecanismo entregue
+  (D-115, Sessão 70): grupo de equivalência com tipo (equivalente, aproximada,
+  similar), fonte obrigatória e membros ligados a designações; escrita só do
+  curador; seção "Equivalências" na ficha; nunca inferida por nome ou código
+  (o "parecido" segue sendo o Find Similar, D-63). **Só há dado demo**
+  (`seed_demo_equivalences`, 5 grupos fictícios). Resíduos: (a) **dado real**,
+  bloqueado até haver fonte APROVADA em `docs/catalogo/fontes.md` que publique
+  equivalências (nenhuma está; condição C0); (b) o bundle do D-102 ainda não
+  aceita `equivalences.ndjson`; (c) não há tela de edição — o curador usa a API
+  (`/api/equivalencias`); (d) a busca (`norma:`/`designacao:`) não expande por
+  equivalência, de propósito: seria inferir.
 - **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
   Sessão 60); resíduos abaixo.
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
