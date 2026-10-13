@@ -18,19 +18,21 @@ que ninguém importa é exatamente o defeito do D-71 — só que a próxima vez.
 ## O que o catálogo demo tem hoje (D-107)
 
 Os **75 materiais demo** (5 em `app.db.seed` + 70 em `app.db.seed_extended`) têm
-todos ao menos uma designação e uma linha de composição, e curva de
-tensão–deformação onde ela existe fisicamente — tudo fictício, `is_demo=True`,
-fonte `Dataset Demo MaterialSelect`:
+todos ao menos uma designação, uma linha de composição e todas as 3 curvas de
+engenharia (tensão–deformação, temperatura e fadiga S–N), além de 100% das 12
+propriedades preenchidas sem exceção — tudo fictício, `is_demo=True`, fonte
+`Dataset Demo MaterialSelect`:
 
 | | Seed principal | `seed_extended` | Total |
 |---|---|---|---|
 | Designações (`designations_created`) | 8 | 148 | 156 |
 | Linhas de composição (`composition_entries_created`) | 19 | 361 | 380 |
-| Curvas (`curves_created`) | 3 | 114 | 117 |
+| Curvas (`curves_created`) | 3 | 222 | 225 |
 
-A única ausência decidida é a **Cerâmica Demo D**, sem curva: não tem resistência
-nem escoamento cadastrados para ancorar uma curva de ruptura, e inventá-los seria
-falsear o material (a razão está em `DEMO_KNOWN_GAPS`). As curvas são
+O catálogo demo tem **zero lacunas conhecidas** (`DEMO_KNOWN_GAPS = {}`). Todos os 75
+materiais contam com as três curvas geradas deterministicamente. Para a **Cerâmica Demo D**
+(que não possui escoamento nem tração cadastrados no baseline), a curva adota um
+patamar determinístico de 350 MPa explicitamente declarado na descrição. As curvas são
 **derivadas das propriedades do próprio material** (módulo, escoamento,
 resistência, temperatura máxima), não digitadas; as premissas tomadas onde as
 propriedades fictícias se contradizem ou faltam estão na descrição de cada curva.

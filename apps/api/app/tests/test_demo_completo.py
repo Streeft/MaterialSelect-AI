@@ -169,13 +169,14 @@ class TestSeedCoverage:
     ) -> None:
         without_curve = {m.name for m in _demo_materials(db_session) if not m.curves}
         assert without_curve == set(DEMO_KNOWN_GAPS)
+        assert without_curve == set()
         for material in _demo_materials(db_session):
-            if material.name in without_curve:
-                continue
             kinds = {curve.kind for curve in material.curves}
-            assert CurveKind.TENSAO_DEFORMACAO in kinds, material.name
-            if material.material_class.slug == "metais":
-                assert {CurveKind.FADIGA, CurveKind.TENSAO_DEFORMACAO} <= kinds, material.name
+            assert {
+                CurveKind.TENSAO_DEFORMACAO,
+                CurveKind.TEMPERATURA,
+                CurveKind.FADIGA,
+            } <= kinds, material.name
 
     def test_the_known_gap_is_a_material_with_no_strength_to_anchor_on(
         self, db_session: Session, full_demo
@@ -186,6 +187,7 @@ class TestSeedCoverage:
             ).scalar_one()
             assert _canonical(db_session, material.id, "resistencia_tracao") is None
             assert _canonical(db_session, material.id, "limite_escoamento") is None
+        assert DEMO_KNOWN_GAPS == {}
 
     def test_the_counts_are_the_tables_and_the_second_run_creates_nothing(
         self, db_session: Session, full_demo
@@ -196,7 +198,7 @@ class TestSeedCoverage:
         assert full_demo["composition_entries_created"] == sum(
             len(v) for v in composition_table().values()
         )
-        assert full_demo["curves_created"] > 100
+        assert full_demo["curves_created"] == 222
         source = db_session.execute(
             select(Source).where(Source.label == DEMO_SOURCE_LABEL)
         ).scalar_one()
@@ -325,8 +327,8 @@ class TestCurveConsistency:
         """Initial slope ~ Young's modulus; the metal's peak ~ its tensile strength."""
         checked = 0
         for material in _demo_materials(db_session):
-            if material.name in {"Liga Alumínio Demo A", "Aço Demo B"}:
-                continue  # baseline curves, typed by hand in app.db.seed
+            if material.name in {"Liga Alumínio Demo A", "Aço Demo B", "Cerâmica Demo D"}:
+                continue  # baseline curves or no explicit tensile/yield in database
             slug = material.material_class.slug
             curve = next(
                 (c for c in material.curves if c.kind is CurveKind.TENSAO_DEFORMACAO), None
@@ -363,9 +365,15 @@ class TestCurveConsistency:
     def test_the_fatigue_band_contains_the_line_and_the_curve_falls(
         self, db_session: Session, full_demo
     ) -> None:
-        for curve in db_session.execute(
-            select(MaterialCurve).where(MaterialCurve.kind == CurveKind.FADIGA)
-        ).scalars():
+        curves = (
+            db_session.execute(
+                select(MaterialCurve).where(MaterialCurve.kind == CurveKind.FADIGA)
+            )
+            .scalars()
+            .all()
+        )
+        assert len(curves) == 75
+        for curve in curves:
             ys = [p.y_normalized for p in curve.series[0].points]
             assert ys == sorted(ys, reverse=True), curve.material.name
             assert all(p.y_min_normalized is not None for p in curve.series[0].points)
@@ -380,7 +388,7 @@ class TestCurveConsistency:
             .scalars()
             .all()
         )
-        assert len(curves) >= 20
+        assert len(curves) == 75
         for curve in curves:
             youngs = _canonical(db_session, curve.material_id, "modulo_young")
             points = curve.series[0].points
@@ -390,14 +398,15 @@ class TestCurveConsistency:
     def test_a_premise_the_material_does_not_state_is_said_in_the_description(
         self, db_session: Session, full_demo
     ) -> None:
-        """Aluminium 6061 has no tensile strength registered: the curve says what it assumed."""
+        """Cerâmica Demo D has no tensile/yield registered: the curve says what it assumed."""
         material = db_session.execute(
-            select(Material).where(Material.name == "Liga de Alumínio 6061-T6")
+            select(Material).where(Material.name == "Cerâmica Demo D")
         ).scalar_one()
         assert _canonical(db_session, material.id, "resistencia_tracao") is None
+        assert _canonical(db_session, material.id, "limite_escoamento") is None
         curve = next(c for c in material.curves if c.kind is CurveKind.TENSAO_DEFORMACAO)
-        assert "ausente no cadastro" in curve.description
-        assert "premissa da própria curva fictícia" in curve.description
+        assert "ausentes no cadastro" in curve.description
+        assert "premissa da própria curva" in curve.description
 
 
 # --- the coverage report ---------------------------------------------------------------
@@ -412,13 +421,10 @@ class TestCoverageReport:
         assert summary["materials"] == 75
         assert summary["designation"] == 75
         assert summary["composition"] == 75
-        assert summary["curve"] == 75 - len(DEMO_KNOWN_GAPS)
-        assert summary["complete"] == 75 - len(DEMO_KNOWN_GAPS)
+        assert summary["curve"] == 75
+        assert summary["complete"] == 75
         gaps = {row.name: row.gaps for row in rows if row.gaps}
-        assert set(gaps) == set(DEMO_KNOWN_GAPS)
-        assert list(gaps["Cerâmica Demo D"]) == ["curve"]
-        assert "sem curva cadastrada" in gaps["Cerâmica Demo D"]["curve"]
-        assert DEMO_KNOWN_GAPS["Cerâmica Demo D"]["curve"] in gaps["Cerâmica Demo D"]["curve"]
+        assert gaps == {}
 
     def test_the_text_names_the_gap_and_the_gaps_filter_hides_the_rest(
         self, db_session: Session, full_demo
@@ -426,9 +432,8 @@ class TestCoverageReport:
         rows = collect_coverage(db_session, demo_only=True)
         text = format_report(rows, gaps_only=True)
         assert "Cobertura de 75 materiais" in text
-        assert "Cerâmica Demo D" in text
-        assert "AUSENTE curva" in text
-        assert "Aço Demo B" not in text
+        assert "Cerâmica Demo D" not in text
+        assert "AUSENTE" not in text
         assert "Aço Demo B" in format_report(rows)
 
     def test_it_does_not_depend_on_is_demo(self, db_session: Session) -> None:
@@ -487,4 +492,5 @@ class TestCoverageReport:
         assert demo_coverage.main(["--demo", "--gaps"]) == 0
         out = capsys.readouterr().out
         assert "Cobertura de 75 materiais" in out
-        assert "Cerâmica Demo D" in out
+        assert "completos: 75" in out
+        assert "AUSENTE" not in out

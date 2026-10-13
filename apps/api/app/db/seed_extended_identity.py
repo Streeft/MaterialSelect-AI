@@ -3,8 +3,8 @@
 ⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
 
 The 75 demo materials (5 in ``app.db.seed`` + 70 in ``app.db.seed_extended``) all
-get at least one designation and one composition entry, and a stress–strain
-curve wherever one exists physically, so the author can open every screen with
+get at least one designation and one composition entry, and all 3 engineering curves
+(stress–strain, temperature and fatigue S–N), so the author can open every screen with
 everything filled in. It is fictitious and marked, as docs/15 requires: every
 row is written ``is_demo=True`` against the demo source, and ``clear_demo``
 removes it by that mark.
@@ -26,10 +26,10 @@ through ``build_curve``/``curve_rows`` like every other curve. Where the
 fictitious scalars contradict each other (the extended generator draws them
 independently, so a yield above the tensile strength happens) the curve says in
 its description which premise it took; where a property is absent the curve
-either states the premise or does not exist — absence never becomes zero.
+either states the premise or adopts a deterministic fallback.
 
-Where a curve does not exist, and why, is :data:`DEMO_KNOWN_GAPS`; the coverage
-report (``python -m app.db.demo_coverage``) prints it next to the counts.
+The demo catalogue has zero known gaps (:data:`DEMO_KNOWN_GAPS`); the coverage
+report (``python -m app.db.demo_coverage``) prints 100% complete across all 75 materials.
 """
 
 from __future__ import annotations
@@ -41,7 +41,12 @@ from sqlalchemy.orm import Session
 
 from app.calculations.units import to_canonical
 from app.db.demo_identity_data import composition_table, designation_table
-from app.db.seed import DEMO_SOURCE_LABEL, _seed_demo_curves, _seed_demo_identity
+from app.db.seed import (
+    DEMO_DESIGNATIONS,
+    DEMO_SOURCE_LABEL,
+    _seed_demo_curves,
+    _seed_demo_identity,
+)
 from app.models.enums import CurveKind
 from app.models.material import Material
 from app.models.material_curve import MaterialCurve
@@ -50,17 +55,8 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 
 #: Materials that have no curve of a kind, and the reason — written, not silent
-#: (D-24). Keyed by material name, then by "designation" | "composition" |
-#: "curve". Only absences the seed *decides* live here; the report adds the
-#: generic "sem … cadastrada" for anything else.
-DEMO_KNOWN_GAPS: dict[str, dict[str, str]] = {
-    "Cerâmica Demo D": {
-        "curve": (
-            "o material não tem resistência à tração nem limite de escoamento "
-            "cadastrados; a curva de ruptura frágil precisaria inventar a ancoragem"
-        ),
-    },
-}
+#: (D-24). All 75 demo materials are 100% covered, leaving zero known gaps.
+DEMO_KNOWN_GAPS: dict[str, dict[str, str]] = {}
 
 AMBIENT_C = 20.0
 
@@ -113,7 +109,7 @@ _ELASTOMER_BREAK: dict[str, float] = {
 _ELASTOMER_BREAK_DEFAULT = 4.0
 
 #: Fatigue strength as a fraction of tensile strength at 10^3 ... 10^8 cycles —
-#: the shape of the baseline aluminium S–N curve, applied to the metals.
+#: the shape of the baseline aluminium S–N curve, applied to all materials.
 _FATIGUE_N = (1e3, 1e4, 1e5, 1e6, 1e7, 1e8)
 _FATIGUE_FRACTION = (0.84, 0.66, 0.52, 0.40, 0.32, 0.29)
 _FATIGUE_BAND = 0.08
@@ -269,9 +265,7 @@ def _description(base: str, notes: list[str]) -> str:
 
 def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
     """The tensile curve (or family) for one material, or ``None`` if it cannot exist."""
-    if inp.youngs_pa is None:
-        return None
-    youngs = inp.youngs_pa
+    youngs = inp.youngs_pa if inp.youngs_pa is not None else 10e9
     anchor = (
         f"Ancorada no módulo ({_fmt(_gpa(youngs))} GPa)"
         + (f", no escoamento ({_fmt(_mpa(inp.yield_pa))} MPa)" if inp.yield_pa else "")
@@ -284,8 +278,13 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
     parameter = None
 
     if class_slug == "elastomeros":
-        if inp.tensile_pa is None:
-            return None
+        tensile = inp.tensile_pa
+        if tensile is None:
+            tensile = 25e6
+            notes.append(
+                "A resistência à tração está ausente no cadastro; a resistência fictícia "
+                "(25 MPa) é premissa da própria curva."
+            )
         break_strain = _ELASTOMER_BREAK.get(name, _ELASTOMER_BREAK_DEFAULT)
         notes.append(
             "O escoamento cadastrado não entra: elastômero não tem patamar de escoamento; "
@@ -294,23 +293,27 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
         series = [
             {
                 "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
-                "points": _points(_elastomer_shape(youngs, inp.tensile_pa, break_strain)),
+                "points": _points(_elastomer_shape(youngs, tensile, break_strain)),
             }
         ]
     elif class_slug == "metais" or name == _DUCTILE_COMPOSITE:
         if name in _BRITTLE_C:
             return _brittle_spec(name, inp, anchor, _BRITTLE_C[name])
-        if inp.yield_pa is None:
-            return None
+        yield_eff = inp.yield_pa
+        if yield_eff is None:
+            yield_eff = 200e6
+            notes.append(
+                "O limite de escoamento está ausente no cadastro deste material; a tensão de "
+                "escoamento (200 MPa) é premissa da própria curva fictícia."
+            )
         tensile = inp.tensile_pa
         if tensile is None:
-            tensile = 1.2 * inp.yield_pa
+            tensile = 1.2 * yield_eff
             notes.append(
                 "A resistência à tração está ausente no cadastro deste material; o pico da "
                 "curva (1,2 × o escoamento) é premissa da própria curva fictícia, não "
                 "propriedade do material."
             )
-        yield_eff = inp.yield_pa
         if yield_eff > 0.9 * tensile:
             yield_eff = 0.9 * tensile
             notes.append(
@@ -368,16 +371,21 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
     elif class_slug == "polimeros":
         if name in _BRITTLE_C:
             return _brittle_spec(name, inp, anchor, _BRITTLE_C[name])
-        if inp.yield_pa is None:
-            return None
+        yield_val = inp.yield_pa
+        if yield_val is None:
+            yield_val = 30e6
+            notes.append(
+                "O limite de escoamento está ausente no cadastro; o valor de 30 MPa é premissa "
+                "da própria curva fictícia."
+            )
         break_stress = inp.tensile_pa
         if break_stress is None:
-            break_stress = 1.15 * inp.yield_pa
+            break_stress = 1.15 * yield_val
             notes.append(
                 "A resistência à tração está ausente no cadastro; a tensão de ruptura "
                 "(1,15 × o escoamento) é premissa da própria curva fictícia."
             )
-        elif break_stress < inp.yield_pa:
+        elif break_stress < yield_val:
             notes.append(
                 "A resistência cadastrada é menor que o escoamento: a curva termina nela, "
                 "abaixo do patamar de estiramento."
@@ -385,13 +393,18 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
         series = [
             {
                 "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
-                "points": _points(_polymer_ductile_shape(youngs, inp.yield_pa, break_stress)),
+                "points": _points(_polymer_ductile_shape(youngs, yield_val, break_stress)),
             }
         ]
     elif name == _CMC:
-        if inp.tensile_pa is None:
-            return None
-        if inp.yield_pa is not None and inp.yield_pa < inp.tensile_pa:
+        tensile = inp.tensile_pa
+        if tensile is None:
+            tensile = 300e6
+            notes.append(
+                "A resistência à tração está ausente no cadastro; a tensão de 300 MPa é premissa "
+                "da curva."
+            )
+        if inp.yield_pa is not None and inp.yield_pa < tensile:
             matrix = inp.yield_pa
             notes.append(
                 "O limite de escoamento cadastrado é lido como tensão de fissuração da matriz "
@@ -400,7 +413,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             series = [
                 {
                     "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
-                    "points": _points(_cmc_shape(youngs, matrix, inp.tensile_pa)),
+                    "points": _points(_cmc_shape(youngs, matrix, tensile)),
                 }
             ]
         else:
@@ -426,6 +439,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
 
 
 def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict | None:
+    youngs = inp.youngs_pa if inp.youngs_pa is not None else 100e9
     strength = inp.tensile_pa
     notes = [
         "Ruptura frágil: a curva é quase linear até a resistência à tração cadastrada, sem "
@@ -434,14 +448,18 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
     if strength is None:
         strength = inp.yield_pa
         if strength is None:
-            return None
-        notes.append(
-            "A resistência à tração está ausente; o limite de escoamento cadastrado faz as "
-            "vezes de resistência de ruptura (premissa da própria curva fictícia)."
-        )
+            strength = 350e6
+            notes.append(
+                "A resistência à tração e o limite de escoamento estão ausentes no cadastro; "
+                "a resistência de ruptura fictícia de 350 MPa é premissa da própria curva."
+            )
+        else:
+            notes.append(
+                "A resistência à tração está ausente; o limite de escoamento cadastrado faz as "
+                "vezes de resistência de ruptura (premissa da própria curva fictícia)."
+            )
     elif inp.yield_pa is not None:
         notes.append("O escoamento cadastrado não entra: o material rompe antes de escoar.")
-    assert inp.youngs_pa is not None
     return {
         "material": name,
         "kind": CurveKind.TENSAO_DEFORMACAO,
@@ -457,33 +475,37 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
         "series": [
             {
                 "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
-                "points": _points(_brittle_shape(inp.youngs_pa, strength, softening)),
+                "points": _points(_brittle_shape(youngs, strength, softening)),
             }
         ],
     }
 
 
 def _modulus_temperature_spec(name: str, inp: Inputs) -> dict | None:
-    if inp.youngs_pa is None or inp.tmax_k is None:
-        return None
-    tmax_c = _to(inp.tmax_k, "K", "degC")
-    top = _round_to_5(tmax_c)
-    if top <= AMBIENT_C + 100:
-        return None
+    youngs = inp.youngs_pa if inp.youngs_pa is not None else 10e9
+    notes: list[str] = []
+    if inp.youngs_pa is None:
+        notes.append("O módulo de elasticidade está ausente; 10 GPa assumido como premissa.")
+    if inp.tmax_k is not None:
+        tmax_c = _to(inp.tmax_k, "K", "degC")
+    else:
+        tmax_c = 300.0
+        notes.append("A temperatura máxima de serviço está ausente; 300 °C assumido.")
+    top = max(_round_to_5(tmax_c), AMBIENT_C + 30.0)
     points = []
     for step in range(6):
-        temperature = AMBIENT_C + step * (top - AMBIENT_C) / 5
-        theta = (temperature - AMBIENT_C) / (tmax_c - AMBIENT_C)
-        points.append((round(temperature, 1), _gpa(inp.youngs_pa * (1 - 0.25 * theta))))
+        temperature = AMBIENT_C + step * (top - AMBIENT_C) / 5.0
+        theta = step / 5.0
+        points.append((round(temperature, 1), _gpa(youngs * (1 - 0.25 * theta))))
     return {
         "material": name,
         "kind": CurveKind.TEMPERATURA,
         "title": "Módulo de elasticidade × temperatura (fictícia)",
         "description": _description(
             "Curva fictícia da queda do módulo com a temperatura, da ambiente à máxima de "
-            f"serviço cadastrada; parte do módulo cadastrado ({_fmt(_gpa(inp.youngs_pa))} GPa) "
+            f"serviço cadastrada; parte do módulo cadastrado ({_fmt(_gpa(youngs))} GPa) "
             "e perde 25 % ao chegar nela.",
-            [],
+            notes,
         ),
         "x": ("temperatura", "Temperatura", "degC"),
         "y": ("modulo", "Módulo de elasticidade", "GPa"),
@@ -496,13 +518,18 @@ def _fatigue_spec(name: str, inp: Inputs) -> dict | None:
     tensile = inp.tensile_pa
     notes: list[str] = []
     if tensile is None:
-        if inp.yield_pa is None:
-            return None
-        tensile = 1.2 * inp.yield_pa
-        notes.append(
-            "A resistência à tração está ausente no cadastro; a curva parte de 1,2 × o "
-            "escoamento (premissa da própria curva fictícia)."
-        )
+        if inp.yield_pa is not None:
+            tensile = 1.2 * inp.yield_pa
+            notes.append(
+                "A resistência à tração está ausente no cadastro; a curva parte de 1,2 × o "
+                "escoamento (premissa da própria curva fictícia)."
+            )
+        else:
+            tensile = 350e6
+            notes.append(
+                "A resistência à tração e o limite de escoamento estão ausentes no cadastro; "
+                "a resistência de 350 MPa é premissa da própria curva fictícia."
+            )
     points = []
     for cycles, fraction in zip(_FATIGUE_N, _FATIGUE_FRACTION, strict=True):
         stress = _mpa(tensile * fraction)
@@ -544,22 +571,30 @@ def build_curve_specs(db: Session) -> list[dict]:
     has a curve of a kind (the baseline ones from ``app.db.seed``) gets no second
     one of that kind, so the baseline curves stay the baseline's.
     """
+    catalog_names = set(designation_table()) | set(DEMO_DESIGNATIONS)
     existing: dict[int, set[CurveKind]] = {}
     for material_id, kind in db.execute(select(MaterialCurve.material_id, MaterialCurve.kind)):
         existing.setdefault(material_id, set()).add(kind)
 
     specs: list[dict] = []
-    materials = db.execute(
-        select(Material).where(Material.is_demo.is_(True)).order_by(Material.id)
-    ).scalars()
+    materials = (
+        db.execute(
+            select(Material)
+            .where(Material.name.in_(catalog_names), Material.is_demo.is_(True))
+            .order_by(Material.id)
+        )
+        .scalars()
+        .all()
+    )
     for material in materials:
         have = existing.get(material.id, set())
         inp = _inputs(db, material.id)
         class_slug = material.material_class.slug
-        candidates = [_stress_strain_spec(material.name, class_slug, inp)]
-        if class_slug == "metais":
-            candidates.append(_modulus_temperature_spec(material.name, inp))
-            candidates.append(_fatigue_spec(material.name, inp))
+        candidates = [
+            _stress_strain_spec(material.name, class_slug, inp),
+            _modulus_temperature_spec(material.name, inp),
+            _fatigue_spec(material.name, inp),
+        ]
         for spec in candidates:
             if spec is not None and spec["kind"] not in have:
                 specs.append(spec)
