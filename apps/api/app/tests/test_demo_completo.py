@@ -366,9 +366,7 @@ class TestCurveConsistency:
         self, db_session: Session, full_demo
     ) -> None:
         curves = (
-            db_session.execute(
-                select(MaterialCurve).where(MaterialCurve.kind == CurveKind.FADIGA)
-            )
+            db_session.execute(select(MaterialCurve).where(MaterialCurve.kind == CurveKind.FADIGA))
             .scalars()
             .all()
         )
