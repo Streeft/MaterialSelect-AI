@@ -121,10 +121,11 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   Sessão 69): o import da release nova de uma linha desativa a anterior na
   mesma transação, sem apagar nada; processo e modal reaproveitados pela
   identidade externa. Ver "Débitos já quitados".
-- **TM7-b — imutabilidade no banco.** ▃ Um curador pode editar valor de material
-  oficial pela API de materiais; o diff lê o que está gravado e passaria a
-  refletir a edição. Proposta: recusar edição de material com `CatalogRecordRef`
-  ou marcar "editado após a importação" a partir da auditoria.
+- ~~**TM7-b — imutabilidade no banco.**~~ ✔ (D-116, Sessão 71): toda rota de
+  escrita de material recusa o registro com `CatalogRecordRef` (409, pt-BR) por
+  `ensure_identity_writable`; canário que enumera as rotas; ficha com "Editar"
+  desabilitado e "Criar cópia própria". **Resíduo:** a recusa não é auditada
+  (a ação de auditoria é enum persistido; exigiria migração).
 - ~~**TM7-c — outros universos no diff.**~~ ✔ Parcial (D-109, Sessão 64):
   processos, modais, atributos de processo, composição e curvas entram no diff
   (mesma identidade externa, comparação no canônico, filtro `universo`).

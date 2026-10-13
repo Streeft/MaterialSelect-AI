@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [71](#sessão-71--131026--material-oficial-somente-leitura-em-toda-rota-de-escrita-tm7-b-d-116) | 13/10/2026 | Material oficial é somente leitura em toda rota de escrita (valores, dados gerais, desativação, composição, designações, curvas) por uma só guarda; canário que enumera as rotas; botão Editar desabilitado com a razão e "Criar cópia própria" (D-116) | +11 | +2 |
 | [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4317 → 4327 | 847 (inalterado) |
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
@@ -82,6 +83,22 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 71 — 13/10/26 — Material oficial somente leitura em toda rota de escrita (TM7-b, D-116)
+
+**O pedido.** `PATCH`, `PUT .../values` e `DELETE` de material não recusavam o
+registro oficial (só composição, designações e curvas, D-111).
+
+**O que mudou.** `ensure_identity_writable` é a guarda única de toda escrita de
+material (409 em pt-BR com o caminho da cópia própria); `test_material_write_guard.py`
+enumera as rotas pelo OpenAPI e falha se uma nova não estiver coberta; a ficha
+mostra "Editar" desabilitado com a razão e "Criar cópia própria"
+(`/app/materiais/novo?copiar=<id>`); a página de edição de oficial mostra a razão
+em vez do formulário.
+
+- **Testes** — +11 de backend (4439 coletados nesta branch, sem falhas) e +2 de frontend (865).
 
 ---
 

@@ -200,12 +200,31 @@ export default function MaterialDetailPage() {
                 {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}
-                {(data.is_own_record || canEditCatalog) && (
+                {/* D-116: an official record is read-only. The button stays,
+                    disabled, with the reason written; the way forward is an
+                    own copy (D-62), which is not official. */}
+                {data.is_official && (
+                  <>
+                    <Button
+                      size="sm"
+                      disabled
+                      aria-describedby="material-official-reason"
+                    >
+                      {ptBR.actions.edit}
+                    </Button>
+                    <ButtonLink href={`/app/materiais/novo?copiar=${data.id}`} size="sm">
+                      {ptBR.form.makeOwnCopy}
+                    </ButtonLink>
+                  </>
+                )}
+                {!data.is_official && (data.is_own_record || canEditCatalog) && (
                   <ButtonLink href={`/app/materiais/${id}/editar`} size="sm">
                     {ptBR.actions.edit}
                   </ButtonLink>
                 )}
-                {data.is_active && (data.is_own_record || canEditCatalog) && (
+                {data.is_active &&
+                  !data.is_official &&
+                  (data.is_own_record || canEditCatalog) && (
                   <Button
                     size="sm"
                     variant="danger-quiet"
@@ -216,6 +235,11 @@ export default function MaterialDetailPage() {
                   </Button>
                 )}
               </div>
+              {data.is_official && (
+                <p id="material-official-reason" className="w-full text-support text-ink-muted">
+                  {ptBR.form.officialReadOnly}
+                </p>
+              )}
             </CardBody>
           </Card>
 

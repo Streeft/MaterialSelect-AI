@@ -1,5 +1,8 @@
-"""Who may write the identity-level data of a material, in one place (TM2-a, TM4-d).
+"""Who may write the data of a material, in one place (TM2-a, TM4-d, TM7-b, D-116).
 
+Every write route of a material goes through ``ensure_identity_writable`` — values,
+general data, composition, designations, curves, deactivation — and
+``test_material_write_guard.py`` enumerates the routes so a new one cannot skip it.
 Composition, designations and curves are facts about a material, so the rule for
 writing them is the material's: a record another user owns is not found (the
 visibility filter already answered 404 before this runs), the shared catalogue
@@ -14,8 +17,9 @@ from app.domain.errors import CatalogReadOnlyError, ConflictError
 from app.models.material import Material
 
 OFFICIAL_READ_ONLY = (
-    "Este material vem do catálogo oficial licenciado e não é editado pela ficha. "
-    "Para corrigir o dado, use uma nova versão do catálogo."
+    "Este material vem do catálogo oficial licenciado e é somente leitura: não é editado "
+    "nem desativado pela ficha. Para ajustar, crie uma cópia própria; para corrigir o dado "
+    "oficial, use uma nova versão do catálogo."
 )
 
 
