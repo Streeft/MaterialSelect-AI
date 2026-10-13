@@ -99,6 +99,9 @@ quatro golden files novos. Não feitos: família de temperaturas num cartão
 (TM5-b1) e o diálogo do front (TM5-b2). Detalhes, três correções à regra
 delegada e o que não foi verificado em [D-119](DECISIONS.md).
 
+**Pilha.** Depois do merge com #122: 4544 coletados, 4538 passam e 6 pulam;
+868 de frontend; uma só cabeça Alembic (`81adb0b92f72` sobre `129a7dbbd361`).
+
 ---
 
 ## Sessão 70 — 08/10/26 — Equivalência declarada entre designações (TM1, D-115)

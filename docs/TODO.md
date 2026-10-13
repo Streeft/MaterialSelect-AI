@@ -113,9 +113,7 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   Sessão 61); resíduos abaixo.
 - **TM5 — exportação para formatos CAE/CAD.** ✔ Entregue (D-104, Sessão 59);
   resíduos abaixo.
-- **TM6 — referência por valor visível e filtrável.** ▁ A proveniência já
-  existe; falta mostrar a contagem de referências por registro e um filtro
-  "só valores com referência bibliográfica".
+- **TM6 — referência por valor visível e filtrável.** ✔ Entregue (D-115, Sessão 70).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
 
