@@ -95,6 +95,20 @@ class DesignationSystem(str, enum.Enum):
     COMERCIAL = "COMERCIAL"
 
 
+class EquivalenceKind(str, enum.Enum):
+    """How closely a source says two designations correspond (D-115, TM1).
+
+    Closed on purpose: the three words are what the sources this feature will be
+    fed from actually write, and a free-text degree would let "quase igual" be
+    typed where nobody can filter or explain it. The value is the **source's**
+    claim, never ours — this application does not grade a correspondence.
+    """
+
+    EQUIVALENTE = "EQUIVALENTE"
+    APROXIMADA = "APROXIMADA"
+    SIMILAR = "SIMILAR"
+
+
 class CurveKind(str, enum.Enum):
     """What question a material curve answers (D-106, TM4).
 
@@ -134,6 +148,7 @@ class AuditEntityType(str, enum.Enum):
     PROPERTY_DEFINITION = "property_definition"
     PERFORMANCE_INDEX = "performance_index"
     SELECTION_STUDY = "selection_study"
+    EQUIVALENCE_GROUP = "equivalence_group"
 
 
 class SourceAuthority(str, enum.Enum):

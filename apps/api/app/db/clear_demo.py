@@ -4,7 +4,7 @@
 
 A regra de corte é a própria coluna `is_demo`: material, processo, modal de
 transporte, química de bateria, índice de desempenho, fonte, designação e linha de
-composição (D-105), curva (D-106, com séries e pontos) e release do catálogo
+composição (D-105), grupo de equivalência (D-115), curva (D-106, com séries e pontos) e release do catálogo
 (D-108, com suas referências externas e execuções de importação) fictícios são removidos
 independentemente do módulo que os criou. Taxonomias e definições de
 propriedades/atributos permanecem porque são metadados reutilizáveis pelo
@@ -40,6 +40,7 @@ from app.models.catalog import (
     CatalogRecordRef,
     CatalogSupplementalValue,
 )
+from app.models.equivalence import EquivalenceGroup, EquivalenceMember
 from app.models.material import Material
 from app.models.material_composition import MaterialCompositionEntry
 from app.models.material_curve import MaterialCurve, MaterialCurvePoint, MaterialCurveSeries
@@ -53,6 +54,43 @@ from app.models.process import MaterialProcess, Process
 from app.models.process_attribute import ProcessAttributeValue
 from app.models.source import Source
 from app.models.transport_mode import TransportMode
+
+
+def clear_demo_equivalences(db: Session) -> int:
+    """Delete fictitious equivalence groups (D-115) with their members.
+
+    Run before the designations they point to. A group is fictitious when it
+    declares ``is_demo`` itself. A **real** group that still has a fictitious
+    designation as a member fails closed, like a real row citing a demo source:
+    the service never writes one (demo and real do not mix), so finding one means
+    deleting the designation would silently rewrite a real statement.
+    """
+    demo_materials = select(Material.id).where(Material.is_demo.is_(True))
+    demo_designations = select(MaterialDesignation.id).where(
+        MaterialDesignation.is_demo.is_(True) | MaterialDesignation.material_id.in_(demo_materials)
+    )
+    real_with_demo_member = (
+        db.scalar(
+            select(func.count(func.distinct(EquivalenceMember.group_id)))
+            .join(EquivalenceGroup, EquivalenceGroup.id == EquivalenceMember.group_id)
+            .where(EquivalenceGroup.is_demo.is_(False))
+            .where(EquivalenceMember.designation_id.in_(demo_designations))
+        )
+        or 0
+    )
+    if real_with_demo_member:
+        raise RuntimeError(
+            "Grupo de equivalência real ainda liga designação demo; limpeza recusada "
+            f"para preservar a declaração: {{'equivalence_groups': {real_with_demo_member}}}"
+        )
+    group_ids = list(
+        db.execute(select(EquivalenceGroup.id).where(EquivalenceGroup.is_demo.is_(True))).scalars()
+    )
+    if not group_ids:
+        return 0
+    db.execute(delete(EquivalenceMember).where(EquivalenceMember.group_id.in_(group_ids)))
+    db.execute(delete(EquivalenceGroup).where(EquivalenceGroup.id.in_(group_ids)))
+    return len(group_ids)
 
 
 def clear_demo_identity(db: Session) -> dict[str, int]:
@@ -287,6 +325,11 @@ def clear_demo_sources(db: Session) -> int:
             )
         )
         or 0,
+        # D-115: a real equivalence group citing a demo source.
+        "equivalence_groups": db.scalar(
+            select(func.count(EquivalenceGroup.id)).where(EquivalenceGroup.source_id.in_(demo_ids))
+        )
+        or 0,
         # D-106: a real curve citing a demo source.
         "material_curves": db.scalar(
             select(func.count(MaterialCurve.id)).where(MaterialCurve.source_id.in_(demo_ids))
@@ -309,6 +352,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     Order matters: material↔process links are removed from either side before
     processes disappear. Running the function again is idempotent.
     """
+    equivalences = clear_demo_equivalences(db)  # before the designations it links
     identity = clear_demo_identity(db)
     curves = clear_demo_curves(db)
     catalog_releases = clear_demo_catalog_releases(db)
@@ -326,6 +370,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
         "performance_indices": performance_indices,
         "sources": sources,
         **identity,
+        "equivalence_groups": equivalences,
         "curves": curves,
         "catalog_releases": catalog_releases,
     }
