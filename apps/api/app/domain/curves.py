@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.calculations.units import UnitError, is_ratio_scale, pretty_unit, to_canonical
-from app.domain.curve_quantities import QUANTITIES, AxisQuantity
+from app.domain.curve_quantities import MODULUS_KINDS, QUANTITIES, STRAIN_MEASURES, AxisQuantity
 from app.domain.display_units import DisplayUnitError, Reading, reading_for
 from app.models.enums import CurveKind
 
@@ -177,6 +177,9 @@ class NormalizedCurve:
     x_conversion_method: str
     y_conversion_method: str
     series: tuple[NormalizedSeries, ...]
+    #: D-119: declared by the source, or None ("not declared").
+    strain_measure: str | None = None
+    modulus_kind: str | None = None
 
 
 def _number(value: object, what: str) -> float:
@@ -214,6 +217,8 @@ def build_curve(
     y_unit: str,
     series: Sequence[SeriesInput],
     parameter_quantity: str | None = None,
+    strain_measure: str | None = None,
+    modulus_kind: str | None = None,
 ) -> NormalizedCurve:
     """Validate a curve as the source wrote it and normalise every number.
 
@@ -227,8 +232,30 @@ def build_curve(
 
     Nothing is filled in: a point without a band has no band, and a series
     without a label is drawn with its parameter as the legend.
+
+    ``strain_measure`` (stress–strain only) and ``modulus_kind`` (a ``modulo``
+    y axis only) are what the source declares (D-119); None is "not declared",
+    and a value where it means nothing, or outside the list, is refused.
     """
     spec = KINDS[kind]
+    if strain_measure is not None:
+        if strain_measure not in STRAIN_MEASURES:
+            raise CurveError(
+                f"Medida de tensão–deformação desconhecida: {strain_measure!r} "
+                f"(admitidas: {', '.join(STRAIN_MEASURES)})."
+            )
+        if kind is not CurveKind.TENSAO_DEFORMACAO:
+            raise CurveError(
+                "A medida engenharia/verdadeira só se declara numa curva tensão–deformação."
+            )
+    if modulus_kind is not None:
+        if modulus_kind not in MODULUS_KINDS:
+            raise CurveError(
+                f"Tipo de módulo desconhecido: {modulus_kind!r} "
+                f"(admitidos: {', '.join(MODULUS_KINDS)})."
+            )
+        if y_quantity != "modulo":
+            raise CurveError("O tipo de módulo só se declara numa curva cujo eixo y é um módulo.")
     xq = _quantity(x_quantity, spec.x_quantities, "Eixo x")
     yq = _quantity(y_quantity, spec.y_quantities, "Eixo y")
     pq = (
@@ -357,6 +384,8 @@ def build_curve(
         x_conversion_method=x_method,
         y_conversion_method=y_method,
         series=tuple(built),
+        strain_measure=strain_measure,
+        modulus_kind=modulus_kind,
     )
 
 

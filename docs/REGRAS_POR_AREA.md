@@ -700,6 +700,16 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-119 (Sessão 74, TM5-b):** `abaqus-plastic`, `mapdl-plastic`,
+`nastran-plastic` e `lsdyna-plastic` exigem `curva` (e `serie` quando há mais
+de uma) — nunca escolhidas pela exportação. A curva declara `strain_measure`
+(engenharia/verdadeira; nulo = 422, nunca presumida) e o E sai de ponto exato
+de curva E × T do mesmo material declarada `modulus_kind = young`, na
+temperatura da série (sem interpolação; sem ponto = 422). Engenharia →
+verdadeira só até a tensão máxima; ancoragem em ε_p = 0 só no limite elástico
+(tolerância de 5 % da deformação elástica). O mesmo E vai ao campo elástico.
+Conversão pura em `app/domain/plasticity.py`.
+
 **D-112 (Sessão 67):** `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
 (`*MAT_THERMAL_ISOTROPIC`) exigem condutividade e calor específico (422 sem
 eles); composição e designação entram nos cartões como texto informativo,
