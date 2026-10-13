@@ -38,7 +38,12 @@ import {
 
 const t = ptBR.compare;
 
-export type ComparisonMode = "table" | "bars" | "radar" | "parallel" | "heatmap";
+export type ComparisonMode =
+  | "table"
+  | "bars"
+  | "radar"
+  | "parallel"
+  | "heatmap";
 
 export const COMPARISON_MODES: { key: ComparisonMode; label: string }[] = [
   { key: "table", label: t.viewTable },
@@ -47,6 +52,30 @@ export const COMPARISON_MODES: { key: ComparisonMode; label: string }[] = [
   { key: "parallel", label: t.viewParallel },
   { key: "heatmap", label: t.viewHeatmap },
 ];
+
+/**
+ * How many series each figure can carry before it stops being legible (TM3).
+ * Past the limit the figure is not drawn and the screen says so in writing,
+ * showing the table instead (D-31); the heatmap and the table have no limit.
+ * Geometry and scores stay in the backend — this only decides whether to draw.
+ */
+export const COMPARISON_FIGURE_LIMITS: Partial<Record<ComparisonMode, number>> =
+  {
+    bars: 12,
+    radar: 8,
+    parallel: 30,
+  };
+
+/** The written reason a figure is not drawn for `count` materials, or null. */
+export function figureRefusal(
+  mode: ComparisonMode,
+  count: number,
+): string | null {
+  const max = COMPARISON_FIGURE_LIMITS[mode];
+  if (max === undefined || count <= max) return null;
+  const view = COMPARISON_MODES.find((m) => m.key === mode)?.label ?? mode;
+  return t.figureTooMany(view, max, count);
+}
 
 interface ComparisonViewProps {
   comparison: Comparison;
@@ -155,134 +184,165 @@ export function ComparisonView({
   // What the four figures actually plot is the normalised score, so that — and
   // not the raw value — is what their data table has to carry. A property with
   // no value stays `null` all the way here and is rendered as absence.
-  const figureColumns: FigureColumn<CompareMaterial>[] = properties.map((property) => ({
-    key: property.property_slug,
-    header: property.property_name,
-    numeric: true,
-    cell: (material) => {
-      const normalized = normalizedOf(material.material_id, property.property_slug);
-      return normalized === null ? null : formatScore(normalized);
-    },
-  }));
+  const figureColumns: FigureColumn<CompareMaterial>[] = properties.map(
+    (property) => ({
+      key: property.property_slug,
+      header: property.property_name,
+      numeric: true,
+      cell: (material) => {
+        const normalized = normalizedOf(
+          material.material_id,
+          property.property_slug,
+        );
+        return normalized === null ? null : formatScore(normalized);
+      },
+    }),
+  );
 
-  if (mode === "table") {
+  const refusal = figureRefusal(mode, materials.length);
+
+  if (mode === "table" || refusal !== null) {
+    // Many rows: the box gets a height so the header (sticky) and the material
+    // column (sticky) stay in view while the reader scrolls both ways.
+    const wide = materials.length > 12;
+    const hint = t.wideHint(materials.length);
     return (
-      <TableScroll label={t.figure}>
-        <Table>
-          <TableCaption>
-            {t.title}: {t.normalizedScale}
-          </TableCaption>
-          <THead>
-            <Tr>
-              <Th>{t.columnMaterial}</Th>
-              {properties.map((p) => (
-                <Th key={p.property_slug}>
-                  {p.property_name}
-                  <span className="ml-1 font-normal normal-case text-ink-subtle">
-                    [{prettyUnit(p.unit)}]
-                  </span>
-                  {/* The percentage rides inside the property's own column
+      <div className="flex flex-col gap-3">
+        {refusal !== null && <Alert tone="warning">{refusal}</Alert>}
+        {hint !== null && refusal === null && (
+          <p className="text-support text-ink-subtle">{hint}</p>
+        )}
+        <TableScroll
+          label={t.tableRegion(materials.length, properties.length)}
+          className={wide ? "max-h-[70vh] overflow-y-auto" : undefined}
+        >
+          <Table>
+            <TableCaption>
+              {t.title}: {t.normalizedScale}
+            </TableCaption>
+            <THead>
+              <Tr>
+                <Th className="sticky left-0 z-20 bg-well">
+                  {t.columnMaterial}
+                </Th>
+                {properties.map((p) => (
+                  <Th key={p.property_slug}>
+                    {p.property_name}
+                    <span className="ml-1 font-normal normal-case text-ink-subtle">
+                      [{prettyUnit(p.unit)}]
+                    </span>
+                    {/* The percentage rides inside the property's own column
                       rather than doubling the table's width: it is a reading of
                       that property, not a separate measurement. */}
-                  {referenceId !== null && (
-                    <span className="ml-1 font-normal normal-case text-ink-subtle">
-                      · {t.differenceHeader}
+                    {referenceId !== null && (
+                      <span className="ml-1 font-normal normal-case text-ink-subtle">
+                        · {t.differenceHeader}
+                      </span>
+                    )}
+                  </Th>
+                ))}
+              </Tr>
+            </THead>
+            <TBody>
+              {materials.map((material) => (
+                <Tr key={material.material_id}>
+                  <RowHeader className="sticky left-0 z-[1] bg-panel">
+                    {material.name}
+                    <span className="block text-xs font-normal text-ink-subtle">
+                      {material.class_name}
                     </span>
-                  )}
-                </Th>
-              ))}
-            </Tr>
-          </THead>
-          <TBody>
-            {materials.map((material) => (
-              <Tr key={material.material_id}>
-                <RowHeader>
-                  {material.name}
-                  <span className="block text-xs font-normal text-ink-subtle">
-                    {material.class_name}
-                  </span>
-                  {onSetReference &&
-                    (referenceId === material.material_id ? (
-                      <span className="mt-1 flex items-center gap-2">
-                        <Badge tone="info">{t.reference}</Badge>
+                    {onSetReference &&
+                      (referenceId === material.material_id ? (
+                        <span className="mt-1 flex items-center gap-2">
+                          <Badge tone="info">{t.reference}</Badge>
+                          <Button
+                            size="sm"
+                            variant="link"
+                            onClick={() => onSetReference(null)}
+                          >
+                            {t.clearReference}
+                          </Button>
+                        </span>
+                      ) : (
                         <Button
                           size="sm"
                           variant="link"
-                          onClick={() => onSetReference(null)}
+                          className="mt-1"
+                          onClick={() => onSetReference(material.material_id)}
                         >
-                          {t.clearReference}
+                          {t.setReference}
                         </Button>
-                      </span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="link"
-                        className="mt-1"
-                        onClick={() => onSetReference(material.material_id)}
-                      >
-                        {t.setReference}
-                      </Button>
-                    ))}
-                </RowHeader>
-                {properties.map((p) => {
-                  const cell = lookup.get(material.material_id)?.get(p.property_slug);
-                  // No cell at all is the same fact as a cell flagged missing:
-                  // nothing was recorded. Both get the badge, never a dash.
-                  if (!cell || cell.is_missing || cell.value === null) {
-                    return (
-                      <Td key={p.property_slug}>
-                        {cell ? (
-                          <ProvenancePopover provenance={provenanceOfCell(cell, p.unit)}>
+                      ))}
+                  </RowHeader>
+                  {properties.map((p) => {
+                    const cell = lookup
+                      .get(material.material_id)
+                      ?.get(p.property_slug);
+                    // No cell at all is the same fact as a cell flagged missing:
+                    // nothing was recorded. Both get the badge, never a dash.
+                    if (!cell || cell.is_missing || cell.value === null) {
+                      return (
+                        <Td key={p.property_slug}>
+                          {cell ? (
+                            <ProvenancePopover
+                              provenance={provenanceOfCell(cell, p.unit)}
+                            >
+                              <MissingValue />
+                            </ProvenancePopover>
+                          ) : (
                             <MissingValue />
+                          )}
+                          {referenceId !== null && cell && (
+                            <span className="mt-1 block">
+                              <DifferenceCell cell={cell} />
+                            </span>
+                          )}
+                        </Td>
+                      );
+                    }
+                    const provenance = provenanceOfCell(cell, p.unit);
+                    return (
+                      <Td key={p.property_slug} className="text-ink">
+                        <span className="flex flex-wrap items-baseline gap-x-2">
+                          {/* §3.2: the whole chain behind the number, one click
+                            away, instead of grey micro-text nobody reads. */}
+                          <ProvenancePopover provenance={provenance}>
+                            <span className="tabular-nums">
+                              {formatNumber(cell.value)}
+                            </span>
                           </ProvenancePopover>
-                        ) : (
-                          <MissingValue />
+                          <DataQualityBadge
+                            state={qualityState(provenance)}
+                            showLabel={false}
+                          />
+                        </span>
+                        {cell.normalized !== null && (
+                          <span className="mt-1 flex items-center gap-1">
+                            <span className="h-1.5 w-16 overflow-hidden rounded bg-surface-sunken">
+                              <span
+                                className="block h-full bg-brand-500"
+                                style={{ width: `${cell.normalized * 100}%` }}
+                              />
+                            </span>
+                            <span className="text-xs tabular-nums text-ink-subtle">
+                              {formatScore(cell.normalized)}
+                            </span>
+                          </span>
                         )}
-                        {referenceId !== null && cell && (
+                        {referenceId !== null && (
                           <span className="mt-1 block">
                             <DifferenceCell cell={cell} />
                           </span>
                         )}
                       </Td>
                     );
-                  }
-                  const provenance = provenanceOfCell(cell, p.unit);
-                  return (
-                    <Td key={p.property_slug} className="text-ink">
-                      <span className="flex flex-wrap items-baseline gap-x-2">
-                        {/* §3.2: the whole chain behind the number, one click
-                            away, instead of grey micro-text nobody reads. */}
-                        <ProvenancePopover provenance={provenance}>
-                          <span className="tabular-nums">{formatNumber(cell.value)}</span>
-                        </ProvenancePopover>
-                        <DataQualityBadge state={qualityState(provenance)} showLabel={false} />
-                      </span>
-                      {cell.normalized !== null && (
-                        <span className="mt-1 flex items-center gap-1">
-                          <span className="h-1.5 w-16 overflow-hidden rounded bg-surface-sunken">
-                            <span
-                              className="block h-full bg-brand-500"
-                              style={{ width: `${cell.normalized * 100}%` }}
-                            />
-                          </span>
-                          <span className="text-xs tabular-nums text-ink-subtle">
-                            {formatScore(cell.normalized)}
-                          </span>
-                        </span>
-                      )}
-                      {referenceId !== null && (
-                        <span className="mt-1 block">
-                          <DifferenceCell cell={cell} />
-                        </span>
-                      )}
-                    </Td>
-                  );
-                })}
-              </Tr>
-            ))}
-          </TBody>
-        </Table>
-      </TableScroll>
+                  })}
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </TableScroll>
+      </div>
     );
   }
 
@@ -298,10 +358,13 @@ export function ComparisonView({
       notice={
         mode === "radar" && (properties.length < 3 || incomplete.length > 0) ? (
           <div className="mb-3 flex flex-col gap-2">
-            {properties.length < 3 && <Alert tone="warning">{t.radarNeedsThree}</Alert>}
+            {properties.length < 3 && (
+              <Alert tone="warning">{t.radarNeedsThree}</Alert>
+            )}
             {incomplete.length > 0 && (
               <Alert tone="warning">
-                {t.radarSkipsMissing} ({incomplete.map((m) => m.name).join(", ")})
+                {t.radarSkipsMissing} (
+                {incomplete.map((m) => m.name).join(", ")})
               </Alert>
             )}
           </div>

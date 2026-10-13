@@ -14,6 +14,9 @@ $
 $ Material: Liga Ficticia CAE-1 (demonstracao) (id 901; classe Metais)
 $ MATERIAL FICTICIO: dado de demonstracao, valores inventados para ensino. Nao
 $ usar em projeto real.
+$ Designacoes: sem designacao cadastrada
+$ Composicao quimica (% em massa): sem composicao cadastrada
+$ Composicao e designacoes sao informativas: nenhum campo do cartao as le.
 $ Sistema de unidades: SI mm-t-s (mm, t, s, N, MPa, K)
 $ Unidades base: comprimento mm, massa t (tonelada), tempo s, forca N, tensao
 $ MPa, temperatura K
@@ -34,10 +37,10 @@ $ ficticio de demonstracao
 $ coeficiente de expansao termica [MAT1 A] = 1.2E-05 K^-1; qualidade: ESTIMADO;
 $ fonte: Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado
 $ ficticio de demonstracao
-$ condutividade termica: cadastrado, mas fora deste cartao (pertence ao MAT4,
-$ nao exportado)
-$ calor especifico: cadastrado, mas fora deste cartao (pertence ao MAT4, nao
-$ exportado)
+$ condutividade termica: cadastrado, mas fora deste cartao (pertence ao MAT4
+$ (formato nastran-thermal), nao exportado aqui)
+$ calor especifico: cadastrado, mas fora deste cartao (pertence ao MAT4 (formato
+$ nastran-thermal), nao exportado aqui)
 $
 $ MID = 1: troque se o numero ja estiver em uso no seu modelo.
 $ G em branco: o solver o calcula de E e NU.

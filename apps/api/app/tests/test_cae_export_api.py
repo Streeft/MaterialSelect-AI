@@ -220,3 +220,23 @@ def test_a_value_declared_missing_never_becomes_zero_on_the_route(
     assert "nao cadastrado (declarado ausente no catalogo)" in text
     lsdyna = client.get(URL.format(id=material_id, fmt="lsdyna", units="m-kg-s"))
     assert lsdyna.status_code == 422 and "densidade" in lsdyna.json()["detail"]
+
+
+def test_thermal_cards_are_refused_with_422_when_thermal_data_is_missing(
+    client: TestClient, db_session: Session
+) -> None:
+    # TM5-a: no catalogue record carries conductivity or specific heat yet, so
+    # refusal is the only path the route can take today.
+    material_id = _own_full_record(client, db_session)
+    for fmt in ("nastran-thermal", "lsdyna-thermal"):
+        response = client.get(URL.format(id=material_id, fmt=fmt, units="mm-t-s"))
+        assert response.status_code == 422, fmt
+        assert "falta" in response.text and "calor específico" in response.text
+
+
+def test_the_card_names_designations_and_composition_even_when_absent(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _own_full_record(client, db_session)
+    text = client.get(URL.format(id=material_id, fmt="matml", units="mm-t-s")).text
+    assert "sem composição cadastrada" in text and "sem designação cadastrada" in text

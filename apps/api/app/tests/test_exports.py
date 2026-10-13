@@ -777,3 +777,14 @@ class TestStudyLaudo:
 
     def test_unknown_study_is_404(self, client: TestClient) -> None:
         assert client.get("/api/exports/estudos/999999/laudo.html").status_code == 404
+
+
+def test_catalogue_csv_carries_composition_and_designations_with_absence_written(
+    client: TestClient,
+) -> None:
+    """TM2-d: the demo steel has a composition; the polymer has none and says so."""
+    text = client.get("/api/exports/catalogo.csv").text
+    assert "Composição" in text and "Designações" in text
+    assert "resto (declarado pela fonte, não calculado)" in text
+    assert "sem composição cadastrada" in text
+    assert "sem designação cadastrada" in text or "UNS" in text

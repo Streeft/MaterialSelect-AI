@@ -168,6 +168,44 @@ def _flat(pairs) -> list[float]:
 SS = [(0.0, 0.0), (0.001, 200e6), (0.05, 400e6)]
 
 
+class TestAxisPadding:
+    """TM4-h: the air around the data respects what zero means in the unit."""
+
+    def test_celsius_axis_is_not_pulled_down_to_zero(self) -> None:
+        from app.domain.curves import _padded
+
+        low, high = _padded([20.0, 600.0], False, zero_is_floor=False)  # type: ignore[misc]
+        assert low < 0 and high > 600
+
+    def test_a_ratio_unit_still_starts_at_zero(self) -> None:
+        from app.domain.curves import _padded
+
+        low, _ = _padded([20.0, 600.0], False)  # type: ignore[misc]
+        assert low == 0.0
+
+    def test_draw_curve_in_celsius_gets_air_below_the_first_point(self) -> None:
+        # 293.15 K .. 873.15 K read in degC is 20 .. 600.
+        drawn = draw_curve(
+            CurveKind.TENSAO_DEFORMACAO,
+            "temperatura",
+            "tensao",
+            None,
+            [_series([(293.15, 100e6), (873.15, 50e6)])],
+            x_unit="degC",
+        )
+        assert drawn.x.domain is not None and drawn.x.domain[0] < 0
+        # In kelvin the same data never goes below the origin of the unit.
+        kelvin = draw_curve(
+            CurveKind.TENSAO_DEFORMACAO,
+            "temperatura",
+            "tensao",
+            None,
+            [_series([(293.15, 100e6), (873.15, 50e6)])],
+            x_unit="K",
+        )
+        assert kelvin.x.domain is not None and kelvin.x.domain[0] > 0
+
+
 class TestDrawing:
     def test_default_reading_is_the_convention(self) -> None:
         drawn = draw_curve(CurveKind.TENSAO_DEFORMACAO, "deformacao", "tensao", None, [_series(SS)])

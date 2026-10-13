@@ -219,6 +219,20 @@ um ponto a 20 °C não autoriza transformá-la em propriedade escalar. Quando um
 feature determinística for criada para consumir a curva, ela deve declarar como
 o ponto foi escolhido/interpolado e manter a referência ao dado original.
 
+**Leitura de um valor numa curva (D-110, TM4-b).** A regra declarada é a mais
+conservadora possível: `GET /api/materials/{id}/curvas/{curva}/valor?em=20&unidade_em=degC`
+devolve, por série, **só o ponto que a fonte declarou exatamente naquele x**,
+depois de converter o pedido e o ponto para a unidade canônica por
+`app/calculations/units.py` (20 °C encontra o ponto escrito como 293,15 K; a
+tolerância é de 1e-9 relativo, só ruído de ponto flutuante). Nunca se
+interpola, extrapola, reamostra nem se toma o ponto mais próximo. Sem ponto
+declarado naquele x, a série responde `found = false` com a ausência escrita
+("Sem ponto declarado em 20 °C nesta série; nada foi interpolado."), nunca
+zero. O ponto vem com a referência ao dado original: posição na série, x e y
+como a fonte os escreveu, a faixa declarada e a fonte/citação da curva. Esse
+valor **não** vira propriedade escalar (`MaterialPropertyValue`) nem entra em
+ranking: é uma leitura da curva, com a curva ao lado.
+
 `CatalogDatasetValue` faz a mesma coisa para fatos que pertencem ao dataset
 como um todo, por exemplo defaults econômicos, combustíveis, dados por país e
 parâmetros de fim de vida.
@@ -295,6 +309,40 @@ fonte e precisa corresponder a uma conta que já entrou na aplicação.
 12. nunca rodar `semear_demo` nesse banco depois do cutover.
 
 Se o import falha, a transação não deixa metade do catálogo oficial gravada.
+
+## 10-bis. Release nova de um catálogo já importado (promoção, D-114)
+
+Importar a release seguinte da **mesma** `lineage` é o mesmo comando, e a
+promoção vem junto, na **mesma transação**: o importador grava a release nova
+inteira e, só então, desativa (`is_active=False`, nunca `DELETE`):
+
+- a release anterior ativa da linha (`CatalogDataset.is_active`);
+- os materiais dela — os que reaparecem (por identidade externa) têm linha nova
+  na release nova, e a antiga fica preservada para "Mudanças entre releases"
+  ([D-108](DECISIONS.md)); os que não reaparecem saem do catálogo ativo;
+- os processos e modais dela que a release nova **não** traz.
+
+Processo e modal que reaparecem pela identidade externa são **reaproveitados**
+(a mesma linha ganha a ref da release nova e os valores dela, com a fonte dela)
+— sem duplicata nem colisão de slug. A curva da release anterior fica no
+material antigo, inativo, com todos os pontos; a ficha vigente lista uma curva
+por identidade.
+
+Qualquer falha — inclusive depois da promoção — desfaz tudo: a release anterior
+continua exatamente como estava. Reimportar uma release **substituída**, ou uma
+mais antiga que a vigente da linha, é recusado (desfaria a promoção); reimportar
+a vigente é idempotente. Release **sem** `lineage`, ou de outra linha, não
+desativa nada.
+
+**Antes do commit, rode o dry-run** (`catalogo_oficial_validar`): sem
+`--commit`, a CLI imprime `promotion_plan` — releases anteriores, por universo
+(materiais, processos, modais, curvas) quantos são substituídos, quais
+identidades seriam retiradas e quantas linhas seriam desativadas, além de
+conflitos de slug de processo que o commit recusaria, ou `refused` com o
+motivo. Ele lê o banco e não escreve; só traz identidades, nunca nomes, porque
+o log do Actions é público. Para validar só os bytes numa máquina sem banco,
+use `--sem-banco`. O commit grava o mesmo relatório em
+`CatalogImportRun.report["promotion"]`.
 
 ## 11. O que esta fundação ainda não faz
 

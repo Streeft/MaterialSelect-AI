@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ import { CompositionTable } from "@/components/material/CompositionTable";
 import { DesignationTable } from "@/components/material/DesignationTable";
 import { EquivalenceSection } from "@/components/material/EquivalenceSection";
 import { MaterialCurves } from "@/components/material/MaterialCurves";
+import { CompositionEditor, DesignationEditor } from "@/components/material/IdentityEditors";
 import {
   Badge,
   Button,
@@ -106,6 +108,20 @@ export default function MaterialDetailPage() {
   }
 
   const data = material.data;
+  const referencedCount =
+    data?.property_groups.reduce(
+      (acc, g) =>
+        acc +
+        g.properties.filter((p) => Boolean(p.source_label) && !p.is_missing).length,
+      0,
+    ) ?? 0;
+
+  // TM2-a: which block of the sheet is being edited, if any. Offered only where
+  // the server would accept the write (own record, or a curator on the shared
+  // catalogue) and never on a record of the official catalogue (D-102).
+  const [editing, setEditing] = useState<"composition" | "designations" | null>(null);
+  const canEditIdentity =
+    data !== undefined && !data.is_official && (data.is_own_record || canEditCatalog);
 
   return (
     <div className="flex flex-col gap-6">
@@ -145,6 +161,13 @@ export default function MaterialDetailPage() {
                     <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
                   )}
                   {!data.is_active && <Badge>{t.inactive}</Badge>}
+                  {referencedCount > 0 ? (
+                    <Badge tone="neutral">
+                      {ptBR.catalog.referenceCount(referencedCount)}
+                    </Badge>
+                  ) : (
+                    <Badge tone="neutral">{ptBR.catalog.noReferences}</Badge>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <ClassBadge
@@ -317,7 +340,29 @@ export default function MaterialDetailPage() {
               description={t.compositionHint}
               className="min-w-0"
             >
-              <CompositionTable entries={data.composition} materialIsDemo={data.is_demo} />
+              {editing === "composition" ? (
+                <CompositionEditor
+                  materialId={data.id}
+                  entries={data.composition}
+                  onDone={() => setEditing(null)}
+                />
+              ) : (
+                <>
+                  <CompositionTable entries={data.composition} materialIsDemo={data.is_demo} />
+                  {canEditIdentity && (
+                    <Button
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setEditing("composition")}
+                    >
+                      {t.edit.editComposition}
+                    </Button>
+                  )}
+                </>
+              )}
+              {data.is_official && (
+                <p className="mt-3 text-xs text-ink-muted">{t.edit.officialReadOnly}</p>
+              )}
             </Section>
             <Section
               id="designacoes"
@@ -325,10 +370,29 @@ export default function MaterialDetailPage() {
               description={t.designationsHint}
               className="min-w-0"
             >
-              <DesignationTable
-                designations={data.designations}
-                materialIsDemo={data.is_demo}
-              />
+              {editing === "designations" ? (
+                <DesignationEditor
+                  materialId={data.id}
+                  designations={data.designations}
+                  onDone={() => setEditing(null)}
+                />
+              ) : (
+                <>
+                  <DesignationTable
+                    designations={data.designations}
+                    materialIsDemo={data.is_demo}
+                  />
+                  {canEditIdentity && (
+                    <Button
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setEditing("designations")}
+                    >
+                      {t.edit.editDesignations}
+                    </Button>
+                  )}
+                </>
+              )}
             </Section>
           </div>
 
@@ -353,7 +417,7 @@ export default function MaterialDetailPage() {
             description={ptBR.curves.hint}
             className="min-w-0"
           >
-            <MaterialCurves materialId={data.id} />
+            <MaterialCurves materialId={data.id} canEdit={canEditIdentity} />
           </Section>
         </>
       )}

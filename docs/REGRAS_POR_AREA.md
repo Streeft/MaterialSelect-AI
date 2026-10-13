@@ -700,6 +700,11 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-112 (Sessão 67):** `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
+(`*MAT_THERMAL_ISOTROPIC`) exigem condutividade e calor específico (422 sem
+eles); composição e designação entram nos cartões como texto informativo,
+sempre com a ausência escrita, e nas planilhas "Composição"/"Designações".
+
 **O cartão de material para CAE saiu** ([D-104](DECISIONS.md), TM5,
 Sessão 59): `app/exporters/cae/` tem um renderizador por formato — Ansys MAPDL,
 MatML 3.1, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` —, escrito a partir
@@ -754,6 +759,17 @@ a busca por `norma:`/`designacao:` **não** expande por equivalência. Demo e re
 não se misturam no mesmo grupo, e `clear_demo` recusa apagar designação demo
 ligada por grupo real.
 
+**Composição na seleção e edição à mão** ([D-111](DECISIONS.md), Sessão 66): a
+composição é critério de um estágio `limit` por `composition` (passa o verdadeiro)
+e `not_composition` (passa só o **falso decidido**, a garantia); o indeterminado
+não passa em nenhum e o funil o conta (`undetermined`). Composição, designações e
+curvas se escrevem por `PUT …/composicao`, `PUT …/designacoes` e `…/curvas`
+substituindo o conjunto inteiro, pelos **mesmos construtores do seed**, com fonte
+obrigatória e auditoria; a permissão é a do material
+(`services/record_permissions.py`): dono, ou curador no compartilhado, e **409 para
+registro ou curva do catálogo oficial**. Não crie uma segunda regra de alcance nem
+um caminho de escrita que pule `build_composition_entry`/`build_curve`.
+
 ## Catálogo oficial e fontes abertas (D-102, D-103)
 
 **O portão de licença das fontes abertas foi reconciliado com o D-102**
@@ -763,8 +779,25 @@ importador paralelo; nenhuma está APROVADA ainda (condição C0). Regra em
 [`docs/20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 Só documentação.
 
+**Diff entre releases ([D-108](DECISIONS.md), [D-109](DECISIONS.md)).** Cobre
+material, processo e modal, casados pela identidade externa; composição por
+elemento (o resto nunca vira número), curvas por id externo e rótulos discretos.
+Faixa com número de um lado só é mudança de forma, nunca número contra vazio;
+`is_active` diferente é mudança de metadado; a grafia da unidade é "só a escrita
+da fonte". Propriedade sem definição é 400.
+
 4079 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4073 passam
 e 6 pulam) e 797 de frontend, todos verdes. CI no
 GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
 (`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
+
+**Promoção de release** ([D-114](DECISIONS.md), Sessão 69): o import da release
+nova de uma `lineage` desativa a anterior **na mesma transação**, depois de
+gravar tudo; nunca `DELETE`. Material é **uma linha por release** (não atualize
+no lugar: o diff do D-108 lê as linhas de cada release); processo e modal são
+**uma linha entre releases**, reaproveitada pela identidade externa da mesma
+linha, com os valores e a fonte da release nova. Falha = rollback total; release
+substituída ou mais antiga é recusada. `is_active` fica fora do diff de
+propósito. O dry-run usa o mesmo planejador puro (`app/domain/release_promotion.py`)
+e só imprime identidades.

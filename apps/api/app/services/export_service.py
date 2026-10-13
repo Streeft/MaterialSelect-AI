@@ -18,6 +18,7 @@ from collections.abc import Mapping
 from app.ai.provider import AIUnavailableError
 from app.calculations.expressions import variables_in
 from app.calculations.units import pretty_unit
+from app.domain.composition import RULE_TEXT
 from app.domain.display_units import readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
@@ -33,6 +34,7 @@ from app.exporters.figures import (
     render_bars,
     render_scatter,
 )
+from app.exporters.identity import composition_sheet, designation_sheet
 from app.exporters.report import Report, Sheet, standard_notices
 from app.models.enums import ProcessAttributeKind
 from app.models.user import User
@@ -42,6 +44,7 @@ from app.schemas.charts import PropertyMapRequest
 from app.schemas.selection import ChartStageIn, IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.chart_service import ChartService
+from app.services.identity_lines import composition_lines, designation_lines
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
@@ -132,8 +135,19 @@ class ExportService:
             sheets.append(self._contributions_sheet(result))
             sheets.append(self._excluded_sheet(result))
             sheets.append(self._sensitivity_sheet(result))
+        if result.universe != "process":
+            sheets.extend(self._identity_sheets(result, records))
         sheets.append(self._provenance_sheet(study, result, records))
         return sheets
+
+    @staticmethod
+    def _identity_sheets(result: RunResultOut, records: dict) -> list[Sheet]:
+        """Composition and designations of the candidates (D-105, TM2-d)."""
+        materials = [records[c.record_id] for c in result.candidates if c.record_id in records]
+        return [
+            composition_sheet([(m.name, composition_lines(m)) for m in materials]),
+            designation_sheet([(m.name, designation_lines(m)) for m in materials]),
+        ]
 
     def study_report(self, study_id: int, project_id: int) -> Report:
         study, result, records, root_group_description = self._run(study_id, project_id)
@@ -636,6 +650,17 @@ class ExportService:
     def _funnel_sheet(result: RunResultOut) -> Sheet:
         rows = [[step.label, step.operator, step.passed, step.remaining] for step in result.funnel]
         notes = [] if rows else ["Nenhuma restrição foi aplicada."]
+        # TM2-b: a composition criterion decides by reach of the declared range
+        # and cannot decide where the data is absent. Both facts belong in the
+        # document next to the numbers they qualify (D-24, D-105).
+        composition_steps = [step for step in result.funnel if step.undetermined is not None]
+        if composition_steps:
+            notes.append(RULE_TEXT)
+            notes.extend(
+                f"{step.label}: {step.undetermined} candidato(s) sem o dado de composição "
+                "necessário não foram decididos e não passam."
+                for step in composition_steps
+            )
         return Sheet(
             name="Restrições e funil",
             header=["Restrição", "Operador", "Passaram", "Restantes"],
@@ -1083,6 +1108,8 @@ class ExportService:
                     rows=rows,
                     notes=["Valores em unidade canônica. 'ausente' significa dado não cadastrado."],
                 ),
+                composition_sheet([(m.name, composition_lines(m)) for m in materials]),
+                designation_sheet([(m.name, designation_lines(m)) for m in materials]),
                 Sheet(
                     name="Proveniência",
                     header=[

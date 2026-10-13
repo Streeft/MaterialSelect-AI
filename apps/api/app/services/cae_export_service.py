@@ -19,6 +19,7 @@ from app.exporters.cae.card import CatalogueValue, MaterialInput, build_card
 from app.exporters.cae.quantities import QUANTITIES, UNIT_SYSTEMS
 from app.models.material import Material
 from app.repositories.material_repository import MaterialRepository
+from app.services.identity_lines import composition_lines, designation_lines
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,8 @@ def _material_input(material: Material) -> MaterialInput:
         is_own_record=material.owner_id is not None,
         is_active=material.is_active,
         values=values,
+        composition=tuple(composition_lines(material)),
+        designations=tuple(designation_lines(material)),
     )
 
 

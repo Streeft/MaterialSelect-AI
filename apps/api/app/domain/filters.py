@@ -36,6 +36,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from app.domain.composition import CompositionCondition, EntryFacts
+from app.domain.composition import evaluate as evaluate_composition
+
 
 class Operator(str, Enum):
     """Supported constraint operators."""
@@ -58,6 +61,17 @@ class Operator(str, Enum):
     # combines.
     HAS_ANY_LABEL = "has_any_label"
     HAS_NO_LABEL = "has_no_label"
+    # TM2-b (D-105): chemical composition as a limit-stage criterion. Both read
+    # the same three-valued verdict ``app.domain.composition.evaluate`` gives the
+    # search; they differ in which side of it they accept. ``COMPOSITION`` passes
+    # only a *true* verdict ("some conforming heat satisfies it"); its mirror
+    # ``NOT_COMPOSITION`` passes only a *false* one — the guarantee, "no conforming
+    # heat violates it", which is what ``NOT comp:Cr<12`` means in the search. An
+    # undetermined verdict (no composition, element not declared, declared
+    # absent, balance compared with a number) passes neither: absence never
+    # satisfies, and negation does not release it (D-59/D-105).
+    COMPOSITION = "composition"
+    NOT_COMPOSITION = "not_composition"
 
 
 _NUMERIC_OPERATORS = {
@@ -70,6 +84,8 @@ _NUMERIC_OPERATORS = {
 }
 
 _LABEL_OPERATORS = {Operator.HAS_ANY_LABEL, Operator.HAS_NO_LABEL}
+
+_COMPOSITION_OPERATORS = {Operator.COMPOSITION, Operator.NOT_COMPOSITION}
 
 
 @dataclass(frozen=True)
@@ -173,6 +189,12 @@ class MaterialSnapshot(RecordSnapshot):
     #: simply has no process side to its join, which is what every snapshot
     #: built before P0-2 looks like.
     processes: list[ProcessReach] = field(default_factory=list)
+    #: The declared chemical composition (TM2-b, D-105), element symbol → what the
+    #: source said, in canonical mass percent. ``None`` means the material has **no
+    #: composition registered** — a different state from an empty dict, and neither
+    #: is "0 % of everything": an element missing from a registered composition is
+    #: not declared, so a condition over it is undetermined, never false.
+    composition: dict[str, EntryFacts] | None = None
 
 
 @dataclass
@@ -209,6 +231,9 @@ class Constraint:
     #: label are different namespaces, the same reason the process stage keeps
     #: its two slug lists apart.
     labels: list[str] = field(default_factory=list)
+    #: The condition a COMPOSITION / NOT_COMPOSITION constraint reads (TM2-b),
+    #: already parsed and validated by the service. Never evaluated from text here.
+    composition: CompositionCondition | None = None
 
 
 @dataclass(frozen=True)
@@ -609,9 +634,30 @@ def _scalar_satisfies(constraint: Constraint, x: float) -> bool:
     return False  # pragma: no cover - only numeric operators reach here
 
 
+def composition_verdict(constraint: Constraint, record: RecordSnapshot):
+    """The three-valued verdict of a composition constraint for ``record``.
+
+    A process has no composition: it is *undetermined*, like a material with none
+    registered, and the service refuses the combination before it gets here.
+    """
+    condition = constraint.composition
+    assert condition is not None
+    facts = getattr(record, "composition", None)
+    entry = None if facts is None else facts.get(condition.element)
+    return evaluate_composition(condition, entry, has_composition=facts is not None)
+
+
 def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> bool:
     """Return True if ``material`` satisfies ``constraint``."""
     op = constraint.operator
+
+    if op in _COMPOSITION_OPERATORS:
+        if constraint.composition is None:
+            return False
+        verdict = composition_verdict(constraint, material)
+        # Only a decided verdict can pass, and the negative operator accepts the
+        # decided *false* — never the undetermined one.
+        return verdict.value is (op is Operator.COMPOSITION)
 
     if op is Operator.EXISTS:
         return has_value(material, constraint.property_slug)

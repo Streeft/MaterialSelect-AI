@@ -10,6 +10,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.catalog.bundle import VerifiedBundle, verify_bundle
+from app.catalog.promotion import (
+    CURVE_TABLE,
+    IncomingIdentities,
+    ReleasePromotionError,
+    check_promotable,
+    plan,
+    promote,
+)
 from app.domain.composition import (
     CompositionError,
     NormalizedComposition,
@@ -392,6 +400,124 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
     return {name: spec.count for name, spec in bundle.files.items()}
 
 
+def lineage_target(
+    db: Session,
+    *,
+    dataset_id: int | None,
+    lineage: str | None,
+    external_table: str,
+    external_id: str,
+    column: Any,
+) -> int | None:
+    """The row another release of the same lineage gave this external identity (D-114).
+
+    Newest release first. A process or a transport mode is one row across
+    releases — matched here by identity, never by name — so a new release
+    reuses it instead of colliding with its slug. ``None`` without a lineage:
+    a release that declares none is related to no other (D-108).
+    """
+    if lineage is None:
+        return None
+    stmt = (
+        select(column)
+        .join(CatalogDataset, CatalogDataset.id == CatalogRecordRef.dataset_id)
+        .where(
+            CatalogDataset.lineage == lineage,
+            CatalogRecordRef.external_table == external_table,
+            CatalogRecordRef.external_record_id == external_id,
+            column.is_not(None),
+        )
+        .order_by(CatalogDataset.id.desc())
+        .limit(1)
+    )
+    if dataset_id is not None:
+        stmt = stmt.where(CatalogDataset.id != dataset_id)
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def bundle_identities(bundle: VerifiedBundle) -> IncomingIdentities:
+    """The external identities a bundle carries, with the importer's default tables."""
+    return IncomingIdentities(
+        materials=frozenset(
+            _external_key(row, "MaterialUniverse")
+            for row in bundle.iter_records("materials.ndjson")
+        ),
+        processes=frozenset(
+            _external_key(row, "ProcessUniverse") for row in bundle.iter_records("processes.ndjson")
+        ),
+        transports=frozenset(
+            _external_key(row, "ProductConfig/Transportation")
+            for row in bundle.iter_records("transport_modes.ndjson")
+        ),
+        curves=frozenset(
+            (CURVE_TABLE, str(row["external_id"]))
+            for row in bundle.iter_records("material_curves.ndjson")
+        ),
+    )
+
+
+def plan_promotion(db: Session, bundle: VerifiedBundle) -> dict[str, Any]:
+    """Dry-run of D-114: what importing this bundle would retire. Reads only.
+
+    The same planner the commit runs after writing, fed with the bundle's
+    identities instead of the stored ones. A refusal the commit would raise
+    (older release, retired release, another lineage) comes back as
+    ``refused``; slug conflicts the commit would refuse come back listed.
+    """
+    meta = bundle.manifest["dataset"]
+    lineage = meta.get("lineage")
+    dataset = (
+        db.execute(select(CatalogDataset).where(CatalogDataset.slug == meta["slug"]))
+        .scalars()
+        .one_or_none()
+    )
+    base: dict[str, Any] = {"release": meta["slug"], "lineage": lineage}
+    if dataset is not None:
+        if dataset.lineage != lineage:
+            return {**base, "refused": "A linha (lineage) declarada diverge da registrada."}
+        try:
+            check_promotable(db, dataset)
+        except ReleasePromotionError as exc:
+            return {**base, "refused": str(exc)}
+    dataset_id = dataset.id if dataset is not None else None
+    report = plan(
+        db, dataset_id=dataset_id, lineage=lineage, incoming=bundle_identities(bundle)
+    ).report()
+
+    conflicts = []
+    for row in bundle.iter_records("processes.ndjson"):
+        table, external_id = _external_key(row, "ProcessUniverse")
+        if dataset_id is not None and _ref_exists(db, dataset_id, table, external_id):
+            continue
+        owner = db.execute(
+            select(Process.id).where(Process.slug == row["slug"])
+        ).scalar_one_or_none()
+        reused = lineage_target(
+            db,
+            dataset_id=dataset_id,
+            lineage=lineage,
+            external_table=table,
+            external_id=external_id,
+            column=CatalogRecordRef.process_id,
+        )
+        if owner is not None and owner != reused:
+            conflicts.append({"external_record_id": external_id, "slug": row["slug"]})
+    return {**base, **report, "process_slug_conflicts": conflicts}
+
+
+def _ref_exists(db: Session, dataset_id: int, table: str, external_id: str) -> bool:
+    return (
+        db.execute(
+            select(CatalogRecordRef.id).where(
+                CatalogRecordRef.dataset_id == dataset_id,
+                CatalogRecordRef.external_table == table,
+                CatalogRecordRef.external_record_id == external_id,
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
+
+
 class OfficialCatalogImporter:
     """Map a verified canonical bundle into the shared reference catalogue."""
 
@@ -530,6 +656,12 @@ class OfficialCatalogImporter:
             self.db.add(dataset)
             self.db.flush()
         self.dataset = dataset
+        try:
+            # D-114: before any record is written, so an older or retired
+            # release fails closed.
+            check_promotable(self.db, dataset)
+        except ReleasePromotionError as exc:
+            raise OfficialCatalogImportError(str(exc)) from exc
 
         source_label = meta.get("source_label") or (
             f"{meta['name']} — {meta.get('release')}" if meta.get("release") else meta["name"]
@@ -557,6 +689,25 @@ class OfficialCatalogImporter:
                 f"Source {source_label!r} já existe com licença diferente."
             )
         self.source = source
+
+    def _lineage_target(self, external_table: str, external_id: str, column: Any) -> int | None:
+        assert self.dataset is not None
+        return lineage_target(
+            self.db,
+            dataset_id=self.dataset.id,
+            lineage=self.dataset.lineage,
+            external_table=external_table,
+            external_id=external_id,
+            column=column,
+        )
+
+    def _free_slug(self, model: Any, slug: str, owner_id: int) -> None:
+        """A reused row may take a new slug only if no other row holds it."""
+        holder = self.db.execute(select(model.id).where(model.slug == slug)).scalar_one_or_none()
+        if holder is not None and holder != owner_id:
+            raise OfficialCatalogImportError(
+                f"Slug {slug!r} já pertence a outro registro; revise o mapeamento antes do import."
+            )
 
     def _existing_ref(self, external_table: str, external_id: str) -> CatalogRecordRef | None:
         assert self.dataset is not None
@@ -983,6 +1134,29 @@ class OfficialCatalogImporter:
                 self._bump("processes_unchanged")
                 continue
 
+            cls = self.process_classes[str(row["class_external_id"])]
+            reused_id = self._lineage_target(
+                external_table, external_id, CatalogRecordRef.process_id
+            )
+            if reused_id is not None:
+                # D-114: the same process in a release of the same lineage. One
+                # row across releases (its slug is unique), updated from the new
+                # release and given this release's identity — never a duplicate.
+                process = self.db.get(Process, reused_id)
+                if process is None:
+                    raise OfficialCatalogImportError("Referência externa órfã de processo.")
+                self._free_slug(Process, str(row["slug"]), process.id)
+                process.slug = str(row["slug"])
+                process.name = row["name"]
+                process.class_id = cls.id
+                process.description = row.get("description")
+                process.is_active = True
+                self.db.flush()
+                self._add_ref(row, "ProcessUniverse", process_id=process.id)
+                self.processes[external_id] = process
+                self._bump("processes_reused")
+                continue
+
             slug_collision = (
                 self.db.execute(select(Process).where(Process.slug == row["slug"]))
                 .scalars()
@@ -994,7 +1168,6 @@ class OfficialCatalogImporter:
                     "externa deste dataset; revise o mapeamento antes do import."
                 )
 
-            cls = self.process_classes[str(row["class_external_id"])]
             process = Process(
                 name=row["name"],
                 slug=row["slug"],
@@ -1014,13 +1187,13 @@ class OfficialCatalogImporter:
         for row in self.bundle.iter_records("process_attribute_values.ndjson"):
             process = self.processes[str(row["process_external_id"])]
             attr = self.process_attributes[str(row["attribute_slug"])]
-            exists = self.db.execute(
-                select(ProcessAttributeValue.id).where(
+            existing = self.db.execute(
+                select(ProcessAttributeValue).where(
                     ProcessAttributeValue.process_id == process.id,
                     ProcessAttributeValue.attribute_id == attr.id,
                 )
             ).scalar_one_or_none()
-            if exists is not None:
+            if existing is not None and existing.source_id == self.source.id:
                 self._bump("process_values_unchanged")
                 continue
 
@@ -1060,28 +1233,35 @@ class OfficialCatalogImporter:
                     float(typical) if typical is not None else None,
                 )
 
+            fields = {
+                "value_scalar": value.value_scalar,
+                "value_min": value.value_min,
+                "value_max": value.value_max,
+                "value_typical": value.value_typical,
+                "labels": labels,
+                "original_unit": value.original_unit,
+                "normalized_value": value.normalized_value,
+                "normalized_min": value.normalized_min,
+                "normalized_max": value.normalized_max,
+                "canonical_unit": value.canonical_unit,
+                "conversion_method": value.conversion_method,
+                "uncertainty": row.get("uncertainty"),
+                "measurement_condition": row.get("measurement_condition"),
+                "notes": row.get("notes"),
+                "source_id": self.source.id,
+                "data_quality": DataQuality.IMPORTADO,
+                "is_missing": value.is_missing,
+            }
+            if existing is not None:
+                # D-114: a process reused from the previous release of the
+                # lineage takes the new release's value — every field, with the
+                # new source, so no number is left under a citation it lacks.
+                for name, field_value in fields.items():
+                    setattr(existing, name, field_value)
+                self._bump("process_values_updated")
+                continue
             self.db.add(
-                ProcessAttributeValue(
-                    process_id=process.id,
-                    attribute_id=attr.id,
-                    value_scalar=value.value_scalar,
-                    value_min=value.value_min,
-                    value_max=value.value_max,
-                    value_typical=value.value_typical,
-                    labels=labels,
-                    original_unit=value.original_unit,
-                    normalized_value=value.normalized_value,
-                    normalized_min=value.normalized_min,
-                    normalized_max=value.normalized_max,
-                    canonical_unit=value.canonical_unit,
-                    conversion_method=value.conversion_method,
-                    uncertainty=row.get("uncertainty"),
-                    measurement_condition=row.get("measurement_condition"),
-                    notes=row.get("notes"),
-                    source_id=self.source.id,
-                    data_quality=DataQuality.IMPORTADO,
-                    is_missing=value.is_missing,
-                )
+                ProcessAttributeValue(process_id=process.id, attribute_id=attr.id, **fields)
             )
             self._bump("process_values_created")
 
@@ -1116,6 +1296,31 @@ class OfficialCatalogImporter:
                     raise OfficialCatalogImportError(f"Modal mudou no mesmo dataset: {external_id}")
                 self.transports[external_id] = mode
                 self._bump("transport_modes_unchanged")
+                continue
+
+            reused_id = self._lineage_target(
+                external_table, external_id, CatalogRecordRef.transport_mode_id
+            )
+            if reused_id is not None:
+                # D-114: the same modal in a release of the same lineage — the
+                # row is reused and every value comes from the new release, with
+                # its source (an absent value stays absent, never the old one).
+                mode = self.db.get(TransportMode, reused_id)
+                if mode is None:
+                    raise OfficialCatalogImportError("Referência externa órfã de modal.")
+                self._free_slug(TransportMode, str(row["slug"]), mode.id)
+                mode.slug = str(row["slug"])
+                mode.name = row["name"]
+                mode.description = row.get("description")
+                mode.energy_intensity = row.get("energy_intensity")
+                mode.carbon_intensity = row.get("carbon_intensity")
+                mode.display_order = int(row.get("display_order", mode.display_order))
+                mode.source_id = self.source.id
+                mode.is_active = True
+                self.db.flush()
+                self._add_ref(row, "ProductConfig/Transportation", transport_mode_id=mode.id)
+                self.transports[external_id] = mode
+                self._bump("transport_modes_reused")
                 continue
 
             existing = (
@@ -1245,7 +1450,19 @@ class OfficialCatalogImporter:
             self._bump("supplemental_values_created")
 
     def run(self) -> dict[str, Any]:
-        """Commit all official records in one transaction."""
+        """Commit all official records — and the promotion — in one transaction.
+
+        Fail-closed (D-102, D-114): any exception rolls the whole session back,
+        so neither half a release nor half a promotion is ever left behind, and
+        the previous release of the lineage stays exactly as it was.
+        """
+        try:
+            return self._run()
+        except BaseException:
+            self.db.rollback()
+            raise
+
+    def _run(self) -> dict[str, Any]:
         self._assert_demo_cleared()
         self._ensure_dataset_and_source()
         assert self.dataset is not None
@@ -1277,6 +1494,10 @@ class OfficialCatalogImporter:
         self._import_transports()
         self._import_dataset_values()
         self._import_supplemental()
+        # D-114: only now, with every row of the new release written, retire the
+        # previous release of the lineage. Same transaction: if this fails, the
+        # import fails with it.
+        promotion = promote(self.db, self.dataset)
 
         run.status = "COMMITTED"
         run.counts = dict(self.counts)
@@ -1284,7 +1505,8 @@ class OfficialCatalogImporter:
             "bundle_files": {
                 name: {"count": spec.count, "sha256": spec.sha256}
                 for name, spec in self.bundle.files.items()
-            }
+            },
+            "promotion": promotion,
         }
         run.completed_at = datetime.now(UTC)
         self.db.commit()
@@ -1292,6 +1514,7 @@ class OfficialCatalogImporter:
             "dataset_id": self.dataset.id,
             "import_run_id": run.id,
             "counts": self.counts,
+            "promotion": promotion,
         }
 
 

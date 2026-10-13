@@ -17,10 +17,12 @@ from app.schemas.selection import IndexIn, NormalizationLiteral
 ScaleLiteral = Literal["linear", "log"]
 AxisLiteral = Literal["x", "y"]
 
-# Guard rails: charts are read in one screen, and every extra series costs the
-# reader clarity before it costs the server anything.
-MAX_COMPARE_MATERIALS = 12
-MAX_COMPARE_PROPERTIES = 12
+# Guard rails. The request ceiling is what the server will compute (TM3, D-113:
+# dozens of records, side by side in the table); how many series a *figure* can
+# carry legibly is the screen's concern, and the screen says in writing when it
+# stops drawing one (`COMPARISON_FIGURE_LIMITS` in ComparisonView.tsx).
+MAX_COMPARE_MATERIALS = 60
+MAX_COMPARE_PROPERTIES = 20
 MAX_INDEX_LEVELS = 10
 
 

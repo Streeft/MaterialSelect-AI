@@ -24,10 +24,13 @@ from app.calculations.units import pretty_unit
 from app.domain.display_units import Reading, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.release_diff import (
+    COMPOSITION_PREFIX,
+    COMPOSITION_UNIT,
     KIND_LABELS,
     RULE_TEXT,
     STATUS_LABELS,
     STATUS_ORDER,
+    UNIVERSE_LABELS,
     FieldChange,
     NumbersView,
     PropertyInfo,
@@ -35,19 +38,30 @@ from app.domain.release_diff import (
     RecordSnapshot,
     RecordStatus,
     ReleaseIdentity,
+    Universe,
     ValueState,
     ValueView,
     count_by_class,
     count_by_status,
+    count_by_universe,
     diff_releases,
     ensure_comparable,
     filter_diffs,
     paginate,
     parse_status,
+    parse_universe,
     value_view,
 )
 from app.exporters.report import Report, Sheet, standard_notices
-from app.repositories.catalog_release_repository import CatalogReleaseRepository, ReleaseRow
+from app.repositories.catalog_release_repository import (
+    ATTRIBUTE_PREFIX,
+    TRANSPORT_CARBON_KEY,
+    TRANSPORT_CARBON_UNIT,
+    TRANSPORT_ENERGY_KEY,
+    TRANSPORT_ENERGY_UNIT,
+    CatalogReleaseRepository,
+    ReleaseRow,
+)
 from app.schemas.catalog_release import (
     CatalogReleaseOut,
     ClassCountOut,
@@ -59,6 +73,7 @@ from app.schemas.catalog_release import (
     RecordSideOut,
     ReleaseDiffOut,
     StatusCountOut,
+    UniverseCountOut,
     ValueSideOut,
 )
 
@@ -129,6 +144,7 @@ def _side(view: ValueView) -> ValueSideOut:
         reading=reading,
         conversion_method=view.conversion_method,
         measurement_condition=view.measurement_condition,
+        labels=list(view.labels),
     )
 
 
@@ -136,7 +152,9 @@ def _record_side(record: RecordSnapshot | None) -> RecordSideOut | None:
     if record is None:
         return None
     return RecordSideOut(
-        material_id=record.material_id,
+        record_id=record.record_id,
+        material_id=record.record_id if record.universe is Universe.MATERIAL else None,
+        universe=record.universe,
         name=record.name,
         class_slug=record.class_slug,
         class_name=record.class_name,
@@ -189,21 +207,39 @@ class CatalogReleaseService:
             ReleaseIdentity(base.slug, base.lineage, base.is_demo),
             ReleaseIdentity(target.slug, target.lineage, target.is_demo),
         )
-        base_records = self.repo.material_snapshots(base_row.dataset.id)
-        target_records = self.repo.material_snapshots(target_row.dataset.id)
-        slugs = {
-            slug for record in (*base_records, *target_records) for slug in record.values.keys()
-        }
-        definitions = self.repo.property_definitions(slugs)
+        base_records = self.repo.snapshots(base_row.dataset.id)
+        target_records = self.repo.snapshots(target_row.dataset.id)
+        keys = {key for record in (*base_records, *target_records) for key in record.values.keys()}
+        material_slugs = {key for key in keys if ":" not in key}
+        definitions = self.repo.property_definitions(material_slugs)
         properties = {
             d.slug: PropertyInfo(slug=d.slug, name=d.name, canonical_unit=d.canonical_unit)
             for d in definitions
         }
+        readings = readings_for(definitions, self.unit_choices)
+        attributes = self.repo.process_attribute_definitions(keys)
+        for attribute in attributes:
+            key = f"{ATTRIBUTE_PREFIX}{attribute.slug}"
+            properties[key] = PropertyInfo(
+                slug=key, name=attribute.name, canonical_unit=attribute.canonical_unit or ""
+            )
+        readings.update(
+            {
+                f"{ATTRIBUTE_PREFIX}{slug}": reading
+                for slug, reading in readings_for(attributes, {}).items()
+            }
+        )
+        for key, name, unit in (
+            (TRANSPORT_ENERGY_KEY, "Intensidade energética", TRANSPORT_ENERGY_UNIT),
+            (TRANSPORT_CARBON_KEY, "Intensidade de carbono", TRANSPORT_CARBON_UNIT),
+        ):
+            properties[key] = PropertyInfo(slug=key, name=name, canonical_unit=unit)
+            readings[key] = Reading(unit=unit, canonical_unit=unit)
         return _Computed(
             base=base,
             target=target,
             diffs=diff_releases(base_records, target_records, properties),
-            readings=readings_for(definitions, self.unit_choices),
+            readings=readings,
             base_sources=self.repo.value_sources(base_row.dataset.id),
             target_sources=self.repo.value_sources(target_row.dataset.id),
         )
@@ -219,7 +255,7 @@ class CatalogReleaseService:
             return FieldChangeOut(
                 **common, before_text=change.before_text, after_text=change.after_text
             )
-        reading = readings[change.property_slug]
+        reading = _reading_of(change.property_slug, readings)
         return FieldChangeOut(
             **common,
             property_slug=change.property_slug,
@@ -236,6 +272,8 @@ class CatalogReleaseService:
             external_record_id=diff.external_record_id,
             status=diff.status,
             status_label=STATUS_LABELS[diff.status],
+            universe=diff.current.universe,
+            universe_label=UNIVERSE_LABELS[diff.current.universe],
             base=_record_side(diff.base),
             target=_record_side(diff.target),
             raw_record_changed=diff.raw_record_changed,
@@ -244,13 +282,14 @@ class CatalogReleaseService:
         )
 
     def _filters(
-        self, tipo: str | None, classe: str | None
-    ) -> tuple[RecordStatus | None, str | None]:
+        self, tipo: str | None, classe: str | None, universo: str | None = None
+    ) -> tuple[RecordStatus | None, str | None, Universe | None]:
         status = parse_status(tipo)
+        universe = parse_universe(universo)
         class_slug = classe or None
         if class_slug is not None and not self.repo.class_exists(class_slug):
             raise ValidationError(f"Classe de material desconhecida: '{class_slug}'.")
-        return status, class_slug
+        return status, class_slug, universe
 
     def diff(
         self,
@@ -259,14 +298,18 @@ class CatalogReleaseService:
         *,
         tipo: str | None = None,
         classe: str | None = None,
+        universo: str | None = None,
         page: int = 1,
         page_size: int = DEFAULT_PAGE_SIZE,
     ) -> ReleaseDiffOut:
-        status, class_slug = self._filters(tipo, classe)
+        status, class_slug, universe = self._filters(tipo, classe, universo)
         computed = self._compute(base_slug, target_slug)
-        selected = filter_diffs(computed.diffs, status=status, class_slug=class_slug)
+        selected = filter_diffs(
+            computed.diffs, status=status, class_slug=class_slug, universe=universe
+        )
         chosen = paginate(selected, page, page_size)
         counts = count_by_status(computed.diffs)
+        universes = count_by_universe(computed.diffs)
         assert computed.base.lineage is not None
         return ReleaseDiffOut(
             base=computed.base,
@@ -283,7 +326,11 @@ class CatalogReleaseService:
                 ClassCountOut(slug=c.slug, name=c.name, count=c.count)
                 for c in count_by_class(computed.diffs)
             ],
-            filters=DiffFiltersOut(tipo=status, classe=class_slug),
+            universes=[
+                UniverseCountOut(universe=u, label=UNIVERSE_LABELS[u], count=universes[u])
+                for u in Universe
+            ],
+            filters=DiffFiltersOut(tipo=status, classe=class_slug, universo=universe),
             filtered_total=chosen.total,
             page=chosen.page,
             page_size=chosen.page_size,
@@ -320,11 +367,14 @@ class CatalogReleaseService:
         *,
         tipo: str | None = None,
         classe: str | None = None,
+        universo: str | None = None,
     ) -> Report:
         """The whole diff (filters applied, no page) as a CSV/XLSX document."""
-        status, class_slug = self._filters(tipo, classe)
+        status, class_slug, universe = self._filters(tipo, classe, universo)
         computed = self._compute(base_slug, target_slug)
-        selected = filter_diffs(computed.diffs, status=status, class_slug=class_slug)
+        selected = filter_diffs(
+            computed.diffs, status=status, class_slug=class_slug, universe=universe
+        )
         counts = count_by_status(computed.diffs)
         base, target = computed.base, computed.target
 
@@ -345,6 +395,8 @@ class CatalogReleaseService:
             filters.append(f"tipo de mudança = {STATUS_LABELS[status]}")
         if class_slug is not None:
             filters.append(f"classe = {class_slug}")
+        if universe is not None:
+            filters.append(f"universo = {UNIVERSE_LABELS[universe]}")
 
         return Report(
             title=title,
@@ -430,6 +482,7 @@ class CatalogReleaseService:
             rows.append(
                 [
                     STATUS_LABELS[diff.status],
+                    UNIVERSE_LABELS[diff.current.universe],
                     diff.external_table,
                     diff.external_record_id,
                     diff.current.external_gruid or NOT_INFORMED,
@@ -445,6 +498,7 @@ class CatalogReleaseService:
             name="Registros",
             header=[
                 "Situação",
+                "Universo",
                 "Tabela externa",
                 "ID externo",
                 "GRUID",
@@ -483,7 +537,7 @@ class CatalogReleaseService:
                         ]
                     )
                     continue
-                reading = readings[change.property_slug]
+                reading = _reading_of(change.property_slug, readings)
                 before = value_view(change.before_value, reading)
                 after = value_view(change.after_value, reading)
                 rows.append(
@@ -537,6 +591,13 @@ class CatalogReleaseService:
             ]
             + ([] if rows else ["Nenhuma alteração de campo com os filtros aplicados."]),
         )
+
+
+def _reading_of(key: str, readings: Mapping[str, Reading]) -> Reading:
+    """The reading of a changed value; composition is always read in mass percent."""
+    if key.startswith(COMPOSITION_PREFIX):
+        return Reading(unit=COMPOSITION_UNIT, canonical_unit=COMPOSITION_UNIT)
+    return readings[key]
 
 
 def _absent(view: ValueView) -> str:

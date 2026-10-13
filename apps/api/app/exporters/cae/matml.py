@@ -34,6 +34,7 @@ from app.exporters.cae.quantities import (
     YOUNG,
 )
 from app.exporters.cae.text import real, single_line
+from app.exporters.identity import composition_summary, designation_summary
 
 LABEL = "MatML 3.1 (XML aberto)"
 REQUIRED = ()
@@ -115,6 +116,11 @@ def render(card: CaeCard) -> str:
         notes.append("Registro próprio do usuário, fora da revisão de fonte do catálogo.")
     if not card.is_active:
         notes.append("Registro desativado no catálogo.")
+    # Free text in Notes, the one place the schema admits it: a structured
+    # ChemicalComposition needs the mandatory Formula and a content model this
+    # module could not check against the public schema (TM2-d residue).
+    notes.append(f"Designações: {designation_summary(card.designations)}.")
+    notes.append(f"Composição química (% em massa): {composition_summary(card.composition)}.")
     notes.append(f"Sistema de unidades: {card.system.label}.")
     notes.append(f"Material {card.material_id} exportado pelo MaterialSelect AI.")
     if omitted:

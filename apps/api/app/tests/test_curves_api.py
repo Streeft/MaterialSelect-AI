@@ -130,6 +130,62 @@ class TestCurve:
         assert body["series"][0]["points"][0]["drawn"] is False
         assert body["notes"]
 
+    def test_the_reader_chooses_the_unit_of_the_family_parameter(
+        self, client, db_session: Session
+    ) -> None:
+        steel = _material(db_session, "Aço Demo B")
+        curve = _curve(db_session, steel, CurveKind.TENSAO_DEFORMACAO)
+        url = f"/api/materials/{steel.id}/curvas/{curve.id}"
+        default = client.get(url).json()
+        assert default["parameter"]["unit"] == "degC"
+        assert [o["unit"] for o in default["parameter"]["accepted_units"]] == [
+            "degC",
+            "K",
+            "degF",
+        ]
+        assert default["parameter"]["canonical_unit"] == "K"
+
+        kelvin = client.get(url + "?unidade_parametro=K").json()
+        assert kelvin["parameter"]["unit"] == "K" and kelvin["parameter"]["unit_label"] == "K"
+        assert [round(s["parameter_value"], 2) for s in kelvin["series"]] == [
+            293.15,
+            573.15,
+            773.15,
+        ]
+        fahrenheit = client.get(url + "?unidade_parametro=degF").json()
+        assert [round(s["parameter_value"]) for s in fahrenheit["series"]] == [68, 572, 932]
+        assert fahrenheit["parameter"]["unit_label"] == "°F"
+        # What the source wrote does not move with the reading unit.
+        assert [round(s["parameter_original"]) for s in fahrenheit["series"]] == [20, 300, 500]
+        assert fahrenheit["series"][0]["parameter_original_unit"] == "degC"
+        # The axes and the points are untouched by the parameter's unit.
+        assert fahrenheit["series"][0]["path"] == default["series"][0]["path"]
+
+    @pytest.mark.parametrize(
+        ("query", "fragment"),
+        [
+            ("unidade_parametro=psi", "parâmetro da família"),
+            ("unidade_parametro=furlong", "Admitidas"),
+        ],
+    )
+    def test_a_parameter_unit_the_quantity_refuses_is_400(
+        self, client, db_session: Session, query: str, fragment: str
+    ) -> None:
+        steel = _material(db_session, "Aço Demo B")
+        curve = _curve(db_session, steel, CurveKind.TENSAO_DEFORMACAO)
+        response = client.get(f"/api/materials/{steel.id}/curvas/{curve.id}?{query}")
+        assert response.status_code == 400
+        assert fragment in response.json()["detail"]
+
+    def test_a_parameter_unit_on_a_curve_without_family_is_400(
+        self, client, db_session: Session
+    ) -> None:
+        material = _new_material(db_session, "Aço real sem família")
+        curve = _add_temperature_curve(db_session, material)
+        response = client.get(f"/api/materials/{material.id}/curvas/{curve.id}?unidade_parametro=K")
+        assert response.status_code == 400
+        assert "não é uma família" in response.json()["detail"]
+
     def test_fatigue_opens_in_log_x_with_its_band(self, client, db_session: Session) -> None:
         aluminium = _material(db_session, "Liga Alumínio Demo A")
         curve = _curve(db_session, aluminium, CurveKind.FADIGA)

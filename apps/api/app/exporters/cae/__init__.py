@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app.exporters.cae import abaqus, lsdyna, mapdl, matml, nastran
+from app.exporters.cae import abaqus, lsdyna, lsdyna_thermal, mapdl, matml, nastran, nastran_thermal
 from app.exporters.cae.card import CaeCard
 from app.exporters.cae.quantities import CaeQuantity
 
@@ -83,6 +83,24 @@ CAE_FORMATS: dict[str, CaeFormat] = {
             lsdyna.REQUIRED,
             lsdyna.SUPPORTED,
             lsdyna.render,
+        ),
+        CaeFormat(
+            "nastran-thermal",
+            nastran_thermal.LABEL,
+            "-nastran-termico.bdf",
+            _DECK,
+            nastran_thermal.REQUIRED,
+            nastran_thermal.SUPPORTED,
+            nastran_thermal.render,
+        ),
+        CaeFormat(
+            "lsdyna-thermal",
+            lsdyna_thermal.LABEL,
+            "-lsdyna-termico.k",
+            _DECK,
+            lsdyna_thermal.REQUIRED,
+            lsdyna_thermal.SUPPORTED,
+            lsdyna_thermal.render,
         ),
     )
 }

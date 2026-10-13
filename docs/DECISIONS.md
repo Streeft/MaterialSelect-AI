@@ -9041,6 +9041,7 @@ fictícia declarada na descrição. (3) O demo deixou de exemplificar "material 
 composição" no catálogo estendido; o estado vazio continua demonstrável pela
 Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
 
+---
 
 ## D-115 — Equivalência entre designações é declarada por uma fonte, com tipo e fonte obrigatórios, e nunca inferida
 
@@ -9084,3 +9085,394 @@ em texto livre; inferir por `code_key` ou nome; expandir a busca por equivalênc
 
 **Resíduos.** Bundle do D-102 sem `equivalences.ndjson`; sem tela de edição
 (a API serve ao curador); dado real bloqueado pela fonte.
+
+---
+
+## D-114 — Promover uma release do catálogo oficial: a anterior da mesma linha fica inativa na mesma transação, sem apagar nada, e processo e modal são reaproveitados pela identidade externa
+
+**Data:** 08/10/2026
+**Status:** aceita — **decidida pelo assistente por delegação do autor,
+revisável** (Sessão 69, TM7-a + TM4-g)
+
+**O pedido.** Depois da segunda importação de uma linha (D-108), as duas
+releases ficavam ativas lado a lado, com registros em dobro no catálogo (TM7-a);
+uma segunda release com processos falhava por colisão de slug; e uma curva podia
+aparecer duas vezes (TM4-g). A decisão delegada: importar release nova de uma
+**mesma** `lineage` roda numa transação — grava a nova e, só se tudo gravou,
+desativa (`is_active=False`, nunca `DELETE`) o que a anterior tinha e a nova não
+traz; os que reaparecem são atualizados/vinculados à nova; falha = rollback
+total; processo casado pelo slug/identidade e reaproveitado; a curva nova
+substitui a antiga da mesma identidade, que fica preservada para o diff, fora da
+ficha e dos cálculos; linha diferente não desativa nada; o dry-run mostra o que
+seria desativado.
+
+### Uma correção à decisão delegada (registrada como manda a delegação)
+
+"Os que reaparecem são **atualizados**" não vale para material. O D-108 deriva o
+diff **das linhas que cada release gravou** e diz, com todas as letras, que se o
+importador passasse a manter o mesmo `Material` entre releases "o diff derivado
+deixa de ser possível — a release anterior seria sobrescrita". Atualizar no
+lugar quebraria a exigência "o diff do D-108 continua funcionando". Então:
+
+- **Material** continua com **uma linha por release**. O que reaparece é
+  **substituído**: a release nova tem a sua linha (já tinha), e a da anterior
+  fica **inativa** — preservada, com valores, composição, designações e curvas,
+  para o diff. O "vínculo" com a nova é a identidade externa, que o diff já
+  casa. O que não reaparece é **retirado**: inativo do mesmo modo.
+- **Processo e modal** são **uma linha entre releases** (o slug é único, e
+  favoritos, ligações material↔processo e o custo apontam para ela). O que
+  reaparece pela **identidade externa na mesma linha** é **reaproveitado**:
+  ganha uma `CatalogRecordRef` da release nova, nome, slug, classe e descrição
+  da nova, volta a ativo se estava inativo — nunca uma duplicata, nunca a
+  colisão de slug. Os valores que a release nova traz **substituem** os
+  anteriores, **campo a campo e com a fonte da release nova** (um número nunca
+  fica sob a citação de uma release que não o deu; um valor do modal que a
+  release nova não traz fica ausente, não herdado). Os que não reaparecem ficam
+  inativos.
+
+### A regra
+
+1. **Ordem.** O importador grava tudo como antes; **depois**, na mesma
+   transação, `app.catalog.promotion.promote` lê o que a release nova
+   **gravou** (refs e curvas, não o bundle — a aposentadoria só pode seguir uma
+   importação completa) e desativa: as releases **ativas** da mesma linha
+   gravadas antes dela (`CatalogDataset.is_active=False`), os materiais delas
+   (substituídos e retirados), os processos e modais delas que a nova não
+   referencia. Uma linha que a release nova referencia nunca é desativada,
+   qualquer que seja a identidade que uma release antiga lhe deu.
+2. **Fail-closed.** `OfficialCatalogImporter.run` faz `rollback` em qualquer
+   exceção, inclusive depois da promoção: nem meia release nem meia promoção.
+   Testado com uma colisão de slug no meio (depois de materiais, valores e
+   curvas gravados) e com uma falha simulada **depois** de a promoção ter
+   desativado a anterior: o banco volta igual, contagem por contagem.
+3. **Linha do tempo só anda para a frente.** Reimportar uma release já
+   substituída é **recusado** ("já foi substituída e está inativa; reimportá-la
+   não a reativa"), e uma release mais antiga que a mais recente da linha também
+   — ambas desfariam a promoção em silêncio (e a reimportação da antiga
+   devolveria aos processos reaproveitados os valores dela). Reimportar a
+   release **vigente** continua idempotente. O teste do D-108 que reimportava a
+   release base passou a provar a recusa e a idempotência da vigente.
+4. **Sem linha, ou outra linha: nada se desativa.** Uma release sem `lineage`
+   não se compara com nenhuma (D-108) e não aposenta nenhuma.
+5. **Curvas (TM4-g).** Uma curva é de um material, e o material é por release:
+   a curva da release nova está no material novo; a da anterior, com a mesma
+   identidade (`external_id`), fica no material antigo, agora inativo —
+   preservada com todos os pontos, fora do catálogo ativo e da seleção. A ficha
+   do material vigente lista **uma** curva por identidade. Sem coluna nova e
+   sem migração: a atividade da curva é a do material (o plano a conta assim).
+   Com o modelo de um material por release, a duplicação do TM4-g só acontecia
+   porque o material antigo continuava ativo.
+6. **O dry-run diz o que seria desativado.** `plan_promotion(db, bundle)` usa o
+   **mesmo** planejador puro (`app/domain/release_promotion.py`) que o commit,
+   alimentado com as identidades do bundle; só lê. A CLI sem `--commit` agora
+   imprime `promotion_plan` (releases anteriores, por universo: substituídos,
+   retirados por identidade, quantos seriam desativados; conflitos de slug de
+   processo que o commit recusaria; ou `refused` com o motivo). `--sem-banco`
+   pula o plano para validar só os bytes numa máquina sem `DATABASE_URL`. O
+   commit grava o mesmo relatório em `CatalogImportRun.report["promotion"]`.
+   **Identidades, nunca nomes**: o log do Actions é público, e nome de registro
+   licenciado não vai para ele; a tela do D-108 mostra os nomes a quem entrou.
+7. **Contagem de materiais por processo** passou a contar só material ativo
+   (`ProcessRepository.material_counts_by_process`): o processo reaproveitado
+   mantém a ligação do material retirado, e contá-la mostraria o registro duas
+   vezes.
+
+### `is_active` continua fora do diff (fecha o TM7-e)
+
+O TM7-e propunha pôr `is_active` no diff "junto com o TM7-a". Com a promoção,
+**todo** registro da release base fica inativo por construção — no diff, todos
+sairiam "alterados" pela promoção e não pela fonte. Fica fora de propósito; o
+estado da release vem em `is_active` da própria release (lista e CSV) e de cada
+lado do item (`base.is_active`/`target.is_active`, já no contrato).
+
+**Esta decisão revoga o item 5 da [D-109](DECISIONS.md) (TM7-e):** a D-109 fez
+`is_active` diferente virar mudança de `metadado` (campo `ativo`); depois de uma
+promoção isso marcaria todo registro da release base como "alterado" e o diff do
+D-108 perderia sentido. O campo `ativo` e o rótulo "Registro ativo" saíram de
+`app/domain/release_diff.py`; dois registros iguais exceto por `is_active` são
+`inalterado`. O resto da D-109 (processos, modais, composição, curvas, forma e
+presença) segue valendo. O texto da D-109 não foi reescrito.
+
+### Alternativas descartadas
+
+- **Atualizar o material no lugar** (a leitura literal da delegação): quebra o
+  D-108; exigiria guardar versões de valor por release, que o D-108 descartou.
+- **Coluna `is_active` em `material_curve`** (migração): duplicaria o que o
+  material já diz; uma curva ativa num material inativo, ou o contrário, seria
+  um estado a mais para defender.
+- **Promoção como ação administrativa separada do import**: duas transações,
+  uma janela com duas releases ativas e um passo a mais para esquecer no
+  cutover.
+- **Plano do dry-run calculado à parte** (ou rodando o import e desfazendo):
+  duas verdades sobre o que se desativa, ou um dry-run que exige o demo já
+  excluído e um revisor; o planejador puro serve aos dois caminhos.
+- **Reativar a release antiga ao reimportá-la**: rollback de release é
+  operação de banco (snapshot do cutover, docs/18 §10), não efeito colateral de
+  um import.
+
+### O que fica de fora (resíduos em `docs/TODO.md`)
+
+- **TM7-h — favoritos, recentes e estudos presos ao material da release
+  antiga.** Ficam apontando para a linha inativa (a lista de favoritos filtra
+  inativos, então o favorito some). Redirecionar pela identidade externa é
+  decisão de produto.
+- **TM7-i — histórico de valor de processo e modal.** O processo e o modal
+  reaproveitados são atualizados no lugar; o valor anterior só sobrevive na
+  linha bruta da release antiga. O diff de processos (TM7-c) exigirá versões
+  guardadas. Um valor de processo que a release nova **não** traz fica, com a
+  fonte da release anterior (a citação continua verdadeira).
+- **TM7-j — ficha do material inativo não aponta o sucessor.** A ficha de um
+  material substituído abre (como toda ficha de material inativo) sem dizer
+  qual é o registro vigente da mesma identidade.
+
+**Revisão humana sugerida.** (1) A correção acima — material por release,
+processo e modal reaproveitados. (2) A recusa de reimportar release antiga ou
+substituída (a alternativa seria aceitar como no-op). (3) O dry-run da CLI lê o
+banco por padrão (`--sem-banco` para não ler). (4) Os valores do modal que a
+release nova não traz passam a ausentes, em vez de herdados.
+
+---
+
+## D-113 — Comparador largo: o teto da requisição é 60 x 20, e cada figura tem o seu teto de legibilidade, dito por escrito
+
+**Contexto.** O TM3 pedia dezenas de materiais lado a lado. O teto de 12 em
+`schemas/charts.py` existia pela leitura das figuras, não pelo custo no servidor.
+
+**Decisão.** (1) `MAX_COMPARE_MATERIALS` passa a 60 e `MAX_COMPARE_PROPERTIES` a
+20; acima disso o schema recusa (422), nunca trunca. (2) A tela decide **só se
+desenha**: barras até 12 materiais, radar até 8, coordenadas paralelas até 30;
+mapa de calor e tabela sem teto (`COMPARISON_FIGURE_LIMITS`). Passado o teto, a
+figura não é desenhada, um aviso escrito diz o limite e a tabela (D-31) aparece
+no lugar. Escores e geometria continuam do backend. (3) A tabela larga tem
+cabeçalho e coluna de material fixos e altura própria (70vh) acima de 12 linhas.
+(4) TM4-h: a folga do eixo (`_padded`) só prende o zero quando a unidade de
+leitura tem zero verdadeiro (`is_ratio_scale`); em °C/°F o eixo de 20 a 600 °C
+deixa de começar em 0 °C. Continua no backend, em unidade de leitura.
+
+**Fora do escopo.** Composição química lado a lado no comparador: o contrato
+`CompareOut` só leva propriedades escalares; fica como resíduo TM3-a.
+
+---
+
+## D-112 — Composição e designações nas exportações; cartões térmicos CAE
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 67, TM2-d e TM5-d)
+
+**Composição e designações (TM2-d).** `app/exporters/identity.py` é o único lugar
+que escreve a frase de uma linha de composição ("16 a 18 %", "≤ 0.08 %", "resto
+(declarado pela fonte, não calculado)", "ausente (declarado pela fonte)") e as
+planilhas "Composição" e "Designações", usadas pelo catálogo, pelos relatórios de
+estudo de materiais (não de processos) e pelos cartões CAE. Regras: material sem
+linha sai com a linha "sem composição cadastrada"/"sem designação cadastrada",
+nunca célula vazia nem 0 %; o limite que a fonte não escreveu não é escrito; o
+resto nunca é `100 − Σ`. O escape continua por formato: `cells.py` nas planilhas,
+`html.escape` no HTML, ASCII nos decks (que por isso usam `<=`/`>=`, pois
+`ascii_fold` apagaria `≤` e um máximo leria como nominal) e XML no MatML. Nos
+cartões a composição é **informativa**, no cabeçalho de cada deck e em `Notes`
+do MatML.
+
+**MatML sem `ChemicalComposition`.** Não foi possível ler o XSD 3.1 (rede
+bloqueada); da memória, `Characterization` exige `Formula`, que o catálogo não
+tem. Escrever elementos que talvez não validem violaria a regra do D-104 (só a
+especificação pública), então composição e designação vão em texto livre, em
+`BulkDetails/Notes`. Estruturar é resíduo.
+
+**Cartões térmicos (TM5-d).** Dois formatos novos: `nastran-thermal` (`MAT4*`,
+campo largo: K, CP, RHO) e `lsdyna-thermal` (`*MAT_THERMAL_ISOTROPIC_TITLE`: TRO,
+HC, TC). **Exigidos:** condutividade e calor específico — em branco, o solver
+assumiria zero ou deixaria o material sem capacidade térmica. A densidade é
+opcional mas **declarada** quando falta (o `MAT4` assume RHO = 1,0). Parâmetros
+de modelo (convecção, geração, mudança de fase) ficam em branco com comentário.
+Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
+exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
+
+## D-111 — Composição como critério de seleção e edição à mão de composição, designações e curvas, com a permissão do material
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 66, TM2-b, TM2-a e TM4-d)
+
+**O pedido.** Fechar três resíduos do D-105/D-106: a composição como estágio da
+seleção (TM2-b), e escrever composição, designações (TM2-a) e curvas (TM4-d) pela
+API e pela ficha, com auditoria e a permissão certa.
+
+### Composição como critério de um estágio `limit` (TM2-b)
+
+- **Dois operadores novos**, `composition` e `not_composition`, no mesmo estágio
+  `limit` e na mesma árvore AND/OR (M6). A condição vai em `text`, **na sintaxe da
+  busca** (`Cr>=12`, `C<=0,08`, `Ni:8-10`, `Fe`) e é lida pelo mesmo
+  `parse_condition`: estudo e busca não podem discordar do que a condição quer
+  dizer. Sem coluna nova e sem migração (o estudo salvo guarda operador + texto).
+- **A regra não foi reescrita.** O veredito vem de `app.domain.composition.evaluate`
+  (alcance da faixa, três valores). `composition` passa só o verdadeiro;
+  `not_composition` passa só o **falso decidido** — é a garantia, o que
+  `NOT comp:Cr<12` significa na busca. O indeterminado (sem composição, elemento
+  não declarado, declarado ausente, resto comparado com número) **não passa em
+  nenhum dos dois**: a negação não libera a ausência (D-59/D-105).
+- **Por que dois operadores e não um `NOT` genérico.** A árvore de restrições não
+  tem negação; abrir uma só para composição criaria um construtor que o resto do
+  motor não conhece. O par espelha o par `in_class`/`not_in_class`.
+- **Funil e laudo.** O passo do funil leva o rótulo com a regra ("alcance da faixa"
+  ou "garantia") e `undetermined`, a contagem dos candidatos que o passo não
+  conseguiu decidir por falta de dado. A planilha "Restrições e funil" (e o laudo
+  HTML) imprime `RULE_TEXT` e uma nota por passo ("N candidato(s) sem o dado de
+  composição … não passam"). Geometria e ranking não mudam: o estágio só estreita
+  o conjunto.
+- **Só no universo de materiais.** Num estudo de processos é 400. Os snapshots
+  recebem a composição por leitura única, preguiçosa (só quem usa o critério paga),
+  já filtrada por visibilidade (D-62).
+
+### Escrever composição, designações e curvas (TM2-a, TM4-d)
+
+- **Rotas.** `PUT /api/materials/{id}/composicao`, `PUT …/designacoes`, `POST`,
+  `PUT` e `DELETE …/curvas[/{curva}]` e `GET /api/materials/curvas-tipos` (o
+  vocabulário do formulário, lido da tabela do próprio construtor). Cada `PUT`
+  **substitui o conjunto inteiro**, como `PUT …/values`: o que não vem sai, e uma
+  lista vazia de composição é "sem composição cadastrada" (nunca 0 %).
+- **Mesmos construtores do seed e do importador.** `build_composition_entry` /
+  `validate_composition` e `build_curve`: resto e ausente sem número, nada de
+  `100 − Σ`, unidade só por `units.py`, x crescente, faixa que contém a linha.
+  Tudo é validado **antes** de apagar qualquer coisa — recusa (400) não toca no
+  que está gravado. A fonte é obrigatória em cada linha/curva (422 sem ela); a
+  qualidade padrão é `ESTIMADO`, como nos valores de propriedade.
+- **Permissão: a do material, num lugar só** (`services/record_permissions.py`).
+  Material de outro usuário é 404 (visibilidade, D-62); registro próprio é do dono;
+  no catálogo compartilhado só o curador (403 em acesso aberto sem assinatura,
+  D-83) — a checagem é no serviço, e não por `require_catalog_curator` na rota,
+  porque a mesma rota atende o dono de um registro próprio, a quem a dependência
+  de rota recusaria; o efeito sobre o compartilhado é o mesmo da rota `PATCH`
+  existente. **Material ou curva do catálogo oficial (D-102) é 409**: um registro
+  com `CatalogRecordRef` (`is_official` na ficha) e uma curva com identidade de
+  dataset não se editam à mão, ou a próxima carga leria "curva alterada" e
+  recusaria (D-102), e a edição poria na ficha uma afirmação que a fonte nunca fez.
+- **Auditoria** (M2) como `ATUALIZADO` do material, com o diff por elemento
+  (`composição Cr`), por código (`designação UNS S30400`) e por curva
+  (`curva <título>`); uma escrita idêntica não gera evento.
+- **Ficha.** Botões "Editar composição", "Editar designações" e "Nova/Editar/
+  Excluir curva" só aparecem quando o servidor aceitaria a escrita. Os números
+  voltam ao formulário **como a fonte os escreveu** (`value_*`/`*_original`, na
+  unidade original), nunca o canônico. Os pontos da curva entram como texto, um por
+  linha (`x; y` ou `x; y; mín.; máx.`, vírgula decimal): só leitura do que foi
+  digitado; ordem, completude e conversão são do servidor.
+
+**Alternativas descartadas.** Um estágio novo `composition` (duplicaria a árvore de
+restrições e o funil); coluna `composition_condition` no `SelectionConstraint`
+(migração para um texto que já cabe em `text`); reescrever a regra de alcance em
+outro lugar; `PATCH` linha a linha da composição (dois jeitos de deixar o resto
+duplicado e de apagar sem querer); permitir editar o oficial "porque o curador
+pode" (TM7-b já registra o problema para os valores).
+
+**Revisão humana sugerida.** (1) `not_composition` como garantia, e não um
+"complemento" simples, é a leitura do D-105 para `NOT`; se o autor preferir só o
+operador de alcance, basta tirá-lo de `_COMPOSITION_OPS`. (2) A qualidade padrão
+`ESTIMADO` para o que se digita à mão segue os valores de propriedade; o curador
+muda no formulário de valores, mas **os formulários novos ainda não expõem a
+qualidade** (resíduo TM2-f). (3) Substituir o conjunto inteiro apaga linhas que
+outra pessoa tenha acabado de acrescentar (último a gravar vence, como em
+`PUT …/values`).
+
+## D-110 — Curvas: uma lista de grandezas, unidade do parâmetro à escolha do leitor e leitura de valor só no ponto declarado
+
+**Contexto.** Três resíduos do TM4 (D-106): a lista de grandezas de eixo estava
+duplicada entre o domínio e o `CHECK` da migração (TM4-f); o parâmetro da
+família saía só na convenção da grandeza (TM4-e); e "o valor a 20 °C" de uma
+curva não tinha regra (TM4-b), com o risco de virar uma propriedade escalar
+inventada.
+
+**Decisão.**
+
+1. **Fonte única (TM4-f).** `app/domain/curve_quantities.py::QUANTITIES` é a
+   única lista; o modelo monta o `CHECK` dela. A migração `0925e0787863` é texto
+   congelado e continua assim — não houve migração nova, porque a lista coincide.
+   `test_curve_quantities_schema.py` roda as migrações até `head` em SQLite e
+   falha, com a receita na mensagem, se os três `CHECK`s (x, y, parâmetro) do
+   banco migrado divergirem do domínio ou do modelo. Acrescentar uma grandeza
+   exige, portanto, uma migração que recrie os `CHECK`s.
+2. **Unidade do parâmetro (TM4-e).** `?unidade_parametro=` em
+   `GET /materials/{id}/curvas/{curva}`; a conversão é só por `reading_for`
+   (units.py), unidade fora da lista da grandeza é 400 com as admitidas, e pedir
+   unidade numa curva sem família é 400. O que a fonte escreveu
+   (`parameter_original`) não muda. A resposta traz `canonical_unit` e
+   `accepted_units` do parâmetro; a ficha ganha um seletor rotulado ("Unidade do
+   parâmetro da família (Temperatura)"), guardado na URL (`curva_param`), e a
+   legenda das séries usa a unidade escolhida. A rota passou para
+   `routers/curves.py`, registrada antes da de `materials.py` (mesmo caminho).
+   A exportação CSV/XLSX segue na convenção: o cabeçalho do arquivo declara a
+   unidade.
+3. **Valor numa curva (TM4-b).** Regra conservadora, em docs/18 §6: só o ponto
+   declarado exatamente no x pedido, após conversão por units.py; nunca
+   interpolação, extrapolação nem vizinho mais próximo; sem ponto, ausência
+   escrita. `GET .../curvas/{curva}/valor?em=&unidade_em=`. O resultado carrega
+   a referência ao dado original e não vira propriedade escalar nem entra em
+   ranking.
+
+**Alternativa recusada.** Interpolar linearmente entre pontos vizinhos: o
+formato da curva entre dois pontos é uma afirmação que a fonte não fez
+(princípio 1). Se um dia houver método declarado por tipo de curva, é decisão
+nova.
+
+**Resíduos.** Tela para a leitura de valor (hoje só API); parâmetro na
+exportação.
+
+## D-109 — O diff entre releases passa a cobrir processos, modais, composição e curvas; `is_active`, faixa de um lado só e grafia de unidade deixam de ser casos soltos
+
+**Data:** 08/10/2026
+**Status:** aceita (Sessão 64, resíduos TM7-c/e/f/g do [D-108](DECISIONS.md))
+
+**O que mudou no desenho.** O `RecordSnapshot` ganhou `universe` (`material`,
+`processo`, `modal`), `record_id` (o id na tabela do próprio registro; o
+`material_id` da API só vem preenchido para material) e, para material,
+`composition` e `curves`. A identidade continua `(tabela externa, id externo)`
+— `catalog_record_ref` já guarda os três universos —, e um registro que muda de
+universo entre as releases é recusado (400), não casado.
+
+**Regras (todas no `release_diff.py`, puro):**
+
+1. **Atributo de processo** é comparado como propriedade de material (mesmo
+   `compare_values`, no canônico). O conjunto de **rótulos** de um atributo
+   discreto é um estado novo (`rotulos`) e é comparado como conjunto: ordem
+   diferente não é mudança; conjunto diferente é `valor`; rótulos ↔ número é
+   `forma`; rótulos ↔ ausência é `ausencia`. Campo `atributo:<slug>`.
+2. **Composição** é comparada por elemento, em % de massa (o normalizado — a
+   unidade da fonte, `wt%`, não é unidade do Pint). Elemento que aparece ou
+   some é `ausencia`. **O resto (balanço) nunca vira número**: balanço dos dois
+   lados não é mudança; balanço ↔ faixa sai como texto (`forma`), sem inventar o
+   valor do balanço. Campo `composicao:<elemento>`.
+3. **Curva** é casada pelo id externo dentro do material. Título, descrição,
+   rótulos dos eixos, tipo e grandezas/unidades dos eixos são `texto`; a curva
+   que só existe de um lado é `ausencia`; séries e pontos (casados por posição,
+   comparados nos números **normalizados**) são `valor`, com a contagem de
+   pontos diferentes; os mesmos pontos físicos digitados em outra unidade são
+   `escrita_da_fonte`; só rótulo/condição de série diferente é `metadado`. Um
+   limite `y_min`/`y_max` de um lado só conta como ponto diferente.
+4. **Modal** entra com nome, descrição, ativo e as duas intensidades (MJ/(t·km)
+   e kg CO₂/(t·km), como gravadas). Como o importador **reaproveita a linha do
+   modal pelo slug**, entre duas releases só a presença difere hoje; os valores
+   já são lidos para o dia em que o modal for gravado por release (TM7-a).
+5. **TM7-e:** `is_active` diferente é mudança de `metadado` (campo `ativo`);
+   o registro deixa de sair "inalterado".
+6. **TM7-f:** numa faixa, um número (representativo, mínimo, máximo ou típico)
+   que existe de um lado só é mudança de `forma` — checada **antes** de comparar
+   valores, para que nunca se compare número com vazio e nunca apareça uma
+   "mudança de valor" que ninguém mediu.
+7. **TM7-g:** a grafia da unidade (`kg/m^3` × `kg/m³`) continua sendo
+   `escrita_da_fonte` — o registro muda de bytes e a rastreabilidade (princípio
+   4) quer isso dito —, mas a regra e a tela agora o explicam. Propriedade sem
+   definição é `ValidationError` (400), não `ValueError` (500).
+
+**Contrato (aditivo).** `GET …/diff/…` aceita `universo=material|processo|modal`
+(outro valor → 400) e devolve `universes` (contagem sobre o diff inteiro, zero
+incluído); cada item traz `universe` e `universe_label`; o lado do registro
+traz `record_id`/`universe` (e `material_id` só para material); o lado de um
+valor traz `labels`. O filtro `classe` aceita também classe de processo e o
+slug `modal-de-transporte`. O CSV/XLSX ganha a coluna "Universo" em
+Registros e o filtro `universo`.
+
+**Alternativas descartadas.** Uma tabela de diff por universo (o contrato do
+D-108 é uma lista só, ordenada e paginada); comparar composição na unidade
+original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
+"inalterado" (esconderia uma mudança na linha gravada).
+
+**Resíduos.** Designações, valores suplementares e valores do dataset ainda não
+entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
+adicionado: composição e curvas somam consultas por release.

@@ -15,6 +15,9 @@ $
 $ Material: Liga Ficticia CAE-1 (demonstracao) (id 901; classe Metais)
 $ MATERIAL FICTICIO: dado de demonstracao, valores inventados para ensino. Nao
 $ usar em projeto real.
+$ Designacoes: sem designacao cadastrada
+$ Composicao quimica (% em massa): sem composicao cadastrada
+$ Composicao e designacoes sao informativas: nenhum campo do cartao as le.
 $ Sistema de unidades: SI mm-t-s (mm, t, s, N, MPa, K)
 $ Unidades base: comprimento mm, massa t (tonelada), tempo s, forca N, tensao
 $ MPa, temperatura K
@@ -31,11 +34,13 @@ $ coeficiente de Poisson [PR] = 0.3 adimensional; qualidade: ESTIMADO; fonte:
 $ Fonte ficticia de teste CAE (FICTICIA, demonstracao); licenca: Dado ficticio
 $ de demonstracao
 $ coeficiente de expansao termica: cadastrado, mas fora deste cartao (fora do
-$ *MAT_ELASTIC; pertence a um material termico, nao exportado)
+$ *MAT_ELASTIC; pertence a um material termico, nao exportado (formato
+$ lsdyna-thermal))
 $ condutividade termica: cadastrado, mas fora deste cartao (fora do
-$ *MAT_ELASTIC; pertence a um material termico, nao exportado)
+$ *MAT_ELASTIC; pertence a um material termico, nao exportado (formato
+$ lsdyna-thermal))
 $ calor especifico: cadastrado, mas fora deste cartao (fora do *MAT_ELASTIC;
-$ pertence a um material termico, nao exportado)
+$ pertence a um material termico, nao exportado (formato lsdyna-thermal))
 $
 $ MID = 1: troque se o numero ja estiver em uso no seu modelo.
 $ DA e DB (amortecimento) em branco: parametros do modelo.
