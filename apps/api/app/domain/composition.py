@@ -17,6 +17,14 @@ Three rules the rest of the system relies on, all enforced here:
    and the response counts it.
 3. **A range is read by reach.** See ``admitted_interval`` and ``evaluate``.
 
+A material may hold more than one composition, one per **condition** the
+source states it for — "fundido", "laminado" (TM2-c, D-117). ``condition_label``
+``None`` is "no condition stated", a composition of its own. A search that
+names no condition reads every composition of the material and joins their
+verdicts by Kleene ``OR`` (``evaluate_material``): reach over every product
+the material is sold as, so ``NOT comp:Cr<12`` still is the guarantee — in
+every condition.
+
 Everything here is pure: no session, no SQL. The repository asks this module
 for a verdict per material and compiles only the answer.
 """
@@ -26,7 +34,8 @@ from __future__ import annotations
 import enum
 import math
 import re
-from collections.abc import Iterable
+import unicodedata
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from app.calculations.units import UnitError, to_canonical
@@ -78,6 +87,8 @@ class NormalizedComposition:
     element: str
     is_balance: bool = False
     is_missing: bool = False
+    #: The condition the source states this row for (TM2-c); ``None`` = none.
+    condition_label: str | None = None
     value_min: float | None = None
     value_max: float | None = None
     value_nominal: float | None = None
@@ -87,6 +98,42 @@ class NormalizedComposition:
     normalized_nominal: float | None = None
     canonical_unit: str | None = None
     conversion_method: str | None = None
+
+
+#: Longest condition label a row may carry (also the column's ``CHECK``).
+CONDITION_LABEL_MAX = 60
+
+
+def normalize_condition_label(raw: str | None) -> str | None:
+    """The condition as stored: trimmed, inner whitespace collapsed; blank is ``None``.
+
+    Case and accents are kept as the source wrote them ("Laminado a quente");
+    two labels that differ only in them are the same condition, which
+    ``condition_key`` decides and ``validate_composition`` enforces.
+    """
+    if raw is None:
+        return None
+    label = " ".join(raw.split())
+    if not label:
+        return None
+    if len(label) > CONDITION_LABEL_MAX:
+        raise CompositionError(
+            f"Condição '{label[:20]}…' passa de {CONDITION_LABEL_MAX} caracteres."
+        )
+    if "@" in label or '"' in label:
+        raise CompositionError(
+            f"Condição '{label}' não pode conter '@' nem aspas: são a sintaxe da busca "
+            "(comp:Cr>=12@laminado)."
+        )
+    return label
+
+
+def condition_key(label: str | None) -> str | None:
+    """How two condition labels are compared: case- and accent-insensitive."""
+    if label is None:
+        return None
+    decomposed = unicodedata.normalize("NFKD", " ".join(label.split()).casefold())
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
 
 def _convert(value: float, unit: str) -> tuple[float, str]:
@@ -111,14 +158,17 @@ def build_composition_entry(
     unit: str | None = None,
     is_balance: bool = False,
     is_missing: bool = False,
+    condition_label: str | None = None,
 ) -> NormalizedComposition:
     """Validate one row and convert its numbers to mass percent.
 
     Raises ``CompositionError`` for an unknown element, a balance or absent row
     that carries a number, a numeric row with no number, an inverted range, a
-    nominal outside its range, or a value outside 0–100 %.
+    nominal outside its range, a value outside 0–100 %, or a condition label
+    that is too long or uses the search syntax.
     """
     symbol = resolve_element(element).symbol
+    condition = normalize_condition_label(condition_label)
     numbers = (value_min, value_max, value_nominal)
     if is_balance and is_missing:
         raise CompositionError(
@@ -131,7 +181,12 @@ def build_composition_entry(
                 f"{symbol}: um elemento declarado {state} não carrega número — "
                 "o resto nunca é calculado e a ausência nunca vira zero."
             )
-        return NormalizedComposition(element=symbol, is_balance=is_balance, is_missing=is_missing)
+        return NormalizedComposition(
+            element=symbol,
+            is_balance=is_balance,
+            is_missing=is_missing,
+            condition_label=condition,
+        )
 
     if all(n is None for n in numbers):
         raise CompositionError(
@@ -165,6 +220,7 @@ def build_composition_entry(
 
     return NormalizedComposition(
         element=symbol,
+        condition_label=condition,
         value_min=value_min,
         value_max=value_max,
         value_nominal=value_nominal,
@@ -180,26 +236,58 @@ def build_composition_entry(
 def validate_composition(entries: Iterable[NormalizedComposition]) -> None:
     """Rules over a material's whole composition, not over one row.
 
-    One row per element (two would make a search depend on row order), at most
-    one balance (two "the rest" are a contradiction), and the declared minima
+    Each condition (TM2-c) is a composition of its own, and within one: one row
+    per element (two would make a search depend on row order), at most one
+    balance (two "the rest" are a contradiction), and the declared minima
     cannot add up past 100 % — a specification no heat could meet. The last is
     a consistency check on what was written, not a balance computation: nothing
-    is stored from it.
+    is stored from it. Two labels that differ only in case or accents are one
+    condition written twice, and are refused rather than kept apart.
     """
-    seen: set[str] = set()
-    balances = 0
-    minima = 0.0
+    seen: set[tuple[str | None, str]] = set()
+    spelling: dict[str | None, str | None] = {}
+    balances: dict[str | None, int] = {}
+    minima: dict[str | None, float] = {}
     for entry in entries:
-        if entry.element in seen:
-            raise CompositionError(f"{entry.element} aparece mais de uma vez na composição.")
-        seen.add(entry.element)
-        balances += int(entry.is_balance)
+        key = condition_key(entry.condition_label)
+        written = spelling.setdefault(key, entry.condition_label)
+        if written != entry.condition_label:
+            raise CompositionError(
+                f"As condições '{written}' e '{entry.condition_label}' diferem só na "
+                "grafia: escreva a mesma condição do mesmo jeito."
+            )
+        where = _in_condition(entry.condition_label)
+        if (key, entry.element) in seen:
+            raise CompositionError(f"{entry.element} aparece mais de uma vez na composição{where}.")
+        seen.add((key, entry.element))
+        balances[key] = balances.get(key, 0) + int(entry.is_balance)
         if entry.normalized_min is not None:
-            minima += entry.normalized_min
-    if balances > 1:
-        raise CompositionError("Só um elemento pode ser declarado como resto.")
-    if minima > 100.0 + 1e-9:
-        raise CompositionError("Os teores mínimos declarados somam mais de 100 %.")
+            minima[key] = minima.get(key, 0.0) + entry.normalized_min
+    for key, count in balances.items():
+        if count > 1:
+            raise CompositionError(
+                f"Só um elemento pode ser declarado como resto{_in_condition(spelling[key])}."
+            )
+    for key, total in minima.items():
+        if total > 100.0 + 1e-9:
+            raise CompositionError(
+                "Os teores mínimos declarados somam mais de 100 %"
+                f"{_in_condition(spelling[key])}."
+            )
+
+
+def condition_order(labels: Iterable[str | None]) -> list[str | None]:
+    """The conditions of a material in reading order: no condition first, then
+    each label in the order it first appears (the source's order, by position)."""
+    seen: list[str | None] = []
+    for label in labels:
+        if label not in seen:
+            seen.append(label)
+    return sorted(seen, key=lambda label: label is not None)
+
+
+def _in_condition(label: str | None) -> str:
+    return "" if label is None else f" na condição '{label}'"
 
 
 # --- search -------------------------------------------------------------------
@@ -223,15 +311,24 @@ class CompositionCondition:
 
     ``low``/``high`` hold the number(s) the reader typed, in mass percent:
     ``low`` for ``>=``/``>``/``=``, ``high`` for ``<=``/``<``, both for a range.
+    ``condition_label`` is the material condition after ``@`` (TM2-c), or
+    ``None`` to read every condition the material has.
     """
 
     element: str
     comparison: Comparison
     low: float | None = None
     high: float | None = None
+    condition_label: str | None = None
 
     def label(self) -> str:
         """The condition in words, as the response and the screen state it."""
+        text = self._content_label()
+        if self.condition_label is None:
+            return text
+        return f"{text} (condição: {self.condition_label})"
+
+    def _content_label(self) -> str:
         symbol = self.element
         if self.comparison is Comparison.CONTAINS:
             return f"contém {symbol}"
@@ -285,16 +382,32 @@ def parse_condition(text: str) -> CompositionCondition:
 
     The number is mass percent; a trailing ``%`` is accepted and changes
     nothing. A decimal comma is accepted, as everywhere a reader types a number
-    in this application (D-30).
+    in this application (D-30). An optional ``@condição`` at the end narrows the
+    question to the composition the source states for that condition (TM2-c):
+    ``Cr>=12@laminado``; a label with spaces goes in quotes,
+    ``comp:"Cr>=12@laminado a quente"``. Without it, every condition is read.
     """
-    raw = text.strip()
+    raw, at, condition_text = text.strip().partition("@")
+    raw = raw.strip()
+    condition_label: str | None = None
+    if at:
+        condition_label = normalize_condition_label(condition_text)
+        if condition_label is None:
+            raise CompositionError(
+                "Depois de '@' vem o nome da condição — por exemplo, comp:Cr>=12@laminado."
+            )
     if not raw:
         raise CompositionError("'comp:' precisa de um elemento — por exemplo, comp:Cr>=12.")
+    return _parse_content(raw, condition_label)
+
+
+def _parse_content(raw: str, condition_label: str | None) -> CompositionCondition:
     match = _CONDITION.match(raw)
     if match is None:
         raise CompositionError(
             f"Não entendi a condição de composição '{raw}'. Use comp:Cr (contém), "
-            "comp:Cr>=12, comp:C<=0,08 ou comp:Ni:8-10 (faixa), sem espaços."
+            "comp:Cr>=12, comp:C<=0,08 ou comp:Ni:8-10 (faixa), sem espaços; a condição "
+            "do material vem no fim, depois de '@' (comp:Cr>=12@laminado)."
         )
     symbol = resolve_element(match.group("element")).symbol
     if match.group("op"):
@@ -302,8 +415,10 @@ def parse_condition(text: str) -> CompositionCondition:
         _check_percent(value)
         comparison = _OPERATORS[match.group("op")]
         if comparison in (Comparison.LE, Comparison.LT):
-            return CompositionCondition(symbol, comparison, high=value)
-        return CompositionCondition(symbol, comparison, low=value)
+            return CompositionCondition(
+                symbol, comparison, high=value, condition_label=condition_label
+            )
+        return CompositionCondition(symbol, comparison, low=value, condition_label=condition_label)
     if match.group("low"):
         low, high = _number(match.group("low")), _number(match.group("high"))
         _check_percent(low)
@@ -312,8 +427,10 @@ def parse_condition(text: str) -> CompositionCondition:
             raise CompositionError(
                 f"Faixa invertida em '{raw}': o primeiro número tem de ser o menor."
             )
-        return CompositionCondition(symbol, Comparison.BETWEEN, low=low, high=high)
-    return CompositionCondition(symbol, Comparison.CONTAINS)
+        return CompositionCondition(
+            symbol, Comparison.BETWEEN, low=low, high=high, condition_label=condition_label
+        )
+    return CompositionCondition(symbol, Comparison.CONTAINS, condition_label=condition_label)
 
 
 def _check_percent(value: float) -> None:
@@ -325,6 +442,8 @@ class UndeterminedReason(str, enum.Enum):
     """Why a condition could not be decided for a material — each one a sentence."""
 
     SEM_COMPOSICAO = "sem_composicao"
+    #: The material has a composition, but not for the condition asked (TM2-c).
+    SEM_COMPOSICAO_NA_CONDICAO = "sem_composicao_na_condicao"
     ELEMENTO_NAO_DECLARADO = "elemento_nao_declarado"
     DECLARADO_AUSENTE = "declarado_ausente"
     RESTO_SEM_NUMERO = "resto_sem_numero"
@@ -434,6 +553,52 @@ def evaluate(
     raise AssertionError(condition.comparison)  # pragma: no cover
 
 
+#: A material's declared compositions: condition label (``None`` = no condition
+#: stated) → element symbol → the stored row. Empty or ``None`` is "no
+#: composition registered".
+MaterialComposition = Mapping[str | None, Mapping[str, EntryFacts]]
+
+
+def evaluate_material(
+    condition: CompositionCondition, composition: MaterialComposition | None
+) -> Verdict:
+    """The verdict for one material, over the composition(s) the condition reads.
+
+    With ``@condição`` only that composition is read (labels compared by
+    ``condition_key``); a material with compositions but none for that condition
+    is *undetermined* — its composition there was never stated. Without it,
+    every composition is read and the verdicts join by Kleene ``OR`` in a fixed
+    order (no condition first, then by label): true if any condition satisfies
+    the reach, false only if every one decides false, undetermined otherwise,
+    with the first undetermined reason. A material with a single composition
+    reads exactly as before TM2-c.
+    """
+    if not composition:
+        return Verdict(None, UndeterminedReason.SEM_COMPOSICAO)
+    if condition.condition_label is not None:
+        wanted = condition_key(condition.condition_label)
+        for label, entries in composition.items():
+            if condition_key(label) == wanted:
+                return evaluate(condition, entries.get(condition.element), has_composition=True)
+        return Verdict(None, UndeterminedReason.SEM_COMPOSICAO_NA_CONDICAO)
+
+    undetermined: Verdict | None = None
+    decided_false = False
+    for label in sorted(composition, key=lambda c: (c is not None, condition_key(c) or "")):
+        verdict = evaluate(
+            condition, composition[label].get(condition.element), has_composition=True
+        )
+        if verdict.value is True:
+            return verdict
+        if verdict.value is None and undetermined is None:
+            undetermined = verdict
+        decided_false = decided_false or verdict.value is False
+    if undetermined is not None:
+        return undetermined
+    assert decided_false
+    return Verdict(False)
+
+
 #: The rule, in the words the response and the screen use. One string, so the
 #: documents and the catalogue cannot describe two different rules.
 RULE_TEXT = (
@@ -441,5 +606,7 @@ RULE_TEXT = (
     "declarado chega a 12 %. Faixa só com máximo começa em 0 %; só com mínimo vai até "
     "100 %. Para exigir que toda a faixa atenda, negue o complemento: NOT comp:Cr<12. "
     "Sem o dado — sem composição cadastrada, elemento não declarado, declarado ausente "
-    "ou declarado como resto, que nunca é calculado — o material não passa, nem sob NOT."
+    "ou declarado como resto, que nunca é calculado — o material não passa, nem sob NOT. "
+    "Composição por condição (comp:Cr>=12@laminado) lê só aquela condição; sem '@', "
+    "basta uma condição atender, e NOT exige todas."
 )

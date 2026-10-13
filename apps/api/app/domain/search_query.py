@@ -20,7 +20,9 @@ Grammar, loosest to tightest::
     FIELD      := name ":" ( WORD | PHRASE )   # comp:, norma:, designacao: (D-105)
 
 A field atom asks a structured question instead of matching text: ``comp:Cr>=12``
-(chemical composition, read by reach — ``app.domain.composition``),
+(chemical composition, read by reach — ``app.domain.composition``; an optional
+``@condição`` narrows it to one material condition, ``comp:Cr>=12@laminado``,
+TM2-c),
 ``norma:UNS`` (has a designation in that system) and ``designacao:S30400`` (has
 that code). They combine with ``AND``/``OR``/``NOT`` and parentheses like any
 other atom. A word whose prefix before ``:`` is made of letters but names no
@@ -272,9 +274,12 @@ def _field_atom(field: str, value: str, *, quoted: bool) -> Atom:
     """Build the atom one ``field:value`` names, turning domain errors into query errors."""
     try:
         if field == "comp":
-            if quoted:
+            # Quotes are only for a material condition with spaces (TM2-c):
+            # comp:"Cr>=12@laminado a quente". The condition itself never needs them.
+            if quoted and "@" not in value:
                 raise SearchQueryError(
-                    "Uma condição de composição não vai entre aspas: escreva comp:Cr>=12."
+                    "Uma condição de composição não vai entre aspas: escreva comp:Cr>=12. "
+                    'Aspas só para a condição do material com espaços: comp:"Cr>=12@laminado a quente".'
                 )
             return CompositionAtom(parse_condition(value))
         if field == "norma":

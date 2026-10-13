@@ -13,6 +13,8 @@ Rules carried from D-105:
 * A bound the source did not write is not written either: ``C <= 0.08`` has no
   minimum, and that is not 0.
 * A row the source declared absent says so.
+* A row with no condition (TM2-c, D-117) says "sem condição declarada" in the
+  condition column — written, never a blank cell.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ NO_COMPOSITION = "sem composição cadastrada"
 NO_DESIGNATION = "sem designação cadastrada"
 BALANCE_TEXT = "resto (declarado pela fonte, não calculado)"
 ABSENT_TEXT = "ausente (declarado pela fonte)"
+NO_CONDITION = "sem condição declarada"
 LE = "≤"
 GE = "≥"
 
@@ -45,6 +48,8 @@ class CompositionLine:
     source_label: str
     citation: str | None = None
     is_demo: bool = False
+    #: The condition the source states the row for (TM2-c); ``None`` = none.
+    condition_label: str | None = None
 
 
 @dataclass(frozen=True)
@@ -84,7 +89,9 @@ def composition_summary(lines: Sequence[CompositionLine], *, ascii_only: bool = 
     if not lines:
         return NO_COMPOSITION
     return "; ".join(
-        f"{line.element} {content_text(line, ascii_only=ascii_only)}" for line in lines
+        f"{line.element} {content_text(line, ascii_only=ascii_only)}"
+        + (f" [{line.condition_label}]" if line.condition_label else "")
+        for line in lines
     )
 
 
@@ -105,13 +112,14 @@ def composition_sheet(
     rows: list[list[object]] = []
     for name, lines in items:
         if not lines:
-            rows.append([name, "—", NO_COMPOSITION, "—", "—", "—", "—"])
+            rows.append([name, "—", "—", NO_COMPOSITION, "—", "—", "—", "—"])
             continue
         for line in lines:
             rows.append(
                 [
                     name,
                     line.element,
+                    line.condition_label or NO_CONDITION,
                     content_text(line),
                     line.data_quality,
                     line.source_label + (" (demonstrativa)" if line.is_demo else ""),
@@ -124,6 +132,7 @@ def composition_sheet(
         header=[
             "Material",
             "Elemento",
+            "Condição",
             "Teor (% em massa)",
             "Qualidade do dado",
             "Fonte",
@@ -135,7 +144,9 @@ def composition_sheet(
             "Teor em % em massa, como a fonte o declarou (faixa, limite, nominal). "
             "'resto' é declarado pela fonte, nunca calculado como 100 menos a soma. "
             "Elemento que a composição não lista é desconhecido, não 0 %. "
-            "Material sem composição aparece como 'sem composição cadastrada'."
+            "Material sem composição aparece como 'sem composição cadastrada'. "
+            "Cada condição (fundido, laminado…) é uma composição própria; "
+            "'sem condição declarada' é a composição que a fonte não atrelou a condição."
         ],
     )
 

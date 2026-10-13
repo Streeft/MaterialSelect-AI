@@ -52,11 +52,14 @@ class SelectionRepository:
         )
         return list(self.db.execute(stmt).scalars().unique().all())
 
-    def composition_facts_by_material(self) -> dict[int, dict[str, EntryFacts]]:
+    def composition_facts_by_material(
+        self,
+    ) -> dict[int, dict[str | None, dict[str, EntryFacts]]]:
         """Declared composition of every **visible**, active material (TM2-b).
 
-        Canonical numbers only, as ``app.domain.composition.evaluate`` reads
-        them. A material with no row is simply absent from the result — the
+        Per condition (TM2-c, ``None`` = no condition stated), then per element.
+        Canonical numbers only, as ``app.domain.composition.evaluate_material``
+        reads them. A material with no row is simply absent from the result — the
         caller reads that as "no composition registered", never as zero. Rows of
         materials the viewer cannot see are never selected (D-62).
         """
@@ -68,6 +71,7 @@ class SelectionRepository:
         rows = self.db.execute(
             select(
                 MaterialCompositionEntry.material_id,
+                MaterialCompositionEntry.condition_label,
                 MaterialCompositionEntry.element,
                 MaterialCompositionEntry.is_balance,
                 MaterialCompositionEntry.is_missing,
@@ -76,9 +80,9 @@ class SelectionRepository:
                 MaterialCompositionEntry.normalized_nominal,
             ).where(MaterialCompositionEntry.material_id.in_(visible))
         ).all()
-        facts: dict[int, dict[str, EntryFacts]] = {}
-        for material_id, element, is_balance, is_missing, low, high, nominal in rows:
-            facts.setdefault(material_id, {})[element] = EntryFacts(
+        facts: dict[int, dict[str | None, dict[str, EntryFacts]]] = {}
+        for material_id, label, element, is_balance, is_missing, low, high, nominal in rows:
+            facts.setdefault(material_id, {}).setdefault(label, {})[element] = EntryFacts(
                 is_balance=is_balance,
                 is_missing=is_missing,
                 normalized_min=low,

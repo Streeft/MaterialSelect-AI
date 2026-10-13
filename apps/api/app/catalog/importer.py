@@ -973,7 +973,11 @@ class OfficialCatalogImporter:
             self._bump("designations_created")
 
     def _import_compositions(self) -> None:
-        """D-105. One row per (material, element); a row already there is kept."""
+        """D-105. One row per (material, element); a row already there is kept.
+
+        The bundle contract has no condition (TM2-c): every official row is "no
+        condition stated", so only those are compared.
+        """
         assert self.source is not None
         for position, row in enumerate(self.bundle.iter_records("material_compositions.ndjson")):
             material = self.materials[str(row["material_external_id"])]
@@ -982,6 +986,7 @@ class OfficialCatalogImporter:
                 select(MaterialCompositionEntry.id).where(
                     MaterialCompositionEntry.material_id == material.id,
                     MaterialCompositionEntry.element == entry.element,
+                    MaterialCompositionEntry.condition_label.is_(None),
                 )
             ).scalar_one_or_none()
             if exists is not None:

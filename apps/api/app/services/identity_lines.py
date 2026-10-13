@@ -28,6 +28,7 @@ def composition_lines(material: Material) -> list[CompositionLine]:
                 citation=entry.citation,
                 # A demo source makes the row fictitious too (D-104 rule).
                 is_demo=entry.is_demo or entry.source.is_demo,
+                condition_label=entry.condition_label,
             )
         )
     return lines
