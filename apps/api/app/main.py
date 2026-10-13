@@ -44,6 +44,7 @@ from app.routers import (
     curves,
     dashboard,
     eco,
+    equivalences,
     exports,
     health,
     imports,
@@ -273,6 +274,11 @@ app.include_router(
 # catalogue, so no route here needs `require_catalog_curator`.
 app.include_router(
     notebooks.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# Equivalência declarada entre designações (D-115): leitura para logados,
+# escrita só do curador (`require_catalog_curator` no próprio router).
+app.include_router(
+    equivalences.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 
 
