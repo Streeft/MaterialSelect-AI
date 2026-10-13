@@ -25,7 +25,7 @@ import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { PropertyChart } from "@/components/PropertyChart";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
-import { CompositionTable } from "@/components/material/CompositionTable";
+import { CompositionByCondition } from "@/components/material/CompositionByCondition";
 import { DesignationTable } from "@/components/material/DesignationTable";
 import { EquivalenceSection } from "@/components/material/EquivalenceSection";
 import { MaterialCurves } from "@/components/material/MaterialCurves";
@@ -372,7 +372,11 @@ export default function MaterialDetailPage() {
                 />
               ) : (
                 <>
-                  <CompositionTable entries={data.composition} materialIsDemo={data.is_demo} />
+                  <CompositionByCondition
+                    entries={data.composition}
+                    atomic={data.atomic_composition}
+                    materialIsDemo={data.is_demo}
+                  />
                   {canEditIdentity && (
                     <Button
                       size="sm"

@@ -132,6 +132,9 @@ class CompositionEntryOut(BaseModel):
     element_name: str
     atomic_number: int
     state: CompositionState
+    #: The condition the source states this composition for (TM2-c, D-117);
+    #: ``None`` is "no condition stated". Rows sharing it form one composition.
+    condition_label: str | None = None
     value_min: float | None = None
     value_max: float | None = None
     value_nominal: float | None = None
@@ -160,6 +163,8 @@ class CompositionEntryIn(BaseModel):
 
     element: str = Field(min_length=1, max_length=3)
     state: CompositionState = "faixa"
+    #: TM2-c: blank or absent is "no condition stated" (D-117).
+    condition_label: str | None = Field(default=None, max_length=120)
     value_min: float | None = Field(default=None, allow_inf_nan=False)
     value_max: float | None = Field(default=None, allow_inf_nan=False)
     value_nominal: float | None = Field(default=None, allow_inf_nan=False)
@@ -171,9 +176,51 @@ class CompositionEntryIn(BaseModel):
 
 
 class CompositionReplaceIn(BaseModel):
-    """The whole composition of a material; what is not listed is removed."""
+    """The whole composition of a material, every condition; what is not listed is removed."""
 
-    entries: list[CompositionEntryIn] = Field(default_factory=list, max_length=118)
+    # 118 elements in up to four conditions; the per-condition rules are the
+    # domain's (``validate_composition``).
+    entries: list[CompositionEntryIn] = Field(default_factory=list, max_length=472)
+
+
+class AtomicEntryOut(BaseModel):
+    """One element's atomic percent, **derived** from the mass percent (D-117).
+
+    The interval the declared mass range reaches; ``atomic_min == atomic_max``
+    for a point. Never stored, never a property of the material.
+    """
+
+    element: str
+    atomic_min: float
+    atomic_max: float
+
+
+AtomicAbsentReasonCode = Literal[
+    "sem_composicao",
+    "resto_declarado",
+    "declarado_ausente",
+    "sem_massa_atomica",
+    "soma_incompleta",
+    "soma_acima_de_100",
+]
+
+
+class AtomicCompositionOut(BaseModel):
+    """The atomic percent of one composition (one condition), or why there is none.
+
+    ``label`` is always ``derivada``: a calculation over the whole composition
+    and the IUPAC standard atomic weights (``basis``), not data a source wrote.
+    When ``reason`` is set, ``entries`` is empty and ``message`` says why in
+    Portuguese — the atomic percent is then absent, never estimated nor
+    renormalized.
+    """
+
+    condition_label: str | None = None
+    label: str
+    basis: str
+    entries: list[AtomicEntryOut] = []
+    reason: AtomicAbsentReasonCode | None = None
+    message: str | None = None
 
 
 class DesignationIn(BaseModel):
@@ -249,12 +296,16 @@ class MaterialDetail(BaseModel):
     # registered", which the sheet writes out — never a 0 % composition.
     designations: list[DesignationOut] = []
     composition: list[CompositionEntryOut] = []
+    # TM2-c (D-117): one block per condition present in ``composition``, in the
+    # same order (no condition first) — the derived atomic percent or its absence.
+    atomic_composition: list[AtomicCompositionOut] = []
 
 
 class UndeterminedBreakdown(BaseModel):
     """Why a composition condition could not be decided, material by material."""
 
     sem_composicao: int = 0
+    sem_composicao_na_condicao: int = 0
     elemento_nao_declarado: int = 0
     declarado_ausente: int = 0
     resto_sem_numero: int = 0

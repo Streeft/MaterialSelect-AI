@@ -10,13 +10,16 @@ from collections.abc import Mapping
 
 from sqlalchemy.orm import Session
 
+from app.calculations.atomic_percent import DERIVED_LABEL, derive_atomic_percent
 from app.calculations.units import UnitError
 from app.domain.composition import (
     RULE_TEXT,
     CompositionError,
+    EntryFacts,
     NormalizedComposition,
     UndeterminedReason,
     build_composition_entry,
+    condition_order,
     validate_composition,
 )
 from app.domain.data_quality import (
@@ -44,6 +47,8 @@ from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_repository import MaterialRepository, SearchFacts
 from app.schemas.material import (
+    AtomicCompositionOut,
+    AtomicEntryOut,
     ChartData,
     ChartPoint,
     CompositionConditionOut,
@@ -129,6 +134,7 @@ def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryO
         element_name=element.name,
         atomic_number=element.number,
         state=state,
+        condition_label=entry.condition_label,
         value_min=entry.value_min,
         value_max=entry.value_max,
         value_nominal=entry.value_nominal,
@@ -144,6 +150,50 @@ def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryO
         citation=entry.citation,
         is_demo=entry.is_demo or entry.source.is_demo,
     )
+
+
+def _atomic_composition(
+    rows: list[MaterialCompositionEntry],
+) -> list[AtomicCompositionOut]:
+    """The derived atomic percent of each condition's composition (TM2-c, D-117).
+
+    Computed here, on every read, from the stored mass percent and the IUPAC
+    table — never stored: it is a calculation, and a stored copy could drift
+    from the composition it came from. An absent answer carries its reason.
+    """
+    blocks: list[AtomicCompositionOut] = []
+    for label in condition_order(r.condition_label for r in rows):
+        entries = [
+            (
+                r.element,
+                EntryFacts(
+                    is_balance=r.is_balance,
+                    is_missing=r.is_missing,
+                    normalized_min=r.normalized_min,
+                    normalized_max=r.normalized_max,
+                    normalized_nominal=r.normalized_nominal,
+                ),
+            )
+            for r in rows
+            if r.condition_label == label
+        ]
+        derived = derive_atomic_percent(entries)
+        blocks.append(
+            AtomicCompositionOut(
+                condition_label=label,
+                label=DERIVED_LABEL,
+                basis=derived.basis,
+                entries=[
+                    AtomicEntryOut(
+                        element=row.element, atomic_min=row.atomic_min, atomic_max=row.atomic_max
+                    )
+                    for row in derived.rows
+                ],
+                reason=derived.reason.value if derived.reason else None,
+                message=derived.message,
+            )
+        )
+    return blocks
 
 
 def _composition_report(facts: SearchFacts) -> CompositionSearchOut | None:
@@ -277,6 +327,7 @@ class MaterialService:
             processes=self.processes.processes_for_material(material.id),
             designations=[_designation_out(d) for d in material.designations],
             composition=[_composition_entry_out(e) for e in material.composition],
+            atomic_composition=_atomic_composition(list(material.composition)),
         )
 
     # --- write operations -------------------------------------------------
@@ -429,6 +480,7 @@ class MaterialService:
                             unit=entry_in.unit,
                             is_balance=entry_in.state == "resto",
                             is_missing=entry_in.state == "ausente",
+                            condition_label=entry_in.condition_label,
                         ),
                     )
                 )
@@ -449,6 +501,7 @@ class MaterialService:
                     material_id=material.id,
                     element=row.element,
                     position=position,
+                    condition_label=row.condition_label,
                     is_balance=row.is_balance,
                     is_missing=row.is_missing,
                     value_min=row.value_min,
@@ -564,7 +617,11 @@ class MaterialService:
 
     @classmethod
     def _composition_snapshot_rows(cls, rows) -> dict[str, str]:
-        return {f"composição {r.element}": cls._composition_repr(r) for r in rows}
+        return {
+            f"composição {r.element}"
+            + (f" ({r.condition_label})" if r.condition_label else ""): cls._composition_repr(r)
+            for r in rows
+        }
 
     @classmethod
     def _composition_snapshot(cls, material: Material) -> dict[str, str]:

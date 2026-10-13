@@ -36,8 +36,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from app.domain.composition import CompositionCondition, EntryFacts
-from app.domain.composition import evaluate as evaluate_composition
+from app.domain.composition import CompositionCondition, EntryFacts, evaluate_material
 
 
 class Operator(str, Enum):
@@ -189,12 +188,13 @@ class MaterialSnapshot(RecordSnapshot):
     #: simply has no process side to its join, which is what every snapshot
     #: built before P0-2 looks like.
     processes: list[ProcessReach] = field(default_factory=list)
-    #: The declared chemical composition (TM2-b, D-105), element symbol → what the
-    #: source said, in canonical mass percent. ``None`` means the material has **no
-    #: composition registered** — a different state from an empty dict, and neither
-    #: is "0 % of everything": an element missing from a registered composition is
-    #: not declared, so a condition over it is undetermined, never false.
-    composition: dict[str, EntryFacts] | None = None
+    #: The declared chemical composition (TM2-b, D-105): condition label (TM2-c,
+    #: ``None`` = no condition stated) → element symbol → what the source said, in
+    #: canonical mass percent. ``None`` (or empty) means the material has **no
+    #: composition registered**, which is not "0 % of everything": an element
+    #: missing from a registered composition is not declared, so a condition over
+    #: it is undetermined, never false.
+    composition: dict[str | None, dict[str, EntryFacts]] | None = None
 
 
 @dataclass
@@ -642,9 +642,7 @@ def composition_verdict(constraint: Constraint, record: RecordSnapshot):
     """
     condition = constraint.composition
     assert condition is not None
-    facts = getattr(record, "composition", None)
-    entry = None if facts is None else facts.get(condition.element)
-    return evaluate_composition(condition, entry, has_composition=facts is not None)
+    return evaluate_material(condition, getattr(record, "composition", None))
 
 
 def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> bool:

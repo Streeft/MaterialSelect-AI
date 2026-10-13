@@ -2359,7 +2359,8 @@ def _seed_demo_identity(
             for spec in specs
         ]
         validate_composition(built)
-        existing_elements = {e.element for e in material.composition}
+        # The demo composition has no condition (TM2-c): only those rows count.
+        existing_elements = {e.element for e in material.composition if e.condition_label is None}
         for position, entry in enumerate(built):
             if entry.element in existing_elements:
                 continue

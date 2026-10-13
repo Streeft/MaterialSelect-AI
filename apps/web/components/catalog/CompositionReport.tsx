@@ -32,7 +32,7 @@ export function CompositionReport({ report }: { report: CompositionSearchReport 
 
 function reasons(breakdown: UndeterminedBreakdown): string {
   return (Object.keys(t.compositionReasons) as (keyof UndeterminedBreakdown)[])
-    .filter((key) => breakdown[key] > 0)
-    .map((key) => `${breakdown[key]} ${t.compositionReasons[key]}`)
+    .filter((key) => (breakdown[key] ?? 0) > 0)
+    .map((key) => `${breakdown[key] ?? 0} ${t.compositionReasons[key]}`)
     .join("; ");
 }

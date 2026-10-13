@@ -233,7 +233,9 @@ class CatalogReleaseRepository:
 
         The numbers are the **normalized** ones: the source's unit (``wt%``) is
         not a Pint unit and the comparison is in mass percent anyway. A balance
-        row has no number and stays a balance; it is never filled in.
+        row has no number and stays a balance; it is never filled in. Only rows
+        with no condition: the bundle contract has none (TM2-c, D-117), so a
+        conditioned row is never the dataset's and is not part of its diff.
         """
         out: dict[int, dict[str, CompositionSnapshot]] = {}
         rows = self.db.execute(
@@ -243,6 +245,7 @@ class CatalogReleaseRepository:
                 CatalogRecordRef.material_id == MaterialCompositionEntry.material_id,
             )
             .where(CatalogRecordRef.dataset_id == dataset_id)
+            .where(MaterialCompositionEntry.condition_label.is_(None))
         ).scalars()
         for entry in rows:
             if entry.material_id not in material_ids:

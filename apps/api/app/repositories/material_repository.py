@@ -14,7 +14,7 @@ from app.domain.composition import (
     CompositionCondition,
     EntryFacts,
     UndeterminedReason,
-    evaluate,
+    evaluate_material,
 )
 from app.domain.search_query import (
     And,
@@ -252,19 +252,22 @@ class MaterialRepository:
             .where(visible_materials(self.viewer_id))
         )
         visible_ids = set(self.db.execute(visible).scalars())
-        with_composition = set(
-            self.db.execute(
-                select(MaterialCompositionEntry.material_id)
-                .where(MaterialCompositionEntry.material_id.in_(visible))
-                .distinct()
-            ).scalars()
-        )
-        facts.without_composition = len(visible_ids - with_composition)
+        # Every (material, condition) that has a composition — including the
+        # conditions that do not list the element asked (TM2-c, D-117): there
+        # the element is "not declared", not absent from the question.
+        compositions: dict[int, dict[str | None, dict[str, EntryFacts]]] = {}
+        for material_id, label in self.db.execute(
+            select(MaterialCompositionEntry.material_id, MaterialCompositionEntry.condition_label)
+            .where(MaterialCompositionEntry.material_id.in_(visible))
+            .distinct()
+        ).all():
+            compositions.setdefault(material_id, {})[label] = {}
+        facts.without_composition = len(visible_ids - set(compositions))
 
-        entries: dict[str, dict[int, EntryFacts]] = {}
         rows = self.db.execute(
             select(
                 MaterialCompositionEntry.material_id,
+                MaterialCompositionEntry.condition_label,
                 MaterialCompositionEntry.element,
                 MaterialCompositionEntry.is_balance,
                 MaterialCompositionEntry.is_missing,
@@ -275,8 +278,8 @@ class MaterialRepository:
             .where(MaterialCompositionEntry.element.in_({c.element for c in conditions}))
             .where(MaterialCompositionEntry.material_id.in_(visible))
         ).all()
-        for material_id, element, is_balance, is_missing, low, high, nominal in rows:
-            entries.setdefault(element, {})[material_id] = EntryFacts(
+        for material_id, label, element, is_balance, is_missing, low, high, nominal in rows:
+            compositions[material_id][label][element] = EntryFacts(
                 is_balance=is_balance,
                 is_missing=is_missing,
                 normalized_min=low,
@@ -287,13 +290,8 @@ class MaterialRepository:
         tallies: dict[CompositionCondition, ConditionTally] = {}
         for condition in conditions:
             tally = ConditionTally(condition)
-            by_material = entries.get(condition.element, {})
             for material_id in visible_ids:
-                verdict = evaluate(
-                    condition,
-                    by_material.get(material_id),
-                    has_composition=material_id in with_composition,
-                )
+                verdict = evaluate_material(condition, compositions.get(material_id))
                 if verdict.value is True:
                     tally.satisfied.add(material_id)
                 elif verdict.value is False:
@@ -454,8 +452,8 @@ class MaterialRepository:
         """Swap the composition rows in one flush (delete first, then insert).
 
         Through the relationship, so the ORM's delete-orphan cascade does the
-        delete and the unique ``(material, element)`` index never sees both the
-        old and the new row of one element.
+        delete and the unique ``(material, condition, element)`` key never sees
+        both the old and the new row of one element.
         """
         material.composition.clear()
         self.db.flush()

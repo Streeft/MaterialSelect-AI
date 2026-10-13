@@ -1,6 +1,6 @@
-import type { CompositionEntry } from "@/lib/types";
+import type { AtomicComposition, CompositionEntry } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { compositionContent, compositionOriginal } from "@/lib/composition";
+import { atomicContent, compositionContent, compositionOriginal } from "@/lib/composition";
 import {
   Badge,
   DataQualityBadge,
@@ -27,26 +27,42 @@ const t = ptBR.detail;
  * compute. Absence is written out in words — the whole table missing ("não
  * cadastrada"), an element declared absent, the balance — never a blank, a
  * dash or a 0 (D-24).
+ *
+ * TM2-c (D-117): `entries` are the rows of one condition, and `atomic` is that
+ * condition's atomic percent as the backend derived it. When it is derived,
+ * a column carries it, labelled "derivada"; when it is not, the column is not
+ * drawn with blanks — a sentence under the table says it is absent and why.
  */
 export function CompositionTable({
   entries,
   materialIsDemo,
+  conditionLabel = null,
+  atomic,
 }: {
   entries: CompositionEntry[];
   /** The page already says the material is fictitious; rows then don't repeat it. */
   materialIsDemo: boolean;
+  /** The condition these rows are stated for; `null` is "no condition stated". */
+  conditionLabel?: string | null;
+  /** The derived atomic percent of these rows, or its written absence. */
+  atomic?: AtomicComposition;
 }) {
   if (entries.length === 0) {
     return <EmptyState title={t.noComposition} description={t.noCompositionHint} />;
   }
+  const derived = atomic && atomic.reason === null ? atomic : null;
+  const atomicByElement = new Map((derived?.entries ?? []).map((a) => [a.element, a]));
+  const caption = conditionLabel === null ? t.compositionCaption : t.conditionCaption(conditionLabel);
   return (
-    <TableScroll label={t.compositionCaption}>
+    <div className="flex flex-col gap-2">
+    <TableScroll label={caption}>
       <Table>
-        <TableCaption>{t.compositionCaption}</TableCaption>
+        <TableCaption>{caption}</TableCaption>
         <THead>
           <Tr>
             <Th>{t.columnElement}</Th>
             <Th>{t.columnContent}</Th>
+            {derived && <Th>{t.columnAtomic}</Th>}
             <Th>{t.columnOriginal}</Th>
             <Th>{t.columnSource}</Th>
             <Th>{t.columnQuality}</Th>
@@ -56,7 +72,7 @@ export function CompositionTable({
           {entries.map((entry) => {
             const original = compositionOriginal(entry);
             return (
-              <Tr key={entry.element}>
+              <Tr key={`${entry.condition_label ?? ""}:${entry.element}`}>
                 <RowHeader>
                   <abbr title={entry.element_name} className="font-mono no-underline">
                     {entry.element}
@@ -75,6 +91,19 @@ export function CompositionTable({
                     </span>
                   )}
                 </Td>
+                {derived && (
+                  <Td>
+                    {(() => {
+                      const value = atomicByElement.get(entry.element);
+                      // Derived whole or not at all: every row has its value.
+                      return value ? (
+                        <span className="tabular-nums">{atomicContent(value)}</span>
+                      ) : (
+                        <MissingValue />
+                      );
+                    })()}
+                  </Td>
+                )}
                 <Td>
                   {original === null ? (
                     <span className="text-xs italic text-ink-subtle">{t.noOriginal}</span>
@@ -111,5 +140,16 @@ export function CompositionTable({
         </TBody>
       </Table>
     </TableScroll>
+    {derived && <p className="text-caption text-ink-subtle">{t.atomicBasis(derived.basis)}</p>}
+    {atomic && atomic.reason !== null && (
+      <p className="flex flex-wrap items-center gap-1.5 text-support text-ink-muted">
+        <MissingValue />
+        <span>
+          <strong className="font-medium">{t.atomicAbsentTitle}</strong> —{" "}
+          {t.atomicAbsentReasons[atomic.reason]}. {atomic.message}
+        </span>
+      </p>
+    )}
+    </div>
   );
 }

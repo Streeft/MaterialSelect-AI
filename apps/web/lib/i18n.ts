@@ -1790,6 +1790,8 @@ export const ptBR = {
       { query: "comp:Ni:8-10", meaning: "a faixa de níquel cruza 8–10 %" },
       { query: "comp:Fe", meaning: "a composição declara ferro (com teor ou como resto)" },
       { query: "NOT comp:Cr<12", meaning: "toda a faixa de cromo fica em 12 % ou mais" },
+      { query: "comp:Cr>=12@laminado", meaning: "só a composição declarada para a condição “laminado”" },
+      { query: 'comp:"Ni:8-10@laminado a quente"', meaning: "condição com espaços vai entre aspas" },
       { query: "norma:UNS", meaning: "tem designação UNS (também AISI, SAE, ASTM, EN, ISO, DIN, JIS, GB, ABNT, comercial)" },
       { query: "designacao:S30400", meaning: "tem exatamente este código, em qualquer norma" },
       { query: "designacao:304*", meaning: "códigos que começam com 304" },
@@ -1798,7 +1800,7 @@ export const ptBR = {
     // Copy of RULE_TEXT in app/domain/composition.py — the same sentence the
     // search response carries; i18n.test.ts keeps the two equal.
     searchHelpRule:
-      "Composição por alcance da faixa: uma faixa atende 'Cr ≥ 12 %' quando o máximo declarado chega a 12 %. Faixa só com máximo começa em 0 %; só com mínimo vai até 100 %. Para exigir que toda a faixa atenda, negue o complemento: NOT comp:Cr<12. Sem o dado — sem composição cadastrada, elemento não declarado, declarado ausente ou declarado como resto, que nunca é calculado — o material não passa, nem sob NOT.",
+      "Composição por alcance da faixa: uma faixa atende 'Cr ≥ 12 %' quando o máximo declarado chega a 12 %. Faixa só com máximo começa em 0 %; só com mínimo vai até 100 %. Para exigir que toda a faixa atenda, negue o complemento: NOT comp:Cr<12. Sem o dado — sem composição cadastrada, elemento não declarado, declarado ausente ou declarado como resto, que nunca é calculado — o material não passa, nem sob NOT. Composição por condição (comp:Cr>=12@laminado) lê só aquela condição; sem '@', basta uma condição atender, e NOT exige todas.",
     searchHelpExample: "Consulta",
     searchHelpMeaning: "O que pergunta",
     searchError: "A busca não foi entendida",
@@ -1815,6 +1817,7 @@ export const ptBR = {
       `${label}: ${yes} atende${yes === 1 ? "" : "m"}, ${no} não atende${no === 1 ? "" : "m"}, ${unknown} sem dado.`,
     compositionReasons: {
       sem_composicao: "sem composição cadastrada",
+      sem_composicao_na_condicao: "sem composição na condição pedida",
       elemento_nao_declarado: "elemento não declarado",
       declarado_ausente: "teor declarado ausente",
       resto_sem_numero: "declarado como resto, sem número",
@@ -1911,6 +1914,26 @@ export const ptBR = {
     contentNominalWithin: (range: string, value: string) => `${range} · nominal ${value}`,
     contentBalance: "Resto — declarado pela fonte, não calculado",
     contentAbsent: "Teor não informado pela fonte",
+    // TM2-c (D-117): composição por condição e % atômica derivada.
+    conditionPicker: "Condição da composição",
+    conditionNone: "Sem condição declarada",
+    conditionCaption: (label: string | null) =>
+      label === null
+        ? "Composição química sem condição declarada, em % em massa"
+        : `Composição química na condição “${label}”, em % em massa`,
+    columnAtomic: "% atômica (derivada)",
+    atomicRange: (min: string, max: string) => `${min} a ${max}`,
+    atomicBasis: (basis: string) =>
+      `% atômica derivada da % em massa com os pesos atômicos padrão (${basis}): cálculo do sistema, não dado da fonte.`,
+    atomicAbsentTitle: "% atômica: ausente",
+    atomicAbsentReasons: {
+      sem_composicao: "sem composição cadastrada",
+      resto_declarado: "há elemento declarado como resto",
+      declarado_ausente: "há teor declarado ausente",
+      sem_massa_atomica: "elemento sem peso atômico padrão",
+      soma_incompleta: "a soma declarada não fecha 100 %",
+      soma_acima_de_100: "a soma declarada passa de 100 %",
+    },
     conversion: (method: string) => `Conversão: ${method}`,
     noOriginal: "Sem número — assim declarado pela fonte",
     demoRow: "fictício",
@@ -1944,11 +1967,12 @@ export const ptBR = {
       officialReadOnly:
         "Registro do catálogo oficial licenciado: a composição e as designações não são editadas pela ficha.",
       compositionRule:
-        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Salvar substitui a composição inteira.",
+        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Condição (fundido, laminado…) é opcional: linhas com a mesma condição formam uma composição. Salvar substitui a composição inteira, de todas as condições.",
       designationRule:
         "Cada código com a fonte que o afirma. Uma designação não declara equivalência com outro material. Salvar substitui todas as designações.",
       rowLabel: (n: number) => `Linha ${n}`,
       element: "Elemento",
+      condition: "Condição (opcional)",
       state: "Tipo",
       stateRange: "Faixa ou limite",
       stateBalance: "Resto (declarado)",

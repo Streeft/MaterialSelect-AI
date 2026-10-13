@@ -13,6 +13,12 @@ never ``100 − Σ``; an absent content is never 0.
 
 No row at all is the state "no composition registered", and it is not 0 % of
 anything (D-24).
+
+``condition_label`` (TM2-c, D-117) names the condition the source states a
+composition for — "fundido", "laminado"; ``NULL`` is "no condition stated".
+Each condition is a composition of its own, so it is part of every uniqueness
+rule. ``NULL`` is distinct from ``NULL`` in a SQL unique key, which is why the
+"no condition" half of each rule is a partial unique index of its own.
 """
 
 from __future__ import annotations
@@ -35,6 +41,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.db.base import Base
+from app.domain.composition import CONDITION_LABEL_MAX
 from app.domain.elements import SYMBOLS, element_for
 from app.models.enums import DataQuality
 
@@ -58,8 +65,28 @@ _NO_NUMBER = " AND ".join(f"{column} IS NULL" for column in _NUMBERS)
 class MaterialCompositionEntry(Base):
     __tablename__ = "material_composition"
     __table_args__ = (
-        # One row per element: two would make a search depend on row order.
-        UniqueConstraint("material_id", "element", name="uq_material_composition_element"),
+        # One row per element and condition: two would make a search depend on
+        # row order. The "no condition" half is the partial index below.
+        UniqueConstraint(
+            "material_id",
+            "condition_label",
+            "element",
+            name="uq_material_composition_condition_element",
+        ),
+        Index(
+            "uq_material_composition_element_unconditioned",
+            "material_id",
+            "element",
+            unique=True,
+            sqlite_where=text("condition_label IS NULL"),
+            postgresql_where=text("condition_label IS NULL"),
+        ),
+        # A label is text a reader can see: never blank, never padded, short.
+        CheckConstraint(
+            "condition_label IS NULL OR (length(condition_label) BETWEEN 1 AND "
+            f"{CONDITION_LABEL_MAX} AND condition_label = trim(condition_label))",
+            name="ck_material_composition_condition_label",
+        ),
         CheckConstraint(f"element IN ({_ELEMENT_LIST})", name="ck_material_composition_element"),
         CheckConstraint(
             "NOT (is_balance AND is_missing)", name="ck_material_composition_balance_or_missing"
@@ -92,13 +119,21 @@ class MaterialCompositionEntry(Base):
             "(normalized_max IS NULL OR normalized_nominal <= normalized_max))",
             name="ck_material_composition_nominal_in_range",
         ),
-        # At most one "the rest" per material.
+        # At most one "the rest" per material and condition.
         Index(
             "uq_material_composition_one_balance",
             "material_id",
             unique=True,
-            sqlite_where=text("is_balance"),
-            postgresql_where=text("is_balance"),
+            sqlite_where=text("is_balance AND condition_label IS NULL"),
+            postgresql_where=text("is_balance AND condition_label IS NULL"),
+        ),
+        Index(
+            "uq_material_composition_one_balance_per_condition",
+            "material_id",
+            "condition_label",
+            unique=True,
+            sqlite_where=text("is_balance AND condition_label IS NOT NULL"),
+            postgresql_where=text("is_balance AND condition_label IS NOT NULL"),
         ),
     )
 
@@ -112,6 +147,9 @@ class MaterialCompositionEntry(Base):
     #: The order the source lists the elements in, which is how a reader
     #: compares the sheet with the standard.
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    #: The condition the source states this composition for (TM2-c); ``None``
+    #: is "no condition stated", a composition of its own.
+    condition_label: Mapped[str | None] = mapped_column(String(CONDITION_LABEL_MAX), nullable=True)
 
     is_balance: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_missing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

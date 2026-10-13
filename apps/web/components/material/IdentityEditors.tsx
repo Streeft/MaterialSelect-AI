@@ -40,6 +40,8 @@ function format(value: number | null): string {
 interface CompositionRow {
   key: number;
   element: string;
+  /** TM2-c: empty is "no condition stated". */
+  condition: string;
   state: CompositionState;
   min: string;
   max: string;
@@ -55,6 +57,7 @@ function compositionRowFrom(entry: CompositionEntry): CompositionRow {
   return {
     key: rowKey++,
     element: entry.element,
+    condition: entry.condition_label ?? "",
     state: entry.state,
     // What the source wrote, in the unit it wrote it: editing never rewrites
     // the original into the canonical number.
@@ -71,6 +74,7 @@ function toCompositionIn(row: CompositionRow): CompositionEntryIn | string {
   const base = {
     element: row.element.trim(),
     state: row.state,
+    condition_label: row.condition.trim() || null,
     source_label: row.source.trim(),
     citation: row.citation.trim() || null,
   };
@@ -132,6 +136,13 @@ export function CompositionEditor({
               className="w-20"
               value={row.element}
               onChange={(e) => update(row.key, { element: e.target.value })}
+            />
+            <Input
+              label={t.condition}
+              className="w-40"
+              maxLength={60}
+              value={row.condition}
+              onChange={(e) => update(row.key, { condition: e.target.value })}
             />
             <Select
               label={t.state}
@@ -218,6 +229,8 @@ export function CompositionEditor({
               {
                 key: rowKey++,
                 element: "",
+                // Rows of one condition are usually typed together.
+                condition: current[current.length - 1]?.condition ?? "",
                 state: "faixa",
                 min: "",
                 max: "",

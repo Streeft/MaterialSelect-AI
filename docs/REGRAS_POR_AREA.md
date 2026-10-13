@@ -780,6 +780,18 @@ obrigatória e auditoria; a permissão é a do material
 registro ou curva do catálogo oficial**. Não crie uma segunda regra de alcance nem
 um caminho de escrita que pule `build_composition_entry`/`build_curve`.
 
+**Composição por condição e % atômica derivada** ([D-117](DECISIONS.md), Sessão
+72): `condition_label` (`NULL` = sem condição) faz parte de toda regra de
+unicidade — um elemento e um resto **por condição**; a metade "sem condição" é
+índice único parcial, porque `NULL` não colide com `NULL`. `comp:Cr>=12@laminado`
+lê só aquela condição; sem `@`, todas, por `OR` de Kleene em
+`evaluate_material` — não reescreva isso no repositório nem no estágio. A %
+atômica é **derivada** a cada leitura (`app/calculations/atomic_percent.py`, pesos
+atômicos IUPAC em `app/domain/atomic_weights.py`), nunca gravada, nunca
+estimada: resto, ausente, elemento fora da tabela ou soma que não fecha em 100 %
+pelos **mínimos** (tolerância 0,05 p.p.) viram ausência com motivo; faixa
+converte pelo alcance exato, sem ponto médio. Rotule sempre "derivada".
+
 ## Catálogo oficial e fontes abertas (D-102, D-103)
 
 **O portão de licença das fontes abertas foi reconciliado com o D-102**

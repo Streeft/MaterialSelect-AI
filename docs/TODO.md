@@ -158,16 +158,39 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM2-a — editar composição e designações.** ▃ Hoje só o seed demo e o bundle
-  oficial escrevem as duas tabelas. Falta API e formulário, com auditoria (M2),
-  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62).
-- **TM2-b — composição como estágio de seleção.** ▃ Um estágio `limit` sobre
-  elemento, no motor, no funil e no laudo, pela mesma regra de alcance em três
-  valores (`app/domain/composition.evaluate`).
-- **TM2-c — % atômica e composição por condição.** ▆ Converter % atômica exige
-  a composição inteira e as massas atômicas (cálculo, não unidade); composição
-  por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
-  em `CatalogSupplementalValue` se vierem no bundle.
+- ~~**TM2-a — editar composição e designações.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): `PUT /api/materials/{id}/composicao` e `/designacoes`,
+  formulário na ficha, auditoria, permissão do material (dono ou curador; 409 para
+  registro do catálogo oficial). Resíduos **TM2-f** e **TM2-g** abaixo.
+- ~~**TM2-b — composição como estágio de seleção.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): operadores `composition` e `not_composition` num estágio
+  `limit`, pela regra de alcance em três valores; o funil conta quem ficou sem
+  dado e o laudo diz a regra.
+- **TM2-f — qualidade e fonte reaproveitada nos formulários novos.** ▁ Os
+  formulários de composição, designações e curvas gravam `ESTIMADO` e não expõem a
+  qualidade do dado; também não sugerem fontes já cadastradas (digita-se o
+  rótulo). Aberto pela Sessão 66.
+- **TM2-g — edição por linha.** ▁ As escritas substituem o conjunto inteiro
+  (último a gravar vence). Um `PATCH` por elemento/curva só se houver edição
+  concorrente real. Aberto pela Sessão 66.
+- ~~**TM2-c — % atômica e composição por condição.**~~ ✔ Entregue (Sessão 72,
+  [D-117](DECISIONS.md)): `condition_label` na linha de composição (parte da chave,
+  migração `703bbf25ce90`), `comp:Cr>=12@laminado` na busca e no estágio, seletor de
+  condição na ficha e % atômica **derivada** (IUPAC 2021), ausência escrita quando a
+  composição não fecha em 100 %. Resíduos **TM2-h** a **TM2-j** abaixo.
+- **TM2-h — condição no bundle oficial.** ▁ O contrato de
+  `material_compositions.ndjson` não tem condição; o importador e o diff só leem
+  linhas sem condição. Abrir um campo `condition?` quando um bundle trouxer
+  composição por estado. Aberto pela Sessão 72.
+- **TM2-i — % atômica nas exportações e na busca.** ▁ A % atômica derivada está só
+  na ficha; planilhas, relatórios e cartões CAE seguem em % em massa, e `comp:` não
+  pergunta em % atômica. Aberto pela Sessão 72.
+- **TM2-j — fechamento estrito da % atômica.** ▃ Decisão do autor: D-117 corrigiu a
+  regra delegada para exigir que os **mínimos** admitidos somem 100 % (sem mundo
+  fechado). Se o autor aceitar que os elementos listados são toda a liga quando os
+  máximos chegam a 100 %, a troca é `closes` em `app/calculations/atomic_percent.py`.
+  Conferir também a tabela de pesos atômicos contra a publicação da IUPAC
+  (transcrita sem rede). Aberto pela Sessão 72.
 - ~~**TM2-d — composição nas exportações e no comparador.**~~ Entregue em parte
   (Sessão 67, [D-112](DECISIONS.md)): planilhas "Composição" e "Designações" no
   catálogo e nos relatórios de estudo (CSV/XLSX/HTML) e linhas informativas nos
@@ -185,27 +208,28 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   depende do bundle do D-102 (`material_curves.ndjson`) ou de fonte aberta
   APROVADA (D-103). A tela já mostra "Nenhuma curva cadastrada" com a contagem
   por tipo.
-- **TM4-b — ler um valor de uma curva.** ▆ "Valor a 20 °C" por interpolação ou
-  outra regra declarada, com referência ao dado original (docs/18 §6). Hoje
-  nada é interpolado, extrapolado nem reamostrado.
+- ~~**TM4-b — ler um valor de uma curva.**~~ Entregue em parte (Sessão 65,
+  [D-110](DECISIONS.md)): regra conservadora em docs/18 §6 — só o ponto
+  declarado exatamente no x pedido, convertido por units.py, sem interpolar,
+  com ausência escrita; `GET .../curvas/{curva}/valor`. **Resíduo:** não há
+  tela para a leitura (só API).
 - **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
   Continuam em `CatalogSupplementalValue` até haver tipo.
-- **TM4-d — edição pela API e pela interface.** ▃ Com auditoria (M2),
-  `require_catalog_curator` no compartilhado (D-83) e o registro próprio (D-62);
-  hoje só o seed demo e o bundle escrevem.
-- **TM4-e — escolher a unidade do parâmetro da família.** ▁ Hoje sai na
-  convenção da grandeza (°C para temperatura); a legenda da tela a repete.
-- **TM4-f — nova grandeza de eixo exige migração.** ▁ A lista de grandezas
-  (`QUANTITIES`, 8) está escrita por extenso no `CHECK` da migração
-  `0925e0787863`; acrescentar uma grandeza sem migração nova deixa modelo e
-  banco divergentes. Achado da revisão do TM4.
-- **TM4-g — curvas duplicadas depois de um segundo cutover.** ▃ Uma release nova
-  de outro dataset acrescenta curvas sem aposentar as da release anterior do
-  mesmo material (o mesmo padrão dos valores globais), e a ficha pode listar a
-  curva duas vezes. Decidir a regra de aposentadoria junto com o cutover.
-- **TM4-h — folga do eixo em °C/°F.** ▁ `_padded` não passa de zero na unidade de
-  leitura; num eixo de temperatura, dados de 20 a 600 °C começam em 0 °C. Só
-  estético, nenhum ponto se perde.
+- ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
+  [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
+  `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
+  catálogo oficial fica só leitura.
+- ~~**TM4-e — escolher a unidade do parâmetro da família.**~~ Entregue (Sessão 65,
+  D-110): `?unidade_parametro=` e seletor rotulado na ficha. **Resíduo:** a
+  exportação CSV/XLSX ainda não aceita a unidade do parâmetro.
+- ~~**TM4-f — nova grandeza de eixo exige migração.**~~ Entregue (Sessão 65,
+  D-110): fonte única no domínio e teste que falha se o `CHECK` migrado divergir.
+- ~~**TM4-g — curvas duplicadas depois de um segundo cutover.**~~ ✔ Quitado
+  ([D-114](DECISIONS.md), Sessão 69): a curva da release anterior fica no
+  material antigo, inativo, preservada para o diff; a ficha vigente lista uma
+  curva por identidade.
+- ~~**TM4-h — folga do eixo em °C/°F.**~~ ✔ Entregue (D-113): `_padded` só prende
+  o zero em unidade de razão.
 - ~~**Dependência TM5-b**~~ — resolvida pelo [D-119](DECISIONS.md) (Sessão 74):
   a curva declara `strain_measure` e `modulus_kind`.
 
@@ -397,6 +421,24 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**TM2-c — % atômica e composição por condição (Sessão 72, [D-117](DECISIONS.md))**~~ —
+  `condition_label` opcional na linha de composição, na chave de unicidade (índices
+  parciais para "sem condição", `CHECK` portável); `comp:…@condição` na busca e no
+  estágio `limit`, com `OR` de Kleene entre condições quando nenhuma é pedida;
+  `atomic_composition` na ficha, derivada a cada leitura (`app/calculations/atomic_percent.py`,
+  tabela `app/domain/atomic_weights.py`), com motivo escrito quando ausente; coluna
+  "Condição" na planilha de composição. 4428 → 4500 testes de backend e 863 → 872 de frontend.
+- ~~**TM6 — referência por valor visível e filtrável (Sessão 70, [D-115](DECISIONS.md))**~~ —
+  `reference_count` derivado no backend (`MaterialListItem`, contando valores onde `source_id IS NOT NULL` e `is_missing IS FALSE`) e tipado em `packages/shared-types`; filtro booleano `com_referencia=true` em `GET /api/materials` e `GET /api/materials/busca`; no frontend, opção `"referenced"` no filtro de qualidade do catálogo, contagem na `QualityBar` e badge de referências na ficha do material; 4 testes de backend em `test_crud_api.py`.
+- ~~**TM7-a + TM4-g — promover uma release (Sessão 69, [D-114](DECISIONS.md))**~~ —
+  o import de uma release nova da mesma `lineage` grava tudo e, só então, na
+  mesma transação, desativa a release anterior, os materiais dela (substituídos
+  ou retirados), e os processos/modais que a nova não traz — nunca `DELETE`;
+  processo e modal reaproveitados pela identidade externa (sem colisão de slug,
+  valores da release nova com a fonte dela); curva antiga preservada no material
+  inativo; falha em qualquer ponto = rollback total; release substituída ou
+  mais antiga recusada; o dry-run (`promotion_plan`) diz o que seria
+  desativado, por identidade. Resíduos TM7-h a TM7-j.
 - ~~**TM7 — o que mudou entre releases (Sessão 63, [D-108](DECISIONS.md))**~~ —
   `catalog_dataset.lineage` (a que catálogo a release pertence, do manifest,
   sem backfill) e `is_demo` (migração `73a9b5da72b2`); diff derivado do que cada
@@ -418,6 +460,13 @@ Registrados para não voltarem por engano:
   catálogo estendido (o estado vazio segue testado por unidade e na Cerâmica Demo
   D, sem curva).
 
+- ~~**TM2-a, TM2-b e TM4-d — composição na seleção e edição à mão (Sessão 66, [D-111](DECISIONS.md))**~~ —
+  `composition`/`not_composition` num estágio `limit` (alcance em três valores,
+  funil com a contagem dos indecididos, laudo com a regra); `PUT
+  …/composicao`, `PUT …/designacoes` e `POST`/`PUT`/`DELETE …/curvas` com os
+  construtores do seed, auditoria e a permissão do material
+  (`services/record_permissions.py`; 409 para o oficial); formulários na ficha.
+  Resíduos TM2-f e TM2-g em "Média prioridade". 4252 → 4318 testes de backend (4312 passam e 6 pulam sem `POSTGRES_TEST_URL`) e 846 → 858 de frontend.
 - ~~**TM4 — curvas dependentes de temperatura e taxa (Sessão 61, [D-106](DECISIONS.md))**~~ —
   `MaterialCurve`/`MaterialCurveSeries`/`MaterialCurvePoint` (figura → série →
   ponto, `CHECK`s de finitude e de faixa, fonte obrigatória, migração
