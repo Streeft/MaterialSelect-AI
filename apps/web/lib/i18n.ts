@@ -106,6 +106,13 @@ export const ptBR = {
     noValues: "Nenhuma propriedade adicionada.",
     createTitle: "Novo material",
     editTitle: "Editar material",
+    copyTitle: "Cópia própria de material",
+    copySuffix: " (cópia)",
+    copyNotice:
+      "Você está criando um registro seu a partir de um material do catálogo oficial. A cópia não é oficial, não herda a referência do catálogo e é editável; o original não muda.",
+    officialReadOnly:
+      "Material do catálogo oficial licenciado: somente leitura. Para ajustar, crie uma cópia própria; para corrigir o dado oficial, use uma nova versão do catálogo.",
+    makeOwnCopy: "Criar cópia própria",
     required: "Campo obrigatório.",
     genericError:
       "Não foi possível salvar. Verifique os dados e tente novamente.",

@@ -33,9 +33,13 @@ interface MaterialFormProps {
   classes: MaterialClass[];
   properties: PropertyDefinition[];
   initial?: MaterialDetail;
+  /** D-116: prefill a NEW own record from an existing material (an official one
+   * is never edited in place). The copy is created through the ordinary create
+   * route, so it carries no catalogue reference and is not official. */
+  copyFrom?: MaterialDetail;
 }
 
-export function MaterialForm({ classes, properties, initial }: MaterialFormProps) {
+export function MaterialForm({ classes, properties, initial, copyFrom }: MaterialFormProps) {
   const router = useRouter();
   const qc = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -43,7 +47,9 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
   // records, so that is the one ownership this form can declare for them —
   // and the notice below says so before they type anything.
   const canEditCatalog = useCanEditCatalog();
-  const ownRecordOnly = !initial && !canEditCatalog;
+  const ownRecordOnly = !initial && (!canEditCatalog || copyFrom !== undefined);
+
+  const prefill = initial ?? copyFrom;
 
   const {
     register,
@@ -53,14 +59,14 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initial
+    defaultValues: prefill
       ? {
-          name: initial.name,
-          class_id: String(initial.class_id),
-          subclass: initial.subclass ?? "",
-          description: initial.description ?? "",
-          keywords: initial.keywords.join(", "),
-          values: initialValuesFromDetail(initial),
+          name: copyFrom ? `${copyFrom.name}${ptBR.form.copySuffix}` : prefill.name,
+          class_id: String(prefill.class_id),
+          subclass: prefill.subclass ?? "",
+          description: prefill.description ?? "",
+          keywords: prefill.keywords.join(", "),
+          values: initialValuesFromDetail(prefill),
         }
       : {
           name: "",
@@ -119,7 +125,8 @@ export function MaterialForm({ classes, properties, initial }: MaterialFormProps
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {ownRecordOnly && <Alert tone="info">{ptBR.billing.ownRecordOnly}</Alert>}
+      {copyFrom && <Alert tone="info">{ptBR.form.copyNotice}</Alert>}
+      {ownRecordOnly && !copyFrom && <Alert tone="info">{ptBR.billing.ownRecordOnly}</Alert>}
       <Card>
         <CardHeader title={ptBR.form.identification} headingLevel={2} />
         <CardBody className="grid gap-4 sm:grid-cols-2">

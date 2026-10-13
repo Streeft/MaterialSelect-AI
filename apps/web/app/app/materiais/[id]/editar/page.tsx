@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMaterial, listClasses, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { MaterialForm } from "@/components/MaterialForm";
-import { ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { Alert, ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
 
 export default function EditMaterialPage() {
   const params = useParams<{ id: string }>();
@@ -43,7 +43,13 @@ export default function EditMaterialPage() {
           }}
         />
       )}
-      {material.data && classes.data && properties.data && (
+      {material.data?.is_official && (
+        <div className="flex flex-col items-start gap-3">
+          <Alert tone="info">{ptBR.form.officialReadOnly}</Alert>
+          <ButtonLink href={`/app/materiais/novo?copiar=${id}`}>{ptBR.form.makeOwnCopy}</ButtonLink>
+        </div>
+      )}
+      {material.data && !material.data.is_official && classes.data && properties.data && (
         <MaterialForm classes={classes.data} properties={properties.data} initial={material.data} />
       )}
     </div>
