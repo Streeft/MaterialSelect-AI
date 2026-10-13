@@ -123,6 +123,12 @@ export interface CompositionEntry {
   element_name: string;
   atomic_number: number;
   state: CompositionState;
+  /**
+   * TM2-c (D-117): the condition the source states this row for ("fundido",
+   * "laminado"); `null` is "no condition stated". Rows sharing it form one
+   * composition. Optional on the wire for payloads written before TM2-c.
+   */
+  condition_label?: string | null;
   value_min: number | null;
   value_max: number | null;
   value_nominal: number | null;
@@ -143,6 +149,8 @@ export interface CompositionEntry {
 export interface CompositionEntryIn {
   element: string;
   state: CompositionState;
+  /** TM2-c: blank or absent is "no condition stated". */
+  condition_label?: string | null;
   value_min?: number | null;
   value_max?: number | null;
   value_nominal?: number | null;
@@ -151,6 +159,40 @@ export interface CompositionEntryIn {
   citation?: string | null;
   notes?: string | null;
   data_quality?: DataQuality;
+}
+
+/** Why the atomic percent of a composition could not be derived (D-117). */
+export type AtomicAbsentReason =
+  | "sem_composicao"
+  | "resto_declarado"
+  | "declarado_ausente"
+  | "sem_massa_atomica"
+  | "soma_incompleta"
+  | "soma_acima_de_100";
+
+/**
+ * One element's atomic percent, **derived** by the backend from the mass
+ * percent and the IUPAC standard atomic weights: the interval its declared
+ * mass range reaches (`atomic_min === atomic_max` for a point).
+ */
+export interface AtomicEntry {
+  element: string;
+  atomic_min: number;
+  atomic_max: number;
+}
+
+/**
+ * The derived atomic percent of one composition (one condition), or — when
+ * `reason` is set — its absence, with `message` saying why. Never estimated,
+ * never renormalized; `label` is always "derivada".
+ */
+export interface AtomicComposition {
+  condition_label: string | null;
+  label: string;
+  basis: string;
+  entries: AtomicEntry[];
+  reason: AtomicAbsentReason | null;
+  message: string | null;
 }
 
 /** One designation being written (TM2-a). */
@@ -165,6 +207,8 @@ export interface DesignationIn {
 /** Why a composition condition could not be decided, counted per material. */
 export interface UndeterminedBreakdown {
   sem_composicao: number;
+  /** TM2-c: the material has compositions, none for the condition asked. */
+  sem_composicao_na_condicao?: number;
   elemento_nao_declarado: number;
   declarado_ausente: number;
   resto_sem_numero: number;
@@ -250,6 +294,11 @@ export interface MaterialDetail {
    */
   designations: Designation[];
   composition: CompositionEntry[];
+  /**
+   * TM2-c (D-117): one block per condition present in `composition`, no
+   * condition first. Optional on the wire for payloads written before TM2-c.
+   */
+  atomic_composition?: AtomicComposition[];
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */

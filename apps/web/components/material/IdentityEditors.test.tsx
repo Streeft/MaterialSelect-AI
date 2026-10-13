@@ -60,6 +60,7 @@ describe("edição da composição (TM2-a)", () => {
       {
         element: "Cr",
         state: "faixa",
+        condition_label: null,
         source_label: "Fonte A",
         citation: null,
         value_min: 16,
@@ -69,6 +70,25 @@ describe("edição da composição (TM2-a)", () => {
       },
     ]);
     await waitFor(() => expect(onDone).toHaveBeenCalled());
+  });
+
+  it("sends the condition as typed, and blank as no condition (TM2-c)", async () => {
+    mount(
+      <CompositionEditor
+        materialId={7}
+        entries={[chromium, { ...chromium, element: "Ni", condition_label: "laminado" }]}
+        onDone={vi.fn()}
+      />,
+    );
+    const [first] = screen.getAllByRole("textbox", { name: t.condition });
+    await userEvent.type(first!, "  fundido ");
+    await userEvent.click(screen.getByRole("button", { name: ptBR.actions.save }));
+    await waitFor(() => expect(api.replaceMaterialComposition).toHaveBeenCalled());
+    const [, payload] = api.replaceMaterialComposition.mock.calls[0]!;
+    expect(payload.map((row: { condition_label: string | null }) => row.condition_label)).toEqual([
+      "fundido",
+      "laminado",
+    ]);
   });
 
   it("refuses a number it cannot read instead of sending it", async () => {
