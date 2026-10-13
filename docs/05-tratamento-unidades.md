@@ -19,6 +19,12 @@ Para cada valor, armazenamos:
 A conversão ocorre **no momento da escrita** (seed agora; importador depois). A
 leitura nunca recalcula, garantindo reprodutibilidade.
 
+**Composição química** (D-105) entra em % em massa pela mesma trilha (`%`,
+`wt%`, `ppm`, fração mássica → `percent`). A **% atômica não é conversão de
+unidade**: depende de todos os constituintes e dos pesos atômicos, então é um
+cálculo sobre a composição inteira (`app/calculations/atomic_percent.py`,
+D-117), derivado na leitura e nunca aceito como unidade de entrada.
+
 ## Funções
 
 - `to_canonical(value, from_unit, canonical_unit) -> (normalized_value, method)`

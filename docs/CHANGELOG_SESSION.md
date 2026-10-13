@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [72](#sessão-72--131026--composição-por-condição-e--atômica-derivada-tm2-c-d-117) | 13/10/2026 | Composição por condição e % atômica derivada (TM2-c): `condition_label` na chave da composição (migração `703bbf25ce90`), `comp:…@condição` na busca e no estágio, seletor de condição na ficha, % atômica pela tabela IUPAC 2021 com ausência escrita quando a composição não fecha em 100 % | 4428 → 4500 | 863 → 872 |
 | [69](#sessão-69--081026--promover-uma-release-do-catálogo-oficial-tm7-a--tm4-g-d-114) | 08/10/2026 | Promover uma release do catálogo oficial (TM7-a + TM4-g): o import da release nova de uma linha desativa a anterior na mesma transação, sem apagar nada; processo e modal reaproveitados pela identidade externa (fim da colisão de slug); curva antiga preservada no material inativo; rollback total em qualquer falha; dry-run com `promotion_plan` (D-114) | 4317 → 4327 | 847 (inalterado) |
 | [68](#sessão-68--081026--comparador-largo-tm3-d-113) | 08/10/2026 | Comparador largo (TM3) e folga do eixo em °C/°F (TM4-h): teto 60 x 20, tabela fixa, figuras com teto escrito | +4 | +3 |
 | [67](#sessão-67--081026--composição-nas-exportações-e-cartões-térmicos-cae-tm2-d-tm5-d-d-112) | 08/10/2026 | Composição e designações nas planilhas, relatórios e cartões CAE (TM2-d) e cartões térmicos Nastran `MAT4` e LS-DYNA `*MAT_THERMAL_ISOTROPIC` (TM5-d); recusa 422 sem condutividade/calor específico | 4294 (+42) | — |
@@ -82,6 +83,58 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 72 — 13/10/26 — Composição por condição e % atômica derivada (TM2-c, D-117)
+
+**O pedido.** O resíduo TM2-c do D-105: composição declarada por condição
+(fundido × laminado) e a composição em % atômica. Decisão delegada pelo autor,
+registrada como D-117, **com uma correção**: a % atômica só existe quando os
+mínimos declarados já fecham 100 %; ler "os máximos podem chegar a 100 %" como
+completo suporia 0 % para todo elemento não listado (contra D-105 e princípio 3).
+
+**O que mudou.**
+
+- **Modelo e migração** — `condition_label` (até 60, `NULL` = sem condição) em
+  `material_composition`, migração `703bbf25ce90` sem backfill: chave única
+  (material, condição, elemento) mais índices únicos parciais para a metade sem
+  condição e para um resto por condição; `CHECK` portável do rótulo
+  (`length`/`trim`). O autogenerate não viu o `CHECK` nem o predicado novo do
+  índice de resto: escritos à mão; deriva antiga de `battery_chemistry` e
+  `subscription` retirada.
+- **Domínio** — `normalize_condition_label`, `condition_key` (sem caixa e sem
+  acento), `validate_composition` por condição (grafias diferentes da mesma
+  condição são recusadas), `parse_condition` com `@condição`, e
+  `evaluate_material` (uma condição pedida, ou `OR` de Kleene entre todas);
+  motivo novo `sem_composicao_na_condicao`. Busca e estágio `limit` usam a mesma
+  função.
+- **% atômica** — `app/domain/atomic_weights.py` (IUPAC/CIAAW 2021, abreviados,
+  fonte citada) e `app/calculations/atomic_percent.py` (pura): resto, ausente,
+  elemento fora da tabela, soma incompleta ou acima de 100 % viram ausência com
+  motivo; faixas convertem pelo alcance exato, sem ponto médio. Derivada a cada
+  leitura em `MaterialDetail.atomic_composition`, nunca gravada.
+- **Tela** — `CompositionByCondition` (seletor `?condicao=` só com mais de uma
+  condição) e `CompositionTable` com a coluna "% atômica (derivada)" ou a frase
+  "% atômica: ausente — motivo"; campo de condição no editor; dois exemplos na
+  ajuda da busca; `RULE_TEXT` estendido (e a cópia em `i18n.ts`).
+- **Exportação** — coluna "Condição" na planilha "Composição", com "sem
+  condição declarada" escrito; condição entre colchetes no resumo dos cartões.
+- **Catálogo oficial** — importador e diff entre releases leem só linhas sem
+  condição (o contrato do bundle não tem condição); o seed demo idem.
+- **Também nesta faixa** — restaurado o `docs/TODO.md`, que o `701d7f6` tinha
+  achatado em uma linha com `\n` literais (com três trechos alterados no
+  caminho); só as duas edições do TM6 foram reaplicadas.
+
+**Testes.** 4428 → 4500 de backend (4494 passam e 6 pulam sem
+`POSTGRES_TEST_URL`): `test_atomic_percent.py` (fórmula, tabela, alcance contra
+amostragem de composições conformes, cada motivo de ausência, tolerância) e
+`test_composition_conditions.py` (rótulo, regras por condição, busca, Kleene,
+`CHECK`s e índices no banco, migração de ida e volta, API, estágio, auditoria,
+planilha). 863 → 872 de frontend.
+
+**Pós-merge.** Há migração: **Deploy da API** (que roda `alembic upgrade
+head`). Sem seed novo.
 
 ---
 

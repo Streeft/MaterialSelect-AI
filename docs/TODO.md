@@ -177,10 +177,24 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - **TM2-g — edição por linha.** ▁ As escritas substituem o conjunto inteiro
   (último a gravar vence). Um `PATCH` por elemento/curva só se houver edição
   concorrente real. Aberto pela Sessão 66.
-- **TM2-c — % atômica e composição por condição.** ▆ Converter % atômica exige
-  a composição inteira e as massas atômicas (cálculo, não unidade); composição
-  por estado (fundido × laminado) pede chave de condição. Até lá ficam fora, ou
-  em `CatalogSupplementalValue` se vierem no bundle.
+- ~~**TM2-c — % atômica e composição por condição.**~~ ✔ Entregue (Sessão 72,
+  [D-117](DECISIONS.md)): `condition_label` na linha de composição (parte da chave,
+  migração `703bbf25ce90`), `comp:Cr>=12@laminado` na busca e no estágio, seletor de
+  condição na ficha e % atômica **derivada** (IUPAC 2021), ausência escrita quando a
+  composição não fecha em 100 %. Resíduos **TM2-h** a **TM2-j** abaixo.
+- **TM2-h — condição no bundle oficial.** ▁ O contrato de
+  `material_compositions.ndjson` não tem condição; o importador e o diff só leem
+  linhas sem condição. Abrir um campo `condition?` quando um bundle trouxer
+  composição por estado. Aberto pela Sessão 72.
+- **TM2-i — % atômica nas exportações e na busca.** ▁ A % atômica derivada está só
+  na ficha; planilhas, relatórios e cartões CAE seguem em % em massa, e `comp:` não
+  pergunta em % atômica. Aberto pela Sessão 72.
+- **TM2-j — fechamento estrito da % atômica.** ▃ Decisão do autor: D-117 corrigiu a
+  regra delegada para exigir que os **mínimos** admitidos somem 100 % (sem mundo
+  fechado). Se o autor aceitar que os elementos listados são toda a liga quando os
+  máximos chegam a 100 %, a troca é `closes` em `app/calculations/atomic_percent.py`.
+  Conferir também a tabela de pesos atômicos contra a publicação da IUPAC
+  (transcrita sem rede). Aberto pela Sessão 72.
 - ~~**TM2-d — composição nas exportações e no comparador.**~~ Entregue em parte
   (Sessão 67, [D-112](DECISIONS.md)): planilhas "Composição" e "Designações" no
   catálogo e nos relatórios de estudo (CSV/XLSX/HTML) e linhas informativas nos
@@ -403,6 +417,13 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**TM2-c — % atômica e composição por condição (Sessão 72, [D-117](DECISIONS.md))**~~ —
+  `condition_label` opcional na linha de composição, na chave de unicidade (índices
+  parciais para "sem condição", `CHECK` portável); `comp:…@condição` na busca e no
+  estágio `limit`, com `OR` de Kleene entre condições quando nenhuma é pedida;
+  `atomic_composition` na ficha, derivada a cada leitura (`app/calculations/atomic_percent.py`,
+  tabela `app/domain/atomic_weights.py`), com motivo escrito quando ausente; coluna
+  "Condição" na planilha de composição. 4428 → 4500 testes de backend e 863 → 872 de frontend.
 - ~~**TM6 — referência por valor visível e filtrável (Sessão 70, [D-115](DECISIONS.md))**~~ —
   `reference_count` derivado no backend (`MaterialListItem`, contando valores onde `source_id IS NOT NULL` e `is_missing IS FALSE`) e tipado em `packages/shared-types`; filtro booleano `com_referencia=true` em `GET /api/materials` e `GET /api/materials/busca`; no frontend, opção `"referenced"` no filtro de qualidade do catálogo, contagem na `QualityBar` e badge de referências na ficha do material; 4 testes de backend em `test_crud_api.py`.
 - ~~**TM7-a + TM4-g — promover uma release (Sessão 69, [D-114](DECISIONS.md))**~~ —

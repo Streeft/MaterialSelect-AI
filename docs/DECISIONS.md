@@ -9043,6 +9043,124 @@ Cerâmica Demo D (sem curva) e por qualquer registro próprio novo.
 
 ---
 
+## D-117 — Composição por condição e % atômica derivada: a condição entra na chave, e a % atômica só existe quando a composição fecha em 100 %
+
+**Data:** 13/10/2026
+**Status:** aceita por delegação do autor (Sessão 72, TM2-c), **com uma correção registrada** (abaixo); revisável
+
+**O pedido (TM2-c).** Dois resíduos do D-105: composição declarada por condição
+(fundido × laminado) e a composição em % atômica. Decisão do assistente por
+delegação do autor: coluna opcional de condição na linha de composição, parte da
+chave de unicidade; % atômica **derivada**, determinística, no backend, a partir
+da % em massa e de uma tabela versionada de pesos atômicos padrão; ausência
+escrita com o motivo quando faltar elemento na tabela, houver resto ou a soma
+declarada for incompleta; faixas convertidas por alcance, sem ponto inventado.
+
+### Composição por condição
+
+- **`condition_label`** em `material_composition` (texto curto, até 60
+  caracteres, `NULL` = "sem condição declarada"), guardado como a fonte escreveu
+  (espaços internos colapsados). Migração `703bbf25ce90`, sem backfill: toda
+  linha existente é, de fato, sem condição. `CHECK` portável
+  (`length`/`trim`, mesmo sentido no SQLite e no PostgreSQL) recusa rótulo
+  vazio, com espaço nas pontas ou longo demais.
+- **Cada condição é uma composição própria**, e a condição está em toda regra de
+  unicidade: um elemento por (material, condição), um resto por (material,
+  condição), mínimos ≤ 100 % por condição. Como `NULL` não colide com `NULL`
+  numa chave única, a metade "sem condição" é um índice único parcial próprio
+  (`…_element_unconditioned`, `…_one_balance` com `condition_label IS NULL`).
+  No domínio (`validate_composition`), dois rótulos que diferem só em caixa ou
+  acento são **recusados** ("escreva a mesma condição do mesmo jeito"), em vez
+  de guardados como duas condições.
+- **`@` e aspas não entram no rótulo**: são a sintaxe da busca.
+
+### A busca e o estágio de seleção
+
+- **`comp:Cr>=12@laminado`** lê só a composição daquela condição (rótulo
+  comparado sem caixa e sem acento); com espaços, entre aspas:
+  `comp:"Ni:8-10@laminado a quente"` — a única forma de `comp:` entre aspas, que
+  continua recusada sem `@`. A sintaxe antiga não muda.
+- **Sem `@`, todas as condições são lidas** e os vereditos se juntam por `OR` de
+  Kleene (`evaluate_material`): verdadeiro se alguma condição alcança, falso só se
+  todas decidem falso, indeterminado no resto. É o alcance aplicado a todo
+  produto que o material é vendido — e por isso `NOT comp:Cr<12` continua sendo a
+  garantia, agora **em todas as condições**. Material com uma composição só lê
+  exatamente como antes.
+- **Motivo novo de indeterminado:** `sem_composicao_na_condicao` — o material tem
+  composição, mas não na condição pedida. Não é "sem composição cadastrada".
+- O estágio `limit` (`composition`/`not_composition`, D-111) usa o mesmo
+  `parse_condition` e o mesmo `evaluate_material`: estudo e busca não divergem.
+
+### % atômica derivada
+
+- **Fórmula:** `xᵢ = (wᵢ/Aᵢ) / Σⱼ (wⱼ/Aⱼ)`, em
+  `app/calculations/atomic_percent.py`, pura. Calculada **a cada leitura** da
+  ficha, nunca gravada (uma cópia gravada poderia divergir da composição de que
+  saiu). Na API, `atomic_composition` da ficha: um bloco por condição, com
+  `label = "derivada"`, `basis` (a versão da tabela) e, por elemento,
+  `atomic_min`/`atomic_max`.
+- **Tabela:** `app/domain/atomic_weights.py` — pesos atômicos padrão
+  **abreviados** da IUPAC/CIAAW, valores de 2021 (Prohaska et al., *Pure Appl.
+  Chem.* 94 (2022) 573–600, tabela 2). Constante física, não propriedade de
+  material; em código pela razão dos elementos (D-64/D-105). Elementos sem peso
+  atômico padrão (Tc, Pm, Po, At, Rn, Fr, Ra, Ac, Np e além de U) ficam fora
+  **de propósito**: o número de massa entre colchetes seria de um isótopo, não do
+  elemento. *Revisão humana sugerida:* a tabela foi transcrita sem acesso à rede;
+  conferir contra a publicação (o teste fixa oito valores).
+- **Ausência, com motivo, nunca estimativa:** resto declarado (o teor dele nunca
+  é calculado, então nada que dependa dele é); teor declarado ausente; elemento
+  sem peso atômico padrão; soma que não fecha em 100 %; soma acima de 100 %. A
+  composição é derivada inteira ou não é: um constituinte desconhecido muda a
+  fração de todos.
+- **Faixas por alcance:** cada linha admite o intervalo de `admitted_interval`
+  (o mesmo da busca: "≤ máx." começa em 0, nominal sozinho é ponto, com faixa e
+  nominal a faixa decide). A % atômica de um elemento é o intervalo exato que ela
+  percorre entre todas as composições que respeitam todas as linhas e somam o
+  total fechado — extremos num vértice (problema linear-fracionário), achados de
+  modo guloso e determinístico. Nenhum ponto médio.
+
+### Correção registrada: o fechamento é estrito
+
+A leitura literal do pedido — a composição está "completa" quando as faixas
+**podem** somar 100 % — supõe que todo elemento **não listado** é 0 %: uma
+especificação "Cu 69–71, Zn 29–31" admite uma corrida de 69 % Cu e 29 % Zn, com
+2 % de outra coisa. Isso contraria o D-105 ("elemento que a composição não lista
+é desconhecido, não 0 %") e o princípio 3 (ausente nunca vira zero), e daria uma
+% atômica que a fonte não sustenta. **Regra adotada:** a composição fecha quando
+os **mínimos admitidos já somam 100 %**, dentro de `SUM_TOLERANCE` = 0,05 p.p.
+(arredondamento da fonte: cinco elementos escritos a 0,01 % se afastam até
+0,025 %); dentro dela, o denominador da fórmula — a definição de fração atômica,
+não uma reescala da massa — absorve a diferença. Consequência prática: a %
+atômica sai para composições nominais e pontuais que fecham; quase toda
+especificação de norma tem resto e sai como ausência escrita. Em faixas que
+fecham, o alcance tem no máximo a folga da tolerância. *Revisão humana sugerida:*
+se o autor aceitar a hipótese de mundo fechado para faixas, a troca é a função
+`closes` em `atomic_percent.py` — um lugar só.
+
+### Tela e exportação
+
+- **Ficha:** seletor de condição (`ButtonGroup`, só com mais de uma) com a
+  escolha na URL (`?condicao=`; "sem condição" é a ausência do parâmetro; valor
+  desconhecido cai na primeira condição, nunca numa tabela vazia que leria "sem
+  composição"). Com a % atômica derivada, uma coluna "% atômica (derivada)" e a
+  base escrita sob a tabela; sem ela, **nenhuma coluna de brancos**: uma frase
+  "% atômica: ausente — motivo" com o selo de ausência.
+- **Edição (D-111):** campo "Condição (opcional)" por linha; `PUT
+  …/composicao` aceita `condition_label` e substitui todas as condições;
+  auditoria por `composição Cr (fundido)`.
+- **Exportação (D-112):** a planilha "Composição" ganha a coluna "Condição", com
+  "sem condição declarada" escrito — nunca célula vazia; o resumo dos cartões
+  CAE põe a condição entre colchetes. A % atômica **não** vai às exportações
+  nesta rodada (resíduo).
+- **Catálogo oficial:** o contrato do bundle não tem condição; o importador e o
+  diff entre releases só leem e comparam linhas sem condição.
+
+**Alternativas descartadas.** Condição como texto livre fora da chave (duas
+linhas de Cr no mesmo material fariam a busca depender da ordem); `COALESCE` em
+índice de expressão (o autogenerate não o acompanha); fechar pela soma dos
+máximos (mundo fechado, acima); renormalizar a soma incompleta; usar o nominal
+como ponto quando há faixa (o D-105 diz que a faixa decide); gravar a % atômica.
+
 ## D-114 — Promover uma release do catálogo oficial: a anterior da mesma linha fica inativa na mesma transação, sem apagar nada, e processo e modal são reaproveitados pela identidade externa
 
 **Data:** 08/10/2026
