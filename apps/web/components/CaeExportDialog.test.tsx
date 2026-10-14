@@ -44,7 +44,7 @@ describe("MaterialExportMenu (D-104, D-124)", () => {
     await user.click(trigger);
 
     const sheetItem = screen.getByRole("menuitem", {
-      name: new RegExp(flowText.materialExport.sheet),
+      name: /Ficha técnica completa/,
     });
     expect(sheetItem).toHaveAttribute(
       "href",
@@ -67,11 +67,11 @@ describe("MaterialExportMenu (D-104, D-124)", () => {
     await user.click(trigger);
 
     const sheetItem = screen.getByRole("menuitem", {
-      name: new RegExp(flowText.materialExport.sheet),
+      name: /Ficha técnica completa/,
     });
     expect(sheetItem).toHaveAttribute(
       "href",
-      expect.stringContaining("unidades=densidade%3Ag%2Fcm%2A%2A3"),
+      expect.stringContaining("unidades=densidade%3Ag%2Fcm**3"),
     );
   });
 
