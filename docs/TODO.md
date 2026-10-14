@@ -118,7 +118,7 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   resíduos abaixo.
 
 **Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21,
-[D-120](DECISIONS.md), Sessão 75).** ✔ Entregue: ~~notas por estágio e por
+[D-122](DECISIONS.md), Sessão 77).** ✔ Entregue: ~~notas por estágio e por
 estudo~~, ~~exportar e importar estudo (JSON versionado, validado, nunca executa
 o arquivo)~~, ~~copiar a tabela de resultado como TSV~~ e ~~duplicar registro
 próprio~~. Resíduos:
@@ -873,6 +873,13 @@ Registrados para não voltarem por engano:
   **base é tudo ou nada** e volta na resposta com os excluídos nomeados;
   `units.is_ratio_scale` decide, por comportamento, onde um percentual significa
   alguma coisa; a referência é **parâmetro da pergunta** e vive na URL.
+- ~~**Nearness Settings do Find Similar**~~ — peso por propriedade (0 < w ≤ 10)
+  e critério unilateral (`both`/`at_most`/`at_least`, "100% se igual ou
+  menor/maior") no `SimilarRequest`, média ponderada em `domain/nearness.py`,
+  ajustes devolvidos na resposta e na URL (`sim_peso`, `sim_criterio`);
+  ausência continua excluindo antes de qualquer critério ([D-120](DECISIONS.md),
+  Sessão 75). Resíduo: tolerância percentual ("100% se dentro de ±x%") e
+  similaridade no universo de processos.
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,

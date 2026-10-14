@@ -232,7 +232,7 @@ describe("assistente de seleção", () => {
   });
 });
 
-describe("notas do estudo (D-120)", () => {
+describe("notas do estudo (D-122)", () => {
   it("saves the study's note and each stage's note, trimmed, with the study", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));

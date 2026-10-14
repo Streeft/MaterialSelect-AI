@@ -68,7 +68,7 @@ class SelectionStudy(Base):
     normalization: Mapped[str] = mapped_column(String(10), default="minmax", nullable=False)
     method: Mapped[str] = mapped_column(String(20), default="weighted_sum", nullable=False)
 
-    # D-120: the author's own note on the whole study — plain text, never
+    # D-122: the author's own note on the whole study — plain text, never
     # markup. NULL is "nobody wrote one", and the screen says so in words; an
     # empty string is normalised to NULL on the way in so the two cannot differ.
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
@@ -239,7 +239,7 @@ class SelectionStage(Base):
     # Shared by the tree and process stages: in both, picking a folder means
     # picking what is under it.
     include_descendants: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    # D-120: the author's note on this stage ("why 200 MPa?"). Plain text; NULL
+    # D-122: the author's note on this stage ("why 200 MPa?"). Plain text; NULL
     # means no note was written.
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
 

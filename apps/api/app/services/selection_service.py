@@ -2203,7 +2203,7 @@ class SelectionService:
         return self._finish_study_creation(study)
 
     def export_study(self, study_id: int) -> dict:
-        """A saved study of this project as the study file's dict (D-120).
+        """A saved study of this project as the study file's dict (D-122).
 
         Goes through ``get_study``, so a study of another project is the same
         404 it has always been — there is no second path to someone else's.
@@ -2211,7 +2211,7 @@ class SelectionService:
         return build_study_file(self.get_study(study_id))
 
     def import_study(self, body: bytes) -> StudyOut:
-        """Create a study of this project from an uploaded study file (D-120).
+        """Create a study of this project from an uploaded study file (D-122).
 
         The file is untrusted: ``parse_study_file`` bounds and validates it, then
         ``create_study`` checks it against this user's catalogue as if they had

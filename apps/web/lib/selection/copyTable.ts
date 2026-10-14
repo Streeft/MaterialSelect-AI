@@ -7,7 +7,7 @@ import { toTsv } from "@/lib/clipboard";
 const c = flowText.copy;
 
 /**
- * The candidates/ranking table of a run as TSV (D-120) — the same rows, in the
+ * The candidates/ranking table of a run as TSV (D-122) — the same rows, in the
  * same order, with the same formatting as the table on screen. A candidate with
  * no index value or no score gets the written word "Ausente" (and the backend's
  * reason, when it gave one), never a blank cell and never a zero.

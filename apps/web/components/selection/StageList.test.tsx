@@ -959,7 +959,7 @@ describe("StageList with a chart stage", () => {
   });
 });
 
-describe("stage notes (D-120)", () => {
+describe("stage notes (D-122)", () => {
   it("sends a trimmed note, and null — never an empty string — when there is none", () => {
     expect(toStagePayload({ ...emptyLimitStage(), notes: "  E mínimo do enunciado  " }).notes).toBe(
       "E mínimo do enunciado",

@@ -245,7 +245,7 @@ def duplicate_material(
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> MaterialDetail:
-    """Duplicate one of the caller's own records as an editable copy (D-120).
+    """Duplicate one of the caller's own records as an editable copy (D-122).
 
     Needs no catalogue-curator permission: the copy is always a record of the
     caller's own, never a write to the shared catalogue.

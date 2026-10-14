@@ -115,7 +115,7 @@ _COPY_SKIP = frozenset({"id", "created_at"})
 def _copy_row(row, **overrides):
     """A new, unsaved row of the same class with every data column copied verbatim.
 
-    Copying by column and not by field name is the point (D-120): a value row
+    Copying by column and not by field name is the point (D-122): a value row
     carries original value + unit, normalised value + canonical unit, the
     conversion method, quality and source, and a hand-written field list would
     lose whichever column the next migration adds. Nothing is recomputed — the
@@ -372,7 +372,7 @@ class MaterialService:
     # --- write operations -------------------------------------------------
 
     def duplicate_material(self, material_id: int) -> MaterialDetail:
-        """Duplicate one of the reader's own records as an editable copy (D-120).
+        """Duplicate one of the reader's own records as an editable copy (D-122).
 
         Only an own record can be duplicated: the shared catalogue's records are
         not the reader's to fork (and the official catalogue is licensed), and a

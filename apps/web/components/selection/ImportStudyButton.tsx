@@ -24,7 +24,7 @@ function readFileText(file: File): Promise<string> {
 }
 
 /**
- * "Importar estudo" (D-120): reads a study file the reader chose and sends its
+ * "Importar estudo" (D-122): reads a study file the reader chose and sends its
  * text to the API, which does the real work — size ceiling, JSON parse, strict
  * schema, catalogue check. Nothing in the file is interpreted here; the browser
  * only reads it as text, so a file cannot do anything but be refused or become

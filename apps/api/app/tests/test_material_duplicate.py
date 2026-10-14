@@ -1,4 +1,4 @@
-"""Duplicating one of the reader's own records as an editable copy (D-120).
+"""Duplicating one of the reader's own records as an editable copy (D-122).
 
 What matters is what the copy *keeps* (every stored column, so the unit trail
 and the absence survive), what it *marks* (where it came from) and what it

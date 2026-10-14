@@ -168,7 +168,7 @@ def import_study(
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
 ) -> StudyOut:
-    """Create a study from an exported study file (D-120).
+    """Create a study from an exported study file (D-122).
 
     The file is untrusted input: bounded, parsed as JSON only, validated field
     by field and then checked against the importer's own catalogue. Nothing in
@@ -185,7 +185,7 @@ def export_study(
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
 ) -> Response:
-    """A saved study as a versioned JSON file (D-120), always an attachment."""
+    """A saved study as a versioned JSON file (D-122), always an attachment."""
     document = SelectionService(db, project.id, user).export_study(study_id)
     filename = f"{filename_stem(document['study']['name'])}.json"
     return Response(

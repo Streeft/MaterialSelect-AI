@@ -1,5 +1,5 @@
 /**
- * Texts of the classroom-flow package (D-120): notes, study file, copy to the
+ * Texts of the classroom-flow package (D-122): notes, study file, copy to the
  * clipboard, duplicate a record. Kept apart from `i18n.ts` so the parallel
  * lanes that edit that file do not collide with this one.
  */

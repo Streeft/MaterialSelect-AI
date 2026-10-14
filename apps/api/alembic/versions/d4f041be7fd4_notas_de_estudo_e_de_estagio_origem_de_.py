@@ -4,7 +4,7 @@ Revision ID: d4f041be7fd4
 Revises: 8bc0982d66b8
 Create Date: 2026-10-14 00:37:25.497600
 
-D-120: ``notes`` (texto puro, anulável) em ``selection_study`` e
+D-122: ``notes`` (texto puro, anulável) em ``selection_study`` e
 ``selection_stage``; ``copied_from_id`` (anulável, SET NULL) em ``material``.
 Só colunas novas anuláveis: nenhum registro existente muda de significado.
 O autogenerate também propôs mexer em ``battery_chemistry`` e ``subscription``

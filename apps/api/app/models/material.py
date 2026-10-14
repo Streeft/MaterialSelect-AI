@@ -69,7 +69,7 @@ class Material(Base):
     owner_id: Mapped[int | None] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), nullable=True, index=True
     )
-    # D-120: the record this one was duplicated from (a copy is always the
+    # D-122: the record this one was duplicated from (a copy is always the
     # owner's own, editable). NULL for everything that was not copied. SET NULL
     # and not CASCADE: deleting the original must not take the copy with it.
     copied_from_id: Mapped[int | None] = mapped_column(

@@ -103,7 +103,7 @@ export default function MaterialDetailPage() {
     },
   });
 
-  // D-120: an own record can be duplicated as an editable copy of its own.
+  // D-122: an own record can be duplicated as an editable copy of its own.
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const duplicate = useMutation({
     mutationFn: () => duplicateMaterial(id),
@@ -177,7 +177,7 @@ export default function MaterialDetailPage() {
                     <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
                   )}
                   {!data.is_active && <Badge>{t.inactive}</Badge>}
-                  {/* D-120: a copy says where it came from. */}
+                  {/* D-122: a copy says where it came from. */}
                   {data.copied_from && (
                     <Badge tone="neutral">
                       {flowText.duplicate.copiedFrom}{" "}

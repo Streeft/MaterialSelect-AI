@@ -1,5 +1,5 @@
 /**
- * Copy a result table to the clipboard as TSV (D-120).
+ * Copy a result table to the clipboard as TSV (D-122).
  *
  * The text is what is already on the screen — formatted by the same functions,
  * with absence written out — so there is no second computation of any number:

@@ -1,4 +1,4 @@
-"""The study file: a saved selection study as a portable, versioned JSON (D-120).
+"""The study file: a saved selection study as a portable, versioned JSON (D-122).
 
 The file is **data and nothing else**. Reading one never evaluates anything in
 it — no expression is run, no formula opens, no path is followed, no markup is

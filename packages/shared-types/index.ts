@@ -342,7 +342,7 @@ export interface MaterialDetail {
    * condition first. Optional on the wire for payloads written before TM2-c.
    */
   atomic_composition?: AtomicComposition[];
-  /** D-120: the record this one was duplicated from, while it is still readable. */
+  /** D-122: the record this one was duplicated from, while it is still readable. */
   copied_from?: { id: number; name: string } | null;
 }
 
@@ -858,7 +858,7 @@ export interface StageIn {
   chart?: ChartStageIn | null;
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
-  /** D-120: the author's note on this stage — plain text, never markup. */
+  /** D-122: the author's note on this stage — plain text, never markup. */
   notes?: string | null;
 }
 
@@ -875,7 +875,7 @@ export interface StageOut {
   material_class_slugs: string[];
   chart: ChartStageIn | null;
   include_descendants: boolean;
-  /** D-120: null is "no note was written". */
+  /** D-122: null is "no note was written". */
   notes?: string | null;
 }
 
@@ -1157,7 +1157,7 @@ export interface StudySummary {
   constraint_count: number;
   criterion_count: number;
   stage_count: number;
-  /** D-120: the study or one of its stages carries a note. */
+  /** D-122: the study or one of its stages carries a note. */
   has_notes?: boolean;
 }
 
@@ -1178,7 +1178,7 @@ export interface StudyDetail {
   normalization: NormalizationMethod;
   method: MethodLiteral;
   criteria: CriterionIn[];
-  /** D-120: the study's own note — plain text. */
+  /** D-122: the study's own note — plain text. */
   notes?: string | null;
   created_at: string;
 }
@@ -1693,9 +1693,16 @@ export interface MyRecords {
  * recording habits choose the question without the reader seeing it chosen. The
  * interface proposes a basis; the request states one.
  */
+/** How a difference on one property counts (D-122). */
+export type NearnessCriterion = "both" | "at_most" | "at_least";
+
 export interface SimilarRequest {
   property_slugs: string[];
   limit?: number;
+  /** Positive factor per basis slug (0 < w <= 10); omitted = 1 (D-122). */
+  weights?: Record<string, number>;
+  /** One-sided criterion per basis slug; omitted = "both" (D-122). */
+  criteria?: Record<string, NearnessCriterion>;
 }
 
 export interface Neighbour {
@@ -1714,6 +1721,8 @@ export interface Neighbour {
   rank: number;
   /** Per-property squared contribution, so a position can be explained. */
   contributions: Record<string, number>;
+  /** Properties where a one-sided criterion accepted a real difference. */
+  satisfied: string[];
 }
 
 /** A record that could not be placed on the basis, and what it lacked. */
@@ -1737,6 +1746,9 @@ export interface Similar {
   /** Basis properties measured linearly despite asking for log space. */
   linear_fallback: string[];
   linear_fallback_labels: string[];
+  /** The weight and criterion every basis property ran with (D-122). */
+  weights: Record<string, number>;
+  criteria: Record<string, NearnessCriterion>;
 }
 
 // --- Engineering Solver & Performance Index Finder (P2) ---------------------

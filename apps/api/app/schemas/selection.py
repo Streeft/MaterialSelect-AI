@@ -57,14 +57,14 @@ MAX_STAGES = 20
 UniverseLiteral = Literal["material", "process"]
 
 
-#: The longest note a study or a stage carries (D-120).
+#: The longest note a study or a stage carries (D-122).
 MAX_NOTE_LENGTH = 2000
 
 
 def clean_note(value: object) -> object:
     """A note as plain text: trimmed, control characters dropped, empty is None.
 
-    Notes are the author's words, never markup (D-120): this does not try to
+    Notes are the author's words, never markup (D-122): this does not try to
     strip HTML, because ``<`` is a legitimate character in an engineering note
     ("E < 70 GPa"); the rule is that nothing ever renders a note as HTML — the
     screen draws it as text and an exported report escapes it. What this does

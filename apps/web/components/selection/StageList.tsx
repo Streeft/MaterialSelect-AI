@@ -63,7 +63,7 @@ export const MAX_NOTE_LENGTH = 2000;
  * screen cannot build one.
  */
 export type StageState = StageShape & {
-  /** D-120: the author's note on this stage — plain text, "" when none. */
+  /** D-122: the author's note on this stage — plain text, "" when none. */
   notes?: string;
 };
 

@@ -39,7 +39,7 @@ function mount(studies: StudySummary[]) {
   );
 }
 
-describe("SavedStudiesPanel (D-120)", () => {
+describe("SavedStudiesPanel (D-122)", () => {
   it("marks only the studies that carry notes", async () => {
     mount([study(1, "Com nota", true), study(2, "Sem nota", false)]);
     await userEvent.click(screen.getByText(/Meus estudos/i));

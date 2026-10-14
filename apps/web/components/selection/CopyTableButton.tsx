@@ -9,7 +9,7 @@ import { IconCopy } from "@/components/ui/icons";
 const t = flowText.copy;
 
 /**
- * "Copiar tabela" (D-120): the table on screen as tab-separated text, ready to
+ * "Copiar tabela" (D-122): the table on screen as tab-separated text, ready to
  * paste into a spreadsheet.
  *
  * `getText` is called at click time, not at render, so the text is always the

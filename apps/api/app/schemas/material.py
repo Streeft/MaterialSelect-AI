@@ -266,7 +266,7 @@ class MaterialListItem(BaseModel):
 
 
 class CopiedFromOut(BaseModel):
-    """The record a copy was duplicated from (D-120)."""
+    """The record a copy was duplicated from (D-122)."""
 
     id: int
     name: str
@@ -306,7 +306,7 @@ class MaterialDetail(BaseModel):
     # TM2-c (D-117): one block per condition present in ``composition``, in the
     # same order (no condition first) — the derived atomic percent or its absence.
     atomic_composition: list[AtomicCompositionOut] = []
-    # D-120: set on a record made by "duplicate", and only while the original is
+    # D-122: set on a record made by "duplicate", and only while the original is
     # still readable by this reader. None for everything else.
     copied_from: CopiedFromOut | None = None
 

@@ -69,7 +69,7 @@ beforeEach(() => {
   state.current = detail();
 });
 
-describe("duplicar registro próprio (D-120)", () => {
+describe("duplicar registro próprio (D-122)", () => {
   it("duplicates an own record and opens the copy", async () => {
     state.duplicate.mockResolvedValue(detail({ id: 9, name: "Liga do Bruno (cópia)" }));
     mount();

@@ -1,4 +1,4 @@
-"""Notes on a study and its stages, and the versioned study file (D-120).
+"""Notes on a study and its stages, and the versioned study file (D-122).
 
 The file is data and nothing else: these tests pin that it round-trips to the
 same answer, that a stranger's file is bounded and validated before anything is

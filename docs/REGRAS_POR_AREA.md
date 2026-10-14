@@ -124,6 +124,14 @@ percentual** têm cada uma sua frase (D-24), e a ordem entre "a linha não tem" 
 "a referência não tem" está fixada por teste: a culpa é da referência, porque
 consertá-la conserta a coluna.
 
+**Ajustes de proximidade** ([D-120](DECISIONS.md)): peso por propriedade
+(0 < w ≤ 10; **zero é recusado** — tirar a propriedade da base é o jeito de dizer
+"não importa") e critério unilateral aplicado à diferença já escalada; o lado
+aceito vale 0, o outro conta **inteiro**. A distância é a **média ponderada**, de
+modo que pesos padrão reproduzem a distância de antes. Ausência exclui **antes**
+de qualquer critério: nenhum ajuste transforma "sem valor" em "100%". Os ajustes
+voltam na resposta (`weights`, `criteria`, `satisfied`) e vivem na URL.
+
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
@@ -136,7 +144,7 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
-**Notas, arquivo de estudo e cópia da tabela (D-120).** Um estágio e o estudo
+**Notas, arquivo de estudo e cópia da tabela (D-122).** Um estágio e o estudo
 têm `notes` — texto puro, até 2.000 caracteres, `NULL` = "sem nota" e nunca
 caixa vazia; nada renderiza nota como HTML. O estudo sai como JSON versionado
 (`GET /api/selection/studies/{id}/export`, `format` + `version` + aviso de
@@ -428,7 +436,7 @@ compartilhado precisa de `require_catalog_curator`.** A troca em produção é o
 workflow **Modo de acesso** (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`),
 que só fica verde depois de ler o modo novo em `/api/health`.
 
-**Duplicar registro próprio (D-120).** `POST /api/materials/{id}/duplicar` copia,
+**Duplicar registro próprio (D-122).** `POST /api/materials/{id}/duplicar` copia,
 coluna a coluna, um registro **do próprio leitor** (valores com a trilha de
 unidade, designações, composição, curvas, vínculos de processo e palavras-chave)
 para outro registro dele, com `copied_from_id` e o nome "X (cópia)". Nada é

@@ -19,7 +19,7 @@ interface ExportButtonsProps {
   urlFor: (format: ExportFormat) => string;
   label?: string;
   hint?: string;
-  /** Further `MenuItem`s appended to the same menu (the study file, D-120). */
+  /** Further `MenuItem`s appended to the same menu (the study file, D-122). */
   extraItems?: ReactNode;
 }
 
