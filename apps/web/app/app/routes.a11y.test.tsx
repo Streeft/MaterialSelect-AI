@@ -1295,6 +1295,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   rollbackImport: () => Promise.resolve(null),
   catalogueExportUrl: (format: string) => `#${format}`,
   studyExportUrl: (id: number, format: string) => `#${id}-${format}`,
+  studyFileUrl: (id: number) => `#${id}-json`,
   studyLaudoUrl: (id: number) => `#${id}-laudo`,
   // D-104: a ficha tem o "Exportar ▾" do cartão CAE; a auditoria não baixa nada.
   downloadCaeCard: vi.fn(),

@@ -38,6 +38,7 @@ import type {
   WeightsPreviewRequest,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { flowText } from "@/lib/i18n-flow";
 import { prettyUnit } from "@/lib/format";
 import {
   Alert,
@@ -59,6 +60,7 @@ import {
   Select,
   SelectOption,
   Stepper,
+  Textarea,
   type Step as StepItem,
   type StepStatus,
 } from "@/components/ui";
@@ -70,6 +72,7 @@ import {
   nextEditorId,
 } from "@/components/selection/ConstraintEditor";
 import {
+  MAX_NOTE_LENGTH,
   StageAddButtons,
   StageList,
   type StageState,
@@ -176,6 +179,7 @@ function stageFromPayload(
     id: nextEditorId("stage"),
     label: stage.label ?? "",
     enabled: stage.enabled,
+    notes: stage.notes ?? "",
   };
   switch (stage.kind) {
     case "tree":
@@ -323,6 +327,7 @@ function SelectionWizard() {
   const [functionText, setFunctionText] = useState("");
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
+  const [studyNotes, setStudyNotes] = useState("");
   const [aiOpen, setAiOpen] = useState(false);
   // P0-1: the ordered pipeline. It starts as exactly one limit stage holding
   // the nested AND/OR tree M6 introduced, so a simple study looks and behaves
@@ -650,6 +655,7 @@ function SelectionWizard() {
         normalization,
         method,
         criteria: criteriaPayload(),
+        notes: studyNotes.trim() || null,
       }),
     onSuccess: () => {
       setSaveMessage(t.saved);
@@ -672,6 +678,7 @@ function SelectionWizard() {
       setFunctionText(s.function_text ?? "");
       setObjectiveText(s.objective_text ?? "");
       setFreeVariables(s.free_variables.join(", "));
+      setStudyNotes(s.notes ?? "");
       setUniverse(s.universe);
       // P0-1 closes M6's read-side gap: `StudyOut.stages` carries each stage's
       // real tree, so reopening a nested study restores its parentheses instead
@@ -1184,6 +1191,16 @@ function SelectionWizard() {
                   className="sm:col-span-2"
                   value={freeVariables}
                   onChange={(e) => setFreeVariables(e.target.value)}
+                />
+                <Textarea
+                  label={flowText.notes.studyLabel}
+                  hint={flowText.notes.studyHint}
+                  className="sm:col-span-2"
+                  rows={3}
+                  maxLength={MAX_NOTE_LENGTH}
+                  placeholder={flowText.notes.placeholder}
+                  value={studyNotes}
+                  onChange={(e) => setStudyNotes(e.target.value)}
                 />
               </CardBody>
             </Card>

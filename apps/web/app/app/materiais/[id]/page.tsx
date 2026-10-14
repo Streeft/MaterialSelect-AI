@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deactivateMaterial,
+  duplicateMaterial,
   getChart,
   getMaterial,
   listProperties,
@@ -17,6 +18,7 @@ import {
 } from "@/components/UnitPicker";
 import type { MaterialDetail, PropertyGroup } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { flowText } from "@/lib/i18n-flow";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { useCanEditCatalog } from "@/lib/billing";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
@@ -101,6 +103,20 @@ export default function MaterialDetailPage() {
     },
   });
 
+  // D-120: an own record can be duplicated as an editable copy of its own.
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const duplicate = useMutation({
+    mutationFn: () => duplicateMaterial(id),
+    onSuccess: (copy) => {
+      setDuplicateError(null);
+      qc.invalidateQueries({ queryKey: ["materials"] });
+      qc.invalidateQueries({ queryKey: ["my-records"] });
+      router.push(`/app/materiais/${copy.id}`);
+    },
+    onError: (err) =>
+      setDuplicateError(err instanceof Error ? err.message : ptBR.detail.error),
+  });
+
   function handleDeactivate() {
     if (window.confirm(ptBR.actions.confirmDeactivate)) {
       deactivate.mutate();
@@ -161,6 +177,18 @@ export default function MaterialDetailPage() {
                     <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
                   )}
                   {!data.is_active && <Badge>{t.inactive}</Badge>}
+                  {/* D-120: a copy says where it came from. */}
+                  {data.copied_from && (
+                    <Badge tone="neutral">
+                      {flowText.duplicate.copiedFrom}{" "}
+                      <Link
+                        href={`/app/materiais/${data.copied_from.id}`}
+                        className="underline"
+                      >
+                        {data.copied_from.name}
+                      </Link>
+                    </Badge>
+                  )}
                   {referencedCount > 0 ? (
                     <Badge tone="neutral">
                       {ptBR.catalog.referenceCount(referencedCount)}
@@ -223,6 +251,17 @@ export default function MaterialDetailPage() {
                     {ptBR.actions.edit}
                   </ButtonLink>
                 )}
+                {data.is_active && data.is_own_record && !data.is_official && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    title={flowText.duplicate.hint}
+                    loading={duplicate.isPending}
+                    onClick={() => duplicate.mutate()}
+                  >
+                    {duplicate.isPending ? flowText.duplicate.busy : flowText.duplicate.button}
+                  </Button>
+                )}
                 {data.is_active &&
                   !data.is_official &&
                   (data.is_own_record || canEditCatalog) && (
@@ -236,6 +275,11 @@ export default function MaterialDetailPage() {
                   </Button>
                 )}
               </div>
+              {duplicateError && (
+                <p role="alert" className="w-full text-support text-danger-fg">
+                  {duplicateError}
+                </p>
+              )}
               {data.is_official && (
                 <p id="material-official-reason" className="w-full text-support text-ink-muted">
                   {ptBR.form.officialReadOnly}

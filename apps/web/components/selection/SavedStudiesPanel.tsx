@@ -2,12 +2,15 @@
 
 import { ptBR } from "@/lib/i18n";
 import { countLabel } from "@/lib/format";
-import { studyExportUrl } from "@/lib/api";
+import { studyExportUrl, studyFileUrl } from "@/lib/api";
+import { flowText } from "@/lib/i18n-flow";
 import type { StudySummary } from "@/lib/types";
 import {
+  Badge,
   Button,
   Disclosure,
   EmptyState,
+  MenuItem,
   TBody,
   Table,
   TableScroll,
@@ -18,6 +21,7 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { IconTrash } from "@/components/ui/icons";
 import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
+import { ImportStudyButton } from "./ImportStudyButton";
 
 const t = ptBR.selection;
 
@@ -44,6 +48,9 @@ export function SavedStudiesPanel({
   const count = studies?.length ?? 0;
   return (
     <Disclosure summary={t.myStudies(count)}>
+      <div className="mb-3">
+        <ImportStudyButton />
+      </div>
       {count === 0 ? (
         <EmptyState title={t.noStudies} />
       ) : (
@@ -54,10 +61,24 @@ export function SavedStudiesPanel({
                 <Tr key={s.id}>
                   <Td>
                     <span className="font-medium text-ink">{s.name}</span>
+                    {s.has_notes && (
+                      <Badge tone="neutral" className="ml-2">
+                        {flowText.notes.hasNotes}
+                      </Badge>
+                    )}
                     <div className="mt-1">
                       <ExportButtons
                         urlFor={(format) => studyExportUrl(s.id, format)}
                         label={ptBR.exports.study}
+                        extraItems={
+                          <MenuItem
+                            href={studyFileUrl(s.id)}
+                            download
+                            hint={flowText.file.exportHint}
+                          >
+                            {flowText.file.exportItem}
+                          </MenuItem>
+                        }
                       />
                     </div>
                     <div className="mt-2">

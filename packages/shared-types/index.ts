@@ -342,6 +342,8 @@ export interface MaterialDetail {
    * condition first. Optional on the wire for payloads written before TM2-c.
    */
   atomic_composition?: AtomicComposition[];
+  /** D-120: the record this one was duplicated from, while it is still readable. */
+  copied_from?: { id: number; name: string } | null;
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */
@@ -856,6 +858,8 @@ export interface StageIn {
   chart?: ChartStageIn | null;
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
+  /** D-120: the author's note on this stage — plain text, never markup. */
+  notes?: string | null;
 }
 
 /** A persisted stage, read back whole — `root_group` carries the real tree. */
@@ -871,6 +875,8 @@ export interface StageOut {
   material_class_slugs: string[];
   chart: ChartStageIn | null;
   include_descendants: boolean;
+  /** D-120: null is "no note was written". */
+  notes?: string | null;
 }
 
 /** What one stage of the pipeline did, in a run's result. */
@@ -1151,6 +1157,8 @@ export interface StudySummary {
   constraint_count: number;
   criterion_count: number;
   stage_count: number;
+  /** D-120: the study or one of its stages carries a note. */
+  has_notes?: boolean;
 }
 
 export interface StudyDetail {
@@ -1170,6 +1178,8 @@ export interface StudyDetail {
   normalization: NormalizationMethod;
   method: MethodLiteral;
   criteria: CriterionIn[];
+  /** D-120: the study's own note — plain text. */
+  notes?: string | null;
   created_at: string;
 }
 
@@ -1190,6 +1200,7 @@ export interface StudyIn {
   normalization: NormalizationMethod;
   method: MethodLiteral;
   criteria: CriterionIn[];
+  notes?: string | null;
 }
 
 // --- Visualisation: property maps and comparison (Fase 5) ------------------

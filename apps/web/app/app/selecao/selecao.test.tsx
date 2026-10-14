@@ -7,12 +7,14 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { flowText } from "@/lib/i18n-flow";
 import type {
   PerformanceIndex,
   ProcessAttribute,
   PropertyDefinition,
   RunRequest,
   RunResult,
+  StudyIn,
   WeightBudget,
   WeightsPreview,
   WeightsPreviewRequest,
@@ -21,6 +23,8 @@ import type {
 const t = ptBR.selection;
 
 const runSelection = vi.fn<(payload: RunRequest) => Promise<RunResult>>();
+const getStudy = vi.fn<(id: number) => Promise<unknown>>();
+const createStudy = vi.fn<(payload: StudyIn) => Promise<null>>();
 const listProcessAttributes = vi.fn<() => Promise<ProcessAttribute[]>>();
 const previewWeights = vi.fn<(payload: WeightsPreviewRequest) => Promise<WeightsPreview>>();
 
@@ -94,8 +98,8 @@ vi.mock("@/lib/api", () => ({
   listProcessAttributes: () => listProcessAttributes(),
   listPerformanceIndices: () => listPerformanceIndices(),
   listStudies: () => Promise.resolve([]),
-  getStudy: () => Promise.resolve(null),
-  createStudy: () => Promise.resolve(null),
+  getStudy: (id: number) => getStudy(id),
+  createStudy: (payload: StudyIn) => createStudy(payload),
   deleteStudy: () => Promise.resolve(),
   runStudy: () => Promise.resolve(null),
   evaluateIndex: () => Promise.resolve({ dimension: "dimensionless" }),
@@ -104,6 +108,7 @@ vi.mock("@/lib/api", () => ({
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
   studyExportUrl: () => "#",
+  studyFileUrl: () => "#",
   studyLaudoUrl: () => "#",
 }));
 
@@ -148,6 +153,10 @@ const { default: SelectionPage } = await import("./page");
 beforeEach(() => {
   runSelection.mockReset();
   runSelection.mockResolvedValue(result());
+  getStudy.mockReset();
+  getStudy.mockResolvedValue(null);
+  createStudy.mockReset();
+  createStudy.mockResolvedValue(null);
   previewWeights.mockReset();
   previewWeights.mockImplementation(async (payload) => closedPreview(payload));
   listProcessAttributes.mockResolvedValue([]);
@@ -220,6 +229,86 @@ describe("assistente de seleção", () => {
       expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeDisabled(),
     );
     expect(screen.getByText(t.saveNeedsName)).toBeInTheDocument();
+  });
+});
+
+describe("notas do estudo (D-120)", () => {
+  it("saves the study's note and each stage's note, trimmed, with the study", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.type(screen.getByLabelText(t.studyName), "Haste com notas");
+    await user.type(screen.getByLabelText(flowText.notes.studyLabel), "  Aula 3, exercício 4  ");
+    await user.click(stepButton(t.stepObjective));
+    await clickRun(user);
+    await waitFor(() =>
+      expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeEnabled(),
+    );
+    await user.click(screen.getByShadowRole("button", { name: t.saveStudy }));
+
+    await waitFor(() => expect(createStudy).toHaveBeenCalled());
+    const sent = createStudy.mock.calls[0]![0];
+    expect(sent.notes).toBe("Aula 3, exercício 4");
+    // a stage nobody wrote a note on is null on the wire, never ""
+    expect(sent.stages?.[0]?.notes).toBeNull();
+  });
+
+  it("reopens a saved study with its note and its stage's note in place", async () => {
+    getStudy.mockResolvedValue({
+      id: 3,
+      name: "Estudo salvo",
+      description: null,
+      function_text: null,
+      objective_text: null,
+      free_variables: [],
+      universe: "material",
+      combinator: "AND",
+      constraints: [],
+      stages: [
+        {
+          position: 0,
+          kind: "limit",
+          label: "Rigidez",
+          enabled: true,
+          root_group: { operator: "AND", constraints: [], groups: [] },
+          class_slugs: [],
+          process_slugs: [],
+          process_class_slugs: [],
+          material_class_slugs: [],
+          chart: null,
+          include_descendants: true,
+          notes: "E vem do enunciado",
+        },
+      ],
+      index: null,
+      normalization: "minmax",
+      method: "weighted_sum",
+      criteria: [],
+      notes: "Nota do estudo salvo",
+      created_at: "2026-10-14T00:00:00Z",
+    });
+    searchParams.set("estudo", "3");
+    render(wrap(<SelectionPage />));
+    await waitFor(() => expect(getStudy).toHaveBeenCalledWith(3));
+    // reopening lands on the constraints step, where the stage's note lives
+    expect(await screen.findByDisplayValue("E vem do enunciado")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(stepButton(t.stepFunction));
+    expect(await screen.findByDisplayValue("Nota do estudo salvo")).toBeInTheDocument();
+  });
+
+  it("sends null, not an empty string, when the study has no note", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.type(screen.getByLabelText(t.studyName), "Sem nota");
+    await user.click(stepButton(t.stepObjective));
+    await clickRun(user);
+    await waitFor(() =>
+      expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeEnabled(),
+    );
+    await user.click(screen.getByShadowRole("button", { name: t.saveStudy }));
+    await waitFor(() => expect(createStudy).toHaveBeenCalled());
+    expect(createStudy.mock.calls[0]![0].notes).toBeNull();
   });
 });
 
