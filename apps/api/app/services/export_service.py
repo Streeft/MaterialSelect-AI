@@ -760,9 +760,7 @@ class ExportService:
                 name = attribute.name if attribute else slug
                 value = by_slug.get(slug)
                 if value is None or value.is_missing:
-                    rows.append(
-                        [process.name, name, kind, _MISSING, "—", _MISSING, "—", "—", "—"]
-                    )
+                    rows.append([process.name, name, kind, _MISSING, "—", _MISSING, "—", "—", "—"])
                     continue
                 rows.append(
                     [
@@ -974,59 +972,61 @@ class ExportService:
                 prop_name = p.property_name
                 symbol = p.symbol or "—"
                 if p.is_missing:
-                    rows.append([
-                        category_name,
-                        prop_name,
-                        symbol,
-                        _MISSING,
-                        _MISSING,
-                        _MISSING,
-                        _MISSING,
-                        "—",
-                        "—",
-                    ])
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            "—",
+                            "—",
+                        ]
+                    )
                 elif p.is_interval:
                     display_val = f"{format_number(p.display_min)} – {format_number(p.display_max)}"
                     orig_val = f"{format_number(p.value_min)} – {format_number(p.value_max)}"
                     read_unit = pretty_unit(p.display_unit) if p.display_unit else _MISSING
                     orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
                     uncertainty = (
-                        f"±{format_number(p.uncertainty)}%"
-                        if p.uncertainty is not None
-                        else "—"
+                        f"±{format_number(p.uncertainty)}%" if p.uncertainty is not None else "—"
                     )
-                    rows.append([
-                        category_name,
-                        prop_name,
-                        symbol,
-                        display_val,
-                        read_unit,
-                        orig_val,
-                        orig_unit,
-                        p.measurement_condition or "—",
-                        uncertainty,
-                    ])
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            display_val,
+                            read_unit,
+                            orig_val,
+                            orig_unit,
+                            p.measurement_condition or "—",
+                            uncertainty,
+                        ]
+                    )
                 else:
                     display_val = format_number(p.display_value)
                     orig_val = format_number(p.value_scalar)
                     read_unit = pretty_unit(p.display_unit) if p.display_unit else _MISSING
                     orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
                     uncertainty = (
-                        f"±{format_number(p.uncertainty)}%"
-                        if p.uncertainty is not None
-                        else "—"
+                        f"±{format_number(p.uncertainty)}%" if p.uncertainty is not None else "—"
                     )
-                    rows.append([
-                        category_name,
-                        prop_name,
-                        symbol,
-                        display_val,
-                        read_unit,
-                        orig_val,
-                        orig_unit,
-                        p.measurement_condition or "—",
-                        uncertainty,
-                    ])
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            display_val,
+                            read_unit,
+                            orig_val,
+                            orig_unit,
+                            p.measurement_condition or "—",
+                            uncertainty,
+                        ]
+                    )
         notes = [
             "Valores de leitura expressos nas unidades selecionadas pelo usuário (D-70). "
             "'ausente' indica dado não cadastrado (D-24).",
@@ -1055,17 +1055,19 @@ class ExportService:
             for p in group.properties:
                 canon_unit = pretty_unit(p.canonical_unit)
                 if p.is_missing:
-                    rows.append([
-                        p.property_name,
-                        _MISSING,
-                        _MISSING,
-                        _MISSING,
-                        canon_unit,
-                        "—",
-                        p.data_quality.value,
-                        p.source_label or "—",
-                        p.notes or "—",
-                    ])
+                    rows.append(
+                        [
+                            p.property_name,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            canon_unit,
+                            "—",
+                            p.data_quality.value,
+                            p.source_label or "—",
+                            p.notes or "—",
+                        ]
+                    )
                 else:
                     orig_val = (
                         f"{format_number(p.value_min)} – {format_number(p.value_max)}"
@@ -1074,17 +1076,19 @@ class ExportService:
                     )
                     orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
                     norm_val = format_number(p.normalized_value)
-                    rows.append([
-                        p.property_name,
-                        orig_val,
-                        orig_unit,
-                        norm_val,
-                        canon_unit,
-                        p.conversion_method or "—",
-                        p.data_quality.value,
-                        p.source_label or "—",
-                        p.notes or "—",
-                    ])
+                    rows.append(
+                        [
+                            p.property_name,
+                            orig_val,
+                            orig_unit,
+                            norm_val,
+                            canon_unit,
+                            p.conversion_method or "—",
+                            p.data_quality.value,
+                            p.source_label or "—",
+                            p.notes or "—",
+                        ]
+                    )
         return Sheet(
             name="Proveniência propriedades",
             header=[
@@ -1124,27 +1128,25 @@ class ExportService:
                 else:
                     teor = f"{format_number(e.normalized_min)} – {format_number(e.normalized_max)}"
                 min_val = (
-                    format_number(e.normalized_min)
-                    if e.normalized_min is not None
-                    else _MISSING
+                    format_number(e.normalized_min) if e.normalized_min is not None else _MISSING
                 )
                 max_val = (
-                    format_number(e.normalized_max)
-                    if e.normalized_max is not None
-                    else _MISSING
+                    format_number(e.normalized_max) if e.normalized_max is not None else _MISSING
                 )
-            rows.append([
-                cond,
-                e.element_name,
-                e.element,
-                e.atomic_number,
-                e.state,
-                teor,
-                min_val,
-                max_val,
-                e.data_quality.value,
-                e.source_label,
-            ])
+            rows.append(
+                [
+                    cond,
+                    e.element_name,
+                    e.element,
+                    e.atomic_number,
+                    e.state,
+                    teor,
+                    min_val,
+                    max_val,
+                    e.data_quality.value,
+                    e.source_label,
+                ]
+            )
         notes = (
             ["Composição química em porcentagem de massa (% massa)."]
             if rows
@@ -1179,13 +1181,15 @@ class ExportService:
             else:
                 for entry in block.entries:
                     has_any_entry = True
-                    rows.append([
-                        cond,
-                        entry.element,
-                        format_number(entry.atomic_min),
-                        format_number(entry.atomic_max),
-                        block.basis,
-                    ])
+                    rows.append(
+                        [
+                            cond,
+                            entry.element,
+                            format_number(entry.atomic_min),
+                            format_number(entry.atomic_max),
+                            block.basis,
+                        ]
+                    )
         notes = (
             [
                 "Composição atômica calculada a partir da composição em massa "
@@ -1231,9 +1235,7 @@ class ExportService:
         )
 
     @staticmethod
-    def _material_equivalences_sheet(
-        d: MaterialDetail, equivs: MaterialEquivalencesOut
-    ) -> Sheet:
+    def _material_equivalences_sheet(d: MaterialDetail, equivs: MaterialEquivalencesOut) -> Sheet:
         rows: list[list[object]] = []
         for group in equivs.groups:
             self_member = next((m for m in group.members if m.is_self), None)
@@ -1241,15 +1243,17 @@ class ExportService:
             for m in group.members:
                 if m.is_self:
                     continue
-                rows.append([
-                    group.kind_label,
-                    orig_code,
-                    m.material_name,
-                    m.code,
-                    m.system_label,
-                    m.region or "—",
-                    group.source_label,
-                ])
+                rows.append(
+                    [
+                        group.kind_label,
+                        orig_code,
+                        m.material_name,
+                        m.code,
+                        m.system_label,
+                        m.region or "—",
+                        group.source_label,
+                    ]
+                )
         return Sheet(
             name="Equivalências",
             header=[
@@ -1300,7 +1304,7 @@ class ExportService:
             notes=(
                 [
                     "Curvas experimentais registradas. Pontos detalhados disponíveis via "
-                    "exportação individual de curva (D-106).",
+                    "exportação individual de curva (D-106)."
                 ]
                 if rows
                 else ["Nenhuma curva experimental cadastrada para este material."]
