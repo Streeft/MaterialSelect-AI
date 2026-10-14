@@ -1,6 +1,6 @@
-"""Export endpoints: catalogue and selection studies as CSV, XLSX, DOCX, PPTX or HTML,
-one material as a CAE card (D-104), a material curve's points (D-106), and what
-changed between two releases of the official catalogue (D-108).
+"""Export endpoints: catalogue, selection studies and material sheet as CSV, XLSX,
+DOCX, PPTX or HTML, one material as a CAE card (D-104), a material curve's points (D-106),
+and what changed between two releases of the official catalogue (D-108).
 
 These return files rather than JSON, so they set their own headers. Three
 details matter and are easy to get wrong:
@@ -53,6 +53,7 @@ HTML_MEDIA_TYPE = "text/html; charset=utf-8"
 
 SUPPORTED_FORMATS = ("csv", "xlsx", "html", "docx", "pptx")
 LAUDO_SUPPORTED_FORMATS = ("html", "docx", "pptx")
+MATERIAL_SUPPORTED_FORMATS = ("html", "csv", "xlsx")
 
 # The report needs its own inline stylesheet and nothing else whatsoever.
 HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'"
@@ -151,6 +152,29 @@ def export_study_laudo(
     report = ExportService(db, user, unit_choices).study_laudo(
         study_id, project.id, responsible=responsavel
     )
+    return _file_response(report, fmt)
+
+
+@router.get("/materiais/{material_id}.{fmt}")
+def export_material(
+    material_id: int,
+    fmt: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> Response:
+    """Ficha técnica detalhada do material (D-124).
+
+    Exportação completa em HTML (para impressão em PDF nativa do navegador via
+    window.print com CSS @media print inline), CSV ou XLSX. Respeita as unidades
+    de leitura escolhidas (D-70) e a regra de ausência explícita (D-24).
+    """
+    if fmt not in MATERIAL_SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de ficha técnica não suportado: '{fmt}'. "
+            f"Use {', '.join(MATERIAL_SUPPORTED_FORMATS)}."
+        )
+    report = ExportService(db, user, unit_choices).material_report(material_id)
     return _file_response(report, fmt)
 
 

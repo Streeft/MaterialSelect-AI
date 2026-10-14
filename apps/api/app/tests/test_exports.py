@@ -119,10 +119,10 @@ class TestCsvRendering:
 
     def test_starts_with_a_bom_so_excel_reads_utf8(self) -> None:
         # Without it Excel on Windows renders "Relatório" as "RelatÃ³rio".
-        assert to_csv(_report()).startswith("﻿")
+        assert to_csv(_report()).startswith("\ufeff")
 
     def test_is_parseable_and_keeps_the_header(self) -> None:
-        rows = list(csv.reader(io.StringIO(to_csv(_report()).lstrip("﻿"))))
+        rows = list(csv.reader(io.StringIO(to_csv(_report()).lstrip("\ufeff"))))
         assert ["Material", "Valor"] in rows
 
 
@@ -420,7 +420,7 @@ class TestCatalogueExport:
         text = client.get("/api/exports/catalogo.csv").text
         assert "'=cmd|'/c calc'!A1" in text or "\"'=cmd|'/c calc'!A1\"" in text
         # The unescaped form must not appear at the start of any field.
-        rows = list(csv.reader(io.StringIO(text.lstrip("﻿"))))
+        rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff"))))
         assert not any(
             isinstance(cell, str) and cell.startswith("=") for row in rows for cell in row
         )
@@ -788,3 +788,93 @@ def test_catalogue_csv_carries_composition_and_designations_with_absence_written
     assert "resto (declarado pela fonte, não calculado)" in text
     assert "sem composição cadastrada" in text
     assert "sem designação cadastrada" in text or "UNS" in text
+
+
+def _exportable_material_id(client: TestClient) -> int:
+    response = client.get("/api/materials")
+    assert response.status_code == 200, response.text
+    items = response.json()
+    assert len(items) > 0, "Catálogo sem materiais para teste"
+    return items[0]["id"]
+
+
+class TestMaterialSheetExport:
+    """Ficha técnica detalhada do material em 9 seções canônicas (D-124)."""
+
+    def _mat_id(self, client: TestClient) -> int:
+        return _exportable_material_id(client)
+
+    def test_material_html_opens_inline_with_csp(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        response = client.get(f"/api/exports/materiais/{mat_id}.html")
+        assert response.status_code == 200, response.text
+        assert response.headers["content-type"].startswith("text/html")
+        assert response.headers["content-disposition"].startswith("inline")
+        assert response.headers["content-security-policy"] == HTML_CSP
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+    def test_material_html_contains_all_canonical_sections(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        text = client.get(f"/api/exports/materiais/{mat_id}.html").text
+        for expected in [
+            "1. Identificação",
+            "2. Propriedades",
+            "3. Proveniência propriedades",
+            "4. Composição",
+            "5. Composição atômica",
+            "6. Designações",
+            "7. Equivalências",
+            "8. Curvas características",
+            "9. Processos compatíveis",
+        ]:
+            assert expected in text, f"faltou a seção '{expected}' no HTML da ficha"
+
+    def test_material_xlsx_has_all_sheets_within_31_chars(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        response = client.get(f"/api/exports/materiais/{mat_id}.xlsx")
+        assert response.status_code == 200, response.text
+        names = load_workbook(io.BytesIO(response.content)).sheetnames
+        for expected in [
+            "Aviso",
+            "Identificação",
+            "Propriedades",
+            "Proveniência propriedades",
+            "Composição",
+            "Composição atômica",
+            "Designações",
+            "Equivalências",
+            "Curvas características",
+            "Processos compatíveis",
+        ]:
+            assert expected in names, f"faltou a aba '{expected}' no XLSX da ficha"
+        assert all(len(name) <= 31 for name in names), f"Aba excede 31 caracteres: {names}"
+
+    def test_material_csv_contains_identification_and_properties(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        response = client.get(f"/api/exports/materiais/{mat_id}.csv")
+        assert response.status_code == 200, response.text
+        assert "attachment" in response.headers["content-disposition"]
+        text = response.text
+        assert LIMITATION_NOTICE in text
+        assert "Ficha técnica" in text
+        assert "Propriedades" in text
+
+    def test_material_export_preserves_reading_units(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        response = client.get(f"/api/exports/materiais/{mat_id}.html?unidades=densidade:g/cm**3")
+        assert response.status_code == 200, response.text
+        text = response.text
+        assert "g/cm³" in text
+
+    def test_material_export_respects_explicit_absence(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        text = client.get(f"/api/exports/materiais/{mat_id}.html").text
+        assert "ausente" in text or "Sem composição cadastrada" in text
+
+    def test_unknown_material_is_404(self, client: TestClient) -> None:
+        assert client.get("/api/exports/materiais/999999.html").status_code == 404
+
+    def test_unsupported_format_is_rejected(self, client: TestClient) -> None:
+        mat_id = self._mat_id(client)
+        assert client.get(f"/api/exports/materiais/{mat_id}.pdf").status_code == 400
+        assert client.get(f"/api/exports/materiais/{mat_id}.docx").status_code == 400
