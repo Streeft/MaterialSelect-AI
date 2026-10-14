@@ -184,11 +184,13 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   linha só, com uma ref nova por release), então hoje só a presença dele
   difere — os valores do modal só mudam entre releases quando o TM7-a decidir
   como gravar o modal por release.
-- **TM7-d — desempenho.** ▁ O diff é **recalculado a cada requisição** (duas
-  consultas por release, tudo em memória). Com o catálogo Granta inteiro
-  (milhares de registros × dezenas de propriedades) pode passar de segundos;
-  materializar no import se medir lento. O CSV/XLSX não pagina. A rota de um
-  só registro também monta o diff inteiro e devolve um item (achado da revisão).
+- ~~**TM7-d — desempenho.**~~ — feito na Sessão 78 ([D-123](DECISIONS.md)):
+  medido com catálogo fictício (5.000 registros: 108,9 s → 10,3 s com o cache de
+  unidade e o atalho do valor idêntico; 0,32 s lido do diff guardado no import,
+  com invalidação na escrita, impressão digital e versão). Resíduos: o CSV/XLSX
+  ainda não pagina; um par que não é "anterior → nova" (ex.: duas releases
+  atrás) segue calculado a cada requisição; com 20.000 registros a leitura do
+  JSON guardado ainda leva ≈ 1,4 s.
 - **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
   releases que passa de ativo para inativo sai como "inalterado", porque
   `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
