@@ -365,6 +365,20 @@ def _same_text(a: str | None, b: str | None) -> bool:
     return (a or None) == (b or None)
 
 
+def _all_finite(value: ValueSnapshot) -> bool:
+    return all(
+        number is None or math.isfinite(number)
+        for number in (
+            value.value_scalar,
+            value.value_min,
+            value.value_max,
+            value.value_typical,
+            value.normalized_value,
+            value.uncertainty,
+        )
+    )
+
+
 def compare_values(
     before: ValueSnapshot | None, after: ValueSnapshot | None, canonical_unit: str
 ) -> ChangeKind | None:
@@ -376,6 +390,12 @@ def compare_values(
     numbers, different original number or unit — the spelling of the unit
     included), metadata (measurement condition or uncertainty).
     """
+    if before is not None and before == after and _all_finite(before):
+        # TM7-d (D-123): two identical declarations are never a change, and
+        # converting their numbers to find that out was most of the diff's
+        # time on a large catalogue. Only finite numbers take this path: a NaN
+        # or an infinity still goes the long way, which refuses it as before.
+        return None
     state_before, state_after = state_of(before), state_of(after)
     if state_before is not state_after:
         both_present = all(

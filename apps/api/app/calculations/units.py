@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import re
+from functools import lru_cache
 from tokenize import TokenError
 
 from pint import UnitRegistry
@@ -173,6 +174,22 @@ def validate_dimension(unit: str, expected_dimension: str) -> bool:
     return quantity.check(expected_dimension)
 
 
+@lru_cache(maxsize=1024)
+def _parsed_unit(unit: str):  # noqa: ANN202 - Pint's Unit type is registry-bound
+    """Parse a unit string once per process (TM7-d, D-123).
+
+    ``ureg.Quantity(value, "MPa")`` parses the string on every call, and that
+    parse — not the arithmetic — was most of the release diff's time: a
+    catalogue converts the same handful of units hundreds of thousands of
+    times. ``Quantity(value, text)`` and ``Quantity(value, parse_units(text))``
+    build the same unit container, so the converted number is identical; only
+    the repeated parse goes away. A string that fails to parse raises every
+    time (``lru_cache`` does not cache exceptions). Only called after
+    :func:`_reject_pathological_unit`, so nothing unbounded reaches the cache.
+    """
+    return ureg.parse_units(unit)
+
+
 def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[float, str]:
     """Convert ``value`` from ``from_unit`` to ``canonical_unit``.
 
@@ -196,7 +213,7 @@ def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[flo
     if from_unit == canonical_unit:
         return value, f"identity:{canonical_unit}"
     try:
-        converted = ureg.Quantity(value, from_unit).to(canonical_unit)
+        converted = ureg.Quantity(value, _parsed_unit(from_unit)).to(_parsed_unit(canonical_unit))
     # DimensionalityError first and separately: it is itself a TypeError
     # subclass, so it must be caught before the broader parse-failure tuple
     # below (which now includes plain TypeError) or it would be reported as

@@ -351,6 +351,15 @@ o log do Actions é público. Para validar só os bytes numa máquina sem banco,
 use `--sem-banco`. O commit grava o mesmo relatório em
 `CatalogImportRun.report["promotion"]`.
 
+## 10-ter. Diff guardado no import (D-123)
+
+Ao promover uma release, o importador grava na mesma transação o diff contra a
+release anterior da linha (`catalog_release_diff`; `stored_diff_records` no
+relatório do import). A API só o usa enquanto a versão de formato e a impressão
+digital das duas releases baterem; senão recalcula das linhas. Toda escrita em
+linha do catálogo apaga os diffs guardados. Depois de corrigir dados à mão no
+banco, apague as linhas de `catalog_release_diff` ou reimporte.
+
 ## 11. O que esta fundação ainda não faz
 
 O repositório **não contém** o corpus de materiais licenciado. A extração dos

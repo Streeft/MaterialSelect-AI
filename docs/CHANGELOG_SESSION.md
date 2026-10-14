@@ -11,7 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4769 | 924 |
+| [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4781 | 924 |
+| [78](#sessão-78--141026--desempenho-do-diff-entre-releases-tm7-d-d-123) | 14/10/2026 | Desempenho do diff entre releases (TM7-d): unidade interpretada uma vez, atalho do valor idêntico e diff guardado no import (migração `2fe7eecc5981`) | +12 | 0 |
 | [77](#sessão-77--141026--fluxo-de-sala-de-aula-notas-arquivo-de-estudo-copiar-tabela-e-duplicar-registro-d-122) | 14/10/2026 | Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21): notas por estágio e por estudo, estudo como JSON versionado (exportar/importar, estrito, 256 KB, nunca executa o arquivo), "Copiar tabela" em TSV e duplicar registro próprio (`copied_from_id`; migração `d4f041be7fd4`) | +46 | +30 |
 | [75](#sessão-75--141026--ajustes-de-proximidade-do-find-similar-d-120) | 14/10/2026 | Ajustes de proximidade do Find Similar: peso por propriedade e critério unilateral ("100% se igual ou menor/maior"), média ponderada, `satisfied` e parcelas por propriedade, ajustes na URL | +23 | +11 |
 | [76](#sessão-76--141026--eco-audit-de-produto-d-121) | 14/10/2026 | Eco Audit de produto: lista de componentes (material, processo, massa × quantidade, reciclado, rota cada um), vários trechos de transporte, sete rotas de fim de vida pagas pelo fator do próprio material (rota sem fator indisponível com a razão), `GET /api/eco/rotas-fim-de-vida`, detalhe por componente e por trecho; sem migração (D-121) | 4672 → 4711 | 891 → 894 |
@@ -105,7 +106,21 @@ térmicos saem para o demo e nenhuma das três definições fica em ~0 % no pain
 Nenhum valor real foi escrito; material real sem ν continua 422. Sem migração.
 
 **Testes.** +12 de backend (`test_seed_demo_cae.py`, aceitação/recusa em
-`test_cae_export_api.py`, cobertura no painel): 4757 → 4769.
+`test_cae_export_api.py`, cobertura no painel): 4769 → 4781.
+
+## Sessão 78 — 14/10/26 — Desempenho do diff entre releases (TM7-d, D-123)
+
+**O que mudou.** Benchmark com catálogo fictício (`apps/api/scripts/bench_release_diff.py`):
+5.000 registros × 40 propriedades levavam 108,9 s, com número de consultas
+constante. Cache da unidade interpretada em `units.py` e atalho para valores
+idênticos em `compare_values` levam a 10,3 s; o diff guardado no import
+(`catalog_release_diff`, migração `2fe7eecc5981`) responde em 0,32 s. O diff
+guardado só é servido com a mesma versão de formato e a mesma impressão digital
+das duas releases, e qualquer escrita em linha do catálogo o apaga na mesma
+transação. Teste de equivalência: página, registro, filtro e CSV idênticos.
+
+**Pós-merge.** Rodar a migração (Deploy da API). Releases já importadas não têm
+diff guardado e seguem calculadas a cada requisição até a próxima importação.
 
 ## Sessão 77 — 14/10/26 — Fluxo de sala de aula: notas, arquivo de estudo, copiar tabela e duplicar registro (D-122)
 
