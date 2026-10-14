@@ -174,7 +174,8 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {\n    ...init,
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -210,7 +211,8 @@ export function googleLoginUrl(): string {
 
 // --- Materials ------------------------------------------------------------
 
-export function listMaterials(search?: string): Promise<MaterialListItem[]> {\n  const query =
+export function listMaterials(search?: string): Promise<MaterialListItem[]> {
+  const query =
     search && search.trim()
       ? `?search=${encodeURIComponent(search.trim())}`
       : "";
@@ -771,7 +773,8 @@ export function convertMapBox(
   payload: MapBoxRequest,
   unitChoices?: Record<string, string>,
 ): Promise<MapBoxOut> {
-  return request<MapBoxOut>(withUnits(`/api/charts/map-box`, unitChoices), {\n    method: "POST",
+  return request<MapBoxOut>(withUnits(`/api/charts/map-box`, unitChoices), {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }
