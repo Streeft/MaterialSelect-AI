@@ -3,7 +3,7 @@
 ⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
 
 70 materiais adicionais distribuídos nas cinco famílias, exercitando
-todas as 12 propriedades, conversões de unidade, intervalos e incerteza.
+todas as 12 propriedades (15 com as três do cartão CAE, D-124), conversões de unidade, intervalos e incerteza.
 
 Executar com::
 
@@ -19,6 +19,8 @@ fictícias, marcadas ``is_demo`` (``app.db.seed_extended_identity``, D-107). O
 log conta ``designations_created``, ``composition_entries_created`` e
 ``curves_created``, e liga cinco grupos de equivalência declarada fictícios
 (``app.db.seed_demo_equivalences``, D-115; log ``equivalence_groups_created``);
+e escreve os três valores fictícios do cartão CAE — ν, α e cp — em cada
+material demo (``app.db.seed_demo_cae``, D-124; log ``cae_values_created``).
 ``python -m app.db.demo_coverage`` lista o que cada material
 tem e o que falta.
 """
@@ -31,6 +33,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_demo_cae import seed_demo_cae_values
 from app.db.seed_demo_equivalences import seed_demo_equivalences
 from app.db.seed_demo_releases import seed_demo_releases
 from app.db.seed_extended_identity import seed_extended_identity
@@ -454,6 +457,7 @@ def main() -> None:
         releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         identity = seed_extended_identity(db, demo_source)
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
+        cae_values = seed_demo_cae_values(db, demo_source, EXTENDED_DEMO_MATERIALS)  # D-124
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
@@ -461,6 +465,7 @@ def main() -> None:
     print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
     print(f"[seed_extended] Equivalências demo: {equivalences}")
+    print(f"[seed_extended] Valores CAE demo: {{'cae_values_created': {cae_values}}}")
 
 
 if __name__ == "__main__":
