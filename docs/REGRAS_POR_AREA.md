@@ -124,6 +124,14 @@ percentual** têm cada uma sua frase (D-24), e a ordem entre "a linha não tem" 
 "a referência não tem" está fixada por teste: a culpa é da referência, porque
 consertá-la conserta a coluna.
 
+**Ajustes de proximidade** ([D-120](DECISIONS.md)): peso por propriedade
+(0 < w ≤ 10; **zero é recusado** — tirar a propriedade da base é o jeito de dizer
+"não importa") e critério unilateral aplicado à diferença já escalada; o lado
+aceito vale 0, o outro conta **inteiro**. A distância é a **média ponderada**, de
+modo que pesos padrão reproduzem a distância de antes. Ausência exclui **antes**
+de qualquer critério: nenhum ajuste transforma "sem valor" em "100%". Os ajustes
+voltam na resposta (`weights`, `criteria`, `satisfied`) e vivem na URL.
+
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que

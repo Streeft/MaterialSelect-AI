@@ -847,6 +847,13 @@ Registrados para não voltarem por engano:
   **base é tudo ou nada** e volta na resposta com os excluídos nomeados;
   `units.is_ratio_scale` decide, por comportamento, onde um percentual significa
   alguma coisa; a referência é **parâmetro da pergunta** e vive na URL.
+- ~~**Nearness Settings do Find Similar**~~ — peso por propriedade (0 < w ≤ 10)
+  e critério unilateral (`both`/`at_most`/`at_least`, "100% se igual ou
+  menor/maior") no `SimilarRequest`, média ponderada em `domain/nearness.py`,
+  ajustes devolvidos na resposta e na URL (`sim_peso`, `sim_criterio`);
+  ausência continua excluindo antes de qualquer critério ([D-120](DECISIONS.md),
+  Sessão 75). Resíduo: tolerância percentual ("100% se dentro de ±x%") e
+  similaridade no universo de processos.
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,

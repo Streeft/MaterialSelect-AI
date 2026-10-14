@@ -9859,3 +9859,45 @@ original (`wt%` não é unidade do Pint); tratar a grafia da unidade como
 **Resíduos.** Designações, valores suplementares e valores do dataset ainda não
 entram (TODO, TM7-c). O desempenho (TM7-d) piora na proporção do que foi
 adicionado: composição e curvas somam consultas por release.
+
+## D-120 — Ajustes de proximidade do Find Similar: peso por propriedade e critério unilateral
+
+**Data:** 14/10/2026
+**Status:** aceita — decidida pelo assistente por delegação do autor ("eu
+decido o que você decidir melhor para o projeto"), **revisável** (Sessão 75).
+
+**O pedido.** O Find Similar do manual (Nearness Settings) deixa pesar uma
+propriedade mais que as outras e dizer "100% se igual ou menor / maior". O
+nosso (D-63) só recebia `property_slugs` e `limit`.
+
+**A decisão.**
+
+1. **Peso** positivo por propriedade, `0 < w ≤ 10`, padrão 1. **Zero é
+   recusado**: "não importa" se diz tirando a propriedade da base, onde a
+   resposta o mostra; um peso zero deixaria a base declarada maior que a que
+   rodou — o mesmo problema que `degenerate` existe para evitar. O teto evita
+   que um peso enorme reduza a base a uma propriedade sem dizer.
+2. **Critério** por propriedade: `both` (padrão), `at_most` ("100% se igual ou
+   menor") e `at_least` ("100% se igual ou maior"). Aplicado à **diferença já
+   escalada**, depois de escolhido o eixo; o log é monotônico, então "menor"
+   significa o mesmo nos dois eixos. O lado aceito vale 0; o outro conta
+   **inteiro**, nunca atenuado.
+3. **Distância = raiz da média ponderada** (Σ w·d² / Σ w). Continua média, não
+   soma (D-63), e pesos padrão reproduzem exatamente a distância anterior.
+   `contributions` passa a ser w·d², de modo que a ordem se explica por
+   propriedade.
+4. **Ausência antes de tudo** (princípio 3): o registro sem valor é excluído e
+   nomeado antes de qualquer peso ou critério — nenhum ajuste transforma "sem
+   valor" em "100%". `satisfied` lista só propriedades em que o critério
+   absorveu uma diferença real de um valor presente.
+5. **Os ajustes são parte da base**: a resposta devolve `weights` e `criteria`
+   com os padrões escritos; ajuste para propriedade fora da base é 422 (o
+   leitor acha que a pergunta a inclui). No front, vivem na URL (`sim_peso`,
+   `sim_criterio`, tokens em pt-BR) como a referência (B1); entrada inválida na
+   URL é descartada, não consertada.
+
+**Descartado.** Peso zero como "ignorar" (base declarada ≠ base rodada);
+critério aplicado ao valor bruto antes da escala (dependeria do eixo); limiar
+de tolerância "100% se dentro de ±x%" — exige um número do usuário com unidade
+e fica como resíduo no TODO; somar em vez de promediar (D-63).
+

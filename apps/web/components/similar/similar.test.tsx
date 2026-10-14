@@ -111,16 +111,34 @@ const answer: Similar = {
       distance: 0.12,
       rank: 1,
       contributions: { densidade: 0.0144 },
+      satisfied: ["densidade"],
     },
   ],
   excluded: [
-    { record_id: 3, name: "Sem dados", missing_slugs: ["densidade"], missing_labels: ["Densidade"] },
+    {
+      record_id: 3,
+      name: "Sem dados",
+      missing_slugs: ["densidade"],
+      missing_labels: ["Densidade"],
+    },
   ],
   degenerate: [],
   degenerate_labels: [],
   linear_fallback: ["densidade"],
   linear_fallback_labels: ["Densidade"],
+  weights: { densidade: 2 },
+  criteria: { densidade: "at_most" },
 };
+
+const replace = vi.fn();
+let search = new URLSearchParams(
+  "sim_peso=densidade:2&sim_criterio=densidade:menor",
+);
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => "/app/materiais/1",
+  useSearchParams: () => search,
+}));
 
 const findSimilar = vi.fn(() => Promise.resolve(answer));
 
@@ -130,7 +148,9 @@ vi.mock("@/lib/api", () => ({
 }));
 
 function wrap(node: ReactNode) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
 }
 
@@ -142,7 +162,9 @@ describe("materiais semelhantes", () => {
     // leitor ver que a pergunta foi montada — e poder desmontá-la.
     render(wrap(<SimilarPanel material={material} />));
 
-    const densidade = await screen.findByShadowRole("checkbox", { name: "Densidade" });
+    const densidade = await screen.findByShadowRole("checkbox", {
+      name: "Densidade",
+    });
     expect(densidade).toBeChecked();
   });
 
@@ -150,7 +172,9 @@ describe("materiais semelhantes", () => {
     const user = userEvent.setup();
     render(wrap(<SimilarPanel material={material} />));
 
-    await user.click(await screen.findByShadowRole("checkbox", { name: "Densidade" }));
+    await user.click(
+      await screen.findByShadowRole("checkbox", { name: "Densidade" }),
+    );
 
     expect(await screen.findByShadowText(t.basisEmpty)).toBeInTheDocument();
   });
@@ -159,7 +183,9 @@ describe("materiais semelhantes", () => {
     const user = userEvent.setup();
     render(wrap(<SimilarPanel material={material} />));
 
-    await user.click(await screen.findByShadowRole("button", { name: t.search }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
 
     expect(await screen.findByShadowText(t.basisUsed)).toBeInTheDocument();
   });
@@ -168,9 +194,13 @@ describe("materiais semelhantes", () => {
     const user = userEvent.setup();
     render(wrap(<SimilarPanel material={material} />));
 
-    await user.click(await screen.findByShadowRole("button", { name: t.search }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
 
-    expect(await screen.findByShadowRole("link", { name: "Alumínio" })).toBeInTheDocument();
+    expect(
+      await screen.findByShadowRole("link", { name: "Alumínio" }),
+    ).toBeInTheDocument();
   });
 
   it("nomeia quem ficou de fora e o que lhe faltava", async () => {
@@ -178,7 +208,9 @@ describe("materiais semelhantes", () => {
     const user = userEvent.setup();
     render(wrap(<SimilarPanel material={material} />));
 
-    await user.click(await screen.findByShadowRole("button", { name: t.search }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
 
     expect(await screen.findByShadowText(t.excludedTitle)).toBeInTheDocument();
     expect(await screen.findByShadowText(/Sem dados/)).toBeInTheDocument();
@@ -188,7 +220,9 @@ describe("materiais semelhantes", () => {
     const user = userEvent.setup();
     render(wrap(<SimilarPanel material={material} />));
 
-    await user.click(await screen.findByShadowRole("button", { name: t.search }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
 
     expect(await screen.findByShadowText(t.linearTitle)).toBeInTheDocument();
   });
@@ -198,5 +232,80 @@ describe("materiais semelhantes", () => {
     render(wrap(<SimilarPanel material={material} />));
 
     expect(await screen.findByShadowText(t.distanceHint)).toBeInTheDocument();
+  });
+
+  it("manda peso e critério da URL na requisição (D-120)", async () => {
+    const user = userEvent.setup();
+    findSimilar.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
+
+    expect(findSimilar).toHaveBeenCalledWith(1, {
+      property_slugs: ["densidade"],
+      limit: 10,
+      weights: { densidade: 2 },
+      criteria: { densidade: "at_most" },
+    });
+  });
+
+  it("mostra os controles de peso e critério com nome acessível", async () => {
+    render(wrap(<SimilarPanel material={material} />));
+
+    const weight = await screen.findByShadowRole("combobox", {
+      name: t.weightLabel("Densidade"),
+    });
+    expect(weight).toHaveValue("2");
+    const criterion = screen.getByShadowRole("combobox", {
+      name: t.criterionLabel("Densidade"),
+    });
+    expect(criterion).toHaveValue("at_most");
+  });
+
+  it("grava a mudança de critério na URL", async () => {
+    const user = userEvent.setup();
+    replace.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const criterion = await screen.findByShadowRole("combobox", {
+      name: t.criterionLabel("Densidade"),
+    });
+    await user.selectOptions(criterion, "at_least");
+
+    expect(replace).toHaveBeenCalledWith(
+      "/app/materiais/1?sim_peso=densidade%3A2&sim_criterio=densidade%3Amaior",
+      { scroll: false },
+    );
+  });
+
+  it("explica a posição por propriedade e marca o 100% do critério", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SimilarPanel material={material} />));
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
+
+    expect(await screen.findByShadowText(t.satisfiedTag)).toBeInTheDocument();
+  });
+
+  it("sem ajustes na URL, a requisição não leva peso nem critério", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams();
+    findSimilar.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
+
+    expect(findSimilar).toHaveBeenCalledWith(1, {
+      property_slugs: ["densidade"],
+      limit: 10,
+      weights: {},
+      criteria: {},
+    });
   });
 });

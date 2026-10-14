@@ -178,3 +178,29 @@ def response_text(body: dict) -> str:
     import json
 
     return json.dumps(body, ensure_ascii=False)
+
+
+def test_nearness_settings_come_back_with_the_basis(
+    client: TestClient, db_session: Session
+) -> None:
+    """D-120: the weight and criterion that ran are part of the answer."""
+    response = _post(
+        client,
+        _first_material_id(db_session),
+        weights={"densidade": 2},
+        criteria={"modulo_young": "at_least"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["weights"] == {"densidade": 2.0, "modulo_young": 1.0}
+    assert body["criteria"] == {"densidade": "both", "modulo_young": "at_least"}
+    for neighbour in body["neighbours"]:
+        assert set(neighbour["satisfied"]) <= {"modulo_young"}
+
+
+def test_nearness_settings_are_validated(client: TestClient, db_session: Session) -> None:
+    material_id = _first_material_id(db_session)
+    assert _post(client, material_id, weights={"densidade": 0}).status_code == 422
+    assert _post(client, material_id, weights={"densidade": 11}).status_code == 422
+    assert _post(client, material_id, criteria={"densidade": "nearly"}).status_code == 422
+    assert _post(client, material_id, weights={"resistividade": 2}).status_code == 422

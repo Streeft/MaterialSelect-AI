@@ -865,6 +865,18 @@ export const ptBR = {
     linearTitle: "Medidas em escala linear",
     linearHint:
       "Pediam escala logarítmica, mas algum registro tem valor não positivo — e log não existe ali.",
+    // Ajustes de proximidade (D-120).
+    settingsTitle: "Ajustes de proximidade",
+    settingsHint:
+      "Peso multiplica a parcela da propriedade na distância. O critério unilateral não penaliza o lado aceito; o outro lado conta inteiro. Registro sem valor continua fora — nunca vale “100%”.",
+    weightLabel: (name: string) => `Peso de ${name}`,
+    criterionLabel: (name: string) => `Critério de ${name}`,
+    weightOption: (weight: string) => `${weight}×`,
+    criterionBoth: "Igual (os dois lados contam)",
+    criterionAtMost: "100% se igual ou menor",
+    criterionAtLeast: "100% se igual ou maior",
+    contributionsTitle: "Parcela de cada propriedade",
+    satisfiedTag: "100% pelo critério",
   },
 
   solver: {
