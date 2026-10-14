@@ -1682,9 +1682,16 @@ export interface MyRecords {
  * recording habits choose the question without the reader seeing it chosen. The
  * interface proposes a basis; the request states one.
  */
+/** How a difference on one property counts (D-120). */
+export type NearnessCriterion = "both" | "at_most" | "at_least";
+
 export interface SimilarRequest {
   property_slugs: string[];
   limit?: number;
+  /** Positive factor per basis slug (0 < w <= 10); omitted = 1 (D-120). */
+  weights?: Record<string, number>;
+  /** One-sided criterion per basis slug; omitted = "both" (D-120). */
+  criteria?: Record<string, NearnessCriterion>;
 }
 
 export interface Neighbour {
@@ -1703,6 +1710,8 @@ export interface Neighbour {
   rank: number;
   /** Per-property squared contribution, so a position can be explained. */
   contributions: Record<string, number>;
+  /** Properties where a one-sided criterion accepted a real difference. */
+  satisfied: string[];
 }
 
 /** A record that could not be placed on the basis, and what it lacked. */
@@ -1726,6 +1735,9 @@ export interface Similar {
   /** Basis properties measured linearly despite asking for log space. */
   linear_fallback: string[];
   linear_fallback_labels: string[];
+  /** The weight and criterion every basis property ran with (D-120). */
+  weights: Record<string, number>;
+  criteria: Record<string, NearnessCriterion>;
 }
 
 // --- Engineering Solver & Performance Index Finder (P2) ---------------------
@@ -1975,7 +1987,7 @@ export interface EcoUseIn {
   carbon_per_energy?: number | null;
 }
 
-/** The seven end-of-life routes (D-120). What each costs is read from the
+/** The seven end-of-life routes (D-121). What each costs is read from the
  * catalogue per material; a route without its factor is unavailable. */
 export type EndOfLifeRoute =
   | "aterro"

@@ -34,17 +34,38 @@ three properties on the same footing as one on six. A property whose pool has no
 spread at all carries no information: it contributes zero and is named in
 ``degenerate``, because silently dropping it would make the basis in the
 document larger than the basis that ran.
+
+**Nearness settings: weight and one-sided criterion (D-120).** Each property of
+the basis may carry a weight (a positive factor, 1 by default) and a criterion:
+``both`` (the default — any difference counts), ``at_most`` ("100% if equal or
+lower": a candidate below the reference is not penalised) or ``at_least`` ("100%
+if equal or higher"). The criterion is applied to the *scaled* difference, after
+the axis was chosen; log is monotonic, so "lower" means the same on either axis.
+The distance becomes the **weighted** mean of the squared differences — still a
+mean, so the default weights reproduce the unweighted distance exactly. A weight
+never touches a missing value: absence still excludes the record before any
+weighting, so no criterion can turn a missing value into a "100%".
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Literal
 
 from app.domain.errors import ValidationError
 
 #: One candidate's raw values: (id, name, {property slug: canonical value | None}).
 RecordValues = tuple[int, str, dict[str, float | None]]
+
+#: How a difference on one property counts (D-120).
+Criterion = Literal["both", "at_most", "at_least"]
+CRITERIA: tuple[Criterion, ...] = ("both", "at_most", "at_least")
+
+#: Upper bound on a weight. Not a physical limit: a property weighted 1000×
+#: would make the basis one property wide while still listing all of them,
+#: which is the silent narrowing ``degenerate`` exists to prevent.
+MAX_WEIGHT = 10.0
 
 
 @dataclass
@@ -61,6 +82,11 @@ class Neighbour:
     #: Per-property scaled difference, squared and un-averaged — what makes a
     #: neighbour's position explainable instead of an oracle's verdict.
     contributions: dict[str, float] = field(default_factory=dict)
+    #: Properties where a one-sided criterion absorbed a real difference: the
+    #: candidate is on the accepted side, so it counts as "100%" there. Only
+    #: ever lists properties the candidate *has* — a missing value is excluded
+    #: before any criterion is read.
+    satisfied: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -90,6 +116,55 @@ class NearnessResult:
     #: Properties that asked for log space and were measured linearly anyway,
     #: because some record in the pool had a non-positive value.
     linear_fallback: list[str] = field(default_factory=list)
+    #: The weight and criterion each basis property actually ran with, defaults
+    #: included — the settings are part of the basis, so they come back with it.
+    weights: dict[str, float] = field(default_factory=dict)
+    criteria: dict[str, Criterion] = field(default_factory=dict)
+
+
+def resolve_settings(
+    basis: list[str],
+    weights: dict[str, float] | None,
+    criteria: dict[str, str] | None,
+) -> tuple[dict[str, float], dict[str, Criterion]]:
+    """Every basis property's weight and criterion, defaults written out.
+
+    A setting for a property outside the basis is refused rather than ignored:
+    it means the reader believes the question includes that property, and the
+    answer would silently disagree.
+    """
+    weights = weights or {}
+    criteria = criteria or {}
+    stray = sorted((set(weights) | set(criteria)) - set(basis))
+    if stray:
+        raise ValidationError("Peso ou critério para propriedade fora da base: " + ", ".join(stray))
+    resolved_weights: dict[str, float] = {}
+    resolved_criteria: dict[str, Criterion] = {}
+    for slug in basis:
+        weight = float(weights.get(slug, 1.0))
+        if not math.isfinite(weight) or weight <= 0 or weight > MAX_WEIGHT:
+            raise ValidationError(
+                f"Peso de {slug} precisa ser maior que 0 e no máximo {MAX_WEIGHT:g}."
+            )
+        criterion = criteria.get(slug, "both")
+        if criterion not in CRITERIA:
+            raise ValidationError(f"Critério desconhecido para {slug}: {criterion}")
+        resolved_weights[slug] = weight
+        resolved_criteria[slug] = criterion  # type: ignore[assignment]
+    return resolved_weights, resolved_criteria
+
+
+def one_sided_difference(difference: float, criterion: Criterion) -> float:
+    """The part of ``candidate - reference`` that the criterion penalises.
+
+    ``at_most`` accepts anything equal or lower; ``at_least`` anything equal or
+    higher. The other side keeps its full difference — never a softened one.
+    """
+    if criterion == "at_most" and difference <= 0:
+        return 0.0
+    if criterion == "at_least" and difference >= 0:
+        return 0.0
+    return difference
 
 
 def _coordinates(values: list[float], use_log: bool) -> tuple[list[float], bool]:
@@ -111,6 +186,8 @@ def find_similar(
     *,
     log_scale: dict[str, bool] | None = None,
     limit: int = 10,
+    weights: dict[str, float] | None = None,
+    criteria: dict[str, str] | None = None,
 ) -> NearnessResult:
     """Rank ``records`` by distance from ``reference_id`` over ``basis``.
 
@@ -127,6 +204,9 @@ def find_similar(
         limit: how many neighbours to return. The reference is never one of
             them: distance zero from itself is not an answer to "what else is
             like this".
+        weights: per-slug positive factor (default 1), D-120.
+        criteria: per-slug ``both`` / ``at_most`` / ``at_least`` (default
+            ``both``), D-120.
 
     Raises:
         ValidationError: empty basis, unknown reference, or a reference that
@@ -136,6 +216,7 @@ def find_similar(
         raise ValidationError("Informe ao menos uma propriedade para comparar.")
     if limit < 1:
         raise ValidationError("O número de semelhantes precisa ser ao menos 1.")
+    resolved_weights, resolved_criteria = resolve_settings(basis, weights, criteria)
 
     by_id = {record_id: (name, values) for record_id, name, values in records}
     if reference_id not in by_id:
@@ -163,7 +244,12 @@ def find_similar(
 
     if not comparable:
         return NearnessResult(
-            reference_id=reference_id, basis=list(basis), neighbours=[], excluded=excluded
+            reference_id=reference_id,
+            basis=list(basis),
+            neighbours=[],
+            excluded=excluded,
+            weights=resolved_weights,
+            criteria=resolved_criteria,
         )
 
     permissions = log_scale or {}
@@ -190,15 +276,21 @@ def find_similar(
             record_id: coord / spread for record_id, coord in zip(pool_ids, coords, strict=True)
         }
 
+    total_weight = sum(resolved_weights.values())
     neighbours: list[Neighbour] = []
     for record_id, name, _ in comparable:
-        contributions = {
-            slug: (scaled[slug][record_id] - scaled[slug][reference_id]) ** 2 for slug in basis
-        }
-        # The mean and not the sum: a distance over three properties has to be
-        # readable beside one over six, and a sum would make the wider basis
-        # look further away for having answered more.
-        distance = math.sqrt(sum(contributions.values()) / len(basis))
+        contributions: dict[str, float] = {}
+        satisfied: list[str] = []
+        for slug in basis:
+            raw_difference = scaled[slug][record_id] - scaled[slug][reference_id]
+            difference = one_sided_difference(raw_difference, resolved_criteria[slug])
+            if raw_difference != 0 and difference == 0:
+                satisfied.append(slug)
+            contributions[slug] = resolved_weights[slug] * difference**2
+        # The (weighted) mean and not the sum: a distance over three properties
+        # has to be readable beside one over six, and a sum would make the wider
+        # basis look further away for having answered more.
+        distance = math.sqrt(sum(contributions.values()) / total_weight)
         neighbours.append(
             Neighbour(
                 record_id=record_id,
@@ -206,6 +298,7 @@ def find_similar(
                 distance=distance,
                 rank=0,
                 contributions=contributions,
+                satisfied=satisfied,
             )
         )
 
@@ -222,4 +315,6 @@ def find_similar(
         excluded=excluded,
         degenerate=degenerate,
         linear_fallback=linear_fallback,
+        weights=resolved_weights,
+        criteria=resolved_criteria,
     )

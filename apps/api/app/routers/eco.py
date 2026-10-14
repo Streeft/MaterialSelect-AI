@@ -55,7 +55,7 @@ def run_eco_audit(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> EcoAuditResultOut:
-    """Audit a product (components × legs) over its five phases (D-120)."""
+    """Audit a product (components × legs) over its five phases (D-121)."""
     return EcoService(db, user.id).run(payload)
 
 

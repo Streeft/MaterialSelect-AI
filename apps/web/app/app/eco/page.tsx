@@ -567,7 +567,7 @@ export default function EcoPage() {
 
   const [modeChoice, setModeChoice] = useState<"individual" | "compare">("individual");
 
-  // Individual mode state: the product (D-120). The solver's deep link
+  // Individual mode state: the product (D-121). The solver's deep link
   // (?material=&massa=) seeds the first component; the list itself is not put
   // in the URL — the flow never kept more than that seed there.
   const nextKey = useRef(1);

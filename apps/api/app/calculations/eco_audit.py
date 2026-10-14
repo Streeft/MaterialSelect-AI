@@ -42,7 +42,7 @@ route whose factor the material does not carry is unavailable, and an audit
 routed to it gets its phases and no podium. That is the intended behaviour: a
 podium built on four of five numbers is worse than no podium.
 
-**A product is a list of components and a list of legs (D-120).** Material,
+**A product is a list of components and a list of legs (D-121).** Material,
 manufatura and fim de vida are computed per component and summed; transport is
 the whole product's mass along every leg; use is the product's. A phase absent
 in *any* component or leg is absent for the product, with the component named,
@@ -110,7 +110,7 @@ USE_STATIC = "estatico"
 USE_MOBILE = "movel"
 USE_MODELS = (USE_STATIC, USE_MOBILE)
 
-#: End-of-life routes (D-120). Seven, in the order a designer weighs them from
+#: End-of-life routes (D-121). Seven, in the order a designer weighs them from
 #: "throw away" to "keep using" — the vocabulary of the textbook method, which
 #: is a list of *names*: the route says what happens, never what it costs. What
 #: it costs is a **material property read from the catalogue** by the slug the
@@ -622,7 +622,7 @@ def _dominance(phases: tuple[PhaseResult, ...], attribute: str, quantity: str) -
     )
 
 
-# --- the product: several components, several legs (D-120) -------------------
+# --- the product: several components, several legs (D-121) -------------------
 
 
 @dataclass(frozen=True)

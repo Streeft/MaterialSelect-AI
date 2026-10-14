@@ -39,7 +39,7 @@ from app.calculations.eco_audit import (
 )
 
 #: The seven routes on the wire. The vocabulary is closed; what each costs is
-#: read from the catalogue per material (D-120).
+#: read from the catalogue per material (D-121).
 EndOfLife = Literal[
     EOL_LANDFILL,
     EOL_INCINERATION,

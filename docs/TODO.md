@@ -88,7 +88,7 @@ quitados".
 ## Média prioridade
 
 - ~~**Eco Audit de produto: vários componentes, vários trechos, fim de vida
-  ampliado (Sessão 75, [D-120](DECISIONS.md))**~~ — `audit_product` soma
+  ampliado (Sessão 76, [D-121](DECISIONS.md))**~~ — `audit_product` soma
   material/manufatura/fim de vida por componente, transporte por trecho sobre a
   massa do produto; sete rotas lidas do fator do próprio material; pódio
   recusado se faltar dado de qualquer componente. Resíduos:
@@ -98,7 +98,7 @@ quitados".
     (D-103) ou bundle do D-102. Até lá as seis rotas novas ficam indisponíveis
     com a razão escrita.
   - **Produto salvo** (definição persistida por projeto, duplicar e alterar) —
-    fora do escopo do D-120.
+    fora do escopo do D-121.
   - **Processos secundários** (junção, acabamento) por componente — fora do
     escopo.
   - **Orientação textual por fase dominante** — fora do escopo.
@@ -868,6 +868,13 @@ Registrados para não voltarem por engano:
   **base é tudo ou nada** e volta na resposta com os excluídos nomeados;
   `units.is_ratio_scale` decide, por comportamento, onde um percentual significa
   alguma coisa; a referência é **parâmetro da pergunta** e vive na URL.
+- ~~**Nearness Settings do Find Similar**~~ — peso por propriedade (0 < w ≤ 10)
+  e critério unilateral (`both`/`at_most`/`at_least`, "100% se igual ou
+  menor/maior") no `SimilarRequest`, média ponderada em `domain/nearness.py`,
+  ajustes devolvidos na resposta e na URL (`sim_peso`, `sim_criterio`);
+  ausência continua excluindo antes de qualquer critério ([D-120](DECISIONS.md),
+  Sessão 75). Resíduo: tolerância percentual ("100% se dentro de ±x%") e
+  similaridade no universo de processos.
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,

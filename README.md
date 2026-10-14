@@ -64,7 +64,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Eco** — auditoria ecológica em cinco fases (material, manufatura,
   transporte, uso, fim de vida), em energia e carbono, de um produto com vários
   componentes e vários trechos de transporte, e sete rotas de fim de vida
-  (D-120).
+  (D-121).
 - **Sintetizar** — compósito de dois constituintes, espuma e **painel
   sanduíche**, cada valor com a lei que o produziu e a sua base.
 - **Baterias** — dimensionamento de um pack a partir de químicas de célula

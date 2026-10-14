@@ -49,7 +49,15 @@ class SimilarityService:
         ]
         log_scale = {slug: definitions[slug].allows_log_scale for slug in basis}
 
-        result = find_similar(material_id, records, basis, log_scale=log_scale, limit=request.limit)
+        result = find_similar(
+            material_id,
+            records,
+            basis,
+            log_scale=log_scale,
+            limit=request.limit,
+            weights=request.weights,
+            criteria=dict(request.criteria),
+        )
 
         def label(slug: str) -> str:
             """The property as a reader knows it — never the slug on screen."""
@@ -72,6 +80,7 @@ class SimilarityService:
                     distance=neighbour.distance,
                     rank=neighbour.rank,
                     contributions=neighbour.contributions,
+                    satisfied=neighbour.satisfied,
                 )
                 for neighbour in result.neighbours
             ],
@@ -88,6 +97,8 @@ class SimilarityService:
             degenerate_labels=[label(slug) for slug in result.degenerate],
             linear_fallback=result.linear_fallback,
             linear_fallback_labels=[label(slug) for slug in result.linear_fallback],
+            weights=result.weights,
+            criteria=result.criteria,
         )
 
     @staticmethod

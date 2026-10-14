@@ -865,6 +865,18 @@ export const ptBR = {
     linearTitle: "Medidas em escala linear",
     linearHint:
       "Pediam escala logarítmica, mas algum registro tem valor não positivo — e log não existe ali.",
+    // Ajustes de proximidade (D-120).
+    settingsTitle: "Ajustes de proximidade",
+    settingsHint:
+      "Peso multiplica a parcela da propriedade na distância. O critério unilateral não penaliza o lado aceito; o outro lado conta inteiro. Registro sem valor continua fora — nunca vale “100%”.",
+    weightLabel: (name: string) => `Peso de ${name}`,
+    criterionLabel: (name: string) => `Critério de ${name}`,
+    weightOption: (weight: string) => `${weight}×`,
+    criterionBoth: "Igual (os dois lados contam)",
+    criterionAtMost: "100% se igual ou menor",
+    criterionAtLeast: "100% se igual ou maior",
+    contributionsTitle: "Parcela de cada propriedade",
+    satisfiedTag: "100% pelo critério",
   },
 
   solver: {
@@ -1032,7 +1044,7 @@ export const ptBR = {
       "Cada rota é paga pelo fator que o próprio material tem cadastrado. Rota sem fator fica indisponível, com o motivo escrito, e nunca vira zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
     eolNoFactor: "sem fator no catálogo",
     noDelta: "Sem diferença: falta o número de um dos lados.",
-    // D-120: o produto é uma lista de componentes e de trechos.
+    // D-121: o produto é uma lista de componentes e de trechos.
     productStep: "1. O produto",
     productHint:
       "Cada componente tem o seu material, processo, massa, teor reciclado e destino. Material, manufatura e fim de vida são somados por componente; transporte e uso leem a massa do produto inteiro.",

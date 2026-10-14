@@ -1,4 +1,4 @@
-"""The product-shaped Eco Audit over the real catalogue (D-120)."""
+"""The product-shaped Eco Audit over the real catalogue (D-121)."""
 
 from __future__ import annotations
 

@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { MaterialDetail, Similar } from "@/lib/types";
+import type { MaterialDetail, NearnessCriterion, Similar } from "@/lib/types";
 import { findSimilar, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
+import {
+  WEIGHT_OPTIONS,
+  parseSettings,
+  requestSettings,
+  writeSettings,
+  type NearnessSettings,
+} from "@/lib/similarSettings";
 import {
   Alert,
   Badge,
@@ -17,6 +25,8 @@ import {
   EmptyState,
   ErrorState,
   Section,
+  Select,
+  SelectOption,
 } from "@/components/ui";
 
 const t = ptBR.similar;
@@ -71,15 +81,58 @@ function NamedList({
  */
 export function SimilarPanel({ material }: { material: MaterialDetail }) {
   const [basis, setBasis] = useState<string[]>(() => proposedBasis(material));
-  const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
+  const properties = useQuery({
+    queryKey: ["properties"],
+    queryFn: listProperties,
+  });
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  // The settings live in the URL (D-120), so the same link asks the same question.
+  const settings = useMemo(() => parseSettings(params), [params]);
+
+  function updateSettings(next: NearnessSettings) {
+    const query = writeSettings(
+      new URLSearchParams(params.toString()),
+      next,
+      basis,
+    ).toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function setWeight(slug: string, weight: number) {
+    updateSettings({
+      ...settings,
+      weights: { ...settings.weights, [slug]: weight },
+    });
+  }
+
+  function setCriterion(slug: string, criterion: NearnessCriterion) {
+    updateSettings({
+      ...settings,
+      criteria: { ...settings.criteria, [slug]: criterion },
+    });
+  }
 
   const search = useMutation<Similar, Error>({
-    mutationFn: () => findSimilar(material.id, { property_slugs: basis, limit: 10 }),
+    mutationFn: () =>
+      findSimilar(material.id, {
+        property_slugs: basis,
+        limit: 10,
+        ...requestSettings(settings, basis),
+      }),
   });
+
+  const nameOf = (slug: string) =>
+    properties.data?.find((property) => property.slug === slug)?.name ?? slug;
 
   function toggle(slug: string) {
     setBasis((current) =>
-      current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
+      current.includes(slug)
+        ? current.filter((s) => s !== slug)
+        : [...current, slug],
     );
   }
 
@@ -90,7 +143,9 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
       <Card>
         <CardBody className="flex flex-col gap-4">
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-medium text-ink">{t.basisLabel}</legend>
+            <legend className="text-sm font-medium text-ink">
+              {t.basisLabel}
+            </legend>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {(properties.data ?? []).map((property) => (
                 <Checkbox
@@ -102,6 +157,61 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
               ))}
             </div>
           </fieldset>
+
+          {basis.length > 0 && (
+            <fieldset className="well flex flex-col gap-3">
+              <legend className="text-sm font-medium text-ink">
+                {t.settingsTitle}
+              </legend>
+              <p className="text-support text-ink-muted">{t.settingsHint}</p>
+              <div className="flex flex-col gap-3">
+                {basis.map((slug) => {
+                  const name = nameOf(slug);
+                  return (
+                    <div
+                      key={slug}
+                      className="grid gap-2 sm:grid-cols-[1fr_8rem_14rem] sm:items-end"
+                    >
+                      <span className="text-sm text-ink">{name}</span>
+                      <Select
+                        label={t.weightLabel(name)}
+                        value={String(settings.weights[slug] ?? 1)}
+                        onChange={(event) =>
+                          setWeight(slug, Number(event.target.value))
+                        }
+                      >
+                        {WEIGHT_OPTIONS.map((weight) => (
+                          <SelectOption key={weight} value={String(weight)}>
+                            {t.weightOption(formatNumber(weight))}
+                          </SelectOption>
+                        ))}
+                      </Select>
+                      <Select
+                        label={t.criterionLabel(name)}
+                        value={settings.criteria[slug] ?? "both"}
+                        onChange={(event) =>
+                          setCriterion(
+                            slug,
+                            event.target.value as NearnessCriterion,
+                          )
+                        }
+                      >
+                        <SelectOption value="both">
+                          {t.criterionBoth}
+                        </SelectOption>
+                        <SelectOption value="at_most">
+                          {t.criterionAtMost}
+                        </SelectOption>
+                        <SelectOption value="at_least">
+                          {t.criterionAtLeast}
+                        </SelectOption>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
 
           <div className="flex items-center gap-3">
             <Button
@@ -121,7 +231,11 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
 
           {result && (
             <div className="flex flex-col gap-4">
-              <NamedList title={t.basisUsed} hint={t.distanceHint} items={result.basis_labels} />
+              <NamedList
+                title={t.basisUsed}
+                hint={t.distanceHint}
+                items={result.basis_labels}
+              />
 
               {result.neighbours.length === 0 ? (
                 <EmptyState title={t.empty} description={t.excludedHint} />
@@ -130,25 +244,55 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                   {result.neighbours.map((neighbour) => (
                     <li key={neighbour.record_id}>
                       <Card>
-                        <CardBody className="flex flex-wrap items-center justify-between gap-3">
-                          <span className="flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="text-xs text-ink-muted">{neighbour.rank}.</span>
-                            <Link
-                              href={`/app/materiais/${neighbour.record_id}`}
-                              className="text-[0.9375rem] font-semibold text-brand-700"
-                            >
-                              {neighbour.name}
-                            </Link>
-                            {neighbour.is_demo && (
-                              <Badge tone="warning">{ptBR.demoBadge}</Badge>
-                            )}
-                            {neighbour.is_own_record && (
-                              <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
-                            )}
-                          </span>
-                          <span className="text-xs text-ink-muted">
-                            {t.distance}: {formatNumber(neighbour.distance)}
-                          </span>
+                        <CardBody className="flex flex-col gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="text-xs text-ink-muted">
+                                {neighbour.rank}.
+                              </span>
+                              <Link
+                                href={`/app/materiais/${neighbour.record_id}`}
+                                className="text-[0.9375rem] font-semibold text-brand-700"
+                              >
+                                {neighbour.name}
+                              </Link>
+                              {neighbour.is_demo && (
+                                <Badge tone="warning">{ptBR.demoBadge}</Badge>
+                              )}
+                              {neighbour.is_own_record && (
+                                <Badge tone="info">
+                                  {ptBR.myRecords.ownBadge}
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="text-xs text-ink-muted">
+                              {t.distance}: {formatNumber(neighbour.distance)}
+                            </span>
+                          </div>
+                          {/* Why this position: each property's weighted share (D-120). */}
+                          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                            <dt className="sr-only">{t.contributionsTitle}</dt>
+                            {result.basis.map((slug, index) => {
+                              const share = neighbour.contributions[slug];
+                              // Every neighbour carries the whole basis; a missing
+                              // entry is skipped, never drawn as 0 (D-24).
+                              if (share === undefined) return null;
+                              return (
+                                <dd key={slug}>
+                                  {result.basis_labels[index] ?? slug}:{" "}
+                                  {formatNumber(share)}
+                                  {neighbour.satisfied.includes(slug) && (
+                                    <>
+                                      {" "}
+                                      <Badge tone="success">
+                                        {t.satisfiedTag}
+                                      </Badge>
+                                    </>
+                                  )}
+                                </dd>
+                              );
+                            })}
+                          </dl>
                         </CardBody>
                       </Card>
                     </li>
@@ -169,12 +313,20 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
 
               {result.excluded.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">{t.excludedTitle}</span>
-                  <span className="text-xs text-ink-muted">{t.excludedHint}</span>
+                  <span className="text-xs font-medium text-ink">
+                    {t.excludedTitle}
+                  </span>
+                  <span className="text-xs text-ink-muted">
+                    {t.excludedHint}
+                  </span>
                   <ul className="flex flex-col gap-1">
                     {result.excluded.map((item) => (
-                      <li key={item.record_id} className="text-xs text-ink-muted">
-                        {item.name} — {t.excludedMissing} {item.missing_labels.join(", ")}
+                      <li
+                        key={item.record_id}
+                        className="text-xs text-ink-muted"
+                      >
+                        {item.name} — {t.excludedMissing}{" "}
+                        {item.missing_labels.join(", ")}
                       </li>
                     ))}
                   </ul>
