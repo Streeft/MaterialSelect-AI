@@ -12,7 +12,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
 | [75](#sessão-75--141026--ajustes-de-proximidade-do-find-similar-d-120) | 14/10/2026 | Ajustes de proximidade do Find Similar: peso por propriedade e critério unilateral ("100% se igual ou menor/maior"), média ponderada, `satisfied` e parcelas por propriedade, ajustes na URL | +23 | +11 |
-| [76](#sessão-76--141026--eco-audit-de-produto-d-121) | 14/10/2026 | Eco Audit de produto: lista de componentes (material, processo, massa × quantidade, reciclado, rota cada um), vários trechos de transporte, sete rotas de fim de vida pagas pelo fator do próprio material (rota sem fator indisponível com a razão), `GET /api/eco/rotas-fim-de-vida`, detalhe por componente e por trecho; sem migração (D-121) | 4649 → 4688 | 880 → 883 |
+| [76](#sessão-76--141026--eco-audit-de-produto-d-121) | 14/10/2026 | Eco Audit de produto: lista de componentes (material, processo, massa × quantidade, reciclado, rota cada um), vários trechos de transporte, sete rotas de fim de vida pagas pelo fator do próprio material (rota sem fator indisponível com a razão), `GET /api/eco/rotas-fim-de-vida`, detalhe por componente e por trecho; sem migração (D-121) | 4672 → 4711 | 891 → 894 |
 | [73](#sessão-73--131026--curvas-com-histerese-tm4-c-d-118) | 13/10/2026 | Curvas com histerese (TM4-c): `path_kind` função/trajetória (migração `8bc0982d66b8`), trajetória na ordem declarada e sem faixa, 422 escrito na leitura de valor e no cartão plástico, diff/CSV/bundle e seletor "Traçado" no formulário (D-118) | 4627 → 4649 | 879 → 880 |
 | [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [72](#sessão-72--131026--composição-por-condição-e--atômica-derivada-tm2-c-d-117) | 13/10/2026 | Composição por condição e % atômica derivada (TM2-c): `condition_label` na chave da composição (migração `703bbf25ce90`), `comp:…@condição` na busca e no estágio, seletor de condição na ficha, % atômica pela tabela IUPAC 2021 com ausência escrita quando a composição não fecha em 100 % | 4428 → 4500 | 863 → 872 |
@@ -126,7 +126,7 @@ fator no catálogo" na rota, tabelas por componente e por trecho; a tabela
 comparativa deixou de mostrar "—" para ausência. Não há exportação do Eco Audit
 para atualizar (registrado no TODO).
 
-**Pilha.** 4711 coletados (4705 passam e 6 pulam sem `POSTGRES_TEST_URL`); 883
+**Pilha.** 4711 coletados (4705 passam e 6 pulam sem `POSTGRES_TEST_URL`); 894
 de frontend; sem migração.
 
 ---
