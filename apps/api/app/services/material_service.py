@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
 from app.calculations.atomic_percent import DERIVED_LABEL, derive_atomic_percent
@@ -56,6 +57,7 @@ from app.schemas.material import (
     CompositionEntryOut,
     CompositionReplaceIn,
     CompositionSearchOut,
+    CopiedFromOut,
     DataQualitySummary,
     DesignationBrief,
     DesignationIn,
@@ -103,6 +105,28 @@ def _summarise_quality(material: Material) -> DataQualitySummary:
         else:
             summary.estimado += 1
     return summary
+
+
+#: Columns a row copy never carries over: the identity, and the creation stamp
+#: (the copy is created now, not when the original was).
+_COPY_SKIP = frozenset({"id", "created_at"})
+
+
+def _copy_row(row, **overrides):
+    """A new, unsaved row of the same class with every data column copied verbatim.
+
+    Copying by column and not by field name is the point (D-120): a value row
+    carries original value + unit, normalised value + canonical unit, the
+    conversion method, quality and source, and a hand-written field list would
+    lose whichever column the next migration adds. Nothing is recomputed — the
+    copy states exactly what the original stated.
+    """
+    mapper = sa_inspect(type(row))
+    data = {attr.key: getattr(row, attr.key) for attr in mapper.column_attrs}
+    for key in _COPY_SKIP:
+        data.pop(key, None)
+    data.update(overrides)
+    return type(row)(**data)
 
 
 def _designation_out(designation: MaterialDesignation) -> DesignationOut:
@@ -328,9 +352,102 @@ class MaterialService:
             designations=[_designation_out(d) for d in material.designations],
             composition=[_composition_entry_out(e) for e in material.composition],
             atomic_composition=_atomic_composition(list(material.composition)),
+            copied_from=self._copied_from(material),
         )
 
+    def _copied_from(self, material: Material) -> CopiedFromOut | None:
+        """Where a copy came from, when the original is still readable by this reader.
+
+        Read through the visibility filter on purpose: a copy belongs to its
+        owner and so does the original, but the rule is stated once and used
+        here too, so a pointer can never name a record the reader may not see.
+        """
+        if material.copied_from_id is None:
+            return None
+        origin = self.repo.get_material(material.copied_from_id)
+        if origin is None:
+            return None
+        return CopiedFromOut(id=origin.id, name=origin.name)
+
     # --- write operations -------------------------------------------------
+
+    def duplicate_material(self, material_id: int) -> MaterialDetail:
+        """Duplicate one of the reader's own records as an editable copy (D-120).
+
+        Only an own record can be duplicated: the shared catalogue's records are
+        not the reader's to fork (and the official catalogue is licensed), and a
+        synthesised record's recipe is not copyable — it is re-run in the
+        Synthesizer. The copy is always the reader's own, is marked with where it
+        came from, and carries every property value, designation, composition
+        entry, curve and keyword **as stored**: original value and unit,
+        normalised value and canonical unit, conversion method, quality, source —
+        and absence stays absence, never a zero.
+        """
+        original = self.repo.get_material(material_id)
+        if original is None or not original.is_active:
+            raise NotFoundError(f"Material não encontrado: {material_id}")
+        if original.owner_id is None or original.owner_id != self.viewer_id:
+            raise ValidationError(
+                "Só é possível duplicar um registro próprio. Para ajustar um material do "
+                "catálogo, cadastre um registro próprio."
+            )
+        if original.is_synthesized or original.synthesis is not None:
+            raise ValidationError(
+                "Um registro sintetizado não é duplicado: refaça a síntese no Sintetizador."
+            )
+
+        copy = Material(
+            name=self._free_copy_name(original.name),
+            class_id=original.class_id,
+            subclass=original.subclass,
+            description=original.description,
+            keywords=list(original.keywords or []),
+            is_demo=original.is_demo,
+            is_active=True,
+            owner_id=self.viewer_id,
+            copied_from_id=original.id,
+        )
+        self.repo.add(copy)
+        self.repo.flush()
+        for value in original.property_values:
+            self.repo.add(_copy_row(value, material_id=copy.id))
+        for designation in original.designations:
+            self.repo.add(_copy_row(designation, material_id=copy.id))
+        for entry in original.composition:
+            self.repo.add(_copy_row(entry, material_id=copy.id))
+        for curve in original.curves:
+            new_curve = _copy_row(
+                curve, material_id=copy.id, dataset_id=None, external_id=None, raw_sha256=None
+            )
+            self.repo.add(new_curve)
+            self.repo.flush()
+            for series in curve.series:
+                new_series = _copy_row(series, curve_id=new_curve.id)
+                self.repo.add(new_series)
+                self.repo.flush()
+                for point in series.points:
+                    self.repo.add(_copy_row(point, series_id=new_series.id))
+        copy.processes = list(original.processes)
+        self.repo.sync_keywords(copy.id, list(original.keywords or []))
+        record_change(
+            self.audit_repo,
+            self.user,
+            entity_type=AuditEntityType.MATERIAL,
+            entity_id=copy.id,
+            entity_label=copy.name,
+            action=AuditAction.CRIADO,
+        )
+        self.repo.commit()
+        return self.get_material_detail(copy.id)
+
+    def _free_copy_name(self, name: str) -> str:
+        """``name (cópia)``, then ``(cópia 2)``…, the first one not already taken."""
+        for attempt in range(1, 100):
+            suffix = " (cópia)" if attempt == 1 else f" (cópia {attempt})"
+            candidate = f"{name[: 200 - len(suffix)]}{suffix}"
+            if not self.repo.name_exists(candidate):
+                return candidate
+        raise ConflictError(f"Já existem muitas cópias de: {name}")
 
     def create_material(self, payload: MaterialCreate) -> MaterialDetail:
         """Create a material and its property values.

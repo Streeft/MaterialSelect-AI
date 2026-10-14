@@ -49,6 +49,10 @@ PROBES: dict[tuple[str, str], object] = {
 }
 EXEMPT = {
     ("POST", PREFIX + "/similares"): "ranking read; the POST carries the basis, writes nothing",
+    ("POST", PREFIX + "/duplicar"): (
+        "D-120: creates a new own record and never writes to the source, which it "
+        "refuses unless it is the caller's own (see test_material_duplicate.py)"
+    ),
 }
 
 
