@@ -1693,15 +1693,15 @@ export interface MyRecords {
  * recording habits choose the question without the reader seeing it chosen. The
  * interface proposes a basis; the request states one.
  */
-/** How a difference on one property counts (D-122). */
+/** How a difference on one property counts (D-120). */
 export type NearnessCriterion = "both" | "at_most" | "at_least";
 
 export interface SimilarRequest {
   property_slugs: string[];
   limit?: number;
-  /** Positive factor per basis slug (0 < w <= 10); omitted = 1 (D-122). */
+  /** Positive factor per basis slug (0 < w <= 10); omitted = 1 (D-120). */
   weights?: Record<string, number>;
-  /** One-sided criterion per basis slug; omitted = "both" (D-122). */
+  /** One-sided criterion per basis slug; omitted = "both" (D-120). */
   criteria?: Record<string, NearnessCriterion>;
 }
 
@@ -1746,7 +1746,7 @@ export interface Similar {
   /** Basis properties measured linearly despite asking for log space. */
   linear_fallback: string[];
   linear_fallback_labels: string[];
-  /** The weight and criterion every basis property ran with (D-122). */
+  /** The weight and criterion every basis property ran with (D-120). */
   weights: Record<string, number>;
   criteria: Record<string, NearnessCriterion>;
 }

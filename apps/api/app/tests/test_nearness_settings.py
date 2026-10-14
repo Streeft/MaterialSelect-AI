@@ -1,4 +1,4 @@
-"""Nearness settings: weight and one-sided criterion per property (D-122)."""
+"""Nearness settings: weight and one-sided criterion per property (D-120)."""
 
 from __future__ import annotations
 
