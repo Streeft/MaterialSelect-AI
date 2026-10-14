@@ -129,8 +129,7 @@ class ExportService:
     def _sheets(
         self, study, result: RunResultOut, records: dict, root_group_description: str
     ) -> list[Sheet]:
-        sheets = [
-            self._problem_sheet(study, result, root_group_description),
+        sheets = [\n            self._problem_sheet(study, result, root_group_description),
             self._stages_sheet(result),
             self._funnel_sheet(result),
             self._candidates_sheet(result),
@@ -337,12 +336,12 @@ class ExportService:
             return []
         return [
             Region(
+                # Kept short: the legend truncates a label past 20 characters.
                 label="Região do estágio",
                 x_min=plane.x.min_value,
                 x_max=plane.x.max_value,
                 y_min=plane.y.min_value,
                 y_max=plane.y.max_value,
-                y_min=plane.y.min_value,
             )
         ]
 
