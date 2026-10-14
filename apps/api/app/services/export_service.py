@@ -1313,13 +1313,10 @@ class ExportService:
 
     @staticmethod
     def _material_processes_sheet(d: MaterialDetail) -> Sheet:
-        rows = [
-            [p.name, p.family_name or "—", p.subfamily_name or "—", p.description or "—"]
-            for p in d.processes
-        ]
+        rows = [[p.name, p.class_name or "—", p.description or "—"] for p in d.processes]
         return Sheet(
             name="Processos compatíveis",
-            header=["Processo", "Família", "Subfamília", "Descrição"],
+            header=["Processo", "Família", "Descrição"],
             rows=rows,
             notes=(
                 ["Processos de fabricação compatíveis mapeados no catálogo (P0-2)."]
