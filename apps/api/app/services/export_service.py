@@ -65,44 +65,24 @@ class ExportService:
         user: User | None = None,
         unit_choices: Mapping[str, str] | None = None,
     ) -> None:
-        # The ``User`` and not only their id, because this service constructs a
-        # ``SelectionService`` to re-run the study and that one needs the whole
-        # object. Carrying two spellings of "who is asking" through the same
-        # call chain is how they come to disagree.
         self.db = db
         self.user = user
         self.viewer_id = user.id if user is not None else None
         self.selection_repo = SelectionRepository(db, self.viewer_id)
         self.chart_repo = ChartRepository(db, self.viewer_id)
-        # D-70: em que unidade o leitor pediu para ler. O documento sai como a
-        # tela de onde ele veio — um relatório que discordasse da tela que o
-        # originou seria a pior forma deste recurso falhar.
         self.unit_choices: Mapping[str, str] = unit_choices or {}
 
     # --- selection study --------------------------------------------------
 
     def _run(self, study_id: int, project_id: int):
-        """Re-run the study and load the records its candidates named.
-
-        Shared by the selection report and the laudo, so both describe the
-        same execution of the deterministic pipeline rather than two.
-        """
+        """Re-run the study and load the records its candidates named."""
         study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
         service = SelectionService(self.db, project_id, self.user)
         result = service.run_study(study_id)
-        # Same SelectionService instance as run_study above, so this reuses
-        # its already-populated property cache and snapshot list rather than
-        # rebuilding them — see SelectionService.describe_pipeline.
         root_group_description = service.describe_pipeline(study)
-        # Each universe's candidates are looked up in its **own** table (P0-3,
-        # extended by P0-4). Looking a process id up in the material table would
-        # not merely find nothing — it would find whatever material happens to
-        # carry that id, and print its provenance under a process's name. In a
-        # document whose whole purpose is auditability that is the worst
-        # available failure, so the two lookups never cross.
         candidate_ids = [c.record_id for c in result.candidates]
         if result.universe == "material":
             records = {
@@ -116,20 +96,14 @@ class ExportService:
 
     @staticmethod
     def _is_own_record(record: object) -> bool:
-        """Whether this record belongs to one person rather than the catalogue.
-
-        ``getattr`` with a default rather than a plain attribute read, and the
-        asymmetry is real and deliberate: only ``Material`` carries an owner.
-        A user-defined *process* would need the process catalogue to be
-        editable at all, which is its own open item (registered since P0-2), so
-        a process is always a catalogue record and answers False here.
-        """
+        """Whether this record belongs to one person rather than the catalogue."""
         return getattr(record, "owner_id", None) is not None
 
     def _sheets(
         self, study, result: RunResultOut, records: dict, root_group_description: str
     ) -> list[Sheet]:
-        sheets = [\n            self._problem_sheet(study, result, root_group_description),
+        sheets = [
+            self._problem_sheet(study, result, root_group_description),
             self._stages_sheet(result),
             self._funnel_sheet(result),
             self._candidates_sheet(result),
@@ -159,16 +133,11 @@ class ExportService:
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
-            # `is_demo` is a column of both `Material` and `Process`, so the
-            # warning is raised by whichever universe the study returned.
             notices=standard_notices(
                 includes_demo_data=any(r.is_demo for r in records.values()),
                 includes_own_records=any(self._is_own_record(r) for r in records.values()),
             ),
             sheets=self._sheets(study, result, records, root_group_description),
-            # The map, and only the map. The ranking chart stays a mark of the
-            # laudo (D-41); the map is what makes this a *selection* report
-            # rather than a table of numbers, so it belongs to both.
             figures=[f for f in (self._map_figure(study, result),) if f],
         )
 
@@ -177,10 +146,6 @@ class ExportService:
     ) -> Report:
         """The engineering report: the selection report plus a figure and,
         when the AI layer is on, an interpretive narrative.
-
-        A document distinct from ``study_report`` on purpose — it is meant to
-        be attached on its own, not read as a reduced version of the
-        spreadsheet-oriented tables.
         """
         study, result, records, root_group_description = self._run(study_id, project_id)
         narrative, caveats, note = self._narrative(study_id, project_id)
@@ -336,7 +301,6 @@ class ExportService:
             return []
         return [
             Region(
-                # Kept short: the legend truncates a label past 20 characters.
                 label="Região do estágio",
                 x_min=plane.x.min_value,
                 x_max=plane.x.max_value,
