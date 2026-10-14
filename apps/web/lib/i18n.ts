@@ -992,7 +992,6 @@ export const ptBR = {
     title: "Auditoria ambiental",
     subtitle:
       "Onde a energia e o CO₂ desta peça realmente vão — material, manufatura, transporte, uso e fim de vida.",
-    briefStep: "1. A peça",
     materialLabel: "Material",
     processLabel: "Processo que faz a peça",
     processHint:
@@ -1030,7 +1029,32 @@ export const ptBR = {
     eolLandfill: "Aterro",
     eolIncineration: "Incineração",
     eolHint:
-      "Aterro e incineração não têm energia catalogada nesta versão, e não viram zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
+      "Cada rota é paga pelo fator que o próprio material tem cadastrado. Rota sem fator fica indisponível, com o motivo escrito, e nunca vira zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela.",
+    eolNoFactor: "sem fator no catálogo",
+    noDelta: "Sem diferença: falta o número de um dos lados.",
+    // D-120: o produto é uma lista de componentes e de trechos.
+    productStep: "1. O produto",
+    productHint:
+      "Cada componente tem o seu material, processo, massa, teor reciclado e destino. Material, manufatura e fim de vida são somados por componente; transporte e uso leem a massa do produto inteiro.",
+    componentLegend: (n: number) => `Componente ${n}`,
+    componentNameLabel: "Nome (opcional)",
+    componentNameHint: "Ex.: tampa, carcaça, parafusos. Sem nome, vale o do material.",
+    unitMassLabel: "Massa de uma unidade (kg)",
+    quantityLabel: "Quantidade",
+    addComponent: "Adicionar componente",
+    removeComponent: (n: number) => `Remover componente ${n}`,
+    legsHint:
+      "Um trecho por modal: o produto inteiro percorre cada um. A distância é fato da cadeia de suprimento, não do material.",
+    legLegend: (n: number) => `Trecho ${n}`,
+    addLeg: "Adicionar trecho",
+    removeLeg: (n: number) => `Remover trecho ${n}`,
+    componentsTitle: "Detalhe por componente",
+    legsTitle: "Detalhe por trecho",
+    columnComponent: "Componente",
+    columnMassBought: "Massa comprada (kg)",
+    columnLeg: "Trecho",
+    productSummary: (components: number, legs: number) =>
+      `${components} ${components === 1 ? "componente" : "componentes"} · ${legs} ${legs === 1 ? "trecho" : "trechos"}`,
     // D-86: os números do uso ficam recolhidos, com cada valor no resumo.",
     materialHint: "Digite parte do nome do material.",
     useSummaryStatic: (life: string, power: string, duty: string, carbon: string) =>
@@ -1040,6 +1064,9 @@ export const ptBR = {
     blocked: {
       process: "Este material não tem processo cadastrado: escolha outro material no passo 1.",
       mode: "Escolha o modal de transporte no passo 2.",
+      component: (n: number, reason: string) => `Componente ${n}: ${reason}`,
+      leg: (n: number, reason: string) => `Trecho ${n}: ${reason}`,
+      quantity: "a quantidade é um inteiro de 1 em diante.",
       mass: "Informe a massa da peça, maior que zero.",
       recycled: "O teor reciclado vai de 0 a 1.",
       duty: "O ciclo de trabalho vai de 0 a 1, sem incluir o zero (premissas).",
@@ -1070,7 +1097,7 @@ export const ptBR = {
     resultStep: "4. As cinco fases",
     resultIdleTitle: "Nada auditado ainda",
     resultIdleHint:
-      "Preencha a peça, o transporte e o uso e peça a auditoria: as cinco fases aparecem aqui, com a fase que domina a energia e a que domina o carbono.",
+      "Preencha o produto, o transporte e o uso e peça a auditoria: as cinco fases aparecem aqui, com a fase que domina a energia e a que domina o carbono.",
     columnPhase: "Fase",
     columnEnergy: "Energia",
     columnCarbon: "Carbono",

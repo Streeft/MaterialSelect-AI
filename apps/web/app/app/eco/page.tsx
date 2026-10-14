@@ -1,17 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import type {
   EcoAuditResult,
   EcoComparisonResult,
   EcoDominance,
   EcoPhase,
+  EndOfLifeRoute,
+  EndOfLifeRouteInfo,
+  TransportMode,
   UseModel,
 } from "@/lib/types";
 import {
+  listEndOfLifeRoutes,
   listMaterials,
   listTransportModes,
   runEcoAudit,
@@ -30,6 +34,7 @@ import {
   ButtonGroupItem,
   Combobox,
   Disclosure,
+  Input,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -60,6 +65,283 @@ const DEFAULTS = {
   intensity: "0.0025",
   carbonPerEnergy: "0.07",
 };
+
+/** One line of the bill of materials, as typed (strings: the inputs own them). */
+interface ComponentDraft {
+  key: number;
+  name: string;
+  materialId: string;
+  processId: string;
+  mass: string;
+  quantity: string;
+  recycled: string;
+  endOfLife: EndOfLifeRoute;
+}
+
+interface LegDraft {
+  key: number;
+  mode: string;
+  distance: string;
+}
+
+function routeOptionLabel(route: EndOfLifeRouteInfo): string {
+  return route.materials_with_factor === 0 && route.energy_property !== null
+    ? `${route.label} — ${t.eolNoFactor}`
+    : route.label;
+}
+
+function RouteOptions({ routes }: { routes: EndOfLifeRouteInfo[] }) {
+  return (
+    <>
+      {routes.map((route) => (
+        <SelectOption key={route.slug} value={route.slug}>
+          {routeOptionLabel(route)}
+        </SelectOption>
+      ))}
+    </>
+  );
+}
+
+function ComponentFields({
+  index,
+  draft,
+  canRemove,
+  materialOptions,
+  processes,
+  processesLoaded,
+  routes,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  draft: ComponentDraft;
+  canRemove: boolean;
+  materialOptions: { value: string; label: string; description: string; keywords: string[] }[];
+  processes: { id: number; name: string }[];
+  processesLoaded: boolean;
+  routes: EndOfLifeRouteInfo[];
+  onChange: (patch: Partial<ComponentDraft>) => void;
+  onRemove: () => void;
+}) {
+  const n = index + 1;
+  const selectedProcess = draft.processId || String(processes[0]?.id ?? "");
+  return (
+    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
+      <legend className="text-sm font-medium text-ink">{t.componentLegend(n)}</legend>
+      <div className="sm:col-span-2">
+        <Input
+          label={t.componentNameLabel}
+          hint={t.componentNameHint}
+          value={draft.name}
+          maxLength={120}
+          onChange={(event) => onChange({ name: event.target.value })}
+        />
+      </div>
+      <Combobox
+        label={t.materialLabel}
+        hint={t.materialHint}
+        options={materialOptions}
+        value={draft.materialId}
+        onChange={(value) => onChange({ materialId: value, processId: "" })}
+      />
+      {processesLoaded && processes.length === 0 ? (
+        <div className="flex flex-col gap-1">
+          <span className="msds-field-label">{t.processLabel}</span>
+          <Alert tone="warning">{t.noProcess}</Alert>
+        </div>
+      ) : (
+        <Select
+          label={t.processLabel}
+          hint={t.processHint}
+          value={selectedProcess}
+          disabled={processes.length === 0}
+          onChange={(event) =>
+            onChange({ processId: (event.target as HTMLSelectElement).value })
+          }
+        >
+          {processes.map((process) => (
+            <SelectOption key={process.id} value={String(process.id)}>
+              {process.name}
+            </SelectOption>
+          ))}
+        </Select>
+      )}
+      <NumberInput
+        label={index === 0 ? t.massLabel : t.unitMassLabel}
+        hint={index === 0 ? t.massHint : undefined}
+        value={draft.mass}
+        min={0}
+        step="any"
+        onChange={(event) => onChange({ mass: event.target.value })}
+      />
+      <NumberInput
+        label={t.quantityLabel}
+        value={draft.quantity}
+        min={1}
+        step={1}
+        onChange={(event) => onChange({ quantity: event.target.value })}
+      />
+      <NumberInput
+        label={t.recycledLabel}
+        hint={t.recycledHint}
+        value={draft.recycled}
+        min={0}
+        max={1}
+        step="any"
+        onChange={(event) => onChange({ recycled: event.target.value })}
+      />
+      <Select
+        label={t.eolLabel}
+        hint={t.eolHint}
+        value={draft.endOfLife}
+        onChange={(event) =>
+          onChange({
+            endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute,
+          })
+        }
+      >
+        <RouteOptions routes={routes} />
+      </Select>
+      {canRemove ? (
+        <div className="sm:col-span-2">
+          <Button variant="ghost" size="sm" onClick={onRemove}>
+            {t.removeComponent(n)}
+          </Button>
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
+function LegFields({
+  index,
+  draft,
+  canRemove,
+  modes,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  draft: LegDraft;
+  canRemove: boolean;
+  modes: TransportMode[];
+  onChange: (patch: Partial<LegDraft>) => void;
+  onRemove: () => void;
+}) {
+  const n = index + 1;
+  return (
+    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
+      <legend className="text-sm font-medium text-ink">{t.legLegend(n)}</legend>
+      <Select
+        label={t.transportModeLabel}
+        value={draft.mode}
+        onChange={(event) => onChange({ mode: (event.target as HTMLSelectElement).value })}
+      >
+        {modes.map((item) => (
+          <SelectOption key={item.slug} value={item.slug}>
+            {item.name}
+          </SelectOption>
+        ))}
+      </Select>
+      <NumberInput
+        label={t.transportDistanceLabel}
+        value={draft.distance}
+        min={0}
+        step="any"
+        onChange={(event) => onChange({ distance: event.target.value })}
+      />
+      {canRemove ? (
+        <div className="sm:col-span-2">
+          <Button variant="ghost" size="sm" onClick={onRemove}>
+            {t.removeLeg(n)}
+          </Button>
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
+function ComponentTable({ result }: { result: EcoAuditResult }) {
+  const phaseLabels = result.components[0]?.phases.map((phase) => phase.label) ?? [];
+  return (
+    <TableScroll label={t.componentsTitle}>
+      <Table>
+        <TableCaption>{t.componentsTitle}</TableCaption>
+        <THead>
+          <Tr>
+            <Th scope="col">{t.columnComponent}</Th>
+            <Th scope="col">{t.columnMassBought}</Th>
+            {phaseLabels.map((label) => (
+              <Th key={label} scope="col">{`${label} (${result.energy_unit} · ${result.carbon_unit})`}</Th>
+            ))}
+          </Tr>
+        </THead>
+        <TBody>
+          {result.components.map((component, index) => (
+            <Tr key={`${component.name}-${index}`}>
+              <Td>
+                <div className="font-medium">{component.name}</div>
+                <div className="text-xs text-ink-muted">
+                  <Link
+                    className="text-accent underline underline-offset-2"
+                    href={`/app/materiais/${component.material_id}`}
+                  >
+                    {component.material_name}
+                  </Link>{" "}
+                  · {component.process_name} · {component.quantity} ×{" "}
+                  {formatNumber(component.unit_mass)} kg · {component.end_of_life_label}
+                </div>
+              </Td>
+              <Td className="tabular-nums">{formatNumber(component.mass_bought)}</Td>
+              {component.phases.map((phase) => (
+                <Td key={phase.phase} className="text-xs">
+                  <div>
+                    <Quantity value={phase.energy} reason={phase.energy_reason} />
+                  </div>
+                  <div className="text-ink-muted">
+                    <Quantity value={phase.carbon} reason={phase.carbon_reason} />
+                  </div>
+                </Td>
+              ))}
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+    </TableScroll>
+  );
+}
+
+function LegTable({ result }: { result: EcoAuditResult }) {
+  return (
+    <TableScroll label={t.legsTitle}>
+      <Table>
+        <TableCaption>{t.legsTitle}</TableCaption>
+        <THead>
+          <Tr>
+            <Th scope="col">{t.columnLeg}</Th>
+            <Th scope="col">{t.transportDistanceLabel}</Th>
+            <Th scope="col">{`${t.columnEnergy} (${result.energy_unit})`}</Th>
+            <Th scope="col">{`${t.columnCarbon} (${result.carbon_unit})`}</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          {result.transport_legs.map((leg, index) => (
+            <Tr key={`${leg.mode.slug}-${index}`}>
+              <Td className="font-medium">{`${t.legLegend(index + 1)} · ${leg.mode.name}`}</Td>
+              <Td className="tabular-nums">{formatNumber(leg.distance_km)}</Td>
+              <Td>
+                <Quantity value={leg.energy} reason={leg.energy_reason} />
+              </Td>
+              <Td>
+                <Quantity value={leg.carbon} reason={leg.carbon_reason} />
+              </Td>
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+    </TableScroll>
+  );
+}
 
 function printable(raw: string): string {
   const value = Number(raw);
@@ -155,6 +437,14 @@ function PhaseTable({ result }: { result: EcoAuditResult }) {
   );
 }
 
+function Cell({ value, unit, reason }: { value: number | null; unit: string; reason: string | null | undefined }) {
+  return value !== null ? (
+    <>{`${formatNumber(value)} ${unit}`}</>
+  ) : (
+    <span className="text-ink-muted">{reason ?? t.noTotal}</span>
+  );
+}
+
 function ComparisonTable({ result }: { result: EcoComparisonResult }) {
   const resA = result.material_a;
   const resB = result.material_b;
@@ -170,6 +460,10 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
       energyB: pB?.energy ?? null,
       carbonA: pA.carbon,
       carbonB: pB?.carbon ?? null,
+      energyReasonA: pA.energy_reason,
+      energyReasonB: pB?.energy_reason ?? null,
+      carbonReasonA: pA.carbon_reason,
+      carbonReasonB: pB?.carbon_reason ?? null,
     };
   });
 
@@ -194,26 +488,26 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
                 <Td className="font-medium">{p.label}</Td>
                 <Td className="tabular-nums text-xs">
                   <div>
-                    {p.energyA !== null ? `${formatNumber(p.energyA)} ${energyUnit}` : "—"}
+                    <Cell value={p.energyA} unit={energyUnit} reason={p.energyReasonA} />
                   </div>
                   <div className="text-ink-muted">
-                    {p.carbonA !== null ? `${formatNumber(p.carbonA)} ${carbonUnit}` : "—"}
+                    <Cell value={p.carbonA} unit={carbonUnit} reason={p.carbonReasonA} />
                   </div>
                 </Td>
                 <Td className="tabular-nums text-xs">
                   <div>
-                    {p.energyB !== null ? `${formatNumber(p.energyB)} ${energyUnit}` : "—"}
+                    <Cell value={p.energyB} unit={energyUnit} reason={p.energyReasonB} />
                   </div>
                   <div className="text-ink-muted">
-                    {p.carbonB !== null ? `${formatNumber(p.carbonB)} ${carbonUnit}` : "—"}
+                    <Cell value={p.carbonB} unit={carbonUnit} reason={p.carbonReasonB} />
                   </div>
                 </Td>
                 <Td className="tabular-nums text-xs">
                   <div className={deltaE !== null ? (deltaE < 0 ? "text-success-fg font-medium" : deltaE > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
-                    {deltaE !== null ? `${deltaE > 0 ? "+" : ""}${formatNumber(deltaE)} ${energyUnit}` : "—"}
+                    {deltaE !== null ? `${deltaE > 0 ? "+" : ""}${formatNumber(deltaE)} ${energyUnit}` : t.noDelta}
                   </div>
                   <div className={deltaC !== null ? (deltaC < 0 ? "text-success-fg font-medium" : deltaC > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
-                    {deltaC !== null ? `${deltaC > 0 ? "+" : ""}${formatNumber(deltaC)} ${carbonUnit}` : "—"}
+                    {deltaC !== null ? `${deltaC > 0 ? "+" : ""}${formatNumber(deltaC)} ${carbonUnit}` : t.noDelta}
                   </div>
                 </Td>
               </Tr>
@@ -223,30 +517,30 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
             <Td className="font-medium">{t.totalLabel}</Td>
             <Td className="tabular-nums font-semibold text-xs">
               <div>
-                {resA.total_energy !== null ? `${formatNumber(resA.total_energy)} ${energyUnit}` : "—"}
+                <Cell value={resA.total_energy} unit={energyUnit} reason={t.noTotal} />
               </div>
               <div className="text-ink-muted">
-                {resA.total_carbon !== null ? `${formatNumber(resA.total_carbon)} ${carbonUnit}` : "—"}
+                <Cell value={resA.total_carbon} unit={carbonUnit} reason={t.noTotal} />
               </div>
             </Td>
             <Td className="tabular-nums font-semibold text-xs">
               <div>
-                {resB.total_energy !== null ? `${formatNumber(resB.total_energy)} ${energyUnit}` : "—"}
+                <Cell value={resB.total_energy} unit={energyUnit} reason={t.noTotal} />
               </div>
               <div className="text-ink-muted">
-                {resB.total_carbon !== null ? `${formatNumber(resB.total_carbon)} ${carbonUnit}` : "—"}
+                <Cell value={resB.total_carbon} unit={carbonUnit} reason={t.noTotal} />
               </div>
             </Td>
             <Td className="tabular-nums font-semibold text-xs">
               <div className={result.delta_energy !== null ? (result.delta_energy < 0 ? "text-success-fg" : result.delta_energy > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
                 {result.delta_energy !== null
                   ? `${result.delta_energy > 0 ? "+" : ""}${formatNumber(result.delta_energy)} ${energyUnit} (${result.delta_energy_percent !== null ? (result.delta_energy_percent > 0 ? "+" : "") + formatNumber(result.delta_energy_percent) + "%" : ""})`
-                  : "—"}
+                  : t.noDelta}
               </div>
               <div className={result.delta_carbon !== null ? (result.delta_carbon < 0 ? "text-success-fg" : result.delta_carbon > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
                 {result.delta_carbon !== null
                   ? `${result.delta_carbon > 0 ? "+" : ""}${formatNumber(result.delta_carbon)} ${carbonUnit} (${result.delta_carbon_percent !== null ? (result.delta_carbon_percent > 0 ? "+" : "") + formatNumber(result.delta_carbon_percent) + "%" : ""})`
-                  : "—"}
+                  : t.noDelta}
               </div>
             </Td>
           </Tr>
@@ -266,15 +560,33 @@ export default function EcoPage() {
     queryKey: ["transport-modes"],
     queryFn: listTransportModes,
   });
+  const routes = useQuery({
+    queryKey: ["eco-end-of-life-routes"],
+    queryFn: listEndOfLifeRoutes,
+  });
 
   const [modeChoice, setModeChoice] = useState<"individual" | "compare">("individual");
 
-  // Individual mode state
-  const [materialId, setMaterialId] = useState(params.get("material") ?? "");
-  const [mass, setMass] = useState(params.get("massa") ?? "");
-  const [recycled, setRecycled] = useState(DEFAULTS.recycled);
-  const [processId, setProcessId] = useState("");
-  const [endOfLife, setEndOfLife] = useState("reciclagem");
+  // Individual mode state: the product (D-120). The solver's deep link
+  // (?material=&massa=) seeds the first component; the list itself is not put
+  // in the URL — the flow never kept more than that seed there.
+  const nextKey = useRef(1);
+  const newKey = () => nextKey.current++;
+  const [components, setComponents] = useState<ComponentDraft[]>(() => [
+    {
+      key: 0,
+      name: "",
+      materialId: params.get("material") ?? "",
+      processId: "",
+      mass: params.get("massa") ?? "",
+      quantity: "1",
+      recycled: DEFAULTS.recycled,
+      endOfLife: "reciclagem",
+    },
+  ]);
+  const [legs, setLegs] = useState<LegDraft[]>(() => [
+    { key: 0, mode: "", distance: DEFAULTS.distance },
+  ]);
   const [result, setResult] = useState<EcoAuditResult | null>(null);
 
   // Compare mode state
@@ -282,13 +594,13 @@ export default function EcoPage() {
   const [massA, setMassA] = useState(params.get("massa") ?? "1");
   const [recycledA, setRecycledA] = useState(DEFAULTS.recycled);
   const [processAId, setProcessAId] = useState("");
-  const [endOfLifeA, setEndOfLifeA] = useState("reciclagem");
+  const [endOfLifeA, setEndOfLifeA] = useState<EndOfLifeRoute>("reciclagem");
 
   const [materialBId, setMaterialBId] = useState("");
   const [massB, setMassB] = useState("1");
   const [recycledB, setRecycledB] = useState(DEFAULTS.recycled);
   const [processBId, setProcessBId] = useState("");
-  const [endOfLifeB, setEndOfLifeB] = useState("reciclagem");
+  const [endOfLifeB, setEndOfLifeB] = useState<EndOfLifeRoute>("reciclagem");
   const [compareResult, setCompareResult] = useState<EcoComparisonResult | null>(null);
 
   // Shared premises state
@@ -303,16 +615,32 @@ export default function EcoPage() {
   const [carbonPerEnergy, setCarbonPerEnergy] = useState(DEFAULTS.carbonPerEnergy);
   const [premisesOpen, setPremisesOpen] = useState(false);
 
-  const selectedMaterial = materialId || String(materials.data?.[0]?.id ?? "");
-  const selectedMode = mode || modes.data?.[0]?.slug || "";
+  const firstMaterial = String(materials.data?.[0]?.id ?? "");
+  const firstMode = modes.data?.[0]?.slug ?? "";
+  const selectedMode = mode || firstMode;
 
-  const detail = useQuery({
-    queryKey: ["material", selectedMaterial],
-    queryFn: () => getMaterial(Number(selectedMaterial)),
-    enabled: selectedMaterial !== "",
+  // What each component and leg resolves to once defaults are applied, so the
+  // brief sent is exactly what the screen shows.
+  const componentMaterials = components.map((c) => c.materialId || firstMaterial);
+  const details = useQueries({
+    queries: componentMaterials.map((id) => ({
+      queryKey: ["material", id],
+      queryFn: () => getMaterial(Number(id)),
+      enabled: modeChoice === "individual" && id !== "",
+    })),
   });
-  const processes = useMemo(() => detail.data?.processes ?? [], [detail.data]);
-  const selectedProcess = processId || String(processes[0]?.id ?? "");
+  const componentProcesses = details.map((query) => query.data?.processes ?? []);
+  const resolvedComponents = components.map((c, index) => ({
+    ...c,
+    materialId: componentMaterials[index] ?? "",
+    processId: c.processId || String(componentProcesses[index]?.[0]?.id ?? ""),
+  }));
+  const resolvedLegs = legs.map((leg) => ({ ...leg, mode: leg.mode || firstMode }));
+
+  const patchComponent = (key: number, patch: Partial<ComponentDraft>) =>
+    setComponents((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c)));
+  const patchLeg = (key: number, patch: Partial<LegDraft>) =>
+    setLegs((list) => list.map((leg) => (leg.key === key ? { ...leg, ...patch } : leg)));
 
   // Compare mode materials & processes
   const selectedMatA = materialAId || String(materials.data?.[0]?.id ?? "");
@@ -336,13 +664,19 @@ export default function EcoPage() {
   const audit = useMutation({
     mutationFn: () =>
       runEcoAudit({
-        material_id: Number(selectedMaterial),
-        process_id: Number(selectedProcess),
-        part_mass: Number(mass),
-        recycled_fraction: Number(recycled),
-        transport_mode: selectedMode,
-        transport_distance_km: Number(distance),
-        end_of_life: endOfLife as "reciclagem" | "aterro" | "incineracao",
+        components: resolvedComponents.map((c) => ({
+          name: c.name.trim() === "" ? null : c.name.trim(),
+          material_id: Number(c.materialId),
+          process_id: Number(c.processId),
+          unit_mass: Number(c.mass),
+          quantity: Number(c.quantity),
+          recycled_fraction: Number(c.recycled),
+          end_of_life: c.endOfLife,
+        })),
+        transport_legs: resolvedLegs.map((leg) => ({
+          mode: leg.mode,
+          distance_km: Number(leg.distance),
+        })),
         use:
           useModel === "estatico"
             ? {
@@ -371,14 +705,14 @@ export default function EcoPage() {
           process_id: Number(selectedProcA),
           part_mass: Number(massA),
           recycled_fraction: Number(recycledA),
-          end_of_life: endOfLifeA as "reciclagem" | "aterro" | "incineracao",
+          end_of_life: endOfLifeA,
         },
         material_b: {
           material_id: Number(selectedMatB),
           process_id: Number(selectedProcB),
           part_mass: Number(massB),
           recycled_fraction: Number(recycledB),
-          end_of_life: endOfLifeB as "reciclagem" | "aterro" | "incineracao",
+          end_of_life: endOfLifeB,
         },
         transport_mode: selectedMode,
         transport_distance_km: Number(distance),
@@ -402,14 +736,32 @@ export default function EcoPage() {
     onSuccess: setCompareResult,
   });
 
-  const blocked = useMemo((): { reason: string; inPremises: boolean } | null => {
+  // Plain function, not a memo: the resolved lists are rebuilt every render
+  // and the check is a few comparisons.
+  const blockedReason = (): { reason: string; inPremises: boolean } | null => {
     const positive = (raw: string) => {
       const value = Number(raw);
       return raw.trim() !== "" && Number.isFinite(value) && value > 0;
     };
-    if (selectedMode === "") return { reason: t.blocked.mode, inPremises: false };
-    if (!positive(distance))
-      return { reason: t.blocked.positive(t.transportDistanceLabel), inPremises: false };
+    const nonNegative = (raw: string) => {
+      const value = Number(raw);
+      return raw.trim() !== "" && Number.isFinite(value) && value >= 0;
+    };
+    if (modeChoice === "individual") {
+      for (const [index, leg] of resolvedLegs.entries()) {
+        if (leg.mode === "")
+          return { reason: t.blocked.leg(index + 1, t.blocked.mode), inPremises: false };
+        if (!nonNegative(leg.distance))
+          return {
+            reason: t.blocked.leg(index + 1, t.blocked.positive(t.transportDistanceLabel)),
+            inPremises: false,
+          };
+      }
+    } else {
+      if (selectedMode === "") return { reason: t.blocked.mode, inPremises: false };
+      if (!positive(distance))
+        return { reason: t.blocked.positive(t.transportDistanceLabel), inPremises: false };
+    }
     const premises: [string, string][] =
       useModel === "estatico"
         ? [
@@ -430,12 +782,20 @@ export default function EcoPage() {
       return { reason: t.blocked.positive(t.carbonPerEnergyLabel), inPremises: true };
 
     if (modeChoice === "individual") {
-      if (selectedMaterial === "" || selectedProcess === "")
-        return { reason: t.blocked.process, inPremises: false };
-      if (!positive(mass)) return { reason: t.blocked.mass, inPremises: false };
-      const recycledValue = Number(recycled);
-      if (recycled.trim() === "" || !(recycledValue >= 0 && recycledValue <= 1))
-        return { reason: t.blocked.recycled, inPremises: false };
+      const single = resolvedComponents.length === 1;
+      for (const [index, c] of resolvedComponents.entries()) {
+        const say = (reason: string) => ({
+          reason: single ? reason : t.blocked.component(index + 1, reason),
+          inPremises: false,
+        });
+        if (c.materialId === "" || c.processId === "") return say(t.blocked.process);
+        if (!positive(c.mass)) return say(t.blocked.mass);
+        const quantity = Number(c.quantity);
+        if (!Number.isInteger(quantity) || quantity < 1) return say(t.blocked.quantity);
+        const recycledValue = Number(c.recycled);
+        if (c.recycled.trim() === "" || !(recycledValue >= 0 && recycledValue <= 1))
+          return say(t.blocked.recycled);
+      }
     } else {
       if (selectedMatA === "" || selectedProcA === "")
         return { reason: `${t.materialA}: ${t.blocked.process}`, inPremises: false };
@@ -454,30 +814,8 @@ export default function EcoPage() {
         return { reason: `${t.materialB}: ${t.blocked.recycled}`, inPremises: false };
     }
     return null;
-  }, [
-    modeChoice,
-    selectedMaterial,
-    selectedProcess,
-    selectedMatA,
-    selectedProcA,
-    selectedMatB,
-    selectedProcB,
-    selectedMode,
-    mass,
-    massA,
-    massB,
-    recycled,
-    recycledA,
-    recycledB,
-    distance,
-    life,
-    carbonPerEnergy,
-    useModel,
-    power,
-    duty,
-    travel,
-    intensity,
-  ]);
+  };
+  const blocked = blockedReason();
 
   const ready = blocked === null;
 
@@ -539,13 +877,13 @@ export default function EcoPage() {
         label: pA.label,
         items: [
           {
-            seriesName: resA.material_name,
+            seriesName: resA.material_name ?? t.materialA,
             value: pA.energy,
             reason: pA.energy_reason,
             tone: "primary",
           },
           {
-            seriesName: resB.material_name,
+            seriesName: resB.material_name ?? t.materialB,
             value: pB?.energy ?? null,
             reason: pB?.energy_reason,
             tone: "secondary",
@@ -566,13 +904,13 @@ export default function EcoPage() {
         label: pA.label,
         items: [
           {
-            seriesName: resA.material_name,
+            seriesName: resA.material_name ?? t.materialA,
             value: pA.carbon,
             reason: pA.carbon_reason,
             tone: "primary",
           },
           {
-            seriesName: resB.material_name,
+            seriesName: resB.material_name ?? t.materialB,
             value: pB?.carbon ?? null,
             reason: pB?.carbon_reason,
             tone: "secondary",
@@ -582,11 +920,12 @@ export default function EcoPage() {
     });
   }, [compareResult]);
 
-  if (materials.isLoading || modes.isLoading)
+  if (materials.isLoading || modes.isLoading || routes.isLoading)
     return <LoadingState label={t.title} />;
   if (materials.isError)
     return <ErrorState description={String(materials.error)} />;
   if (modes.isError) return <ErrorState description={String(modes.error)} />;
+  if (routes.isError) return <ErrorState description={String(routes.error)} />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -609,83 +948,77 @@ export default function EcoPage() {
 
       {modeChoice === "individual" ? (
         <div className="grid items-start gap-6 lg:grid-cols-2">
-          <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
-            <Combobox
-              label={t.materialLabel}
-              hint={t.materialHint}
-              options={materialOptions}
-              value={selectedMaterial}
-              onChange={(value) => {
-                setMaterialId(value);
-                setProcessId("");
-              }}
-            />
-            {detail.isSuccess && processes.length === 0 ? (
-              <div className="flex flex-col gap-1">
-                <span className="msds-field-label">{t.processLabel}</span>
-                <Alert tone="warning">{t.noProcess}</Alert>
-              </div>
-            ) : (
-              <Select
-                label={t.processLabel}
-                hint={t.processHint}
-                value={selectedProcess}
-                disabled={processes.length === 0}
-                onChange={(event) =>
-                  setProcessId((event.target as HTMLSelectElement).value)
+          <StepCard
+            title={t.productStep}
+            description={t.productHint}
+            bodyClassName="flex flex-col gap-4"
+            footer={
+              <Button
+                size="sm"
+                onClick={() =>
+                  setComponents((list) => [
+                    ...list,
+                    {
+                      key: newKey(),
+                      name: "",
+                      materialId: "",
+                      processId: "",
+                      mass: "",
+                      quantity: "1",
+                      recycled: DEFAULTS.recycled,
+                      endOfLife: "reciclagem",
+                    },
+                  ])
                 }
               >
-                {processes.map((process) => (
-                  <SelectOption key={process.id} value={String(process.id)}>
-                    {process.name}
-                  </SelectOption>
-                ))}
-              </Select>
-            )}
-            <NumberInput
-              label={t.massLabel}
-              hint={t.massHint}
-              value={mass}
-              min={0}
-              step="any"
-              onChange={(event) => setMass(event.target.value)}
-            />
-            <NumberInput
-              label={t.recycledLabel}
-              hint={t.recycledHint}
-              value={recycled}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setRecycled(event.target.value)}
-            />
+                {t.addComponent}
+              </Button>
+            }
+          >
+            {components.map((draft, index) => (
+              <ComponentFields
+                key={draft.key}
+                index={index}
+                draft={{ ...draft, materialId: resolvedComponents[index]?.materialId ?? "" }}
+                canRemove={components.length > 1}
+                materialOptions={materialOptions}
+                processes={componentProcesses[index] ?? []}
+                processesLoaded={Boolean(details[index]?.isSuccess)}
+                routes={routes.data ?? []}
+                onChange={(patch) => patchComponent(draft.key, patch)}
+                onRemove={() =>
+                  setComponents((list) => list.filter((c) => c.key !== draft.key))
+                }
+              />
+            ))}
           </StepCard>
 
           <StepCard
             title={t.transportStep}
-            description={t.transportHint}
-            bodyClassName="grid gap-4 sm:grid-cols-2"
+            description={t.legsHint}
+            bodyClassName="flex flex-col gap-4"
+            footer={
+              <Button
+                size="sm"
+                onClick={() =>
+                  setLegs((list) => [...list, { key: newKey(), mode: "", distance: "0" }])
+                }
+              >
+                {t.addLeg}
+              </Button>
+            }
           >
-            <Select
-              label={t.transportModeLabel}
-              value={selectedMode}
-              onChange={(event) =>
-                setMode((event.target as HTMLSelectElement).value)
-              }
-            >
-              {(modes.data ?? []).map((item) => (
-                <SelectOption key={item.slug} value={item.slug}>
-                  {item.name}
-                </SelectOption>
-              ))}
-            </Select>
-            <NumberInput
-              label={t.transportDistanceLabel}
-              value={distance}
-              min={0}
-              step="any"
-              onChange={(event) => setDistance(event.target.value)}
-            />
+            {legs.map((draft, index) => (
+              <LegFields
+                key={draft.key}
+                index={index}
+                draft={{ ...draft, mode: resolvedLegs[index]?.mode ?? "" }}
+                canRemove={legs.length > 1}
+                modes={modes.data ?? []}
+                onChange={(patch) => patchLeg(draft.key, patch)}
+                onRemove={() => setLegs((list) => list.filter((leg) => leg.key !== draft.key))}
+              />
+            ))}
           </StepCard>
         </div>
       ) : (
@@ -746,12 +1079,10 @@ export default function EcoPage() {
                 hint={t.eolHint}
                 value={endOfLifeA}
                 onChange={(event) =>
-                  setEndOfLifeA((event.target as HTMLSelectElement).value)
+                  setEndOfLifeA((event.target as HTMLSelectElement).value as EndOfLifeRoute)
                 }
               >
-                <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-                <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-                <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+                <RouteOptions routes={routes.data ?? []} />
               </Select>
             </div>
           </StepCard>
@@ -812,12 +1143,10 @@ export default function EcoPage() {
                 hint={t.eolHint}
                 value={endOfLifeB}
                 onChange={(event) =>
-                  setEndOfLifeB((event.target as HTMLSelectElement).value)
+                  setEndOfLifeB((event.target as HTMLSelectElement).value as EndOfLifeRoute)
                 }
               >
-                <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-                <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-                <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
+                <RouteOptions routes={routes.data ?? []} />
               </Select>
             </div>
           </StepCard>
@@ -891,20 +1220,6 @@ export default function EcoPage() {
             <SelectOption value="estatico">{t.useStatic}</SelectOption>
             <SelectOption value="movel">{t.useMobile}</SelectOption>
           </Select>
-          {modeChoice === "individual" && (
-            <Select
-              label={t.eolLabel}
-              hint={t.eolHint}
-              value={endOfLife}
-              onChange={(event) =>
-                setEndOfLife((event.target as HTMLSelectElement).value)
-              }
-            >
-              <SelectOption value="reciclagem">{t.eolRecycle}</SelectOption>
-              <SelectOption value="aterro">{t.eolLandfill}</SelectOption>
-              <SelectOption value="incineracao">{t.eolIncineration}</SelectOption>
-            </Select>
-          )}
         </div>
         <Disclosure
           summary={
@@ -1007,6 +1322,8 @@ export default function EcoPage() {
               </div>
 
               <PhaseTable result={result} />
+              <ComponentTable result={result} />
+              <LegTable result={result} />
 
               <div className="flex flex-col gap-4">
                 <PhaseBars
@@ -1027,15 +1344,7 @@ export default function EcoPage() {
                   {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
                 </span>
                 <span>{result.recycling_credit_note}</span>
-                <span>
-                  <Link
-                    className="text-accent underline underline-offset-2"
-                    href={`/app/materiais/${result.material_id}`}
-                  >
-                    {result.material_name}
-                  </Link>{" "}
-                  · {result.process_name} · {result.transport_mode.name}
-                </span>
+                <span>{t.productSummary(result.components.length, result.transport_legs.length)}</span>
               </div>
             </>
           ) : (

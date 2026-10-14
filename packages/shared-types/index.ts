@@ -1975,15 +1975,57 @@ export interface EcoUseIn {
   carbon_per_energy?: number | null;
 }
 
-export type EndOfLifeRoute = "reciclagem" | "aterro" | "incineracao";
+/** The seven end-of-life routes (D-120). What each costs is read from the
+ * catalogue per material; a route without its factor is unavailable. */
+export type EndOfLifeRoute =
+  | "aterro"
+  | "incineracao"
+  | "subciclagem"
+  | "reciclagem"
+  | "remanufatura"
+  | "reuso"
+  | "nenhum";
 
-export interface EcoAuditRequest {
+export interface EndOfLifeRouteInfo {
+  slug: EndOfLifeRoute;
+  label: string;
+  description: string;
+  energy_property: string | null;
+  carbon_property: string | null;
+  /** Visible materials carrying both factors; 0 = unavailable for all. */
+  materials_with_factor: number;
+}
+
+/** One line of the bill of materials. */
+export interface EcoComponentIn {
+  name?: string | null;
   material_id: number;
-  /** Required: an eco audit of a part is an audit of *making* the part. */
   process_id: number;
-  part_mass: number;
+  /** Mass of ONE unit, kg. */
+  unit_mass: number;
+  quantity?: number;
   recycled_fraction?: number;
-  transport_mode: string;
+  end_of_life?: EndOfLifeRoute;
+}
+
+export interface EcoTransportLegIn {
+  mode: string;
+  distance_km: number;
+}
+
+/**
+ * Two shapes, never mixed: the product (`components` + `transport_legs`) or
+ * the single part (`material_id`, `process_id`, `part_mass`, `transport_mode`).
+ */
+export interface EcoAuditRequest {
+  components?: EcoComponentIn[];
+  transport_legs?: EcoTransportLegIn[];
+  material_id?: number;
+  /** Required: an eco audit of a part is an audit of *making* the part. */
+  process_id?: number;
+  part_mass?: number;
+  recycled_fraction?: number;
+  transport_mode?: string;
   transport_distance_km?: number;
   use: EcoUseIn;
   end_of_life?: EndOfLifeRoute;
@@ -2016,20 +2058,53 @@ export interface EcoDominance {
   refusal: string | null;
 }
 
-export interface EcoAuditResult {
+export interface EcoComponentOut {
+  name: string;
   material_id: number;
   material_name: string;
   process_id: number;
   process_name: string;
-  transport_mode: TransportMode;
-  transport_distance_km: number;
-  /** What the part weighs, and what had to be bought to make it. */
+  quantity: number;
+  unit_mass: number;
   mass_in_part: number;
   mass_bought: number;
   scrap_fraction: number;
   recycled_fraction: number;
-  use_model: UseModel;
   end_of_life: EndOfLifeRoute;
+  end_of_life_label: string;
+  /** material, manufatura, fim-de-vida — the phases a component owns. */
+  phases: EcoPhase[];
+}
+
+export interface EcoTransportLegOut {
+  mode: TransportMode;
+  distance_km: number;
+  energy: number | null;
+  carbon: number | null;
+  energy_missing: string[];
+  carbon_missing: string[];
+  energy_reason: string | null;
+  carbon_reason: string | null;
+}
+
+export interface EcoAuditResult {
+  components: EcoComponentOut[];
+  transport_legs: EcoTransportLegOut[];
+  /** Single-part fields: filled only for one component / one leg. */
+  material_id: number | null;
+  material_name: string | null;
+  process_id: number | null;
+  process_name: string | null;
+  transport_mode: TransportMode | null;
+  /** Sum over the legs. */
+  transport_distance_km: number;
+  /** What the product weighs, and what had to be bought to make it. */
+  mass_in_part: number;
+  mass_bought: number;
+  scrap_fraction: number | null;
+  recycled_fraction: number | null;
+  use_model: UseModel;
+  end_of_life: EndOfLifeRoute | null;
   phases: EcoPhase[];
   /** `null` when any phase is absent: a total over four of five is a subtotal. */
   total_energy: number | null;

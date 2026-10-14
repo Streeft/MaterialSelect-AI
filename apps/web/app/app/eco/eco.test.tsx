@@ -10,6 +10,7 @@ import { ptBR } from "@/lib/i18n";
 import type {
   EcoAuditRequest,
   EcoAuditResult,
+  EndOfLifeRouteInfo,
   MaterialDetail,
   MaterialListItem,
   TransportMode,
@@ -73,7 +74,80 @@ const modes: TransportMode[] = [
   },
 ];
 
+const routes: EndOfLifeRouteInfo[] = [
+  {
+    slug: "aterro",
+    label: "Aterro",
+    description: "A peça é enterrada.",
+    energy_property: "energia_aterro",
+    carbon_property: "co2_aterro",
+    materials_with_factor: 0,
+  },
+  {
+    slug: "reciclagem",
+    label: "Reciclagem",
+    description: "O material volta como matéria-prima equivalente.",
+    energy_property: "energia_reciclagem",
+    carbon_property: "co2_reciclagem",
+    materials_with_factor: 1,
+  },
+  {
+    slug: "reuso",
+    label: "Reuso",
+    description: "A peça é usada de novo como está.",
+    energy_property: "energia_reuso",
+    carbon_property: "co2_reuso",
+    materials_with_factor: 0,
+  },
+];
+
+const componentPhase = (phase: string, label: string, energy: number | null, reason: string | null = null) => ({
+  phase,
+  label,
+  energy,
+  carbon: energy === null ? null : energy / 10,
+  detail: "",
+  energy_missing: energy === null ? ["energia_reuso"] : [],
+  carbon_missing: energy === null ? ["co2_reuso"] : [],
+  energy_reason: reason,
+  carbon_reason: reason,
+});
+
 const result: EcoAuditResult = {
+  components: [
+    {
+      name: "Liga Alumínio Demo A",
+      material_id: 7,
+      material_name: "Liga Alumínio Demo A",
+      process_id: 1,
+      process_name: "Fundição em areia",
+      quantity: 1,
+      unit_mass: 2,
+      mass_in_part: 2,
+      mass_bought: 2.5,
+      scrap_fraction: 0.2,
+      recycled_fraction: 0,
+      end_of_life: "reciclagem",
+      end_of_life_label: "Reciclagem",
+      phases: [
+        componentPhase("material", "Material", 525),
+        componentPhase("manufatura", "Manufatura", 27.5),
+        componentPhase("fim-de-vida", "Fim de vida", 48),
+      ],
+    },
+  ],
+  transport_legs: [
+    {
+      mode: modes[0]!,
+      distance_km: 1500,
+      energy: 2.7,
+      carbon: 0.204,
+      energy_missing: [],
+      carbon_missing: [],
+      energy_reason: null,
+      carbon_reason: null,
+    },
+  ],
   material_id: 7,
   material_name: "Liga Alumínio Demo A",
   process_id: 1,
@@ -179,6 +253,7 @@ vi.mock("@/lib/api", () => ({
   listMaterials: () => Promise.resolve(materials),
   getMaterial: () => Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
   listTransportModes: () => Promise.resolve(modes),
+  listEndOfLifeRoutes: () => Promise.resolve(routes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
 }));
 
@@ -193,7 +268,7 @@ const { default: EcoPage } = await import("./page");
 
 async function open() {
   render(wrap(<EcoPage />));
-  await screen.findByRole("heading", { name: t.briefStep });
+  await screen.findByRole("heading", { name: t.productStep });
 }
 
 beforeEach(() => {
@@ -232,9 +307,11 @@ describe("Auditoria ambiental", () => {
 
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
     expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
-      material_id: 7,
-      part_mass: 2,
+      components: [{ material_id: 7, process_id: 1, unit_mass: 2, quantity: 1 }],
+      transport_legs: [{ mode: "maritimo", distance_km: 1500 }],
     });
+    // Never both shapes: a single-part field next to the list is refused.
+    expect(runEcoAudit.mock.calls[0]![0]).not.toHaveProperty("material_id");
   });
 
   it("diz que não há processo, em vez de um seletor vazio", async () => {
@@ -308,7 +385,7 @@ describe("Auditoria ambiental", () => {
     // the picker in step 1, so an unscoped query could pass on the wrong node —
     // and the order is itself the claim, since the phases are never sorted by
     // magnitude.
-    const table = screen.getByRole("table");
+    const table = screen.getAllByRole("table")[0]!;
     const firstCells = within(table)
       .getAllByRole("row")
       .map((row) => within(row).queryAllByRole("cell")[0]?.textContent)
@@ -408,8 +485,78 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await screen.findByText(new RegExp(t.massBought));
+    await screen.findByText(`${t.massBought}:`);
     expect(screen.getByText(/2,5 kg/)).toBeInTheDocument();
+  });
+
+  it("adiciona e remove componentes e trechos, e manda a lista inteira", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.addComponent }));
+    // O segundo componente começa sem massa: a auditoria espera e diz por quê.
+    expect(
+      await screen.findByText(t.blocked.component(2, t.blocked.mass)),
+    ).toBeInTheDocument();
+    const masses = await screen.findAllByShadowLabelText(t.unitMassLabel);
+    await user.type(masses[0]!, "0,5".replace(",", "."));
+    const quantities = await screen.findAllByShadowLabelText(t.quantityLabel);
+    await user.clear(quantities[1]!);
+    await user.type(quantities[1]!, "4");
+
+    await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+
+    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
+    const sent = runEcoAudit.mock.calls[0]![0]!;
+    expect(sent.components).toHaveLength(2);
+    expect(sent.components![1]).toMatchObject({ unit_mass: 0.5, quantity: 4 });
+    expect(sent.transport_legs).toHaveLength(2);
+    expect(sent.transport_legs![1]).toMatchObject({ distance_km: 0 });
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.removeComponent(2) }),
+    );
+    expect(screen.queryByText(t.componentLegend(2))).not.toBeInTheDocument();
+  });
+
+  it("marca a rota sem fator no catálogo em vez de escondê-la", async () => {
+    await open();
+    await waitFor(() =>
+      expect(
+        screen.getAllByShadowText(`Reuso — ${t.eolNoFactor}`).length,
+      ).toBeGreaterThan(0),
+    );
+    expect(screen.getAllByShadowText("Reciclagem").length).toBeGreaterThan(0);
+  });
+
+  it("mostra o detalhe por componente com o motivo escrito da ausência", async () => {
+    const user = userEvent.setup();
+    const reason = "Dados ausentes: energia_reuso. A rota Reuso fica indisponível";
+    runEcoAudit.mockResolvedValue({
+      ...result,
+      components: [
+        ...result.components,
+        {
+          ...result.components[0]!,
+          name: "Tampa",
+          end_of_life: "reuso",
+          end_of_life_label: "Reuso",
+          phases: [
+            componentPhase("material", "Material", 100),
+            componentPhase("manufatura", "Manufatura", 10),
+            componentPhase("fim-de-vida", "Fim de vida", null, reason),
+          ],
+        },
+      ],
+    });
+    await open();
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+
+    const table = await screen.findByRole("table", { name: t.componentsTitle });
+    expect(within(table).getByText("Tampa")).toBeInTheDocument();
+    expect(within(table).getAllByText(reason).length).toBeGreaterThan(0);
+    expect(screen.getByRole("table", { name: t.legsTitle })).toBeInTheDocument();
   });
 
   it("leva o nome do material à ficha do registro, não a uma família", async () => {
