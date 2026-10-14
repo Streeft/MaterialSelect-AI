@@ -11,10 +11,12 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.exc import IntegrityError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import __version__
 from app.ai.provider import AIUnavailableError
@@ -85,6 +87,25 @@ def _error_response(status_code: int, message: str) -> JSONResponse:
 @app.exception_handler(NotFoundError)
 async def _handle_not_found(_: Request, exc: NotFoundError) -> JSONResponse:
     return _error_response(404, str(exc))
+
+
+UNKNOWN_ROUTE_MESSAGE = (
+    "Endereço não encontrado na API: {path}. Se a interface acabou de ganhar este "
+    "recurso, a API em produção pode ainda não ter sido implantada com ele."
+)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
+    """A path no route matches answers in pt-BR, never Starlette's bare "Not Found".
+
+    The router raises a 404 whose detail is the literal "Not Found"; that body
+    is what a user saw when the web app linked to an export the deployed API
+    did not have yet (D-125). Every other HTTPException keeps its own detail.
+    """
+    if exc.status_code == 404 and exc.detail == "Not Found":
+        return _error_response(404, UNKNOWN_ROUTE_MESSAGE.format(path=request.url.path))
+    return await http_exception_handler(request, exc)
 
 
 @app.exception_handler(ValidationError)

@@ -163,7 +163,7 @@ def export_material(
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
-    """Ficha técnica detalhada do material (D-124).
+    """Ficha técnica detalhada do material (D-125).
 
     Exportação completa em HTML (para impressão em PDF nativa do navegador via
     window.print com CSS @media print inline), CSV ou XLSX. Respeita as unidades

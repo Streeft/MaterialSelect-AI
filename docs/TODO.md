@@ -478,6 +478,12 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Ficha técnica em PDF dava `{"detail": "Not Found"}` em produção (Sessão 80, [D-125](DECISIONS.md))**~~ —
+  a API não fora implantada depois do #135; a ficha sai para todo registro
+  visível (demo, próprio, compartilhado, oficial), inexistente e alheio dão o
+  mesmo 404 escrito, e rota inexistente responde em pt-BR. **Resíduo:** a
+  implantação da API continua manual — um merge em `apps/api/**` sem **Deploy
+  da API** volta a deixar a interface à frente do backend.
 - ~~**TM2-c — % atômica e composição por condição (Sessão 72, [D-117](DECISIONS.md))**~~ —
   `condition_label` opcional na linha de composição, na chave de unicidade (índices
   parciais para "sem condição", `CHECK` portável); `comp:…@condição` na busca e no

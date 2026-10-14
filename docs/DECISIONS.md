@@ -10149,3 +10149,36 @@ sem fonte aprovada (princípios 1 e 7); RNG no `_RANGES` do `seed_extended`
 o bundle oficial — como todas as outras. Sem migração. Painel do baseline de
 teste: 15 propriedades, 75 slots.
 
+## D-125 — Ficha técnica completa do material: número próprio, todo registro visível e 404 escrito
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 80)
+
+**Contexto.** A exportação da ficha técnica (`GET /api/exports/materiais/{id}.{html,csv,xlsx}`,
+PR #135) foi mesclada citando "D-124", número que já pertencia às propriedades do
+cartão CAE; a ficha ficou sem decisão registrada. Em produção, o item "Ficha
+técnica completa (PDF)" abria `/api/exports/materiais/133.html` e mostrava
+`{"detail": "Not Found"}`. Causa: a interface é publicada pela Vercel no push em
+`main`, mas a API só é implantada pelo workflow manual **Deploy da API**; a
+última implantação (`5bc0fc0`) é anterior ao merge do #135 e não tem a rota —
+reproduzido com o TestClient sobre aquele commit (404 `Not Found`) e sobre
+`main` (200). Nenhuma das hipóteses de código (URL montada errada, rewrite do
+Next, formato faltando, visibilidade do oficial) se confirmou.
+
+**Decisão.** (1) A ficha vira o D-125: HTML imprimível pelo `Report` e
+`html.py` (o "PDF" é a impressão do navegador, [D-20](#d-20)), sob a CSP de
+sempre, com o aviso de limitação de uso, para **todo** material que o leitor
+pode ver — demo, próprio, catálogo compartilhado e catálogo oficial licenciado
+— e o mesmo 404 escrito para inexistente e alheio ([D-62](#d-62)). (2) Um
+caminho que nenhuma rota atende responde 404 com mensagem em pt-BR que nomeia
+o caminho e aponta a implantação pendente, em vez do "Not Found" do Starlette;
+toda outra `HTTPException` mantém o seu `detail`.
+
+**Descartado.** Pré-checar a rota no cliente antes de abrir a aba (um fetch a
+mais por clique, e o sintoma real era de implantação, não de interface);
+PDF gerado no servidor (D-20); 403 para registro alheio (confirmaria a
+existência do id).
+
+**Consequências.** Depois de mesclar qualquer PR que toque `apps/api/**`, o
+**Deploy da API** continua obrigatório (CLAUDE.md, `docs/13-deploy.md` §5-ter);
+se for pulado, o leitor agora vê a frase que diz isso, e não um JSON cru.
+

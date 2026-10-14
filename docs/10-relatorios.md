@@ -218,7 +218,7 @@ Regras que não se afrouxam:
 - Sempre `attachment`, com `nosniff`; o MatML não é renderizado na origem da
   API.
 
-## A ficha técnica do material (Frente A, D-124)
+## A ficha técnica do material (Frente A, D-125)
 
 `GET /api/exports/materiais/{id}.{html,csv,xlsx}?unidades=…` exporta a ficha
 técnica completa e detalhada de **um** material em formato standalone HTML (para
@@ -257,6 +257,16 @@ respeitando rigorosamente o limite de **31 caracteres** por nome de aba no Excel
   as unidades de leitura solicitadas com indicação explícita da conversão.
 - **Ausência explícita (D-24):** campos e propriedades não preenchidos são sinalizados
   com o texto `"ausente"` ou justificativa contextualizada, nunca com células vazias ou valor zero.
+- **Visibilidade (D-62, D-125):** a ficha sai para todo registro que o leitor
+  pode abrir — demo, próprio, do catálogo compartilhado e do catálogo oficial
+  licenciado (D-102, com "Registro oficial: Sim"). Registro inexistente e
+  registro de outra pessoa respondem o **mesmo** 404 escrito em pt-BR
+  ("Material … não encontrado"), nunca 403.
+- **Rota inexistente (D-125):** um caminho que nenhuma rota atende responde 404
+  com mensagem escrita ("Endereço não encontrado na API: …"), e não o
+  `{"detail": "Not Found"}` cru do Starlette. Esse era o sintoma em produção
+  quando a interface (Vercel, publicada no merge) já linkava a ficha e a API
+  (Fly, implantada só pelo workflow manual) ainda não tinha a rota.
 
 ## Quantos dígitos, e com que nome
 
@@ -304,7 +314,7 @@ faltando.
 | GET | `/api/exports/catalogo.{csv,xlsx,html,docx,pptx}` | catálogo ativo com proveniência |
 | GET | `/api/exports/estudos/{id}.{csv,xlsx,html,docx,pptx}` | relatório completo de um estudo |
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
-| GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-124) |
+| GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
