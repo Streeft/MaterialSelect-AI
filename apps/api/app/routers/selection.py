@@ -8,7 +8,10 @@ project id. That keeps one dependency per endpoint instead of two.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+import json
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -34,6 +37,7 @@ from app.schemas.selection import (
     WeightsPreviewRequest,
 )
 from app.services.selection_service import SelectionService
+from app.services.study_file import MAX_STUDY_FILE_BYTES, filename_stem
 
 router = APIRouter(prefix="/selection", tags=["selection"])
 indices_router = APIRouter(prefix="/performance-indices", tags=["selection"])
@@ -135,6 +139,65 @@ def create_study(
     user: User = Depends(get_current_user),
 ) -> StudyOut:
     return SelectionService(db, project.id, user).create_study(payload)
+
+
+async def _bounded_body(request: Request) -> bytes:
+    """The request body, refused with 413 once it passes the study-file ceiling.
+
+    Read chunk by chunk and stopped at the limit, so an oversized upload is
+    never held whole in memory — and checked before any JSON parsing happens.
+    """
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_STUDY_FILE_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, _TOO_BIG)
+    received = bytearray()
+    async for chunk in request.stream():
+        received.extend(chunk)
+        if len(received) > MAX_STUDY_FILE_BYTES:
+            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, _TOO_BIG)
+    return bytes(received)
+
+
+_TOO_BIG = f"O arquivo passa do limite de {MAX_STUDY_FILE_BYTES // 1024} KB para um estudo."
+
+
+@router.post("/studies/import", response_model=StudyOut, status_code=status.HTTP_201_CREATED)
+def import_study(
+    body: bytes = Depends(_bounded_body),
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> StudyOut:
+    """Create a study from an exported study file (D-120).
+
+    The file is untrusted input: bounded, parsed as JSON only, validated field
+    by field and then checked against the importer's own catalogue. Nothing in
+    it is ever executed. Declared before ``/studies/{study_id}`` so the literal
+    path is not read as an id.
+    """
+    return SelectionService(db, project.id, user).import_study(body)
+
+
+@router.get("/studies/{study_id}/export")
+def export_study(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """A saved study as a versioned JSON file (D-120), always an attachment."""
+    document = SelectionService(db, project.id, user).export_study(study_id)
+    filename = f"{filename_stem(document['study']['name'])}.json"
+    return Response(
+        content=json.dumps(document, ensure_ascii=False, indent=2),
+        media_type="application/json",
+        headers={
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quote(filename, safe="")}'
+            ),
+        },
+    )
 
 
 @router.get("/studies/{study_id}", response_model=StudyOut)

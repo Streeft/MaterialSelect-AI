@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 OperatorLiteral = Literal[
     "gt",
@@ -55,6 +55,33 @@ MAX_STAGES = 20
 #: Which universe a study returns (P0-3). "material" is the default and what
 #: every study saved before P0-3 does.
 UniverseLiteral = Literal["material", "process"]
+
+
+#: The longest note a study or a stage carries (D-120).
+MAX_NOTE_LENGTH = 2000
+
+
+def clean_note(value: object) -> object:
+    """A note as plain text: trimmed, control characters dropped, empty is None.
+
+    Notes are the author's words, never markup (D-120): this does not try to
+    strip HTML, because ``<`` is a legitimate character in an engineering note
+    ("E < 70 GPa"); the rule is that nothing ever renders a note as HTML — the
+    screen draws it as text and an exported report escapes it. What this does
+    is make the stored value canonical: an empty note and a missing note are the
+    same state, and a NUL or an escape sequence never reaches the database.
+    """
+    if value is None or not isinstance(value, str):
+        return value
+    kept = "".join(ch for ch in value if ch in "\n\t" or (ch.isprintable() or ch == " "))
+    kept = kept.replace("\r\n", "\n").strip()
+    return kept or None
+
+
+PlainNote = Annotated[
+    Annotated[str, Field(max_length=MAX_NOTE_LENGTH)] | None,
+    BeforeValidator(clean_note),
+]
 
 
 # --- Inputs ----------------------------------------------------------------
@@ -188,6 +215,7 @@ class StageIn(BaseModel):
     chart: ChartStageIn | None = None
     # Shared by every folder-selecting stage: a folder means what is under it.
     include_descendants: bool = True
+    notes: PlainNote = None
 
 
 class StageOut(BaseModel):
@@ -209,6 +237,7 @@ class StageOut(BaseModel):
     material_class_slugs: list[str] = Field(default_factory=list)
     chart: ChartStageIn | None = None
     include_descendants: bool = True
+    notes: str | None = None
 
 
 class IndexIn(BaseModel):
@@ -469,6 +498,7 @@ class StudyIn(BaseModel):
     normalization: NormalizationLiteral = "minmax"
     method: MethodLiteral = "weighted_sum"
     criteria: list[CriterionIn] = Field(default_factory=list)
+    notes: PlainNote = None
 
 
 class StudySummaryOut(BaseModel):
@@ -480,6 +510,7 @@ class StudySummaryOut(BaseModel):
     criterion_count: int
     stage_count: int = 1
     universe: UniverseLiteral = "material"
+    has_notes: bool = False
 
 
 class StudyOut(BaseModel):
@@ -501,6 +532,7 @@ class StudyOut(BaseModel):
     normalization: str
     method: str
     criteria: list[CriterionIn]
+    notes: str | None = None
     created_at: datetime
 
 
