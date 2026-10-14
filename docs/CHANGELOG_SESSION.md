@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [75](#sessão-75--141026--fluxo-de-sala-de-aula-notas-arquivo-de-estudo-copiar-tabela-e-duplicar-registro-d-120) | 14/10/2026 | Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21): notas por estágio e por estudo, estudo como JSON versionado (exportar/importar, estrito, 256 KB, nunca executa o arquivo), "Copiar tabela" em TSV e duplicar registro próprio (`copied_from_id`; migração `d4f041be7fd4`) | +46 | +30 |
 | [73](#sessão-73--131026--curvas-com-histerese-tm4-c-d-118) | 13/10/2026 | Curvas com histerese (TM4-c): `path_kind` função/trajetória (migração `8bc0982d66b8`), trajetória na ordem declarada e sem faixa, 422 escrito na leitura de valor e no cartão plástico, diff/CSV/bundle e seletor "Traçado" no formulário (D-118) | 4627 → 4649 | 879 → 880 |
 | [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [72](#sessão-72--131026--composição-por-condição-e--atômica-derivada-tm2-c-d-117) | 13/10/2026 | Composição por condição e % atômica derivada (TM2-c): `condition_label` na chave da composição (migração `703bbf25ce90`), `comp:…@condição` na busca e no estágio, seletor de condição na ficha, % atômica pela tabela IUPAC 2021 com ausência escrita quando a composição não fecha em 100 % | 4428 → 4500 | 863 → 872 |
@@ -87,6 +88,30 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 75 — 14/10/26 — Fluxo de sala de aula: notas, arquivo de estudo, copiar tabela e duplicar registro (D-120)
+
+**O que mudou.** `notes` (texto puro, até 2.000 caracteres, `NULL` = "sem nota")
+em `selection_study` e `selection_stage`, e `material.copied_from_id` (`SET
+NULL`) — migração `d4f041be7fd4`, só colunas anuláveis. O estudo sai por `GET
+/api/selection/studies/{id}/export` como JSON versionado e entra por `POST
+/api/selection/studies/import`: teto de 256 KB lido do corpo (413), versão antes
+de campo, campo desconhecido recusado em qualquer nível com o caminho, o mesmo
+`create_study` do editor e uma execução em memória antes de gravar; nome
+repetido ganha "(importado)". "Copiar tabela" (candidatos/ranking) gera TSV do
+texto que a tela já mostra, com ausência escrita e apóstrofo em célula de
+fórmula. `POST /api/materials/{id}/duplicar` copia coluna a coluna um registro
+próprio (valores com a trilha de unidade, designações, composição, curvas,
+processos) e marca a origem; recusa registro alheio, compartilhado, oficial e
+sintetizado. Front: notas no passo Função e em cada estágio, "Importar estudo" e
+"Estudo (arquivo JSON)" no painel de estudos, "Copiar tabela" nos resultados e
+"Duplicar como cópia" na ficha. Não feito: abrir o Find Similar como estudo (não
+é trivial; TODO FL-a). Detalhes e alternativas em [D-120](DECISIONS.md).
+
+**Pilha.** 4695 coletados (4689 passam e 6 pulam sem `POSTGRES_TEST_URL`); 910
+de frontend; uma cabeça Alembic (`d4f041be7fd4` sobre `8bc0982d66b8`).
 
 ---
 

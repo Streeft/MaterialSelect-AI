@@ -29,7 +29,10 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   de um gráfico), e o resultado é a interseção deles. Ranking por soma
   ponderada, TOPSIS ou PROMETHEE II, pesos por AHP, funil de eliminação,
   excluídos por dado ausente e análise de sensibilidade. Estudos salvos
-  reexecutam para a mesma resposta.
+  reexecutam para a mesma resposta, levam notas por estágio e por estudo, e
+  saem como arquivo JSON versionado que outra pessoa importa (o arquivo é só
+  dado: nada nele é executado). A tabela de resultado se copia como TSV, e um
+  registro próprio se duplica como cópia editável.
 - **Mapas** — mapas de Ashby com escala log, envelopes por classe e linhas de
   índice cuja inclinação é derivada da própria expressão (`E/ρ` → 1,
   `E^(1/2)/ρ` → 2). Um eixo pode ser uma propriedade ou um índice.

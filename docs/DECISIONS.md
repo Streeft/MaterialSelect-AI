@@ -9670,6 +9670,99 @@ grandezas (TM4-f).
 
 ---
 
+## D-120 — Fluxo de sala de aula: notas no estudo, estudo como arquivo versionado, tabela copiada como TSV e cópia editável de registro próprio
+
+**Data:** 14/10/2026
+**Status:** aceita — decidida pelo assistente por delegação do autor
+("eu decido o que você decidir melhor para o projeto"), **revisável** (Sessão
+75, relatório de lacunas do EduPack, itens #19 a #21).
+
+**O pedido.** Quatro gestos pequenos que o fluxo de uma aula pede e o produto não
+tinha: anotar o porquê de um estágio, passar um estudo para outra pessoa, levar a
+tabela de resultado para uma planilha e partir de um registro próprio já pronto.
+Nenhum traz dado novo.
+
+**Onde os estudos vivem hoje.** No banco, por projeto (`SelectionStudy` →
+`SelectionStage`, isolados por `project_id`); a URL só guarda o passo do
+assistente e `?estudo=<id>`. Por isso o desenho é o menor possível: **duas colunas
+de texto e uma de origem**, e o resto é a API que já existia.
+
+1. **Notas por estágio e por estudo (a).** `notes` anulável (`String(2000)`) em
+   `selection_study` e `selection_stage`; "projeto" é o estudo (o `Project` é um
+   contêiner de um por usuário, sem tela). **Texto puro**: o validador tira
+   caracteres de controle, normaliza `\r\n` e devolve `None` para vazio, de modo
+   que "sem nota" é um só estado (`NULL`) e a tela escreve "sem nota", nunca uma
+   caixa vazia que pareça "nota em branco". Não se tira `<`: "E < 70 GPa" é nota
+   legítima; **a garantia é que nada renderiza nota como HTML** — a tela a
+   desenha como texto (React escapa) e o arquivo é JSON servido como anexo com
+   `nosniff`. A lista de estudos marca `has_notes`. A nota viaja com o estudo e
+   com o arquivo; ainda não entra nos relatórios.
+2. **Arquivo de estudo (b).** `GET /api/selection/studies/{id}/export` devolve
+   JSON versionado (`format: "materialselect-ai/estudo"`, `version: 1`, aviso de
+   limitação, `study` no mesmo desenho de `StudyIn`); `POST
+   /api/selection/studies/import` recebe esse JSON. **O arquivo é dado e nada
+   mais**: teto de 256 KB aplicado enquanto o corpo é lido (413), `json.loads`
+   apenas, versão conferida antes de qualquer campo (arquivo mais novo é recusado
+   com a frase "versão mais nova"), esquema Pydantic com **campo desconhecido
+   recusado em qualquer nível, com o caminho** (o `StudyIn` continua tolerante
+   porque o editor o envia; o rigor mora na fronteira que recebe o arquivo de um
+   desconhecido), e o estudo passa pelo mesmo `create_study` que o editor usa.
+   Antes de gravar, o estudo é **executado uma vez em memória**: salvar não
+   resolve slugs (isso só acontece ao rodar), então sem isso um arquivo com uma
+   propriedade que este catálogo não tem seria gravado e só falharia depois.
+   Nome já usado no projeto não é erro (a turma reimporta o mesmo arquivo): ganha
+   o sufixo "(importado)", e nada é sobrescrito. O arquivo **não carrega id,
+   dono nem número calculado** — só o que o autor escreveu, com propriedades,
+   classes e processos por slug — então exportar nunca expõe registro alheio, e
+   a visibilidade do D-62 vale na importação porque os slugs são resolvidos
+   contra o catálogo de quem importa. Um estudo de outro projeto é 404 na
+   exportação, como já era em `GET`. "Reexecuta para a mesma resposta" é teste:
+   exporta, importa em outro projeto, roda os dois e compara candidatos e
+   ranking.
+3. **Copiar a tabela (c).** Só no cliente, e sem calcular nada: o TSV é o texto
+   que a tabela já mostra (mesmas funções de formatação, convenção pt-BR do D-30),
+   ausência escrita "Ausente" com o motivo que o backend deu — nunca célula vazia
+   nem zero. Tab e quebra de linha dentro de célula viram espaço; célula que uma
+   planilha leria como fórmula (`=`, `+`, `-`, `@`) ganha apóstrofo à frente,
+   regra espelhada de `cells.py` (D-13), **exceto número**, que fica número. Se o
+   navegador recusar a cópia, a tela diz isso, em vez de fingir.
+4. **Duplicar registro próprio (d).** `POST /api/materials/{id}/duplicar` cria
+   uma cópia **do próprio leitor** (nunca escreve no catálogo compartilhado, então
+   não exige curadoria) com `copied_from_id` (coluna nova, `SET NULL`: apagar o
+   original não leva a cópia) e o nome "X (cópia)", "(cópia 2)"… A cópia é feita
+   **coluna a coluna** (valor original + unidade original, normalizado + unidade
+   canônica, método de conversão, qualidade, fonte, `is_missing`) em valores,
+   designações, composição, curvas (série e pontos) e vínculos de processo — nada
+   é recalculado, e ausência continua ausência. O original pode ser aberto pelo
+   selo "Cópia de …" da ficha. **Recusado, com a frase escrita:** registro que não
+   é do leitor (compartilhado, oficial — para esses, o caminho é o "Criar cópia
+   própria" do D-116, que pré-preenche o formulário), de outro usuário (404, como
+   qualquer leitura) e registro **sintetizado** (a receita não é copiável; refaz-se
+   no Sintetizador). A rota está no canário do D-116 como isenta, com o porquê:
+   ela não escreve no original.
+
+**Migração.** `d4f041be7fd4`: três colunas anuláveis, sem backfill — nenhum
+registro existente muda de significado.
+
+**Descartado.**
+- *Editar a nota de um estudo salvo sem salvar de novo*: o estudo é criado e
+  excluído, não editado (não existe `PUT`); abrir uma rota de edição só para nota
+  criaria a primeira exceção a isso. A nota é editada no assistente e salva com o
+  estudo.
+- *Exportar o estudo com os resultados*: guardaria número calculado, que pode
+  divergir do catálogo de quem importa — o arquivo leva a pergunta, e a resposta é
+  recalculada (princípio 2).
+- *Importar sem executar*: gravaria estudo que não roda.
+- *`copied_from` como texto livre na descrição*: não é consultável e some quando
+  a descrição é editada.
+- *Duplicar processo*: o D-62 deu dono só a `Material`; processo é do catálogo
+  compartilhado, então "processo próprio" não existe para duplicar.
+- *Abrir os resultados do Find Similar como estudo*: **não é trivial** e ficou no
+  TODO. Um estágio hoje nomeia propriedade, classe, processo ou região de um
+  plano; uma lista de ids não é nenhum deles, e fixar ids amarraria o estudo a
+  linhas de um catálogo — quebrando "reexecuta para a mesma resposta" em outro
+  catálogo ou outra release.
+
 ## D-111 — Composição como critério de seleção e edição à mão de composição, designações e curvas, com a permissão do material
 
 **Data:** 08/10/2026
