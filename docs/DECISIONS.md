@@ -10056,3 +10056,65 @@ separado do `/eco/auditar` (duas verdades sobre a mesma conta).
 processos secundários; orientação por fase; comparação A × B por produto;
 exportação do Eco Audit (não existe hoje).
 
+## D-123 — Desempenho do diff entre releases (TM7-d): medir, tirar o gargalo do cálculo e guardar o diff no import como cache que só vale enquanto prova estar em dia
+
+*Decidida pelo assistente por delegação do autor, revisável.* Sessão 78.
+
+**Medição antes de decidir** (`apps/api/scripts/bench_release_diff.py`, catálogo
+**fictício** gerado no próprio script, duas releases da mesma linha, 40
+propriedades por registro com 1 em 7 ausente, 6 linhas de composição, uma curva
+de 2 séries × 20 pontos a cada 4 registros, 10% dos registros alterados; SQLite
+em memória, nenhum dado real, nada de produção). O número de consultas já era
+constante (24–26 por requisição, sem N+1); o tempo não:
+
+| Registros | Antes | Depois de 1–2 | Lido do diff guardado |
+|---|---|---|---|
+| 1.000 | 21,7 s | 2,1 s | 0,16 s |
+| 5.000 | 108,9 s | 10,3 s | 0,32 s |
+| 20.000 | (≈ 430 s, linear) | 44,5 s | 1,4 s |
+
+**O que se fez, na ordem do método.**
+1. **Gargalo do cálculo:** 90% do tempo era o Pint reinterpretando a mesma
+   string de unidade a cada valor. `units._parsed_unit` guarda a unidade já
+   interpretada (`lru_cache`) — `Quantity(v, texto)` e `Quantity(v,
+   parse_units(texto))` montam o mesmo contêiner de unidade, então o número
+   convertido é o mesmo; teste compara com a conversão direta.
+2. **Atalho do valor idêntico:** `compare_values` devolve "sem mudança" sem
+   converter quando as duas declarações são iguais campo a campo e todos os
+   números são finitos; NaN ou infinito seguem o caminho longo, que os recusa.
+3. **Ainda lento (10 s em 5.000), então materializado:** tabela
+   `catalog_release_diff` (migração `2fe7eecc5981`), uma linha por par de
+   releases com o diff serializado (`app/domain/release_diff_store.py`, puro),
+   gravada pelo importador **na mesma transação** da promoção (D-114), contra a
+   release anterior da linha. O que se guarda é o cabeçalho de cada lado e cada
+   mudança com os dois valores; ausência fica `null` e volta `None`, e número
+   não finito recusa a gravação (sem cache; o diff sai das linhas).
+
+**Fail-closed — três travas.** (a) Qualquer escrita, pela sessão, numa linha que
+o diff lê **do catálogo compartilhado** (definições, classes, modais, release,
+identidade, material/processo referenciado, valor, composição, curva com
+dataset) apaga todos os diffs guardados na mesma transação
+(`app/db/release_diff_invalidation.py`); instrução em lote numa dessas tabelas
+também. Registro próprio (D-62) não está em release e não invalida. (b) Ao ler,
+uma impressão digital calculada no banco (contagens e somas de id por tabela,
+flags de ativo, conteúdo inteiro das tabelas pequenas de definição) tem de bater
+com a gravada — pega linha inserida ou apagada por fora da sessão. (c)
+`FORMAT_VERSION`: mudar o que o diff calcula exige subir o número, e diff de
+outra versão nunca é servido. Em qualquer dúvida, o diff é recalculado das
+linhas, como antes; GET nunca grava.
+
+**Equivalência.** `test_release_diff_stored.py` compara a página, o registro
+único, o filtro e o CSV calculados das linhas com os lidos do diff guardado
+(idênticos), e o benchmark faz a mesma asserção em 20.000 registros. Testes de
+desempenho contam consultas, não segundos.
+
+**Descartado.** Cache em memória do processo (não sobrevive a dois workers nem
+a deploy, e não invalida entre processos); impressão digital com hash de todo o
+conteúdo no banco (não portátil SQLite/Postgres e lê tudo de novo); gravar o
+diff no primeiro GET (requisição de leitura que escreve).
+
+**Limite conhecido.** Um número editado à mão no banco, sem passar pela sessão,
+não muda a impressão digital; D-116 (oficial somente leitura) e a trava (a)
+cobrem toda escrita da aplicação. Depois de uma correção manual, reimporte ou
+apague as linhas de `catalog_release_diff`.
+
