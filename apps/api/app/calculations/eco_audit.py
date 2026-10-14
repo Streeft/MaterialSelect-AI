@@ -37,10 +37,17 @@ material phase.
 missing a datum, the dominant phase is **refused with the reason written**,
 because the phase nobody could compute might be the one that dominates. This is
 principle 3 applied to a summary statistic rather than to a cell, and it is the
-one refusal in this module that a reader will meet often — landfill and
-incineration are not quantified in v1, and an audit routed to either of them
-gets its phases and no podium. That is the intended behaviour: a podium built on
-four of five numbers is worse than no podium.
+one refusal in this module that a reader will meet often — an end-of-life
+route whose factor the material does not carry is unavailable, and an audit
+routed to it gets its phases and no podium. That is the intended behaviour: a
+podium built on four of five numbers is worse than no podium.
+
+**A product is a list of components and a list of legs (D-120).** Material,
+manufatura and fim de vida are computed per component and summed; transport is
+the whole product's mass along every leg; use is the product's. A phase absent
+in *any* component or leg is absent for the product, with the component named,
+so the refusal above applies unchanged. ``audit`` is ``audit_product`` with a
+list of one — the two entry points cannot disagree.
 
 **Energy is audited by Pint; carbon is audited by declaration.** Megajoules per
 kilogram is a dimension the unit system knows, so every energy figure here is
@@ -54,9 +61,11 @@ said it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 
 from app.calculations.part_cost import HOURS_PER_YEAR
+from app.calculations.units import to_canonical
 
 #: Material properties the audit reads, by slug.
 EMBODIED_ENERGY = "energia_incorporada"
@@ -101,21 +110,108 @@ USE_STATIC = "estatico"
 USE_MOBILE = "movel"
 USE_MODELS = (USE_STATIC, USE_MOBILE)
 
-#: End-of-life routes. Only ``reciclagem`` has a catalogued energy in v1; the
-#: other two are declared unquantified rather than assumed free, because a
-#: landfill that costs zero would make burying a part look like the cheapest
-#: thing a designer can do with it.
-EOL_RECYCLE = "reciclagem"
+#: End-of-life routes (D-120). Seven, in the order a designer weighs them from
+#: "throw away" to "keep using" — the vocabulary of the textbook method, which
+#: is a list of *names*: the route says what happens, never what it costs. What
+#: it costs is a **material property read from the catalogue** by the slug the
+#: route names, exactly as ``reciclagem`` has always read ``energia_reciclagem``.
+#: No factor lives in this file. A route whose property the material does not
+#: carry is **unavailable with the reason written** and never free: a landfill
+#: that costs zero would make burying a part look like the cheapest thing a
+#: designer can do with it.
 EOL_LANDFILL = "aterro"
 EOL_INCINERATION = "incineracao"
-EOL_ROUTES = (EOL_RECYCLE, EOL_LANDFILL, EOL_INCINERATION)
+EOL_DOWNCYCLE = "subciclagem"
+EOL_RECYCLE = "reciclagem"
+EOL_REMANUFACTURE = "remanufatura"
+EOL_REUSE = "reuso"
+EOL_NONE = "nenhum"
+EOL_ROUTES = (
+    EOL_LANDFILL,
+    EOL_INCINERATION,
+    EOL_DOWNCYCLE,
+    EOL_RECYCLE,
+    EOL_REMANUFACTURE,
+    EOL_REUSE,
+    EOL_NONE,
+)
 
-EOL_LABELS = {
-    EOL_RECYCLE: "Reciclagem",
-    EOL_LANDFILL: "Aterro",
-    EOL_INCINERATION: "Incineração",
+
+@dataclass(frozen=True)
+class EndOfLifeRoute:
+    """One route: its name, and the two catalogue slugs that would price it.
+
+    ``energy_slug``/``carbon_slug`` are ``None`` only for ``nenhum``, the route
+    that by definition has nothing to read.
+    """
+
+    slug: str
+    label: str
+    energy_slug: str | None
+    carbon_slug: str | None
+    description: str
+
+
+EOL_ROUTE_TABLE: dict[str, EndOfLifeRoute] = {
+    EOL_LANDFILL: EndOfLifeRoute(
+        EOL_LANDFILL,
+        "Aterro",
+        "energia_aterro",
+        "co2_aterro",
+        "A peça é enterrada; o custo é o de coletar e dispor.",
+    ),
+    EOL_INCINERATION: EndOfLifeRoute(
+        EOL_INCINERATION,
+        "Combustão (incineração)",
+        "energia_combustao",
+        "co2_combustao",
+        "A peça é queimada. O crédito de energia recuperada não é abatido.",
+    ),
+    EOL_DOWNCYCLE: EndOfLifeRoute(
+        EOL_DOWNCYCLE,
+        "Subciclagem",
+        "energia_subciclagem",
+        "co2_subciclagem",
+        "O material volta como matéria-prima de qualidade inferior.",
+    ),
+    EOL_RECYCLE: EndOfLifeRoute(
+        EOL_RECYCLE,
+        "Reciclagem",
+        RECYCLE_ENERGY,
+        RECYCLE_CO2,
+        "O material volta como matéria-prima equivalente.",
+    ),
+    EOL_REMANUFACTURE: EndOfLifeRoute(
+        EOL_REMANUFACTURE,
+        "Remanufatura",
+        "energia_remanufatura",
+        "co2_remanufatura",
+        "A peça é recondicionada e volta a servir na mesma função.",
+    ),
+    EOL_REUSE: EndOfLifeRoute(
+        EOL_REUSE,
+        "Reuso",
+        "energia_reuso",
+        "co2_reuso",
+        "A peça é usada de novo como está.",
+    ),
+    EOL_NONE: EndOfLifeRoute(
+        EOL_NONE,
+        "Nenhuma rota declarada",
+        None,
+        None,
+        "O destino não foi declarado.",
+    ),
 }
 
+EOL_LABELS = {slug: route.label for slug, route in EOL_ROUTE_TABLE.items()}
+
+#: Why ``nenhum`` never contributes a number. Leaving the phase out of the sum
+#: would be choosing zero for it — the very thing principle 3 forbids.
+EOL_NONE_REASON = (
+    "Nenhuma rota de fim de vida declarada. A fase não foi tratada como zero: "
+    "deixá-la fora da soma seria escolher zero para ela."
+)
 #: What a carbon answer is denominated in. Money is not in any unit system
 #: (D-65); a ratio between masses of two different substances is in one, and the
 #: unit system flattens it to "dimensionless" because it cannot tell the two
@@ -140,17 +236,6 @@ RECYCLING_CREDIT_NOTE = (
     "reciclagem do total — abater é escolha de método, e normas diferentes a "
     "fazem diferente."
 )
-
-_UNQUANTIFIED_EOL = {
-    EOL_LANDFILL: (
-        "Aterro não tem energia catalogada nesta versão. Não foi tratado como "
-        "zero: enterrar uma peça pareceria a coisa mais barata a fazer com ela."
-    ),
-    EOL_INCINERATION: (
-        "Incineração não tem energia catalogada nesta versão. Não foi tratada "
-        "como zero, e o crédito de energia recuperada tampouco foi inventado."
-    ),
-}
 
 
 class EcoAuditError(ValueError):
@@ -382,27 +467,39 @@ def _manufacture_phase(
     )
 
 
-def _transport_phase(
-    *,
-    mass_in_part: float,
-    distance_km: float,
-    energy_intensity: float | None,
-    carbon_intensity: float | None,
-) -> PhaseResult:
-    """What it costs to move the finished part, in MJ and kg CO₂.
+def _tonnes(mass_kg: float) -> float:
+    return to_canonical(mass_kg, "kg", "t")[0]
+
+
+def _transport_leg(*, mass: float, leg: TransportLeg) -> LegResult:
+    """What moving the whole product along one leg costs, in MJ and kg CO₂.
 
     The distance is a fact about the supply chain, not about the material, so it
     is an input with a visible value — the treatment D-64 gave the support
     condition and D-65 gave the write-off horizon.
     """
-    tonnes = mass_in_part / 1000.0
-    return _phase(
-        TRANSPORTE,
-        detail="massa da peça (t) × distância (km) × intensidade do modal",
-        energy=None if energy_intensity is None else tonnes * distance_km * energy_intensity,
-        carbon=None if carbon_intensity is None else tonnes * distance_km * carbon_intensity,
-        energy_missing=[TRANSPORT_ENERGY_KEY] if energy_intensity is None else [],
-        carbon_missing=[TRANSPORT_CARBON_KEY] if carbon_intensity is None else [],
+    tonnes = _tonnes(mass)
+    energy_missing = [TRANSPORT_ENERGY_KEY] if leg.energy_intensity is None else []
+    carbon_missing = [TRANSPORT_CARBON_KEY] if leg.carbon_intensity is None else []
+    energy_keys, energy_reason = _absence(energy_missing)
+    carbon_keys, carbon_reason = _absence(carbon_missing)
+    return LegResult(
+        label=leg.label,
+        distance_km=leg.distance_km,
+        energy=(
+            None
+            if leg.energy_intensity is None
+            else tonnes * leg.distance_km * leg.energy_intensity
+        ),
+        carbon=(
+            None
+            if leg.carbon_intensity is None
+            else tonnes * leg.distance_km * leg.carbon_intensity
+        ),
+        energy_missing=energy_keys,
+        carbon_missing=carbon_keys,
+        energy_reason=energy_reason if energy_keys else None,
+        carbon_reason=carbon_reason if carbon_keys else None,
     )
 
 
@@ -417,8 +514,7 @@ def _use_phase(*, mass_in_part: float, use: UseAssumptions) -> PhaseResult:
         assert use.power_watts is not None and use.life_years is not None
         assert use.duty_cycle is not None
         hours = HOURS_PER_YEAR * use.life_years * use.duty_cycle
-        # W·h → MJ: 3600 J per W·h, 1e6 J per MJ.
-        energy = use.power_watts * hours * 3600.0 / 1.0e6
+        energy = to_canonical(use.power_watts * hours, "W*h", ENERGY_UNIT)[0]
         detail = (
             "potência × horas em serviço (a massa não entra: aliviar a peça não " "muda esta fase)"
         )
@@ -436,35 +532,53 @@ def _use_phase(*, mass_in_part: float, use: UseAssumptions) -> PhaseResult:
 
 
 def _end_of_life_phase(
-    *,
-    mass_in_part: float,
-    route: str,
-    recycle_energy: float | None,
-    recycle_carbon: float | None,
+    *, mass_in_part: float, route: str, material: Mapping[str, float]
 ) -> PhaseResult:
     """What this life's end costs, with no credit netted against it.
 
     The mass here is the mass **in the part**, not the mass bought: the scrap
-    never became a product and never reached an end of life as one.
+    never became a product and never reached an end of life as one. The factor
+    is the material's own catalogued value for the route; when the material
+    does not carry it, the phase is absent and the slug is named.
     """
-    if route != EOL_RECYCLE:
-        unquantified = _UNQUANTIFIED_EOL[route]
+    spec = EOL_ROUTE_TABLE[route]
+    if spec.energy_slug is None or spec.carbon_slug is None:
         return PhaseResult(
             phase=FIM_DE_VIDA,
             label=PHASE_LABELS[FIM_DE_VIDA],
             energy=None,
             carbon=None,
-            detail=f"Rota: {EOL_LABELS[route]}",
-            energy_reason=unquantified,
-            carbon_reason=unquantified,
+            detail=f"Rota: {spec.label}",
+            energy_reason=EOL_NONE_REASON,
+            carbon_reason=EOL_NONE_REASON,
         )
-    return _phase(
+    energy_factor = material.get(spec.energy_slug)
+    carbon_factor = material.get(spec.carbon_slug)
+    phase = _phase(
         FIM_DE_VIDA,
-        detail="massa da peça × energia de reciclagem por kg",
-        energy=None if recycle_energy is None else mass_in_part * recycle_energy,
-        carbon=None if recycle_carbon is None else mass_in_part * recycle_carbon,
-        energy_missing=[RECYCLE_ENERGY] if recycle_energy is None else [],
-        carbon_missing=[RECYCLE_CO2] if recycle_carbon is None else [],
+        detail=f"Rota: {spec.label} — massa da peça × {spec.energy_slug} por kg",
+        energy=None if energy_factor is None else mass_in_part * energy_factor,
+        carbon=None if carbon_factor is None else mass_in_part * carbon_factor,
+        energy_missing=[spec.energy_slug] if energy_factor is None else [],
+        carbon_missing=[spec.carbon_slug] if carbon_factor is None else [],
+    )
+    if phase.energy is not None and phase.carbon is not None:
+        return phase
+    # The generic "Dados ausentes" reason is true but does not say what the
+    # absence would have become if it were filled in silently: say it.
+    suffix = (
+        f" A rota {spec.label} fica indisponível para este material e não foi " "tratada como zero."
+    )
+    return PhaseResult(
+        phase=phase.phase,
+        label=phase.label,
+        energy=phase.energy,
+        carbon=phase.carbon,
+        detail=phase.detail,
+        energy_missing=phase.energy_missing,
+        carbon_missing=phase.carbon_missing,
+        energy_reason=(phase.energy_reason + "." + suffix) if phase.energy_reason else None,
+        carbon_reason=(phase.carbon_reason + "." + suffix) if phase.carbon_reason else None,
     )
 
 
@@ -508,6 +622,338 @@ def _dominance(phases: tuple[PhaseResult, ...], attribute: str, quantity: str) -
     )
 
 
+# --- the product: several components, several legs (D-120) -------------------
+
+
+@dataclass(frozen=True)
+class ComponentBrief:
+    """One line of the bill of materials, with the catalogue data it reads.
+
+    ``material`` and ``process`` are the usable catalogued values keyed by slug
+    — a slug that is not a key is absent, and absence is decided here, by the
+    phase that needs it, never by the caller filling a default.
+    """
+
+    name: str
+    unit_mass: float
+    quantity: int
+    recycled_fraction: float
+    scrap_fraction: float
+    end_of_life: str
+    material: Mapping[str, float] = field(default_factory=dict)
+    process: Mapping[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TransportLeg:
+    """One leg of the journey: a mode's two intensities and a distance."""
+
+    label: str
+    distance_km: float
+    energy_intensity: float | None
+    carbon_intensity: float | None
+
+
+@dataclass(frozen=True)
+class LegResult:
+    label: str
+    distance_km: float
+    energy: float | None
+    carbon: float | None
+    energy_missing: tuple[str, ...] = ()
+    carbon_missing: tuple[str, ...] = ()
+    energy_reason: str | None = None
+    carbon_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class ComponentResult:
+    """The three phases a component owns on its own: material, manufatura, fim de vida.
+
+    Transport and use belong to the product — the truck carries all of it, and
+    a car carries the whole door — so they are not split per component: a split
+    would need an allocation rule, and an allocation rule is a method choice
+    this module does not make silently.
+    """
+
+    name: str
+    quantity: int
+    unit_mass: float
+    mass_in_part: float
+    mass_bought: float
+    scrap_fraction: float
+    recycled_fraction: float
+    end_of_life: str
+    end_of_life_label: str
+    phases: tuple[PhaseResult, ...]
+
+
+@dataclass(frozen=True)
+class EcoProductResult:
+    """A product's five phases summed over its components and legs."""
+
+    components: tuple[ComponentResult, ...]
+    legs: tuple[LegResult, ...]
+    mass_in_product: float
+    mass_bought: float
+    use_model: str
+    phases: tuple[PhaseResult, ...]
+    total_energy: float | None
+    total_carbon: float | None
+    energy_dominance: Dominance
+    carbon_dominance: Dominance
+    energy_unit: str = ENERGY_UNIT
+    carbon_unit: str = CARBON_UNIT
+    carbon_unit_note: str = CARBON_UNIT_NOTE
+    recycling_credit_note: str = RECYCLING_CREDIT_NOTE
+
+
+#: The most components and legs one brief may carry. A bound, not a model
+#: limit: it keeps one request from becoming a denial of service.
+MAX_COMPONENTS = 50
+MAX_LEGS = 20
+
+
+def _validate_component(component: ComponentBrief) -> None:
+    prefix = f"{component.name}: "
+    if not component.unit_mass > 0:
+        raise EcoAuditError(prefix + "a massa da peça precisa ser maior que zero.")
+    if component.quantity < 1:
+        raise EcoAuditError(prefix + "a quantidade precisa ser pelo menos 1.")
+    if not 0 <= component.recycled_fraction <= 1:
+        raise EcoAuditError(prefix + "o teor reciclado fica entre 0 e 1.")
+    if not 0 <= component.scrap_fraction < 1:
+        raise EcoAuditError(prefix + "a fração de refugo fica entre 0 e 1 (exclusivo).")
+    if component.end_of_life not in EOL_ROUTES:
+        raise EcoAuditError(f"Rota de fim de vida desconhecida: {component.end_of_life}.")
+
+
+def _audit_component(component: ComponentBrief) -> ComponentResult:
+    mass_in_part = component.unit_mass * component.quantity
+    mass_bought = mass_in_part / (1.0 - component.scrap_fraction)
+    material = component.material
+    phases = (
+        _material_phase(
+            mass_bought=mass_bought,
+            recycled_fraction=component.recycled_fraction,
+            primary_energy=material.get(EMBODIED_ENERGY),
+            primary_carbon=material.get(CO2_FOOTPRINT),
+            recycle_energy=material.get(RECYCLE_ENERGY),
+            recycle_carbon=material.get(RECYCLE_CO2),
+        ),
+        _manufacture_phase(
+            mass_bought=mass_bought,
+            process_energy=component.process.get(PROCESS_ENERGY),
+            process_carbon=component.process.get(PROCESS_CO2),
+        ),
+        _end_of_life_phase(
+            mass_in_part=mass_in_part, route=component.end_of_life, material=material
+        ),
+    )
+    return ComponentResult(
+        name=component.name,
+        quantity=component.quantity,
+        unit_mass=component.unit_mass,
+        mass_in_part=mass_in_part,
+        mass_bought=mass_bought,
+        scrap_fraction=component.scrap_fraction,
+        recycled_fraction=component.recycled_fraction,
+        end_of_life=component.end_of_life,
+        end_of_life_label=EOL_LABELS[component.end_of_life],
+        phases=phases,
+    )
+
+
+def _sum_quantity(
+    parts: list[tuple[str, float | None, tuple[str, ...], str | None]],
+) -> tuple[float | None, list[str], str | None]:
+    """Sum one quantity over parts, or say which part made it impossible.
+
+    A sum over some of the components is a subtotal that reads like a total —
+    the error principle 3 exists to stop — so one absent part makes the whole
+    phase absent, and the reason names every part that was missing and why.
+    """
+    absent = [(name, keys, reason) for name, value, keys, reason in parts if value is None]
+    if not absent:
+        return sum(value for _, value, _, _ in parts), [], None  # type: ignore[misc]
+    keys = sorted({key for _, part_keys, _ in absent for key in part_keys})
+    reason = "; ".join(f"{name}: {reason or 'não calculada'}" for name, _, reason in absent)
+    return None, keys, reason
+
+
+def _aggregate_phase(
+    phase: str,
+    detail: str,
+    parts_energy: list[tuple[str, float | None, tuple[str, ...], str | None]],
+    parts_carbon: list[tuple[str, float | None, tuple[str, ...], str | None]],
+) -> PhaseResult:
+    energy, energy_keys, energy_reason = _sum_quantity(parts_energy)
+    carbon, carbon_keys, carbon_reason = _sum_quantity(parts_carbon)
+    return PhaseResult(
+        phase=phase,
+        label=PHASE_LABELS[phase],
+        energy=energy,
+        carbon=carbon,
+        detail=detail,
+        energy_missing=tuple(energy_keys),
+        carbon_missing=tuple(carbon_keys),
+        energy_reason=energy_reason,
+        carbon_reason=carbon_reason,
+    )
+
+
+def audit_product(
+    *,
+    components: list[ComponentBrief],
+    legs: list[TransportLeg],
+    use: UseAssumptions,
+) -> EcoProductResult:
+    """Audit a product made of several components, moved along several legs.
+
+    Material, manufatura and fim de vida are computed **per component** (each
+    with its own material, process, scrap, recycled content and route) and
+    summed. Transport is the whole product's mass along every leg; use is the
+    product's, under the declared model. A phase absent in **any** component or
+    leg is absent for the product, with the component named — and the podium
+    and the total are refused, as they always were for a single part (D-66).
+
+    Raises:
+        EcoAuditError: on a brief that cannot be audited at all.
+    """
+    if not components:
+        raise EcoAuditError("O produto precisa de pelo menos um componente.")
+    if len(components) > MAX_COMPONENTS:
+        raise EcoAuditError(f"No máximo {MAX_COMPONENTS} componentes por auditoria.")
+    if not legs:
+        raise EcoAuditError("Declare pelo menos um trecho de transporte (a distância pode ser 0).")
+    if len(legs) > MAX_LEGS:
+        raise EcoAuditError(f"No máximo {MAX_LEGS} trechos de transporte por auditoria.")
+    for component in components:
+        _validate_component(component)
+    for leg in legs:
+        if not leg.distance_km >= 0:
+            raise EcoAuditError("A distância de transporte não pode ser negativa.")
+
+    audited = tuple(_audit_component(component) for component in components)
+    mass_in_product = sum(component.mass_in_part for component in audited)
+    mass_bought = sum(component.mass_bought for component in audited)
+    leg_results = tuple(_transport_leg(mass=mass_in_product, leg=leg) for leg in legs)
+
+    def by_component(index: int, attribute: str):
+        phase_attr, keys_attr, reason_attr = (
+            ("energy", "energy_missing", "energy_reason")
+            if attribute == "energy"
+            else ("carbon", "carbon_missing", "carbon_reason")
+        )
+        return [
+            (
+                component.name,
+                getattr(component.phases[index], phase_attr),
+                getattr(component.phases[index], keys_attr),
+                getattr(component.phases[index], reason_attr),
+            )
+            for component in audited
+        ]
+
+    def by_leg(attribute: str):
+        return [
+            (
+                f"Trecho {position} ({leg.label})",
+                getattr(leg, attribute),
+                getattr(leg, f"{attribute}_missing"),
+                getattr(leg, f"{attribute}_reason"),
+            )
+            for position, leg in enumerate(leg_results, start=1)
+        ]
+
+    single = len(audited) == 1
+    phases = (
+        _aggregate_phase(
+            MATERIAL,
+            (
+                audited[0].phases[0].detail
+                if single
+                else "soma por componente de massa comprada × intensidade do material"
+            ),
+            by_component(0, "energy"),
+            by_component(0, "carbon"),
+        ),
+        _aggregate_phase(
+            MANUFATURA,
+            (
+                audited[0].phases[1].detail
+                if single
+                else "soma por componente de massa comprada × energia do processo por kg"
+            ),
+            by_component(1, "energy"),
+            by_component(1, "carbon"),
+        ),
+        _aggregate_phase(
+            TRANSPORTE,
+            "massa do produto (t) × Σ distância do trecho (km) × intensidade do modal",
+            by_leg("energy"),
+            by_leg("carbon"),
+        ),
+        _use_phase(mass_in_part=mass_in_product, use=use),
+        _aggregate_phase(
+            FIM_DE_VIDA,
+            (
+                audited[0].phases[2].detail
+                if single
+                else "soma por componente de massa da peça × fator da rota escolhida"
+            ),
+            by_component(2, "energy"),
+            by_component(2, "carbon"),
+        ),
+    )
+    if single:
+        # One component: its reason is the product's, without a name prefix
+        # that would only repeat what the reader just typed.
+        phases = tuple(
+            _strip_single_prefix(phase, audited[0].name) if phase.phase != USO else phase
+            for phase in phases
+        )
+
+    def total(attribute: str) -> float | None:
+        values = [getattr(phase, attribute) for phase in phases]
+        # A total over four of five phases is not a total; it is a subtotal that
+        # reads like one, which is the mistake this returns None to avoid.
+        return None if any(value is None for value in values) else sum(values)
+
+    return EcoProductResult(
+        components=audited,
+        legs=leg_results,
+        mass_in_product=mass_in_product,
+        mass_bought=mass_bought,
+        use_model=use.model,
+        phases=phases,
+        total_energy=total("energy"),
+        total_carbon=total("carbon"),
+        energy_dominance=_dominance(phases, "energy", "energia"),
+        carbon_dominance=_dominance(phases, "carbon", "carbono"),
+    )
+
+
+def _strip_single_prefix(phase: PhaseResult, name: str) -> PhaseResult:
+    def strip(reason: str | None) -> str | None:
+        if reason is None:
+            return None
+        prefix = f"{name}: "
+        return reason[len(prefix) :] if reason.startswith(prefix) else reason
+
+    return PhaseResult(
+        phase=phase.phase,
+        label=phase.label,
+        energy=phase.energy,
+        carbon=phase.carbon,
+        detail=phase.detail,
+        energy_missing=phase.energy_missing,
+        carbon_missing=phase.carbon_missing,
+        energy_reason=strip(phase.energy_reason),
+        carbon_reason=strip(phase.carbon_reason),
+    )
+
+
 def audit(
     *,
     mass_in_part: float,
@@ -524,18 +970,20 @@ def audit(
     transport_carbon_intensity: float | None,
     use: UseAssumptions,
     end_of_life: str,
+    end_of_life_factors: Mapping[str, float] | None = None,
 ) -> EcoAuditResult:
-    """Audit one part over its five phases.
+    """Audit one part over its five phases — a product of one component, one leg.
+
+    Kept as the single-part entry point; it is ``audit_product`` with a list of
+    one, so the two can never disagree.
 
     Args:
         mass_in_part: finished mass, kg — from the Solver, or measured.
         recycled_fraction: recycled content of the feedstock, 0 ≤ x ≤ 1.
-        scrap_fraction: the chosen process's ``fracao-refugo``, 0 ≤ f < 1. It is
-            what turns the mass in the part into the mass bought.
+        scrap_fraction: the chosen process's ``fracao-refugo``, 0 ≤ f < 1.
         embodied_energy: ``energia_incorporada``, MJ/kg of primary material.
         carbon_footprint: ``pegada_co2``, kg CO₂/kg of primary material.
-        recycle_energy: ``energia_reciclagem``, MJ/kg. Read only when
-            ``recycled_fraction`` or the recycling route needs it.
+        recycle_energy: ``energia_reciclagem``, MJ/kg.
         recycle_carbon: ``co2_reciclagem``, kg CO₂/kg.
         process_energy: ``energia-processo``, MJ/kg.
         process_carbon: ``co2-processo``, kg CO₂/kg.
@@ -544,6 +992,8 @@ def audit(
         transport_carbon_intensity: the mode's kg CO₂ per tonne-km.
         use: the declared service model and its own inputs.
         end_of_life: one of ``EOL_ROUTES``.
+        end_of_life_factors: the material's catalogued values for the other
+            routes, keyed by slug (``energia_aterro``…).
 
     Raises:
         EcoAuditError: on a brief that cannot be audited at all.
@@ -554,57 +1004,54 @@ def audit(
         raise EcoAuditError("O teor reciclado fica entre 0 e 1.")
     if not 0 <= scrap_fraction < 1:
         raise EcoAuditError("A fração de refugo fica entre 0 e 1 (exclusivo).")
-    if not transport_distance_km >= 0:
-        raise EcoAuditError("A distância de transporte não pode ser negativa.")
-    if end_of_life not in EOL_ROUTES:
-        raise EcoAuditError(f"Rota de fim de vida desconhecida: {end_of_life}.")
-
-    mass_bought = mass_in_part / (1.0 - scrap_fraction)
-
-    phases = (
-        _material_phase(
-            mass_bought=mass_bought,
-            recycled_fraction=recycled_fraction,
-            primary_energy=embodied_energy,
-            primary_carbon=carbon_footprint,
-            recycle_energy=recycle_energy,
-            recycle_carbon=recycle_carbon,
-        ),
-        _manufacture_phase(
-            mass_bought=mass_bought,
-            process_energy=process_energy,
-            process_carbon=process_carbon,
-        ),
-        _transport_phase(
-            mass_in_part=mass_in_part,
-            distance_km=transport_distance_km,
-            energy_intensity=transport_energy_intensity,
-            carbon_intensity=transport_carbon_intensity,
-        ),
-        _use_phase(mass_in_part=mass_in_part, use=use),
-        _end_of_life_phase(
-            mass_in_part=mass_in_part,
-            route=end_of_life,
-            recycle_energy=recycle_energy,
-            recycle_carbon=recycle_carbon,
-        ),
+    material = {
+        slug: value
+        for slug, value in {
+            EMBODIED_ENERGY: embodied_energy,
+            CO2_FOOTPRINT: carbon_footprint,
+            RECYCLE_ENERGY: recycle_energy,
+            RECYCLE_CO2: recycle_carbon,
+            **(end_of_life_factors or {}),
+        }.items()
+        if value is not None
+    }
+    process = {
+        slug: value
+        for slug, value in {PROCESS_ENERGY: process_energy, PROCESS_CO2: process_carbon}.items()
+        if value is not None
+    }
+    product = audit_product(
+        components=[
+            ComponentBrief(
+                name="Peça",
+                unit_mass=mass_in_part,
+                quantity=1,
+                recycled_fraction=recycled_fraction,
+                scrap_fraction=scrap_fraction,
+                end_of_life=end_of_life,
+                material=material,
+                process=process,
+            )
+        ],
+        legs=[
+            TransportLeg(
+                label="trecho",
+                distance_km=transport_distance_km,
+                energy_intensity=transport_energy_intensity,
+                carbon_intensity=transport_carbon_intensity,
+            )
+        ],
+        use=use,
     )
-
-    def total(attribute: str) -> float | None:
-        values = [getattr(phase, attribute) for phase in phases]
-        # A total over four of five phases is not a total; it is a subtotal that
-        # reads like one, which is the mistake this returns None to avoid.
-        return None if any(value is None for value in values) else sum(values)
-
     return EcoAuditResult(
-        mass_in_part=mass_in_part,
-        mass_bought=mass_bought,
+        mass_in_part=product.mass_in_product,
+        mass_bought=product.mass_bought,
         scrap_fraction=scrap_fraction,
-        use_model=use.model,
+        use_model=product.use_model,
         end_of_life=end_of_life,
-        phases=phases,
-        total_energy=total("energy"),
-        total_carbon=total("carbon"),
-        energy_dominance=_dominance(phases, "energy", "energia"),
-        carbon_dominance=_dominance(phases, "carbon", "carbono"),
+        phases=product.phases,
+        total_energy=product.total_energy,
+        total_carbon=product.total_carbon,
+        energy_dominance=product.energy_dominance,
+        carbon_dominance=product.carbon_dominance,
     )

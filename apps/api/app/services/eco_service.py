@@ -23,16 +23,14 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.calculations.eco_audit import (
-    CO2_FOOTPRINT,
-    EMBODIED_ENERGY,
-    PROCESS_CO2,
-    PROCESS_ENERGY,
-    RECYCLE_CO2,
-    RECYCLE_ENERGY,
+    EOL_ROUTE_TABLE,
+    EOL_ROUTES,
     SCRAP_FRACTION,
+    ComponentBrief,
     EcoAuditError,
+    TransportLeg,
     UseAssumptions,
-    audit,
+    audit_product,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.models.process import Process
@@ -40,12 +38,16 @@ from app.repositories.chart_repository import ChartRepository
 from app.repositories.process_repository import ProcessRepository
 from app.repositories.transport_repository import TransportRepository
 from app.schemas.eco import (
+    ComponentOut,
     DominanceOut,
     EcoAuditRequest,
     EcoAuditResultOut,
     EcoComparisonRequest,
     EcoComparisonResultOut,
+    EcoComponentIn,
+    EndOfLifeRouteOut,
     PhaseOut,
+    TransportLegOut,
     TransportModeOut,
 )
 
@@ -66,40 +68,91 @@ class EcoService:
 
     # --- the audit ---------------------------------------------------------
 
+    def list_end_of_life_routes(self) -> list[EndOfLifeRouteOut]:
+        """The seven routes, each with how many visible materials can price it."""
+        priced: dict[str, int] = {}
+        for material in self.repo.list_materials():
+            values = self._material_values(material)
+            for slug, route in EOL_ROUTE_TABLE.items():
+                if (
+                    route.energy_slug is not None
+                    and route.carbon_slug is not None
+                    and route.energy_slug in values
+                    and route.carbon_slug in values
+                ):
+                    priced[slug] = priced.get(slug, 0) + 1
+        return [
+            EndOfLifeRouteOut(
+                slug=route.slug,
+                label=route.label,
+                description=route.description,
+                energy_property=route.energy_slug,
+                carbon_property=route.carbon_slug,
+                materials_with_factor=priced.get(route.slug, 0),
+            )
+            for route in (EOL_ROUTE_TABLE[slug] for slug in EOL_ROUTES)
+        ]
+
+    # --- the audit ---------------------------------------------------------
+
     def run(self, request: EcoAuditRequest) -> EcoAuditResultOut:
         materials = {material.id: material for material in self.repo.list_materials()}
-        material = materials.get(request.material_id)
-        if material is None:
-            # The same 404 a hidden record gets, for the same reason as
-            # everywhere else: a different answer would say whether it exists.
-            raise NotFoundError(f"Material não encontrado: {request.material_id}")
 
-        candidates = {
-            process.id: process
-            for process in self.process_repo.processes_for_material_with_values(material.id)
-        }
-        process = candidates.get(request.process_id)
-        if process is None:
-            raise NotFoundError(
-                f"O processo {request.process_id} não está entre os que fazem " f"{material.name}."
+        resolved: list[tuple[EcoComponentIn, object, Process]] = []
+        briefs: list[ComponentBrief] = []
+        components_in = request.resolved_components()
+        for position, item in enumerate(components_in, start=1):
+            material = materials.get(item.material_id)
+            if material is None:
+                # The same 404 a hidden record gets, for the same reason as
+                # everywhere else: a different answer would say whether it exists.
+                raise NotFoundError(f"Material não encontrado: {item.material_id}")
+            candidates = {
+                process.id: process
+                for process in self.process_repo.processes_for_material_with_values(material.id)
+            }
+            process = candidates.get(item.process_id)
+            if process is None:
+                raise NotFoundError(
+                    f"O processo {item.process_id} não está entre os que fazem " f"{material.name}."
+                )
+            attributes = self._scalars(process)
+            scrap = attributes.get(SCRAP_FRACTION)
+            if scrap is None:
+                # The scrap fraction is what turns the mass in the part into the
+                # mass bought. Guessing it would be a zero wearing a disguise.
+                raise ValidationError(
+                    f"{process.name} não tem fração de refugo cadastrada, e é ela que "
+                    "diz quanto material foi preciso comprar para fazer esta peça."
+                )
+            name = (item.name or "").strip()
+            if not name:
+                name = (
+                    material.name
+                    if len(components_in) == 1
+                    else (f"Componente {position} ({material.name})")
+                )
+            resolved.append((item, material, process))
+            briefs.append(
+                ComponentBrief(
+                    name=name,
+                    unit_mass=item.unit_mass,
+                    quantity=item.quantity,
+                    recycled_fraction=item.recycled_fraction,
+                    scrap_fraction=scrap,
+                    end_of_life=item.end_of_life,
+                    material=self._material_values(material),
+                    process=attributes,
+                )
             )
 
-        mode = self.transport_repo.get_active_by_slug(request.transport_mode)
-        if mode is None:
-            raise NotFoundError(f"Modal de transporte não encontrado: {request.transport_mode}")
+        modes = []
+        for leg in request.resolved_legs():
+            mode = self.transport_repo.get_active_by_slug(leg.mode)
+            if mode is None:
+                raise NotFoundError(f"Modal de transporte não encontrado: {leg.mode}")
+            modes.append((mode, leg.distance_km))
 
-        attributes = self._scalars(process)
-        scrap = attributes.get(SCRAP_FRACTION)
-        if scrap is None:
-            # The scrap fraction is what turns the mass in the part into the
-            # mass bought, and every phase but use and transport is charged on
-            # one of the two. Guessing it would be a zero wearing a disguise.
-            raise ValidationError(
-                f"{process.name} não tem fração de refugo cadastrada, e é ela que "
-                "diz quanto material foi preciso comprar para fazer esta peça."
-            )
-
-        values = self._material_values(material)
         try:
             use = UseAssumptions(
                 model=request.use.model,
@@ -110,52 +163,72 @@ class EcoService:
                 life_years=request.use.life_years,
                 carbon_per_energy=request.use.carbon_per_energy,
             )
-            result = audit(
-                mass_in_part=request.part_mass,
-                recycled_fraction=request.recycled_fraction,
-                scrap_fraction=scrap,
-                embodied_energy=values.get(EMBODIED_ENERGY),
-                carbon_footprint=values.get(CO2_FOOTPRINT),
-                recycle_energy=values.get(RECYCLE_ENERGY),
-                recycle_carbon=values.get(RECYCLE_CO2),
-                process_energy=attributes.get(PROCESS_ENERGY),
-                process_carbon=attributes.get(PROCESS_CO2),
-                transport_distance_km=request.transport_distance_km,
-                transport_energy_intensity=mode.energy_intensity,
-                transport_carbon_intensity=mode.carbon_intensity,
+            result = audit_product(
+                components=briefs,
+                legs=[
+                    TransportLeg(
+                        label=mode.name,
+                        distance_km=distance,
+                        energy_intensity=mode.energy_intensity,
+                        carbon_intensity=mode.carbon_intensity,
+                    )
+                    for mode, distance in modes
+                ],
                 use=use,
-                end_of_life=request.end_of_life,
             )
         except EcoAuditError as exc:
             raise ValidationError(str(exc)) from exc
 
+        components_out = [
+            ComponentOut(
+                name=component.name,
+                material_id=material.id,
+                material_name=material.name,
+                process_id=process.id,
+                process_name=process.name,
+                quantity=component.quantity,
+                unit_mass=component.unit_mass,
+                mass_in_part=component.mass_in_part,
+                mass_bought=component.mass_bought,
+                scrap_fraction=component.scrap_fraction,
+                recycled_fraction=component.recycled_fraction,
+                end_of_life=component.end_of_life,
+                end_of_life_label=component.end_of_life_label,
+                phases=[self._phase_out(phase) for phase in component.phases],
+            )
+            for component, (_, material, process) in zip(result.components, resolved, strict=True)
+        ]
+        legs_out = [
+            TransportLegOut(
+                mode=self._mode_out(mode),
+                distance_km=leg.distance_km,
+                energy=leg.energy,
+                carbon=leg.carbon,
+                energy_missing=list(leg.energy_missing),
+                carbon_missing=list(leg.carbon_missing),
+                energy_reason=leg.energy_reason,
+                carbon_reason=leg.carbon_reason,
+            )
+            for leg, (mode, _) in zip(result.legs, modes, strict=True)
+        ]
+        only = components_out[0] if len(components_out) == 1 else None
+        only_leg = legs_out[0] if len(legs_out) == 1 else None
         return EcoAuditResultOut(
-            material_id=material.id,
-            material_name=material.name,
-            process_id=process.id,
-            process_name=process.name,
-            transport_mode=self._mode_out(mode),
-            transport_distance_km=request.transport_distance_km,
-            mass_in_part=result.mass_in_part,
+            components=components_out,
+            transport_legs=legs_out,
+            material_id=only.material_id if only else None,
+            material_name=only.material_name if only else None,
+            process_id=only.process_id if only else None,
+            process_name=only.process_name if only else None,
+            transport_mode=only_leg.mode if only_leg else None,
+            transport_distance_km=sum(leg.distance_km for leg in legs_out),
+            mass_in_part=result.mass_in_product,
             mass_bought=result.mass_bought,
-            scrap_fraction=result.scrap_fraction,
-            recycled_fraction=request.recycled_fraction,
+            scrap_fraction=only.scrap_fraction if only else None,
+            recycled_fraction=only.recycled_fraction if only else None,
             use_model=result.use_model,
-            end_of_life=result.end_of_life,
-            phases=[
-                PhaseOut(
-                    phase=phase.phase,
-                    label=phase.label,
-                    energy=phase.energy,
-                    carbon=phase.carbon,
-                    detail=phase.detail,
-                    energy_missing=list(phase.energy_missing),
-                    carbon_missing=list(phase.carbon_missing),
-                    energy_reason=phase.energy_reason,
-                    carbon_reason=phase.carbon_reason,
-                )
-                for phase in result.phases
-            ],
+            end_of_life=only.end_of_life if only else None,
+            phases=[self._phase_out(phase) for phase in result.phases],
             total_energy=result.total_energy,
             total_carbon=result.total_carbon,
             energy_dominance=DominanceOut(
@@ -170,6 +243,20 @@ class EcoService:
                 share=result.carbon_dominance.share,
                 refusal=result.carbon_dominance.refusal,
             ),
+        )
+
+    @staticmethod
+    def _phase_out(phase) -> PhaseOut:
+        return PhaseOut(
+            phase=phase.phase,
+            label=phase.label,
+            energy=phase.energy,
+            carbon=phase.carbon,
+            detail=phase.detail,
+            energy_missing=list(phase.energy_missing),
+            carbon_missing=list(phase.carbon_missing),
+            energy_reason=phase.energy_reason,
+            carbon_reason=phase.carbon_reason,
         )
 
     # --- comparison -------------------------------------------------------

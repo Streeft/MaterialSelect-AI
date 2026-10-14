@@ -18,19 +18,37 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.calculations.eco_audit import (
     CARBON_UNIT,
     CARBON_UNIT_NOTE,
     ENERGY_UNIT,
+    EOL_DOWNCYCLE,
     EOL_INCINERATION,
     EOL_LANDFILL,
+    EOL_NONE,
     EOL_RECYCLE,
+    EOL_REMANUFACTURE,
+    EOL_REUSE,
+    MAX_COMPONENTS,
+    MAX_LEGS,
     RECYCLING_CREDIT_NOTE,
     USE_MOBILE,
     USE_STATIC,
 )
+
+#: The seven routes on the wire. The vocabulary is closed; what each costs is
+#: read from the catalogue per material (D-120).
+EndOfLife = Literal[
+    EOL_LANDFILL,
+    EOL_INCINERATION,
+    EOL_DOWNCYCLE,
+    EOL_RECYCLE,
+    EOL_REMANUFACTURE,
+    EOL_REUSE,
+    EOL_NONE,
+]
 
 
 class TransportModeOut(BaseModel):
@@ -74,19 +92,123 @@ class UseIn(BaseModel):
         return value
 
 
-class EcoAuditRequest(BaseModel):
-    material_id: int
-    #: The process that makes the part. Required, because an eco audit of a part
-    #: is an audit of *making* it: without a process there is no manufacturing
-    #: phase and no scrap fraction, and the material phase is charged on the
-    #: mass bought rather than the mass in the part.
-    process_id: int
-    part_mass: float = Field(gt=0, le=1.0e6)
+class EndOfLifeRouteOut(BaseModel):
+    """One end-of-life route and the catalogue slugs that would price it."""
+
+    slug: str
+    label: str
+    description: str
+    energy_property: str | None = None
+    carbon_property: str | None = None
+    #: How many visible materials carry both factors of this route. Zero means
+    #: the route is unavailable for every material today — said, not hidden.
+    materials_with_factor: int = 0
+
+
+class EcoComponentIn(BaseModel):
+    """One line of the bill of materials."""
+
+    #: Free label ("tampa", "parafuso"); the material name stands in when empty.
+    name: str | None = Field(default=None, max_length=120)
+    material_id: int = Field(gt=0)
+    process_id: int = Field(gt=0)
+    #: Mass of ONE unit, kg; ``quantity`` multiplies it.
+    unit_mass: float = Field(gt=0, le=1.0e6)
+    quantity: int = Field(default=1, ge=1, le=100_000)
     recycled_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
-    transport_mode: str = Field(min_length=1, max_length=80)
-    transport_distance_km: float = Field(default=0.0, ge=0.0, le=1.0e6)
+    end_of_life: EndOfLife = EOL_RECYCLE
+
+
+class TransportLegIn(BaseModel):
+    """One leg of the product's journey."""
+
+    mode: str = Field(min_length=1, max_length=80)
+    distance_km: float = Field(default=0.0, ge=0.0, le=1.0e6)
+
+
+class EcoAuditRequest(BaseModel):
+    """A product brief — or, in the original shape, a single part.
+
+    **Two shapes, never mixed.** The product shape carries ``components`` and
+    ``transport_legs``; the single-part shape (``material_id``, ``process_id``,
+    ``part_mass``… and ``transport_mode``) is the same audit with a list of one
+    and stays because deep links and the comparison build it. A brief that
+    mixes them is refused: a ``material_id`` sent next to a component list would
+    be a number the reader typed and the sum never held (the D-56 rule).
+    """
+
+    components: list[EcoComponentIn] | None = Field(
+        default=None, min_length=1, max_length=MAX_COMPONENTS
+    )
+    transport_legs: list[TransportLegIn] | None = Field(
+        default=None, min_length=1, max_length=MAX_LEGS
+    )
+
+    #: Single-part shape. An eco audit of a part is an audit of *making* it:
+    #: without a process there is no manufacturing phase and no scrap fraction.
+    material_id: int | None = None
+    process_id: int | None = None
+    part_mass: float | None = Field(default=None, gt=0, le=1.0e6)
+    recycled_fraction: float | None = Field(default=None, ge=0.0, le=1.0)
+    end_of_life: EndOfLife | None = None
+    transport_mode: str | None = Field(default=None, min_length=1, max_length=80)
+    transport_distance_km: float | None = Field(default=None, ge=0.0, le=1.0e6)
+
     use: UseIn
-    end_of_life: Literal[EOL_RECYCLE, EOL_LANDFILL, EOL_INCINERATION] = EOL_RECYCLE
+
+    @model_validator(mode="after")
+    def _one_shape(self) -> EcoAuditRequest:
+        single = {
+            "material_id": self.material_id,
+            "process_id": self.process_id,
+            "part_mass": self.part_mass,
+            "recycled_fraction": self.recycled_fraction,
+            "end_of_life": self.end_of_life,
+        }
+        if self.components is not None:
+            stray = sorted(name for name, value in single.items() if value is not None)
+            if stray:
+                raise ValueError(
+                    "Com lista de componentes, estes campos de peça única não entram na "
+                    "conta: " + ", ".join(stray) + "."
+                )
+        elif self.material_id is None or self.process_id is None or self.part_mass is None:
+            raise ValueError(
+                "Informe a lista de componentes, ou material, processo e massa da peça."
+            )
+        if self.transport_legs is not None:
+            if self.transport_mode is not None or self.transport_distance_km is not None:
+                raise ValueError(
+                    "Com lista de trechos, o modal e a distância de trecho único não "
+                    "entram na conta."
+                )
+        elif self.transport_mode is None:
+            raise ValueError("Informe os trechos de transporte, ou o modal do trecho único.")
+        return self
+
+    def resolved_components(self) -> list[EcoComponentIn]:
+        if self.components is not None:
+            return self.components
+        assert self.material_id is not None and self.process_id is not None
+        assert self.part_mass is not None
+        return [
+            EcoComponentIn(
+                material_id=self.material_id,
+                process_id=self.process_id,
+                unit_mass=self.part_mass,
+                quantity=1,
+                recycled_fraction=self.recycled_fraction or 0.0,
+                end_of_life=self.end_of_life or EOL_RECYCLE,
+            )
+        ]
+
+    def resolved_legs(self) -> list[TransportLegIn]:
+        if self.transport_legs is not None:
+            return self.transport_legs
+        assert self.transport_mode is not None
+        return [
+            TransportLegIn(mode=self.transport_mode, distance_km=self.transport_distance_km or 0.0)
+        ]
 
 
 class PhaseOut(BaseModel):
@@ -112,24 +234,65 @@ class DominanceOut(BaseModel):
     refusal: str | None = None
 
 
-class EcoAuditResultOut(BaseModel):
-    """One part's five phases, the two totals and the two podiums."""
+class ComponentOut(BaseModel):
+    """One component: its own material, manufatura and fim-de-vida phases."""
 
+    name: str
     material_id: int
     material_name: str
     process_id: int
     process_name: str
-    transport_mode: TransportModeOut
-    transport_distance_km: float
-    #: What the part weighs, and what had to be bought to make it. Both are on
-    #: the answer because the difference between them is the scrap, and the
-    #: scrap is why the material phase is larger than a reader might expect.
+    quantity: int
+    unit_mass: float
     mass_in_part: float
     mass_bought: float
     scrap_fraction: float
     recycled_fraction: float
-    use_model: str
     end_of_life: str
+    end_of_life_label: str
+    phases: list[PhaseOut]
+
+
+class TransportLegOut(BaseModel):
+    """One leg, with the whole product's mass moved along it."""
+
+    mode: TransportModeOut
+    distance_km: float
+    energy: float | None = None
+    carbon: float | None = None
+    energy_missing: list[str] = Field(default_factory=list)
+    carbon_missing: list[str] = Field(default_factory=list)
+    energy_reason: str | None = None
+    carbon_reason: str | None = None
+
+
+class EcoAuditResultOut(BaseModel):
+    """A product's five phases, the two totals and the two podiums.
+
+    ``components`` and ``transport_legs`` always come back. The single-part
+    fields (``material_id``, ``process_name``, ``transport_mode``…) are filled
+    only when the product has exactly one component / one leg, and are ``None``
+    otherwise — never the first item standing in for all of them.
+    """
+
+    components: list[ComponentOut]
+    transport_legs: list[TransportLegOut]
+    material_id: int | None = None
+    material_name: str | None = None
+    process_id: int | None = None
+    process_name: str | None = None
+    transport_mode: TransportModeOut | None = None
+    #: Sum over the legs.
+    transport_distance_km: float
+    #: What the product weighs, and what had to be bought to make it. Both are on
+    #: the answer because the difference between them is the scrap, and the
+    #: scrap is why the material phase is larger than a reader might expect.
+    mass_in_part: float
+    mass_bought: float
+    scrap_fraction: float | None = None
+    recycled_fraction: float | None = None
+    use_model: str
+    end_of_life: str | None = None
     phases: list[PhaseOut]
     total_energy: float | None = None
     total_carbon: float | None = None
@@ -150,9 +313,7 @@ class EcoMaterialInput(BaseModel):
     recycled_fraction: float = Field(
         default=0.0, ge=0.0, le=1.0, description="Fração reciclada (0 a 1)"
     )
-    end_of_life: Literal[EOL_RECYCLE, EOL_LANDFILL, EOL_INCINERATION] = Field(
-        default=EOL_RECYCLE, description="Destino de fim de vida"
-    )
+    end_of_life: EndOfLife = Field(default=EOL_RECYCLE, description="Destino de fim de vida")
 
 
 class EcoComparisonRequest(BaseModel):

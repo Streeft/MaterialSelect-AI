@@ -23,6 +23,7 @@ from app.schemas.eco import (
     EcoAuditResultOut,
     EcoComparisonRequest,
     EcoComparisonResultOut,
+    EndOfLifeRouteOut,
     TransportModeOut,
 )
 from app.services.eco_service import EcoService
@@ -39,13 +40,22 @@ def list_transport_modes(
     return EcoService(db, user.id).list_transport_modes()
 
 
+@router.get("/rotas-fim-de-vida", response_model=list[EndOfLifeRouteOut])
+def list_end_of_life_routes(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[EndOfLifeRouteOut]:
+    """The seven end-of-life routes and how many visible materials can price each."""
+    return EcoService(db, user.id).list_end_of_life_routes()
+
+
 @router.post("/auditar", response_model=EcoAuditResultOut)
 def run_eco_audit(
     payload: EcoAuditRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> EcoAuditResultOut:
-    """Audit one part over material, manufatura, transporte, uso e fim de vida."""
+    """Audit a product (components × legs) over its five phases (D-120)."""
     return EcoService(db, user.id).run(payload)
 
 
