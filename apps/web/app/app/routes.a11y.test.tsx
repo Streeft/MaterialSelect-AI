@@ -1318,6 +1318,12 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   studyExportUrl: (id: number, format: string) => `#${id}-${format}`,
   studyFileUrl: (id: number) => `#${id}-json`,
   studyLaudoUrl: (id: number) => `#${id}-laudo`,
+  materialExportUrl: (
+    id: number,
+    format: string,
+    _unitChoices?: Record<string, string>,
+  ) => `#${id}-${format}`,
+  withUnits: (path: string) => path,
   // D-104: a ficha tem o "Exportar ▾" do cartão CAE; a auditoria não baixa nada.
   downloadCaeCard: vi.fn(),
   opensInBrowser: (format: string) => format === "html",
