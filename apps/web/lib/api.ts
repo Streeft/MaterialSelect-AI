@@ -244,7 +244,7 @@ export function unitChoicesParam(choices: Record<string, string>): string {
   return pairs.map(([slug, unit]) => `${slug}:${unit}`).join(",");
 }
 
-function withUnits(path: string, choices?: Record<string, string>): string {
+export function withUnits(path: string, choices?: Record<string, string>): string {
   const value = unitChoicesParam(choices ?? {});
   if (!value) return path;
   const separator = path.includes("?") ? "&" : "?";
@@ -873,6 +873,18 @@ export function studyLaudoUrl(
     ? `?${new URLSearchParams({ responsavel: trimmed })}`
     : "";
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.${format}${query}`;
+}
+
+/**
+ * Ficha técnica detalhada do material em PDF/HTML, CSV ou XLSX (D-124).
+ * HTML abre inline com CSS @media print para impressão em PDF pelo navegador.
+ */
+export function materialExportUrl(
+  materialId: number,
+  format: "html" | "csv" | "xlsx",
+  unitChoices?: Record<string, string>,
+): string {
+  return `${API_URL}${withUnits(`/api/exports/materiais/${materialId}.${format}`, unitChoices)}`;
 }
 
 // --- CAE material card (D-104) ---------------------------------------------

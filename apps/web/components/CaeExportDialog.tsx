@@ -5,10 +5,12 @@ import { useMutation } from "@tanstack/react-query";
 import {
   ApiError,
   downloadCaeCard,
+  materialExportUrl,
   type CaeFormat,
   type CaeUnitSystem,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { flowText } from "@/lib/i18n-flow";
 import {
   Alert,
   Button,
@@ -144,22 +146,33 @@ export function CaeExportDialog({
 }
 
 /**
- * The datasheet's "Exportar ▾" (D-91): one menu button, never a row of
- * buttons, whose entry opens the CAE dialog.
+ * The datasheet's "Exportar ▾" (D-91, D-124): one menu button, never a row of
+ * buttons, providing both the complete material datasheet (HTML/PDF) and the CAE dialog.
  */
 export function MaterialExportMenu({
   materialId,
+  unitChoices,
   download,
   saveFile,
 }: {
   materialId: number;
+  unitChoices?: Record<string, string>;
   download?: typeof downloadCaeCard;
   saveFile?: (blob: Blob, filename: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const pdfUrl = materialExportUrl(materialId, "html", unitChoices);
   return (
     <>
       <MenuButton label={ptBR.exports.title} icon={<IconDownload className="h-4 w-4" />}>
+        <MenuItem
+          href={pdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          hint={flowText.materialExport.sheetHint}
+        >
+          {flowText.materialExport.sheet}
+        </MenuItem>
         <MenuItem onSelect={() => setOpen(true)} hint={t.menuHint}>
           {t.menuItem}
         </MenuItem>

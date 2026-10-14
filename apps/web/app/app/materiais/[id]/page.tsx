@@ -223,9 +223,8 @@ export default function MaterialDetailPage() {
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <FavoriteButton universe="material" recordId={data.id} />
-                {/* D-104: one "Exportar ▾" (D-91), never a row of buttons; the
-                    format and unit system are chosen in the dialog. */}
-                <MaterialExportMenu materialId={data.id} />
+                {/* D-104 e D-124: menu "Exportar ▾" com ficha técnica em PDF/HTML e CAE card. */}
+                <MaterialExportMenu materialId={data.id} unitChoices={unitChoices} />
                 {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}

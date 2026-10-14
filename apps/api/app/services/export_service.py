@@ -41,17 +41,23 @@ from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.charts import PropertyMapRequest
+from app.schemas.curve import MaterialCurvesOut
+from app.schemas.equivalence import MaterialEquivalencesOut
+from app.schemas.material import MaterialDetail
 from app.schemas.selection import ChartStageIn, IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.chart_service import ChartService
+from app.services.curve_service import CurveService
+from app.services.equivalence_service import EquivalenceService
 from app.services.identity_lines import composition_lines, designation_lines
+from app.services.material_service import MaterialService
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
 
 
 class ExportService:
-    """Builds reports for saved studies and for the catalogue."""
+    """Builds reports for saved studies, the catalogue and material datasheets."""
 
     def __init__(
         self,
@@ -59,44 +65,24 @@ class ExportService:
         user: User | None = None,
         unit_choices: Mapping[str, str] | None = None,
     ) -> None:
-        # The ``User`` and not only their id, because this service constructs a
-        # ``SelectionService`` to re-run the study and that one needs the whole
-        # object. Carrying two spellings of "who is asking" through the same
-        # call chain is how they come to disagree.
         self.db = db
         self.user = user
         self.viewer_id = user.id if user is not None else None
         self.selection_repo = SelectionRepository(db, self.viewer_id)
         self.chart_repo = ChartRepository(db, self.viewer_id)
-        # D-70: em que unidade o leitor pediu para ler. O documento sai como a
-        # tela de onde ele veio — um relatório que discordasse da tela que o
-        # originou seria a pior forma deste recurso falhar.
         self.unit_choices: Mapping[str, str] = unit_choices or {}
 
     # --- selection study --------------------------------------------------
 
     def _run(self, study_id: int, project_id: int):
-        """Re-run the study and load the records its candidates named.
-
-        Shared by the selection report and the laudo, so both describe the
-        same execution of the deterministic pipeline rather than two.
-        """
+        """Re-run the study and load the records its candidates named."""
         study = self.selection_repo.get_study(study_id, project_id)
         if study is None:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
         service = SelectionService(self.db, project_id, self.user)
         result = service.run_study(study_id)
-        # Same SelectionService instance as run_study above, so this reuses
-        # its already-populated property cache and snapshot list rather than
-        # rebuilding them — see SelectionService.describe_pipeline.
         root_group_description = service.describe_pipeline(study)
-        # Each universe's candidates are looked up in its **own** table (P0-3,
-        # extended by P0-4). Looking a process id up in the material table would
-        # not merely find nothing — it would find whatever material happens to
-        # carry that id, and print its provenance under a process's name. In a
-        # document whose whole purpose is auditability that is the worst
-        # available failure, so the two lookups never cross.
         candidate_ids = [c.record_id for c in result.candidates]
         if result.universe == "material":
             records = {
@@ -110,14 +96,7 @@ class ExportService:
 
     @staticmethod
     def _is_own_record(record: object) -> bool:
-        """Whether this record belongs to one person rather than the catalogue.
-
-        ``getattr`` with a default rather than a plain attribute read, and the
-        asymmetry is real and deliberate: only ``Material`` carries an owner.
-        A user-defined *process* would need the process catalogue to be
-        editable at all, which is its own open item (registered since P0-2), so
-        a process is always a catalogue record and answers False here.
-        """
+        """Whether this record belongs to one person rather than the catalogue."""
         return getattr(record, "owner_id", None) is not None
 
     def _sheets(
@@ -154,16 +133,11 @@ class ExportService:
         return Report(
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
-            # `is_demo` is a column of both `Material` and `Process`, so the
-            # warning is raised by whichever universe the study returned.
             notices=standard_notices(
                 includes_demo_data=any(r.is_demo for r in records.values()),
                 includes_own_records=any(self._is_own_record(r) for r in records.values()),
             ),
             sheets=self._sheets(study, result, records, root_group_description),
-            # The map, and only the map. The ranking chart stays a mark of the
-            # laudo (D-41); the map is what makes this a *selection* report
-            # rather than a table of numbers, so it belongs to both.
             figures=[f for f in (self._map_figure(study, result),) if f],
         )
 
@@ -172,10 +146,6 @@ class ExportService:
     ) -> Report:
         """The engineering report: the selection report plus a figure and,
         when the AI layer is on, an interpretive narrative.
-
-        A document distinct from ``study_report`` on purpose — it is meant to
-        be attached on its own, not read as a reduced version of the
-        spreadsheet-oriented tables.
         """
         study, result, records, root_group_description = self._run(study_id, project_id)
         narrative, caveats, note = self._narrative(study_id, project_id)
@@ -195,52 +165,11 @@ class ExportService:
         )
 
     def _figures(self, study, result: RunResultOut) -> list[str]:
-        """The laudo's figures: the selection map first, then the ranking chart.
-
-        That order is the argument the document makes: the map is where the
-        candidates come from, the bar chart is what the ranking did with them.
-        Either may be absent — a study whose index names fewer than two
-        catalogued properties has no plane to be drawn on — and the caption of
-        whichever survives says so rather than leaving a silent gap.
-        """
+        """The laudo's figures: the selection map first, then the ranking chart."""
         return [f for f in (self._map_figure(study, result), self._ranking_figure(result)) if f]
 
     def _map_figure(self, study, result: RunResultOut) -> str | None:
-        """The Ashby map of this study: every material, the candidates marked.
-
-        **A Chart stage's plane wins** (P1-2), because it is the plane the
-        decision was actually drawn on: the reader chose those axes, dragged that
-        box and slid that line, and a document that redrew the same selection on
-        a different pair would be answering a question nobody asked. The box goes
-        out as a `Region` in data coordinates and the line at the stage's stored
-        level.
-
-        Failing that, the two axes are read off the study's own index expression,
-        in the order it names them: `sqrt(modulo_young) / densidade` puts density
-        on x and modulus on y, which is how the chart is drawn in the literature.
-        A study with neither a chart stage nor an index, or one whose index names
-        a single property, has no such plane — the map is then omitted rather
-        than invented from an unrelated pair.
-
-        Geometry is not computed here. `ChartService.property_map` is the same
-        call `/api/charts/property-map` serves, so the figure in the document
-        and the map on the screen cannot disagree (ADR 0004).
-
-        **A process study has no such map, and this refuses to draw one** (P0-4).
-        `property_map` reads the *material* catalogue, and the ids it is handed to
-        highlight would be process ids: it would mark the materials that happen to
-        carry those ids and present the result as this study's map. That is the
-        same silent id collision P0-3 fixed in the provenance sheet, in the one
-        place P0-3 could not reach — a process study could not rank at all until
-        processes had attributes, so there were no ranked ids to mis-resolve.
-
-        That refusal reaches a Chart stage too: a process study may hold one, and
-        the plane it drew is **not drawn** here, because there is no map of the
-        process universe to draw it on yet (the P1 item P0-4 registered). The
-        stage still selects, and the "Estágios" table and the "Lógica da
-        seleção" row still say what it asked — a figure is omitted, never
-        substituted by a map of the wrong universe.
-        """
+        """The Ashby map of this study: every material, the candidates marked."""
         if result.universe != "material":
             return None
 
@@ -259,9 +188,6 @@ class ExportService:
                 x=x_slug,
                 y=y_slug,
                 scale="log",
-                # Clouds, not hulls. A hull traces the outermost grades and
-                # reads as a boundary; the cloud is how an Ashby chart shows
-                # a family, and it is what the reader of a laudo recognises.
                 envelope_shape="ellipse",
                 highlight_material_ids=ranked_ids,
                 index=(
@@ -273,18 +199,12 @@ class ExportService:
                     if study.index_expression
                     else None
                 ),
-                # The line through the winner is what makes the map a
-                # selection map rather than a scatter plot: everything on
-                # its favourable side beat the leader on the index.
                 index_level_material_ids=winner,
             )
 
         try:
             chart = ChartService(self.db, self.viewer_id, self.unit_choices).property_map(request)
         except ValidationError:
-            # A property that cannot carry a map (no plottable values, log
-            # scale refused) is a reason to omit the figure, never to fail the
-            # export the reader actually asked for.
             return None
 
         if not chart.points:
@@ -331,18 +251,7 @@ class ExportService:
 
     @staticmethod
     def _chart_plane(study) -> ChartStageIn | None:
-        """The plane a Chart stage drew, if the study has one that ran (P1-2).
-
-        The **first enabled** chart stage, by position. A study can hold several,
-        and the document draws one figure; the first is the one the rest of the
-        pipeline is read against, and drawing the last would put the reader's
-        opening argument off the page.
-
-        A chart stage that is switched off does not shape the result, so it does
-        not get to choose the plane either — the study then falls back to the
-        plane its index expression names, which is what it would have drawn
-        before P1-2.
-        """
+        """The plane a Chart stage drew, if the study has one that ran (P1-2)."""
         for stage in sorted(getattr(study, "stages", []) or [], key=lambda st: st.position):
             if stage.kind == "chart" and stage.enabled:
                 return SelectionService._stage_row_to_chart_in(stage)
@@ -350,22 +259,7 @@ class ExportService:
 
     @staticmethod
     def _plane_request(plane: ChartStageIn, ranked_ids: list[int]) -> PropertyMapRequest:
-        """The map request for a Chart stage's plane — the reader's own axes.
-
-        The map the document draws is the map the decision was drawn on, so the
-        axes come from the stage and not from the index expression. Either axis
-        may be an index, which is what ``x_index``/``y_index`` are for.
-
-        The line is placed at the **stored level**, through ``index_levels``, and
-        not through the winning material: the stage's level is the argument, and
-        re-deriving it from the result would move the line whenever the data
-        moved — the thing storing a number instead of a material was for.
-
-        ``index`` is refused by ``property_map`` alongside an index axis, so when
-        the plane already plots one the line is left undrawn and the caption says
-        why. Drawing it would need a second, contradictory meaning for the same
-        axis.
-        """
+        """The map request for a Chart stage's plane — the reader's own axes."""
         line_fits = (
             plane.index_expression is not None
             and plane.index_level is not None
@@ -394,12 +288,7 @@ class ExportService:
 
     @staticmethod
     def _plane_regions(plane: ChartStageIn | None) -> list[Region]:
-        """The drawn box, or nothing when the stage bounded neither axis.
-
-        The bounds go out exactly as stored, in data coordinates — an absent one
-        stays absent all the way to the renderer, which is what draws the open
-        side running to the frame instead of to an invented limit.
-        """
+        """The drawn box, or nothing when the stage bounded neither axis."""
         if plane is None:
             return []
         bounds = (
@@ -412,7 +301,6 @@ class ExportService:
             return []
         return [
             Region(
-                # Kept short: the legend truncates a label past 20 characters.
                 label="Região do estágio",
                 x_min=plane.x.min_value,
                 x_max=plane.x.max_value,
@@ -427,8 +315,6 @@ class ExportService:
         if not expression:
             return None
         known = {p.slug for p in self.chart_repo.list_properties()}
-        # `variables_in` returns a set; the order the expression names them is
-        # what decides which axis is which, so recover it by position.
         used = [slug for slug in variables_in(expression) if slug in known]
         if len(used) < 2:
             return None
@@ -473,8 +359,6 @@ class ExportService:
                     plane.y.max_value,
                 )
             ):
-                # An open side is drawn running to the frame, and a reader who
-                # does not know that would take the frame for a limit.
                 partes.append(
                     "o retângulo é a região do estágio; um lado sem limite é desenhado "
                     "até a borda do gráfico e não é um limite"
@@ -491,9 +375,6 @@ class ExportService:
                         f"dos eixos já é um índice; o nível está na tabela 'Estágios'"
                     )
         if chart.envelopes:
-            # The cloud is padded on purpose, so it claims a little more area
-            # than the materials in it occupy. Saying so is the price of
-            # drawing it: a reader must not take the blob for a measurement.
             partes.append(
                 "as nuvens de classe são indicativas — desenhadas com folga em "
                 "torno dos materiais cadastrados, não são a região exata que a "
@@ -509,12 +390,7 @@ class ExportService:
 
     @staticmethod
     def _ranking_figure(result: RunResultOut) -> str | None:
-        """A bar chart of the ranked candidates — omitted when no one ranked.
-
-        Built from ``result.ranking`` rather than from the index/property
-        pair, so it draws for every study regardless of how many variables
-        the index expression involves.
-        """
+        """A bar chart of the ranked candidates — omitted when no one ranked."""
         if result.ranking is None or not result.ranking.ranked:
             return None
         ranked = sorted(result.ranking.ranked, key=lambda r: r.rank)
@@ -535,23 +411,7 @@ class ExportService:
     def _narrative(
         self, study_id: int, project_id: int
     ) -> tuple[list[str] | None, list[str] | None, str | None]:
-        """Ask the AI layer to write about this same run, or say why it can't.
-
-        The layer is optional everywhere else in the project, and the laudo
-        keeps that: a provider that is off, misconfigured, or momentarily
-        unreachable degrades this one section instead of failing the whole
-        document.
-
-        This re-runs the deterministic pipeline: ``AIService.explain`` computes
-        its own result and will not accept one from a caller, so assembling the
-        laudo executes the study twice. Measured at 10.3 ms of a 30.4 ms
-        document on the seeded catalogue — a third of it, and deliberate.
-        Handing our result over is what the numeric anchoring depends on not
-        happening: the prose is checked against numbers *that call* produced,
-        and a parameter is exactly the door through which fabricated numbers
-        would arrive already blessed. With a real provider the second run is
-        under one percent of the wait, which is the case that matters.
-        """
+        """Ask the AI layer to write about this same run, or say why it can't."""
         try:
             explanation = AIService(self.db, user=self.user).explain(study_id, project_id)
         except (ValidationError, AIUnavailableError) as exc:
@@ -567,18 +427,8 @@ class ExportService:
             ["Função do componente", study.function_text or "—"],
             ["Objetivo", study.objective_text or "—"],
             ["Variáveis livres", ", ".join(study.free_variables or []) or "—"],
-            # The real logic, not just study.combinator (the first root
-            # group's own operator) — for a nested study the root operator alone
-            # misdescribes it, and since P0-1 a study can have several stages
-            # whose combination it does not describe at all. The row is named
-            # for what it now holds; "Combinação das restrições" stopped being
-            # true the moment a stage could be a folder selection rather than a
-            # restriction. See SelectionService.describe_pipeline.
             ["Lógica da seleção", root_group_description],
         ]
-        # P0-3: the document states which universe it selected over. Left to be
-        # inferred from the candidate names, a reader skimming the header would
-        # take a list of processes for a list of materials.
         if result.universe == "process":
             rows.append(["Universo do resultado", "Processos"])
             rows.append(["Processos considerados", result.initial_count])
@@ -590,18 +440,7 @@ class ExportService:
 
     @staticmethod
     def _stages_sheet(result: RunResultOut) -> Sheet:
-        """The pipeline, one row per stage (P0-1).
-
-        Always present, including for a single-stage study: an audit document
-        whose sections appear and disappear with the shape of the study is
-        harder to read than one that always answers the same questions. For a
-        study saved before P0-1 this is one row, and it says so.
-
-        "Admitidos sozinho" is what the stage admits over the whole catalogue,
-        independently of the stages before it — reported for a disabled stage
-        too, because that is the question switching one off asks. "Restantes"
-        is the running count after the stage, unchanged when it is disabled.
-        """
+        """The pipeline, one row per stage (P0-1)."""
         kinds = {
             "limit": "Limites",
             "tree": "Classes",
@@ -610,17 +449,11 @@ class ExportService:
             "chart": "Gráfico",
         }
         if result.universe == "process":
-            # A tree stage walks the study's own universe, so in a process study
-            # it selects process *families* — calling that column "Classes"
-            # would point the reader at the material taxonomy.
             kinds = {**kinds, "tree": "Famílias"}
         rows = [
             [
                 stage.position + 1,
                 kinds.get(stage.kind, stage.kind),
-                # Written, never a dash: an unnamed stage is named by what it is,
-                # the same thing the funnel does, and the same rule D-24 sets for
-                # every other absence in this document.
                 stage.label or "Sem rótulo",
                 "Sim" if stage.enabled else "Não",
                 stage.passed,
@@ -650,9 +483,6 @@ class ExportService:
     def _funnel_sheet(result: RunResultOut) -> Sheet:
         rows = [[step.label, step.operator, step.passed, step.remaining] for step in result.funnel]
         notes = [] if rows else ["Nenhuma restrição foi aplicada."]
-        # TM2-b: a composition criterion decides by reach of the declared range
-        # and cannot decide where the data is absent. Both facts belong in the
-        # document next to the numbers they qualify (D-24, D-105).
         composition_steps = [step for step in result.funnel if step.undetermined is not None]
         if composition_steps:
             notes.append(RULE_TEXT)
@@ -682,16 +512,11 @@ class ExportService:
     @classmethod
     def _candidates_sheet(cls, result: RunResultOut) -> Sheet:
         rows = list(cls._candidates_seq(result))
-        # The column is named for what it holds. "Material" over a list of
-        # processes would be a caption contradicting its own table.
         subject = "Processo" if result.universe == "process" else "Material"
         notes: list[str] = []
         if not rows:
             notes.append("Nenhum candidato sobreviveu às restrições.")
         if result.universe == "process":
-            # The reason a figure is missing belongs where the reader looks for
-            # the figure. With no attributes there is no plane to draw on, and
-            # an unexplained gap reads as a rendering failure.
             notes.append(
                 "Sem mapa de seleção e sem ranqueamento: ambos precisam de valores numéricos, "
                 "e um processo ainda não tem atributo cadastrado."
@@ -706,7 +531,7 @@ class ExportService:
     @staticmethod
     def _index_sheet(result: RunResultOut) -> Sheet:
         index = result.index
-        assert index is not None  # guarded by the caller
+        assert index is not None
         rows = [
             ["Nome", index.name or "—"],
             ["Expressão", index.expression],
@@ -728,26 +553,6 @@ class ExportService:
 
     @staticmethod
     def _contributions_note(ranking: RankingResultOut) -> str:
-        """The one line explaining how "Contribuição" relates to "Pontuação".
-
-        ``ranking.normalization`` only names a real normalization step for
-        weighted_sum — TOPSIS and PROMETHEE II each set it to their own
-        method name instead (see RankingIn's docstring on the backend), so
-        printing it unconditionally used to render "Normalização: topsis" as
-        if that were an actual normalization choice.
-
-        The contribution-sums-to-score identity is method-specific, not
-        method-agnostic, and the two non-weighted-sum methods do NOT agree
-        with each other on it: TOPSIS's score is a ratio of distances to an
-        ideal-best/-worst point, so the identity genuinely does not hold
-        there (rank_topsis's own docstring, and docs/04-metodologia-selecao.md
-        §"TOPSIS"). PROMETHEE II's score, by contrast, *is* the weighted sum
-        of each criterion's pairwise preference margin — the identity holds
-        for it exactly as it does for weighted_sum (rank_promethee's own
-        docstring and test_promethee_contributions_sum_to_score both assert
-        this) — so PROMETHEE keeps the "soma das contribuições" line and only
-        drops the false "Normalização" label.
-        """
         method = ranking.method
         if method == "topsis":
             return (
@@ -867,9 +672,6 @@ class ExportService:
             return self._process_provenance_sheet(study, result, records)
         materials = records
         slugs = self._relevant_slugs(study, result)
-        # A material with no row at all for a property still has to name that
-        # property the way every other row names it. Reading the name off the
-        # value would print the slug precisely for the missing case.
         names = {p.slug: p.name for p in self.chart_repo.list_properties()}
         rows: list[list[object]] = []
 
@@ -921,11 +723,6 @@ class ExportService:
                 "Unidade original",
                 "Método de conversão",
                 "Qualidade do dado",
-                # P1-4, and the same obligation D-59 imposed for the value's
-                # shape: the rule has to reach the reader. "Qualidade do dado"
-                # says how the number was obtained; this says whose catalogue
-                # it came from, and only one of the two went through the
-                # source-and-licence review of M1.
                 "Registro",
             ],
             rows=rows,
@@ -942,24 +739,8 @@ class ExportService:
         )
 
     def _process_provenance_sheet(self, study, result: RunResultOut, records: dict) -> Sheet:
-        """The same argument the material provenance sheet makes, for a process
-        study (P0-4).
-
-        Until processes had attributes this section could only declare itself
-        empty, and it did. Now there is a trail to print, and it has to carry
-        something the material sheet never needed: **which shape of value** each
-        number is. A capability envelope is compared by reach and a scalar by its
-        own value, so a reader auditing "why did this process pass ≥ 5 kg" needs
-        the column that says the datum was a range — otherwise the two rules are
-        indistinguishable in the document, which is the one thing this figure
-        exists to prevent.
-
-        A discrete attribute has no number and no unit at all; its value is its
-        labels, and they go in the same column with the unit columns saying so.
-        """
+        """The same argument the material provenance sheet makes, for a process study."""
         slugs = self._relevant_slugs(study, result)
-        # Named from the catalogue, not from the value: an attribute a process has
-        # no row for still has to be named the way every other row names it.
         attributes = {a.slug: a for a in self.selection_repo.list_process_attributes()}
         kind_labels = {
             ProcessAttributeKind.ESCALAR: "escalar",
@@ -1021,12 +802,7 @@ class ExportService:
 
     @staticmethod
     def _attribute_value_text(value) -> str:
-        """The normalised value as the document prints it, by shape of datum.
-
-        An envelope prints both bounds, because both are the criterion. A label
-        set prints its labels: they are the value, and rendering them as a number
-        or a dash would be the empty cell D-24 forbids.
-        """
+        """The normalised value as the document prints it, by shape of datum."""
         if value.labels:
             return ", ".join(value.labels)
         if value.normalized_min is not None and value.normalized_max is not None:
@@ -1036,8 +812,6 @@ class ExportService:
     @staticmethod
     def _attribute_original_text(value) -> str:
         if value.labels:
-            # The labels *are* the original: there was no conversion, and saying
-            # "—" here would read as "the original was not recorded".
             return ", ".join(value.labels)
         if value.value_min is not None and value.value_max is not None:
             return f"{format_number(value.value_min)} – {format_number(value.value_max)}"
@@ -1126,4 +900,427 @@ class ExportService:
                     rows=provenance,
                 ),
             ],
+        )
+
+    # --- material sheet (D-124) -------------------------------------------
+
+    def material_report(self, material_id: int) -> Report:
+        """Ficha técnica detalhada do material em 9 seções canônicas (D-124)."""
+        material_detail = MaterialService(
+            self.db, self.user, self.unit_choices
+        ).get_material_detail(material_id)
+        equivalences = EquivalenceService(self.db, self.user).for_material(material_id)
+        curves = CurveService(self.db, self.viewer_id).list_curves(material_id)
+
+        sheets = [
+            self._material_identification_sheet(material_detail),
+            self._material_properties_sheet(material_detail),
+            self._material_provenance_sheet(material_detail),
+            self._material_composition_sheet(material_detail),
+            self._material_atomic_composition_sheet(material_detail),
+            self._material_designations_sheet(material_detail),
+            self._material_equivalences_sheet(material_detail, equivalences),
+            self._material_curves_sheet(material_detail, curves),
+            self._material_processes_sheet(material_detail),
+        ]
+
+        sub_parts = [f"Classe: {material_detail.class_name}"]
+        if material_detail.subclass:
+            sub_parts.append(f"Subclasse: {material_detail.subclass}")
+        subtitle = " — ".join(sub_parts)
+
+        return Report(
+            title=f"Ficha técnica — {material_detail.name}",
+            subtitle=subtitle,
+            notices=standard_notices(
+                includes_demo_data=material_detail.is_demo,
+                includes_own_records=material_detail.is_own_record,
+            ),
+            sheets=sheets,
+            figures=[],
+        )
+
+    @staticmethod
+    def _material_identification_sheet(d: MaterialDetail) -> Sheet:
+        rows = [
+            ["Nome", d.name],
+            ["Classe", d.class_name],
+            ["Subclasse", d.subclass or _MISSING],
+            ["Descrição", d.description or _MISSING],
+            ["Palavras-chave", ", ".join(d.keywords) if d.keywords else _MISSING],
+            ["Dados demonstrativos", "Sim" if d.is_demo else "Não"],
+            ["Registro próprio", "Sim" if d.is_own_record else "Não"],
+            ["Registro oficial", "Sim" if d.is_official else "Não"],
+            [
+                "Duplicado de",
+                f"{d.copied_from.name} (id {d.copied_from.id})" if d.copied_from else _MISSING,
+            ],
+        ]
+        return Sheet(
+            name="Identificação",
+            header=["Item", "Valor"],
+            rows=rows,
+            notes=["Metadados e classificação cadastral do material."],
+        )
+
+    @staticmethod
+    def _material_properties_sheet(d: MaterialDetail) -> Sheet:
+        rows: list[list[object]] = []
+        for group in d.property_groups:
+            for p in group.properties:
+                category_name = group.category.value
+                prop_name = p.property_name
+                symbol = p.symbol or "—"
+                if p.is_missing:
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            "—",
+                            "—",
+                        ]
+                    )
+                elif p.is_interval:
+                    display_val = f"{format_number(p.display_min)} – {format_number(p.display_max)}"
+                    orig_val = f"{format_number(p.value_min)} – {format_number(p.value_max)}"
+                    read_unit = pretty_unit(p.display_unit) if p.display_unit else _MISSING
+                    orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
+                    uncertainty = (
+                        f"±{format_number(p.uncertainty)}%" if p.uncertainty is not None else "—"
+                    )
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            display_val,
+                            read_unit,
+                            orig_val,
+                            orig_unit,
+                            p.measurement_condition or "—",
+                            uncertainty,
+                        ]
+                    )
+                else:
+                    display_val = format_number(p.display_value)
+                    orig_val = format_number(p.value_scalar)
+                    read_unit = pretty_unit(p.display_unit) if p.display_unit else _MISSING
+                    orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
+                    uncertainty = (
+                        f"±{format_number(p.uncertainty)}%" if p.uncertainty is not None else "—"
+                    )
+                    rows.append(
+                        [
+                            category_name,
+                            prop_name,
+                            symbol,
+                            display_val,
+                            read_unit,
+                            orig_val,
+                            orig_unit,
+                            p.measurement_condition or "—",
+                            uncertainty,
+                        ]
+                    )
+        notes = [
+            "Valores de leitura expressos nas unidades selecionadas pelo usuário (D-70). "
+            "'ausente' indica dado não cadastrado (D-24).",
+        ]
+        return Sheet(
+            name="Propriedades",
+            header=[
+                "Categoria",
+                "Propriedade",
+                "Símbolo",
+                "Valor de leitura",
+                "Unidade de leitura",
+                "Valor original",
+                "Unidade original",
+                "Condição",
+                "Incerteza",
+            ],
+            rows=rows,
+            notes=notes if rows else ["Nenhuma propriedade cadastrada para este material."],
+        )
+
+    @staticmethod
+    def _material_provenance_sheet(d: MaterialDetail) -> Sheet:
+        rows: list[list[object]] = []
+        for group in d.property_groups:
+            for p in group.properties:
+                canon_unit = pretty_unit(p.canonical_unit)
+                if p.is_missing:
+                    rows.append(
+                        [
+                            p.property_name,
+                            _MISSING,
+                            _MISSING,
+                            _MISSING,
+                            canon_unit,
+                            "—",
+                            p.data_quality.value,
+                            p.source_label or "—",
+                            p.notes or "—",
+                        ]
+                    )
+                else:
+                    orig_val = (
+                        f"{format_number(p.value_min)} – {format_number(p.value_max)}"
+                        if p.is_interval
+                        else format_number(p.value_scalar)
+                    )
+                    orig_unit = pretty_unit(p.original_unit) if p.original_unit else _MISSING
+                    norm_val = format_number(p.normalized_value)
+                    rows.append(
+                        [
+                            p.property_name,
+                            orig_val,
+                            orig_unit,
+                            norm_val,
+                            canon_unit,
+                            p.conversion_method or "—",
+                            p.data_quality.value,
+                            p.source_label or "—",
+                            p.notes or "—",
+                        ]
+                    )
+        return Sheet(
+            name="Proveniência propriedades",
+            header=[
+                "Propriedade",
+                "Valor original",
+                "Unidade original",
+                "Valor normalizado",
+                "Unidade canônica",
+                "Método de conversão",
+                "Qualidade do dado",
+                "Fonte",
+                "Notas",
+            ],
+            rows=rows,
+            notes=[
+                "Rastreabilidade metrológica e proveniência de cada propriedade cadastrada. "
+                "Valores ausentes aparecem como 'ausente' (D-24).",
+            ],
+        )
+
+    @staticmethod
+    def _material_composition_sheet(d: MaterialDetail) -> Sheet:
+        rows: list[list[object]] = []
+        for e in d.composition:
+            cond = e.condition_label or "Padrão"
+            if e.state == "resto":
+                teor = "resto (balanço)"
+                min_val = _MISSING
+                max_val = _MISSING
+            elif e.state == "ausente":
+                teor = _MISSING
+                min_val = _MISSING
+                max_val = _MISSING
+            else:
+                if e.normalized_nominal is not None:
+                    teor = format_number(e.normalized_nominal)
+                else:
+                    teor = f"{format_number(e.normalized_min)} – {format_number(e.normalized_max)}"
+                min_val = (
+                    format_number(e.normalized_min) if e.normalized_min is not None else _MISSING
+                )
+                max_val = (
+                    format_number(e.normalized_max) if e.normalized_max is not None else _MISSING
+                )
+            rows.append(
+                [
+                    cond,
+                    e.element_name,
+                    e.element,
+                    e.atomic_number,
+                    e.state,
+                    teor,
+                    min_val,
+                    max_val,
+                    e.data_quality.value,
+                    e.source_label,
+                ]
+            )
+        notes = (
+            ["Composição química em porcentagem de massa (% massa)."]
+            if rows
+            else ["Sem composição cadastrada para este material."]
+        )
+        return Sheet(
+            name="Composição",
+            header=[
+                "Condição",
+                "Elemento",
+                "Símbolo",
+                "Nº atômico",
+                "Estado",
+                "Teor declarado (% massa)",
+                "Mín (% massa)",
+                "Máx (% massa)",
+                "Qualidade do dado",
+                "Fonte",
+            ],
+            rows=rows,
+            notes=notes,
+        )
+
+    @staticmethod
+    def _material_atomic_composition_sheet(d: MaterialDetail) -> Sheet:
+        rows: list[list[object]] = []
+        has_any_entry = False
+        for block in d.atomic_composition:
+            cond = block.condition_label or "Padrão"
+            if block.reason:
+                rows.append([cond, "Todos", _MISSING, _MISSING, block.message or block.reason])
+            else:
+                for entry in block.entries:
+                    has_any_entry = True
+                    rows.append(
+                        [
+                            cond,
+                            entry.element,
+                            format_number(entry.atomic_min),
+                            format_number(entry.atomic_max),
+                            block.basis,
+                        ]
+                    )
+        notes = (
+            [
+                "Composição atômica calculada a partir da composição em massa "
+                "e pesos atômicos IUPAC (D-117).",
+            ]
+            if (rows and (has_any_entry or any(b.reason for b in d.atomic_composition)))
+            else ["Sem composição atômica calculada para este material."]
+        )
+        return Sheet(
+            name="Composição atômica",
+            header=[
+                "Condição",
+                "Elemento",
+                "Teor atômico mín (% at)",
+                "Teor atômico máx (% at)",
+                "Base de cálculo",
+            ],
+            rows=rows,
+            notes=notes,
+        )
+
+    @staticmethod
+    def _material_designations_sheet(d: MaterialDetail) -> Sheet:
+        rows = [
+            [
+                item.system_label,
+                item.code,
+                item.region or "—",
+                item.source_label,
+                item.citation or "—",
+            ]
+            for item in d.designations
+        ]
+        return Sheet(
+            name="Designações",
+            header=["Sistema", "Código", "Região", "Fonte", "Citação"],
+            rows=rows,
+            notes=(
+                ["Designações comerciais e normativas reconhecidas para o material (D-105)."]
+                if rows
+                else ["Nenhuma designação cadastrada para este material."]
+            ),
+        )
+
+    @staticmethod
+    def _material_equivalences_sheet(d: MaterialDetail, equivs: MaterialEquivalencesOut) -> Sheet:
+        rows: list[list[object]] = []
+        for group in equivs.groups:
+            self_member = next((m for m in group.members if m.is_self), None)
+            orig_code = self_member.code if self_member else "—"
+            for m in group.members:
+                if m.is_self:
+                    continue
+                rows.append(
+                    [
+                        group.kind_label,
+                        orig_code,
+                        m.material_name,
+                        m.code,
+                        m.system_label,
+                        m.region or "—",
+                        group.source_label,
+                    ]
+                )
+        return Sheet(
+            name="Equivalências",
+            header=[
+                "Tipo de equivalência",
+                "Designação de origem",
+                "Material equivalente",
+                "Designação equivalente",
+                "Sistema",
+                "Região",
+                "Fonte",
+            ],
+            rows=rows,
+            notes=(
+                ["Equivalências declaradas por fontes normativas ou bibliográficas (D-115)."]
+                if rows
+                else ["Nenhuma equivalência declarada para este material."]
+            ),
+        )
+
+    @staticmethod
+    def _material_curves_sheet(d: MaterialDetail, curves_out: MaterialCurvesOut) -> Sheet:
+        rows = [
+            [
+                c.kind_label,
+                c.title,
+                c.x_quantity_label,
+                c.y_quantity_label,
+                c.parameter_quantity_label or "—",
+                c.series_count,
+                c.point_count,
+                c.source_label,
+            ]
+            for c in curves_out.curves
+        ]
+        return Sheet(
+            name="Curvas características",
+            header=[
+                "Tipo de curva",
+                "Título",
+                "Eixo X",
+                "Eixo Y",
+                "Parâmetro",
+                "Séries",
+                "Pontos",
+                "Fonte",
+            ],
+            rows=rows,
+            notes=(
+                [
+                    "Curvas experimentais registradas. Pontos detalhados disponíveis via "
+                    "exportação individual de curva (D-106)."
+                ]
+                if rows
+                else ["Nenhuma curva experimental cadastrada para este material."]
+            ),
+        )
+
+    @staticmethod
+    def _material_processes_sheet(d: MaterialDetail) -> Sheet:
+        rows = [[p.name, p.class_name or "—", p.description or "—"] for p in d.processes]
+        return Sheet(
+            name="Processos compatíveis",
+            header=["Processo", "Família", "Descrição"],
+            rows=rows,
+            notes=(
+                ["Processos de fabricação compatíveis mapeados no catálogo (P0-2)."]
+                if rows
+                else ["Nenhum processo compatível associado a este material."]
+            ),
         )

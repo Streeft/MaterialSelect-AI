@@ -47,4 +47,8 @@ export const flowText = {
     copiedFrom: "Cópia de",
     copiedFromBadge: "cópia",
   },
+  materialExport: {
+    sheet: "Ficha técnica completa (PDF)",
+    sheetHint: "Abre em nova aba, pronta para imprimir ou salvar em PDF",
+  },
 } as const;

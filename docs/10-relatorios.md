@@ -218,6 +218,46 @@ Regras que não se afrouxam:
 - Sempre `attachment`, com `nosniff`; o MatML não é renderizado na origem da
   API.
 
+## A ficha técnica do material (Frente A, D-124)
+
+`GET /api/exports/materiais/{id}.{html,csv,xlsx}?unidades=…` exporta a ficha
+técnica completa e detalhada de **um** material em formato standalone HTML (para
+visualização e impressão nativa em PDF via Ctrl+P), CSV ou planilha Excel (XLSX).
+Na interface, é acionada pelo item "Ficha técnica completa (PDF)" no menu
+"Exportar ▾" da ficha do material (`apps/web/components/CaeExportDialog.tsx`).
+
+### As nove seções canônicas
+
+O exportador (`ExportService.material_report`) organiza todas as informações
+cadastradas do material em nove seções (no HTML/CSV) ou abas dedicadas (no XLSX),
+respeitando rigorosamente o limite de **31 caracteres** por nome de aba no Excel:
+
+1. **Identificação** — nome, categoria/classe, descrição geral, palavras-chave e metadados.
+2. **Propriedades** — valores escalares, faixas e condições de medição.
+3. **Proveniência propriedades** — fontes bibliográficas, método de conversão e grau de qualidade (D-24).
+4. **Composição** — composição química elementar (% em massa), condições e limites.
+5. **Composição atômica** — teores atômicos derivados segundo IUPAC 2021 (D-117).
+6. **Designações** — normas, códigos de mercado e designações comerciais (D-105).
+7. **Equivalências** — grupos de equivalência declarados por normas e literatura (D-115).
+8. **Curvas características** — catálogo e parâmetros de curvas dependentes de temperatura/taxa (D-106).
+9. **Processos compatíveis** — processos de fabricação compatíveis organizados por família (D-57).
+
+### Regras de engenharia e auditoria
+
+- **Impressão nativa e zero dependências pesadas (D-20):** o HTML é autocontido,
+  sem JavaScript externo e sem carregar WeasyPrint ou Chromium no servidor. A folha de estilo
+  embutida define `@media print` com margens `@page { margin: 18mm 14mm; }`,
+  repetição obrigatória de cabeçalhos de tabela (`thead { display: table-header-group; }`) e
+  prevenção de quebra de linhas entre páginas (`tr { break-inside: avoid; }`).
+- **Segurança e isolamento:** o router serve o HTML sob política estrita de conteúdo
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'`,
+  impedindo qualquer execução de script ou carregamento externo na origem da API.
+- **Preservação de unidades (D-70):** o parâmetro `?unidades=` propaga as escolhas
+  do usuário na interface diretamente para o exportador, convertendo valores canônicos para
+  as unidades de leitura solicitadas com indicação explícita da conversão.
+- **Ausência explícita (D-24):** campos e propriedades não preenchidos são sinalizados
+  com o texto `"ausente"` ou justificativa contextualizada, nunca com células vazias ou valor zero.
+
 ## Quantos dígitos, e com que nome
 
 Duas escolhas de renderização que o relatório compartilha com CSV, XLSX, DOCX e PPTX, porque
@@ -264,6 +304,7 @@ faltando.
 | GET | `/api/exports/catalogo.{csv,xlsx,html,docx,pptx}` | catálogo ativo com proveniência |
 | GET | `/api/exports/estudos/{id}.{csv,xlsx,html,docx,pptx}` | relatório completo de um estudo |
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
+| GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-124) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
