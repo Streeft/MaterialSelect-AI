@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [80](#sessão-80--141026--ficha-técnica-do-material-em-pdf-para-todo-registro-visível-d-125) | 14/10/2026 | Ficha técnica completa em PDF: diagnóstico do 404 em produção (API não implantada após o #135), visibilidade coberta (demo, próprio, compartilhado, oficial; inexistente/alheio = 404 escrito) e 404 de rota em pt-BR | 4799 | 929 |
 | [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4781 | 924 |
 | [78](#sessão-78--141026--desempenho-do-diff-entre-releases-tm7-d-d-123) | 14/10/2026 | Desempenho do diff entre releases (TM7-d): unidade interpretada uma vez, atalho do valor idêntico e diff guardado no import (migração `2fe7eecc5981`) | +12 | 0 |
 | [77](#sessão-77--141026--fluxo-de-sala-de-aula-notas-arquivo-de-estudo-copiar-tabela-e-duplicar-registro-d-122) | 14/10/2026 | Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21): notas por estágio e por estudo, estudo como JSON versionado (exportar/importar, estrito, 256 KB, nunca executa o arquivo), "Copiar tabela" em TSV e duplicar registro próprio (`copied_from_id`; migração `d4f041be7fd4`) | +46 | +30 |
@@ -94,6 +95,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 80 — 14/10/26 — Ficha técnica do material em PDF para todo registro visível (D-125)
+
+**Sintoma.** Em produção, "Ficha técnica completa (PDF)" abria
+`/api/exports/materiais/133.html` com `{"detail": "Not Found"}`.
+
+**Causa raiz.** Implantação, não código: o #135 (que criou a rota) foi
+mesclado depois da última execução de **Deploy da API** (`5bc0fc0`); a Vercel
+publicou o botão, o Fly continuou sem a rota. Reproduzido com o TestClient
+sobre `5bc0fc0` (404 `Not Found`) e sobre `main` (200).
+
+**O que mudou.** `app/main.py` responde a rota inexistente com 404 escrito em
+pt-BR (as demais `HTTPException` ficam como estão); a ficha ganhou número
+próprio (D-125, o #135 citava o D-124 do cartão CAE) e testes de visibilidade.
+Sem migração. Exige **Deploy da API**.
+
+**Testes.** +10 de backend (`test_material_sheet_visibility.py`) e +2 de
+frontend (`materialExportUrl` em `lib/api.test.ts`): 4789 → 4799 e 927 → 929.
 
 ## Sessão 79 — 14/10/26 — Propriedades do cartão CAE no catálogo (TM5-a, D-124)
 

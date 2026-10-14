@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   catalogueExportUrl,
+  materialExportUrl,
   opensInBrowser,
   readErrorDetail,
   studyExportUrl,
@@ -133,5 +134,19 @@ describe("compareEcoAudits", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("materialExportUrl (D-125)", () => {
+  // The path must match the API route `/api/exports/materiais/{material_id}.{fmt}`;
+  // a mismatch is a bare 404 page the reader lands on in a new tab.
+  it("builds the printable sheet path the API mounts", () => {
+    expect(materialExportUrl(133, "html")).toMatch(/\/api\/exports\/materiais\/133\.html$/);
+  });
+
+  it("keeps the reading units the reader chose (D-70)", () => {
+    const url = materialExportUrl(7, "html", { densidade: "g/cm**3" });
+    expect(url).toContain("/api/exports/materiais/7.html?unidades=");
+    expect(decodeURIComponent(url)).toContain("densidade:g/cm**3");
   });
 });

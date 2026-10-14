@@ -902,10 +902,10 @@ class ExportService:
             ],
         )
 
-    # --- material sheet (D-124) -------------------------------------------
+    # --- material sheet (D-125) -------------------------------------------
 
     def material_report(self, material_id: int) -> Report:
-        """Ficha técnica detalhada do material em 9 seções canônicas (D-124)."""
+        """Ficha técnica detalhada do material em 9 seções canônicas (D-125)."""
         material_detail = MaterialService(
             self.db, self.user, self.unit_choices
         ).get_material_detail(material_id)

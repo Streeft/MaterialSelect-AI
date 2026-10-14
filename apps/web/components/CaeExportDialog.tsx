@@ -146,7 +146,7 @@ export function CaeExportDialog({
 }
 
 /**
- * The datasheet's "Exportar ▾" (D-91, D-124): one menu button, never a row of
+ * The datasheet's "Exportar ▾" (D-91, D-125): one menu button, never a row of
  * buttons, providing both the complete material datasheet (HTML/PDF) and the CAE dialog.
  */
 export function MaterialExportMenu({
