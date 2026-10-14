@@ -109,6 +109,7 @@ from app.schemas.selection import (
     WeightsPreviewRequest,
 )
 from app.services.audit_service import record_change
+from app.services.study_file import build_study_file, parse_study_file
 
 INDEX_KEY = "__index__"
 _NUMERIC_OPS = {
@@ -2070,6 +2071,7 @@ class SelectionService:
                 stage_count=len(s.stages),
                 criterion_count=len(s.criteria),
                 universe=s.universe,
+                has_notes=bool(s.notes) or any(st.notes for st in s.stages),
             )
             for s in self.repo.list_studies(self.project_id)
         ]
@@ -2126,6 +2128,7 @@ class SelectionService:
             normalization=payload.normalization,
             method=payload.method,
             universe=payload.universe,
+            notes=payload.notes,
         )
         self.repo.add(study)
         self.repo.flush()  # assigns study.id, needed by the root group below
@@ -2199,6 +2202,61 @@ class SelectionService:
         self._persist_criteria(study, payload)
         return self._finish_study_creation(study)
 
+    def export_study(self, study_id: int) -> dict:
+        """A saved study of this project as the study file's dict (D-122).
+
+        Goes through ``get_study``, so a study of another project is the same
+        404 it has always been — there is no second path to someone else's.
+        """
+        return build_study_file(self.get_study(study_id))
+
+    def import_study(self, body: bytes) -> StudyOut:
+        """Create a study of this project from an uploaded study file (D-122).
+
+        The file is untrusted: ``parse_study_file`` bounds and validates it, then
+        ``create_study`` checks it against this user's catalogue as if they had
+        typed it. A name already taken in the project is not an error — a class
+        re-imports the same file — it gets an "(importado)" suffix, so nothing
+        is overwritten.
+        """
+        payload = parse_study_file(body)
+        # Saving a study does not resolve the slugs it names (that happens when
+        # it runs), so a file naming a property this catalogue does not have
+        # would be stored and only fail later. Running it once, in memory,
+        # before anything is written is what makes "imports" mean "re-runs".
+        self.run(
+            RunRequest(
+                universe=payload.universe,
+                stages=payload.stages,
+                combinator=payload.combinator,
+                constraints=payload.constraints,
+                root_group=payload.root_group,
+                index=payload.index,
+                ranking=(
+                    RankingIn(
+                        normalization=payload.normalization,
+                        method=payload.method,
+                        criteria=payload.criteria,
+                        run_sensitivity=False,
+                    )
+                    if payload.criteria
+                    else None
+                ),
+            )
+        )
+        name = self._free_study_name(payload.name.strip())
+        return self.create_study(payload.model_copy(update={"name": name}))
+
+    def _free_study_name(self, name: str) -> str:
+        if not self.repo.study_name_exists(name, self.project_id):
+            return name
+        for attempt in range(1, 100):
+            suffix = " (importado)" if attempt == 1 else f" (importado {attempt})"
+            candidate = f"{name[: 200 - len(suffix)]}{suffix}"
+            if not self.repo.study_name_exists(candidate, self.project_id):
+                return candidate
+        raise ConflictError(f"Já existem muitos estudos com o nome: {name}")
+
     def _persist_stage(self, study: SelectionStudy, stage_in: StageIn, position: int) -> None:
         """One stage row, plus its own constraint tree when it is a limit stage."""
         chart = stage_in.chart
@@ -2213,6 +2271,7 @@ class SelectionService:
             process_class_slugs=list(stage_in.process_class_slugs),
             material_class_slugs=list(stage_in.material_class_slugs),
             include_descendants=stage_in.include_descendants,
+            notes=stage_in.notes,
             # NULL when there is no chart, and NULL for each bound the reader did
             # not draw — the columns are nullable precisely so an absent limit
             # and a limit of zero stay different things.
@@ -2330,6 +2389,7 @@ class SelectionService:
             normalization=study.normalization,
             method=study.method,
             criteria=[self._criterion_to_in(c) for c in study.criteria],
+            notes=study.notes,
             created_at=study.created_at,
         )
 
@@ -2414,6 +2474,7 @@ class SelectionService:
                     material_class_slugs=list(stage.material_class_slugs or []),
                     chart=self._stage_row_to_chart_in(stage) if stage.kind == "chart" else None,
                     include_descendants=stage.include_descendants,
+                    notes=stage.notes,
                 )
             )
         return outs

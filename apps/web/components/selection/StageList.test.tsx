@@ -115,6 +115,7 @@ import {
 import { emptyConstraint, nextEditorId } from "./ConstraintEditor";
 import { ptBR } from "@/lib/i18n";
 import { selectionExtras } from "@/lib/i18n-extras";
+import { flowText } from "@/lib/i18n-flow";
 import type { MaterialClass, Process, ProcessClass, PropertyDefinition } from "@/lib/types";
 
 const t = ptBR.selection;
@@ -955,5 +956,43 @@ describe("StageList with a chart stage", () => {
     render(<Harness initial={[chartStage()]} universe="process" />);
     expect(screen.getByShadowText(t.stageChartShowMap)).toBeInTheDocument();
     expect(screen.queryByText(t.stageChartProcessNoMap)).not.toBeInTheDocument();
+  });
+});
+
+describe("stage notes (D-122)", () => {
+  it("sends a trimmed note, and null — never an empty string — when there is none", () => {
+    expect(toStagePayload({ ...emptyLimitStage(), notes: "  E mínimo do enunciado  " }).notes).toBe(
+      "E mínimo do enunciado",
+    );
+    expect(toStagePayload({ ...emptyLimitStage(), notes: "   " }).notes).toBeNull();
+    expect(toStagePayload(emptyLimitStage()).notes).toBeNull();
+    expect(toStagePayload({ ...emptyTreeStage(), notes: "só metais" }).notes).toBe("só metais");
+  });
+
+  it("keeps the note when a stage is duplicated", () => {
+    expect(duplicateStage({ ...emptyLimitStage(), notes: "por quê" }).notes).toBe("por quê");
+  });
+
+  it("offers a plain-text note on every stage card and reports what is typed", async () => {
+    const seen: StageState[][] = [];
+    const user = userEvent.setup();
+    render(<Harness initial={[emptyLimitStage(), emptyTreeStage()]} onStages={(s) => seen.push(s)} />);
+    const boxes = screen.getAllByLabelText(flowText.notes.stageLabel);
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0]).toHaveAttribute("maxlength", "2000");
+    await user.type(boxes[1]!, "folhas de metal");
+    expect(seen.at(-1)?.[1]?.notes).toBe("folhas de metal");
+    expect(seen.at(-1)?.[0]?.notes).toBeUndefined();
+  });
+
+  it("renders a markup-looking note as text, not as elements", () => {
+    render(
+      <Harness
+        initial={[{ ...emptyLimitStage(), notes: "<img src=x onerror=alert(1)> E < 70" }, emptyTreeStage()]}
+      />,
+    );
+    const box = screen.getAllByLabelText(flowText.notes.stageLabel)[0] as HTMLTextAreaElement;
+    expect(box.value).toBe("<img src=x onerror=alert(1)> E < 70");
+    expect(document.querySelector("img")).toBeNull();
   });
 });

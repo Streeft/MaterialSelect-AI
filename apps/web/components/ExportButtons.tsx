@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { opensInBrowser, type ExportFormat } from "@/lib/api";
 import { MenuButton, MenuItem } from "@/components/ui";
@@ -18,6 +19,8 @@ interface ExportButtonsProps {
   urlFor: (format: ExportFormat) => string;
   label?: string;
   hint?: string;
+  /** Further `MenuItem`s appended to the same menu (the study file, D-122). */
+  extraItems?: ReactNode;
 }
 
 /**
@@ -37,7 +40,7 @@ interface ExportButtonsProps {
  * to PDF, which is how the report reaches a monograph without the project
  * taking on a PDF-generation dependency.
  */
-export function ExportButtons({ urlFor, label = t.title, hint }: ExportButtonsProps) {
+export function ExportButtons({ urlFor, label = t.title, hint, extraItems }: ExportButtonsProps) {
   const formats: ExportFormat[] = ["csv", "xlsx", "docx", "pptx", "html"];
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -56,6 +59,7 @@ export function ExportButtons({ urlFor, label = t.title, hint }: ExportButtonsPr
             </MenuItem>
           );
         })}
+        {extraItems}
       </MenuButton>
       {hint && <span className="text-support text-ink-subtle">{hint}</span>}
     </div>

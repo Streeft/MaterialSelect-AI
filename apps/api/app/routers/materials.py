@@ -234,6 +234,27 @@ def update_material(
     )
 
 
+@router.post(
+    "/{material_id}/duplicar",
+    response_model=MaterialDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+def duplicate_material(
+    material_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> MaterialDetail:
+    """Duplicate one of the caller's own records as an editable copy (D-122).
+
+    Needs no catalogue-curator permission: the copy is always a record of the
+    caller's own, never a write to the shared catalogue.
+    """
+    return MaterialService(db, user, unit_choices, can_edit_shared=False).duplicate_material(
+        material_id
+    )
+
+
 @router.put("/{material_id}/values", response_model=MaterialDetail)
 def replace_values(
     material_id: int,

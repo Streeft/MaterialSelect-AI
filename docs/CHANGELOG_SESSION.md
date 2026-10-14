@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [77](#sessão-77--141026--fluxo-de-sala-de-aula-notas-arquivo-de-estudo-copiar-tabela-e-duplicar-registro-d-122) | 14/10/2026 | Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21): notas por estágio e por estudo, estudo como JSON versionado (exportar/importar, estrito, 256 KB, nunca executa o arquivo), "Copiar tabela" em TSV e duplicar registro próprio (`copied_from_id`; migração `d4f041be7fd4`) | +46 | +30 |
 | [75](#sessão-75--141026--ajustes-de-proximidade-do-find-similar-d-120) | 14/10/2026 | Ajustes de proximidade do Find Similar: peso por propriedade e critério unilateral ("100% se igual ou menor/maior"), média ponderada, `satisfied` e parcelas por propriedade, ajustes na URL | +23 | +11 |
 | [76](#sessão-76--141026--eco-audit-de-produto-d-121) | 14/10/2026 | Eco Audit de produto: lista de componentes (material, processo, massa × quantidade, reciclado, rota cada um), vários trechos de transporte, sete rotas de fim de vida pagas pelo fator do próprio material (rota sem fator indisponível com a razão), `GET /api/eco/rotas-fim-de-vida`, detalhe por componente e por trecho; sem migração (D-121) | 4672 → 4711 | 891 → 894 |
 | [73](#sessão-73--131026--curvas-com-histerese-tm4-c-d-118) | 13/10/2026 | Curvas com histerese (TM4-c): `path_kind` função/trajetória (migração `8bc0982d66b8`), trajetória na ordem declarada e sem faixa, 422 escrito na leitura de valor e no cartão plástico, diff/CSV/bundle e seletor "Traçado" no formulário (D-118) | 4627 → 4649 | 879 → 880 |
@@ -92,6 +93,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 77 — 14/10/26 — Fluxo de sala de aula: notas, arquivo de estudo, copiar tabela e duplicar registro (D-122)
+
+**O que mudou.** `notes` (texto puro, até 2.000 caracteres, `NULL` = "sem nota")
+em `selection_study` e `selection_stage`, e `material.copied_from_id` (`SET
+NULL`) — migração `d4f041be7fd4`, só colunas anuláveis. O estudo sai por `GET
+/api/selection/studies/{id}/export` como JSON versionado e entra por `POST
+/api/selection/studies/import`: teto de 256 KB lido do corpo (413), versão antes
+de campo, campo desconhecido recusado em qualquer nível com o caminho, o mesmo
+`create_study` do editor e uma execução em memória antes de gravar; nome
+repetido ganha "(importado)". "Copiar tabela" (candidatos/ranking) gera TSV do
+texto que a tela já mostra, com ausência escrita e apóstrofo em célula de
+fórmula. `POST /api/materials/{id}/duplicar` copia coluna a coluna um registro
+próprio (valores com a trilha de unidade, designações, composição, curvas,
+processos) e marca a origem; recusa registro alheio, compartilhado, oficial e
+sintetizado. Front: notas no passo Função e em cada estágio, "Importar estudo" e
+"Estudo (arquivo JSON)" no painel de estudos, "Copiar tabela" nos resultados e
+"Duplicar como cópia" na ficha. Não feito: abrir o Find Similar como estudo (não
+é trivial; TODO FL-a). Detalhes e alternativas em [D-122](DECISIONS.md).
+
+**Pilha.** 4757 coletados (4751 passam e 6 pulam sem `POSTGRES_TEST_URL`); 924
+de frontend; uma cabeça Alembic (`d4f041be7fd4` sobre `8bc0982d66b8`).
 ## Sessão 75 — 14/10/26 — Ajustes de proximidade do Find Similar (D-120)
 
 **O que mudou.** `SimilarRequest` aceita `weights` (0 < w ≤ 10, padrão 1) e

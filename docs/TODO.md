@@ -138,6 +138,32 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
 
+**Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21,
+[D-122](DECISIONS.md), Sessão 77).** ✔ Entregue: ~~notas por estágio e por
+estudo~~, ~~exportar e importar estudo (JSON versionado, validado, nunca executa
+o arquivo)~~, ~~copiar a tabela de resultado como TSV~~ e ~~duplicar registro
+próprio~~. Resíduos:
+
+- **FL-a — abrir os resultados do Find Similar como estudo.** ▃ Não é trivial: um
+  estágio nomeia propriedade, classe, processo ou região de um plano, e uma lista
+  de ids não é nenhum deles; fixar ids amarraria o estudo a linhas de um catálogo
+  e quebraria "reexecuta para a mesma resposta" em outra release. Desenho
+  possível, a decidir pelo autor: estágio "lista fixada" que guarda a
+  identidade externa (e não o id) e diz, ao reexecutar, quantos da lista sumiram.
+- **FL-b — nota nos relatórios e no laudo.** ▁ A nota viaja com o estudo e com o
+  arquivo, mas ainda não sai no HTML/DOCX/PPTX; quando sair, tem de passar por
+  `html.escape` (HTML) e pelo apóstrofo de `cells.py` (planilha), que não se
+  trocam um pelo outro.
+- **FL-c — editar só a nota de um estudo salvo.** ▁ Hoje o estudo é criado e
+  excluído, nunca editado; a nota se edita no assistente e se salva de novo.
+- **FL-d — copiar outras tabelas.** ▁ Só o ranking/candidatos tem "Copiar
+  tabela"; o comparador, o funil e a ficha ainda não.
+- **FL-e — duplicar processo.** ▁ Não existe: processo não tem dono (D-62). Só
+  muda se um dia houver "processo próprio".
+- **FL-f — duplicar a partir do catálogo compartilhado.** ▁ Continua sendo o
+  "Criar cópia própria" (D-116), que pré-preenche o formulário; a rota nova só
+  copia registro que já é do leitor.
+
 **Resíduos das mudanças entre releases (TM7, [D-108](DECISIONS.md)).** O TM7 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 

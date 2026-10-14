@@ -34,8 +34,10 @@ import {
   Input,
   Select,
   SelectOption,
+  Textarea,
   useWiring,
 } from "@/components/ui";
+import { flowText } from "@/lib/i18n-flow";
 import { cn } from "@/lib/cn";
 import { prettyUnit } from "@/lib/format";
 import {
@@ -49,6 +51,9 @@ import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 
 const t = ptBR.selection;
 
+/** Same ceiling as the API's `MAX_NOTE_LENGTH`. */
+export const MAX_NOTE_LENGTH = 2000;
+
 /**
  * One stage as the editor holds it (P0-1).
  *
@@ -57,7 +62,12 @@ const t = ptBR.selection;
  * carries the other kind's fields. Making that unrepresentable here means the
  * screen cannot build one.
  */
-export type StageState =
+export type StageState = StageShape & {
+  /** D-122: the author's note on this stage — plain text, "" when none. */
+  notes?: string;
+};
+
+type StageShape =
   | {
       id: string;
       kind: "limit";
@@ -361,6 +371,7 @@ export function toStagePayload(stage: StageState): StageIn {
   const common = {
     label: stage.label.trim() || null,
     enabled: stage.enabled,
+    notes: stage.notes?.trim() || null,
   };
   if (stage.kind === "tree") {
     return {
@@ -448,6 +459,7 @@ function stageNeedsChrome(stages: StageState[]): boolean {
     only === undefined ||
     only.kind !== "limit" ||
     only.label.trim() !== "" ||
+    (only.notes ?? "").trim() !== "" ||
     !only.enabled
   );
 }
@@ -631,6 +643,16 @@ export function StageList({
                 hint={t.stageEnabledHint}
               />
             </div>
+
+            <Textarea
+              label={flowText.notes.stageLabel}
+              hint={flowText.notes.stageHint}
+              rows={2}
+              maxLength={MAX_NOTE_LENGTH}
+              placeholder={flowText.notes.placeholder}
+              value={stage.notes ?? ""}
+              onChange={(e) => replace(index, { ...stage, notes: e.target.value })}
+            />
 
             {stage.kind === "limit" && (
               <ConstraintEditor

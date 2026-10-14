@@ -27,6 +27,8 @@ import {
   type TabItem,
 } from "@/components/ui";
 import { LimitationNotice } from "@/components/LimitationNotice";
+import { candidatesTsv } from "@/lib/selection/copyTable";
+import { CopyTableButton } from "./CopyTableButton";
 
 const t = ptBR.selection;
 
@@ -443,7 +445,11 @@ export function ResultsView({
             {candidates.length === 0 && <Alert tone="warning">{t.emptyResults}</Alert>}
       {/* Candidates + ranking */}
       {candidates.length > 0 && (
-        <Section id="candidatos" title={ranking ? t.ranking : t.candidates}>
+        <Section
+          id="candidatos"
+          title={ranking ? t.ranking : t.candidates}
+          actions={<CopyTableButton getText={() => candidatesTsv(result)} />}
+        >
           <TableScroll label={ranking ? t.ranking : t.candidates}>
             <Table>
               <THead>

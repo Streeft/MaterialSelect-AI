@@ -144,6 +144,19 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
+**Notas, arquivo de estudo e cópia da tabela (D-122).** Um estágio e o estudo
+têm `notes` — texto puro, até 2.000 caracteres, `NULL` = "sem nota" e nunca
+caixa vazia; nada renderiza nota como HTML. O estudo sai como JSON versionado
+(`GET /api/selection/studies/{id}/export`, `format` + `version` + aviso de
+limitação, sem id, dono nem número calculado) e entra por `POST
+/api/selection/studies/import`: **o arquivo é dado, nunca instrução** — teto de
+256 KB lido do corpo (413), `json.loads` só, versão antes de campo, **campo
+desconhecido recusado em qualquer nível com o caminho**, o mesmo `create_study`
+do editor e uma execução em memória antes de gravar (salvar não resolve slugs).
+Nome repetido ganha "(importado)", nada é sobrescrito. "Copiar tabela" é só o
+texto que a tela já mostra, em TSV, com ausência escrita e apóstrofo em célula
+que uma planilha leria como fórmula (número não).
+
 ## Processos (D-57, D-59)
 
 **O P0-2 deu o segundo universo** ([D-57](DECISIONS.md)): `ProcessClass`
@@ -435,6 +448,16 @@ lê — e de `can_edit_catalog`). **Rota nova que escreva no catálogo
 compartilhado precisa de `require_catalog_curator`.** A troca em produção é o
 workflow **Modo de acesso** (`modo-acesso.yml`, `abrir`/`restaurar_assinatura`),
 que só fica verde depois de ler o modo novo em `/api/health`.
+
+**Duplicar registro próprio (D-122).** `POST /api/materials/{id}/duplicar` copia,
+coluna a coluna, um registro **do próprio leitor** (valores com a trilha de
+unidade, designações, composição, curvas, vínculos de processo e palavras-chave)
+para outro registro dele, com `copied_from_id` e o nome "X (cópia)". Nada é
+recalculado e ausência continua ausência. Recusa com frase escrita o que não é
+do leitor (compartilhado ou oficial: o caminho é "Criar cópia própria", D-116),
+e o sintetizado (a receita não se copia). Processo não tem dono (D-62 só deu dono
+a `Material`), então não há "processo próprio" a duplicar. A rota é isenta no
+canário do D-116 porque não escreve no original.
 
 ## Demo e seed (D-71, D-72)
 

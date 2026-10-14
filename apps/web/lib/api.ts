@@ -397,6 +397,13 @@ export function createMaterial(
   });
 }
 
+/** Duplicate one of the caller's own records as an editable copy (D-122). */
+export function duplicateMaterial(id: number): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/duplicar`, {
+    method: "POST",
+  });
+}
+
 export function updateMaterial(
   id: number,
   payload: MaterialUpdate,
@@ -695,6 +702,23 @@ export function createStudy(payload: StudyIn): Promise<StudyDetail> {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Create a study from the text of an exported study file (D-122). The text is
+ * sent as the request body, untouched: the file is untrusted input and it is the
+ * server that bounds, parses and validates it — nothing in it is evaluated here.
+ */
+export function importStudyFile(text: string): Promise<StudyDetail> {
+  return request<StudyDetail>(`/api/selection/studies/import`, {
+    method: "POST",
+    body: text,
+  });
+}
+
+/** The versioned JSON file of one saved study (D-122), an attachment. */
+export function studyFileUrl(studyId: number): string {
+  return `${API_URL}/api/selection/studies/${studyId}/export`;
 }
 
 export function deleteStudy(id: number): Promise<void> {
