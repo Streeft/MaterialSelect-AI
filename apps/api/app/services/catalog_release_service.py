@@ -2,7 +2,8 @@
 
 The service resolves the two releases, refuses a pair that is not comparable,
 asks the repository for what each release stored and hands both lists to the
-pure diff in ``app/domain/release_diff.py``. It writes nothing.
+pure diff in ``app/domain/release_diff.py``. It writes only the stored diff
+(``materialize``, called by the importer; D-123), never a row of a release.
 
 **Why the diff can be derived without a snapshot table.** The importer of the
 D-102 creates the shared records of each release as rows of that release: the
@@ -52,7 +53,9 @@ from app.domain.release_diff import (
     parse_universe,
     value_view,
 )
+from app.domain.release_diff_store import FORMAT_VERSION, NotStorable, dump_diffs, load_diffs
 from app.exporters.report import Report, Sheet, standard_notices
+from app.repositories.catalog_release_diff_repository import CatalogReleaseDiffRepository
 from app.repositories.catalog_release_repository import (
     ATTRIBUTE_PREFIX,
     TRANSPORT_CARBON_KEY,
@@ -168,6 +171,7 @@ def _record_side(record: RecordSnapshot | None) -> RecordSideOut | None:
 class CatalogReleaseService:
     def __init__(self, db: Session, unit_choices: Mapping[str, str] | None = None) -> None:
         self.repo = CatalogReleaseRepository(db)
+        self.diff_store = CatalogReleaseDiffRepository(db)
         self.unit_choices: Mapping[str, str] = unit_choices or {}
 
     # -- releases -------------------------------------------------------------
@@ -207,42 +211,113 @@ class CatalogReleaseService:
             ReleaseIdentity(base.slug, base.lineage, base.is_demo),
             ReleaseIdentity(target.slug, target.lineage, target.is_demo),
         )
-        base_records = self.repo.snapshots(base_row.dataset.id)
-        target_records = self.repo.snapshots(target_row.dataset.id)
-        keys = {key for record in (*base_records, *target_records) for key in record.values.keys()}
-        material_slugs = {key for key in keys if ":" not in key}
-        definitions = self.repo.property_definitions(material_slugs)
+        diffs = self._stored(base_row.dataset.id, target_row.dataset.id)
+        if diffs is None:
+            diffs, keys = self._live(base_row.dataset.id, target_row.dataset.id)
+        else:
+            keys = {c.property_slug for d in diffs for c in d.changes if c.property_slug}
+        return _Computed(
+            base=base,
+            target=target,
+            diffs=diffs,
+            readings=self._readings(keys),
+            base_sources=self.repo.value_sources(base_row.dataset.id),
+            target_sources=self.repo.value_sources(target_row.dataset.id),
+        )
+
+    def _properties(self, keys: set[str]) -> dict[str, PropertyInfo]:
+        definitions = self.repo.property_definitions({key for key in keys if ":" not in key})
         properties = {
             d.slug: PropertyInfo(slug=d.slug, name=d.name, canonical_unit=d.canonical_unit)
             for d in definitions
         }
-        readings = readings_for(definitions, self.unit_choices)
-        attributes = self.repo.process_attribute_definitions(keys)
-        for attribute in attributes:
+        for attribute in self.repo.process_attribute_definitions(keys):
             key = f"{ATTRIBUTE_PREFIX}{attribute.slug}"
             properties[key] = PropertyInfo(
                 slug=key, name=attribute.name, canonical_unit=attribute.canonical_unit or ""
             )
-        readings.update(
-            {
-                f"{ATTRIBUTE_PREFIX}{slug}": reading
-                for slug, reading in readings_for(attributes, {}).items()
-            }
-        )
         for key, name, unit in (
             (TRANSPORT_ENERGY_KEY, "Intensidade energética", TRANSPORT_ENERGY_UNIT),
             (TRANSPORT_CARBON_KEY, "Intensidade de carbono", TRANSPORT_CARBON_UNIT),
         ):
             properties[key] = PropertyInfo(slug=key, name=name, canonical_unit=unit)
-            readings[key] = Reading(unit=unit, canonical_unit=unit)
-        return _Computed(
-            base=base,
-            target=target,
-            diffs=diff_releases(base_records, target_records, properties),
-            readings=readings,
-            base_sources=self.repo.value_sources(base_row.dataset.id),
-            target_sources=self.repo.value_sources(target_row.dataset.id),
+        return properties
+
+    def _readings(self, keys: set[str]) -> dict[str, Reading]:
+        """How each changed value is read; only the keys a change can name are looked up."""
+        definitions = self.repo.property_definitions({key for key in keys if ":" not in key})
+        readings = readings_for(definitions, self.unit_choices)
+        readings.update(
+            {
+                f"{ATTRIBUTE_PREFIX}{slug}": reading
+                for slug, reading in readings_for(
+                    self.repo.process_attribute_definitions(keys), {}
+                ).items()
+            }
         )
+        for key, unit in (
+            (TRANSPORT_ENERGY_KEY, TRANSPORT_ENERGY_UNIT),
+            (TRANSPORT_CARBON_KEY, TRANSPORT_CARBON_UNIT),
+        ):
+            readings[key] = Reading(unit=unit, canonical_unit=unit)
+        return readings
+
+    def _live(self, base_id: int, target_id: int) -> tuple[list[RecordDiff], set[str]]:
+        """The diff computed from the rows both releases stored (D-108)."""
+        base_records = self.repo.snapshots(base_id)
+        target_records = self.repo.snapshots(target_id)
+        keys = {key for record in (*base_records, *target_records) for key in record.values.keys()}
+        return diff_releases(base_records, target_records, self._properties(keys)), keys
+
+    def _stored(self, base_id: int, target_id: int) -> list[RecordDiff] | None:
+        """The stored diff of the pair, only while it is provably current (D-123)."""
+        row = self.diff_store.get(base_id, target_id)
+        if row is None or row.format_version != FORMAT_VERSION:
+            return None
+        if row.fingerprint != self.diff_store.fingerprint(base_id, target_id, FORMAT_VERSION):
+            return None
+        return load_diffs(row.payload)
+
+    def materialize_previous(self, target_slug: str) -> int | None:
+        """Store the diff of a release against the one before it in its lineage."""
+        _, target = self._get(self._all(), target_slug)
+        if target.previous_slug is None:
+            return None
+        return self.materialize(target.previous_slug, target_slug)
+
+    def materialize(self, base_slug: str, target_slug: str) -> int | None:
+        """Compute the diff of a pair from its rows and store it (D-123).
+
+        Returns the number of records stored, or ``None`` when the pair is not
+        comparable or the diff cannot be stored faithfully — then nothing is
+        stored and the API keeps computing it from the rows. The caller commits.
+        """
+        releases = self._all()
+        base_row, base = self._get(releases, base_slug)
+        target_row, target = self._get(releases, target_slug)
+        try:
+            ensure_comparable(
+                ReleaseIdentity(base.slug, base.lineage, base.is_demo),
+                ReleaseIdentity(target.slug, target.lineage, target.is_demo),
+            )
+            diffs, _ = self._live(base_row.dataset.id, target_row.dataset.id)
+            payload = dump_diffs(diffs)
+        except (ValueError, NotStorable):
+            # ValidationError and a repeated identity are ValueErrors: the API
+            # will compute the diff from the rows and say so in words.
+            return None
+        self.diff_store.db.flush()
+        fingerprint = self.diff_store.fingerprint(
+            base_row.dataset.id, target_row.dataset.id, FORMAT_VERSION
+        )
+        self.diff_store.put(
+            base_dataset_id=base_row.dataset.id,
+            target_dataset_id=target_row.dataset.id,
+            version=FORMAT_VERSION,
+            fingerprint=fingerprint,
+            payload=payload,
+        )
+        return len(payload)
 
     def _change_out(self, change: FieldChange, readings: Mapping[str, Reading]) -> FieldChangeOut:
         common = {

@@ -222,3 +222,38 @@ class CatalogDatasetValue(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     dataset: Mapped[CatalogDataset] = relationship(back_populates="dataset_values")
+
+
+class CatalogReleaseDiff(Base):
+    """The diff between two releases, written when the newer one is imported (D-123).
+
+    A **cache**, never a source: every number in ``payload`` was computed by
+    ``app.domain.release_diff`` from the rows both releases stored, and the
+    service serves it only while it is provably current — the same
+    ``format_version`` and the same ``fingerprint`` of both releases' rows.
+    Any doubt and the diff is computed again from the rows, as before D-123.
+    Any write to a catalogue row deletes every cached diff in the same
+    transaction (``app.db.release_diff_invalidation``).
+    """
+
+    __tablename__ = "catalog_release_diff"
+    __table_args__ = (
+        UniqueConstraint("base_dataset_id", "target_dataset_id", name="uq_catalog_release_diff"),
+        CheckConstraint(
+            "base_dataset_id <> target_dataset_id", name="ck_catalog_release_diff_pair"
+        ),
+        CheckConstraint("format_version >= 1", name="ck_catalog_release_diff_version"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    base_dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("catalog_dataset.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    target_dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("catalog_dataset.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    format_version: Mapped[int] = mapped_column(nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    record_count: Mapped[int] = mapped_column(nullable=False)
+    payload: Mapped[list] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

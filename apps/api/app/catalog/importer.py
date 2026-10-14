@@ -58,6 +58,7 @@ from app.models.transport_mode import TransportMode
 from app.models.user import User
 from app.repositories.curve_repository import curve_rows
 from app.repositories.material_repository import MaterialRepository
+from app.services.catalog_release_service import CatalogReleaseService
 
 KNOWN_FILES = {
     "material_classes.ndjson",
@@ -1512,6 +1513,10 @@ class OfficialCatalogImporter:
         # previous release of the lineage. Same transaction: if this fails, the
         # import fails with it.
         promotion = promote(self.db, self.dataset)
+        # D-123: store the diff against the previous release of the lineage now,
+        # in the same transaction, so the first request does not pay for it.
+        # ``None`` (not comparable, not storable) leaves the API computing it.
+        stored_diff = CatalogReleaseService(self.db).materialize_previous(self.dataset.slug)
 
         run.status = "COMMITTED"
         run.counts = dict(self.counts)
@@ -1521,6 +1526,7 @@ class OfficialCatalogImporter:
                 for name, spec in self.bundle.files.items()
             },
             "promotion": promotion,
+            "stored_diff_records": stored_diff,
         }
         run.completed_at = datetime.now(UTC)
         self.db.commit()

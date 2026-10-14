@@ -4,6 +4,10 @@ Importing this package registers every model on the shared declarative
 ``Base.metadata`` so that Alembic autogenerate and ``create_all`` can see them.
 """
 
+# Registers the session listeners that drop a stored release diff when a row it
+# was computed from is written (D-123). Imported here, after every model, so no
+# session can write a catalogue row without them.
+import app.db.release_diff_invalidation  # noqa: E402, F401, I001
 from app.models.audit import AuditEvent
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
@@ -11,6 +15,7 @@ from app.models.catalog import (
     CatalogDatasetValue,
     CatalogImportRun,
     CatalogRecordRef,
+    CatalogReleaseDiff,
     CatalogSupplementalValue,
 )
 from app.models.enums import (
@@ -88,6 +93,7 @@ __all__ = [
     "CatalogDatasetValue",
     "CatalogImportRun",
     "CatalogRecordRef",
+    "CatalogReleaseDiff",
     "CatalogSupplementalValue",
     "ConstraintGroup",
     "CurveKind",
