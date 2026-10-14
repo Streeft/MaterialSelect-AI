@@ -37,6 +37,17 @@ patamar determinístico de 350 MPa explicitamente declarado na descrição. As c
 resistência, temperatura máxima), não digitadas; as premissas tomadas onde as
 propriedades fictícias se contradizem ou faltam estão na descrição de cada curva.
 
+Desde o D-124 (TM5-a) os 75 também carregam **valores fictícios das três
+propriedades do cartão CAE** — `coef_poisson`, `coef_expansao_termica` e
+`calor_especifico` — por `app/db/seed_demo_cae.py` (5 chamados por `app.db.seed`,
+70 por `seed_extended.main()`; log `cae_values_created`: 15 e 210 na primeira
+execução, 0 na segunda). Os números saem de faixas didáticas por família
+escolhidas por um hash estável do nome (sem RNG, para não mexer na sequência dos
+70), citam a fonte demo e a nota "Valor fictício de demonstração"; o módulo só
+escreve em material `is_demo=True`, e `clear_demo` os apaga com o material. As
+**definições** são referência (`semear_referencia`) e ficam depois do
+`excluir_demo` — sem valor, até o bundle oficial trazer os reais.
+
 Desde o D-115 (TM1) o mesmo comando também liga **cinco grupos de equivalência
 declarada fictícios** entre designações `DEMO-…` já existentes, um de cada tipo
 (`app/db/seed_demo_equivalences.py`, chamado por `seed_extended.main()`; log

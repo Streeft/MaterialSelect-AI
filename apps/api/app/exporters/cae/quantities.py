@@ -3,14 +3,12 @@
 Two tables, both argument and not data:
 
 * :data:`QUANTITIES` maps each quantity a card can hold to the catalogue slug
-  it is read from. Three of the six slugs (Poisson's ratio, thermal expansion,
-  specific heat) are **not** defined by the demo or reference seed today: they
-  are the contract with whoever curates the catalogue — the official bundle of
-  D-102 or a curator creating the property — and until a definition with that
-  slug exists, the quantity is simply "não cadastrado" on every card. No
-  definition is seeded here on purpose: a property nobody has values for would
-  sit at ~0 % on the dashboard and climb the gap ranking, the effect D-69
-  refused for the battery quantities.
+  it is read from. Since D-124 all six slugs are defined by the reference seed
+  (``app.db.seed.PROPERTIES``), and the demo catalogue carries fictitious
+  values for Poisson's ratio, thermal expansion and specific heat
+  (``app.db.seed_demo_cae``) so none sits at ~0 % on the dashboard (the D-69
+  objection). A real record without one of them still reads "não cadastrado",
+  and a deck that needs it is refused (422) — never written with 0.
 
 * :data:`UNIT_SYSTEMS` are the *consistent* unit systems a solver expects. A
   solver has no notion of units: it multiplies the numbers it is given, so a

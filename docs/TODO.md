@@ -290,13 +290,14 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 **Resíduos do cartão para CAE (TM5, [D-104](DECISIONS.md)).** O TM5 foi
 entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
-- **TM5-a — os três slugs que o cartão lê e o catálogo ainda não define.** ▁
-  `coef_poisson`, `coef_expansao_termica` e `calor_especifico` são o contrato
-  do `app/exporters/cae/quantities.py`; enquanto não existirem (criados por quem
-  cura o catálogo ou trazidos pelo bundle do D-102, com unidade canônica
-  compatível), os decks de MAPDL, Abaqus, Nastran e LS-DYNA recusam todo
-  material por falta de ν e só o MatML sai. Não semear definição vazia: ela
-  ficaria em ~0 % no painel (a objeção do D-69).
+- ~~**TM5-a — os três slugs que o cartão lê e o catálogo ainda não define.**~~
+  Parte codável entregue (Sessão 79, [D-124](DECISIONS.md)): as definições
+  `coef_poisson`/`coef_expansao_termica`/`calor_especifico` entraram no seed de
+  referência, e os 75 materiais demo ganharam valores fictícios (`is_demo`,
+  `app.db.seed_demo_cae`), então a definição não fica em ~0 % (D-69) e os
+  quatro decks e os térmicos saem para o demo. **Resíduo bloqueado** ▃: valor
+  real só pelo bundle do D-102 (fonte licenciada), com as mesmas unidades
+  canônicas; até lá material real continua recusado com 422 escrito.
 - ~~**TM5-b — curva tensão-deformação plástica.**~~ Entregue (Sessão 74,
   [D-119](DECISIONS.md)): formatos `abaqus-plastic`, `mapdl-plastic`
   (`TB,PLAS` MISO), `nastran-plastic` (`MATS1`/`TABLES1`) e `lsdyna-plastic`
@@ -319,8 +320,8 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - ~~**TM5-d — cartões térmicos.**~~ Entregue (Sessão 67,
   [D-112](DECISIONS.md)): formatos `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
   (`*MAT_THERMAL_ISOTROPIC_TITLE`); condutividade e calor específico são
-  exigidos (422 sem eles). Hoje nenhum material do catálogo os tem (TM5-a), então
-  na prática só recusam. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
+  exigidos (422 sem eles). Desde o D-124 o demo os tem; material real
+  continua recusado até o bundle trazer os valores. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
   `lib/api.ts`, `i18n.ts`) ainda lista só os cinco formatos antigos.
 - **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
   a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem

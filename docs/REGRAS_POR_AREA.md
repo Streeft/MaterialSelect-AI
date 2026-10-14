@@ -774,8 +774,11 @@ arquivo leva o aviso de limitação, a proveniência e a marca de fictício quan
 o material **ou a fonte de um valor** é demo; o escape é por formato (XML no
 MatML; nome sem quebra de linha e rótulo saneado nos decks). Poisson, expansão
 e calor específico são lidos de `coef_poisson`, `coef_expansao_termica` e
-`calor_especifico`, que o catálogo ainda não define — até lá os decks recusam
-todo material e só o MatML sai (TM5-a).
+`calor_especifico`, definidos pelo seed de referência desde o
+[D-124](DECISIONS.md) (TM5-a, Sessão 79; canônicas `dimensionless`, `1/K`,
+`J/(kg*K)`, que o bundle oficial tem de repetir). **Só o demo tem valor** (fictício,
+`is_demo`, `app.db.seed_demo_cae`, log `cae_values_created`); material real
+sem eles continua recusado com 422 escrito, nunca com 0.
 
 **O demo é completo desde o D-107**: os 75 materiais demo têm designação,
 composição e (salvo a Cerâmica Demo D, sem resistência para ancorar) curva, tudo
