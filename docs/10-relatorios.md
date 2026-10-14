@@ -223,7 +223,7 @@ Regras que não se afrouxam:
 `GET /api/exports/materiais/{id}.{html,csv,xlsx}?unidades=…` exporta a ficha
 técnica completa e detalhada de **um** material em formato standalone HTML (para
 visualização e impressão nativa em PDF via Ctrl+P), CSV ou planilha Excel (XLSX).
-Na interface, é acionada pelo item "Ficha técnica completa (PDF/HTML)…" no menu
+Na interface, é acionada pelo item "Ficha técnica completa (PDF)" no menu
 "Exportar ▾" da ficha do material (`apps/web/components/CaeExportDialog.tsx`).
 
 ### As nove seções canônicas
