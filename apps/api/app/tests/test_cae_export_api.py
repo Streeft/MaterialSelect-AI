@@ -4,23 +4,24 @@ The renderers are proved in ``test_cae_exporters.py``. This file proves what
 only the route can get wrong: visibility (D-62 — another person's record is a
 404), the subscription gate, the refusal status, and the file headers.
 
-The three property definitions the demo seed does not carry (Poisson's ratio,
-thermal expansion, specific heat) are created here, inside the test
-transaction, for a **fictitious** own record — exactly how a curator would add
-them to a real catalogue.
+Since D-124 the seed defines Poisson's ratio, thermal expansion and specific
+heat and fills them, with fictitious values, for every demo material; the
+helper below only ensures the definitions exist.
 """
 
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.models.enums import BetterDirection, PropertyCategory
+from app.domain.data_quality import build_scalar_value
+from app.models.enums import BetterDirection, DataQuality, PropertyCategory
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
+from app.models.source import Source
 from app.models.user import User
 
 URL = "/api/exports/materiais/{id}/cae?formato={fmt}&unidades={units}"
@@ -46,7 +47,12 @@ _EXTRA_PROPERTIES = (
 
 
 def _define_extra_properties(db: Session) -> None:
+    """Ensure the three definitions exist (the seed defines them since D-124)."""
     for slug, name, dimension, unit, category in _EXTRA_PROPERTIES:
+        if db.execute(
+            select(PropertyDefinition).where(PropertyDefinition.slug == slug)
+        ).scalar_one_or_none():
+            continue
         db.add(
             PropertyDefinition(
                 slug=slug,
@@ -131,26 +137,95 @@ def test_the_card_is_converted_into_the_chosen_system(
     assert "MP,EX,MATID,210000000000.\n" in si and "MP,DENS,MATID,7850.\n" in si
 
 
-def test_a_demo_material_without_poisson_is_refused_with_422(
+_DECKS = ("mapdl", "abaqus", "nastran", "lsdyna")
+
+
+def _demo(db: Session, name: str = "Liga Alumínio Demo A") -> Material:
+    return db.execute(select(Material).where(Material.name == name)).scalars().one()
+
+
+def test_a_complete_demo_material_is_accepted_by_every_deck(
     client: TestClient, db_session: Session
 ) -> None:
-    demo = (
-        db_session.execute(
-            select(Material).where(Material.is_demo.is_(True), Material.owner_id.is_(None))
+    # D-124: the demo catalogue carries fictitious ν, α and cp, so the four
+    # decks (which need E and ν; LS-DYNA also ρ) now write the demo card.
+    demo = _demo(db_session)
+    for fmt in _DECKS:
+        response = client.get(URL.format(id=demo.id, fmt=fmt, units="m-kg-s"))
+        assert response.status_code == 200, (fmt, response.text)
+        assert "MATERIAL FICTICIO" in response.text, fmt  # decks are ASCII
+    mapdl = client.get(URL.format(id=demo.id, fmt="mapdl", units="m-kg-s")).text
+    assert "MP,PRXY,MATID," in mapdl and "MP,ALPX,MATID," in mapdl
+
+
+def test_a_demo_material_whose_poisson_is_removed_is_refused_with_422(
+    client: TestClient, db_session: Session
+) -> None:
+    demo = _demo(db_session)
+    poisson = db_session.execute(
+        select(PropertyDefinition).where(PropertyDefinition.slug == "coef_poisson")
+    ).scalar_one()
+    db_session.execute(
+        delete(MaterialPropertyValue).where(
+            MaterialPropertyValue.material_id == demo.id,
+            MaterialPropertyValue.property_id == poisson.id,
         )
-        .scalars()
-        .first()
     )
-    assert demo is not None
-    response = client.get(URL.format(id=demo.id, fmt="abaqus", units="m-kg-s"))
-    assert response.status_code == 422
-    assert "coeficiente de Poisson" in response.json()["detail"]
+    db_session.commit()
+    for fmt in _DECKS:
+        response = client.get(URL.format(id=demo.id, fmt=fmt, units="m-kg-s"))
+        assert response.status_code == 422, fmt
+        assert "coeficiente de Poisson" in response.json()["detail"], fmt
 
     # MatML has no minimum beyond one property, and says the data is fictitious.
     matml = client.get(URL.format(id=demo.id, fmt="matml", units="m-kg-s"))
     assert matml.status_code == 200, matml.text
     assert "MATERIAL FICTÍCIO" in matml.text
     assert "Esta ferramenta destina-se a apoio didático" in matml.text
+
+
+def test_a_real_material_without_poisson_is_refused_never_zero(
+    client: TestClient, db_session: Session
+) -> None:
+    # The demo values never reach a real record: a non-demo material without ν
+    # is still refused with the reason written, not exported with ν = 0.
+    real_source = Source(label="Fonte real de teste CAE (D-124)", is_demo=False)
+    material = Material(
+        name="Material real sem Poisson (teste)", class_id=_metals_id(db_session), is_demo=False
+    )
+    db_session.add_all([real_source, material])
+    db_session.flush()
+    props = {
+        p.slug: p
+        for p in db_session.execute(select(PropertyDefinition)).scalars()
+        if p.slug in ("densidade", "modulo_young")
+    }
+    for slug, value, unit in (("densidade", 7850.0, "kg/m**3"), ("modulo_young", 2.1e11, "Pa")):
+        nv = build_scalar_value(value, unit, props[slug].canonical_unit)
+        db_session.add(
+            MaterialPropertyValue(
+                material_id=material.id,
+                property_id=props[slug].id,
+                value_scalar=nv.value_scalar,
+                original_unit=nv.original_unit,
+                normalized_value=nv.normalized_value,
+                canonical_unit=nv.canonical_unit,
+                conversion_method=nv.conversion_method,
+                source_id=real_source.id,
+                data_quality=DataQuality.MEDIDO,
+                is_missing=False,
+            )
+        )
+    db_session.commit()
+    assert material.is_demo is False
+    for fmt in _DECKS:
+        response = client.get(URL.format(id=material.id, fmt=fmt, units="m-kg-s"))
+        assert response.status_code == 422, fmt
+        assert "coeficiente de Poisson" in response.json()["detail"], fmt
+    matml = client.get(URL.format(id=material.id, fmt="matml", units="m-kg-s"))
+    assert matml.status_code == 200, matml.text
+    assert "MATERIAL FICTÍCIO" not in matml.text
+    assert "coeficiente de Poisson: não cadastrado" in matml.text
 
 
 def test_unknown_format_or_system_is_a_400_naming_the_options(

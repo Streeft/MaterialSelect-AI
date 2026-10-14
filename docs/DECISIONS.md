@@ -10118,3 +10118,34 @@ não muda a impressão digital; D-116 (oficial somente leitura) e a trava (a)
 cobrem toda escrita da aplicação. Depois de uma correção manual, reimporte ou
 apague as linhas de `catalog_release_diff`.
 
+## D-124 — Propriedades do cartão CAE: a definição é referência, o valor só existe no demo
+
+*Decidida pelo assistente por delegação do autor, revisável.* (TM5-a, Sessão 79)
+
+**Contexto.** O cartão CAE ([D-104](#d-104)) lê `coef_poisson`,
+`coef_expansao_termica` e `calor_especifico`, que nenhum seed definia; os
+quatro decks recusavam todo material. Semear só a definição foi descartado
+pela objeção do [D-69](#d-69): sem valor, ficaria em ~0 % no painel e no topo
+do ranking de lacunas.
+
+**Decisão.** (1) As três definições entram em `app.db.seed.PROPERTIES`
+(referência, `semear_referencia`), com canônicas `dimensionless`, `1/K` e
+`J/(kg*K)` — as que o exportador converte por `units.py` e que o bundle do
+D-102 terá de repetir (o importador recusa canônica divergente). (2) O demo
+recebe valores **fictícios** para os 75 materiais (`app/db/seed_demo_cae.py`,
+`is_demo` só no material, fonte demo, nota escrita), de faixas didáticas por
+família escolhidas por hash estável do nome; assim o painel mostra 100 % no
+demo e a objeção do D-69 não se aplica — ν, α e cp são grandezas que todo
+material tem, e não um campo que só um tipo de registro poderia ter.
+(3) Material real não recebe nada: sem valor, os decks continuam 422 com a
+razão escrita, nunca 0.
+
+**Descartado.** Definição vazia (D-69); definição criada só pelo `seed_extended`
+(deixaria a canônica a cargo do demo); valores de ν/α/cp para material real
+sem fonte aprovada (princípios 1 e 7); RNG no `_RANGES` do `seed_extended`
+(mudaria todos os números dos 70).
+
+**Consequências.** Depois do `excluir_demo` as definições ficam sem valor até
+o bundle oficial — como todas as outras. Sem migração. Painel do baseline de
+teste: 15 propriedades, 75 slots.
+

@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import Base, SessionLocal, engine
+from app.db.seed_demo_cae import seed_demo_cae_values
 from app.domain.composition import build_composition_entry, validate_composition
 from app.domain.curves import PointInput, SeriesInput, build_curve
 from app.domain.data_quality import (
@@ -280,6 +281,49 @@ PROPERTIES = [
         "accepted_units": ["dimensionless"],
         "is_interval": False,
         "better_direction": BetterDirection.LOWER,
+    },
+    # --- CAE card (D-104, TM5-a, D-124) ----------------------------------
+    #
+    # The three slugs `app/exporters/cae/quantities.py` reads and nothing
+    # defined until D-124. Only the *definition* is reference data; no real
+    # value is written anywhere. The demo catalogue fills all three for every
+    # demo material (`app.db.seed_demo_cae`), so none sits at ~0 % on the
+    # dashboard — the D-69 objection to an empty definition. The canonical
+    # units are the ones the official bundle must declare too: the importer
+    # refuses a bundle whose canonical unit differs (D-102).
+    {
+        "slug": "coef_poisson",
+        "name": "Coeficiente de Poisson",
+        "symbol": "ν",
+        "category": PropertyCategory.MECANICA,
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "is_interval": False,
+        "better_direction": BetterDirection.NEUTRAL,
+        "allows_log_scale": False,
+    },
+    {
+        "slug": "coef_expansao_termica",
+        "name": "Coeficiente de expansão térmica",
+        "symbol": "α",
+        "category": PropertyCategory.TERMICA,
+        "physical_dimension": "1 / [temperature]",
+        "canonical_unit": "1/K",
+        "accepted_units": ["1/K"],
+        "is_interval": False,
+        "better_direction": BetterDirection.NEUTRAL,
+    },
+    {
+        "slug": "calor_especifico",
+        "name": "Calor específico",
+        "symbol": "cp",
+        "category": PropertyCategory.TERMICA,
+        "physical_dimension": "[length] ** 2 / [time] ** 2 / [temperature]",
+        "canonical_unit": "J/(kg*K)",
+        "accepted_units": ["J/(kg*K)", "kJ/(kg*K)"],
+        "is_interval": False,
+        "better_direction": BetterDirection.NEUTRAL,
     },
 ]
 
@@ -2724,6 +2768,7 @@ def seed(db: Session) -> dict[str, int]:
     assert demo_source is not None
     identity_summary = _seed_demo_identity(db, demo_source)
     curves_created = _seed_demo_curves(db, demo_source)
+    cae_values_created = seed_demo_cae_values(db, demo_source, DEMO_MATERIALS)  # D-124
 
     process_summary = _seed_process_universe(db)
     transport_created = _seed_transport_modes(db, demo_source)
@@ -2734,6 +2779,7 @@ def seed(db: Session) -> dict[str, int]:
         "materials_created": created_materials,
         **identity_summary,
         "curves_created": curves_created,
+        "cae_values_created": cae_values_created,
         "transport_modes": transport_created,
         **process_summary,
     }
