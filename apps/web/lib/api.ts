@@ -23,6 +23,7 @@ import type {
   CurveScale,
   DashboardOverview,
   EcoAuditRequest,
+  EndOfLifeRouteInfo,
   EcoAuditResult,
   EcoComparisonRequest,
   EcoComparisonResult,
@@ -1013,6 +1014,11 @@ export function estimatePartCost(body: CostRequest): Promise<CostResult> {
 
 export function listTransportModes(): Promise<TransportMode[]> {
   return request<TransportMode[]>("/api/eco/modais");
+}
+
+/** The seven end-of-life routes, each with how many materials can price it. */
+export function listEndOfLifeRoutes(): Promise<EndOfLifeRouteInfo[]> {
+  return request<EndOfLifeRouteInfo[]>("/api/eco/rotas-fim-de-vida");
 }
 
 /**

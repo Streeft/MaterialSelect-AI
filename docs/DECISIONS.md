@@ -9900,4 +9900,66 @@ nosso (D-63) só recebia `property_slugs` e `limit`.
 critério aplicado ao valor bruto antes da escala (dependeria do eixo); limiar
 de tolerância "100% se dentro de ±x%" — exige um número do usuário com unidade
 e fica como resíduo no TODO; somar em vez de promediar (D-63).
+---
+
+## D-121 — Eco Audit de produto: lista de componentes, lista de trechos e sete rotas de fim de vida pagas pelo fator do próprio material
+
+**Data:** 14/10/2026
+**Status:** aceita — decidida pelo assistente por delegação do autor, revisável
+(Sessão 76)
+
+**Contexto.** O Eco Audit do [D-66](#d-66) auditava uma peça: um material, um
+processo, um trecho de transporte e três rotas de fim de vida (reciclagem, e
+aterro/incineração sempre sem energia). O método de ensino que inspira a
+ferramenta audita um **produto** com várias peças, vários trechos e sete rotas.
+
+**Decisão.**
+
+1. **O produto é uma lista de componentes e uma lista de trechos.** Cada
+   componente tem material, processo, massa unitária, quantidade, teor reciclado
+   e rota de fim de vida. Material, manufatura e fim de vida são calculados **por
+   componente** (cada um com o refugo do seu processo) e somados; o transporte é
+   a **massa do produto inteiro** em cada trecho (soma sobre os trechos); o uso é
+   do produto (no modelo móvel, a massa do produto). Transporte e uso **não** são
+   repartidos por componente: repartir exigiria regra de alocação, e essa é
+   escolha de método que o módulo não faz calado.
+2. **Ausência em qualquer componente ou trecho é ausência no produto**, com o
+   componente (ou "Trecho n (modal)") nomeado no motivo; pódio e total são
+   recusados como no D-66. Uma soma sobre parte dos componentes é uma parcela
+   que parece total.
+3. **Sete rotas, e nenhum fator no código.** `aterro`, `incineracao` (rótulo
+   "Combustão (incineração)", slug mantido por compatibilidade), `subciclagem`,
+   `reciclagem`, `remanufatura`, `reuso`, `nenhum`. A rota é vocabulário; o
+   custo é **propriedade do próprio material** lida pelo slug que a rota nomeia
+   (`energia_<rota>`/`co2_<rota>`; reciclagem continua em `energia_reciclagem`/
+   `co2_reciclagem`). Material sem o fator → rota **indisponível com a razão
+   escrita** ("…fica indisponível para este material e não foi tratada como
+   zero"). `nenhum` nunca é número: deixar a fase fora da soma seria escolher
+   zero para ela. Nenhum crédito (energia recuperada, reuso) é abatido — a regra
+   da reciclagem do D-66, estendida.
+4. **Sem definição nem valor novo no seed.** As dez propriedades das rotas novas
+   não são criadas: criá-las vazias poluiria eixos e seletores, e preenchê-las
+   seria inventar ou copiar dado (princípio 1, D-103). Entram pelo catálogo
+   (bundle do D-102 ou fonte APROVADA); o endpoint
+   `GET /api/eco/rotas-fim-de-vida` diz, por rota, quantos materiais visíveis já
+   têm os dois fatores, e a tela marca "sem fator no catálogo".
+5. **Duas formas de requisição, nunca misturadas.** `components` +
+   `transport_legs`, ou a forma de peça única (que a comparação e o atalho do
+   dimensionamento usam), convertida para lista de um — `audit` é
+   `audit_product` com um item, então as duas não podem discordar. Campo de uma
+   forma junto da outra é 422 (a regra do D-56). Na resposta, `components` e
+   `transport_legs` sempre vêm; os campos de peça única só com um
+   componente/um trecho — nunca o primeiro item fazendo as vezes do produto.
+6. **Unidades pelo `units.py`.** kg→t no transporte e W·h→MJ no uso estático
+   passam por `to_canonical`.
+7. **Sem migração.** Nada do produto é persistido.
+
+**Descartado.** Fatores-padrão por rota no código (inventar ou copiar dado);
+tratar `nenhum` como zero ou como "fase excluída"; criar as definições vazias no
+seed; repartir transporte/uso por massa entre componentes; um endpoint novo
+separado do `/eco/auditar` (duas verdades sobre a mesma conta).
+
+**Resíduos (TODO).** Fatores das rotas novas por fonte aprovada; produto salvo;
+processos secundários; orientação por fase; comparação A × B por produto;
+exportação do Eco Audit (não existe hoje).
 

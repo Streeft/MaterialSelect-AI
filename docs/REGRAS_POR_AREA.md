@@ -246,6 +246,19 @@ este módulo não faz. E **auditoria incompleta não se resume, só se lista**: 
 dado de uma fase, o pódio e o total são recusados com o motivo escrito — aterro e
 incineração ficam declarados sem energia, nunca valendo zero.
 
+**Desde o [D-121](DECISIONS.md) o Eco Audit audita um produto:** lista de
+componentes (material, processo, massa unitária × quantidade, teor reciclado,
+rota de fim de vida, cada um) e lista de trechos de transporte. Material,
+manufatura e fim de vida somam por componente; transporte é a massa do produto
+em cada trecho; uso é do produto. **Fase ausente em qualquer componente ou trecho
+é ausente no produto**, com o componente nomeado, e o pódio é recusado. As
+**sete rotas** de fim de vida são vocabulário; o custo de cada uma é a
+propriedade do **próprio material** pelo slug que a rota nomeia
+(`energia_aterro`, `co2_combustao`…) — **nenhum fator no código**, nada copiado
+do EduPack. Material sem o fator = rota indisponível com a razão escrita;
+`nenhum` nunca entra como zero. A forma de peça única continua aceita e é a mesma
+conta com lista de um; misturar as duas formas é 422.
+
 Energia e carbono têm **pódios independentes**, porque leem dados diferentes e
 podem discordar. A energia é derivada pelo Pint em MJ; o carbono sai em palavras
 ("kg de CO₂"), porque uma razão entre massas de substâncias diferentes o Pint
