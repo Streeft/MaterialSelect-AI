@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [75](#sessão-75--141026--eco-audit-de-produto-d-120) | 14/10/2026 | Eco Audit de produto: lista de componentes (material, processo, massa × quantidade, reciclado, rota cada um), vários trechos de transporte, sete rotas de fim de vida pagas pelo fator do próprio material (rota sem fator indisponível com a razão), `GET /api/eco/rotas-fim-de-vida`, detalhe por componente e por trecho; sem migração (D-120) | 4649 → 4688 | 880 → 883 |
 | [73](#sessão-73--131026--curvas-com-histerese-tm4-c-d-118) | 13/10/2026 | Curvas com histerese (TM4-c): `path_kind` função/trajetória (migração `8bc0982d66b8`), trajetória na ordem declarada e sem faixa, 422 escrito na leitura de valor e no cartão plástico, diff/CSV/bundle e seletor "Traçado" no formulário (D-118) | 4627 → 4649 | 879 → 880 |
 | [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [72](#sessão-72--131026--composição-por-condição-e--atômica-derivada-tm2-c-d-117) | 13/10/2026 | Composição por condição e % atômica derivada (TM2-c): `condition_label` na chave da composição (migração `703bbf25ce90`), `comp:…@condição` na busca e no estágio, seletor de condição na ficha, % atômica pela tabela IUPAC 2021 com ausência escrita quando a composição não fecha em 100 % | 4428 → 4500 | 863 → 872 |
@@ -87,6 +88,31 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 75 — 14/10/26 — Eco Audit de produto (D-120)
+
+**O que mudou.** `app/calculations/eco_audit.py` ganhou `audit_product`
+(componentes × trechos) e `audit` passou a ser a mesma conta com lista de um.
+Material, manufatura e fim de vida somam por componente; transporte é a massa do
+produto em cada trecho; uso é do produto. Ausência em qualquer componente ou
+trecho deixa a fase do produto ausente, com o nome escrito, e recusa pódio e
+total. Sete rotas de fim de vida (aterro, combustão, subciclagem, reciclagem,
+remanufatura, reuso, nenhuma), cada uma lida do **próprio material** pelo slug
+que nomeia; nenhum fator no código e nenhuma definição/valor novo no seed —
+hoje só `reciclagem` tem fator no catálogo. `EcoAuditRequest` aceita
+`components` + `transport_legs` ou a forma antiga (misturar é 422);
+`EcoAuditResultOut` traz `components` e `transport_legs`, e os campos de peça
+única só vêm preenchidos com um componente/um trecho. Conversões kg→t e W·h→MJ
+passam por `units.py`. Na tela, editor de componentes e de trechos (fieldsets,
+adicionar/remover, motivo do botão desabilitado por componente), rótulo "sem
+fator no catálogo" na rota, tabelas por componente e por trecho; a tabela
+comparativa deixou de mostrar "—" para ausência. Não há exportação do Eco Audit
+para atualizar (registrado no TODO).
+
+**Pilha.** 4688 coletados (4682 passam e 6 pulam sem `POSTGRES_TEST_URL`); 883
+de frontend; sem migração.
 
 ---
 

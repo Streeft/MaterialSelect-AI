@@ -87,6 +87,27 @@ quitados".
 
 ## Média prioridade
 
+- ~~**Eco Audit de produto: vários componentes, vários trechos, fim de vida
+  ampliado (Sessão 75, [D-120](DECISIONS.md))**~~ — `audit_product` soma
+  material/manufatura/fim de vida por componente, transporte por trecho sobre a
+  massa do produto; sete rotas lidas do fator do próprio material; pódio
+  recusado se faltar dado de qualquer componente. Resíduos:
+  - **Fatores das rotas novas** (`energia_aterro`/`co2_aterro`,
+    `_combustao`, `_subciclagem`, `_remanufatura`, `_reuso`): nem a definição
+    de propriedade nem valor existem no seed; entram só por fonte APROVADA
+    (D-103) ou bundle do D-102. Até lá as seis rotas novas ficam indisponíveis
+    com a razão escrita.
+  - **Produto salvo** (definição persistida por projeto, duplicar e alterar) —
+    fora do escopo do D-120.
+  - **Processos secundários** (junção, acabamento) por componente — fora do
+    escopo.
+  - **Orientação textual por fase dominante** — fora do escopo.
+  - **Comparação A × B por produto**: `/api/eco/comparar` continua comparando
+    duas peças de um componente e um trecho.
+  - **Exportação do Eco Audit** (CSV/XLSX/HTML com o aviso de limitação de
+    uso): não existe hoje, nem para peça única; quando existir, deve levar o
+    detalhe por componente e por trecho.
+
 **Funcionalidades inspiradas no Total Materia (D-103).** Recursos observados
 só nas páginas públicas do produto ([`catalogo/fontes.md`
 §5.2](catalogo/fontes.md)); nenhum conteúdo dele é copiado e nenhum dado vem
