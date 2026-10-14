@@ -900,6 +900,8 @@ const transportModes: TransportMode[] = [
 ];
 
 const ecoResult: EcoAuditResult = {
+  components: [],
+  transport_legs: [],
   material_id: 1,
   material_name: "Aço 1020",
   process_id: 1,
@@ -1224,6 +1226,25 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listLoadCases: () => Promise.resolve(loadCases),
   estimatePartCost: () => Promise.resolve(costResult),
   listTransportModes: () => Promise.resolve(transportModes),
+  listEndOfLifeRoutes: () =>
+    Promise.resolve([
+      {
+        slug: "reciclagem",
+        label: "Reciclagem",
+        description: "O material volta como matéria-prima equivalente.",
+        energy_property: "energia_reciclagem",
+        carbon_property: "co2_reciclagem",
+        materials_with_factor: 3,
+      },
+      {
+        slug: "aterro",
+        label: "Aterro",
+        description: "A peça é enterrada.",
+        energy_property: "energia_aterro",
+        carbon_property: "co2_aterro",
+        materials_with_factor: 0,
+      },
+    ]),
   listSynthesisKinds: () => Promise.resolve(synthesisKinds),
   previewSynthesis: () => Promise.resolve(synthesisPreview),
   createSynthesis: () =>
@@ -1677,7 +1698,7 @@ describe("acessibilidade das telas principais", () => {
   // tela. O resultado tem uma fase sem carbono, então o rótulo escrito que
   // substitui a célula vazia entra na varredura.
   it("auditoria ambiental", async () => {
-    await auditRoute(<EcoPage />, ptBR.eco.briefStep);
+    await auditRoute(<EcoPage />, ptBR.eco.productStep);
   });
 
   // P3: a tela monta com o primeiro tipo escolhido e o aviso do princípio 1 na
