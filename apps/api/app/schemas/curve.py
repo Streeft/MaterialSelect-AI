@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from app.models.enums import CurveKind, DataQuality
 
 ScaleName = Literal["linear", "log-x", "log-y", "log-log"]
+PathKindName = Literal["function", "path"]
 
 
 class CurveKindCount(BaseModel):
@@ -136,6 +137,10 @@ class CurveOut(BaseModel):
     strain_measure_label: str | None = None
     modulus_kind: str | None = None
     modulus_kind_label: str | None = None
+    #: D-118: ``function`` (one y per x) or ``path`` (ordered trajectory, e.g.
+    #: a hysteresis loop — drawn in the declared order, never read at one x).
+    path_kind: PathKindName = "function"
+    path_kind_label: str
     series: list[CurveSeriesOut]
     notes: list[str]
     source_label: str
@@ -218,7 +223,7 @@ class CurveIn(BaseModel):
     Validated by ``app.domain.curves.build_curve`` — the builder the seed and the
     official importer use — so a hand-written curve obeys the same rules:
     quantities the kind admits, units through ``units.py``, x strictly
-    increasing, no point invented, no series reordered.
+    increasing (for a ``function``), no point invented, no series reordered.
     """
 
     kind: CurveKind
@@ -231,6 +236,8 @@ class CurveIn(BaseModel):
     x_label: str | None = Field(default=None, max_length=160)
     y_label: str | None = Field(default=None, max_length=160)
     parameter_quantity: str | None = None
+    #: D-118: ``path`` keeps the order written and lets x repeat or turn back.
+    path_kind: PathKindName = "function"
     series: list[CurveSeriesIn] = Field(max_length=24)
     source_label: str = Field(min_length=1, max_length=160)
     citation: str | None = Field(default=None, max_length=500)

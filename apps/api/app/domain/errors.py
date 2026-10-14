@@ -29,6 +29,15 @@ class ExportRefusedError(DomainError):
     """
 
 
+class AmbiguousReadingError(ExportRefusedError):
+    """A single value was asked of a curve that has more than one (D-118). -> 422.
+
+    A trajectory curve (a hysteresis loop) may hold two y for the same x; the
+    request is well formed, but answering it would mean choosing a branch the
+    source did not choose. Refused with the reason, never interpolated.
+    """
+
+
 class ConflictError(DomainError):
     """The operation conflicts with current state (duplicate, in use). -> HTTP 409."""
 

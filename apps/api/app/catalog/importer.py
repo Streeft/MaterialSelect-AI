@@ -200,6 +200,8 @@ def _curve_from_record(record: dict) -> NormalizedCurve:
             # D-119: optional, declared by the bundle; absent stays "not declared".
             strain_measure=_optional_text(record.get("strain_measure")),
             modulus_kind=_optional_text(record.get("modulus_kind")),
+            # D-118: a bundle declares a trajectory; absent is the monotonic function.
+            path_kind=_optional_text(record.get("path_kind")) or "function",
         )
     except CurveError as exc:
         raise OfficialCatalogImportError(f"{where}: {exc}") from exc

@@ -91,6 +91,7 @@ describe("CurveEditor (TM4-d)", () => {
         y_quantity: "tensao",
         y_unit: "MPa",
         parameter_quantity: null,
+        path_kind: "function",
         source_label: "Ensaio Z",
         series: [
           {
@@ -122,5 +123,21 @@ describe("CurveEditor (TM4-d)", () => {
     await userEvent.type(await screen.findByRole("textbox", { name: t.points }), "1; 1{Enter}0; 2");
     await userEvent.click(screen.getByRole("button", { name: ptBR.actions.save }));
     expect(await screen.findByRole("alert")).toHaveTextContent("x tem de crescer");
+  });
+
+  it("sends a hysteresis loop as a path, in the typed order (D-118)", async () => {
+    mount();
+    await userEvent.type(await screen.findByRole("textbox", { name: t.titleField }), "Laço");
+    await userEvent.type(screen.getByRole("textbox", { name: t.source }), "Ensaio cíclico");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: t.pathKind }), "path");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: t.points }),
+      "0; 0{Enter}0,4; 300{Enter}0,2; 0{Enter}-0,2; -300",
+    );
+    await userEvent.click(screen.getByRole("button", { name: ptBR.actions.save }));
+    await waitFor(() => expect(api.createMaterialCurve).toHaveBeenCalled());
+    const payload = api.createMaterialCurve.mock.calls[0]![1];
+    expect(payload.path_kind).toBe("path");
+    expect(payload.series[0]!.points.map((p: { x: number }) => p.x)).toEqual([0, 0.4, 0.2, -0.2]);
   });
 });

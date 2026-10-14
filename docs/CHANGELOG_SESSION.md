@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [73](#sessão-73--131026--curvas-com-histerese-tm4-c-d-118) | 13/10/2026 | Curvas com histerese (TM4-c): `path_kind` função/trajetória (migração `8bc0982d66b8`), trajetória na ordem declarada e sem faixa, 422 escrito na leitura de valor e no cartão plástico, diff/CSV/bundle e seletor "Traçado" no formulário (D-118) | 4627 → 4649 | 879 → 880 |
 | [74](#sessão-74--091026--curva-plástica-nos-cartões-cae-tm5-b-d-119) | 09/10/2026 | Curva plástica nos cartões CAE (TM5-b): `abaqus-plastic`, `mapdl-plastic`, `nastran-plastic`, `lsdyna-plastic`; curva declara engenharia/verdadeira e tipo de módulo (migração `81adb0b92f72`); E do mesmo material na temperatura da série por ponto exato; 422 para tudo que exigiria presumir (D-119) | 4295 → 4386 (+91) | — |
 | [72](#sessão-72--131026--composição-por-condição-e--atômica-derivada-tm2-c-d-117) | 13/10/2026 | Composição por condição e % atômica derivada (TM2-c): `condition_label` na chave da composição (migração `703bbf25ce90`), `comp:…@condição` na busca e no estágio, seletor de condição na ficha, % atômica pela tabela IUPAC 2021 com ausência escrita quando a composição não fecha em 100 % | 4428 → 4500 | 863 → 872 |
 | [70](#sessão-70--081026--equivalência-declarada-entre-designações-tm1-d-115) | 08/10/2026 | Equivalência declarada entre designações (TM1): grupo com tipo (equivalente, aproximada, similar) e fonte obrigatória, membros ligados a designações, escrita só do curador, seção "Equivalências" na ficha, 5 grupos demo (migração `129a7dbbd361`) | 4277 | 851 |
@@ -86,6 +87,22 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 73 — 13/10/26 — Curvas com histerese (TM4-c, D-118)
+
+**O que mudou.** `material_curve.path_kind` (`function` | `path`, `NOT NULL`
+com padrão `function`, `CHECK` portável; migração `8bc0982d66b8`). O construtor
+puro aceita x que volta numa trajetória (ordem preservada pela posição) e recusa
+faixa nela; o desenho liga os pontos na ordem com nota escrita; a leitura de
+valor no ponto declarado (D-110) e o cartão plástico (D-119) recusam a
+trajetória com 422 e a razão; E(T) só de curva-função. Diff (`curva:…:tracado`),
+CSV/XLSX ("Traçado"), bundle (`path_kind` opcional) e `CurveEditor` (seletor
+"Traçado") acompanham. Detalhes e alternativas em [D-118](DECISIONS.md).
+
+**Pilha.** 4649 coletados (4643 passam e 6 pulam sem `POSTGRES_TEST_URL`); 880
+de frontend; uma cabeça Alembic (`8bc0982d66b8` sobre `703bbf25ce90`).
 
 ---
 

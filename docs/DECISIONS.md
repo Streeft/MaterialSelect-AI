@@ -9442,6 +9442,68 @@ de modelo (convecção, geração, mudança de fase) ficam em branco com coment�
 Os cartões mecânicos passaram a apontar para os térmicos em vez de dizer "não
 exportado". Escritos da documentação pública, sem rodar o solver (como TM5-e).
 
+## D-118 — Curvas com histerese: `path_kind` separa função de trajetória, e o que lê um valor por x recusa a trajetória
+
+**Data:** 13/10/2026
+**Status:** aceita — decidida pelo assistente por delegação do autor
+("eu decido o que você decidir melhor para o projeto"), **revisável** (Sessão
+73, TM4-c).
+
+**O pedido (TM4-c).** Um laço de histerese, um ciclo de carga e descarga ou
+qualquer curva em que o x volta não cabia no D-106: o construtor recusava x
+fora de ordem, e o dado ficava em `CatalogSupplementalValue`, fora da ficha.
+
+**Decisão.**
+
+1. **Coluna `path_kind` em `material_curve`**: `'function'` (um y por x, x
+   estritamente crescente — a regra de sempre) ou `'path'` (trajetória na
+   ordem em que a fonte escreveu; x pode repetir ou voltar). `NOT NULL` com
+   `server_default 'function'`: toda curva existente foi gravada sob a regra
+   monotônica, então o preenchimento declara o que já era verdade. `CHECK`
+   portável `path_kind IN ('function', 'path')`; migração `8bc0982d66b8`
+   (autogenerate; o `CHECK` escrito à mão; a deriva antiga de
+   `battery_chemistry`/`subscription` retirada). A lista vive em
+   `app/domain/curve_quantities.py::PATH_KINDS`.
+2. **Não é um tipo de curva novo.** O eixo de um laço tensão–deformação é o
+   mesmo de um ensaio monotônico; o que muda é a relação entre os pontos. Por
+   isso é um atributo ortogonal ao `kind`, e qualquer tipo pode ser trajetória.
+3. **O construtor puro valida cada traçado.** `function` mantém a recusa de x
+   fora de ordem; `path` preserva a ordem pela `position` e recusa **faixa**
+   (y mín./y máx.): a faixa é desenhada como polígono sobre x, que uma
+   trajetória que volta não tem. Continuam valendo dois pontos no mínimo,
+   finitude e unidades por `units.py`.
+4. **Desenho:** os pontos são ligados na ordem declarada (o desenho já seguia a
+   ordem da fonte), sem interpolar; a resposta traz `path_kind`,
+   `path_kind_label` e uma nota escrita ("Trajetória (D-118): …"). A tabela de
+   pontos, com a posição de cada um, é a alternativa textual (D-31).
+5. **Tudo que lê um valor por x recusa a trajetória, com a razão escrita:**
+   - **Valor no ponto declarado (D-110)**: 422 (`AmbiguousReadingError`,
+     subclasse de `ExportRefusedError`) — o mesmo x pode estar em dois ramos
+     do laço, e escolher um seria uma escolha que a fonte não fez.
+   - **Cartão plástico CAE (D-119)**: 422 — a tabela de encruamento exige um
+     ramo monotônico, e nenhum ramo é escolhido pela exportação.
+   - **E(T) para o cartão plástico**: só curva de módulo `function`.
+6. **Exportação CSV/XLSX da curva** respeita: linha "Traçado" na aba Curva e os
+   pontos na ordem declarada (coluna "Ponto"). **Diff entre releases (D-109)**:
+   `path_kind` diferente é mudança de `texto` (`curva:<id>:tracado`); os pontos
+   já eram casados por posição. **Bundle do D-102**: `path_kind` opcional no
+   registro da curva; ausente é `function`.
+7. **Ficha:** o formulário de curva (`CurveEditor`) ganha o seletor "Traçado"
+   (Função / Trajetória) com a regra na dica; o gráfico mostra a nota.
+
+**Alternativas descartadas.** Um `CurveKind` `HISTERESE` (duplicaria o
+vocabulário de eixos de cada tipo e não serve a um laço térmico); reordenar os
+pontos por x (apagaria o sentido do caminho); dividir o laço em ramos
+monotônicos automaticamente para responder ao valor por x (é uma escolha de
+ramo que a fonte não fez; se um dia houver ramos declarados, é decisão nova);
+`path_kind` anulável sem padrão (deixaria toda curva antiga "não declarada",
+quando ela foi validada como função).
+
+**Resíduos.** Nenhum dado real ou demo de trajetória ainda (o demo segue
+docs/15 quando for criado); a ordem do caminho não é indicada por seta no
+gráfico (só pela tabela e pela nota); eixos fora da lista de grandezas seguem
+em `CatalogSupplementalValue` (TM4-f).
+
 ## D-119 — Curva plástica nos cartões CAE: medida declarada, E do mesmo material na temperatura da série e ancoragem só no limite elástico
 
 **Data:** 08/10/2026

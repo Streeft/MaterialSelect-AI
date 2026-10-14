@@ -213,8 +213,15 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   declarado exatamente no x pedido, convertido por units.py, sem interpolar,
   com ausência escrita; `GET .../curvas/{curva}/valor`. **Resíduo:** não há
   tela para a leitura (só API).
-- **TM4-c — histerese, curvas não monotônicas e eixos fora da lista.** ▃
-  Continuam em `CatalogSupplementalValue` até haver tipo.
+- ~~**TM4-c — histerese e curvas não monotônicas.**~~ ✔ Entregue (Sessão 73,
+  [D-118](DECISIONS.md)): `path_kind` (`function`/`path`, migração
+  `8bc0982d66b8`); trajetória na ordem declarada, sem faixa; valor por x e
+  cartão plástico recusam com 422 escrito; diff, CSV, bundle e formulário
+  cientes. Resíduos: **TM4-i** abaixo.
+- **TM4-i — trajetória sem exemplo e sem seta.** ▁ Não há curva demo nem real
+  de histerese (criar pela regra de docs/15 quando houver uso); o gráfico não
+  indica o sentido do caminho além da tabela e da nota. Eixos fora da lista de
+  grandezas continuam em `CatalogSupplementalValue`. Aberto pela Sessão 73.
 - ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
   [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
   `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
