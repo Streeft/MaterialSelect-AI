@@ -6,6 +6,7 @@ import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { flowText } from "@/lib/i18n-flow";
 import { CaeExportDialog, MaterialExportMenu } from "./CaeExportDialog";
 
 const t = ptBR.cae;
@@ -17,7 +18,7 @@ function wrap(children: ReactNode) {
   return render(<QueryClientProvider client={client}>{children}</QueryClientProvider>);
 }
 
-describe("MaterialExportMenu (D-104)", () => {
+describe("MaterialExportMenu (D-104, D-124)", () => {
   it("is one Exportar menu whose entry opens the CAE dialog", async () => {
     const user = userEvent.setup();
     wrap(<MaterialExportMenu materialId={7} download={vi.fn()} saveFile={vi.fn()} />);
@@ -33,6 +34,55 @@ describe("MaterialExportMenu (D-104)", () => {
     expect(await screen.findByText(t.title)).toBeInTheDocument();
     expect(screen.getByLabelText(t.formatLabel)).toBeInTheDocument();
     expect(screen.getByLabelText(t.unitsLabel)).toBeInTheDocument();
+  });
+
+  it("renders a link to the complete material sheet in HTML/PDF", async () => {
+    const user = userEvent.setup();
+    wrap(<MaterialExportMenu materialId={42} />);
+
+    const trigger = screen.getByRole("button", { name: ptBR.exports.title });
+    await user.click(trigger);
+
+    const sheetItem = screen.getByRole("menuitem", {
+      name: new RegExp(flowText.materialExport.sheet),
+    });
+    expect(sheetItem).toHaveAttribute(
+      "href",
+      expect.stringContaining("/api/exports/materiais/42.html"),
+    );
+    expect(sheetItem).toHaveAttribute("target", "_blank");
+    expect(sheetItem).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("includes unitChoices query param in material sheet export url (D-70)", async () => {
+    const user = userEvent.setup();
+    wrap(
+      <MaterialExportMenu
+        materialId={42}
+        unitChoices={{ densidade: "g/cm**3" }}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: ptBR.exports.title });
+    await user.click(trigger);
+
+    const sheetItem = screen.getByRole("menuitem", {
+      name: new RegExp(flowText.materialExport.sheet),
+    });
+    expect(sheetItem).toHaveAttribute(
+      "href",
+      expect.stringContaining("unidades=densidade%3Ag%2Fcm%2A%2A3"),
+    );
+  });
+
+  it("displays the hint for material sheet export", async () => {
+    const user = userEvent.setup();
+    wrap(<MaterialExportMenu materialId={42} />);
+
+    const trigger = screen.getByRole("button", { name: ptBR.exports.title });
+    await user.click(trigger);
+
+    expect(screen.getByText(flowText.materialExport.sheetHint)).toBeInTheDocument();
   });
 });
 
