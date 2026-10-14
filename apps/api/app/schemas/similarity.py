@@ -8,7 +8,11 @@ point of the feature is that a reader can check it.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, Field, model_validator
+
+from app.domain.nearness import MAX_WEIGHT
 
 #: Enough to describe a material without turning the request into a survey. The
 #: basis is a question, and a question over twenty properties is not one.
@@ -26,6 +30,18 @@ class SimilarRequest(BaseModel):
 
     property_slugs: list[str] = Field(min_length=1, max_length=MAX_BASIS_PROPERTIES)
     limit: int = Field(default=10, ge=1, le=50)
+    #: Nearness settings (D-120). A slug left out runs with weight 1 and
+    #: criterion ``both``; zero is refused, because "this property does not
+    #: matter" is said by taking it out of the basis, where the answer shows it.
+    weights: dict[str, Annotated[float, Field(gt=0, le=MAX_WEIGHT)]] = Field(default_factory=dict)
+    criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _settings_belong_to_the_basis(self) -> SimilarRequest:
+        stray = sorted((set(self.weights) | set(self.criteria)) - set(self.property_slugs))
+        if stray:
+            raise ValueError("Peso ou critério para propriedade fora da base: " + ", ".join(stray))
+        return self
 
 
 class NeighbourOut(BaseModel):
@@ -43,6 +59,9 @@ class NeighbourOut(BaseModel):
     #: Per-property squared contribution, so a neighbour's position can be
     #: explained property by property instead of asserted.
     contributions: dict[str, float] = Field(default_factory=dict)
+    #: Properties where a one-sided criterion accepted a real difference
+    #: ("100% se igual ou menor/maior"). Never a property the record lacks.
+    satisfied: list[str] = Field(default_factory=list)
 
 
 class ExcludedOut(BaseModel):
@@ -70,3 +89,6 @@ class SimilarOut(BaseModel):
     #: linearly, because some record in the pool held a non-positive value.
     linear_fallback: list[str] = Field(default_factory=list)
     linear_fallback_labels: list[str] = Field(default_factory=list)
+    #: The settings that ran, defaults written out (D-120): part of the basis.
+    weights: dict[str, float] = Field(default_factory=dict)
+    criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
