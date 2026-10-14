@@ -174,8 +174,7 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
+  const res = await fetch(`${API_URL}${path}`, {\n    ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -211,8 +210,7 @@ export function googleLoginUrl(): string {
 
 // --- Materials ------------------------------------------------------------
 
-export function listMaterials(search?: string): Promise<MaterialListItem[]> {
-  const query =
+export function listMaterials(search?: string): Promise<MaterialListItem[]> {\n  const query =
     search && search.trim()
       ? `?search=${encodeURIComponent(search.trim())}`
       : "";
@@ -773,8 +771,7 @@ export function convertMapBox(
   payload: MapBoxRequest,
   unitChoices?: Record<string, string>,
 ): Promise<MapBoxOut> {
-  return request<MapBoxOut>(withUnits(`/api/charts/map-box`, unitChoices), {
-    method: "POST",
+  return request<MapBoxOut>(withUnits(`/api/charts/map-box`, unitChoices), {\n    method: "POST",
     body: JSON.stringify(payload),
   });
 }
@@ -902,142 +899,242 @@ export function caeExportUrl(
 }
 
 /**
- * Downloads a material card for a given solver in a chosen unit system.
- *
- * This goes through `fetch` because a refusal (422 — material lacks the required
- * properties) needs to be read and displayed in the dialog: a plain navigation
- * would render the error page or open a download containing the JSON error.
+ * Fetches the card instead of linking to it, unlike the other exports: a card
+ * the record cannot honestly fill is refused with a 422 whose `detail` names
+ * what is missing, and a plain link would drop the user on a JSON page. The
+ * caller saves the blob under the server's own filename.
  */
 export async function downloadCaeCard(
   materialId: number,
   format: CaeFormat,
   units: CaeUnitSystem,
 ): Promise<{ blob: Blob; filename: string }> {
-  const url = caeExportUrl(materialId, format, units);
-  const res = await fetch(url, { credentials: "include" });
+  const res = await fetch(caeExportUrl(materialId, format, units), {
+    credentials: "include",
+    cache: "no-store",
+  });
   if (!res.ok) {
-    const fallback = `Falha ao exportar cartão CAE (${res.status})`;
-    throw new ApiError(await errorMessage(res, fallback), res.status);
+    throw new ApiError(
+      await errorMessage(res, "Falha ao gerar o cartão de material."),
+      res.status,
+    );
   }
   const disposition = res.headers.get("content-disposition") ?? "";
-  const match = disposition.match(/filename="?([^";]+)"?/i);
-  const filename = match ? match[1] : `material-${materialId}-${format}.txt`;
-  const blob = await res.blob();
-  return { blob, filename };
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return { blob: await res.blob(), filename: match?.[1] ?? `material-${materialId}.txt` };
 }
 
-// --- Battery pack designer & comparison (D-69) ------------------------------
+// --- My Records (P1-4) ------------------------------------------------------
+
+/**
+ * Favourites, recents and own records in one request.
+ *
+ * One call and not three because the page shows them together: separate
+ * requests would let one list render against a catalogue the others never saw.
+ */
+export function getMyRecords(): Promise<MyRecords> {
+  return request<MyRecords>(`/api/my-records`);
+}
+
+/**
+ * Star a record. `PUT`, because starring is idempotent — a second click on a
+ * lit star means what the first one meant. Returns the whole space, so the
+ * caller never has to re-fetch to stay consistent with it.
+ */
+export function addFavorite(
+  universe: Universe,
+  recordId: number,
+): Promise<MyRecords> {
+  return request<MyRecords>(
+    `/api/my-records/favorites/${universe}/${recordId}`,
+    {
+      method: "PUT",
+    },
+  );
+}
+
+export function removeFavorite(
+  universe: Universe,
+  recordId: number,
+): Promise<MyRecords> {
+  return request<MyRecords>(
+    `/api/my-records/favorites/${universe}/${recordId}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+/**
+ * Note that the reader just opened a record.
+ *
+ * Declared by the client rather than recorded inside the datasheet's own GET:
+ * a read that writes is un-cacheable and non-idempotent, and an export
+ * re-reading a record would quietly reorder the list.
+ */
+export function touchRecent(
+  universe: Universe,
+  recordId: number,
+): Promise<void> {
+  return request<void>(`/api/my-records/recents/${universe}/${recordId}`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Rank the catalogue by distance from one material (P2).
+ *
+ * A POST because the basis is a body, not an identity: "similar in these five
+ * respects" is a different question from "similar in these two", and a list of
+ * slugs in a query string would make the two share a cache entry.
+ */
+export function findSimilar(
+  materialId: number,
+  body: SimilarRequest,
+): Promise<Similar> {
+  return request<Similar>(`/api/materials/${materialId}/similares`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Engineering Solver & Performance Index Finder (P2) ---------------------
+
+/**
+ * The load-case catalogue: the Finder's own listing.
+ *
+ * A GET, because browsing cases by facet is a question about the catalogue and
+ * nothing about the reader — so it caches, and two people asking get one answer.
+ */
+export function listLoadCases(): Promise<LoadCase[]> {
+  return request<LoadCase[]>("/api/solver/casos");
+}
+
+export function getLoadCase(key: string): Promise<LoadCase> {
+  return request<LoadCase>(`/api/solver/casos/${encodeURIComponent(key)}`);
+}
+
+/**
+ * Dimension every visible material against one brief.
+ *
+ * A POST like `findSimilar`, and for the same reason: the brief is a body of
+ * design numbers, and putting them in a query string would make two different
+ * questions share a cache entry.
+ */
+export function solveBrief(body: SolveRequest): Promise<SolveResult> {
+  return request<SolveResult>("/api/solver/resolver", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Part Cost Estimator (P3) -----------------------------------------------
+
+/**
+ * Price one part across every process that can make it.
+ *
+ * A POST like `solveBrief`: the brief is a body of design and shop numbers, and
+ * a query string would make two different questions share a cache entry.
+ */
+export function estimatePartCost(body: CostRequest): Promise<CostResult> {
+  return request<CostResult>("/api/custo/estimar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Eco Audit (P3) ---------------------------------------------------------
+
+export function listTransportModes(): Promise<TransportMode[]> {
+  return request<TransportMode[]>("/api/eco/modais");
+}
+
+/** The seven end-of-life routes, each with how many materials can price it. */
+export function listEndOfLifeRoutes(): Promise<EndOfLifeRouteInfo[]> {
+  return request<EndOfLifeRouteInfo[]>("/api/eco/rotas-fim-de-vida");
+}
+
+/**
+ * A POST like the solver's and the estimator's: the brief is a body of design
+ * numbers, and a query string would make two different questions share a cache
+ * entry.
+ */
+export function runEcoAudit(body: EcoAuditRequest): Promise<EcoAuditResult> {
+  return request<EcoAuditResult>("/api/eco/auditar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function compareEcoAudits(
+  body: EcoComparisonRequest,
+): Promise<EcoComparisonResult> {
+  return request<EcoComparisonResult>("/api/eco/comparar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Synthesizer (P3) -------------------------------------------------------
+
+export function listSynthesisKinds(): Promise<SynthesisKindInfo[]> {
+  return request<SynthesisKindInfo[]>("/api/sintetizar/tipos");
+}
+
+/** O que a receita produziria, sem gravar nada. */
+export function previewSynthesis(
+  body: SynthesisRequest,
+): Promise<SynthesisPreview> {
+  return request<SynthesisPreview>("/api/sintetizar/previa", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function createSynthesis(
+  body: SynthesisRequest,
+): Promise<SynthesisResult> {
+  return request<SynthesisResult>("/api/sintetizar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Battery Designer (P4 / Módulo S) ---------------------------------------
 
 export function listBatteryChemistries(): Promise<BatteryChemistry[]> {
-  return request<BatteryChemistry[]>(`/api/battery/chemistries`);
+  return request<BatteryChemistry[]>("/api/baterias/quimicas");
+}
+
+export function getBatteryChemistry(slug: string): Promise<BatteryChemistry> {
+  return request<BatteryChemistry>(
+    `/api/baterias/quimicas/${encodeURIComponent(slug)}`,
+  );
 }
 
 export function listBatteryArchetypes(): Promise<ApplicationArchetype[]> {
-  return request<ApplicationArchetype[]>(`/api/battery/archetypes`);
+  return request<ApplicationArchetype[]>("/api/baterias/arquetipos");
 }
 
-export function designBatteryPack(payload: PackDesignRequest): Promise<PackDesignResult> {
-  return request<PackDesignResult>(`/api/battery/pack-design`, {
+export function designBatteryPack(
+  body: PackDesignRequest,
+): Promise<PackDesignResult> {
+  return request<PackDesignResult>("/api/baterias/dimensionar", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 }
 
-export function compareBatteryChemistries(
-  payload: BatteryComparisonRequest,
+export function compareBatteries(
+  body: BatteryComparisonRequest,
 ): Promise<BatteryComparisonResult> {
-  return request<BatteryComparisonResult>(`/api/battery/compare-chemistries`, {
+  return request<BatteryComparisonResult>("/api/baterias/comparar", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 }
 
-// --- Eco audit (D-54, D-121) ------------------------------------------------
-
-export function listTransportModes(): Promise<TransportMode[]> {
-  return request<TransportMode[]>(`/api/eco/transports`);
-}
-
-export function listEndOfLifeRoutes(materialId: number): Promise<EndOfLifeRouteInfo[]> {
-  return request<EndOfLifeRouteInfo[]>(`/api/eco/materials/${materialId}/end-of-life`);
-}
-
-export function auditEco(payload: EcoAuditRequest): Promise<EcoAuditResult> {
-  return request<EcoAuditResult>(`/api/eco/audit`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export function compareEco(payload: EcoComparisonRequest): Promise<EcoComparisonResult> {
-  return request<EcoComparisonResult>(`/api/eco/compare`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// --- Structural section sizing (D-52) ---------------------------------------
-
-export function listLoadCases(): Promise<LoadCase[]> {
-  return request<LoadCase[]>(`/api/solver/cases`);
-}
-
-export function solveLoadCase(payload: SolveRequest): Promise<SolveResult> {
-  return request<SolveResult>(`/api/solver/solve`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// --- Cost modeling (D-53) ---------------------------------------------------
-
-export function estimateCost(payload: CostRequest): Promise<CostResult> {
-  return request<CostResult>(`/api/cost/estimate`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// --- Material synthesis (D-56) ----------------------------------------------
-
-export function listSynthesisKinds(): Promise<SynthesisKindInfo[]> {
-  return request<SynthesisKindInfo[]>(`/api/synthesis/kinds`);
-}
-
-export function previewSynthesis(payload: SynthesisRequest): Promise<SynthesisPreview> {
-  return request<SynthesisPreview>(`/api/synthesis/preview`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export function commitSynthesis(payload: SynthesisRequest): Promise<SynthesisResult> {
-  return request<SynthesisResult>(`/api/synthesis/commit`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// --- Similar materials (D-57) -----------------------------------------------
-
-export function findSimilarMaterials(
-  id: number,
-  payload: SimilarRequest,
-): Promise<Similar> {
-  return request<Similar>(`/api/materials/${id}/similar`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// --- User records space (P1-4, D-62) ----------------------------------------
-
-export function listMyRecords(universe?: Universe): Promise<MyRecords> {
-  const query = universe ? `?universo=${encodeURIComponent(universe)}` : "";
-  return request<MyRecords>(`/api/meus-registros${query}`);
-}
-
-// --- Cadernos de estudo (D-92) ----------------------------------------------
+// --- Cadernos (D-92) ----------------------------------------------------------
 
 const nb = (id: number) => `/api/notebooks/${id}`;
 
@@ -1057,71 +1154,77 @@ export function getNotebook(id: number): Promise<Notebook> {
 }
 
 export function updateNotebook(id: number, patch: NotebookUpdate): Promise<Notebook> {
-  return request<Notebook>(nb(id), {
-    method: "PATCH",
-    body: JSON.stringify(patch),
-  });
+  return request<Notebook>(nb(id), { method: "PATCH", body: JSON.stringify(patch) });
 }
 
 export function deleteNotebook(id: number): Promise<void> {
   return request<void>(nb(id), { method: "DELETE" });
 }
 
-export async function uploadNotebookSource(id: number, file: File): Promise<NotebookSource> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch(`${API_URL}${nb(id)}/sources`, {
-    method: "POST",
-    body: form,
-    credentials: "include",
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new ApiError(
-      await errorMessage(res, "Falha no envio da fonte"),
-      res.status,
-    );
-  }
-  return (await res.json()) as NotebookSource;
-}
-
-export function addNotebookSourceText(
+export function addNotebookText(
   id: number,
-  body: { title: string; text: string },
+  title: string,
+  text: string,
 ): Promise<NotebookSource> {
   return request<NotebookSource>(`${nb(id)}/sources/text`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ title, text }),
   });
 }
 
-export function addNotebookSourceUrl(
+export function addNotebookAppSource(
   id: number,
-  body: { url: string },
+  kind: "ficha" | "estudo",
+  recordId: number,
 ): Promise<NotebookSource> {
-  return request<NotebookSource>(`${nb(id)}/sources/url`, {
+  return request<NotebookSource>(`${nb(id)}/sources/app`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ kind, record_id: recordId }),
   });
 }
 
-export function addNotebookSourceCatalog(
+/**
+ * Upload one file with progress.
+ *
+ * XHR and not `fetch`: `fetch` still has no upload progress in browsers, and a
+ * 15 MB PDF on a school's Wi-Fi with no sign of life reads as a frozen page.
+ * Same-origin cookie rules as `request` (`withCredentials`).
+ */
+export function uploadNotebookSource(
   id: number,
-  body: { universe: Universe; record_id: number },
+  file: File,
+  onProgress?: (fraction: number) => void,
 ): Promise<NotebookSource> {
-  return request<NotebookSource>(`${nb(id)}/sources/catalog`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-}
-
-export function addNotebookSourceStudy(
-  id: number,
-  body: { study_id: number },
-): Promise<NotebookSource> {
-  return request<NotebookSource>(`${nb(id)}/sources/study`, {
-    method: "POST",
-    body: JSON.stringify(body),
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}${nb(id)}/sources/upload`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      let body: { detail?: unknown } | null = null;
+      try {
+        body = JSON.parse(xhr.responseText) as { detail?: unknown };
+      } catch {
+        body = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && body) {
+        resolve(body as unknown as NotebookSource);
+        return;
+      }
+      reject(
+        new ApiError(
+          readErrorDetail(body?.detail) ?? `Falha no envio de ${file.name}`,
+          xhr.status,
+        ),
+      );
+    };
+    xhr.onerror = () => reject(new ApiError(`Falha de rede ao enviar ${file.name}`, 0));
+    xhr.send(form);
   });
 }
 
@@ -1132,7 +1235,7 @@ export function getNotebookSource(id: number, sourceId: number): Promise<Noteboo
 export function updateNotebookSource(
   id: number,
   sourceId: number,
-  patch: { selected?: boolean; title?: string },
+  patch: { title?: string; selected?: boolean },
 ): Promise<NotebookSource> {
   return request<NotebookSource>(`${nb(id)}/sources/${sourceId}`, {
     method: "PATCH",
@@ -1170,10 +1273,7 @@ export function askNotebook(id: number, question: string): Promise<NotebookChat>
 }
 
 export function summarizeNotebook(id: number): Promise<Notebook> {
-  return request<Notebook>(`${nb(id)}/summary`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
+  return request<Notebook>(`${nb(id)}/summary`, { method: "POST" });
 }
 
 export function addNotebookNote(
@@ -1201,32 +1301,48 @@ export function deleteNotebookNote(id: number, noteId: number): Promise<void> {
   return request<void>(`${nb(id)}/notes/${noteId}`, { method: "DELETE" });
 }
 
-// --- Fontes externas do caderno (D-93) -----------------------------------------
-
-export function getSourceCapabilities(): Promise<NotebookSourceCapabilities> {
-  return request<NotebookSourceCapabilities>("/api/notebooks/sources-capabilities");
+export function saveAnswerAsNote(id: number, messageId: number): Promise<NotebookNote> {
+  return request<NotebookNote>(`${nb(id)}/messages/${messageId}/note`, { method: "POST" });
 }
 
-export function addNotebookSourceYoutube(
-  id: number,
-  body: NotebookYoutubeSourceRequest,
-): Promise<NotebookSource> {
-  return request<NotebookSource>(`${nb(id)}/sources/youtube`, {
+// --- Fontes externas (D-97) ----------------------------------------------------
+//
+// Every call that fetches or searches is a POST: it spends the student's daily
+// quota of outside requests, and the server re-fetches by `key` rather than
+// trusting any text sent from here.
+
+/** What is switched on — link, video, articles, Wikipedia, web — and why not. */
+export function getSourceCapabilities(): Promise<NotebookSourceCapabilities> {
+  return request<NotebookSourceCapabilities>("/api/notebooks/source-capabilities");
+}
+
+/** A web page by its address; the server fetches and reads it. */
+export function addUrlSource(id: number, url: string): Promise<NotebookSource> {
+  return request<NotebookSource>(`${nb(id)}/sources/url`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ url }),
   });
 }
 
-export function searchYoutubeVideos(query: string): Promise<NotebookYoutubeResult[]> {
-  const q = encodeURIComponent(query);
-  return request<NotebookYoutubeResult[]>(`/api/notebooks/sources/youtube/search?q=${q}`);
+/**
+ * A YouTube video. Without `transcript` the answer comes back with
+ * `needs_transcript` and no source: YouTube does not let a server fetch it.
+ */
+export function addYoutubeSource(
+  id: number,
+  body: NotebookYoutubeSourceRequest,
+): Promise<NotebookYoutubeResult> {
+  const payload: NotebookYoutubeSourceRequest = body.transcript
+    ? { url: body.url, transcript: body.transcript }
+    : { url: body.url };
+  return request<NotebookYoutubeResult>(`${nb(id)}/sources/youtube`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
-export function searchExternalSources(
-  id: number,
-  body: NotebookSearchRequest,
-): Promise<NotebookSearch> {
-  return request<NotebookSearch>(`${nb(id)}/sources/search`, {
+export function searchSources(id: number, body: NotebookSearchRequest): Promise<NotebookSearch> {
+  return request<NotebookSearch>(`${nb(id)}/search`, {
     method: "POST",
     body: JSON.stringify(body),
   });
