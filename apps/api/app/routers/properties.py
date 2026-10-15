@@ -13,12 +13,14 @@ from app.db.base import get_db
 from app.dependencies import get_current_user, require_catalog_curator
 from app.domain import depth_profile as depth
 from app.models.user import User
+from app.schemas.ordinal import OrdinalPropertyOut
 from app.schemas.property import (
     DepthLevelOut,
     DepthProfilesOut,
     PropertyDefinitionIn,
     PropertyDefinitionOut,
 )
+from app.services.ordinal_service import OrdinalService
 from app.services.property_service import PropertyService
 
 router = APIRouter(prefix="/properties", tags=["properties"])
@@ -30,6 +32,14 @@ def list_properties(
 ) -> list[PropertyDefinitionOut]:
     """List all property definitions with their value counts."""
     return PropertyService(db, user).list_properties()
+
+
+@router.get("/ordinais", response_model=list[OrdinalPropertyOut])
+def list_ordinal_properties(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> list[OrdinalPropertyOut]:
+    """Ordinal material properties and their scales, worst level first (D-126)."""
+    return OrdinalService(db, user).list_definitions()
 
 
 @router.get("/niveis", response_model=DepthProfilesOut)

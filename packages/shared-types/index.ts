@@ -391,6 +391,44 @@ export interface ProcessAttribute {
   better_direction: BetterDirection;
 }
 
+/**
+ * An ordinal material property (D-126): a closed scale of levels, worst first
+ * ("Muito pobre < … < Excelente"). It has no unit and no magnitude, so it never
+ * reaches an axis, a ranking or an index — only the minimum-level criterion.
+ */
+export interface OrdinalProperty {
+  slug: string;
+  name: string;
+  description: string | null;
+  kind: "ORDINAL";
+  levels: string[];
+  /** The scale as a sentence, from the backend. */
+  scale_text: string;
+  is_demo: boolean;
+}
+
+/** The level one material holds on one ordinal property — or a written absence. */
+export interface MaterialOrdinalValue {
+  slug: string;
+  name: string;
+  status: "nivel" | "ausente" | "sem_dado";
+  status_text: string;
+  level: string | null;
+  rank: number | null;
+  scale: string[];
+  source_label: string | null;
+  data_quality: string | null;
+  measurement_condition: string | null;
+  notes: string | null;
+  is_demo: boolean;
+}
+
+export interface MaterialOrdinalValues {
+  material_id: number;
+  material_name: string;
+  values: MaterialOrdinalValue[];
+}
+
 /** One attribute value of one process, with its provenance (P0-4). */
 export interface ProcessAttributeValue {
   attribute_id: number;
@@ -768,7 +806,10 @@ export type ConstraintOperator =
   // syntax ("Cr>=12"). `not_composition` is the guarantee side. Material studies
   // only.
   | "composition"
-  | "not_composition";
+  | "not_composition"
+  // D-126: "at least this level" over an ordinal material property; the level
+  // travels as its label, alone, in `labels`. Material studies only.
+  | "level_at_least";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -1055,6 +1096,9 @@ export interface FunnelStep {
   remaining: number;
   /** Composition criteria only: candidates it could not decide for lack of data. */
   undetermined?: number | null;
+  /** Minimum-level criteria only (D-126): candidates with no level recorded —
+   * absent or "sem dado". They never pass, and are not the worst level. */
+  without_level?: number | null;
 }
 
 /**

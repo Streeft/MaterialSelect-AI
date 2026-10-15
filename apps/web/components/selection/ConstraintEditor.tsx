@@ -82,8 +82,12 @@ export interface SelectableAttribute {
   slug: string;
   name: string;
   canonical_unit: string | null;
-  kind?: ProcessAttribute["kind"];
+  /** `ORDINAL` (D-126) is a material property on an ordered scale of levels. */
+  kind?: ProcessAttribute["kind"] | "ORDINAL";
   allowed_labels?: string[];
+  /** D-126: an ordinal property's scale, worst level first, and as a sentence. */
+  levels?: string[];
+  scale_text?: string;
   /** D-85: the units a material property accepts, and the one it is read in —
    * so the row offers a unit list instead of a free box whose blank meant Pa. */
   accepted_units?: string[];
@@ -179,17 +183,29 @@ export const LABEL_OPERATORS: ConstraintOperator[] = ["has_any_label", "has_no_l
 export const COMPOSITION_OPERATORS: ConstraintOperator[] = ["composition", "not_composition"];
 const COMPOSITION_OPS = new Set<ConstraintOperator>(COMPOSITION_OPERATORS);
 
+/**
+ * "At least this level" over an ordinal material property (D-126). Offered in a
+ * material study only when some ordinal property exists — an option that could
+ * only be picked and then refused is the defect LABEL_OPERATORS avoids too.
+ */
+export const ORDINAL_OPERATORS: ConstraintOperator[] = ["level_at_least"];
+
 const NUMERIC = new Set<ConstraintOperator>(["gt", "gte", "lt", "lte", "between", "outside"]);
 const LABEL_OPS = new Set<ConstraintOperator>(LABEL_OPERATORS);
 const NEEDS_PROPERTY = new Set<ConstraintOperator>([
   "gt", "gte", "lt", "lte", "between", "outside", "exists", "not_exists",
-  "has_any_label", "has_no_label",
+  "has_any_label", "has_no_label", "level_at_least",
 ]);
 const CLASS_OPS = new Set<ConstraintOperator>(["in_class", "not_in_class"]);
 
 /** True when an attribute holds labels rather than a magnitude. */
 function isDiscrete(attribute: SelectableAttribute | undefined): boolean {
   return attribute?.kind === "DISCRETO";
+}
+
+/** True when a property holds a level on an ordered scale (D-126). */
+export function isOrdinal(attribute: SelectableAttribute | undefined): boolean {
+  return attribute?.kind === "ORDINAL";
 }
 
 /**
@@ -206,7 +222,9 @@ export function selectableFor(
   attributes: SelectableAttribute[],
 ): SelectableAttribute[] {
   if (LABEL_OPS.has(operator)) return attributes.filter(isDiscrete);
-  if (NUMERIC.has(operator)) return attributes.filter((a) => !isDiscrete(a));
+  if (operator === "level_at_least") return attributes.filter(isOrdinal);
+  // A level has a position and no magnitude: never compared by a number.
+  if (NUMERIC.has(operator)) return attributes.filter((a) => !isDiscrete(a) && !isOrdinal(a));
   return attributes;
 }
 
@@ -316,6 +334,9 @@ export function describeConstraintRow(
   if (LABEL_OPS.has(op)) {
     return name && row.labels.length ? t.sentenceLabels(name, op === "has_any_label", row.labels.join(", ")) : "";
   }
+  if (op === "level_at_least") {
+    return name && row.labels[0] ? t.sentenceLevel(name, row.labels[0]) : "";
+  }
   if (COMPOSITION_OPS.has(op)) {
     return row.text.trim() ? t.sentenceComposition(op === "not_composition", row.text.trim()) : "";
   }
@@ -350,9 +371,13 @@ function ConstraintRowFields({
   const isLabelOp = LABEL_OPS.has(row.operator);
   const prop = properties.find((p) => p.slug === row.property_slug);
   const isProcessStudy = universe === "process";
+  // D-126: the minimum level is offered when some ordinal property exists — and
+  // always when this row already uses it, because what is in use is never hidden.
+  const ordinalOffered =
+    !isProcessStudy && (row.operator === "level_at_least" || properties.some(isOrdinal));
   const operators = isProcessStudy
     ? [...OPERATORS, ...LABEL_OPERATORS]
-    : [...OPERATORS, ...COMPOSITION_OPERATORS];
+    : [...OPERATORS, ...(ordinalOffered ? ORDINAL_OPERATORS : []), ...COMPOSITION_OPERATORS];
   const offered = selectableFor(row.operator, properties);
   const unitChoices = !isProcessStudy ? (prop?.accepted_units ?? []) : [];
   const sentence = describeConstraintRow(row, prop, classes);
@@ -368,7 +393,11 @@ function ConstraintRowFields({
         value: p.slug,
         label: p.name,
         keywords: [p.slug],
-        description: p.canonical_unit ? prettyUnit(p.display_unit ?? p.canonical_unit) : undefined,
+        description: p.canonical_unit
+          ? prettyUnit(p.display_unit ?? p.canonical_unit)
+          : isOrdinal(p)
+            ? p.scale_text
+            : undefined,
       }))}
       onChange={(slug) => {
         const next = properties.find((p) => p.slug === slug);
@@ -514,6 +543,26 @@ function ConstraintRowFields({
               ))}
             </ClassMultiSelect>
           </Field>
+        )}
+
+        {row.operator === "level_at_least" && (
+          // One level, from the property's own scale, worst first (D-126).
+          <Select
+            label={t.minimumLevel}
+            hint={
+              prop?.scale_text ? t.minimumLevelHint(prop.scale_text) : t.minimumLevelPickPropertyFirst
+            }
+            className="w-56"
+            value={row.labels[0] ?? ""}
+            onChange={(e) => onUpdate({ labels: e.target.value ? [e.target.value] : [] })}
+          >
+            <SelectOption value="">{t.selectLevel}</SelectOption>
+            {(prop?.levels ?? []).map((level) => (
+              <SelectOption key={level} value={level}>
+                {level}
+              </SelectOption>
+            ))}
+          </Select>
         )}
 
         {row.operator === "text_contains" && (
@@ -844,6 +893,13 @@ function rowToConstraintIn(r: ConstraintRow): ConstraintIn | null {
     // refuse it, and a half-written row is not a criterion the reader stated.
     return r.property_slug && r.labels.length
       ? { operator: r.operator, property_slug: r.property_slug, labels: r.labels }
+      : null;
+  }
+  if (r.operator === "level_at_least") {
+    // Exactly one level: the minimum accepted one. The backend refuses more.
+    const level = r.labels[0];
+    return r.property_slug && level
+      ? { operator: r.operator, property_slug: r.property_slug, labels: [level] }
       : null;
   }
   return r.text.trim() ? { operator: r.operator, text: r.text.trim() } : null;

@@ -469,3 +469,113 @@ describe("composição química como restrição (TM2-b)", () => {
     expect(toConstraintPayload({ ...emptyGroup("g"), constraints: [row] }).constraints).toEqual([]);
   });
 });
+
+// --- D-126: ordinal material property, minimum accepted level --------------------
+
+describe("nível mínimo aceito sobre propriedade ordinal (D-126)", () => {
+  const durability = {
+    slug: "durabilidade-agua",
+    name: "Durabilidade em água",
+    canonical_unit: null,
+    kind: "ORDINAL" as const,
+    levels: ["Muito pobre", "Pobre", "Aceitável", "Bom", "Excelente"],
+    scale_text: "Muito pobre < Pobre < Aceitável < Bom < Excelente",
+  };
+
+  function rowWith(patch: Partial<ReturnType<typeof emptyConstraint>>): ConstraintGroupState {
+    return {
+      ...emptyGroup(nextEditorId("group")),
+      constraints: [{ ...emptyConstraint(nextEditorId("row")), ...patch }],
+    };
+  }
+
+  function optionTexts(container: HTMLElement): string[] {
+    return Array.from(container.querySelectorAll("option")).map(
+      (o) => o.textContent?.trim() ?? "",
+    );
+  }
+
+  it("is offered in a material study only when an ordinal property exists", () => {
+    const without = render(<Harness initial={rowWith({})} />);
+    expect(optionTexts(without.container)).not.toContain(t.operators.level_at_least);
+    without.unmount();
+
+    const withOrdinal = render(
+      <Harness initial={rowWith({})} properties={[density, durability]} />,
+    );
+    expect(optionTexts(withOrdinal.container)).toContain(t.operators.level_at_least);
+    withOrdinal.unmount();
+
+    const process = render(
+      <Harness initial={rowWith({})} properties={[massRange, shape]} universe="process" />,
+    );
+    expect(optionTexts(process.container)).not.toContain(t.operators.level_at_least);
+  });
+
+  it("pairs the operator with ordinal properties only, and never a number with a level", () => {
+    expect(selectableFor("level_at_least", [density, durability]).map((a) => a.slug)).toEqual([
+      "durabilidade-agua",
+    ]);
+    expect(selectableFor("gte", [density, durability]).map((a) => a.slug)).toEqual([
+      "densidade",
+    ]);
+    expect(selectableFor("exists", [density, durability])).toHaveLength(2);
+  });
+
+  it("lists the scale worst first, and says it", () => {
+    const { container } = render(
+      <Harness
+        initial={rowWith({ operator: "level_at_least", property_slug: "durabilidade-agua" })}
+        properties={[density, durability]}
+      />,
+    );
+    const texts = optionTexts(container);
+    const start = texts.indexOf("Muito pobre");
+    expect(texts.slice(start, start + 5)).toEqual(durability.levels);
+    expect(container.textContent).toContain(t.minimumLevelHint(durability.scale_text));
+  });
+
+  it("sends exactly one level, and nothing until property and level are both there", () => {
+    expect(
+      toConstraintPayload(rowWith({ operator: "level_at_least", property_slug: "durabilidade-agua" }))
+        .constraints,
+    ).toEqual([]);
+    expect(
+      toConstraintPayload(
+        rowWith({
+          operator: "level_at_least",
+          property_slug: "durabilidade-agua",
+          labels: ["Aceitável"],
+        }),
+      ).constraints,
+    ).toEqual([
+      { operator: "level_at_least", property_slug: "durabilidade-agua", labels: ["Aceitável"] },
+    ]);
+  });
+
+  it("reads as a sentence that says absence does not pass", () => {
+    const row = {
+      ...emptyConstraint("r"),
+      operator: "level_at_least" as const,
+      property_slug: "durabilidade-agua",
+      labels: ["Bom"],
+    };
+    expect(describeConstraintRow(row, durability, [])).toBe(
+      t.sentenceLevel("Durabilidade em água", "Bom"),
+    );
+    expect(t.sentenceLevel("X", "Bom")).toContain("sem nível cadastrado não passa");
+  });
+
+  it("reopens a saved minimum level", () => {
+    const reopened = fromConstraintPayload({
+      operator: "AND",
+      constraints: [
+        { operator: "level_at_least", property_slug: "durabilidade-agua", labels: ["Bom"] },
+      ],
+      groups: [],
+    });
+    expect(toConstraintPayload(reopened).constraints).toEqual([
+      { operator: "level_at_least", property_slug: "durabilidade-agua", labels: ["Bom"] },
+    ]);
+  });
+});

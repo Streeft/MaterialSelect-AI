@@ -13,6 +13,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 |---|---|---|---|---|
 | [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
 | [82](#sessão-82--151026--perfis-de-profundidade-l1l2l3-com-visão-de-ficha-d-127) | 15/10/2026 | Perfis de profundidade L1/L2/L3: `min_level` por slug no código (padrão seguro: todos), `GET /api/properties/niveis`, seletor de nível na ficha e nos eixos do mapa com "mostra X de Y" escrito, nível na URL, canário "nível não altera ranking"; sem migração (D-127) | +17 | +8 |
+| [81](#sessão-81--151026--propriedade-ordinal-de-material-e-nível-mínimo-aceito-d-126) | 15/10/2026 | Propriedade ordinal de material (escala ordenada, nível por material com proveniência, ausência escrita) e o critério "nível mínimo aceito" no estágio de limites (ausente nunca passa; `without_level` no funil e no laudo), demo fictício, contrato do bundle (migração `860cc669ff6a`) | +35 | +7 |
 | [80](#sessão-80--141026--ficha-técnica-do-material-em-pdf-para-todo-registro-visível-d-125) | 14/10/2026 | Ficha técnica completa em PDF: diagnóstico do 404 em produção (API não implantada após o #135), visibilidade coberta (demo, próprio, compartilhado, oficial; inexistente/alheio = 404 escrito) e 404 de rota em pt-BR | 4799 | 929 |
 | [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4781 | 924 |
 | [78](#sessão-78--141026--desempenho-do-diff-entre-releases-tm7-d-d-123) | 14/10/2026 | Desempenho do diff entre releases (TM7-d): unidade interpretada uma vez, atalho do valor idêntico e diff guardado no import (migração `2fe7eecc5981`) | +12 | 0 |
@@ -125,6 +126,24 @@ de fora não está ausente. Seleção, ranking e exportações não recebem o n�
 **Testes.** +17 de backend (`test_depth_profile.py`) e +8 de frontend
 (`lib/depth.test.ts`, `materiais/[id]/nivel.test.tsx`): 4799 → 4816 e 929 → 937.
 
+## Sessão 81 — 15/10/26 — Propriedade ordinal de material e nível mínimo aceito (D-126)
+
+**O que mudou.** Item #11 do relatório de lacunas do EduPack (exercício 8, passo
+2). Tabelas `ordinal_property_definition`, `ordinal_scale_level` e
+`material_ordinal_value` (migração `860cc669ff6a`, aditiva; chave composta que
+prende o nível à própria escala; `CHECK` nível xor ausente). O motor ganhou
+`RecordSnapshot.ordinals` e o operador `level_at_least` no estágio `limit`
+(`app/domain/ordinal.py::meets_minimum`: ausente nunca passa); o funil traz
+`without_level`, e o relatório/laudo, a nota. `GET /api/properties/ordinais` e
+`GET /api/materials/{id}/ordinais`. Na Seleção guiada, "≥ nível mínimo aceito"
+aparece quando existe propriedade ordinal, com a escala do pior ao melhor. Demo
+fictício por `seed_extended` (2 definições "(demo)", um nível por material demo,
+um em sete ausente); `clear_demo` e a guarda do import oficial cobrem os dois; o
+bundle do D-102 aceita os dois arquivos só como estrutura. Exige **Deploy da API**
+e a migração; `semear_demo` para ver o demo.
+
+**Testes.** +35 de backend (`test_ordinal_properties.py`, chaves novas em
+`test_clear_demo.py`) e +7 de frontend: 4799 → 4834 e 929 → 936 isolados; sobre a main com o D-127 e o D-128 mesclados, a árvore coleta 4869 (4863 passam e 6 pulam) e 961 de frontend.
 ## Sessão 80 — 14/10/26 — Ficha técnica do material em PDF para todo registro visível (D-125)
 
 **Sintoma.** Em produção, "Ficha técnica completa (PDF)" abria

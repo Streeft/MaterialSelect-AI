@@ -33,9 +33,11 @@ from app.schemas.material import (
     MaterialUpdate,
     PropertyValueIn,
 )
+from app.schemas.ordinal import MaterialOrdinalValuesOut
 from app.schemas.similarity import SimilarOut, SimilarRequest
 from app.services.curve_service import CurveService
 from app.services.material_service import MaterialService
+from app.services.ordinal_service import OrdinalService
 from app.services.similarity_service import SimilarityService
 
 router = APIRouter(prefix="/materials", tags=["materials"])
@@ -185,6 +187,19 @@ def delete_material_curve(
         material_id, curve_id
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{material_id}/ordinais", response_model=MaterialOrdinalValuesOut)
+def list_material_ordinals(
+    material_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MaterialOrdinalValuesOut:
+    """The material's level on every ordinal property (D-126), "sem dado" written.
+
+    A material this viewer may not see is 404, like its sheet (D-62).
+    """
+    return OrdinalService(db, user).material_values(material_id)
 
 
 @router.get("/{material_id}/curvas", response_model=MaterialCurvesOut)

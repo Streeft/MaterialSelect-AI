@@ -491,6 +491,14 @@ class ExportService:
                 "necessário não foram decididos e não passam."
                 for step in composition_steps
             )
+        # D-126: the written reason for a minimum-level criterion — a material
+        # with no level left there for lack of data, not for being too poor.
+        notes.extend(
+            f"{step.label}: {step.without_level} candidato(s) sem nível cadastrado "
+            "(ausente ou sem dado) não passam; ausência não é o pior nível."
+            for step in result.funnel
+            if step.without_level is not None
+        )
         return Sheet(
             name="Restrições e funil",
             header=["Restrição", "Operador", "Passaram", "Restantes"],

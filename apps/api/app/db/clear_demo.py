@@ -49,6 +49,11 @@ from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.material_synthesis import MaterialSynthesis
 from app.models.my_records import Favorite, RecentRecord
+from app.models.ordinal_property import (
+    MaterialOrdinalValue,
+    OrdinalPropertyDefinition,
+    OrdinalScaleLevel,
+)
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process
 from app.models.process_attribute import ProcessAttributeValue
@@ -111,6 +116,37 @@ def clear_demo_identity(db: Session) -> dict[str, int]:
         removed[key] = db.scalar(select(func.count(model.id)).where(condition)) or 0
         db.execute(delete(model).where(condition))
     return removed
+
+
+def clear_demo_ordinals(db: Session) -> dict[str, int]:
+    """Delete fictitious ordinal levels and definitions (D-126).
+
+    A level is fictitious when it says so itself, belongs to a demo material or
+    sits under a demo definition — a fictitious scale cannot hold a real level.
+    Definitions go after their values; their scale levels go with them.
+    """
+    demo_materials = select(Material.id).where(Material.is_demo.is_(True))
+    demo_definitions = select(OrdinalPropertyDefinition.id).where(
+        OrdinalPropertyDefinition.is_demo.is_(True)
+    )
+    condition = (
+        MaterialOrdinalValue.is_demo.is_(True)
+        | MaterialOrdinalValue.material_id.in_(demo_materials)
+        | MaterialOrdinalValue.definition_id.in_(demo_definitions)
+    )
+    values = db.scalar(select(func.count(MaterialOrdinalValue.id)).where(condition)) or 0
+    db.execute(delete(MaterialOrdinalValue).where(condition))
+    definition_ids = list(db.execute(demo_definitions).scalars())
+    if definition_ids:
+        db.execute(
+            delete(OrdinalScaleLevel).where(OrdinalScaleLevel.definition_id.in_(definition_ids))
+        )
+        db.execute(
+            delete(OrdinalPropertyDefinition).where(
+                OrdinalPropertyDefinition.id.in_(definition_ids)
+            )
+        )
+    return {"ordinal_values": values, "ordinal_definitions": len(definition_ids)}
 
 
 def clear_demo_curves(db: Session) -> int:
@@ -330,6 +366,13 @@ def clear_demo_sources(db: Session) -> int:
             select(func.count(EquivalenceGroup.id)).where(EquivalenceGroup.source_id.in_(demo_ids))
         )
         or 0,
+        # D-126: a real ordinal level citing a demo source.
+        "material_ordinal_values": db.scalar(
+            select(func.count(MaterialOrdinalValue.id)).where(
+                MaterialOrdinalValue.source_id.in_(demo_ids)
+            )
+        )
+        or 0,
         # D-106: a real curve citing a demo source.
         "material_curves": db.scalar(
             select(func.count(MaterialCurve.id)).where(MaterialCurve.source_id.in_(demo_ids))
@@ -354,6 +397,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
     """
     equivalences = clear_demo_equivalences(db)  # before the designations it links
     identity = clear_demo_identity(db)
+    ordinals = clear_demo_ordinals(db)  # D-126, before the materials they belong to
     curves = clear_demo_curves(db)
     catalog_releases = clear_demo_catalog_releases(db)
     materials = clear_demo_materials(db)
@@ -370,6 +414,7 @@ def clear_demo_data(db: Session) -> dict[str, int]:
         "performance_indices": performance_indices,
         "sources": sources,
         **identity,
+        **ordinals,
         "equivalence_groups": equivalences,
         "curves": curves,
         "catalog_releases": catalog_releases,
