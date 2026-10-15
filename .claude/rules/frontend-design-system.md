@@ -63,6 +63,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
     tipo, "Tabela", "Exportar").
   - **Eixo:** um só, **nunca eixo duplo**.
 
+- **Busca global é a barra do topo** ([D-129](docs/DECISIONS.md)):
+  `GlobalSearch` (Ctrl/Cmd+K ou `/`) só **navega** — telas, materiais, processos,
+  cadernos, estudos. Nunca mostra valor de propriedade. Ideia nova vinda do
+  Material 3 cita a página de `m3.material.io` na decisão.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

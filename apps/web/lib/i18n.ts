@@ -28,6 +28,24 @@ export const ptBR = {
   demoWarning:
     "Dados exclusivamente demonstrativos. Não utilizar em projetos reais.",
   demoBadge: "Demonstrativo",
+  // D-129: a busca global (Ctrl/Cmd+K ou "/"), a que leva a qualquer tela,
+  // material, processo, caderno ou estudo salvo sem passar pelo menu.
+  palette: {
+    open: "Buscar",
+    title: "Buscar no MaterialSelect AI",
+    placeholder: "Buscar tela, material, processo, caderno ou estudo…",
+    hint: "↑↓ para escolher · Enter para abrir · Esc para fechar",
+    shortcut: "Ctrl K",
+    clear: "Limpar busca",
+    empty: "Nada encontrado para essa busca.",
+    loading: "Carregando o catálogo…",
+    groupPages: "Telas",
+    groupMaterials: "Materiais",
+    groupProcesses: "Processos",
+    groupNotebooks: "Cadernos",
+    groupStudies: "Estudos salvos",
+    results: (n: number) => (n === 1 ? "1 resultado" : `${n} resultados`),
+  },
   nav: {
     home: "Início",
     catalog: "Catálogo",
