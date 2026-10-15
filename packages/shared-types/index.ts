@@ -3327,3 +3327,15 @@ export interface ReleaseDiff {
   page_count: number;
   items: ReleaseDiffItem[];
 }
+
+/** Um verbete do glossário de propriedades (D-129): conceitual, nunca numérico. */
+export interface GlossaryEntry {
+  slug: string;
+  summary: string;
+  definition: string;
+  how_measured: string | null;
+  reference: string | null;
+  license: string;
+  review_status: "rascunho" | "revisado";
+  lang: string;
+}

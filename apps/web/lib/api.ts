@@ -10,6 +10,7 @@ import type {
   BatteryComparisonRequest,
   BatteryComparisonResult,
   BillingStatus,
+  GlossaryEntry,
   ChartData,
   CheckoutSession,
   CatalogRelease,
@@ -544,6 +545,13 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 }
 
 // --- Properties -----------------------------------------------------------
+
+// --- Glossário (D-129) --------------------------------------------------------
+
+/** Os verbetes conceituais do glossário de propriedades. */
+export function listGlossary(): Promise<GlossaryEntry[]> {
+  return request<GlossaryEntry[]>(`/api/glossario`);
+}
 
 export function listProperties(): Promise<PropertyDefinition[]> {
   return request<PropertyDefinition[]>(`/api/properties`);

@@ -208,7 +208,8 @@ describe("AppSidebar", () => {
       // de estudo recebeu "Dimensionar" (P2), "Custo" e "Eco" (P3) e agora
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
       // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(18); // 17 + o wordmark
+      // Dezoito desde o D-129: "Glossário", em "Dados".
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(19); // 18 + o wordmark
     });
 
     it("marks the current page inside the drawer too", async () => {
