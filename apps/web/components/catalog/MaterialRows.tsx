@@ -196,9 +196,13 @@ export function MaterialTable({
           <THead>
             <Tr>
               <Th className="w-10">
+                {/* The name is an aria-label, not hidden text: a visually hidden
+                    "Selecionar <material>" would also be page text, and anything that
+                    looks the material up by its name (a search, the E2E) would find it twice. */}
                 <Checkbox
                   ref={allRef}
-                  label={<span className="sr-only">{t.selectAll}</span>}
+                  aria-label={t.selectAll}
+                  label=""
                   checked={allSelected}
                   onChange={(e) =>
                     setPicked(e.target.checked ? new Set(materials.map((m) => m.id)) : new Set())
@@ -224,7 +228,8 @@ export function MaterialTable({
               <Tr key={m.id} className={picked.has(m.id) ? "bg-brand-50" : undefined}>
                 <Td>
                   <Checkbox
-                    label={<span className="sr-only">{t.selectRow(m.name)}</span>}
+                    aria-label={t.selectRow(m.name)}
+                    label=""
                     checked={picked.has(m.id)}
                     onChange={(e) => toggle(m.id, e.target.checked)}
                   />

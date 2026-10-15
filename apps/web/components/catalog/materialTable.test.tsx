@@ -122,6 +122,13 @@ describe("MaterialTable — ordenação e seleção (D-131)", () => {
     expect(screen.getByText(t.selectedCount(1))).toBeInTheDocument();
   });
 
+  it("a material's name appears once in the table, so a lookup by name stays unambiguous", () => {
+    // Regression: the checkbox's name used to be hidden text "Selecionar <nome>",
+    // which made `getByText(nome)` match two elements in the golden-path E2E.
+    render(<MaterialTable materials={LIST} />);
+    expect(within(screen.getByRole("table")).getAllByText(/Alumina/)).toHaveLength(1);
+  });
+
   it("has no accessibility violations with a selection open", async () => {
     const user = userEvent.setup();
     render(<MaterialTable materials={LIST} />);
