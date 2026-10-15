@@ -87,6 +87,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["app"]
 
+[tool.setuptools.package-data]
+# D-129: os verbetes do glossário são conteúdo versionado lido em runtime.
+app = ["glossary/*.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
