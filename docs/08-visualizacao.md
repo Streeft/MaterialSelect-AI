@@ -275,3 +275,11 @@ slug ou nada.
 - Comparação limitada a 12 × 12 (constantes em `app/schemas/charts.py`); acima
   disso a figura deixa de ser legível antes de ficar cara.
 - Exportação de **dados** (CSV/XLSX/PDF) é da Fase 7; aqui só imagens.
+
+## Comparador: limiar de destaque e propriedades computadas (D-128)
+
+O comparador destaca, por escrito e com selo, as propriedades cuja dispersão
+`(máx − mín) ÷ maior valor em módulo` passa do limiar escolhido (`?limiar=`,
+0 < x ≤ 1000; inválido é descartado, nunca consertado) e mostra, numa seção
+própria, índices do catálogo avaliados pelo backend em unidade canônica
+composta. Tudo é calculado no backend; ausência vira texto com o motivo.

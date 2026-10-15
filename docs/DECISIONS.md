@@ -10224,3 +10224,41 @@ todos os níveis. Para movê-la de nível, edite `PROPERTY_MIN_LEVEL` (teste em
 `test_depth_profile.py`). Se um dia o nível precisar mudar um cálculo, é
 mudança de método e exige decisão e aviso escrito.
 
+## D-128 — Comparador: limiar de destaque por dispersão e seção de propriedades computadas
+
+*Decidida pelo assistente por delegação do autor, revisável.*
+
+**Contexto.** A lacuna #14 do levantamento do EduPack pedia no comparador (a)
+um limiar configurável que destaque as propriedades em que os materiais
+diferem mais que X% e (b) propriedades computadas (razões/índices) numa seção
+própria. O teto de 60 materiais × 20 propriedades (D-113) já existe e não muda.
+
+**Decisão.** (1) **Base da diferença: o maior valor em módulo entre os
+comparados.** `dispersão = (máx − mín) ÷ max(|máx|, |mín|) × 100`
+(`app/domain/spread.py`), por propriedade, sobre o valor canônico. Não depende
+da ordem das linhas nem de haver uma referência, é simétrica e fica em 0–100%
+para valores de mesmo sinal. Só em escala de razão (`units.is_ratio_scale`);
+caso contrário, `escala_sem_zero`. As outras ausências também têm estado
+nomeado (`valores_insuficientes`, `base_zero`). O destaque é estritamente
+"maior que" o limiar. (2) Com referência escolhida (P2), a **célula** também é
+marcada quando |dif. %| passa do limiar (`CompareCellOut.exceeds_threshold`).
+(3) **Limiar** é `highlight_threshold_pct` no pedido (0 < x ≤ 1000) e `?limiar=`
+na URL; valor inválido é **recusado (422) ou descartado, nunca limitado nem
+consertado** (`lib/compare-threshold.ts`). (4) O destaque é texto primeiro:
+resumo escrito acima da tabela, selo "Acima do limiar" no cabeçalho e na
+célula, e a ausência da dispersão com o motivo (D-24, D-31). (5)
+**Computadas** = `computed: list[IndexIn]` no pedido, avaliadas por
+`_validate_expression` + `evaluate_index`, o mesmo caminho dos mapas e da
+seleção; o valor vem em unidade canônica composta (dimensão informada) e o
+insumo ausente devolve o motivo do avaliador, nunca zero. A tela oferece os
+índices do catálogo (`/api/performance-indices`), entre eles a razão
+módulo/densidade quando cadastrada. Sem migração.
+
+**Descartado.** Base "relativa ao primeiro/à referência" para o destaque de
+propriedade (assimétrica e dependente da ordem; a referência continua servindo
+à diferença por célula); limitar silenciosamente o limiar à faixa; destaque só
+por cor; computadas em unidade de leitura (um índice mistura propriedades com
+unidades próprias — D-70); índice digitado livremente na tela (fica para depois).
+
+**Consequências.** Contrato novo e retrocompatível (campos opcionais). Depois do
+merge, **Deploy da API** é obrigatório; não há seed nem migração.

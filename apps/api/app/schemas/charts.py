@@ -11,6 +11,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.domain.spread import MAX_THRESHOLD_PCT, SpreadState
 from app.models.enums import BetterDirection, DataQuality, PropertyCategory
 from app.schemas.selection import IndexIn, NormalizationLiteral
 
@@ -24,6 +25,7 @@ AxisLiteral = Literal["x", "y"]
 MAX_COMPARE_MATERIALS = 60
 MAX_COMPARE_PROPERTIES = 20
 MAX_INDEX_LEVELS = 10
+MAX_COMPARE_COMPUTED = 10
 
 
 # --- Property map ----------------------------------------------------------
@@ -321,6 +323,16 @@ class CompareRequest(BaseModel):
     property_slugs: list[str] = Field(min_length=1, max_length=MAX_COMPARE_PROPERTIES)
     normalization: NormalizationLiteral = "minmax"
     reference_id: int | None = None
+    #: D-128: a property whose values differ by more than this many percent
+    #: (spread over the largest magnitude, see `domain/spread.py`) is flagged.
+    #: Out of range is refused (422), never clamped: a threshold quietly turned
+    #: into another number would highlight the wrong rows with full confidence.
+    highlight_threshold_pct: float | None = Field(
+        default=None, gt=0, le=MAX_THRESHOLD_PCT, allow_inf_nan=False
+    )
+    #: D-128: simple ratios/indices over stored properties, evaluated by the
+    #: same safe evaluator as the selection indices. Shown in their own section.
+    computed: list[IndexIn] = Field(default_factory=list, max_length=MAX_COMPARE_COMPUTED)
 
 
 class CompareAxisOut(BaseModel):
@@ -337,6 +349,12 @@ class CompareAxisOut(BaseModel):
     max_value: float | None = None
     present_count: int
     missing_material_ids: list[int] = Field(default_factory=list)
+    #: D-128: (max - min) / largest magnitude, in percent; canonical units, ratio
+    #: scales only. ``None`` with the reason in ``spread_state``.
+    spread_pct: float | None = None
+    spread_state: SpreadState = "valores_insuficientes"
+    #: ``None`` when no threshold was asked or there is no spread to compare.
+    exceeds_threshold: bool | None = None
 
 
 class CompareCellOut(BaseModel):
@@ -371,6 +389,8 @@ class CompareCellOut(BaseModel):
     #: número calculado. Trocar a unidade de leitura não move esta coluna.
     difference_pct: float | None = None
     difference_state: DifferenceState = "sem_referencia"
+    #: D-128: |difference_pct| above the threshold; ``None`` without either.
+    exceeds_threshold: bool | None = None
 
     # --- a mesma medida, lida noutra unidade (D-70) ------------------------
     display_unit: str | None = None
@@ -392,8 +412,36 @@ class CompareMaterialOut(BaseModel):
     )
 
 
+class ComputedValueOut(BaseModel):
+    """One material's value of a computed index: a number or the reason it is not."""
+
+    material_id: int
+    value: float | None = None
+    undefined_reason: str | None = None
+
+
+class ComputedColumnOut(BaseModel):
+    """A computed ratio/index over the compared materials (D-128).
+
+    ``dimension`` is the composed canonical dimension of the expression — the
+    number is in *canonical* units, never in a reading unit, because an index
+    mixes properties that each have their own.
+    """
+
+    name: str
+    expression: str
+    goal: str
+    dimension: str
+    variables: list[str]
+    values: list[ComputedValueOut]
+    defined_count: int
+    undefined_count: int
+
+
 class CompareOut(BaseModel):
     normalization: str
     properties: list[CompareAxisOut]
     materials: list[CompareMaterialOut]
+    threshold_pct: float | None = None
+    computed: list[ComputedColumnOut] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)

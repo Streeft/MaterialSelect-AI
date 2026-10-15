@@ -2548,6 +2548,48 @@ export const ptBR = {
       escala_sem_zero:
         "Escala sem zero verdadeiro: percentual não significa nada",
     },
+    // D-128: limiar de destaque e propriedades computadas.
+    threshold: {
+      label: "Destacar diferenças acima de (%)",
+      hint: "Dispersão = (maior − menor) ÷ maior valor em módulo. Ex.: 10.",
+      apply: "Destacar",
+      clear: "Remover destaque",
+      invalid: "Informe um número maior que 0 e até 1000 (use ponto ou vírgula).",
+      summaryNone: (pct: string) =>
+        `Nenhuma propriedade difere mais que ${pct}% entre os materiais.`,
+      summaryTitle: (pct: string, n: number) =>
+        `${n} propriedade(s) diferem mais que ${pct}% entre os materiais:`,
+      summaryItem: (name: string, spread: string) => `${name} (${spread}%)`,
+      above: "Acima do limiar",
+      below: "Dentro do limiar",
+      cellAbove: "acima do limiar",
+      headerSpread: (spread: string) => `Dispersão ${spread}%`,
+      unavailable: "Sem dispersão",
+      spread: {
+        escala_sem_zero: "Escala sem zero verdadeiro: percentual não significa nada",
+        valores_insuficientes: "Menos de dois materiais têm o valor: não há dispersão",
+        base_zero: "Todos os valores são zero: não há base para o percentual",
+      },
+      notChecked: (names: string) => `Sem dispersão calculada: ${names}.`,
+    },
+    computed: {
+      title: "Propriedades computadas",
+      description:
+        "Índices calculados no backend a partir de propriedades cadastradas, em unidade canônica composta. Faltando algum insumo, o valor fica ausente com o motivo.",
+      pick: "Índices do catálogo",
+      none: "Nenhum índice escolhido.",
+      noneAvailable: "Não há índices cadastrados.",
+      loading: "Calculando índices…",
+      error: "Não foi possível calcular os índices.",
+      columnMaterial: "Material",
+      undefinedLabel: "Indefinido",
+      summary: (defined: number, undef: number) =>
+        `${defined} com valor, ${undef} sem valor`,
+      expression: "Expressão",
+      dimension: "Dimensão",
+      tableRegion: (n: number, p: number) =>
+        `Tabela de propriedades computadas, ${n} materiais por ${p} índices`,
+    },
     title: "Comparador de materiais",
     subtitle:
       "Tabela, barras, radar, coordenadas paralelas e heatmap sobre valores normalizados no backend.",
