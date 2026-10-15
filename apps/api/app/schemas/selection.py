@@ -26,6 +26,9 @@ OperatorLiteral = Literal[
     # search's own syntax (``Cr>=12``). ``not_composition`` is the guarantee side.
     "composition",
     "not_composition",
+    # D-126: "at least this level" over an ordinal material property; the level
+    # travels as its label, alone, in ``labels``.
+    "level_at_least",
 ]
 GoalLiteral = Literal["maximize", "minimize"]
 DirectionLiteral = Literal["max", "min"]
@@ -313,6 +316,11 @@ class FunnelStepOut(BaseModel):
     # (no composition, element not declared, declared absent, balance). They are
     # not in ``passed``; the count keeps "not satisfied" from reading as "no data".
     undetermined: int | None = None
+    # D-126: for a minimum-level criterion over an ordinal property, how many
+    # records the step looked at hold no level (absent or recorded as missing).
+    # They never pass; the count is the written reason, so "no level" never
+    # reads as "too poor". ``None`` for every other kind of criterion.
+    without_level: int | None = None
 
 
 class StageResultOut(BaseModel):

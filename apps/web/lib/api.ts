@@ -82,6 +82,7 @@ import type {
   ProcessClass,
   ProcessClassDetail,
   ProcessDetail,
+  OrdinalProperty,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -546,6 +547,11 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 
 export function listProperties(): Promise<PropertyDefinition[]> {
   return request<PropertyDefinition[]>(`/api/properties`);
+}
+
+/** Ordinal material properties and their scales, worst level first (D-126). */
+export function listOrdinalProperties(): Promise<OrdinalProperty[]> {
+  return request<OrdinalProperty[]>(`/api/properties/ordinais`);
 }
 
 export function createProperty(

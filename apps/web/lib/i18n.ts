@@ -482,7 +482,18 @@ export const ptBR = {
       // TM2-b (D-105): composição química, só no universo de materiais.
       composition: "composição (alcance da faixa)",
       not_composition: "composição (garantia: NOT)",
+      // D-126: nível mínimo aceito numa propriedade ordinal de material.
+      level_at_least: "≥ nível mínimo aceito",
     },
+    minimumLevel: "Nível mínimo aceito",
+    minimumLevelHint: (scale: string) => `Escala, do pior ao melhor: ${scale}.`,
+    minimumLevelPickPropertyFirst: "Escolha a propriedade para ver a escala de níveis.",
+    selectLevel: "Selecione um nível",
+    sentenceLevel: (name: string, level: string) =>
+      `${name} é ${level} ou melhor (sem nível cadastrado não passa)`,
+    withoutLevelNote: (n: number) => `${n} sem nível cadastrado`,
+    ordinalLoadError:
+      "Não foi possível carregar as propriedades ordinais; o critério de nível mínimo aceito fica indisponível até recarregar.",
     compositionCondition: "Condição de composição",
     compositionHint:
       "Mesma sintaxe da busca: Cr>=12, C<=0,08, Ni:8-10 ou Fe. Em % em massa.",
@@ -2547,6 +2558,48 @@ export const ptBR = {
       referencia_zero: "A referência vale zero: não há razão",
       escala_sem_zero:
         "Escala sem zero verdadeiro: percentual não significa nada",
+    },
+    // D-128: limiar de destaque e propriedades computadas.
+    threshold: {
+      label: "Destacar diferenças acima de (%)",
+      hint: "Dispersão = (maior − menor) ÷ maior valor em módulo. Ex.: 10.",
+      apply: "Destacar",
+      clear: "Remover destaque",
+      invalid: "Informe um número maior que 0 e até 1000 (use ponto ou vírgula).",
+      summaryNone: (pct: string) =>
+        `Nenhuma propriedade difere mais que ${pct}% entre os materiais.`,
+      summaryTitle: (pct: string, n: number) =>
+        `${n} propriedade(s) diferem mais que ${pct}% entre os materiais:`,
+      summaryItem: (name: string, spread: string) => `${name} (${spread}%)`,
+      above: "Acima do limiar",
+      below: "Dentro do limiar",
+      cellAbove: "acima do limiar",
+      headerSpread: (spread: string) => `Dispersão ${spread}%`,
+      unavailable: "Sem dispersão",
+      spread: {
+        escala_sem_zero: "Escala sem zero verdadeiro: percentual não significa nada",
+        valores_insuficientes: "Menos de dois materiais têm o valor: não há dispersão",
+        base_zero: "Todos os valores são zero: não há base para o percentual",
+      },
+      notChecked: (names: string) => `Sem dispersão calculada: ${names}.`,
+    },
+    computed: {
+      title: "Propriedades computadas",
+      description:
+        "Índices calculados no backend a partir de propriedades cadastradas, em unidade canônica composta. Faltando algum insumo, o valor fica ausente com o motivo.",
+      pick: "Índices do catálogo",
+      none: "Nenhum índice escolhido.",
+      noneAvailable: "Não há índices cadastrados.",
+      loading: "Calculando índices…",
+      error: "Não foi possível calcular os índices.",
+      columnMaterial: "Material",
+      undefinedLabel: "Indefinido",
+      summary: (defined: number, undef: number) =>
+        `${defined} com valor, ${undef} sem valor`,
+      expression: "Expressão",
+      dimension: "Dimensão",
+      tableRegion: (n: number, p: number) =>
+        `Tabela de propriedades computadas, ${n} materiais por ${p} índices`,
     },
     title: "Comparador de materiais",
     subtitle:

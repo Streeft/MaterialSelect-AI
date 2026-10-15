@@ -10182,6 +10182,64 @@ existência do id).
 **Deploy da API** continua obrigatório (CLAUDE.md, `docs/13-deploy.md` §5-ter);
 se for pulado, o leitor agora vê a frase que diz isso, e não um JSON cru.
 
+
+## D-126 — Propriedade ordinal de material e o critério "nível mínimo aceito"
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 81)
+
+**Contexto.** O passo 2 do exercício 8 do manual filtra materiais por
+durabilidade diante de um agente ("água doce: aceitável ou melhor"). Esse dado
+não é número nem rótulo solto: é um **nível numa escala ordenada** (*Muito pobre
+< Pobre < Aceitável < Bom < Excelente*), e a pergunta é "pelo menos este nível".
+O único dado discreto do modelo era o atributo de processo do [D-59](#d-59), que
+é pertinência a conjunto **sem ordem**. Item #11 do relatório de lacunas do
+EduPack.
+
+**Decisão.**
+
+- **Tabelas próprias** — `ordinal_property_definition`, `ordinal_scale_level`
+  (escala em linhas, `rank` 0 = pior) e `material_ordinal_value` —, pela razão do
+  D-57/D-59: `PropertyDefinition` é lida por seletor, eixos, painel, proximidade e
+  avaliador de índice como magnitude, e um descuido poria "Bom" num eixo. O valor
+  tem o trilho de proveniência (fonte, qualidade, condição, nota, `is_demo` na
+  linha) e aponta o nível por **chave estrangeira composta**
+  `(definition_id, level_id)`, que torna impossível gravar nível de outra escala.
+  `CHECK` portável: nível **xor** `is_missing`. Por material, não por
+  material × contexto: o D-59 não tem esse padrão, e "durabilidade por agente" é
+  uma definição por agente.
+- **O motor é o mesmo.** `RecordSnapshot.ordinals` (slug → posição) é o quinto
+  mapa, ao lado de `values`, `envelopes`, `labels` e `derived`; o operador
+  `level_at_least` entra na árvore AND/OR do estágio `limit`, e o nível viaja
+  como rótulo em `labels` (coluna que já existia — nada muda em
+  `selection_constraint`). `app/domain/ordinal.py` guarda a única comparação
+  (`meets_minimum`): **ausente nunca passa**, nem diante do nível mais baixo, e
+  não é tratado como o pior nível. `exists`/`not_exists` também leem o mapa.
+- **A razão de exclusão é escrita.** O passo do funil traz `without_level`
+  (quantos ficaram sem nível — ausente ou sem dado) e o rótulo gerado diz a
+  regra e a escala ("… ≥ Aceitável (nível mínimo aceito; escala Muito pobre < …;
+  sem nível não passa)"); relatório e laudo repetem a contagem em nota.
+- **Recusas com o nome**, como o discreto no D-84: ordinal em operador numérico,
+  como critério de ranqueamento e dentro de expressão de índice é 400 dizendo
+  "propriedade ordinal (escala de níveis, sem magnitude)"; nível fora da escala é
+  404 nomeando o nível e a escala; estudo de processos não tem escala ordenada.
+- **Sem valor real.** Nenhuma definição entra no seed de referência. O demo
+  (`app/db/seed_demo_ordinal.py`, por `seed_extended`) cria duas definições
+  "(demo)" e um nível fictício por material demo (hash estável do nome, um em sete
+  **registrado ausente** para mostrar o quarto estado); `clear_demo` apaga e o
+  import oficial recusa enquanto houver escala ou nível demo. O bundle do D-102
+  aceita `ordinal_property_definitions.ndjson` e `material_ordinal_values.ndjson`
+  só como estrutura: escala divergente de uma já gravada falha o import.
+
+**Descartado.** Coluna `kind` em `PropertyDefinition` (mesma razão do D-59);
+escala como lista JSON (o banco não fecharia o vocabulário); posição como número
+em `values` (um ranking ou índice a leria como magnitude); ausência como nível 0
+("sem dado" e "Muito pobre" são afirmações diferentes); operador "no máximo" (a
+pergunta de seleção é o mínimo aceito — fica para quando houver caso).
+
+**Consequências.** Migração `860cc669ff6a` (aditiva, sem backfill). Exige
+**Deploy da API** e, para ver o demo, `semear_demo`. Leitura por material em
+`GET /api/materials/{id}/ordinais`; a ficha ainda não desenha a seção (resíduo
+no TODO).
 ## D-127 — Perfis de profundidade L1/L2/L3: o nível é visão, declarado por slug no código, e nunca entra no cálculo
 
 *Decidida pelo assistente por delegação do autor, revisável.* (Sessão 82)
@@ -10224,3 +10282,41 @@ todos os níveis. Para movê-la de nível, edite `PROPERTY_MIN_LEVEL` (teste em
 `test_depth_profile.py`). Se um dia o nível precisar mudar um cálculo, é
 mudança de método e exige decisão e aviso escrito.
 
+## D-128 — Comparador: limiar de destaque por dispersão e seção de propriedades computadas
+
+*Decidida pelo assistente por delegação do autor, revisável.*
+
+**Contexto.** A lacuna #14 do levantamento do EduPack pedia no comparador (a)
+um limiar configurável que destaque as propriedades em que os materiais
+diferem mais que X% e (b) propriedades computadas (razões/índices) numa seção
+própria. O teto de 60 materiais × 20 propriedades (D-113) já existe e não muda.
+
+**Decisão.** (1) **Base da diferença: o maior valor em módulo entre os
+comparados.** `dispersão = (máx − mín) ÷ max(|máx|, |mín|) × 100`
+(`app/domain/spread.py`), por propriedade, sobre o valor canônico. Não depende
+da ordem das linhas nem de haver uma referência, é simétrica e fica em 0–100%
+para valores de mesmo sinal. Só em escala de razão (`units.is_ratio_scale`);
+caso contrário, `escala_sem_zero`. As outras ausências também têm estado
+nomeado (`valores_insuficientes`, `base_zero`). O destaque é estritamente
+"maior que" o limiar. (2) Com referência escolhida (P2), a **célula** também é
+marcada quando |dif. %| passa do limiar (`CompareCellOut.exceeds_threshold`).
+(3) **Limiar** é `highlight_threshold_pct` no pedido (0 < x ≤ 1000) e `?limiar=`
+na URL; valor inválido é **recusado (422) ou descartado, nunca limitado nem
+consertado** (`lib/compare-threshold.ts`). (4) O destaque é texto primeiro:
+resumo escrito acima da tabela, selo "Acima do limiar" no cabeçalho e na
+célula, e a ausência da dispersão com o motivo (D-24, D-31). (5)
+**Computadas** = `computed: list[IndexIn]` no pedido, avaliadas por
+`_validate_expression` + `evaluate_index`, o mesmo caminho dos mapas e da
+seleção; o valor vem em unidade canônica composta (dimensão informada) e o
+insumo ausente devolve o motivo do avaliador, nunca zero. A tela oferece os
+índices do catálogo (`/api/performance-indices`), entre eles a razão
+módulo/densidade quando cadastrada. Sem migração.
+
+**Descartado.** Base "relativa ao primeiro/à referência" para o destaque de
+propriedade (assimétrica e dependente da ordem; a referência continua servindo
+à diferença por célula); limitar silenciosamente o limiar à faixa; destaque só
+por cor; computadas em unidade de leitura (um índice mistura propriedades com
+unidades próprias — D-70); índice digitado livremente na tela (fica para depois).
+
+**Consequências.** Contrato novo e retrocompatível (campos opcionais). Depois do
+merge, **Deploy da API** é obrigatório; não há seed nem migração.

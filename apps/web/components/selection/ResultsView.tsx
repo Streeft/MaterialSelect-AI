@@ -51,8 +51,11 @@ function FunnelRow({
   eliminated,
   tone = "brand",
   undetermined = null,
+  withoutLevel = null,
 }: {
   undetermined?: number | null;
+  /** D-126: candidates with no level recorded, written so "no level" never reads as "too poor". */
+  withoutLevel?: number | null;
   label: string;
   remaining: number;
   initial: number;
@@ -79,6 +82,11 @@ function FunnelRow({
         {undetermined ? (
           <span className="ml-1.5 text-2xs font-normal text-ink-subtle">
             ({t.undeterminedNote(undetermined)})
+          </span>
+        ) : null}
+        {withoutLevel ? (
+          <span className="ml-1.5 text-2xs font-normal text-ink-subtle">
+            ({t.withoutLevelNote(withoutLevel)})
           </span>
         ) : null}
       </span>
@@ -567,6 +575,7 @@ export function ResultsView({
               key={i}
               label={step.label}
               undetermined={step.undetermined ?? null}
+              withoutLevel={step.without_level ?? null}
               remaining={step.remaining}
               initial={result.initial_count}
               // What this stage removed, from the counts the backend sent.

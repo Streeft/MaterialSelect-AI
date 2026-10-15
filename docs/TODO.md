@@ -127,6 +127,10 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   equivalência, de propósito: seria inferir.
 - **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
   Sessão 60); resíduos abaixo.
+- **Comparador: limiar de destaque e propriedades computadas (#14).** ✔ Entregue
+  (D-128, Sessão 83). Resíduos: índice digitado livremente na tela (hoje só os
+  do catálogo), computadas sem dispersão/destaque próprios, e limiar sem estado
+  persistido além da URL.
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
@@ -137,6 +141,21 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM6 — referência por valor visível e filtrável.** ✔ Entregue (D-115, Sessão 70).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
+
+**Propriedade ordinal de material e nível mínimo aceito (relatório de lacunas do
+EduPack, #11; exercício 8, passo 2; [D-126](DECISIONS.md), Sessão 81).** ✔
+Entregue: ~~escala ordenada por definição, nível por material com proveniência e
+ausência escrita~~, ~~critério `level_at_least` no estágio de limites (ausente
+nunca passa; `without_level` no funil e no laudo)~~, ~~demo fictício e contrato
+do bundle~~ (migração `860cc669ff6a`). Resíduos:
+
+- **ORD-a — seção na ficha.** ▁ `GET /api/materials/{id}/ordinais` já devolve o
+  nível ou a ausência escrita; a ficha ainda não desenha.
+- **ORD-b — dado real.** Bloqueado: durabilidade por agente só com fonte
+  APROVADA (`docs/catalogo/fontes.md`) ou pelo bundle do D-102.
+- **ORD-c — edição à mão e curadoria da escala.** ▁ Hoje só seed e bundle
+  escrevem; uma tela de edição precisa da auditoria do M2 e da guarda do
+  material oficial (D-116).
 
 **Perfis de profundidade L1/L2/L3 (relatório de lacunas do EduPack, #25,
 [D-127](DECISIONS.md), Sessão 82).** ✔ Entregue: ~~nível por slug com padrão

@@ -144,6 +144,15 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
+**Propriedade ordinal e nível mínimo aceito (D-126).** Uma propriedade
+ordinal de material é uma **escala ordenada** de níveis (pior primeiro), em
+tabelas próprias — nunca em `PropertyDefinition` — e o nível de um valor aponta a
+própria escala por chave composta. O critério `level_at_least` vive no estágio
+`limit` e no mesmo motor (`RecordSnapshot.ordinals`); **ausente nunca passa**, nem
+diante do nível mais baixo, e nunca é lido como o pior nível. O funil traz
+`without_level`. Ordinal é recusado pelo nome em operador numérico, ranking e
+expressão de índice. Nenhum nível real sem fonte aprovada; o demo é `is_demo`.
+
 **Notas, arquivo de estudo e cópia da tabela (D-122).** Um estágio e o estudo
 têm `notes` — texto puro, até 2.000 caracteres, `NULL` = "sem nota" e nunca
 caixa vazia; nada renderiza nota como HTML. O estudo sai como JSON versionado

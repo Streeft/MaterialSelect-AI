@@ -110,6 +110,55 @@ function DifferenceCell({ cell }: { cell: CompareCell }) {
   );
 }
 
+/**
+ * What the threshold says about the table, in words (D-128, D-31).
+ *
+ * The highlight is never colour alone: this block names every property above
+ * the threshold with its backend-computed spread, and every property whose
+ * spread could not be computed with the reason. All percentages arrive ready.
+ */
+export function ThresholdSummary({ comparison }: { comparison: Comparison }) {
+  const threshold = comparison.threshold_pct;
+  if (threshold === null || threshold === undefined) return null;
+  const pct = formatNumber(threshold);
+  const above = comparison.properties.filter((p) => p.exceeds_threshold === true);
+  const unchecked = comparison.properties.filter(
+    (p) => p.spread_state !== undefined && p.spread_state !== "calculada",
+  );
+  return (
+    <div className="well flex flex-col gap-1 text-sm text-ink" role="status">
+      {above.length === 0 ? (
+        <p>{t.threshold.summaryNone(pct)}</p>
+      ) : (
+        <>
+          <p className="font-semibold">{t.threshold.summaryTitle(pct, above.length)}</p>
+          <ul className="list-disc pl-5">
+            {above.map((p) => (
+              <li key={p.property_slug}>
+                {t.threshold.summaryItem(
+                  p.property_name,
+                  p.spread_pct === null || p.spread_pct === undefined
+                    ? ""
+                    : formatNumber(p.spread_pct),
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {unchecked.length > 0 && (
+        <ul className="text-support text-ink-subtle">
+          {unchecked.map((p) => (
+            <li key={p.property_slug}>
+              {p.property_name}: {t.threshold.spread[p.spread_state as keyof typeof t.threshold.spread]}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** Index a material's cells by property slug — the API guarantees one per property. */
 function cellsBySlug(material: CompareMaterial): Map<string, CompareCell> {
   return new Map(material.cells.map((cell) => [cell.property_slug, cell]));
@@ -212,6 +261,7 @@ export function ComparisonView({
         {hint !== null && refusal === null && (
           <p className="text-support text-ink-subtle">{hint}</p>
         )}
+        <ThresholdSummary comparison={comparison} />
         <TableScroll
           label={t.tableRegion(materials.length, properties.length)}
           className={wide ? "max-h-[70vh] overflow-y-auto" : undefined}
@@ -226,7 +276,10 @@ export function ComparisonView({
                   {t.columnMaterial}
                 </Th>
                 {properties.map((p) => (
-                  <Th key={p.property_slug}>
+                  <Th
+                    key={p.property_slug}
+                    className={p.exceeds_threshold === true ? "bg-warning-soft text-warning-fg" : undefined}
+                  >
                     {p.property_name}
                     <span className="ml-1 font-normal normal-case text-ink-subtle">
                       [{prettyUnit(p.unit)}]
@@ -237,6 +290,24 @@ export function ComparisonView({
                     {referenceId !== null && (
                       <span className="ml-1 font-normal normal-case text-ink-subtle">
                         · {t.differenceHeader}
+                      </span>
+                    )}
+                    {/* D-128: the highlight is a sentence first and a colour
+                      second, and the spread's absence is written, not blank. */}
+                    {comparison.threshold_pct != null && (
+                      <span className="mt-1 block font-normal normal-case">
+                        {p.exceeds_threshold === true ? (
+                          <Badge tone="warning">
+                            {t.threshold.above}
+                            {p.spread_pct != null && ` · ${t.threshold.headerSpread(formatNumber(p.spread_pct))}`}
+                          </Badge>
+                        ) : p.spread_state === "calculada" && p.spread_pct != null ? (
+                          <span className="text-xs text-ink-subtle">
+                            {t.threshold.below} · {t.threshold.headerSpread(formatNumber(p.spread_pct))}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-ink-subtle">{t.threshold.unavailable}</span>
+                        )}
                       </span>
                     )}
                   </Th>
@@ -332,6 +403,11 @@ export function ComparisonView({
                         {referenceId !== null && (
                           <span className="mt-1 block">
                             <DifferenceCell cell={cell} />
+                            {cell.exceeds_threshold === true && (
+                              <Badge tone="warning" className="ml-2">
+                                {t.threshold.cellAbove}
+                              </Badge>
+                            )}
                           </span>
                         )}
                       </Td>

@@ -10,6 +10,7 @@ import type {
   ConstraintGroupIn,
   Goal,
   MaterialClass,
+  OrdinalProperty,
   Process,
   ProcessAttribute,
   ProcessClass,
@@ -43,6 +44,7 @@ import { prettyUnit } from "@/lib/format";
 import {
   ConstraintEditor,
   type ConstraintGroupState,
+  type SelectableAttribute,
   emptyGroup,
   nextEditorId,
   toConstraintPayload,
@@ -426,6 +428,9 @@ interface Props {
   /** The process attribute catalogue (P0-4) — what a limit stage selects on in a
    * process study. Empty while it loads, or if none is catalogued. */
   processAttributes?: ProcessAttribute[];
+  /** D-126: ordinal material properties — a limit stage of a material study can
+   * ask for a minimum accepted level on them. Empty while loading or if none. */
+  ordinalProperties?: OrdinalProperty[];
   classes: MaterialClass[];
   /** The process universe (P0-2). Empty while it loads, or if none is catalogued. */
   processes?: Process[];
@@ -468,6 +473,7 @@ export function StageList({
   stages,
   properties,
   processAttributes = [],
+  ordinalProperties = [],
   classes,
   processes = [],
   processClasses = [],
@@ -481,6 +487,19 @@ export function StageList({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const isProcessStudy = universe === "process";
+  // What a limit stage of a material study selects on: the numeric properties
+  // and, after them, the ordinal ones (D-126) — no unit, a scale instead.
+  const materialAttributes: SelectableAttribute[] = [
+    ...properties,
+    ...ordinalProperties.map((o) => ({
+      slug: o.slug,
+      name: o.name,
+      canonical_unit: null,
+      kind: "ORDINAL" as const,
+      levels: o.levels,
+      scale_text: o.scale_text,
+    })),
+  ];
   // A tree stage selects folders of the study's own universe.
   const ownFolders = isProcessStudy ? processClasses : classes;
   const replace = (index: number, next: StageState) =>
@@ -514,7 +533,7 @@ export function StageList({
           <CardBody>
             <ConstraintEditor
               root={only.group}
-              properties={isProcessStudy ? processAttributes : properties}
+              properties={isProcessStudy ? processAttributes : materialAttributes}
               classes={ownFolders}
               universe={universe}
               onChange={(group) => replace(0, { ...only, group })}
@@ -661,7 +680,7 @@ export function StageList({
                 // (P0-4), the same rule a tree stage follows for folders — and
                 // `in_class` inside it compares the record's own class, so the
                 // folder list follows the universe too.
-                properties={isProcessStudy ? processAttributes : properties}
+                properties={isProcessStudy ? processAttributes : materialAttributes}
                 classes={ownFolders}
                 universe={universe}
                 onChange={(group) => replace(index, { ...stage, group })}
@@ -699,7 +718,7 @@ export function StageList({
                 // the same rule a limit stage follows (P0-4): offering a
                 // material property on a process study's plane would be a 404
                 // waiting to happen.
-                properties={isProcessStudy ? processAttributes : properties}
+                properties={isProcessStudy ? processAttributes : materialAttributes}
                 universe={universe}
                 onChange={(next) => replace(index, next)}
               />

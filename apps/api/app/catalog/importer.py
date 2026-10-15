@@ -27,6 +27,7 @@ from app.domain.composition import (
 from app.domain.curves import CurveError, NormalizedCurve, PointInput, SeriesInput, build_curve
 from app.domain.data_quality import build_interval_value, build_scalar_value, missing_value
 from app.domain.designation import DesignationError, designation_key
+from app.domain.ordinal import OrdinalScaleError, validate_scale
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
     CatalogDataset,
@@ -49,6 +50,11 @@ from app.models.material_composition import MaterialCompositionEntry
 from app.models.material_curve import MaterialCurve
 from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.ordinal_property import (
+    MaterialOrdinalValue,
+    OrdinalPropertyDefinition,
+    OrdinalScaleLevel,
+)
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
@@ -78,6 +84,9 @@ KNOWN_FILES = {
     "material_compositions.ndjson",
     # D-106 (TM4): material curves (stress–strain, temperature, rate, fatigue, creep).
     "material_curves.ndjson",
+    # D-126: ordinal material properties (a scale of levels) and their levels.
+    "ordinal_property_definitions.ndjson",
+    "material_ordinal_values.ndjson",
 }
 
 
@@ -311,6 +320,47 @@ def validate_semantics(bundle: VerifiedBundle) -> dict[str, int]:
             raise OfficialCatalogImportError(
                 f"value_kind de material inválido: {record['value_kind']!r}"
             )
+
+    # D-126: an ordinal property is a scale of levels, worst first. Only the
+    # structure is checked here; the bundle is the only place a level comes from.
+    ordinal_scales: dict[str, tuple[str, ...]] = {}
+    for record in bundle.iter_records("ordinal_property_definitions.ndjson"):
+        _need(record, "slug", "name", "levels")
+        slug = str(record["slug"])
+        if slug in ordinal_scales or slug in property_slugs:
+            raise OfficialCatalogImportError(f"slug de propriedade ordinal duplicado: {slug}")
+        if not isinstance(record["levels"], list):
+            raise OfficialCatalogImportError(f"levels de {slug} deve ser uma lista, pior primeiro.")
+        try:
+            ordinal_scales[slug] = validate_scale(record["levels"])
+        except OrdinalScaleError as exc:
+            raise OfficialCatalogImportError(f"Escala de {slug}: {exc}") from exc
+
+    ordinal_pairs: set[tuple[str, str]] = set()
+    for record in bundle.iter_records("material_ordinal_values.ndjson"):
+        _need(record, "material_external_id", "property_slug", "state")
+        material_id = str(record["material_external_id"])
+        slug = str(record["property_slug"])
+        if material_id not in material_ids:
+            raise OfficialCatalogImportError("Nível ordinal referencia material inexistente.")
+        if slug not in ordinal_scales:
+            raise OfficialCatalogImportError(
+                "Nível ordinal referencia propriedade ordinal inexistente."
+            )
+        if (material_id, slug) in ordinal_pairs:
+            raise OfficialCatalogImportError(f"Nível ordinal duplicado: {material_id} {slug}")
+        ordinal_pairs.add((material_id, slug))
+        state = record["state"]
+        if state == "level":
+            if record.get("level") not in ordinal_scales[slug]:
+                raise OfficialCatalogImportError(
+                    f"Nível {record.get('level')!r} fora da escala de {slug}."
+                )
+        elif state == "missing":
+            if record.get("level") not in (None, ""):
+                raise OfficialCatalogImportError("Nível ausente não leva rótulo de nível.")
+        else:
+            raise OfficialCatalogImportError(f"state de nível ordinal inválido: {state!r}")
 
     designation_keys: set[tuple[str, DesignationSystem, str]] = set()
     for record in bundle.iter_records("material_designations.ndjson"):
@@ -587,6 +637,20 @@ class OfficialCatalogImporter:
             or 0,
             "material_curves": self.db.scalar(
                 select(func.count(MaterialCurve.id)).where(MaterialCurve.is_demo.is_(True))
+            )
+            or 0,
+            # D-126: a fictitious ordinal scale or level would sit beside the
+            # official ones in the minimum-level picker.
+            "ordinal_definitions": self.db.scalar(
+                select(func.count(OrdinalPropertyDefinition.id)).where(
+                    OrdinalPropertyDefinition.is_demo.is_(True)
+                )
+            )
+            or 0,
+            "material_ordinal_values": self.db.scalar(
+                select(func.count(MaterialOrdinalValue.id)).where(
+                    MaterialOrdinalValue.is_demo.is_(True)
+                )
             )
             or 0,
             # D-108: a fictitious release would otherwise sit in the same
@@ -952,6 +1016,69 @@ class OfficialCatalogImporter:
                 )
             )
             self._bump("material_values_created")
+
+    def _import_ordinal_definitions(self) -> None:
+        """D-126. A scale already in the database must match the bundle exactly.
+
+        Renaming or reordering a level would silently move every stored level
+        and every saved minimum, so a divergent scale fails the import.
+        """
+        self.ordinal_definitions: dict[str, OrdinalPropertyDefinition] = {}
+        for row in self.bundle.iter_records("ordinal_property_definitions.ndjson"):
+            slug = str(row["slug"])
+            scale = validate_scale(row["levels"])
+            existing = self.db.execute(
+                select(OrdinalPropertyDefinition).where(OrdinalPropertyDefinition.slug == slug)
+            ).scalar_one_or_none()
+            if existing is None:
+                existing = OrdinalPropertyDefinition(
+                    slug=slug,
+                    name=row["name"],
+                    description=row.get("description"),
+                    is_demo=False,
+                )
+                existing.levels = [
+                    OrdinalScaleLevel(rank=rank, label=label) for rank, label in enumerate(scale)
+                ]
+                self.db.add(existing)
+                self.db.flush()
+                self._bump("ordinal_definitions_created")
+            elif tuple(level.label for level in existing.levels) != scale:
+                raise OfficialCatalogImportError(f"Escala ordinal divergente para {slug}.")
+            self.ordinal_definitions[slug] = existing
+
+    def _import_ordinal_values(self) -> None:
+        """D-126. Idempotent by (material, property); the dataset's source."""
+        assert self.source is not None
+        for row in self.bundle.iter_records("material_ordinal_values.ndjson"):
+            material = self.materials[str(row["material_external_id"])]
+            definition = self.ordinal_definitions[str(row["property_slug"])]
+            exists = self.db.execute(
+                select(MaterialOrdinalValue.id).where(
+                    MaterialOrdinalValue.material_id == material.id,
+                    MaterialOrdinalValue.definition_id == definition.id,
+                )
+            ).scalar_one_or_none()
+            if exists is not None:
+                self._bump("ordinal_values_unchanged")
+                continue
+            level = None
+            if row["state"] == "level":
+                level = next(lv for lv in definition.levels if lv.label == row["level"])
+            self.db.add(
+                MaterialOrdinalValue(
+                    material_id=material.id,
+                    definition_id=definition.id,
+                    level_id=level.id if level is not None else None,
+                    is_missing=level is None,
+                    measurement_condition=row.get("measurement_condition"),
+                    notes=row.get("notes"),
+                    source_id=self.source.id,
+                    data_quality=DataQuality.IMPORTADO,
+                    is_demo=False,
+                )
+            )
+            self._bump("ordinal_values_created")
 
     def _import_designations(self) -> None:
         """D-105. Idempotent by (material, system, code); the dataset's source."""
@@ -1498,6 +1625,8 @@ class OfficialCatalogImporter:
         self._import_properties()
         self._import_materials()
         self._import_material_values()
+        self._import_ordinal_definitions()
+        self._import_ordinal_values()
         self._import_designations()
         self._import_compositions()
         self._import_curves()

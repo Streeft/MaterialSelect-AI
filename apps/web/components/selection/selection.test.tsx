@@ -215,6 +215,26 @@ describe("ResultsView", () => {
     }
   });
 
+  it("writes how many candidates left a minimum-level criterion for having no level (D-126)", () => {
+    render(
+      <ResultsView
+        result={makeResult({
+          funnel: [
+            {
+              label: "Durabilidade ≥ Aceitável",
+              operator: "level_at_least",
+              passed: 4,
+              remaining: 4,
+              without_level: 3,
+            },
+          ],
+        })}
+        initialTab="eliminados"
+      />,
+    );
+    expect(screen.getByText(new RegExp(ptBR.selection.withoutLevelNote(3)))).toBeInTheDocument();
+  });
+
   it("opens the tab a pasted address points at", () => {
     window.history.replaceState(null, "", "/app/selecao?etapa=resultados#excluidos");
     render(<ResultsView result={makeResult()} />);

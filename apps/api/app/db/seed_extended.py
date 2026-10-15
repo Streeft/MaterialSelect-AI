@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 from app.db.base import Base, SessionLocal, engine
 from app.db.seed_demo_cae import seed_demo_cae_values
 from app.db.seed_demo_equivalences import seed_demo_equivalences
+from app.db.seed_demo_ordinal import seed_demo_ordinals
 from app.db.seed_demo_releases import seed_demo_releases
 from app.db.seed_extended_identity import seed_extended_identity
 from app.domain.data_quality import (
@@ -458,6 +459,7 @@ def main() -> None:
         identity = seed_extended_identity(db, demo_source)
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
         cae_values = seed_demo_cae_values(db, demo_source, EXTENDED_DEMO_MATERIALS)  # D-124
+        ordinals = seed_demo_ordinals(db, demo_source)  # D-126
         db.commit()
 
     print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
@@ -466,6 +468,7 @@ def main() -> None:
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
     print(f"[seed_extended] Equivalências demo: {equivalences}")
     print(f"[seed_extended] Valores CAE demo: {{'cae_values_created': {cae_values}}}")
+    print(f"[seed_extended] Propriedades ordinais demo: {ordinals}")
 
 
 if __name__ == "__main__":

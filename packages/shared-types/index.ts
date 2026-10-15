@@ -391,6 +391,44 @@ export interface ProcessAttribute {
   better_direction: BetterDirection;
 }
 
+/**
+ * An ordinal material property (D-126): a closed scale of levels, worst first
+ * ("Muito pobre < … < Excelente"). It has no unit and no magnitude, so it never
+ * reaches an axis, a ranking or an index — only the minimum-level criterion.
+ */
+export interface OrdinalProperty {
+  slug: string;
+  name: string;
+  description: string | null;
+  kind: "ORDINAL";
+  levels: string[];
+  /** The scale as a sentence, from the backend. */
+  scale_text: string;
+  is_demo: boolean;
+}
+
+/** The level one material holds on one ordinal property — or a written absence. */
+export interface MaterialOrdinalValue {
+  slug: string;
+  name: string;
+  status: "nivel" | "ausente" | "sem_dado";
+  status_text: string;
+  level: string | null;
+  rank: number | null;
+  scale: string[];
+  source_label: string | null;
+  data_quality: string | null;
+  measurement_condition: string | null;
+  notes: string | null;
+  is_demo: boolean;
+}
+
+export interface MaterialOrdinalValues {
+  material_id: number;
+  material_name: string;
+  values: MaterialOrdinalValue[];
+}
+
 /** One attribute value of one process, with its provenance (P0-4). */
 export interface ProcessAttributeValue {
   attribute_id: number;
@@ -768,7 +806,10 @@ export type ConstraintOperator =
   // syntax ("Cr>=12"). `not_composition` is the guarantee side. Material studies
   // only.
   | "composition"
-  | "not_composition";
+  | "not_composition"
+  // D-126: "at least this level" over an ordinal material property; the level
+  // travels as its label, alone, in `labels`. Material studies only.
+  | "level_at_least";
 
 export type Goal = "maximize" | "minimize";
 export type CriterionDirection = "max" | "min";
@@ -1055,6 +1096,9 @@ export interface FunnelStep {
   remaining: number;
   /** Composition criteria only: candidates it could not decide for lack of data. */
   undetermined?: number | null;
+  /** Minimum-level criteria only (D-126): candidates with no level recorded —
+   * absent or "sem dado". They never pass, and are not the worst level. */
+  without_level?: number | null;
 }
 
 /**
@@ -1389,7 +1433,18 @@ export interface ComparisonRequest {
    * percentage uncheckable.
    */
   reference_id?: number | null;
+  /** D-128: flag properties whose values differ by more than this many percent. */
+  highlight_threshold_pct?: number | null;
+  /** D-128: ratios/indices evaluated by the backend, shown in their own section. */
+  computed?: { name?: string | null; expression: string; goal?: Goal }[];
 }
+
+/** D-128: why a property's spread is, or is not, a number. */
+export type SpreadState =
+  | "calculada"
+  | "escala_sem_zero"
+  | "valores_insuficientes"
+  | "base_zero";
 
 /**
  * Why a percentage difference is, or is not, a number (P2).
@@ -1420,6 +1475,11 @@ export interface CompareAxis {
   max_value: number | null;
   present_count: number;
   missing_material_ids: number[];
+  /** D-128: (max - min) / largest magnitude, in percent; canonical units. */
+  spread_pct?: number | null;
+  spread_state?: SpreadState;
+  /** Null without a threshold or without a spread to compare. */
+  exceeds_threshold?: boolean | null;
 }
 
 export interface CompareCell {
@@ -1446,6 +1506,8 @@ export interface CompareCell {
    */
   difference_pct: number | null;
   difference_state: DifferenceState;
+  /** D-128: |difference_pct| above the threshold; null without either. */
+  exceeds_threshold?: boolean | null;
   /** A mesma medida, lida na unidade do leitor (D-70). */
   display_unit: string | null;
   display_value: number | null;
@@ -1464,10 +1526,30 @@ export interface CompareMaterial {
   complete: boolean;
 }
 
+export interface ComputedValue {
+  material_id: number;
+  value: number | null;
+  undefined_reason: string | null;
+}
+
+/** D-128: one ratio/index over the compared materials, in canonical units. */
+export interface ComputedColumn {
+  name: string;
+  expression: string;
+  goal: string;
+  dimension: string;
+  variables: string[];
+  values: ComputedValue[];
+  defined_count: number;
+  undefined_count: number;
+}
+
 export interface Comparison {
   normalization: string;
   properties: CompareAxis[];
   materials: CompareMaterial[];
+  threshold_pct?: number | null;
+  computed?: ComputedColumn[];
   notes: string[];
 }
 

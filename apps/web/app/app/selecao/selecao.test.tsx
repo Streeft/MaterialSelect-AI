@@ -96,6 +96,7 @@ vi.mock("@/lib/api", () => ({
   listProcesses: () => Promise.resolve([]),
   listProcessClasses: () => Promise.resolve([]),
   listProcessAttributes: () => listProcessAttributes(),
+  listOrdinalProperties: () => Promise.resolve([]),
   listPerformanceIndices: () => listPerformanceIndices(),
   listStudies: () => Promise.resolve([]),
   getStudy: (id: number) => getStudy(id),
