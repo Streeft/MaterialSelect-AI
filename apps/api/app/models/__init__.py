@@ -55,6 +55,11 @@ from app.models.notebook import (
     NotebookSource,
     StudioArtifact,
 )
+from app.models.ordinal_property import (
+    MaterialOrdinalValue,
+    OrdinalPropertyDefinition,
+    OrdinalScaleLevel,
+)
 from app.models.performance_index import PerformanceIndex
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import (
@@ -122,6 +127,9 @@ __all__ = [
     "MaterialProcess",
     "MaterialPropertyValue",
     "MaterialSynthesis",
+    "MaterialOrdinalValue",
+    "OrdinalPropertyDefinition",
+    "OrdinalScaleLevel",
     "PerformanceIndex",
     "Process",
     "ProcessAttributeDefinition",

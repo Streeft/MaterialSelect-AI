@@ -139,6 +139,11 @@ class Material(Base):
         cascade="all, delete-orphan",
         order_by="(MaterialCompositionEntry.position, MaterialCompositionEntry.id)",
     )
+    # D-126: levels on ordinal properties. Cascade for the same reason as
+    # above; read by its own route and lazily by the selection engine.
+    ordinal_values: Mapped[list[MaterialOrdinalValue]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan",
+    )
     # D-106 (TM4): curves measured on this material. Cascade for the same
     # reason as above; never loaded with the sheet — the curves have their own
     # route, and a sheet with thousands of points would be a different payload.

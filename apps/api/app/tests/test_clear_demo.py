@@ -166,6 +166,8 @@ def test_clear_demo_data_covers_all_demo_universes(db_session: Session) -> None:
         "curves": demo_curves,
         "catalog_releases": demo_releases,
         "equivalence_groups": 0,  # D-115: this test seeds none
+        "ordinal_values": 0,  # D-126: the main seed writes no ordinal level
+        "ordinal_definitions": 0,
     }
     # The cascade is written in Python: no series or point outlives its curve.
     assert db_session.scalar(select(func.count(MaterialCurve.id))) == 0

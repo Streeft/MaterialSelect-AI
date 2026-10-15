@@ -38,6 +38,7 @@ from app.domain.filters import (
     apply_stage,
     composition_verdict,
 )
+from app.domain.ordinal import OrdinalScaleError, describe_scale, level_rank
 from app.domain.ranking import (
     PROMETHEE_TOO_FEW_CANDIDATES,
     Criterion,
@@ -73,6 +74,7 @@ from app.models.selection import (
 )
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
+from app.repositories.ordinal_repository import OrdinalRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.selection import (
     CandidateOut,
@@ -181,6 +183,11 @@ class SelectionService:
         """
         self.viewer_id = user.id if user is not None else None
         self.repo = SelectionRepository(db, self.viewer_id)
+        self.ordinal_repo = OrdinalRepository(db, self.viewer_id)
+        #: Ordinal material properties (D-126), slug → definition with its
+        #: scale. Read lazily: only a study that names one pays the query.
+        self._ordinal_defs: dict | None = None
+        self._ordinals_loaded = False
         self.audit_repo = AuditRepository(db)
         self.user = user
         self.project_id = project_id
@@ -361,6 +368,9 @@ class SelectionService:
         op = Operator(payload.operator)
         label = payload.label or self._default_label(payload)
 
+        if op is Operator.LEVEL_AT_LEAST:
+            return self._build_level_constraint(payload, label, universe)
+
         if op in _LABEL_OPS:
             return self._build_label_constraint(payload, op, label)
 
@@ -370,6 +380,7 @@ class SelectionService:
         if op in _NUMERIC_OPS:
             prop = self._props.get(payload.property_slug)
             if prop is None:
+                self._refuse_ordinal_magnitude(payload.property_slug, "não se compara por número")
                 raise NotFoundError(self._not_found(payload.property_slug))
             if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
                 raise ValidationError(
@@ -409,6 +420,12 @@ class SelectionService:
             )
 
         if op in (Operator.EXISTS, Operator.NOT_EXISTS):
+            if payload.property_slug and payload.property_slug not in self._props:
+                # Presence is a question every shape of datum answers, an
+                # ordinal level included (D-126) — "has a durability level".
+                if self._ordinal(payload.property_slug) is not None:
+                    self._attach_ordinals()
+                    return Constraint(operator=op, label=label, property_slug=payload.property_slug)
             if not payload.property_slug or payload.property_slug not in self._props:
                 raise NotFoundError(self._not_found(payload.property_slug))
             return Constraint(operator=op, label=label, property_slug=payload.property_slug)
@@ -468,6 +485,93 @@ class SelectionService:
             snapshot.composition = facts.get(snapshot.id)
         self._composition_loaded = True
 
+    # --- ordinal material properties (D-126) ----------------------------
+
+    def _ordinal(self, slug: str | None):
+        """The ordinal definition named ``slug``, in a material study; else None.
+
+        Process attributes have no ordinal kind, so in a process study this is
+        always None and a slug falls through to the ordinary 404.
+        """
+        if slug is None:
+            return None
+        return self._ordinal_catalogue().get(slug)
+
+    def _ordinal_catalogue(self) -> dict:
+        """slug → ordinal definition; empty outside the material universe."""
+        if self._universe != "material":
+            return {}
+        if self._ordinal_defs is None:
+            self._ordinal_defs = {d.slug: d for d in self.ordinal_repo.list_definitions()}
+        return self._ordinal_defs
+
+    def _attach_ordinals(self) -> None:
+        """Give every material snapshot its ordinal ranks, once.
+
+        A material with no level keeps an empty map for that slug — no rank,
+        which the engine reads as "no comparison", never as the worst level.
+        """
+        if self._ordinals_loaded:
+            return
+        ranks = self.ordinal_repo.ranks_by_material()
+        for snapshot in self._load():
+            snapshot.ordinals = dict(ranks.get(snapshot.id, {}))
+        self._ordinals_loaded = True
+
+    def _refuse_ordinal_magnitude(self, slug: str | None, why: str) -> None:
+        """Refuse an ordinal property where a magnitude is required, by name.
+
+        A level has a position and no magnitude: "Bom" is not twice "Pobre".
+        Named here, like the discrete refusal of D-84, rather than left to the
+        404 an unknown slug would get — the property exists, it just cannot be
+        asked that question.
+        """
+        definition = self._ordinal(slug)
+        if definition is not None:
+            raise ValidationError(
+                f"'{definition.name}' é uma propriedade ordinal (escala de níveis, sem "
+                f"magnitude) e {why}; use o critério de nível mínimo aceito."
+            )
+
+    def _build_level_constraint(
+        self, payload: ConstraintIn, label: str, universe: str
+    ) -> Constraint:
+        """ "At least this level" over an ordinal material property (D-126).
+
+        The level travels as its label in ``labels`` (exactly one), resolved
+        here against the property's own scale. A label off the scale is a 404
+        naming it and the scale — matching nothing would look exactly like "no
+        material is that durable", which is the wrong answer for a typo.
+        """
+        if universe == "process":
+            raise ValidationError(
+                "Nível mínimo aceito vale para propriedade ordinal de material; "
+                "atributo de processo não tem escala ordenada."
+            )
+        definition = self._ordinal(payload.property_slug)
+        if definition is None:
+            if payload.property_slug in self._props:
+                raise ValidationError(
+                    f"'{self._props[payload.property_slug].name}' não é uma propriedade "
+                    "ordinal, então não tem níveis; use um operador numérico."
+                )
+            raise NotFoundError(f"Propriedade ordinal não encontrada: {payload.property_slug}")
+        if len(payload.labels) != 1:
+            raise ValidationError("Escolha exatamente um nível mínimo aceito.")
+        scale = [level.label for level in definition.levels]
+        try:
+            rank = level_rank(scale, payload.labels[0])
+        except OrdinalScaleError as exc:
+            raise NotFoundError(f"'{definition.name}': {exc}") from exc
+        self._attach_ordinals()
+        return Constraint(
+            operator=Operator.LEVEL_AT_LEAST,
+            label=label,
+            property_slug=payload.property_slug,
+            labels=[payload.labels[0]],
+            min_rank=rank,
+        )
+
     def _build_label_constraint(
         self, payload: ConstraintIn, op: Operator, label: str
     ) -> Constraint:
@@ -518,7 +622,18 @@ class SelectionService:
 
     def _default_label(self, payload: ConstraintIn) -> str:
         prop = self._props.get(payload.property_slug) if payload.property_slug else None
-        prop_name = prop.name if prop else (payload.property_slug or "")
+        ordinal = None if prop is not None else self._ordinal(payload.property_slug)
+        prop_name = (
+            prop.name if prop else (ordinal.name if ordinal else payload.property_slug or "")
+        )
+        if payload.operator == "level_at_least":
+            # The rule reaches the reader with the scale it was compared on, and
+            # with what happened to a material that has no level (D-126).
+            level = payload.labels[0] if payload.labels else ""
+            scale = (
+                f"; escala {describe_scale([lv.label for lv in ordinal.levels])}" if ordinal else ""
+            )
+            return f"{prop_name} ≥ {level} (nível mínimo aceito{scale}; sem nível não passa)"
         symbols = {
             "gt": ">",
             "gte": "≥",
@@ -1080,6 +1195,19 @@ class SelectionService:
         return sum(1 for record in records if composition_verdict(item, record).value is None)
 
     @staticmethod
+    def _without_level(item: Constraint | ConstraintGroupNode, records: list) -> int | None:
+        """For a minimum-level criterion, how many of ``records`` hold no level.
+
+        The written reason a material left the funnel there (D-126): not "too
+        poor", but "no level recorded" — absent or recorded as missing. ``None``
+        for every other kind of criterion.
+        """
+        if isinstance(item, ConstraintGroupNode) or item.operator is not Operator.LEVEL_AT_LEAST:
+            return None
+        slug = item.property_slug
+        return sum(1 for record in records if slug not in record.ordinals)
+
+    @staticmethod
     def _item_operator_code(item: Constraint | ConstraintGroupNode) -> str:
         if isinstance(item, ConstraintGroupNode):
             return item.operator
@@ -1123,6 +1251,7 @@ class SelectionService:
                         passed=len(admitted),
                         remaining=len(passing),
                         undetermined=self._undetermined(item, materials),
+                        without_level=self._without_level(item, materials),
                     )
                 )
             by_id = {m.id: m for m in materials}
@@ -1142,6 +1271,7 @@ class SelectionService:
                     passed=standalone,
                     remaining=len(remaining),
                     undetermined=undetermined,
+                    without_level=self._without_level(item, materials),
                 )
             )
         return steps, remaining
@@ -1219,6 +1349,7 @@ class SelectionService:
                             passed=step.passed,
                             remaining=step.remaining,
                             undetermined=step.undetermined,
+                            without_level=step.without_level,
                         )
                         for step in inner
                     ]
@@ -1568,8 +1699,21 @@ class SelectionService:
     def _validate_expression(self, expression: str) -> tuple[set[str], dict[str, str], str]:
         """Return (used variable names, var->slug map, dimension); raise on error."""
         var_to_slug = {safe_variable(slug): slug for slug in self._props}
+        # Ordinal properties are recognised only to be refused by name (D-126):
+        # a level has no magnitude, so it cannot enter arithmetic.
+        ordinal_vars = {
+            safe_variable(slug): slug
+            for slug in self._ordinal_catalogue()
+            if slug not in self._props
+        }
         try:
-            used = validate_names(expression, set(var_to_slug))
+            used = validate_names(expression, set(var_to_slug) | set(ordinal_vars))
+            ordinal_used = sorted(ordinal_vars[var] for var in used if var in ordinal_vars)
+            if ordinal_used:
+                raise ValidationError(
+                    "Propriedade ordinal não entra em expressão de índice, porque um nível "
+                    f"não tem magnitude: {', '.join(ordinal_used)}."
+                )
             # A discrete attribute has no magnitude and no unit (its
             # `canonical_unit` is NULL by database constraint), so it cannot take
             # part in an expression at all — and refusing it here, by name, beats
@@ -1642,6 +1786,7 @@ class SelectionService:
             else:
                 prop = self._props.get(c.key)
                 if prop is None:
+                    self._refuse_ordinal_magnitude(c.key, "não serve como critério de ranqueamento")
                     raise NotFoundError(self._not_found(c.key))
                 if getattr(prop, "kind", None) is ProcessAttributeKind.DISCRETO:
                     raise ValidationError(

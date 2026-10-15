@@ -23,6 +23,9 @@ Design choices, aligned with the Ashby methodology:
   (``HAS_ANY_LABEL`` / ``HAS_NO_LABEL``) and never by a numeric operator. The
   negative one does not admit a record that has no such attribute recorded:
   absence is a state, and asking for it is what ``NOT_EXISTS`` is for.
+* An **ordinal** property (D-126) holds a level on an ordered scale, and is
+  answered by ``LEVEL_AT_LEAST``: "at least this level". A record with no
+  level never passes — absence is not the worst level, it is no comparison.
 * A **Chart stage** (P1-2) is a region of one plane, and nothing here computes
   geometry: a box is a bound per axis, and the favourable side of an index line
   is a comparison on the index value. Unlike a threshold, it rejects a record it
@@ -37,6 +40,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from app.domain.composition import CompositionCondition, EntryFacts, evaluate_material
+from app.domain.ordinal import meets_minimum
 
 
 class Operator(str, Enum):
@@ -71,6 +75,11 @@ class Operator(str, Enum):
     # satisfies, and negation does not release it (D-59/D-105).
     COMPOSITION = "composition"
     NOT_COMPOSITION = "not_composition"
+    # D-126: "at least this level" over an ordinal material property. One
+    # operator and not a family: the exercise asks for a minimum accepted level,
+    # and a ceiling ("no better than Bom") is a question nobody selecting a
+    # material asks. Absence never passes (``meets_minimum``).
+    LEVEL_AT_LEAST = "level_at_least"
 
 
 _NUMERIC_OPERATORS = {
@@ -147,6 +156,13 @@ class RecordSnapshot:
     #: has no unit and no order, so it is neither in ``values`` nor comparable
     #: by a numeric operator.
     labels: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    #: Ordinal properties, slug → the rank of the level this record holds
+    #: (D-126; 0 = the worst level of that property's scale). A rank is a
+    #: position, not a magnitude, so it is neither in ``values`` (a ranking or
+    #: an index would read it as a number) nor in ``labels`` (which has no
+    #: order). A record with no level — absent or recorded as missing — has no
+    #: key here, exactly as a missing value has none in ``values``.
+    ordinals: dict[str, int] = field(default_factory=dict)
     #: Quantities **computed for this run**, key → value (P1-2): today the value
     #: of a performance index, which a Chart stage can put on an axis or draw a
     #: line at.
@@ -234,6 +250,10 @@ class Constraint:
     #: The condition a COMPOSITION / NOT_COMPOSITION constraint reads (TM2-b),
     #: already parsed and validated by the service. Never evaluated from text here.
     composition: CompositionCondition | None = None
+    #: The minimum accepted rank of a LEVEL_AT_LEAST constraint (D-126), already
+    #: resolved from the level's label by the service against the property's
+    #: own scale. ``labels`` keeps the label, for the funnel and the documents.
+    min_rank: int | None = None
 
 
 @dataclass(frozen=True)
@@ -561,7 +581,12 @@ def has_value(record: RecordSnapshot, slug: str | None) -> bool:
     """
     if slug is None:
         return False
-    return slug in record.values or slug in record.envelopes or slug in record.labels
+    return (
+        slug in record.values
+        or slug in record.envelopes
+        or slug in record.labels
+        or slug in record.ordinals
+    )
 
 
 def _envelope_satisfies(constraint: Constraint, lower: float, upper: float) -> bool:
@@ -673,6 +698,14 @@ def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> boo
             return True
         haystack = " ".join([material.name.lower(), *(k.lower() for k in material.keywords)])
         return needle in haystack
+
+    if op is Operator.LEVEL_AT_LEAST:
+        slug = constraint.property_slug
+        if slug is None or constraint.min_rank is None:
+            return False
+        # ``.get`` yields None for a record with no level, and None never meets
+        # a minimum — the D-59 rule for a discrete datum, kept for an ordered one.
+        return meets_minimum(material.ordinals.get(slug), constraint.min_rank)
 
     if op in _LABEL_OPERATORS:
         picked = set(constraint.labels)
