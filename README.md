@@ -26,7 +26,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Seleção** — um assistente guiado, um passo de cada vez: Função → Objetivo →
   Restrições → Resultados. Por trás, a seleção é uma **pilha de estágios**
   (limites com AND/OR aninhados, árvore de classes, processo compatível, região
-  de um gráfico), e o resultado é a interseção deles. Ranking por soma
+  de um gráfico), e o resultado é a interseção deles. Um limite pode pedir
+  **nível mínimo aceito** numa propriedade ordinal (escala do pior ao melhor,
+  como durabilidade por agente; material sem nível nunca passa). Ranking por soma
   ponderada, TOPSIS ou PROMETHEE II, pesos por AHP, funil de eliminação,
   excluídos por dado ausente e análise de sensibilidade. Estudos salvos
   reexecutam para a mesma resposta, levam notas por estágio e por estudo, e

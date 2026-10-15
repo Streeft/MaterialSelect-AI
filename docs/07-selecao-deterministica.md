@@ -147,6 +147,19 @@ mesmo `normalized_value` de sempre — enquanto continua sendo filtrado pelos
 limites.
 
 
+### Propriedade ordinal: nível mínimo aceito (D-126)
+
+Uma propriedade ordinal de material é uma escala de níveis, do pior ao melhor
+(`GET /api/properties/ordinais`; nível de um material em
+`GET /api/materials/{id}/ordinais`, com "sem dado" e "ausente" escritos). No
+estágio `limit`, `{"operator": "level_at_least", "property_slug": …, "labels":
+["Aceitável"]}` admite quem tem aquele nível **ou melhor**. A comparação é
+`app/domain/ordinal.py::meets_minimum`: material sem nível — sem linha ou
+registrado ausente — **nunca passa**, nem diante do nível mais baixo, e não é o
+pior nível. O passo do funil traz `without_level`, e o rótulo gerado diz a
+escala e a regra. Ordinal não entra em operador numérico, ranking nem índice
+(400 com o nome); nível fora da escala é 404 nomeando a escala.
+
 ### O estágio de gráfico (P1-2)
 
 O gráfico deixa de só mostrar e passa a **reprovar** ([D-60](DECISIONS.md)). Um

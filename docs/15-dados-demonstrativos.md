@@ -57,6 +57,17 @@ antes das designações a que se ligam (chave `equivalence_groups` do relatório
 Não são uma tabela de correspondência de ligas: os códigos e a correspondência
 são inventados.
 
+Desde o D-126 o mesmo comando cria **duas propriedades ordinais fictícias**
+("Durabilidade em água doce (demo)" e "… à radiação UV (demo)", escala genérica
+de cinco níveis) e um nível por material `is_demo` — saído de um hash estável do
+nome, com um em sete **registrado ausente** de propósito, para o quarto estado
+aparecer (`app/db/seed_demo_ordinal.py`, chamado por `seed_extended.main()`;
+log `ordinal_definitions_created` e `ordinal_values_created`: 2 e 2 × materiais
+demo na primeira execução, 0 na segunda). Definição e valor são `is_demo` na
+própria linha (`OrdinalPropertyDefinition.is_demo`,
+`MaterialOrdinalValue.is_demo`), citam a fonte demo, e `clear_demo` os apaga
+(chaves `ordinal_values` e `ordinal_definitions`).
+
 O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designações
 `DEMO-…` e composição numa gramática de uma linha por material) e
 `apps/api/app/db/seed_extended_identity.py` (curvas), chamados por

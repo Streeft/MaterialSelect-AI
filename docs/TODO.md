@@ -138,6 +138,21 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
 
+**Propriedade ordinal de material e nível mínimo aceito (relatório de lacunas do
+EduPack, #11; exercício 8, passo 2; [D-126](DECISIONS.md), Sessão 81).** ✔
+Entregue: ~~escala ordenada por definição, nível por material com proveniência e
+ausência escrita~~, ~~critério `level_at_least` no estágio de limites (ausente
+nunca passa; `without_level` no funil e no laudo)~~, ~~demo fictício e contrato
+do bundle~~ (migração `860cc669ff6a`). Resíduos:
+
+- **ORD-a — seção na ficha.** ▁ `GET /api/materials/{id}/ordinais` já devolve o
+  nível ou a ausência escrita; a ficha ainda não desenha.
+- **ORD-b — dado real.** Bloqueado: durabilidade por agente só com fonte
+  APROVADA (`docs/catalogo/fontes.md`) ou pelo bundle do D-102.
+- **ORD-c — edição à mão e curadoria da escala.** ▁ Hoje só seed e bundle
+  escrevem; uma tela de edição precisa da auditoria do M2 e da guarda do
+  material oficial (D-116).
+
 **Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21,
 [D-122](DECISIONS.md), Sessão 77).** ✔ Entregue: ~~notas por estágio e por
 estudo~~, ~~exportar e importar estudo (JSON versionado, validado, nunca executa
