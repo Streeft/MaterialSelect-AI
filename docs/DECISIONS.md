@@ -10320,3 +10320,36 @@ unidades próprias — D-70); índice digitado livremente na tela (fica para dep
 
 **Consequências.** Contrato novo e retrocompatível (campos opcionais). Depois do
 merge, **Deploy da API** é obrigatório; não há seed nem migração.
+
+
+## D-129 — Busca global: a barra de busca do Material 3 no topo, que só navega
+
+**Contexto.** O autor pediu que o frontend siga os padrões de apps do Google e,
+depois, que as ideias do site do Material 3 (`m3.material.io`) entrem na
+aplicação. O site é lido por Chromium headless (ele exige JavaScript), e cada
+padrão aplicado cita a página de onde veio. A `CommandPalette` do MSDS existia
+desde o D-74 e nunca foi montada: não tinha setas, nem `aria-activedescendant`,
+nem índice além de materiais.
+
+**Decisão.**
+- **Onde mora.** Uma barra de busca persistente no topo de toda tela de
+  `/app/*` (`components/layout/GlobalSearch.tsx`, montada em `app/app/layout.tsx`)
+  — o *search app bar* do M3, que o guia reserva para quando a busca é a função
+  global. Abre com **Ctrl/Cmd+K** ou **/** (a barra **não** rouba o `/` de quem
+  está digitando num campo).
+- **O que acha.** Telas (as mesmas de `GROUPS`/`visibleGroups`, então o menu por
+  papel do D-86 vale aqui), materiais, processos, cadernos e estudos salvos. Sem
+  texto, só as telas aparecem: uma lista de todo o catálogo não é sugestão. Com
+  texto, no máximo 6 por grupo, ignorando caixa e acento (`lib/search.ts`).
+- **Forma (M3 Search).** Sugestões em lista com ícone à esquerda e rótulo de
+  categoria, separadas por grupo; botão de limpar; *docked* com véu no desktop e
+  tela cheia no celular.
+- **Acessibilidade.** Combobox ARIA 1.2: o foco fica no campo e
+  `aria-activedescendant` nomeia a opção; setas, Enter e Esc; a contagem de
+  resultados vai a uma região `status`.
+
+**O que não muda.** A busca **só navega**: não calcula nada e nunca mostra valor
+de propriedade, então o princípio 1 e a regra da ausência (D-24) não têm onde
+morder. Os dados vêm das mesmas consultas (mesmas `queryKey`) das telas.
+
+**Consequências.** Frontend apenas; não precisa de Deploy da API.

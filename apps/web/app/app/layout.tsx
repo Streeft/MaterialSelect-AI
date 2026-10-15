@@ -1,6 +1,7 @@
 import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
 import { LimitationNotice } from "@/components/LimitationNotice";
 import { ptBR } from "@/lib/i18n";
 
@@ -24,6 +25,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </a>
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* D-129: M3's "search app bar" — global search is the one function that
+              is always reachable, so it sits above the content on every screen. */}
+          <div className="sticky top-0 z-20 border-b border-line-divider bg-page/90 px-4 py-2 backdrop-blur sm:px-6 lg:top-0 lg:px-8">
+            <div className="mx-auto w-full max-w-screen-2xl">
+              <GlobalSearchButton />
+            </div>
+          </div>
           {/* D-80: 1536 px, not 1152. A data screen at 1920 left a third of the
               window blank beside a map squeezed to 1100 px; prose keeps its
               own measure through `max-w-prose` where it appears. */}
