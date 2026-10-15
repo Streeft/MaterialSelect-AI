@@ -87,6 +87,17 @@ quitados".
 
 ## Média prioridade
 
+- **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —
+  a busca global e o aviso com Desfazer saíram; restam, um PR por item e citando a
+  página de `m3.material.io` de onde veio: (3) tabelas com cabeçalho ordenável
+  (`aria-sort`), seleção em massa e filtros na URL; (4) home estilo Drive
+  ("Retomar", atalhos); (5) rascunho salvo e saída segura no assistente da
+  Seleção; (6) transição entre telas (`useContainerTransform`, esquema *standard*,
+  `prefers-reduced-motion`); (7) app instalável (manifest, service worker só do
+  shell, página offline que diz o que falta); (8) Cadernos em grade com menu e
+  painéis redimensionáveis; (9) região `aria-live` global e regressão visual em
+  quatro larguras. Candidato extra: catálogo em *list-detail* em tela larga.
+
 - ~~**Eco Audit de produto: vários componentes, vários trechos, fim de vida
   ampliado (Sessão 76, [D-121](DECISIONS.md))**~~ — `audit_product` soma
   material/manufatura/fim de vida por componente, transporte por trecho sobre a
