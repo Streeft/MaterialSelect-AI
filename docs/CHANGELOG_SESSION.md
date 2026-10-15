@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
 | [80](#sessão-80--141026--ficha-técnica-do-material-em-pdf-para-todo-registro-visível-d-125) | 14/10/2026 | Ficha técnica completa em PDF: diagnóstico do 404 em produção (API não implantada após o #135), visibilidade coberta (demo, próprio, compartilhado, oficial; inexistente/alheio = 404 escrito) e 404 de rota em pt-BR | 4799 | 929 |
 | [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4781 | 924 |
 | [78](#sessão-78--141026--desempenho-do-diff-entre-releases-tm7-d-d-123) | 14/10/2026 | Desempenho do diff entre releases (TM7-d): unidade interpretada uma vez, atalho do valor idêntico e diff guardado no import (migração `2fe7eecc5981`) | +12 | 0 |
@@ -95,6 +96,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 83 — 15/10/26 — Comparador: limiar de destaque e propriedades computadas (D-128)
+
+**O que mudou.** (a) `highlight_threshold_pct` (0 < x ≤ 1000, `?limiar=` na URL,
+inválido recusado/descartado) marca por escrito e visualmente as propriedades
+cuja dispersão `(máx − mín) ÷ maior valor em módulo` passa do limiar, e a
+célula quando a diferença para a referência passa dele; ausências com estado
+nomeado. (b) `computed` avalia índices do catálogo pelo mesmo caminho dos mapas
+e mostra numa seção própria, com o motivo quando falta insumo. Teto 60×20
+intacto. Sem migração; exige **Deploy da API**.
+
+**Testes.** +18 de backend (`test_compare_threshold_computed.py`) e +17 de
+frontend (4799 → 4817 e 929 → 946) (`compare-threshold.test.ts(x)`, `comparar-limiar.test.tsx`).
 
 ## Sessão 80 — 14/10/26 — Ficha técnica do material em PDF para todo registro visível (D-125)
 

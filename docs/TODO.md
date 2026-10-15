@@ -127,6 +127,10 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   equivalência, de propósito: seria inferir.
 - **TM2 — busca por composição química e por designação.** ✔ Entregue (D-105,
   Sessão 60); resíduos abaixo.
+- **Comparador: limiar de destaque e propriedades computadas (#14).** ✔ Entregue
+  (D-128, Sessão 83). Resíduos: índice digitado livremente na tela (hoje só os
+  do catálogo), computadas sem dispersão/destaque próprios, e limiar sem estado
+  persistido além da URL.
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
