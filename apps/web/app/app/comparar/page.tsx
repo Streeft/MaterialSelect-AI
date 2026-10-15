@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getComparison, listMaterials, listProperties } from "@/lib/api";
+import { getComparison, listMaterials, listPerformanceIndices, listProperties } from "@/lib/api";
+import { parseThreshold, thresholdParam } from "@/lib/compare-threshold";
+import { ComputedTable } from "@/components/charts/ComputedSection";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { prettyUnit } from "@/lib/format";
@@ -21,6 +23,7 @@ import {
   DensityToggle,
   ErrorState,
   LoadingState,
+  NumberInput,
   PageHeader,
   RemovableChip,
   Section,
@@ -62,11 +65,23 @@ function ComparePageContent() {
     const raw = Number(params.get("referencia"));
     return Number.isInteger(raw) && raw > 0 ? raw : null;
   });
+  // D-128: the highlight threshold is URL state too. An invalid `?limiar=` is
+  // discarded (no highlight), never repaired into another number.
+  const [threshold, setThreshold] = useState<number | null>(() =>
+    parseThreshold(params.get("limiar")),
+  );
+  const [thresholdText, setThresholdText] = useState<string>(() => {
+    const initial = parseThreshold(params.get("limiar"));
+    return initial === null ? "" : String(initial).replace(".", ",");
+  });
+  const [thresholdInvalid, setThresholdInvalid] = useState(false);
+  const [computedSlugs, setComputedSlugs] = useState<string[]>([]);
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
   const [mode, setMode] = useState<ComparisonMode>("table");
 
   const materials = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials() });
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
+  const indices = useQuery({ queryKey: ["performance-indices"], queryFn: listPerformanceIndices });
 
   // Sensible first view: the properties most materials actually have.
   // Derived during render rather than scheduled in an effect to avoid
@@ -114,8 +129,12 @@ function ComparePageContent() {
       property_slugs: selectedProperties,
       normalization,
       reference_id: activeReference,
+      highlight_threshold_pct: threshold,
+      computed: (indices.data ?? [])
+        .filter((index) => computedSlugs.includes(index.slug))
+        .map((index) => ({ name: index.name, expression: index.expression, goal: index.goal })),
     }),
-    [selectedMaterials, selectedProperties, normalization, activeReference],
+    [selectedMaterials, selectedProperties, normalization, activeReference, threshold, computedSlugs, indices.data],
   );
 
   const ready = selectedMaterials.length > 0 && selectedProperties.length > 0;
@@ -124,6 +143,44 @@ function ComparePageContent() {
     queryFn: () => getComparison(request),
     enabled: ready,
   });
+
+  function writeThresholdToUrl(value: number | null) {
+    try {
+      const url = new URL(window.location.href);
+      if (value === null) url.searchParams.delete("limiar");
+      else url.searchParams.set("limiar", thresholdParam(value));
+      window.history.replaceState(null, "", url);
+    } catch {
+      // The URL is a convenience; the state in the page is what counts.
+    }
+  }
+
+  function applyThreshold(event: FormEvent) {
+    event.preventDefault();
+    const parsed = parseThreshold(thresholdText);
+    if (parsed === null) {
+      // Refused, not repaired: the field says so and the table keeps its
+      // previous (valid) highlight.
+      setThresholdInvalid(true);
+      return;
+    }
+    setThresholdInvalid(false);
+    setThreshold(parsed);
+    writeThresholdToUrl(parsed);
+  }
+
+  function clearThreshold() {
+    setThresholdText("");
+    setThresholdInvalid(false);
+    setThreshold(null);
+    writeThresholdToUrl(null);
+  }
+
+  function toggleComputed(slug: string) {
+    setComputedSlugs((current) =>
+      current.includes(slug) ? current.filter((x) => x !== slug) : [...current, slug],
+    );
+  }
 
   function toggleMaterial(id: number) {
     setSelectedMaterials((current) =>
@@ -263,10 +320,37 @@ function ComparePageContent() {
             {selectedMaterials.length === 0 ? t.lockedUntilMaterial : t.lockedUntilProperty}
           </p>
         ) : (
-          /* Real tabs, not a row of buttons: arrows move between the five views
+          <div className="flex flex-col gap-3">
+          <form
+            onSubmit={applyThreshold}
+            className="well flex flex-wrap items-start gap-3"
+          >
+            <NumberInput
+              label={t.threshold.label}
+              hint={t.threshold.hint}
+              error={thresholdInvalid ? t.threshold.invalid : undefined}
+              value={thresholdText}
+              inputMode="decimal"
+              step="any"
+              min={0}
+              onChange={(e) => setThresholdText(e.target.value)}
+              className="w-56"
+            />
+            <div className="flex items-center gap-2 pt-6">
+              <Button type="submit" size="sm" variant="secondary">
+                {t.threshold.apply}
+              </Button>
+              {threshold !== null && (
+                <Button size="sm" variant="ghost" onClick={clearThreshold}>
+                  {t.threshold.clear}
+                </Button>
+              )}
+            </div>
+          </form>
+          {/* Real tabs, not a row of buttons: arrows move between the five views
              and only the selected one is in the tab order. Everything the chosen
              view renders is the panel — including the wait and the failure, which
-             are also states of that view and not of the page. */
+             are also states of that view and not of the page. */}
           <Tabs
             label={ptBR.ui.views}
             items={COMPARISON_MODES.map((m) => ({ id: m.key, label: m.label }))}
@@ -299,8 +383,47 @@ function ComparePageContent() {
               />
             )}
           </Tabs>
+          </div>
         )}
       </Section>
+
+      {ready && (
+        <Section id="computadas" title={t.computed.title} headingLevel={2}>
+          <div className="flex flex-col gap-3">
+            <p className="text-support text-ink-subtle">{t.computed.description}</p>
+            {indices.isLoading && <LoadingState label={t.computed.loading} />}
+            {indices.isError && (
+              <ErrorState title={t.computed.error} onRetry={() => void indices.refetch()} />
+            )}
+            {indices.data && indices.data.length === 0 && (
+              <p className="text-sm text-ink-muted">{t.computed.noneAvailable}</p>
+            )}
+            {indices.data && indices.data.length > 0 && (
+              <div role="group" aria-label={t.computed.pick} className="flex flex-wrap gap-2">
+                {indices.data.map((index) => (
+                  <ToggleChip
+                    key={index.slug}
+                    selected={computedSlugs.includes(index.slug)}
+                    onClick={() => toggleComputed(index.slug)}
+                    title={index.expression}
+                  >
+                    {index.name}
+                  </ToggleChip>
+                ))}
+              </div>
+            )}
+            {computedSlugs.length === 0 ? (
+              <p className="text-sm text-ink-muted">{t.computed.none}</p>
+            ) : (
+              <>
+                {comparison.isLoading && <LoadingState label={t.computed.loading} />}
+                {comparison.isError && <ErrorState title={t.computed.error} />}
+                {comparison.data && <ComputedTable comparison={comparison.data} />}
+              </>
+            )}
+          </div>
+        </Section>
+      )}
 
       {comparison.data && comparison.data.notes.length > 0 && (
         <Section id="observacoes" title={t.notesTitle} headingLevel={2}>

@@ -34,6 +34,7 @@ from app.domain.display_units import Reading, reading_for, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.ranking import Direction, Normalization, normalize_column
+from app.domain.spread import exceeds, spread_pct
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
@@ -48,6 +49,8 @@ from app.schemas.charts import (
     CompareMaterialOut,
     CompareOut,
     CompareRequest,
+    ComputedColumnOut,
+    ComputedValueOut,
     DifferenceState,
     ExcludedPointOut,
     IndexLevelOut,
@@ -1065,6 +1068,15 @@ class ChartService:
         # números significa algo. Confundi-los faria uma escolha de leitura
         # ligar ou desligar a coluna de diferença percentual.
         readings = readings_for([definitions[slug] for slug in property_slugs], self.unit_choices)
+        threshold = request.highlight_threshold_pct
+        for axis in axes:
+            spread, state = spread_pct(
+                [float(column_value.normalized_value) for column_value in raw[axis.property_slug].values()],  # type: ignore[arg-type]
+                ratio_scale=ratio_scale[axis.property_slug],
+            )
+            axis.spread_pct = spread
+            axis.spread_state = state
+            axis.exceeds_threshold = exceeds(spread, threshold)
         for slug in property_slugs:
             if reference_id is not None and not ratio_scale[slug]:
                 notes.append(
@@ -1101,7 +1113,59 @@ class ChartService:
             for material in ordered
         ]
 
-        return CompareOut(normalization=method.value, properties=axes, materials=rows, notes=notes)
+        # D-128: a cell is flagged on its own difference from the reference.
+        if threshold is not None:
+            for row in rows:
+                for cell in row.cells:
+                    cell.exceeds_threshold = exceeds(cell.difference_pct, threshold)
+
+        computed = self._computed_columns(request.computed, ordered)
+        return CompareOut(
+            normalization=method.value,
+            properties=axes,
+            materials=rows,
+            threshold_pct=threshold,
+            computed=computed,
+            notes=notes,
+        )
+
+    def _computed_columns(
+        self, indices: Sequence[IndexIn], materials: list[Material]
+    ) -> list[ComputedColumnOut]:
+        """Evaluate each requested index for every compared material (D-128).
+
+        Same validator, evaluator and variable snapshot as the property maps:
+        an index here and on a map can never disagree. A material without any
+        input gets the evaluator's written reason, never a zero.
+        """
+        variables = self._material_variables(materials)
+        columns: list[ComputedColumnOut] = []
+        for index in indices:
+            used, dimension = self._validate_expression(index.expression)
+            values: list[ComputedValueOut] = []
+            for material in materials:
+                evaluation = evaluate_index(index.expression, used, variables.get(material.id, {}))
+                values.append(
+                    ComputedValueOut(
+                        material_id=material.id,
+                        value=evaluation.value,
+                        undefined_reason=evaluation.undefined_reason,
+                    )
+                )
+            defined = sum(1 for v in values if v.value is not None)
+            columns.append(
+                ComputedColumnOut(
+                    name=index.name or index.expression,
+                    expression=index.expression,
+                    goal=index.goal,
+                    dimension=dimension,
+                    variables=sorted(used),
+                    values=values,
+                    defined_count=defined,
+                    undefined_count=len(values) - defined,
+                )
+            )
+        return columns
 
     @staticmethod
     def _difference(

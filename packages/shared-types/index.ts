@@ -1433,7 +1433,18 @@ export interface ComparisonRequest {
    * percentage uncheckable.
    */
   reference_id?: number | null;
+  /** D-128: flag properties whose values differ by more than this many percent. */
+  highlight_threshold_pct?: number | null;
+  /** D-128: ratios/indices evaluated by the backend, shown in their own section. */
+  computed?: { name?: string | null; expression: string; goal?: Goal }[];
 }
+
+/** D-128: why a property's spread is, or is not, a number. */
+export type SpreadState =
+  | "calculada"
+  | "escala_sem_zero"
+  | "valores_insuficientes"
+  | "base_zero";
 
 /**
  * Why a percentage difference is, or is not, a number (P2).
@@ -1464,6 +1475,11 @@ export interface CompareAxis {
   max_value: number | null;
   present_count: number;
   missing_material_ids: number[];
+  /** D-128: (max - min) / largest magnitude, in percent; canonical units. */
+  spread_pct?: number | null;
+  spread_state?: SpreadState;
+  /** Null without a threshold or without a spread to compare. */
+  exceeds_threshold?: boolean | null;
 }
 
 export interface CompareCell {
@@ -1490,6 +1506,8 @@ export interface CompareCell {
    */
   difference_pct: number | null;
   difference_state: DifferenceState;
+  /** D-128: |difference_pct| above the threshold; null without either. */
+  exceeds_threshold?: boolean | null;
   /** A mesma medida, lida na unidade do leitor (D-70). */
   display_unit: string | null;
   display_value: number | null;
@@ -1508,10 +1526,30 @@ export interface CompareMaterial {
   complete: boolean;
 }
 
+export interface ComputedValue {
+  material_id: number;
+  value: number | null;
+  undefined_reason: string | null;
+}
+
+/** D-128: one ratio/index over the compared materials, in canonical units. */
+export interface ComputedColumn {
+  name: string;
+  expression: string;
+  goal: string;
+  dimension: string;
+  variables: string[];
+  values: ComputedValue[];
+  defined_count: number;
+  undefined_count: number;
+}
+
 export interface Comparison {
   normalization: string;
   properties: CompareAxis[];
   materials: CompareMaterial[];
+  threshold_pct?: number | null;
+  computed?: ComputedColumn[];
   notes: string[];
 }
 

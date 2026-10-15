@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
 | [82](#sessão-82--151026--perfis-de-profundidade-l1l2l3-com-visão-de-ficha-d-127) | 15/10/2026 | Perfis de profundidade L1/L2/L3: `min_level` por slug no código (padrão seguro: todos), `GET /api/properties/niveis`, seletor de nível na ficha e nos eixos do mapa com "mostra X de Y" escrito, nível na URL, canário "nível não altera ranking"; sem migração (D-127) | +17 | +8 |
 | [81](#sessão-81--151026--propriedade-ordinal-de-material-e-nível-mínimo-aceito-d-126) | 15/10/2026 | Propriedade ordinal de material (escala ordenada, nível por material com proveniência, ausência escrita) e o critério "nível mínimo aceito" no estágio de limites (ausente nunca passa; `without_level` no funil e no laudo), demo fictício, contrato do bundle (migração `860cc669ff6a`) | +35 | +7 |
 | [80](#sessão-80--141026--ficha-técnica-do-material-em-pdf-para-todo-registro-visível-d-125) | 14/10/2026 | Ficha técnica completa em PDF: diagnóstico do 404 em produção (API não implantada após o #135), visibilidade coberta (demo, próprio, compartilhado, oficial; inexistente/alheio = 404 escrito) e 404 de rota em pt-BR | 4799 | 929 |
@@ -98,6 +99,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 83 — 15/10/26 — Comparador: limiar de destaque e propriedades computadas (D-128)
+
+**O que mudou.** (a) `highlight_threshold_pct` (0 < x ≤ 1000, `?limiar=` na URL,
+inválido recusado/descartado) marca por escrito e visualmente as propriedades
+cuja dispersão `(máx − mín) ÷ maior valor em módulo` passa do limiar, e a
+célula quando a diferença para a referência passa dele; ausências com estado
+nomeado. (b) `computed` avalia índices do catálogo pelo mesmo caminho dos mapas
+e mostra numa seção própria, com o motivo quando falta insumo. Teto 60×20
+intacto. Sem migração; exige **Deploy da API**.
+
+**Testes.** +18 de backend (`test_compare_threshold_computed.py`) e +17 de
+frontend (4816 → 4834 e 937 → 954) (`compare-threshold.test.ts(x)`, `comparar-limiar.test.tsx`).
+
 ## Sessão 82 — 15/10/26 — Perfis de profundidade L1/L2/L3 com visão de ficha (D-127)
 
 **O que mudou.** `app/domain/depth_profile.py` declara o nível de cada grandeza
@@ -129,7 +143,7 @@ bundle do D-102 aceita os dois arquivos só como estrutura. Exige **Deploy da AP
 e a migração; `semear_demo` para ver o demo.
 
 **Testes.** +35 de backend (`test_ordinal_properties.py`, chaves novas em
-`test_clear_demo.py`) e +7 de frontend: 4799 → 4834 e 929 → 936.
+`test_clear_demo.py`) e +7 de frontend: 4799 → 4834 e 929 → 936 isolados; sobre a main com o D-127 e o D-128 mesclados, a árvore coleta 4869 (4863 passam e 6 pulam) e 961 de frontend.
 ## Sessão 80 — 14/10/26 — Ficha técnica do material em PDF para todo registro visível (D-125)
 
 **Sintoma.** Em produção, "Ficha técnica completa (PDF)" abria
