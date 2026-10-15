@@ -12,6 +12,7 @@ import {
   getStudy,
   listClasses,
   listPerformanceIndices,
+  listOrdinalProperties,
   listProcessAttributes,
   listProcessClasses,
   listProcesses,
@@ -442,6 +443,12 @@ function SelectionWizard() {
   const processAttributes = useQuery({
     queryKey: ["process-attributes"],
     queryFn: listProcessAttributes,
+  });
+  // D-126: ordinal material properties, for the minimum-level criterion. A
+  // failed or slow load only hides that criterion; nothing else waits on it.
+  const ordinalProperties = useQuery({
+    queryKey: ["ordinal-properties"],
+    queryFn: listOrdinalProperties,
   });
   const processClasses = useQuery({
     queryKey: ["process-classes"],
@@ -1271,10 +1278,16 @@ function SelectionWizard() {
                 {t.universeProcessNote}
               </Alert>
             )}
+            {!isProcessStudy && ordinalProperties.isError && (
+              <Alert tone="warning" className="mb-4">
+                {t.ordinalLoadError}
+              </Alert>
+            )}
             <StageList
               stages={stages}
               properties={properties.data ?? []}
               processAttributes={processAttributes.data ?? []}
+              ordinalProperties={ordinalProperties.data ?? []}
               classes={classes.data ?? []}
               processes={processes.data ?? []}
               processClasses={processClasses.data ?? []}

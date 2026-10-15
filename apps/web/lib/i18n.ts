@@ -482,7 +482,18 @@ export const ptBR = {
       // TM2-b (D-105): composição química, só no universo de materiais.
       composition: "composição (alcance da faixa)",
       not_composition: "composição (garantia: NOT)",
+      // D-126: nível mínimo aceito numa propriedade ordinal de material.
+      level_at_least: "≥ nível mínimo aceito",
     },
+    minimumLevel: "Nível mínimo aceito",
+    minimumLevelHint: (scale: string) => `Escala, do pior ao melhor: ${scale}.`,
+    minimumLevelPickPropertyFirst: "Escolha a propriedade para ver a escala de níveis.",
+    selectLevel: "Selecione um nível",
+    sentenceLevel: (name: string, level: string) =>
+      `${name} é ${level} ou melhor (sem nível cadastrado não passa)`,
+    withoutLevelNote: (n: number) => `${n} sem nível cadastrado`,
+    ordinalLoadError:
+      "Não foi possível carregar as propriedades ordinais; o critério de nível mínimo aceito fica indisponível até recarregar.",
     compositionCondition: "Condição de composição",
     compositionHint:
       "Mesma sintaxe da busca: Cr>=12, C<=0,08, Ni:8-10 ou Fe. Em % em massa.",
