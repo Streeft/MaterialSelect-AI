@@ -13,6 +13,7 @@ import {
   provenanceOfProperty,
   qualityState,
 } from "@/components/ui";
+import { GlossaryHint } from "@/components/glossary/GlossaryHint";
 
 /** The number itself. Everything around it — where it came from, what it was
  * converted from, who recorded it — is in the popover. */
@@ -115,6 +116,11 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
                 {p.symbol && (
                   <span className="ml-1 text-ink-subtle">({p.symbol})</span>
                 )}
+                <GlossaryHint
+                  slug={p.property_slug}
+                  name={p.property_name}
+                  className="ml-1.5 align-middle"
+                />
               </th>
               <td className="px-4 py-2 text-ink">
                 <ValueCell p={p} />

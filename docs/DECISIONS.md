@@ -10321,6 +10321,7 @@ unidades próprias — D-70); índice digitado livremente na tela (fica para dep
 **Consequências.** Contrato novo e retrocompatível (campos opcionais). Depois do
 merge, **Deploy da API** é obrigatório; não há seed nem migração.
 
+---
 
 ## D-129 — Busca global: a barra de busca do Material 3 no topo, que só navega
 
@@ -10353,3 +10354,40 @@ de propriedade, então o princípio 1 e a regra da ausência (D-24) não têm on
 morder. Os dados vêm das mesmas consultas (mesmas `queryKey`) das telas.
 
 **Consequências.** Frontend apenas; não precisa de Deploy da API.
+
+## D-130 — Glossário de propriedades: verbete conceitual, autoral e versionado
+
+*Decidida pelo assistente por delegação do autor, revisável.*
+
+**Contexto.** Lacuna nº 7 do relatório do EduPack: o leitor não tinha onde ler o
+que uma grandeza significa. `PropertyDefinition.description` existe (500
+caracteres) mas não tem fonte, licença nem estado de revisão, e nenhuma tela o
+exibe.
+
+**Decisão.**
+1. **Verbete conceitual, nunca numérico.** Sem faixa típica, valor ou exemplo com
+   número e unidade — seria dado de material (princípio 1). O validador e um
+   canário de teste recusam número seguido de unidade; a referência normativa
+   fica de fora da regra (o número de uma norma não é valor).
+2. **Texto autoral em pt-BR, não copiado** do EduPack nem de terceiros. Norma só
+   é citada quando nome e número são certos; na dúvida, omite-se.
+3. **Estado de revisão escrito.** Todo verbete nasce `rascunho` ("ainda não
+   revisado pelo autor") e só vira `revisado` por edição do autor; a tela escreve
+   o estado em texto.
+4. **Arquivo versionado, sem migração:** `apps/api/app/glossary/entries.json`,
+   validado por `app/domain/glossary.py` (lógica pura, sem sessão de banco),
+   servido por `GET /api/glossario` e `/{slug}` com a regra de acesso da lista de
+   propriedades. Licença por verbete: texto autoral do projeto sob a licença MIT
+   do repositório (`LICENSE`).
+5. **Ausência escrita.** Slug sem verbete mostra "Sem verbete no glossário";
+   a API responde 404 nomeando o slug.
+
+**Alternativas descartadas.** Tabela no banco com edição pelo admin (migração e
+tela de edição sem ganho agora); reaproveitar `PropertyDefinition.description`
+(sem fonte, licença nem revisão); passar pelo Cérebro (busca por trechos, não
+verbete curado).
+
+**Consequências.** Canário: o próximo slug de `seed.PROPERTIES` falha o teste de
+cobertura até ganhar verbete. Comparador, mapas e slugs do bundle oficial ficam
+como pendência (`TODO.md`, GL-b e GL-c). Depois do merge, **Deploy da API** é
+obrigatório; não há seed nem migração.

@@ -70,6 +70,8 @@ export const ptBR = {
     myRecords: "Meus registros",
     // D-92: o caderno de estudo com fontes próprias (o NotebookLM do app).
     notebooks: "Cadernos",
+    // D-130: o que cada grandeza significa e como se mede — nunca quanto vale.
+    glossary: "Glossário",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
     groupStudy: "Estudar",
@@ -2777,6 +2779,36 @@ export const ptBR = {
       "Comparado por alcance: a faixa atende um limiar quando o alcança, e não pelo ponto médio.",
     kindDiscretoHint:
       "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
+  },
+
+  // D-130: glossário de propriedades — verbetes conceituais, com fonte e licença.
+  glossary: {
+    title: "Glossário de propriedades",
+    subtitle:
+      "O que cada grandeza do catálogo significa e como se mede. Os verbetes são conceituais: não trazem valores típicos de material.",
+    loading: "Carregando o glossário…",
+    error: "Não foi possível carregar o glossário.",
+    empty: "Nenhum verbete cadastrado no glossário.",
+    noMatch: (q: string) => `Nenhum verbete corresponde a “${q}”.`,
+    filter: "Filtrar por nome",
+    filterHint: "Digite parte do nome ou do identificador da propriedade.",
+    count: (n: number) => (n === 1 ? "1 verbete" : `${n} verbetes`),
+    // Ausência escrita (D-24): slug sem verbete nunca vira vazio nem texto inventado.
+    missing: "Sem verbete no glossário",
+    missingHint: "Esta propriedade ainda não tem verbete conceitual no glossário.",
+    definition: "Definição",
+    howMeasured: "Como se mede",
+    howMeasuredMissing: "Sem descrição do método de medida neste verbete.",
+    reference: "Referência",
+    referenceMissing: "Nenhuma norma citada neste verbete.",
+    license: "Licença do texto",
+    review: "Estado de revisão",
+    reviewDraft: "Rascunho — ainda não revisado pelo autor",
+    reviewDone: "Revisado pelo autor",
+    seeInGlossary: "Ver no glossário",
+    hintLabel: (name: string) => `O que é ${name}? Abrir verbete do glossário`,
+    hintLoading: "Carregando verbete…",
+    hintError: "Não foi possível carregar o verbete.",
   },
 
   // P1-4: o registro de família, nos dois universos.
