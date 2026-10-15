@@ -86,6 +86,7 @@ export {
   Td,
   Th,
   RowHeader,
+  SortTh,
   Tr,
 } from "./Table";
 export { Tabs, type TabItem } from "./Tabs";

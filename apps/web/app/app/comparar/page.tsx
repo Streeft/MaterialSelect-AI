@@ -8,6 +8,7 @@ import { parseThreshold, thresholdParam } from "@/lib/compare-threshold";
 import { ComputedTable } from "@/components/charts/ComputedSection";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { MAX_COMPARE_MATERIALS } from "@/lib/compareLimits";
 import { prettyUnit } from "@/lib/format";
 import {
   COMPARISON_MODES,
@@ -39,7 +40,7 @@ const t = ptBR.compare;
 
 // Mirrors MAX_COMPARE_* in apps/api/app/schemas/charts.py; the server rejects
 // anything larger, and the UI should not let the user get that far.
-const MAX_MATERIALS = 60;
+const MAX_MATERIALS = MAX_COMPARE_MATERIALS;
 const MAX_PROPERTIES = 20;
 
 function parseIds(raw: string | null): number[] {

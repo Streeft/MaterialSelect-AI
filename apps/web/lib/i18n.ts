@@ -1907,6 +1907,16 @@ export const ptBR = {
     columnClass: "Classe",
     columnKeywords: "Palavras-chave",
     columnQuality: "Dados",
+    // D-131: seleção em massa e ordenação da tabela do catálogo.
+    sortBy: (column: string) => `Ordenar por ${column}`,
+    selectAll: "Selecionar todos os materiais listados",
+    selectRow: (name: string) => `Selecionar ${name}`,
+    selectedCount: (n: number) => (n === 1 ? "1 material selecionado" : `${n} materiais selecionados`),
+    compareSelected: "Comparar selecionados",
+    compareNeedsTwo: "Marque pelo menos 2 materiais para comparar.",
+    compareTooMany: (max: number) => `O comparador aceita até ${max} materiais por vez.`,
+    clearSelection: "Limpar seleção",
+    selectionBar: "Ações para os materiais selecionados",
     empty: "Nenhum material encontrado.",
     emptyHint:
       "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",

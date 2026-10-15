@@ -73,6 +73,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   Um aviso por vez, uma ação, sem ícone. Exclusão que apaga vocabulário usado por
   outras linhas (classe, propriedade) continua com confirmação.
 
+- **Tabela ordena rótulo e seleciona linha** ([D-131](docs/DECISIONS.md)): `SortTh` +
+  `aria-sort`; só coluna de texto é ordenável (nunca valor medido — ranquear é do
+  backend). A seleção vale para as linhas **listadas** e o botão desligado diz o motivo.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [85](#sessão-85--151026--tabela-do-catálogo-ordenar-e-selecionar-em-massa-d-131) | 15/10/2026 | Tabela do catálogo com cabeçalho ordenável (`aria-sort`, só rótulo) e seleção em massa com barra *Comparar selecionados*; segundo item do Material 3 (Data tables/Lists); sem backend | — | +11 |
 | [84](#sessão-84--151026--busca-global-e-aviso-com-desfazer-padrões-do-material-3-d-129-d-130) | 15/10/2026 | Busca global no topo (Ctrl/Cmd+K ou `/`, só navega) e aviso com Desfazer nas exclusões (commit adiado no cliente), ambos a partir das páginas Search, Snackbar e Lists de `m3.material.io`; esqueletos de carregamento; sem migração, sem backend | — | +17 |
 | [84](#sessão-84--151026--glossário-de-propriedades-d-129) | 15/10/2026 | Glossário de propriedades: 15 verbetes conceituais e autorais (`app/glossary/entries.json`, sem migração) com fonte, licença e estado `rascunho` escrito; `GET /api/glossario`; dica "?" na ficha e na Seleção guiada; página `/app/glossario` | +29 | +9 |
 | [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
@@ -100,6 +101,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 85 — 15/10/26 — Tabela do catálogo: ordenar e selecionar em massa (D-131)
+
+**O que mudou.** `SortTh` (botão dentro do `<th>`, `aria-sort`) e `lib/tableSort.ts`
+(ordem pt-BR sem acento/caixa, estável, ciclo crescente → decrescente → ordem da
+busca). A tabela do catálogo ordena por *Material* e *Classe*, ganha caixa por
+linha, "Selecionar todos os listados" (meio-marcada) e a barra *Comparar
+selecionados* / *Limpar seleção*, com o motivo escrito quando o botão está
+desligado (menos de 2 ou mais de 60). `lib/compareLimits.ts` passou a ser a única
+fonte desses limites, lida também pelo comparador. Sem migração, sem backend.
+
+**Testes.** +4 (`tableSort.test.ts`) e +7 (`materialTable.test.tsx`, com axe) de
+frontend.
+
+**Atenção.** O `main` tem **dois D-130** e **duas Sessões 84** (aviso com Desfazer
+e glossário de propriedades, feitos em paralelo). Esta sessão usa D-131/85 e não
+renumera nenhum deles: renomear uma decisão já citada em código e docs é decisão
+do autor.
 
 ## Sessão 84 — 15/10/26 — Busca global e aviso com Desfazer, padrões do Material 3 (D-129, D-130)
 
