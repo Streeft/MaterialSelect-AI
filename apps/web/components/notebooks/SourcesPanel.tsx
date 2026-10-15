@@ -9,6 +9,7 @@ import {
   updateNotebookSource,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { useUndoableDelete, withoutChild } from "@/lib/useUndoableDelete";
 import { Alert, Button, Checkbox, IconButton, PanelHeader } from "@/components/ui";
 import { IconPlus, IconTrash } from "@/components/ui/icons";
 import { AddSourcesDialog } from "./AddSourcesDialog";
@@ -48,15 +49,19 @@ export function SourcesPanel({
     mutationFn: (selected: boolean) => selectAllNotebookSources(notebook.id, selected),
     onSuccess: refresh,
   });
-  const remove = useMutation({
-    mutationFn: (id: number) => deleteNotebookSource(notebook.id, id),
-    onSuccess: refresh,
-  });
+  // D-130: the source leaves the panel at once; the API call waits for "Desfazer".
+  const undoableDelete = useUndoableDelete();
+  const remove = (id: number) =>
+    undoableDelete({
+      what: ptBR.snackbar.source,
+      hide: [{ queryKey: notebookKey(notebook.id), remove: withoutChild("sources", id) }],
+      commit: () => deleteNotebookSource(notebook.id, id),
+    });
 
   const sources = notebook.sources;
   const allSelected = sources.length > 0 && sources.every((s) => s.selected);
   const full = sources.length >= notebook.max_sources;
-  const error = toggle.error ?? toggleAll.error ?? remove.error;
+  const error = toggle.error ?? toggleAll.error;
 
   return (
     <section aria-labelledby="fontes-titulo" className="flex min-h-0 flex-1 flex-col">
@@ -123,7 +128,7 @@ export function SourcesPanel({
                       size="sm"
                       label={t.removeSource(source.title)}
                       icon={<IconTrash />}
-                      onClick={() => remove.mutate(source.id)}
+                      onClick={() => remove(source.id)}
                     />
                     <Checkbox
                       label={<span className="sr-only">{t.useSource(source.title)}</span>}

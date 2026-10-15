@@ -9,7 +9,7 @@ import {
   ButtonLink,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Section,
 } from "@/components/ui";
 
@@ -28,7 +28,7 @@ export function SavedStudies() {
 
   return (
     <Section title={t.savedTitle} description={t.savedHint}>
-      {studies.isPending && <LoadingState />}
+      {studies.isPending && <ListSkeleton />}
 
       {studies.isError && (
         <ErrorState description={t.savedError} onRetry={() => studies.refetch()} />

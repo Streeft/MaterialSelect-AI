@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { Landing } from "@/components/marketing/Landing";
@@ -1409,7 +1410,9 @@ function makeClient() {
 }
 
 function wrap(node: ReactNode, client: QueryClient) {
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return <QueryClientProvider client={client}>
+      <SnackbarProvider>{node}</SnackbarProvider>
+    </QueryClientProvider>;
 }
 
 /**

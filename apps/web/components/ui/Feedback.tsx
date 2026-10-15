@@ -66,6 +66,44 @@ export function Skeleton({ className }: { className?: string }) {
   return <span aria-hidden className={cn("block msds-skeleton", className)} />;
 }
 
+/**
+ * The shape of a list that is on its way (D-130): rows or cards in the places
+ * the real ones will land, so the page does not jump when they arrive. It says
+ * "Carregando" once, to a screen reader, and keeps its pieces silent — a status
+ * region that is a spinner and nothing else tells nobody what is coming.
+ */
+export function ListSkeleton({
+  variant = "rows",
+  count,
+  label = ptBR.ui.loading,
+  className,
+}: {
+  variant?: "rows" | "cards";
+  count?: number;
+  label?: string;
+  className?: string;
+}) {
+  const n = count ?? (variant === "cards" ? 6 : 3);
+  return (
+    <div role="status" aria-live="polite" aria-label={label} className={className}>
+      <ul
+        aria-hidden
+        className={
+          variant === "cards"
+            ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            : "flex flex-col gap-2"
+        }
+      >
+        {Array.from({ length: n }, (_, i) => (
+          <li key={i}>
+            <Skeleton className={variant === "cards" ? "h-32 w-full" : "h-12 w-full"} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function LoadingState({
   label = ptBR.ui.loading,
   className,

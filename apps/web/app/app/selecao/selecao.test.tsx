@@ -5,6 +5,7 @@ import { render, waitFor, within } from "@testing-library/react";
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { flowText } from "@/lib/i18n-flow";
@@ -145,7 +146,9 @@ function stepButton(label: string) {
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return <QueryClientProvider client={client}>
+      <SnackbarProvider>{node}</SnackbarProvider>
+    </QueryClientProvider>;
 }
 
 // Imported after the mocks so the page picks them up.

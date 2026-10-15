@@ -7,12 +7,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteNotebook, getNotebook, updateNotebook } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import {
   Alert,
   Button,
   ButtonGroup,
   ButtonGroupItem,
-  Dialog,
   ErrorState,
   IconButton,
   Input,
@@ -165,7 +165,6 @@ function Header({
   const client = useQueryClient();
   const router = useRouter();
   const [draft, setDraft] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
 
   const rename = useMutation({
     mutationFn: (next: string) => updateNotebook(id, { title: next }),
@@ -174,13 +173,18 @@ function Header({
       void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
     },
   });
-  const remove = useMutation({
-    mutationFn: () => deleteNotebook(id),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
-      router.push("/app/cadernos");
-    },
-  });
+  // D-130: no confirmation dialog — the notebook leaves the list at once and the
+  // reader is sent back to it, where "Desfazer" is on screen. The server keeps the
+  // notebook (sources, chat, notes) until the snackbar goes away unused.
+  const undoableDelete = useUndoableDelete();
+  const remove = () => {
+    undoableDelete({
+      what: ptBR.snackbar.notebook,
+      hide: [{ queryKey: NOTEBOOKS_KEY, remove: withoutId(id) }],
+      commit: () => deleteNotebook(id),
+    });
+    router.push("/app/cadernos");
+  };
 
   const commit = () => {
     const next = draft?.trim();
@@ -236,34 +240,12 @@ function Header({
       <Button variant="secondary" size="sm" icon={<IconGear />} onClick={onSettings}>
         {t.settings}
       </Button>
-      <IconButton label={t.remove} icon={<IconTrash />} onClick={() => setConfirming(true)} />
+      <IconButton label={t.remove} icon={<IconTrash />} onClick={remove} />
       {rename.error ? (
         <Alert tone="danger" role="alert" className="w-full">
           {rename.error.message}
         </Alert>
       ) : null}
-      <Dialog
-        open={confirming}
-        onClose={() => setConfirming(false)}
-        title={t.remove}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirming(false)}>
-              {t.cancel}
-            </Button>
-            <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
-              {t.remove}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-ink">{t.removeConfirm(title)}</p>
-        {remove.error ? (
-          <Alert tone="danger" role="alert">
-            {remove.error.message}
-          </Alert>
-        ) : null}
-      </Dialog>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { Notebook } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { RasterizeError } from "@/lib/rasterize";
@@ -127,7 +128,9 @@ vi.mock("@/lib/api", () => ({
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return <QueryClientProvider client={client}>
+      <SnackbarProvider>{node}</SnackbarProvider>
+    </QueryClientProvider>;
 }
 
 beforeEach(() => {
