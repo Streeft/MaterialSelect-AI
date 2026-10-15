@@ -26,6 +26,8 @@ import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { PropertyChart } from "@/components/PropertyChart";
+import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
+import { groupsAtLevel } from "@/lib/depth";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import { CompositionByCondition } from "@/components/material/CompositionByCondition";
 import { DesignationTable } from "@/components/material/DesignationTable";
@@ -60,6 +62,9 @@ export default function MaterialDetailPage() {
   const search = useSearchParams();
   const unitsParam = search.get(UNITS_PARAM);
   const unitChoices = parseUnitChoices(unitsParam);
+  // D-127: the depth level is a view. The sheet arrives whole from the server
+  // and is only cut here, with the count written next to the picker.
+  const depthLevel = useDepthLevel();
 
   const material = useQuery({
     queryKey: ["material", id, unitsParam],
@@ -124,6 +129,9 @@ export default function MaterialDetailPage() {
   }
 
   const data = material.data;
+  const atLevel = data
+    ? groupsAtLevel(data.property_groups, depthLevel)
+    : { groups: [], shown: 0, total: 0 };
   const referencedCount =
     data?.property_groups.reduce(
       (acc, g) =>
@@ -297,11 +305,17 @@ export default function MaterialDetailPage() {
                 <EmptyState title={t.noProperties} />
               ) : (
                 <>
+                  <DepthLevelPicker
+                    summary={ptBR.depth.sheetCount(depthLevel, atLevel.shown, atLevel.total)}
+                  />
+                  {atLevel.groups.length === 0 && (
+                    <EmptyState title={ptBR.depth.noneAtLevel(depthLevel)} />
+                  )}
                   <UnitChoices
-                    groups={data.property_groups}
+                    groups={atLevel.groups}
                     acceptedBySlug={acceptedBySlug}
                   />
-                  {data.property_groups.map((g) => (
+                  {atLevel.groups.map((g) => (
                     <PropertyGroupCard key={g.category} group={g} />
                   ))}
                   {/* The legend, once per sheet: the badges next to each value

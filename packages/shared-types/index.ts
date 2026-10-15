@@ -40,6 +40,8 @@ export interface PropertyValueOut {
   notes: string | null;
   data_quality: DataQuality;
   source_label: string | null;
+  /** A partir de que nível de profundidade (1–3) esta linha aparece (D-127). */
+  min_level?: number;
   /**
    * A mesma medida, lida na unidade do leitor (D-70).
    *
@@ -535,6 +537,27 @@ export interface PropertyDefinition {
   better_direction: BetterDirection;
   allows_log_scale: boolean;
   value_count: number;
+  /**
+   * A partir de que nível de profundidade (1–3) a grandeza aparece (D-127).
+   * Sem declaração, 1 — visível em todos. É visão, nunca filtro de cálculo.
+   */
+  min_level?: number;
+}
+
+/** Um nível de profundidade (D-127). */
+export interface DepthLevelOut {
+  level: number;
+  label: string;
+  description: string;
+}
+
+/** Os perfis de profundidade L1/L2/L3 e o que cada grandeza/ferramenta declara. */
+export interface DepthProfiles {
+  default_level: number;
+  undeclared_min_level: number;
+  levels: DepthLevelOut[];
+  property_min_level: Record<string, number>;
+  tool_min_level: Record<string, number>;
 }
 
 // --- Write payloads (mirror the backend Pydantic input schemas) -----------
