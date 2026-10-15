@@ -10182,6 +10182,47 @@ existência do id).
 **Deploy da API** continua obrigatório (CLAUDE.md, `docs/13-deploy.md` §5-ter);
 se for pulado, o leitor agora vê a frase que diz isso, e não um JSON cru.
 
+## D-127 — Perfis de profundidade L1/L2/L3: o nível é visão, declarado por slug no código, e nunca entra no cálculo
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 82)
+
+**Contexto.** O EduPack organiza a base em Nível 1/2/3, que controlam quantas
+propriedades e ferramentas o aluno vê (lacuna #25 do relatório dos guias de
+uso). A carga oficial em três níveis (C1, [D-102](#d-102)) vai precisar dessa
+estrutura, e ela tem de funcionar já, sem dado licenciado.
+
+**Decisão.** (1) O nível é **configuração de leitura**, nunca filtro de dado:
+a ficha recebe todas as propriedades do servidor e recorta só a visão, escrevendo
+"O Nível N mostra X de Y propriedades desta ficha" e que as demais **não estão
+ausentes** — ausência continua sendo só `is_missing` ([D-24](#d-24)). (2) Cada
+grandeza declara a partir de que nível aparece em `PROPERTY_MIN_LEVEL`
+(`app/domain/depth_profile.py`), por **slug**, e a API expõe isso como
+`min_level` (campo computado em `PropertyDefinitionOut` e `PropertyValueOut`) e
+em `GET /api/properties/niveis`. **Padrão seguro:** grandeza sem declaração tem
+`min_level = 1`, visível em todos. (3) O nível padrão do app é o **3** (tudo):
+sem escolher nada, a tela é a de antes. Ferramentas têm nível mínimo sugerido
+em `TOOL_MIN_LEVEL`, só declarado — nenhuma rota é escondida ou recusada.
+(4) O nível vive na URL (`?nivel=1|2`; o 3 sai da URL), como a unidade de
+leitura ([D-70](#d-70)): o projeto não tem preferência de usuário no servidor, e
+nada novo vai para `localStorage`. (5) Seleção, ranking, índices e exportações
+**não recebem** o nível; um canário roda a mesma seleção com e sem `?nivel=1`
+(critério sobre uma grandeza do Nível 2) e exige resposta idêntica, e outro
+verifica que nenhum método de `SelectionService` nem o `RunRequest` têm
+parâmetro de nível. Os seletores de eixo do mapa recortam as opções pelo nível
+sem nunca tirar o eixo já escolhido.
+
+**Descartado.** Coluna `min_level` em `property_definitions` (migração para um
+fato estrutural que cabe numa tabela versionada; o bundle do D-102 estende o
+mapa pela mesma chave, o slug); recortar a ficha no servidor (o "X de Y" e o
+canário ficariam mais difíceis de provar, e o documento exportado mudaria com a
+tela); preferência em `localStorage` (não reproduz por link); esconder rotas da
+barra lateral pelo nível (esconderia funcionalidade que hoje funciona, e o nível
+da URL não acompanha a navegação).
+
+**Consequências.** Ao cadastrar grandeza nova, nada a fazer: ela aparece em
+todos os níveis. Para movê-la de nível, edite `PROPERTY_MIN_LEVEL` (teste em
+`test_depth_profile.py`). Se um dia o nível precisar mudar um cálculo, é
+mudança de método e exige decisão e aviso escrito.
 
 ## D-128 — Comparador: limiar de destaque por dispersão e seção de propriedades computadas
 
