@@ -8,16 +8,19 @@ nunca existam duas versões delas.
 
 ## Antes de escrever qualquer código
 
-Leia, nesta ordem, e **por inteiro**:
+Leia, nesta ordem. Só o `CLAUDE.md` da raiz é lido por inteiro; os demais são
+lidos **sob demanda**, pela parte da área que você vai tocar (use `rg` e leia a
+faixa; nunca abra inteiros `DECISIONS.md`, `CHANGELOG_SESSION.md`, `TODO.md` e
+`ESTADO_ATUAL.md`, que passam de 100 KB cada):
 
 1. [`CLAUDE.md`](CLAUDE.md) — as regras do projeto, versão curta: princípios da
    metodologia, arquitetura em camadas, sistema de design, CI, deploy e o
    estado atual. O nome é histórico; vale para todo agente, não só para o
    Claude.
-2. [`docs/CLAUDE.md`](docs/CLAUDE.md) — o guia completo: as decisões que não se
+2. [`docs/CLAUDE.md`](docs/CLAUDE.md) — o guia completo (consulte a seção da área): as decisões que não se
    alteram, as armadilhas que já causaram bug e a nomenclatura.
 3. [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) — o que o projeto é hoje
-   e o que falta.
+   e o que falta (só quando precisar do estado atual).
 4. **As decisões da área que você vai tocar** em
    [`docs/DECISIONS.md`](docs/DECISIONS.md) (`D-NN`). Procure pelo nome do
    módulo, da rota ou do conceito; o `CLAUDE.md` da raiz cita as principais por
