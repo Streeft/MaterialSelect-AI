@@ -12,7 +12,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   PageHeader,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
@@ -57,7 +57,7 @@ export default function NotebooksPage() {
         </Alert>
       ) : null}
       {notebooks.isPending ? (
-        <LoadingState />
+        <ListSkeleton variant="cards" />
       ) : notebooks.error ? (
         <ErrorState description={notebooks.error.message} onRetry={() => void notebooks.refetch()} />
       ) : notebooks.data.length === 0 ? (

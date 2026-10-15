@@ -10355,6 +10355,45 @@ morder. Os dados vêm das mesmas consultas (mesmas `queryKey`) das telas.
 
 **Consequências.** Frontend apenas; não precisa de Deploy da API.
 
+
+## D-130 — Aviso (snackbar) com "Desfazer": a exclusão é adiada, não desfeita
+
+**Contexto.** Segunda ideia do Material 3 aplicada (a primeira foi a busca, D-129),
+a partir das páginas *Snackbar* e *Lists* de `m3.material.io`. Excluir um estudo,
+uma fonte, uma nota ou um caderno apagava na hora, sem volta, e só a fonte de um
+caderno pedia confirmação — por diálogo. `ToastStack` existia no MSDS desde o D-74
+e nenhuma tela o usava.
+
+**Decisão.**
+- **Snackbar do M3** (`components/ui/Snackbar.tsx`, `SnackbarProvider` em
+  `app/app/layout.tsx`): **um por vez** — o novo substitui o atual, e o atual é
+  *confirmado*, nunca descartado; **uma ação** no máximo; sem ícone nem link; fica
+  acima do `BottomNav` abaixo de `lg` (`--bottom-nav-offset`). Na web, um aviso que
+  some sozinho é inacessível a quem precisa de mais tempo, então **o mouse ou o foco
+  em cima dele pausam o relógio** e o aviso com ação dura 8 s, não 5.
+- **Desfazer sem apoio do backend** (`lib/useUndoableDelete.ts`): o item some da
+  lista no ato, e a API só é chamada quando o aviso vence sem a ação — o padrão do
+  Gmail. "Desfazer" não restaura nada: cancela uma chamada que ainda não houve e
+  recarrega as listas. Se o servidor recusar, as listas recarregam e o aviso
+  diz que o item foi mantido; a tela nunca afirma uma exclusão que o servidor negou.
+- **O estado mora no provider, não na tela**: excluir um caderno leva o leitor de
+  volta à lista, e o aviso sobrevive a essa navegação. `pagehide` confirma o aviso
+  pendente.
+- **Onde vale:** estudo salvo, fonte e nota de caderno, e o caderno. O diálogo de
+  confirmação do caderno saiu: o aviso com "Desfazer" é uma salvaguarda melhor que
+  um "tem certeza?" que se aperta no automático. **Ficam com confirmação** as
+  exclusões de classe e de propriedade do administrador: apagam vocabulário que
+  outras linhas usam, e adiar o commit deixaria a tela mentir sobre ele.
+- **Esqueletos** (M3 *Lists*): `ListSkeleton` (linhas ou cartões) no lugar do
+  `LoadingState` nas listas de caderno e de estudos salvos, `app/app/loading.tsx` e
+  `app/app/error.tsx` para o intervalo de carga e para a falha de uma rota.
+
+**Consequência aceita.** Se a aba morre sem `pagehide`, o item continua no servidor:
+perde-se a *exclusão*, nunca dado. Um refetch por foco da aba durante os 8 s é
+cancelado ao esconder o item (`cancelQueries`).
+
+**O que não muda.** Nada de cálculo e nenhum valor de propriedade em jogo. Frontend
+apenas; não precisa de Deploy da API.
 ## D-130 — Glossário de propriedades: verbete conceitual, autoral e versionado
 
 *Decidida pelo assistente por delegação do autor, revisável.*

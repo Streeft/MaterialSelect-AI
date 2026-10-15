@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
 import { LimitationNotice } from "@/components/LimitationNotice";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { ptBR } from "@/lib/i18n";
 
 /**
@@ -16,6 +17,7 @@ import { ptBR } from "@/lib/i18n";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGate>
+      <SnackbarProvider>
       <div className="flex min-h-screen flex-col lg:flex-row">
         <a
           href="#conteudo"
@@ -51,6 +53,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <BottomNav />
+      </SnackbarProvider>
     </AuthGate>
   );
 }

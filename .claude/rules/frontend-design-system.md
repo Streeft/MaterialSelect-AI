@@ -68,6 +68,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   cadernos, estudos. Nunca mostra valor de propriedade. Ideia nova vinda do
   Material 3 cita a página de `m3.material.io` na decisão.
 
+- **Excluir tem "Desfazer"** ([D-130](docs/DECISIONS.md)): `useUndoableDelete` +
+  `SnackbarProvider` — o item some na hora e a API só roda quando o aviso vence.
+  Um aviso por vez, uma ação, sem ícone. Exclusão que apaga vocabulário usado por
+  outras linhas (classe, propriedade) continua com confirmação.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

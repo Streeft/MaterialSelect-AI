@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDebounced } from "@/lib/useDebounced";
+import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -752,10 +753,15 @@ function SelectionWizard() {
     onError: fail,
   });
 
-  const removeStudy = useMutation({
-    mutationFn: (id: number) => deleteStudy(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["studies"] }),
-  });
+  // D-130: the study leaves the list at once and the API is called only when
+  // "Desfazer" times out — the server still has it until then.
+  const undoableDelete = useUndoableDelete();
+  const removeStudy = (id: number) =>
+    undoableDelete({
+      what: ptBR.snackbar.study,
+      hide: [{ queryKey: ["studies"], remove: withoutId(id) }],
+      commit: () => deleteStudy(id),
+    });
 
   const runSaved = useMutation({
     mutationFn: (id: number) => runStudy(id),
@@ -1131,7 +1137,7 @@ function SelectionWizard() {
           studies={studies.data}
           onRun={(id) => runSaved.mutate(id)}
           onLoad={(id) => loadStudy.mutate(id)}
-          onDelete={(id) => removeStudy.mutate(id)}
+          onDelete={removeStudy}
         />
 
         <Stepper

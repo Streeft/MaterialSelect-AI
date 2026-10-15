@@ -20,6 +20,7 @@ import {
   updateNotebookNote,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { useUndoableDelete, withoutChild } from "@/lib/useUndoableDelete";
 import {
   Alert,
   Badge,
@@ -416,11 +417,17 @@ function NoteEditor({
     mutationFn: () => updateNotebookNote(notebookId, note.id, { title: title.trim() || note.title, body }),
     onSuccess: done,
   });
-  const remove = useMutation({
-    mutationFn: () => deleteNotebookNote(notebookId, note.id),
-    onSuccess: done,
-  });
-  const error = save.error ?? remove.error;
+  // D-130: the note leaves the notebook at once; the API call waits for "Desfazer".
+  const undoableDelete = useUndoableDelete();
+  const remove = () => {
+    undoableDelete({
+      what: ptBR.snackbar.note,
+      hide: [{ queryKey: notebookKey(notebookId), remove: withoutChild("notes", note.id) }],
+      commit: () => deleteNotebookNote(notebookId, note.id),
+    });
+    onClose();
+  };
+  const error = save.error;
   return (
     <form
       className="flex flex-col gap-3"
@@ -446,7 +453,7 @@ function NoteEditor({
         </Alert>
       ) : null}
       <div className="flex justify-between gap-2">
-        <Button type="button" variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
+        <Button type="button" variant="danger" onClick={remove}>
           {t.removeNote(note.title)}
         </Button>
         <Button type="submit" loading={save.isPending}>

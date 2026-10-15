@@ -28,6 +28,17 @@ export const ptBR = {
   demoWarning:
     "Dados exclusivamente demonstrativos. Não utilizar em projetos reais.",
   demoBadge: "Demonstrativo",
+  // D-130: o aviso (snackbar) e o "Desfazer" das exclusões.
+  snackbar: {
+    undo: "Desfazer",
+    deleteFailed: "Não foi possível excluir. O item foi mantido.",
+    removed: (what: string) => `${what} excluído`,
+    study: "Estudo",
+    chart: "Gráfico",
+    source: "Fonte",
+    note: "Nota",
+    notebook: "Caderno",
+  },
   // D-129: a busca global (Ctrl/Cmd+K ou "/"), a que leva a qualquer tela,
   // material, processo, caderno ou estudo salvo sem passar pelo menu.
   palette: {
@@ -1413,8 +1424,6 @@ export const ptBR = {
     titleLabel: "Título do caderno",
     settings: "Configurar conversa",
     remove: "Excluir caderno",
-    removeConfirm: (title: string) =>
-      `Excluir “${title}”? As fontes, a conversa e as notas deste caderno serão apagadas.`,
     cancel: "Cancelar",
     panelTabs: "Painéis do caderno",
     panels: { sources: "Fontes", chat: "Conversa", studio: "Estúdio" },

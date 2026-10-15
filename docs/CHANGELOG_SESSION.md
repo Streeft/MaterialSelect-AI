@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [84](#sessão-84--151026--busca-global-e-aviso-com-desfazer-padrões-do-material-3-d-129-d-130) | 15/10/2026 | Busca global no topo (Ctrl/Cmd+K ou `/`, só navega) e aviso com Desfazer nas exclusões (commit adiado no cliente), ambos a partir das páginas Search, Snackbar e Lists de `m3.material.io`; esqueletos de carregamento; sem migração, sem backend | — | +17 |
 | [84](#sessão-84--151026--glossário-de-propriedades-d-129) | 15/10/2026 | Glossário de propriedades: 15 verbetes conceituais e autorais (`app/glossary/entries.json`, sem migração) com fonte, licença e estado `rascunho` escrito; `GET /api/glossario`; dica "?" na ficha e na Seleção guiada; página `/app/glossario` | +29 | +9 |
 | [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
 | [82](#sessão-82--151026--perfis-de-profundidade-l1l2l3-com-visão-de-ficha-d-127) | 15/10/2026 | Perfis de profundidade L1/L2/L3: `min_level` por slug no código (padrão seguro: todos), `GET /api/properties/niveis`, seletor de nível na ficha e nos eixos do mapa com "mostra X de Y" escrito, nível na URL, canário "nível não altera ranking"; sem migração (D-127) | +17 | +8 |
@@ -100,6 +101,28 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 84 — 15/10/26 — Busca global e aviso com Desfazer, padrões do Material 3 (D-129, D-130)
+
+**O que mudou.** O autor pediu que o frontend siga apps do Google e, depois, que
+as ideias de `m3.material.io` entrem no app. O site exige JavaScript: o WebFetch
+não resolve o domínio, mas o `curl` passa pelo proxy e o Chromium headless
+renderiza as páginas. (a) **Busca global** (D-129, #142): barra no topo de todo
+`/app/*`, Ctrl/Cmd+K ou `/`, telas, materiais, processos, cadernos e estudos
+salvos; combobox ARIA 1.2; só navega. (b) **Aviso com Desfazer** (D-130, #144):
+`SnackbarProvider` (um por vez, uma ação, pausa com mouse/foco) e
+`useUndoableDelete` — o item some na hora e a API só roda quando o aviso vence;
+vale para estudo, fonte, nota e caderno (o diálogo do caderno saiu; classe e
+propriedade do administrador seguem com confirmação). `ListSkeleton`,
+`app/app/loading.tsx` e `app/app/error.tsx`. Sem migração; **não** exige Deploy
+da API.
+
+**Testes.** +6 (busca) e +11 (aviso e exclusão adiada) de frontend; os testes de
+Cadernos, Seleção e das rotas passaram a montar o `SnackbarProvider`. O #142 foi
+mesclado sem as linhas de documentação, que entram aqui.
+
+**Pendente (plano de 9 itens).** Tabelas ordenáveis com seleção em massa, home
+estilo Drive, rascunho salvo na Seleção, transições de tela, app instalável,
+Cadernos em grade, regressão visual — em `TODO.md`.
 ## Sessão 84 — 15/10/26 — Glossário de propriedades (D-130)
 
 **O que mudou.** Lacuna nº 7 do relatório do EduPack. Verbetes **conceituais**
