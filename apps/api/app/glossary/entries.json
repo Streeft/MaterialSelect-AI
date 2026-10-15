@@ -1,0 +1,152 @@
+[
+  {
+    "slug": "densidade",
+    "summary": "Massa por unidade de volume do material. Diz quanto pesa uma peça de forma dada e entra no denominador de quase todo índice de desempenho por peso.",
+    "definition": "A densidade é a razão entre a massa de um corpo e o volume que ele ocupa. Para um material maciço e sem porosidade ela depende sobretudo da massa dos átomos e de quão compactamente eles se arranjam; por isso metais pesados ficam no topo, polímeros e espumas embaixo. Em seleção de materiais ela raramente é o objetivo em si: aparece combinada com rigidez ou resistência nos índices de leveza, porque o que se quer é a menor massa que ainda cumpre a função. Porosidade, reforço e espumação reduzem a densidade aparente, então convém saber se o valor cadastrado se refere ao material maciço ou à forma porosa.",
+    "how_measured": "Pesagem e medida de volume: por geometria regular, por deslocamento de líquido (princípio de Arquimedes) ou por picnometria, conforme a forma e a porosidade da amostra.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "modulo_young",
+    "summary": "Rigidez elástica sob tração ou compressão: a razão entre tensão e deformação no trecho em que o material volta à forma original ao ser descarregado.",
+    "definition": "O módulo de Young, ou módulo de elasticidade, mede a resistência de um material à deformação elástica. No trecho linear da curva tensão-deformação ele é a inclinação dessa reta. Depende da força das ligações entre átomos e muda pouco com tratamento térmico ou trabalho a frio, ao contrário da resistência mecânica. É a propriedade que governa a deflexão de vigas, a flambagem de colunas e a frequência natural de estruturas; combinado com a densidade, gera os índices de rigidez específica. Em polímeros o comportamento é viscoelástico, e o módulo varia com o tempo de carga e com a temperatura.",
+    "how_measured": "Ensaio de tração com medição precisa da deformação no trecho elástico, ou métodos dinâmicos (ressonância, velocidade de propagação do som) que obtêm o módulo sem deformar a amostra de forma permanente.",
+    "reference": "ASTM E111 (módulo de Young, módulo tangente e módulo de corda)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "limite_escoamento",
+    "summary": "Tensão a partir da qual o material começa a se deformar de modo permanente. É o limite usual de projeto quando a peça não pode ficar torta depois de carregada.",
+    "definition": "O limite de escoamento marca o fim do comportamento elástico: abaixo dele, a peça volta à forma original ao ser descarregada; acima, fica com deformação plástica residual. Muitos materiais não têm um ponto de escoamento nítido, e então se adota uma convenção de deformação residual pequena para defini-lo. Ao contrário do módulo de Young, ele é muito sensível à microestrutura: liga, tratamento térmico, tamanho de grão e encruamento podem alterá-lo bastante no mesmo material base. Em cerâmicas e vidros, que fraturam antes de escoar, a grandeza não se aplica do mesmo modo, e a resistência relevante passa a ser a de ruptura.",
+    "how_measured": "Ensaio de tração uniaxial em corpo de prova padronizado, lendo a tensão no início da deformação plástica ou pelo critério de deformação residual convencionado.",
+    "reference": "ISO 6892-1 e ASTM E8/E8M (ensaio de tração de materiais metálicos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_tracao",
+    "summary": "Maior tensão nominal que o material suporta num ensaio de tração antes de romper. Indica a capacidade última de carga, não o limite de uso sem deformação permanente.",
+    "definition": "A resistência à tração, ou tensão última, é o máximo da curva tensão-deformação de engenharia, calculada sobre a área inicial do corpo de prova. Em materiais dúcteis ela ocorre depois do escoamento, quando começa o empescoçamento; em materiais frágeis coincide praticamente com a fratura. A distância entre ela e o limite de escoamento dá uma ideia da capacidade de encruamento e da margem antes da ruptura. Para projeto, costuma-se usar o escoamento como limite e a resistência à tração como verificação de colapso, mas a escolha depende da norma e do modo de falha considerado.",
+    "how_measured": "Ensaio de tração uniaxial levado até a ruptura, registrando a força máxima e dividindo-a pela área da seção transversal inicial.",
+    "reference": "ISO 6892-1 e ASTM E8/E8M (ensaio de tração de materiais metálicos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "dureza",
+    "summary": "Resistência do material à penetração localizada por um indentador. Na escala Vickers, o indentador é uma pirâmide de diamante e a dureza vem da área da impressão.",
+    "definition": "Dureza não é uma propriedade única, mas a resposta a um ensaio: quanto o material resiste a ser marcado por um indentador sob carga. No método Vickers, uma pirâmide de diamante de base quadrada é pressionada contra a superfície, e a dureza é a razão entre a carga e a área da impressão deixada. Por envolver deformação plástica local, a dureza se correlaciona com o limite de escoamento e com a resistência ao desgaste, e é muito usada no controle de qualidade por ser rápida e quase não destrutiva. Valores obtidos em escalas diferentes (Vickers, Brinell, Rockwell) não são intercambiáveis sem tabela de conversão própria do material.",
+    "how_measured": "Indentação com pirâmide de diamante sob carga definida e medição óptica das diagonais da impressão.",
+    "reference": "ISO 6507-1 (ensaio de dureza Vickers em materiais metálicos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "temp_max_servico",
+    "summary": "Temperatura mais alta em que o material pode trabalhar continuamente sem perda inaceitável de propriedades. É um limite de uso, não um ponto físico como a fusão.",
+    "definition": "A temperatura máxima de serviço resume, num único limite, vários fenômenos que degradam o material com o calor: perda de resistência, fluência, oxidação, amolecimento de polímeros e envelhecimento. Por isso ela é uma estimativa de engenharia e não uma constante física; depende do critério adotado, do tempo de exposição e do nível de carga. Em polímeros costuma ficar abaixo da temperatura de transição vítrea ou de fusão; em metais, abaixo da faixa em que a fluência passa a dominar. Use-a como filtro inicial e confirme com dados do fornecedor para a aplicação real.",
+    "how_measured": "Não há um ensaio único: o limite é derivado de ensaios de fluência, de envelhecimento térmico, de temperatura de deflexão sob carga ou da experiência de uso, conforme a classe do material.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "condutividade_termica",
+    "summary": "Capacidade do material de conduzir calor em regime permanente: o fluxo de calor por unidade de área e por unidade de gradiente de temperatura.",
+    "definition": "A condutividade térmica é o coeficiente da lei de Fourier, que relaciona o fluxo de calor ao gradiente de temperatura no material. Em metais o calor é levado principalmente pelos elétrons livres, o que explica valores altos e a correlação com a condutividade elétrica; em cerâmicas e polímeros, por vibrações da rede, e os valores tendem a ser menores. Porosidade e espumação reduzem muito a condutividade, que é o princípio dos isolantes. Em seleção ela aparece em índices de dissipação de calor e de isolamento; quando o regime é transitório, a grandeza relevante passa a ser a difusividade térmica, que também envolve densidade e calor específico.",
+    "how_measured": "Métodos de regime permanente (placa quente protegida, barra comparativa) ou transitórios (fio quente, flash laser), estes medindo a difusividade e derivando a condutividade com a densidade e o calor específico.",
+    "reference": "ASTM E1461 (difusividade térmica pelo método flash)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "custo_massa",
+    "summary": "Preço do material bruto por unidade de massa. É uma estimativa de mercado, volátil e dependente de forma, lote e fornecedor, e não inclui o custo de fabricar a peça.",
+    "definition": "O custo por massa é o preço aproximado de compra do material na forma bruta (lingote, chapa, grânulo, pó). Ele varia com a cotação de mercado, a moeda, a quantidade comprada, o grau de pureza e a forma do semiacabado, e por isso deve ser lido como ordem de grandeza para comparar classes, não como orçamento. Em seleção ele entra combinado com a densidade, para dar custo por volume, e com propriedades mecânicas, nos índices de desempenho por custo. O custo final da peça inclui ainda processamento, acabamento e perdas, que se estimam em separado.",
+    "how_measured": "Não é medido em laboratório: vem de cotações, bases de preço ou levantamentos de mercado, e deve trazer data e fonte para que se saiba quão antigo é.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "energia_incorporada",
+    "summary": "Energia consumida para produzir uma unidade de massa do material a partir de matéria-prima virgem, da extração ao produto bruto. Não inclui uso nem fim de vida.",
+    "definition": "A energia incorporada da produção primária soma a energia gasta para extrair, beneficiar e transformar matérias-primas no material bruto. É um indicador de inventário de ciclo de vida, e o resultado depende das fronteiras do sistema, da matriz energética considerada e do método de alocação, de modo que valores de fontes diferentes nem sempre são comparáveis. Em seleção ecológica ela serve para estimar a contribuição da fase de material no impacto total de um produto e para comparar alternativas com a mesma função. A versão reciclada do mesmo material costuma exigir bem menos energia, o que se registra em grandeza separada.",
+    "how_measured": "Estimada por inventário de ciclo de vida do processo produtivo, somando a energia de cada etapa até o portão da fábrica, segundo a metodologia de avaliação do ciclo de vida.",
+    "reference": "ISO 14040 e ISO 14044 (avaliação do ciclo de vida)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "pegada_co2",
+    "summary": "Massa de dióxido de carbono (ou equivalente) emitida para produzir uma unidade de massa do material a partir de matéria-prima virgem, até o produto bruto.",
+    "definition": "A pegada de CO₂ da produção primária expressa as emissões de gases de efeito estufa associadas a fabricar o material, geralmente convertidas em CO₂ equivalente. Ela acompanha de perto a energia incorporada, mas não é proporcional a ela: depende da fonte de energia usada e das emissões do próprio processo químico, como a redução de minérios ou a calcinação. Como toda grandeza de ciclo de vida, o número depende das fronteiras e da base de dados adotadas. Em seleção ecológica ela é usada para comparar o impacto climático da fase de material entre alternativas que cumprem a mesma função.",
+    "how_measured": "Estimada por inventário de ciclo de vida, somando as emissões de cada etapa da produção e convertendo os gases em CO₂ equivalente por fatores de caracterização.",
+    "reference": "ISO 14040 e ISO 14044 (avaliação do ciclo de vida)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "energia_reciclagem",
+    "summary": "Energia necessária para reprocessar uma unidade de massa do material a partir de sucata, até voltar à forma bruta. Comparada à energia primária, mostra o ganho da reciclagem.",
+    "definition": "A energia de reciclagem estima quanto custa, em energia, coletar, separar e reprocessar o material descartado até que ele volte a ser matéria-prima utilizável. Para muitos metais ela é uma fração pequena da energia de produção primária, o que torna a reciclagem muito vantajosa; para outros materiais, a perda de qualidade a cada ciclo ou a dificuldade de separação reduzem esse benefício. Ela só faz sentido junto da fração efetivamente reciclada na prática, que depende de logística e mercado, e não apenas do material.",
+    "how_measured": "Estimada por inventário de ciclo de vida das rotas de coleta, separação e reprocessamento, com as mesmas ressalvas de fronteira e de base de dados da energia primária.",
+    "reference": "ISO 14040 e ISO 14044 (avaliação do ciclo de vida)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "co2_reciclagem",
+    "summary": "Massa de CO₂ (ou equivalente) emitida ao reprocessar uma unidade de massa do material a partir de sucata. É a contrapartida climática da energia de reciclagem.",
+    "definition": "A pegada de CO₂ da reciclagem soma as emissões associadas a coletar, separar e reprocessar o material até a forma bruta. Comparada à pegada da produção primária, ela indica quanto de emissão se evita ao usar material reciclado no lugar do virgem. Como as demais grandezas de ciclo de vida, depende das fronteiras do sistema, da matriz energética e do método de alocação entre o primeiro uso e o seguinte. O número descreve o reprocessamento; a decisão de projeto também depende de o material realmente chegar à reciclagem no fim de vida.",
+    "how_measured": "Estimada por inventário de ciclo de vida da rota de reciclagem, convertendo as emissões em CO₂ equivalente por fatores de caracterização.",
+    "reference": "ISO 14040 e ISO 14044 (avaliação do ciclo de vida)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "coef_poisson",
+    "summary": "Razão entre a contração lateral e o alongamento axial de um material carregado em tração no regime elástico. É adimensional.",
+    "definition": "Quando uma barra é esticada, ela fica mais fina; o coeficiente de Poisson é a razão, com sinal invertido, entre a deformação transversal e a deformação longitudinal no trecho elástico. Junto com o módulo de Young, ele determina as demais constantes elásticas de um material isotrópico, como o módulo de cisalhamento e o módulo volumétrico, e por isso é dado de entrada obrigatório em simulações por elementos finitos. Materiais quase incompressíveis, como elastômeros, ficam no limite superior da faixa teórica; espumas e algumas estruturas especiais podem ter valores muito baixos ou até negativos.",
+    "how_measured": "Ensaio de tração com medição simultânea das deformações axial e transversal no trecho elástico, por extensômetros ou correlação digital de imagens, ou por métodos de ressonância.",
+    "reference": "ASTM E132 (coeficiente de Poisson à temperatura ambiente)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "coef_expansao_termica",
+    "summary": "Variação relativa do comprimento do material por unidade de variação de temperatura. Governa folgas, tensões térmicas e a compatibilidade entre materiais unidos.",
+    "definition": "O coeficiente de expansão térmica linear descreve quanto um material se alonga ou encolhe ao ser aquecido ou resfriado. Ele não é constante: varia com a temperatura, e por isso um valor tabelado se refere a uma faixa. Quando dois materiais com coeficientes diferentes são unidos, ou quando a peça está restrita, a diferença de dilatação gera tensões térmicas que podem empenar, trincar ou soltar a junta. Em seleção, ele aparece nos índices de resistência ao choque térmico e de estabilidade dimensional, combinado com o módulo e a condutividade. Materiais com ligações fortes, como cerâmicas técnicas, tendem a dilatar menos que polímeros.",
+    "how_measured": "Dilatometria ou análise termomecânica: mede-se a variação de comprimento de uma amostra enquanto a temperatura varia de forma controlada.",
+    "reference": "ASTM E831 (expansão térmica linear por análise termomecânica)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "calor_especifico",
+    "summary": "Energia necessária para elevar a temperatura de uma unidade de massa do material em um grau. Diz quanto calor o material armazena.",
+    "definition": "O calor específico, a pressão constante, mede a capacidade de uma unidade de massa do material de armazenar energia térmica. Ele determina quanto tempo uma peça leva para aquecer ou esfriar e, junto com a densidade e a condutividade térmica, define a difusividade térmica, que governa os problemas transitórios. Por unidade de massa, materiais com átomos leves tendem a ter calor específico maior; por unidade de volume, as diferenças entre classes de materiais sólidos são bem menores. Ele varia com a temperatura e muda bruscamente em transições de fase.",
+    "how_measured": "Calorimetria, em especial a calorimetria exploratória diferencial (DSC), comparando o fluxo de calor da amostra com o de uma referência de calor específico conhecido.",
+    "reference": "ASTM E1269 (calor específico por calorimetria exploratória diferencial)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  }
+]

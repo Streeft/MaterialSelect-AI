@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { IconClose, IconPlus, IconTrash } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import { GlossaryHint } from "@/components/glossary/GlossaryHint";
 
 const t = ptBR.selection;
 
@@ -428,6 +429,11 @@ function ConstraintRowFields({
             becomes ("Módulo de Young ≥ 70 GPa"); class and text rows keep the
             operator first because there the operator is the subject. */}
         {NEEDS_PROPERTY.has(row.operator) && propertyField}
+        {/* D-130: what the chosen property means, one click away — only for a
+            material property, since process attributes have no entries. */}
+        {NEEDS_PROPERTY.has(row.operator) && !isProcessStudy && prop && (
+          <GlossaryHint slug={prop.slug} name={prop.name} className="mb-2.5" />
+        )}
         <Select
           label={t.operator}
           hint={showHints ? t.operatorHint : undefined}

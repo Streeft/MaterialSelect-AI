@@ -27,6 +27,7 @@ import {
   IconGauge,
   IconGear,
   IconHome,
+  IconInfo,
   IconLayers,
   IconLeaf,
   IconLogout,
@@ -102,6 +103,8 @@ export const GROUPS: NavGroup[] = [
       // P1-4: o segundo universo passa a ter porta de entrada. Sem isto ele só
       // era alcançável de dentro de um estágio ou da ficha de um material.
       { href: "/app/processos", label: t.processes, icon: IconGear },
+      // D-130: o glossário mora em "Dados", ao lado do catálogo cujas grandezas explica.
+      { href: "/app/glossario", label: t.glossary, icon: IconInfo },
       // P3: sintetizar cria um registro, e um registro próprio — por isso
       // fica em "Dados", ao lado de onde ele vai aparecer, e não em
       // "Estudar", que é onde se decide com registros que já existem.

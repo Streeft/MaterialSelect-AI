@@ -12,6 +12,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
 | [84](#sessão-84--151026--busca-global-e-aviso-com-desfazer-padrões-do-material-3-d-129-d-130) | 15/10/2026 | Busca global no topo (Ctrl/Cmd+K ou `/`, só navega) e aviso com Desfazer nas exclusões (commit adiado no cliente), ambos a partir das páginas Search, Snackbar e Lists de `m3.material.io`; esqueletos de carregamento; sem migração, sem backend | — | +17 |
+| [84](#sessão-84--151026--glossário-de-propriedades-d-129) | 15/10/2026 | Glossário de propriedades: 15 verbetes conceituais e autorais (`app/glossary/entries.json`, sem migração) com fonte, licença e estado `rascunho` escrito; `GET /api/glossario`; dica "?" na ficha e na Seleção guiada; página `/app/glossario` | +29 | +9 |
 | [83](#sessão-83--151026--comparador-limiar-de-destaque-e-propriedades-computadas-d-128) | 15/10/2026 | Comparador: limiar de destaque por dispersão (base: maior valor em módulo; na URL) e seção de propriedades computadas pelo avaliador de índices; sem migração | +18 | +17 |
 | [82](#sessão-82--151026--perfis-de-profundidade-l1l2l3-com-visão-de-ficha-d-127) | 15/10/2026 | Perfis de profundidade L1/L2/L3: `min_level` por slug no código (padrão seguro: todos), `GET /api/properties/niveis`, seletor de nível na ficha e nos eixos do mapa com "mostra X de Y" escrito, nível na URL, canário "nível não altera ranking"; sem migração (D-127) | +17 | +8 |
 | [81](#sessão-81--151026--propriedade-ordinal-de-material-e-nível-mínimo-aceito-d-126) | 15/10/2026 | Propriedade ordinal de material (escala ordenada, nível por material com proveniência, ausência escrita) e o critério "nível mínimo aceito" no estágio de limites (ausente nunca passa; `without_level` no funil e no laudo), demo fictício, contrato do bundle (migração `860cc669ff6a`) | +35 | +7 |
@@ -122,6 +123,28 @@ mesclado sem as linhas de documentação, que entram aqui.
 **Pendente (plano de 9 itens).** Tabelas ordenáveis com seleção em massa, home
 estilo Drive, rascunho salvo na Seleção, transições de tela, app instalável,
 Cadernos em grade, regressão visual — em `TODO.md`.
+## Sessão 84 — 15/10/26 — Glossário de propriedades (D-130)
+
+**O que mudou.** Lacuna nº 7 do relatório do EduPack. Verbetes **conceituais**
+(o que a grandeza significa e como se mede, nunca quanto vale) para os 15 slugs
+de `seed.PROPERTIES`, em `apps/api/app/glossary/entries.json`, validados por
+`app/domain/glossary.py` (Pydantic estrito, limites, campo desconhecido e slug
+repetido recusados, número seguido de unidade recusado). `GET /api/glossario` e
+`/{slug}` com a regra de acesso da lista de propriedades e 404 escrito. Na
+interface, `GlossaryHint` ("?" sobre o `Popover`) na ficha e na Seleção guiada, e
+a página `/app/glossario` com filtro por nome, fonte, licença e estado de revisão
+escritos; propriedade sem verbete aparece como "Sem verbete no glossário". Sem
+migração; exige **Deploy da API**.
+
+**Testes.** +29 de backend (`test_glossary.py`) e +9 de frontend
+(`GlossaryHint.test.tsx`, `glossario.test.tsx`); `layout.test.tsx` conta o link
+novo da barra.
+
+**Pendências.** Revisão do autor (todos nascem `rascunho`), dica no comparador e
+nos mapas, verbetes para slugs do bundle oficial; *Science Notes* e imagem de
+família seguem no `TODO.md`.
+
+---
 
 ## Sessão 83 — 15/10/26 — Comparador: limiar de destaque e propriedades computadas (D-128)
 

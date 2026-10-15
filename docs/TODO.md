@@ -168,6 +168,23 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   escrevem; uma tela de edição precisa da auditoria do M2 e da guarda do
   material oficial (D-116).
 
+**Glossário de propriedades (relatório de lacunas do EduPack, #7,
+[D-130](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
+autorais para os 15 slugs de `seed.PROPERTIES`, em `app/glossary/entries.json`
+(sem migração), com fonte, licença e estado de revisão por verbete~~,
+~~`GET /api/glossario` e `/{slug}` (404 escrito)~~, ~~dica "?" na ficha e na
+Seleção guiada e página `/app/glossario`~~. Resíduos:
+
+- **GL-a — revisão do autor.** ▁ Os 15 verbetes nascem `rascunho`; o autor revisa
+  o texto (e as normas citadas) e muda para `revisado` no próprio arquivo.
+- **GL-b — dica no comparador e nos mapas.** ▁ O `GlossaryHint` existe; falta
+  pô-lo nos rótulos de propriedade do comparador e nos seletores de eixo.
+- **GL-c — slugs do bundle oficial.** ▃ Propriedades que o bundle do D-102 trouxer
+  aparecem como "Sem verbete no glossário" até ganharem verbete autoral; o
+  canário de cobertura só cobre `seed.PROPERTIES`.
+- *Science Notes* de família e imagem de família continuam pendentes (fora do
+  D-130: o glossário é por propriedade, não por família).
+
 **Perfis de profundidade L1/L2/L3 (relatório de lacunas do EduPack, #25,
 [D-127](DECISIONS.md), Sessão 82).** ✔ Entregue: ~~nível por slug com padrão
 seguro, seletor na ficha e nos eixos do mapa, nível na URL, canário "nível não

@@ -82,6 +82,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 
 - **Catálogo** e **Processos** — materiais e processos em taxonomias
   navegáveis, com ficha e proveniência de cada valor.
+- **Glossário** — o que cada propriedade significa e como se mede, em
+  verbetes autorais com fonte, licença e estado de revisão (sem valores típicos).
 - **Meus registros** — registros próprios de cada pessoa, ao lado do catálogo
   compartilhado; favoritos e recentes.
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.
