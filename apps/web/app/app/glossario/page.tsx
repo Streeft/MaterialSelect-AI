@@ -20,7 +20,7 @@ import {
 const t = ptBR.glossary;
 
 /**
- * Glossário de propriedades (D-129): o que cada grandeza significa e como se
+ * Glossário de propriedades (D-130): o que cada grandeza significa e como se
  * mede, com fonte, licença e estado de revisão escritos em cada verbete.
  *
  * Conceitual, nunca numérico — o backend recusa verbete com número e unidade.

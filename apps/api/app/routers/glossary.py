@@ -1,4 +1,4 @@
-"""Glossário de propriedades (D-129): verbetes conceituais, com fonte e licença.
+"""Glossário de propriedades (D-130): verbetes conceituais, com fonte e licença.
 
 Mesma regra de acesso da lista de propriedades: login e assinatura ativa.
 """

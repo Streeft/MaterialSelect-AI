@@ -158,7 +158,7 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   material oficial (D-116).
 
 **Glossário de propriedades (relatório de lacunas do EduPack, #7,
-[D-129](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
+[D-130](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
 autorais para os 15 slugs de `seed.PROPERTIES`, em `app/glossary/entries.json`
 (sem migração), com fonte, licença e estado de revisão por verbete~~,
 ~~`GET /api/glossario` e `/{slug}` (404 escrito)~~, ~~dica "?" na ficha e na
@@ -172,7 +172,7 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
   aparecem como "Sem verbete no glossário" até ganharem verbete autoral; o
   canário de cobertura só cobre `seed.PROPERTIES`.
 - *Science Notes* de família e imagem de família continuam pendentes (fora do
-  D-129: o glossário é por propriedade, não por família).
+  D-130: o glossário é por propriedade, não por família).
 
 **Perfis de profundidade L1/L2/L3 (relatório de lacunas do EduPack, #25,
 [D-127](DECISIONS.md), Sessão 82).** ✔ Entregue: ~~nível por slug com padrão

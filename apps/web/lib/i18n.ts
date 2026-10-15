@@ -70,7 +70,7 @@ export const ptBR = {
     myRecords: "Meus registros",
     // D-92: o caderno de estudo com fontes próprias (o NotebookLM do app).
     notebooks: "Cadernos",
-    // D-129: o que cada grandeza significa e como se mede — nunca quanto vale.
+    // D-130: o que cada grandeza significa e como se mede — nunca quanto vale.
     glossary: "Glossário",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
@@ -2781,7 +2781,7 @@ export const ptBR = {
       "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
   },
 
-  // D-129: glossário de propriedades — verbetes conceituais, com fonte e licença.
+  // D-130: glossário de propriedades — verbetes conceituais, com fonte e licença.
   glossary: {
     title: "Glossário de propriedades",
     subtitle:

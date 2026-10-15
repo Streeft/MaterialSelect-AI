@@ -88,7 +88,7 @@ build-backend = "setuptools.build_meta"
 packages = ["app"]
 
 [tool.setuptools.package-data]
-# D-129: os verbetes do glossário são conteúdo versionado lido em runtime.
+# D-130: os verbetes do glossário são conteúdo versionado lido em runtime.
 app = ["glossary/*.json"]
 
 [tool.ruff]

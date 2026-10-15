@@ -1,5 +1,5 @@
 /**
- * Glossário de propriedades (D-129), do lado do leitor.
+ * Glossário de propriedades (D-130), do lado do leitor.
  *
  * O verbete é **conceitual**: diz o que a grandeza significa e como se mede,
  * nunca quanto vale. Quem valida isso é o backend (`app/domain/glossary.py`);

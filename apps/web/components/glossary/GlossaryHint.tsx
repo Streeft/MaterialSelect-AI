@@ -10,7 +10,7 @@ const t = ptBR.glossary;
 
 /**
  * "?" next to a property name: the glossary entry's summary, its review state
- * and a link to the full entry (D-129).
+ * and a link to the full entry (D-130).
  *
  * The body is a separate component on purpose: the popover only mounts its
  * children when open, so a closed hint makes no request — a table of fifteen

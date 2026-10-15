@@ -546,7 +546,7 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 
 // --- Properties -----------------------------------------------------------
 
-// --- Glossário (D-129) --------------------------------------------------------
+// --- Glossário (D-130) --------------------------------------------------------
 
 /** Os verbetes conceituais do glossário de propriedades. */
 export function listGlossary(): Promise<GlossaryEntry[]> {

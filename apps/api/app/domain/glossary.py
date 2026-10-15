@@ -1,4 +1,4 @@
-"""Glossário de propriedades (D-129): verbetes conceituais, com fonte e licença.
+"""Glossário de propriedades (D-130): verbetes conceituais, com fonte e licença.
 
 Um verbete diz **o que uma grandeza significa e como se mede** — nunca quanto
 ela vale. Três regras, cada uma com teste em ``test_glossary.py``:
@@ -68,7 +68,7 @@ class GlossaryEntry(BaseModel):
         if value is not None and (match := NUMBER_WITH_UNIT.search(value)):
             raise ValueError(
                 f"verbete é conceitual: número com unidade ({match.group(0)!r}) "
-                "seria valor de material (D-129)"
+                "seria valor de material (D-130)"
             )
         return value
 

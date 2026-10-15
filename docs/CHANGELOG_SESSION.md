@@ -100,7 +100,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 84 — 15/10/26 — Glossário de propriedades (D-129)
+## Sessão 84 — 15/10/26 — Glossário de propriedades (D-130)
 
 **O que mudou.** Lacuna nº 7 do relatório do EduPack. Verbetes **conceituais**
 (o que a grandeza significa e como se mede, nunca quanto vale) para os 15 slugs

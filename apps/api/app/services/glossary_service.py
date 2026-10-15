@@ -1,4 +1,4 @@
-"""Glossário de propriedades (D-129): leitura dos verbetes versionados.
+"""Glossário de propriedades (D-130): leitura dos verbetes versionados.
 
 Sem sessão de banco: os verbetes são conteúdo de referência em
 ``app/glossary/entries.json``, validados por ``app.domain.glossary``.
