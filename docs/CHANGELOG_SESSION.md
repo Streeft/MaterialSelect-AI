@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [82](#sessão-82--151026--perfis-de-profundidade-l1l2l3-com-visão-de-ficha-d-127) | 15/10/2026 | Perfis de profundidade L1/L2/L3: `min_level` por slug no código (padrão seguro: todos), `GET /api/properties/niveis`, seletor de nível na ficha e nos eixos do mapa com "mostra X de Y" escrito, nível na URL, canário "nível não altera ranking"; sem migração (D-127) | +17 | +8 |
 | [81](#sessão-81--151026--propriedade-ordinal-de-material-e-nível-mínimo-aceito-d-126) | 15/10/2026 | Propriedade ordinal de material (escala ordenada, nível por material com proveniência, ausência escrita) e o critério "nível mínimo aceito" no estágio de limites (ausente nunca passa; `without_level` no funil e no laudo), demo fictício, contrato do bundle (migração `860cc669ff6a`) | +35 | +7 |
 | [80](#sessão-80--141026--ficha-técnica-do-material-em-pdf-para-todo-registro-visível-d-125) | 14/10/2026 | Ficha técnica completa em PDF: diagnóstico do 404 em produção (API não implantada após o #135), visibilidade coberta (demo, próprio, compartilhado, oficial; inexistente/alheio = 404 escrito) e 404 de rota em pt-BR | 4799 | 929 |
 | [79](#sessão-79--141026--propriedades-do-cartão-cae-no-catálogo-tm5-a-d-124) | 14/10/2026 | Propriedades do cartão CAE (TM5-a): definições de ν, α e cp no seed de referência; valores fictícios só nos 75 materiais demo | 4781 | 924 |
@@ -97,6 +98,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 82 — 15/10/26 — Perfis de profundidade L1/L2/L3 com visão de ficha (D-127)
+
+**O que mudou.** `app/domain/depth_profile.py` declara o nível de cada grandeza
+por slug (sem declaração = Nível 1, visível em todos) e o nível sugerido das
+ferramentas; `min_level` sai em `/api/properties` e na ficha, e
+`GET /api/properties/niveis` publica a configuração. No frontend, `lib/depth.ts`
+e `DepthLevelPicker` (ButtonGroup, `?nivel=` na URL, padrão 3) recortam a ficha
+e as opções de eixo do mapa, com a contagem escrita e a frase de que o que ficou
+de fora não está ausente. Seleção, ranking e exportações não recebem o nível
+(canário). Sem migração.
+
+**Testes.** +17 de backend (`test_depth_profile.py`) e +8 de frontend
+(`lib/depth.test.ts`, `materiais/[id]/nivel.test.tsx`): 4799 → 4816 e 929 → 937.
+
 ## Sessão 81 — 15/10/26 — Propriedade ordinal de material e nível mínimo aceito (D-126)
 
 **O que mudou.** Item #11 do relatório de lacunas do EduPack (exercício 8, passo
@@ -115,7 +130,6 @@ e a migração; `semear_demo` para ver o demo.
 
 **Testes.** +35 de backend (`test_ordinal_properties.py`, chaves novas em
 `test_clear_demo.py`) e +7 de frontend: 4799 → 4834 e 929 → 936.
-
 ## Sessão 80 — 14/10/26 — Ficha técnica do material em PDF para todo registro visível (D-125)
 
 **Sintoma.** Em produção, "Ficha técnica completa (PDF)" abria

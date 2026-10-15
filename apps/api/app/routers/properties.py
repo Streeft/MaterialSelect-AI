@@ -11,9 +11,15 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_user, require_catalog_curator
+from app.domain import depth_profile as depth
 from app.models.user import User
 from app.schemas.ordinal import OrdinalPropertyOut
-from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
+from app.schemas.property import (
+    DepthLevelOut,
+    DepthProfilesOut,
+    PropertyDefinitionIn,
+    PropertyDefinitionOut,
+)
 from app.services.ordinal_service import OrdinalService
 from app.services.property_service import PropertyService
 
@@ -34,6 +40,21 @@ def list_ordinal_properties(
 ) -> list[OrdinalPropertyOut]:
     """Ordinal material properties and their scales, worst level first (D-126)."""
     return OrdinalService(db, user).list_definitions()
+
+
+@router.get("/niveis", response_model=DepthProfilesOut)
+def depth_profiles(user: User = Depends(get_current_user)) -> DepthProfilesOut:
+    """Os perfis de profundidade L1/L2/L3 (D-127): configuração, não dado."""
+    return DepthProfilesOut(
+        default_level=int(depth.DEFAULT_LEVEL),
+        undeclared_min_level=int(depth.UNDECLARED_MIN_LEVEL),
+        levels=[
+            DepthLevelOut(level=int(lvl), label=label, description=text)
+            for lvl, (label, text) in depth.LEVEL_LABELS.items()
+        ],
+        property_min_level={k: int(v) for k, v in depth.PROPERTY_MIN_LEVEL.items()},
+        tool_min_level={k: int(v) for k, v in depth.TOOL_MIN_LEVEL.items()},
+    )
 
 
 @router.post(

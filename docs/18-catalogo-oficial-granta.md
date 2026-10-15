@@ -196,7 +196,10 @@ a significar bytes diferentes.
 Isso evita deduplicar apenas por nome. Um nome traduzido ou editado não é
 identidade. GRUID/id externo e hash são a trilha auditável.
 
-Datasets L1/L2/L3 e verticais não devem ser concatenados cegamente. Antes de
+Datasets L1/L2/L3 e verticais não devem ser concatenados cegamente. A visão
+por nível já existe sem o bundle ([D-127](DECISIONS.md)): o nível de cada
+grandeza é declarado por slug em `app/domain/depth_profile.py`, e a carga
+oficial deve estendê-lo pela mesma chave, nunca gravá-lo como valor de material. Antes de
 incorporar uma nova base, a reconciliação precisa classificá-la como:
 
 - fonte canônica;

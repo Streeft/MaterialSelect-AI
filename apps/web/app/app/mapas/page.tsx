@@ -28,6 +28,8 @@ import type {
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
+import { optionsAtLevel } from "@/lib/depth";
+import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
@@ -310,6 +312,20 @@ function MapsPageContent() {
       canonical_unit: p.canonical_unit,
     }));
   }, [universe, processAttributes.data, properties.data]);
+
+  // D-127: the depth level trims the axis options only — never the axes already
+  // chosen, and never the process universe, whose attributes declare no level.
+  const depthLevel = useDepthLevel();
+  const axisOptions = useMemo(() => {
+    if (universe === "process") return availableAttributes;
+    const withLevel = (properties.data ?? []).map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      canonical_unit: p.canonical_unit,
+      min_level: p.min_level,
+    }));
+    return optionsAtLevel(withLevel, depthLevel, [xAxis.property, yAxis.property]);
+  }, [universe, availableAttributes, properties.data, depthLevel, xAxis.property, yAxis.property]);
 
   const availableClasses = useMemo(() => {
     if (universe === "process") {
@@ -907,6 +923,15 @@ function MapsPageContent() {
               description={t.axesHint}
             />
             <CardBody className="flex flex-col gap-4">
+              {universe === "material" && (
+                <DepthLevelPicker
+                  summary={ptBR.depth.optionsCount(
+                    depthLevel,
+                    optionsAtLevel(properties.data ?? [], depthLevel).length,
+                    properties.data?.length ?? 0,
+                  )}
+                />
+              )}
               <AxisControl
                 label={t.axisX}
                 axis={{
@@ -917,7 +942,7 @@ function MapsPageContent() {
                 allowIndex={
                   universe === "material" && (customizeOpen || xAxis.mode === "index")
                 }
-                properties={availableAttributes}
+                properties={axisOptions}
                 indices={universe === "material" ? (indices.data ?? []) : []}
                 dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
               />
@@ -932,7 +957,7 @@ function MapsPageContent() {
                 allowIndex={
                   universe === "material" && (customizeOpen || yAxis.mode === "index")
                 }
-                properties={availableAttributes}
+                properties={axisOptions}
                 indices={universe === "material" ? (indices.data ?? []) : []}
                 dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
               />
