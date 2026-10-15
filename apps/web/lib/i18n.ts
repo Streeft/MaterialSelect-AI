@@ -1899,6 +1899,24 @@ export const ptBR = {
     qualityBreakdown: "Composição dos dados",
     noValues: "Nenhuma propriedade cadastrada",
   },
+  // D-127: perfis de profundidade. O nível é visão, nunca filtro de cálculo.
+  depth: {
+    label: "Nível de profundidade",
+    level: (n: number) => `Nível ${n}`,
+    levelHint: {
+      1: "Introdutório: as grandezas que se ensinam primeiro.",
+      2: "Intermediário: acrescenta as grandezas de segunda leitura.",
+      3: "Completo: todas as propriedades cadastradas.",
+    } as Record<number, string>,
+    sheetCount: (level: number, shown: number, total: number) =>
+      `O Nível ${level} mostra ${shown} de ${total} ${total === 1 ? "propriedade" : "propriedades"} desta ficha.`,
+    optionsCount: (level: number, shown: number, total: number) =>
+      `O Nível ${level} oferece ${shown} de ${total} grandezas nos eixos.`,
+    notMissing:
+      "As demais não estão ausentes: continuam gravadas e entram na seleção, no ranking e nas exportações. Escolha o Nível 3 para vê-las.",
+    noneAtLevel: (level: number) =>
+      `Nenhuma propriedade desta ficha é do Nível ${level}.`,
+  },
   detail: {
     back: "← Voltar ao catálogo",
     loading: "Carregando material…",

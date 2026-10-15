@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
+from app.domain.depth_profile import property_min_level
 from app.models.enums import BetterDirection, DataQuality, PropertyCategory
 
 
@@ -50,6 +51,12 @@ class PropertyValueOut(BaseModel):
 
     data_quality: DataQuality
     source_label: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def min_level(self) -> int:
+        """A partir de que nível de profundidade esta linha aparece (D-127)."""
+        return int(property_min_level(self.property_slug))
 
 
 class PropertyGroup(BaseModel):
@@ -102,3 +109,25 @@ class PropertyDefinitionOut(BaseModel):
     better_direction: BetterDirection
     allows_log_scale: bool
     value_count: int = 0
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def min_level(self) -> int:
+        """A partir de que nível a grandeza aparece (D-127); sem declaração, 1."""
+        return int(property_min_level(self.slug))
+
+
+class DepthLevelOut(BaseModel):
+    level: int
+    label: str
+    description: str
+
+
+class DepthProfilesOut(BaseModel):
+    """Os níveis de profundidade e o que cada propriedade/ferramenta declara."""
+
+    default_level: int
+    undeclared_min_level: int
+    levels: list[DepthLevelOut]
+    property_min_level: dict[str, int]
+    tool_min_level: dict[str, int]
