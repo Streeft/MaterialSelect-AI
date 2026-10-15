@@ -138,6 +138,22 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
 - **TM7 — o que mudou entre releases.** ✔ Entregue (D-108, Sessão 63);
   resíduos abaixo.
 
+**Perfis de profundidade L1/L2/L3 (relatório de lacunas do EduPack, #25,
+[D-127](DECISIONS.md), Sessão 82).** ✔ Entregue: ~~nível por slug com padrão
+seguro, seletor na ficha e nos eixos do mapa, nível na URL, canário "nível não
+altera ranking"~~. Resíduos:
+
+- **PD-a — nível nos demais seletores.** ▁ Estágios da seleção, comparador e
+  Find Similar ainda oferecem todas as grandezas; aplicar `optionsAtLevel` sem
+  tirar o que já está escolhido.
+- **PD-b — ferramentas pelo nível.** ▃ `TOOL_MIN_LEVEL` está declarado e não é
+  usado na barra lateral: o nível da URL não acompanha a navegação. Exige
+  decidir onde o nível mora entre telas (cookie lido no servidor, como o D-37
+  prevê para o estado da barra) antes de mostrar "a partir do Nível N".
+- **PD-c — nível vindo do bundle oficial (C1).** ▃ O bundle do D-102 deve
+  estender `PROPERTY_MIN_LEVEL` pela mesma chave (slug), com a origem do nível
+  declarada; hoje o mapa é só o do código.
+
 **Fluxo de sala de aula (relatório de lacunas do EduPack, #19 a #21,
 [D-122](DECISIONS.md), Sessão 77).** ✔ Entregue: ~~notas por estágio e por
 estudo~~, ~~exportar e importar estudo (JSON versionado, validado, nunca executa
