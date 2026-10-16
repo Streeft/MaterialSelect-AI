@@ -86,6 +86,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `.m3-state`. Valor novo cita a linha de `docs/21-material3-referencia.md`. Onde o M3 pede
   menos que o projeto (contraste D-34, Okabe–Ito, um `primary`), vale o projeto.
 
+- **Hover é véu, não movimento** ([D-134](docs/DECISIONS.md)): botão, chip, FAB e demais
+  `.msds-ripple-host` usam a camada de estado 8/10/10 e nunca sobem, crescem nem trocam borda.
+  `tonal` é o botão quieto e não conta como `primary`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

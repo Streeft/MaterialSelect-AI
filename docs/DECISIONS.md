@@ -10549,3 +10549,36 @@ tipografia: nenhum componente os pede. Molas do `useSpring` continuam "aproximad
 navegação) migra `components/ui/*` por baixo, mantendo a assinatura, e atualiza `/estilo` e o
 artefato. Conflitos previstos, para decidir caso a caso com medição: `primary-container`,
 fonte, FAB, abas em pílula, um `primary` por tela × cinco estilos de botão, hover por borda × véu.
+
+
+## D-134 — Material 3, ações: véu de estado no lugar do movimento, botão tonal, FAB de 16 px
+
+**Contexto.** Etapa 2 do design system do Material 3 (D-133), páginas *Buttons*, *Chips*,
+*FAB* e *State layers* de `m3.material.io`. As três escolhas abaixo foram do autor, com a
+medição à frente.
+
+**Decisão.**
+- **Hover sem movimento.** O MSDS já tinha uma camada de estado em todo `.msds-ripple-host`
+  (botões, chips, FAB, abas, trilho, itens de lista), mas a 6%/10%, e botões e chips ainda
+  subiam 1 px, cresciam 1% e trocavam borda ou sombra ao passar o mouse (D-38). Agora a
+  camada lê `--state-hover/focus/pressed` (8/10/10 %), só passa o mouse onde há mouse
+  (`@media (hover: hover)`) e é o **único** sinal de hover desses componentes. O gesto de
+  2% no clique (`.pressable`, `:active`) fica. `data-force-state` continua valendo no `/estilo`.
+- **Estilos, só por baixo.** A API não muda: `primary` é o *filled*, `secondary` o *outlined*,
+  `ghost` o *text*; entra `tonal` (`--m3-secondary-container`, par `on-…` medido em D-133).
+  A regra de **um `primary` por tela** (D-91) vale só para o *filled*; o *tonal* não conta.
+- **FAB.** Raio 16 (`--shape-large`, era 24), elevação 3 em repouso e 4 ao passar, fundo
+  `--m3-primary-container` da rota com `--m3-on-primary-container`; o FAB com rótulo é o
+  estendido. Sem translação ao passar.
+
+**Medição que tirou um conflito.** Nenhum componente lia o `--md-sys-color-primary-container`
+(só as definições no `globals.css`), e os botões usam `--action-primary`. O conflito previsto em
+D-133 era, na prática, só do FAB.
+
+**O que não muda.** O botão continua com raio de controle (`--radius-control`), não em pílula:
+a densidade das tabelas e dos formulários não comporta 100% de arredondamento (o M3 pede a
+pílula no botão, e fica registrado como divergência deliberada). `danger` e `link` mantêm a
+cor; `link` ainda troca de cor ao passar, por ser texto.
+
+**Consequências.** Frontend apenas. Todo o MSDS ganha o véu 8/10/10, não só botões, chips e
+FAB. Segue a Etapa 3 (campos).
