@@ -6,11 +6,20 @@ import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { SavedStudies } from "./SavedStudies";
+import { Greeting } from "./Greeting";
+import { RecentRecords } from "./RecentRecords";
 import { ptBR } from "@/lib/i18n";
-import type { StudySummary } from "@/lib/types";
+import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
+import type { Bookmark, CurrentUser, MyRecords, StudySummary } from "@/lib/types";
 
 const listStudies = vi.fn<() => Promise<StudySummary[]>>();
-vi.mock("@/lib/api", () => ({ listStudies: () => listStudies() }));
+const getMyRecords = vi.fn<() => Promise<MyRecords>>();
+const getCurrentUser = vi.fn<() => Promise<CurrentUser>>();
+vi.mock("@/lib/api", () => ({
+  listStudies: () => listStudies(),
+  getMyRecords: () => getMyRecords(),
+  getCurrentUser: () => getCurrentUser(),
+}));
 
 function makeStudy(overrides: Partial<StudySummary> = {}): StudySummary {
   return {
@@ -64,5 +73,95 @@ describe("SavedStudies", () => {
 
     expect(await screen.findByText(ptBR.home.savedError)).toBeInTheDocument();
     expect(screen.queryByText(ptBR.home.savedEmpty)).not.toBeInTheDocument();
+  });
+});
+
+function bookmark(overrides: Partial<Bookmark> & { name?: string; id?: number } = {}): Bookmark {
+  const { name = "Aço 1020", id = 3, ...rest } = overrides;
+  return {
+    universe: "material",
+    at: "2026-10-15T10:00:00Z",
+    process: null,
+    material: {
+      id,
+      name,
+      class_name: "Metais",
+      class_slug: "metais",
+      subclass: null,
+      is_demo: false,
+      is_own_record: false,
+      keywords: [],
+      designations: [],
+      quality: { medido: 1, importado: 0, estimado: 0, missing: 0 },
+    },
+    ...rest,
+  };
+}
+
+const records = (recents: Bookmark[]): MyRecords => ({ favorites: [], recents, own_records: [] });
+
+describe("Greeting (D-132)", () => {
+  const user = (name: string): CurrentUser => ({
+    id: 1,
+    email: "a@example.com",
+    name,
+    avatar_url: null,
+    project_id: 1,
+  });
+
+  it("greets by the first name only", async () => {
+    getCurrentUser.mockResolvedValue(user("  Maria  de Souza "));
+    render(<Greeting />, { wrapper });
+    expect(await screen.findByText(ptBR.home.greeting("Maria"))).toBeInTheDocument();
+  });
+
+  it("draws nothing when the account has no name, instead of inventing one", async () => {
+    getCurrentUser.mockResolvedValue(user("   "));
+    const { container } = render(<Greeting />, { wrapper });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("RecentRecords (D-132)", () => {
+  it("lists what the reader opened last, each one a link to its sheet", async () => {
+    getMyRecords.mockResolvedValue(records([bookmark({ name: "Aço 1020", id: 3 })]));
+    render(<RecentRecords />, { wrapper });
+
+    const link = await screen.findByRole("link", { name: /Aço 1020/ });
+    expect(link).toHaveAttribute("href", "/app/materiais/3");
+    expect(screen.getByText(ptBR.myRecords.universeMaterial)).toBeInTheDocument();
+  });
+
+  it("shows at most six and skips a record that no longer resolves", async () => {
+    const many = Array.from({ length: 8 }, (_, i) => bookmark({ name: `Material ${i + 1}`, id: i + 1 }));
+    const gone: Bookmark = { universe: "material", at: "2026-10-15T10:00:00Z", material: null, process: null };
+    getMyRecords.mockResolvedValue(records([gone, ...many]));
+    render(<RecentRecords />, { wrapper });
+
+    await screen.findByRole("link", { name: /Material 1/ });
+    expect(screen.getAllByRole("link")).toHaveLength(6);
+  });
+
+  it("says nothing was seen yet, in words, rather than showing an empty shelf", async () => {
+    getMyRecords.mockResolvedValue(records([]));
+    render(<RecentRecords />, { wrapper });
+    expect(await screen.findByText(ptBR.home.recentEmpty)).toBeInTheDocument();
+    expect(screen.getByText(ptBR.home.recentEmptyHint)).toBeInTheDocument();
+  });
+
+  it("says the shelf failed rather than pretending it is empty", async () => {
+    getMyRecords.mockRejectedValue(new Error("boom"));
+    render(<RecentRecords />, { wrapper });
+    expect(await screen.findByText(ptBR.home.recentError)).toBeInTheDocument();
+    expect(screen.queryByText(ptBR.home.recentEmpty)).not.toBeInTheDocument();
+  });
+
+  it("has no accessibility violations with the shelf full", async () => {
+    getMyRecords.mockResolvedValue(records([bookmark({ name: "Aço 1020", id: 3 })]));
+    render(<RecentRecords />, { wrapper });
+    await screen.findByRole("link", { name: /Aço 1020/ });
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });

@@ -3,6 +3,8 @@ import { ptBR } from "@/lib/i18n";
 import { Alert, ButtonLink, Disclosure, Section } from "@/components/ui";
 import { IconArrowRight } from "@/components/ui/icons";
 import { LimitationNotice } from "@/components/LimitationNotice";
+import { Greeting } from "@/components/home/Greeting";
+import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
 
 const t = ptBR.home;
@@ -26,6 +28,7 @@ export default function HomePage() {
     <div className="space-y-6">
       {/* D-86: one thing to do first, said once. */}
       <section className="space-y-3">
+        <Greeting />
         <h1 className="text-2xl font-semibold text-ink">{ptBR.appName}</h1>
         <p className="max-w-prose text-ink-muted">{t.lead}</p>
         <ButtonLink href="/app/selecao" variant="primary" icon={<IconArrowRight />}>
@@ -40,6 +43,8 @@ export default function HomePage() {
         <Alert tone="warning">{ptBR.demoWarning}</Alert>
         <LimitationNotice variant="compact" />
       </div>
+
+      <RecentRecords />
 
       <SavedStudies />
 

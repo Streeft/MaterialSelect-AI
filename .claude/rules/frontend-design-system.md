@@ -77,6 +77,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `aria-sort`; só coluna de texto é ordenável (nunca valor medido — ranquear é do
   backend). A seleção vale para as linhas **listadas** e o botão desligado diz o motivo.
 
+- **Home devolve ao que se fazia** ([D-132](docs/DECISIONS.md)): `RecentRecords` lê a mesma
+  `MY_RECORDS_KEY` de *Meus registros* (até 6, omite o que não resolve); `Greeting` só
+  aparece com nome na conta. Continua **um** botão primário (D-86).
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

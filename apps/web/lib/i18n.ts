@@ -2912,6 +2912,13 @@ export const ptBR = {
   },
 
   home: {
+    // D-132: a home que devolve o leitor ao que ele estava fazendo.
+    greeting: (name: string) => `Olá, ${name}.`,
+    recentTitle: "Vistos recentemente",
+    recentHint: "O que você abriu por último, para voltar sem buscar.",
+    recentEmpty: "Nada visto ainda.",
+    recentEmptyHint: "Os materiais e processos que você abrir aparecem aqui.",
+    recentError: "Não foi possível carregar o que você viu recentemente.",
     lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
     lead2:
       "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +

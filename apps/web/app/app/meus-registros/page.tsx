@@ -7,6 +7,7 @@ import { getMyRecords } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { MY_RECORDS_KEY } from "@/components/my-records/FavoriteButton";
+import { bookmarkClass, bookmarkHref, bookmarkName } from "@/components/my-records/bookmark";
 import { MaterialCards } from "@/components/catalog/MaterialCards";
 import {
   Alert,
@@ -20,31 +21,6 @@ import {
 } from "@/components/ui";
 
 const t = ptBR.myRecords;
-
-/**
- * Where a bookmarked record lives, in either universe.
- *
- * One function rather than a ternary at each call site, so that adding a third
- * universe is one edit and cannot half-happen.
- */
-function bookmarkHref(bookmark: Bookmark): string | null {
-  if (bookmark.universe === "material" && bookmark.material) {
-    return `/app/materiais/${bookmark.material.id}`;
-  }
-  if (bookmark.universe === "process" && bookmark.process) {
-    return `/app/processos/${bookmark.process.slug}`;
-  }
-  return null;
-}
-
-function bookmarkName(bookmark: Bookmark): string | null {
-  return bookmark.material?.name ?? bookmark.process?.name ?? null;
-}
-
-function bookmarkClass(bookmark: Bookmark): { name: string; slug: string } | null {
-  const record = bookmark.material ?? bookmark.process;
-  return record ? { name: record.class_name, slug: record.class_slug } : null;
-}
 
 /**
  * One bookmarked record as a row.
