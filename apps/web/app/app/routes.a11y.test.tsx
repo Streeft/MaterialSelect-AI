@@ -1199,6 +1199,15 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   // auditoria é sobre a ficha, não sobre os marcadores.
   getMyRecords: () =>
     Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  // D-132: a home cumprimenta pelo primeiro nome da conta.
+  getCurrentUser: () =>
+    Promise.resolve({
+      id: 1,
+      email: "pesquisador@example.com",
+      name: "Maria Souza",
+      avatar_url: null,
+      project_id: 1,
+    }),
   addFavorite: () =>
     Promise.resolve({ favorites: [], recents: [], own_records: [] }),
   removeFavorite: () =>

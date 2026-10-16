@@ -10467,3 +10467,36 @@ os filtros, que mudam o resultado, é que valem como link.
 
 **Consequências.** Frontend apenas; não precisa de Deploy da API. A tabela do
 catálogo passou a ser componente de cliente.
+
+
+## D-132 — Home que devolve o leitor ao que ele estava fazendo: saudação e "Vistos recentemente"
+
+**Contexto.** Quarta ideia do Material 3 aplicada (busca D-129, aviso D-130, tabela
+D-131), a partir das páginas *Cards* e *Lists* de `m3.material.io` e do padrão de
+"Retomar de onde parou" dos apps do Google. A home já tinha um só botão primário e os
+estudos salvos (D-86); o que o leitor abriu por último — um material, um processo —
+só aparecia em "Meus registros", duas telas adiante.
+
+**Decisão.**
+- **"Vistos recentemente"** (`components/home/RecentRecords.tsx`): até **6** cartões com
+  o nome, a classe e o universo do que foi aberto por último, cada um um link para a
+  ficha. Lê o mesmo `GET /api/my-records` e a mesma `MY_RECORDS_KEY` da página *Meus
+  registros* (D-62): abrir uma ficha e voltar encontra o registro ali sem outra
+  chamada, e a ordem é a dos recentes do servidor, não uma reordenação do cliente.
+  Registro que não resolve mais (sem nome ou sem link) é **omitido** — um id na tela
+  não nomearia nada que o leitor pudesse abrir. Os helpers de rota, nome e classe
+  moram agora em `components/my-records/bookmark.ts`, compartilhados com *Meus
+  registros* para as duas telas não discordarem sobre onde um registro mora.
+- **Saudação** (`Greeting.tsx`): "Olá, Maria." com o **primeiro nome** da conta, e
+  **nada** quando a conta não tem nome — sem "usuário" inventado nem linha vazia.
+- **Estados escritos** (D-24): carregando (esqueleto de cartões), erro com "Tentar de
+  novo" e vazio com frase própria; uma prateleira vazia não é desenhada como lista
+  vazia.
+
+**O que não muda.** A home continua com **um** botão primário (D-86), os estudos
+salvos, os atalhos de exploração e o método recolhido. A prateleira só navega: não
+mostra valor de propriedade nem calcula nada. Os cartões da prateleira não ganharam
+ação (favoritar, remover dos recentes): isso é de *Meus registros*.
+
+**Consequências.** Frontend apenas; não precisa de Deploy da API. A home passa a pedir
+`/my-records` e `/auth/me` ao carregar, ambos já em cache no resto do app.

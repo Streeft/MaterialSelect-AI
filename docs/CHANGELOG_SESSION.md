@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [86](#sessão-86--161026--home-saudação-e-vistos-recentemente-d-132) | 16/10/2026 | Home: saudação pelo primeiro nome (só se a conta tem nome) e prateleira *Vistos recentemente* (até 6, mesma consulta de Meus registros, estados escritos); quarto item do Material 3; sem backend | — | +7 |
 | [85](#sessão-85--151026--tabela-do-catálogo-ordenar-e-selecionar-em-massa-d-131) | 15/10/2026 | Tabela do catálogo com cabeçalho ordenável (`aria-sort`, só rótulo) e seleção em massa com barra *Comparar selecionados*; segundo item do Material 3 (Data tables/Lists); sem backend | — | +12 |
 | [84](#sessão-84--151026--busca-global-e-aviso-com-desfazer-padrões-do-material-3-d-129-d-130) | 15/10/2026 | Busca global no topo (Ctrl/Cmd+K ou `/`, só navega) e aviso com Desfazer nas exclusões (commit adiado no cliente), ambos a partir das páginas Search, Snackbar e Lists de `m3.material.io`; esqueletos de carregamento; sem migração, sem backend | — | +17 |
 | [84](#sessão-84--151026--glossário-de-propriedades-d-129) | 15/10/2026 | Glossário de propriedades: 15 verbetes conceituais e autorais (`app/glossary/entries.json`, sem migração) com fonte, licença e estado `rascunho` escrito; `GET /api/glossario`; dica "?" na ficha e na Seleção guiada; página `/app/glossario` | +29 | +9 |
@@ -101,6 +102,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 86 — 16/10/26 — Home: saudação e "Vistos recentemente" (D-132)
+
+**O que mudou.** `Greeting` ("Olá, {primeiro nome}.", nada sem nome) e `RecentRecords`
+(até 6 cartões de `getMyRecords().recents`, link para a ficha, classe e universo;
+esqueleto, erro e vazio escritos; omite o que não resolve) entram em `app/app/page.tsx`.
+Os helpers `bookmarkHref/Name/Class` saíram de *Meus registros* para
+`components/my-records/bookmark.ts`. Sem migração, sem backend.
+
+**Testes.** +7 de frontend (`home.test.tsx`: saudação, prateleira cheia, limite de 6,
+registro sem link, vazio, erro e axe); o mock de `routes.a11y.test.tsx` ganhou
+`getCurrentUser`, que o `Greeting` chama. O acesso ao site do Material 3 voltou nesta
+sessão (curl, Chromium e WebFetch).
 
 ## Sessão 85 — 15/10/26 — Tabela do catálogo: ordenar e selecionar em massa (D-131)
 
