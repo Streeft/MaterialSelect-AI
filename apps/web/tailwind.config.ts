@@ -16,6 +16,42 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Material 3 roles per route (D-133); `bg-m3-primary`, `text-m3-on-primary`.
+        m3: {
+          "primary": v("--m3-primary"),
+          "on-primary": v("--m3-on-primary"),
+          "primary-container": v("--m3-primary-container"),
+          "on-primary-container": v("--m3-on-primary-container"),
+          "secondary": v("--m3-secondary"),
+          "on-secondary": v("--m3-on-secondary"),
+          "secondary-container": v("--m3-secondary-container"),
+          "on-secondary-container": v("--m3-on-secondary-container"),
+          "tertiary": v("--m3-tertiary"),
+          "on-tertiary": v("--m3-on-tertiary"),
+          "tertiary-container": v("--m3-tertiary-container"),
+          "on-tertiary-container": v("--m3-on-tertiary-container"),
+          "error": v("--m3-error"),
+          "on-error": v("--m3-on-error"),
+          "error-container": v("--m3-error-container"),
+          "on-error-container": v("--m3-on-error-container"),
+          "surface": v("--m3-surface"),
+          "on-surface": v("--m3-on-surface"),
+          "surface-variant": v("--m3-surface-variant"),
+          "on-surface-variant": v("--m3-on-surface-variant"),
+          "surface-container-lowest": v("--m3-surface-container-lowest"),
+          "surface-container-low": v("--m3-surface-container-low"),
+          "surface-container": v("--m3-surface-container"),
+          "surface-container-high": v("--m3-surface-container-high"),
+          "surface-container-highest": v("--m3-surface-container-highest"),
+          "outline": v("--m3-outline"),
+          "outline-variant": v("--m3-outline-variant"),
+          "inverse-surface": v("--m3-inverse-surface"),
+          "inverse-on-surface": v("--m3-inverse-on-surface"),
+          "inverse-primary": v("--m3-inverse-primary"),
+          "surface-tint": v("--m3-surface-tint"),
+          "scrim": v("--m3-scrim"),
+          "shadow": v("--m3-shadow"),
+        },
         surface: {
           DEFAULT: v("--surface"),
           raised: v("--surface-raised"),
@@ -138,6 +174,22 @@ const config: Config = {
         body: ["0.875rem", { lineHeight: "1.375rem" }],
         support: ["0.8125rem", { lineHeight: "1.25rem" }],
         caption: ["0.75rem", { lineHeight: "1rem" }],
+        // Material 3 type roles at the app's compact sizes (D-133): 15 names, Public Sans.
+        "m3-display-large": ["1.75rem", { lineHeight: "2.25rem", fontWeight: "400", letterSpacing: "-0.01em" }],
+        "m3-display-medium": ["1.5rem", { lineHeight: "2rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-display-small": ["1.375rem", { lineHeight: "1.75rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-headline-large": ["1.25rem", { lineHeight: "1.75rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-headline-medium": ["1.125rem", { lineHeight: "1.5rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-headline-small": ["1.0625rem", { lineHeight: "1.5rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-title-large": ["1rem", { lineHeight: "1.5rem", fontWeight: "400", letterSpacing: "0" }],
+        "m3-title-medium": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500", letterSpacing: "0.009em" }],
+        "m3-title-small": ["0.8125rem", { lineHeight: "1.25rem", fontWeight: "500", letterSpacing: "0.008em" }],
+        "m3-body-large": ["0.9375rem", { lineHeight: "1.375rem", fontWeight: "400", letterSpacing: "0.03em" }],
+        "m3-body-medium": ["0.875rem", { lineHeight: "1.375rem", fontWeight: "400", letterSpacing: "0.018em" }],
+        "m3-body-small": ["0.75rem", { lineHeight: "1rem", fontWeight: "400", letterSpacing: "0.033em" }],
+        "m3-label-large": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500", letterSpacing: "0.007em" }],
+        "m3-label-medium": ["0.75rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.042em" }],
+        "m3-label-small": ["0.6875rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.045em" }],
       },
 
       letterSpacing: {
@@ -155,6 +207,17 @@ const config: Config = {
         card: "var(--radius-card)",
         control: "var(--radius-control)",
         seat: "var(--radius-seat)",
+        // Material 3 shape scale (D-133).
+        "m3-none": "var(--shape-none)",
+        "m3-xs": "var(--shape-extra-small)",
+        "m3-sm": "var(--shape-small)",
+        "m3-md": "var(--shape-medium)",
+        "m3-lg": "var(--shape-large)",
+        "m3-lg-plus": "var(--shape-large-increased)",
+        "m3-xl": "var(--shape-extra-large)",
+        "m3-xl-plus": "var(--shape-extra-large-increased)",
+        "m3-xxl": "var(--shape-extra-extra-large)",
+        "m3-full": "var(--shape-full)",
       },
 
       boxShadow: {
@@ -165,6 +228,13 @@ const config: Config = {
         raised: "var(--shadow-raised)",
         overlay: "var(--shadow-overlay)",
         lift: "var(--shadow-lift)",
+        // Material 3 elevation levels (D-133).
+        "elev-0": "var(--elevation-0)",
+        "elev-1": "var(--elevation-1)",
+        "elev-2": "var(--elevation-2)",
+        "elev-3": "var(--elevation-3)",
+        "elev-4": "var(--elevation-4)",
+        "elev-5": "var(--elevation-5)",
         // What sits under the navigation item you're on, and under a primary button.
         // Reads the brand token, so follows the section hue instead of darkening:
         // that's what makes "you are here" survive a glance.
@@ -174,10 +244,23 @@ const config: Config = {
       transitionDuration: {
         DEFAULT: "150ms",
         slow: "260ms",
+        "m3-short1": "var(--m3-dur-short1)",
+        "m3-short2": "var(--m3-dur-short2)",
+        "m3-short3": "var(--m3-dur-short3)",
+        "m3-short4": "var(--m3-dur-short4)",
+        "m3-medium1": "var(--m3-dur-medium1)",
+        "m3-medium2": "var(--m3-dur-medium2)",
+        "m3-medium3": "var(--m3-dur-medium3)",
+        "m3-medium4": "var(--m3-dur-medium4)",
       },
 
       transitionTimingFunction: {
         emphasized: "cubic-bezier(0.2, 0, 0, 1)",
+        "m3-standard": "var(--m3-ease-standard)",
+        "m3-standard-decelerate": "var(--m3-ease-standard-decelerate)",
+        "m3-standard-accelerate": "var(--m3-ease-standard-accelerate)",
+        "m3-emphasized-decelerate": "var(--m3-ease-emphasized-decelerate)",
+        "m3-emphasized-accelerate": "var(--m3-ease-emphasized-accelerate)",
       },
 
       maxWidth: {

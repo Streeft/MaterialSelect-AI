@@ -81,6 +81,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `MY_RECORDS_KEY` de *Meus registros* (até 6, omite o que não resolve); `Greeting` só
   aparece com nome na conta. Continua **um** botão primário (D-86).
 
+- **Material 3 é token antes de componente** ([D-133](docs/DECISIONS.md)): `--m3-*` por rota
+  (gerado: `npm run tokens:m3`, nunca à mão), `--shape-*`, `--elevation-*`, `--state-*`,
+  `.m3-state`. Valor novo cita a linha de `docs/21-material3-referencia.md`. Onde o M3 pede
+  menos que o projeto (contraste D-34, Okabe–Ito, um `primary`), vale o projeto.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum
