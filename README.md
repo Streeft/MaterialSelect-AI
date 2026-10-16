@@ -37,7 +37,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   registro próprio se duplica como cópia editável.
 - **Busca global e desfazer** — a barra do topo (Ctrl/Cmd+K ou `/`) leva a qualquer tela, material, processo, caderno ou
   estudo salvo, e só navega. Excluir um estudo, uma fonte, uma nota ou um caderno mostra um aviso com
-  **Desfazer** (o servidor só apaga quando o aviso vence).
+  **Desfazer** (o servidor só apaga quando o aviso vence). A tabela do catálogo ordena por material ou
+  classe e permite marcar linhas para **Comparar selecionados**.
 - **Mapas** — mapas de Ashby com escala log, envelopes por classe e linhas de
   índice cuja inclinação é derivada da própria expressão (`E/ρ` → 1,
   `E^(1/2)/ρ` → 2). Um eixo pode ser uma propriedade ou um índice.

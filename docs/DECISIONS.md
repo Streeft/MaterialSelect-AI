@@ -10430,3 +10430,40 @@ verbete curado).
 cobertura até ganhar verbete. Comparador, mapas e slugs do bundle oficial ficam
 como pendência (`TODO.md`, GL-b e GL-c). Depois do merge, **Deploy da API** é
 obrigatório; não há seed nem migração.
+
+
+## D-131 — Tabela do catálogo: ordenar por rótulo e selecionar em massa, sem tocar em valor
+
+**Contexto.** Terceira ideia do Material 3 aplicada (depois da busca, D-129, e do
+aviso com Desfazer, D-130), a partir da página *Data tables* e da *Lists* de
+`m3.material.io`: a tabela do catálogo era uma lista só de leitura. Quem monta uma
+lista de candidatos para comparar tinha de abrir o comparador e buscar um a um.
+
+**Decisão.**
+- **Ordenar** por *Material* ou *Classe* (`lib/tableSort.ts`, `SortTh` em
+  `components/ui/Table.tsx`). O controle é um `<button>` dentro do `<th>`, que
+  mantém o papel de cabeçalho; `aria-sort` diz a ordem por escrito e a seta é
+  decoração. Ciclo: crescente → decrescente → **volta à ordem da busca**, que é a
+  ordem de relevância e continua sendo o ponto de partida. Maiúscula e acento não
+  decidem a ordem ("Água" fica entre os As) e números ordenam como números.
+- **Só rótulos.** *Dados* e *Palavras-chave* não são ordenáveis, e a tabela não
+  mostra valor de propriedade para ordenar: ranquear é do backend (princípio 2).
+  Ordenar nomes na tela é apresentação, como o `ChartFrame` trocar de tipo.
+- **Selecionar** com caixa por linha e "Selecionar todos os materiais listados"
+  (meio-marcada quando é parte). "Todos" quer dizer os **listados**, não o
+  catálogo inteiro. A seleção **não sobrevive à linha**: tirar um material da lista
+  pelos filtros o tira da contagem, então a barra nunca age sobre o que o leitor
+  não vê.
+- **Barra de ação** acima da tabela, região nomeada, com a contagem e
+  *Comparar selecionados* (`/app/comparar?materiais=…`, o contrato que o
+  comparador já lia) e *Limpar seleção*. Com menos de 2 ou mais de 60 o botão fica
+  desligado **e o motivo está escrito** ao lado (D-86). Os limites moram em
+  `lib/compareLimits.ts`, lidos pelo comparador e pela barra, para não divergirem.
+
+**O que ficou de fora de propósito.** A seleção vale na **tabela** (de `sm` para
+cima); no celular o catálogo é uma lista de cartões (D-50) e não ganhou caixa de
+seleção. A ordenação não vai para a URL: é uma preferência de leitura da lista, e
+os filtros, que mudam o resultado, é que valem como link.
+
+**Consequências.** Frontend apenas; não precisa de Deploy da API. A tabela do
+catálogo passou a ser componente de cliente.

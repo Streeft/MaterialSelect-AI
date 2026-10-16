@@ -119,6 +119,46 @@ export function Th({
   );
 }
 
+/**
+ * A column head the reader can sort by (D-131, after the M3 data-table pattern).
+ *
+ * The sort control is a real `<button>` inside the `<th>`: the head keeps its
+ * column-header role, `aria-sort` states the order in words, and the button is
+ * what takes focus and Enter/Space. The arrow is decoration — `aria-sort`
+ * already says the same thing, so it is hidden from a screen reader.
+ */
+export function SortTh({
+  label,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string;
+  /** What this column is currently doing; `"none"` when another column is sorted or none is. */
+  sort: "ascending" | "descending" | "none";
+  onSort: () => void;
+  className?: string;
+}) {
+  return (
+    <th
+      scope="col"
+      aria-sort={sort}
+      className={cn("whitespace-nowrap px-3 py-2 font-semibold", className)}
+    >
+      <button
+        type="button"
+        onClick={onSort}
+        className="-mx-1 inline-flex items-center gap-1 rounded-seat px-1 py-0.5 font-semibold hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+      >
+        {label}
+        <span aria-hidden className="w-3 text-center text-ink-subtle">
+          {sort === "ascending" ? "↑" : sort === "descending" ? "↓" : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export function Td({
   numeric,
   className,
