@@ -103,6 +103,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 87 — 16/10/26 — Material 3: fundações de tokens (D-133)
+
+**O que mudou.** `lib/design/m3Roles.ts` deriva do `--accent` de cada rota os 33 papéis
+`--m3-*`; região gerada no fim de `globals.css` (`npm run tokens:m3`). Em `:root`: `--shape-*`,
+`--elevation-0…5`, `--state-*`, `--m3-dur-*`, `--m3-ease-*` e o mecanismo `.m3-state`.
+Tailwind e `lib/cn.ts` ganham as classes `*-m3-*`, `shadow-elev-*` e os 15 papéis de tipo.
+`/estilo` ganha a seção "Material 3: fundações". `docs/21-material3-referencia.md` guarda os
+números e as páginas de origem. Aditivo: nenhum componente mudou de aparência.
+
+**Testes.** +82 de frontend (`m3Roles.test.ts`: região em dia, 34 blocos completos, pares de
+texto ≥ 4,5:1, contorno ≥ 3:1; `m3Tokens.test.ts`: escalas, Tailwind e `cn`; especimen com axe).
+`verify-globals-contrast.py`: 16 rotas, 0 falhas.
+
 ## Sessão 86 — 16/10/26 — Home: saudação e "Vistos recentemente" (D-132)
 
 **O que mudou.** `Greeting` ("Olá, {primeiro nome}.", nada sem nome) e `RecentRecords`

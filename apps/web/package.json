@@ -9,6 +9,7 @@
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "tokens:m3": "UPDATE_M3_ROLES=1 vitest run lib/design/m3Roles.test.ts",
     "test:e2e": "playwright test",
     "lighthouse": "lhci autorun"
   },

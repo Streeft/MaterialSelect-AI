@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
+import { M3Foundations } from "./M3Foundations";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
 import {
@@ -279,6 +280,14 @@ export default function StyleGuidePage() {
             <Swatch key={name} name={name} className={cls} />
           ))}
         </div>
+      </Section>
+
+      <Section
+        title="Material 3: fundações"
+        description="Papéis de cor derivados do matiz da rota, escala de forma, elevação, tipografia e camadas de estado (D-133). Aditivo: nenhum componente usa isto ainda."
+        headingLevel={2}
+      >
+        <M3Foundations />
       </Section>
 
       <Section

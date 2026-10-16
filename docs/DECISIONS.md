@@ -10500,3 +10500,52 @@ ação (favoritar, remover dos recentes): isso é de *Meus registros*.
 
 **Consequências.** Frontend apenas; não precisa de Deploy da API. A home passa a pedir
 `/my-records` e `/auth/me` ao carregar, ambos já em cache no resto do app.
+
+
+## D-133 — Fundações do Material 3: papéis de cor por rota, forma, elevação, estados e movimento (aditivo)
+
+**Contexto.** O autor pediu para replicar o design system do Material 3 (`m3.material.io`)
+sobre o do app, em tokens e componentes, e no artefato "MaterialSelect AI" ao mesmo tempo.
+Esta é a Etapa 1: **só tokens**, ao lado dos atuais; nenhum componente muda de aparência.
+Os números e a origem de cada um estão em [`21-material3-referencia.md`](21-material3-referencia.md)
+(páginas *Color roles*, *Type scale tokens*, *Corner radius scale*, *Elevation*, *State
+layers*, *Easing and duration*; o pacote `@material/web` 2.5.0 só para os valores).
+
+**Decisão.**
+- **Cor.** `lib/design/m3Roles.ts` gera, do `--accent` claro de cada rota (`SchemeContent`,
+  o mesmo método de `materialTheme.ts`), 33 papéis `--m3-*` em tripla `"R G B"`: os pares
+  primary/secondary/tertiary/error com `on-…` e *container*, os cinco `surface-container-*`,
+  `outline`, `outline-variant`, os três inversos, `scrim`, `shadow` e `surface-tint`. Fica na
+  região marcada no fim de `globals.css` (17 blocos claros e 17 escuros, o escuro com
+  seletor composto). **O matiz de cada rota fica; o azul segue a marca.** A região é
+  reescrita por `npm run tokens:m3` e o teste falha se ela divergir do gerador.
+- **Nome novo, nada tocado.** `--m3-primary-container` (tom claro, texto escuro) convive com o
+  `--md-sys-color-primary-container` atual (azul saturado, texto branco). O conflito entre os
+  dois é de componente e será decidido, com medição, na PR que mover o botão (Etapa 2).
+- **Forma, elevação, estado, movimento.** `--shape-none…full` (0/4/8/12/16/20/28/32/48/full),
+  `--elevation-0…5` (sombra de duas camadas da especificação), `--state-hover/focus/pressed/
+  dragged` = 8/10/10/16 %, `--m3-dur-*` e `--m3-ease-*`. Um mecanismo de estado, `.m3-state`
+  (véu `currentColor`, sem translação nem troca de borda), para substituir os hovers avulsos.
+- **Estados: vale a página, não o pacote.** O pacote npm (tokens 0.192) dá 12 % ao foco e ao
+  pressionado; a página *State layers* dá 10 %. Seguimos a página.
+- **Tipografia.** 15 papéis `text-m3-display-large … label-small` com os **tamanhos compactos
+  do app** (28→11 px), em Public Sans: o M3 admite trocar a fonte, e `display-large` de 57 px
+  não cabe em tabela nem em mapa. Os seis papéis atuais (D-91) ficam.
+- **Tailwind.** `bg-m3-*`/`text-m3-on-*`, `rounded-m3-*`, `shadow-elev-0…5`, `duration-m3-*`,
+  `ease-m3-*`, `text-m3-*`; registrados em `lib/cn.ts` para o `cn` resolver conflito.
+
+**Contraste (D-34).** Medido por teste nas 34 combinações (16 rotas + padrão, claro e escuro):
+os doze pares de texto passam de 4,5:1 e `outline` sobre `surface` de 3:1. Nada disso substitui
+`scripts/design/verify-globals-contrast.py`, que continua no portão (16 rotas, 0 falhas).
+
+**O que não muda.** `--quality-*`, `--success/warning/danger/info` e a paleta categórica
+Okabe–Ito (D-38): não seguem rota nem M3. Um só `primary` por tela (D-91). Sem biblioteca de
+componentes nem de animação (D-23).
+
+**Não adotado ainda.** Sobreposição tonal de elevação no escuro e o conjunto *enfatizado* de
+tipografia: nenhum componente os pede. Molas do `useSpring` continuam "aproximadas".
+
+**Consequências.** Frontend apenas. Cada PR de componente (ações, campos, contêineres,
+navegação) migra `components/ui/*` por baixo, mantendo a assinatura, e atualiza `/estilo` e o
+artefato. Conflitos previstos, para decidir caso a caso com medição: `primary-container`,
+fonte, FAB, abas em pílula, um `primary` por tela × cinco estilos de botão, hover por borda × véu.
