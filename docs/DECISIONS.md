@@ -10678,7 +10678,7 @@ no uso do app. O trilho lateral não ganha pílula (D-37).
 "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito) e conferir tudo no navegador.
 
 
-## D-138 — Assistente da Seleção: rascunho salvo no navegador, por conta (Google Docs)
+## D-139 — Assistente da Seleção: rascunho salvo no navegador, por conta (Google Docs)
 
 **Contexto.** Quinto item da lista de padrões dos apps do Google (`m3.material.io`, páginas
 *Snackbar* e *Text fields*, e o "Salvo" do Google Docs). O assistente tem quatro passos e muito

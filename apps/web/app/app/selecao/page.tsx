@@ -176,7 +176,7 @@ interface CriterionRow {
 let counter = 0;
 const nextId = () => `criterion-${counter++}`;
 
-/** D-138: a recovered draft carries criterion ids from an earlier load; skip past them. */
+/** D-139: a recovered draft carries criterion ids from an earlier load; skip past them. */
 function reserveCriterionIds(highest: number): void {
   counter = Math.max(counter, highest + 1);
 }
@@ -308,7 +308,7 @@ export default function SelectionPage() {
 function SelectionWizard() {
   const qc = useQueryClient();
   const params = useSearchParams();
-  // D-138: the draft is kept per account (a shared machine must not mix students).
+  // D-139: the draft is kept per account (a shared machine must not mix students).
   const me = useCurrentUser();
   const draftUserKey = me.data ? draftKey(me.data.id) : null;
   const [draftState, setDraftState] = useState<"idle" | "saved">("idle");
@@ -927,7 +927,7 @@ function SelectionWizard() {
     setExampleMessage(null);
   }
 
-  // D-138: the saved draft. Debounce the SERIALIZED state, never the object (a new
+  // D-139: the saved draft. Debounce the SERIALIZED state, never the object (a new
   // object every render would be a new write every render). A pristine wizard is
   // never written; nothing is written while a recovered draft is waiting for an
   // answer or while a saved study is being edited (that has its own save).

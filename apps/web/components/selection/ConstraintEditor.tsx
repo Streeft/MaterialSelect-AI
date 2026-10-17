@@ -255,7 +255,7 @@ export function nextEditorId(prefix: string): string {
   return `${prefix}-${editorIdCounter++}`;
 }
 
-/** D-138: after a recovered draft brings ids from an earlier load, never hand out one of them again. */
+/** D-139: after a recovered draft brings ids from an earlier load, never hand out one of them again. */
 export function reserveEditorIds(highest: number): void {
   editorIdCounter = Math.max(editorIdCounter, highest + 1);
 }

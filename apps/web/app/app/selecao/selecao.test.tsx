@@ -65,7 +65,7 @@ function closedPreview(payload: WeightsPreviewRequest, budget: Partial<WeightBud
   };
 }
 let propertiesMock: PropertyDefinition[] = [];
-// D-138: the draft is kept per account.
+// D-139: the draft is kept per account.
 let currentUser = { id: 7, email: "a@x.br", name: "Ana", avatar_url: null, project_id: 1 };
 const listPerformanceIndices = vi.fn<() => Promise<PerformanceIndex[]>>();
 
@@ -729,7 +729,7 @@ describe("pesos com limite 1", () => {
   });
 });
 
-describe("rascunho salvo (D-138)", () => {
+describe("rascunho salvo (D-139)", () => {
   const stored = (name: string, userId = 7) => {
     const data: DraftData = {
       name,

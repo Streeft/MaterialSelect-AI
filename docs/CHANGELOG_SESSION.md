@@ -104,7 +104,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 93 — 17/10/26 — Seleção: rascunho salvo no navegador (D-138)
+## Sessão 94 — 17/10/26 — Seleção: rascunho salvo no navegador (D-139)
 
 **O que mudou.** `lib/selectionDraft.ts` (leitura, escrita e validação do rascunho, por conta) e o
 assistente de `/app/selecao`: grava o estado 800 ms depois da última alteração, mostra "Rascunho
