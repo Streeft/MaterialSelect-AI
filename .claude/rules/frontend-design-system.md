@@ -90,6 +90,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `.msds-ripple-host` usam a camada de estado 8/10/10 e nunca sobem, crescem nem trocam borda.
   `tonal` é o botão quieto e não conta como `primary`.
 
+- **Campos no contorno M3** ([D-135](docs/DECISIONS.md)): raio 4, borda `--m3-outline` (≥ 3:1
+  sobre o painel, testado), foco em contorno de 2 px, rótulo **acima**. Caixa, rádio, switch e
+  slider usam `--m3-primary`/`--m3-outline`; a borda desmarcada nunca fica abaixo de 3:1.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

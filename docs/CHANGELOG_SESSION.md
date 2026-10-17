@@ -103,6 +103,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 89 — 17/10/26 — Material 3, campos: contorno e controles de seleção (D-135)
+
+**O que mudou.** `msds.css`: campo de texto com raio 4, borda `--m3-outline`, foco em contorno de
+2 px e erro em `--m3-error`; caixa, rádio, switch (52 × 32) e slider nos papéis `--m3-primary`/
+`--m3-outline`; halo de estado de 40 px nos controles de seleção. Rótulo segue acima do campo.
+
+**Testes.** +38 de frontend (`lib/msds/fields.test.ts`: borda do controle ≥ 3:1 em 34 combinações
+de rota e tema, formas e papéis). Sem backend nem migração.
+
 ## Sessão 88 — 16/10/26 — Material 3, ações: véu de estado, tonal, FAB (D-134)
 
 **O que mudou.** `msds.css`: a camada de estado dos `.msds-ripple-host` lê os tokens 8/10/10 e

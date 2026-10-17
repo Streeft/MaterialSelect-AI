@@ -301,12 +301,15 @@ body {
 .msds-field-counter-danger { color: rgb(var(--danger-fg)); font-weight: 600; }
 .msds-field-unit { font-size: 13px; color: rgb(var(--ink-muted)); }
 .msds-control {
-  width: 100%; border: 1px solid rgb(var(--border-control)); border-radius: var(--radius-control);
+  width: 100%; border: 1px solid rgb(var(--m3-outline)); border-radius: var(--shape-extra-small);
   background: var(--surface-200); color: rgb(var(--ink)); font: 400 14px var(--font-sans);
   padding: 8px 10px; transition: border-color var(--msds-dur) var(--msds-ease);
 }
-.msds-control:hover, .msds-control[data-force-state="hover"] { border-color: rgb(var(--ink-subtle)); }
-.msds-control[aria-invalid="true"] { border-color: rgb(var(--danger)); }
+.msds-control:hover, .msds-control[data-force-state="hover"] { border-color: rgb(var(--m3-on-surface)); }
+/* D-135: the M3 focus is a 2 px contour in the route's primary, drawn inside the border so the box does not grow. */
+.msds-control:focus-visible, .msds-control[data-force-state="focus"] { outline: 2px solid rgb(var(--m3-primary)); outline-offset: -2px; border-color: rgb(var(--m3-primary)); }
+.msds-control[aria-invalid="true"] { border-color: rgb(var(--m3-error)); }
+.msds-control[aria-invalid="true"]:focus-visible { outline-color: rgb(var(--m3-error)); }
 .msds-control:disabled { background: var(--surface-300); color: rgb(var(--ink-subtle)); cursor: not-allowed; }
 .msds-textarea { resize: vertical; min-height: 64px; font-family: var(--font-sans); }
 .msds-select-wrap { position: relative; }
@@ -315,12 +318,12 @@ body {
 
 .msds-checkbox, .msds-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(var(--ink)); cursor: pointer; }
 .msds-checkbox input, .msds-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.msds-checkbox-box { width: 18px; height: 18px; border: 1.5px solid rgb(var(--border-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
+.msds-checkbox-box { position: relative; width: 18px; height: 18px; border: 2px solid rgb(var(--m3-outline)); background: transparent; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: all var(--msds-dur) var(--msds-ease); flex: none; }
 .msds-checkbox-box svg { width: 13px; height: 13px; }
-.msds-checkbox input:checked + .msds-checkbox-box { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
-.msds-checkbox input:focus-visible + .msds-checkbox-box, .msds-radio input:focus-visible + .msds-radio-dot { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
-.msds-radio-dot { width: 18px; height: 18px; border: 1.5px solid rgb(var(--border-control)); background: var(--surface-200); box-shadow: var(--shadow-control); border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
-.msds-radio input:checked + .msds-radio-dot { border-color: rgb(var(--accent)); border-width: 5px; }
+.msds-checkbox input:checked + .msds-checkbox-box { background: rgb(var(--m3-primary)); border-color: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary)); }
+.msds-checkbox input:focus-visible + .msds-checkbox-box, .msds-radio input:focus-visible + .msds-radio-dot { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 2px; }
+.msds-radio-dot { width: 18px; height: 18px; border: 2px solid rgb(var(--m3-outline)); background: transparent; border-radius: 50%; position: relative; flex: none; transition: border-color var(--msds-dur) var(--msds-ease); }
+.msds-radio input:checked + .msds-radio-dot { border-color: rgb(var(--m3-primary)); border-width: 5px; }
 
 /* RangeFilter */
 .msds-rangefilter { max-width: 320px; }
@@ -492,23 +495,23 @@ body {
 /* Switch */
 .msds-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
 .msds-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.msds-switch-track { width: 40px; height: 24px; border-radius: var(--radius-full); background: var(--surface-300);
-  border: 1px solid rgb(var(--border-control)); position: relative; transition: background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease); flex: none; }
-.msds-switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
-  background: var(--surface-200); box-shadow: var(--shadow-card); transition: transform var(--msds-dur-slow) var(--msds-ease-out), background var(--msds-dur) var(--msds-ease); }
-.msds-switch input:checked + .msds-switch-track { background: rgb(var(--accent)); border-color: rgb(var(--accent)); }
-.msds-switch input:checked + .msds-switch-track .msds-switch-thumb { transform: translateX(16px); background: rgb(var(--accent-fg)); }
-.msds-switch input:focus-visible + .msds-switch-track { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+.msds-switch-track { position: relative; width: 52px; height: 32px; box-sizing: border-box; border-radius: var(--radius-full); background: rgb(var(--m3-surface-container-highest));
+  border: 2px solid rgb(var(--m3-outline)); transition: background var(--m3-dur-short3) var(--m3-ease-standard), border-color var(--m3-dur-short3) var(--m3-ease-standard); flex: none; }
+.msds-switch-thumb { position: absolute; top: 50%; left: 6px; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%;
+  background: rgb(var(--m3-outline)); transition: left var(--m3-dur-short3) var(--m3-ease-standard), width var(--m3-dur-short3) var(--m3-ease-standard), height var(--m3-dur-short3) var(--m3-ease-standard), margin-top var(--m3-dur-short3) var(--m3-ease-standard), background var(--m3-dur-short3) var(--m3-ease-standard); }
+.msds-switch input:checked + .msds-switch-track { background: rgb(var(--m3-primary)); border-color: rgb(var(--m3-primary)); }
+.msds-switch input:checked + .msds-switch-track .msds-switch-thumb { left: 22px; width: 24px; height: 24px; margin-top: -12px; background: rgb(var(--m3-on-primary)); }
+.msds-switch input:focus-visible + .msds-switch-track { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 2px; }
 .msds-switch-label { font-size: 14px; color: rgb(var(--ink)); }
 
 /* Slider */
 .msds-slider { max-width: 280px; }
 .msds-slider-track { position: relative; height: 20px; margin-top: 8px; }
 .msds-slider-track::before { content: ""; position: absolute; top: 9px; left: 0; right: 0; height: 4px; border-radius: var(--radius-full); background: var(--surface-300); }
-.msds-slider-fill { position: absolute; top: 9px; left: 0; height: 4px; border-radius: var(--radius-full); background: rgb(var(--accent)); pointer-events: none; }
+.msds-slider-fill { position: absolute; top: 9px; left: 0; height: 4px; border-radius: var(--radius-full); background: rgb(var(--m3-primary)); pointer-events: none; }
 .msds-slider-input { position: relative; width: 100%; height: 20px; margin: 0; appearance: none; background: transparent; }
-.msds-slider-input::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--accent)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; margin-top: -1px; }
-.msds-slider-input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--accent)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; }
+.msds-slider-input::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--m3-primary)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; margin-top: -1px; }
+.msds-slider-input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: rgb(var(--m3-primary)); border: 3px solid var(--surface-200); box-shadow: var(--shadow-card); cursor: grab; }
 .msds-slider-input::-moz-range-track { background: transparent; }
 
 /* Menu */
@@ -618,7 +621,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-control-filled:focus-visible, .msds-control-filled:focus { border-bottom-color: rgb(var(--accent)); }
 
 /* Checkbox — indeterminate (dash em vez de check) */
-.msds-checkbox-box[data-indeterminate="true"] { background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--accent-fg)); }
+.msds-checkbox-box[data-indeterminate="true"] { background: rgb(var(--m3-primary)); border-color: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary)); }
 
 /* NotificationBadge — pense em "posicionado pelo host": este componente só
    é a bolinha/contador; quem chama envolve o alvo (ícone/avatar) num
@@ -935,3 +938,23 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
    Do not redefine --accent/--primary here: the app reads --accent as an "R G B"
    triple (rgb(var(--accent))), and a hex value makes every such use invalid. */
 
+
+/* ---------- Selection controls: state halo (D-135) ----------
+   A 40 px circle behind the checkbox, radio and switch thumb, in on-surface when off and
+   primary when on, at the M3 state opacities. The slider thumb gets the same halo as a ring. */
+.msds-checkbox-box::after, .msds-radio-dot::after {
+  content: ""; position: absolute; inset: -11px; border-radius: 50%; background: rgb(var(--m3-on-surface));
+  opacity: 0; pointer-events: none; transition: opacity var(--m3-dur-short2) var(--m3-ease-standard);
+}
+.msds-radio-dot::after { inset: -11px; }
+.msds-checkbox input:checked + .msds-checkbox-box::after, .msds-radio input:checked + .msds-radio-dot::after { background: rgb(var(--m3-primary)); }
+@media (hover: hover) {
+  .msds-checkbox:hover .msds-checkbox-box::after, .msds-radio:hover .msds-radio-dot::after { opacity: var(--state-hover); }
+  .msds-slider-input:hover::-webkit-slider-thumb { box-shadow: 0 0 0 8px rgb(var(--m3-primary) / var(--state-hover)); }
+}
+.msds-checkbox input:focus-visible + .msds-checkbox-box::after, .msds-radio input:focus-visible + .msds-radio-dot::after { opacity: var(--state-focus); }
+.msds-checkbox:active .msds-checkbox-box::after, .msds-radio:active .msds-radio-dot::after { opacity: var(--state-pressed); }
+.msds-slider-input:focus-visible::-webkit-slider-thumb, .msds-slider-input:active::-webkit-slider-thumb { box-shadow: 0 0 0 8px rgb(var(--m3-primary) / var(--state-focus)); }
+@media (prefers-reduced-motion: reduce) {
+  .msds-checkbox-box::after, .msds-radio-dot::after, .msds-switch-track, .msds-switch-thumb { transition: none; }
+}
