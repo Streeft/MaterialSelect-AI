@@ -118,6 +118,13 @@ de `AshbyMap.tsx`. Decisão tomada pelo assistente por delegação do autor.
 determinismo, limites inválidos; API: pontos iguais ao catálogo, exclusão escrita) e +8 de frontend
 (axe, nome acessível, eixos log, reta E = P·t, tabela de origem, exclusão escrita, estado vazio, aba na
 página). Sem migração.
+## Sessão 98 — 17/10/26 — Cadernos: menu de três pontos e painéis redimensionáveis (D-143)
+
+**O que mudou.** `NotebookCard` (menu com Renomear no lugar e Excluir com Desfazer), `PanelResizer`
+(separador acessível entre Fontes, Conversa e Estúdio, de `lg` para cima), `IconMoreVertical`,
+textos em `ptBR.notebooks`, `/app/cadernos` no Lighthouse.
+
+**Testes.** +4 de frontend (renomear, Esc, excluir com Desfazer, alça por teclado). Sem backend nem migração.
 
 ## Sessão 97 — 17/10/26 — App instalável: manifesto, ícone e página offline (D-142)
 

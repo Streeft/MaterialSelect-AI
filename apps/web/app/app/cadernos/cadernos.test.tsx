@@ -111,12 +111,12 @@ const api = vi.hoisted(() => ({
   summarizeNotebook: vi.fn(),
   saveAnswerAsNote: vi.fn(),
   addNotebookText: vi.fn(),
+  updateNotebook: vi.fn(),
+  deleteNotebook: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => ({
   ...api,
-  updateNotebook: vi.fn(),
-  deleteNotebook: vi.fn(),
   selectAllNotebookSources: vi.fn(),
   deleteNotebookSource: vi.fn(),
   getNotebookSource: vi.fn(() => Promise.resolve({ ...source, content: "Texto inteiro." })),
@@ -185,6 +185,70 @@ describe("lista de cadernos", () => {
     expect(await screen.findByText(t.emptyTitle)).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: t.create })[0]!);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/cadernos/9"));
+  });
+});
+
+describe("cartão do caderno", () => {
+  const list: NotebookSummary[] = [
+    { id: 4, title: "Materiais estruturais", emoji: "📓", source_count: 2, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+  ];
+
+  it("renames in place from the menu and sends the trimmed title", async () => {
+    api.listNotebooks.mockResolvedValue(list);
+    api.updateNotebook.mockResolvedValue(notebook({ title: "Ligas leves" }));
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await user.click(await screen.findByRole("button", { name: t.cardMenu("Materiais estruturais") }));
+    await user.click(await screen.findByRole("menuitem", { name: t.rename }));
+    const input = await screen.findByRole("textbox", { name: t.titleLabel });
+    await user.clear(input);
+    await user.type(input, "  Ligas leves {Enter}");
+    await waitFor(() => expect(api.updateNotebook).toHaveBeenCalledWith(4, { title: "Ligas leves" }));
+  });
+
+  it("Escape abandons the rename without calling the API", async () => {
+    api.listNotebooks.mockResolvedValue(list);
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await user.click(await screen.findByRole("button", { name: t.cardMenu("Materiais estruturais") }));
+    await user.click(await screen.findByRole("menuitem", { name: t.rename }));
+    const input = await screen.findByRole("textbox", { name: t.titleLabel });
+    await user.type(input, "x{Escape}");
+    expect(api.updateNotebook).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: /Materiais estruturais/ })).toBeInTheDocument();
+  });
+
+  it("deleting hides the card at once and offers Desfazer, without calling the API yet", async () => {
+    api.listNotebooks.mockResolvedValue(list);
+    api.deleteNotebook.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await user.click(await screen.findByRole("button", { name: t.cardMenu("Materiais estruturais") }));
+    await user.click(await screen.findByRole("menuitem", { name: t.remove }));
+    await waitFor(() => expect(screen.queryByRole("link", { name: /Materiais estruturais/ })).toBeNull());
+    expect(screen.getByRole("button", { name: ptBR.snackbar.undo })).toBeInTheDocument();
+    expect(api.deleteNotebook).not.toHaveBeenCalled();
+  });
+});
+
+describe("painéis redimensionáveis", () => {
+  it("the handle moves with the arrows, clamps, and Enter restores the default", async () => {
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    const handle = await screen.findByRole("separator", { name: t.resizePanel(t.panels.sources) });
+    expect(handle).toHaveAttribute("aria-valuenow", "288");
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(handle).toHaveAttribute("aria-valuenow", "304");
+    await user.keyboard("{End}");
+    expect(handle).toHaveAttribute("aria-valuenow", "480");
+    await user.keyboard("{Enter}");
+    expect(handle).toHaveAttribute("aria-valuenow", "288");
+    // The studio handle narrows its panel when moved right.
+    const studio = screen.getByRole("separator", { name: t.resizePanel(t.panels.studio) });
+    studio.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(studio).toHaveAttribute("aria-valuenow", "304");
   });
 });
 

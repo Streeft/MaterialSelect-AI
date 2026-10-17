@@ -1,21 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createNotebook, listNotebooks } from "@/lib/api";
-import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import {
   Alert,
   Button,
-  Card,
   EmptyState,
   ErrorState,
   ListSkeleton,
   PageHeader,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
+import { NotebookCard } from "@/components/notebooks/NotebookCard";
 import { NOTEBOOKS_KEY, notebookKey } from "@/components/notebooks/keys";
 
 const t = ptBR.notebooks;
@@ -27,7 +25,10 @@ const t = ptBR.notebooks;
 export default function NotebooksPage() {
   const client = useQueryClient();
   const router = useRouter();
-  const notebooks = useQuery({ queryKey: NOTEBOOKS_KEY, queryFn: listNotebooks });
+  const notebooks = useQuery({
+    queryKey: NOTEBOOKS_KEY,
+    queryFn: listNotebooks,
+  });
   const create = useMutation({
     mutationFn: () => createNotebook(),
     onSuccess: async (notebook) => {
@@ -38,7 +39,11 @@ export default function NotebooksPage() {
   });
 
   const createButton = (
-    <Button icon={<IconPlus />} loading={create.isPending} onClick={() => create.mutate()}>
+    <Button
+      icon={<IconPlus />}
+      loading={create.isPending}
+      onClick={() => create.mutate()}
+    >
       {create.isPending ? t.creating : t.create}
     </Button>
   );
@@ -59,33 +64,26 @@ export default function NotebooksPage() {
       {notebooks.isPending ? (
         <ListSkeleton variant="cards" />
       ) : notebooks.error ? (
-        <ErrorState description={notebooks.error.message} onRetry={() => void notebooks.refetch()} />
+        <ErrorState
+          description={notebooks.error.message}
+          onRetry={() => void notebooks.refetch()}
+        />
       ) : notebooks.data.length === 0 ? (
-        <EmptyState title={t.emptyTitle} description={t.emptyDescription} action={createButton} />
+        <EmptyState
+          title={t.emptyTitle}
+          description={t.emptyDescription}
+          action={createButton}
+        />
       ) : (
-        <ul aria-label={t.listLabel} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {notebooks.data.map((notebook, index) => {
-            const date = formatDate(notebook.updated_at);
-            return (
-              <li key={notebook.id}>
-                <Card riseIndex={index} className="h-full">
-                  <Link
-                    href={`/app/cadernos/${notebook.id}`}
-                    className="flex h-full flex-col gap-3 p-4 hover:bg-brand-50"
-                  >
-                    <span aria-hidden className="text-3xl">
-                      {notebook.emoji}
-                    </span>
-                    <span className="text-base font-semibold text-ink">{notebook.title}</span>
-                    <span className="mt-auto text-xs text-ink-muted">
-                      {t.sourceCount(notebook.source_count)}
-                      {date ? ` · ${t.updated(date)}` : ""}
-                    </span>
-                  </Link>
-                </Card>
-              </li>
-            );
-          })}
+        <ul
+          aria-label={t.listLabel}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          {notebooks.data.map((notebook, index) => (
+            <li key={notebook.id}>
+              <NotebookCard notebook={notebook} index={index} />
+            </li>
+          ))}
         </ul>
       )}
     </div>
