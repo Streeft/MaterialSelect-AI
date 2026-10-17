@@ -10676,3 +10676,67 @@ no uso do app. O trilho lateral não ganha pílula (D-37).
 
 **Consequências.** Frontend apenas. Fecha as cinco etapas; falta sincronizar o artefato
 "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito) e conferir tudo no navegador.
+
+
+## D-139 — Assistente da Seleção: rascunho salvo no navegador, por conta (Google Docs)
+
+**Contexto.** Quinto item da lista de padrões dos apps do Google (`m3.material.io`, páginas
+*Snackbar* e *Text fields*, e o "Salvo" do Google Docs). O assistente tem quatro passos e muito
+texto digitado; fechar a aba, um travamento ou um Voltar a mais custava o estudo inteiro.
+
+**Decisão.**
+- **Rascunho local.** O estado do assistente (o mesmo `WizardSnapshot` do exemplo, D-85) e o passo
+  atual vão para o `localStorage`, 800 ms depois da última alteração. Chave **por conta**
+  (`msai.selection.draft.<id>`): numa máquina de sala de aula, um aluno nunca recebe o texto de outro.
+  O rascunho **não é um estudo**: não vai ao servidor, não ranqueia nada e não vira resultado
+  (princípio 2).
+- **Quando não grava.** Assistente intocado (o estado serializado é igual ao de abertura: nenhum
+  campo é "vazio o bastante" por palpite), enquanto há um rascunho esperando resposta, e enquanto
+  se edita um estudo salvo (`?estudo=`, que tem o seu próprio salvar).
+- **Recuperar.** Ao abrir, um aviso diz a data do rascunho e oferece **Continuar de onde parou** (volta
+  ao passo guardado) ou **Descartar**. Nada é restaurado sem o clique, e o rascunho em espera não é
+  sobrescrito pelo formulário vazio. Os ids de editor do rascunho (`row-12`, `criterion-3`) vêm de
+  outra carga; os contadores pulam além do maior, para uma linha nova nunca reusar uma chave.
+- **Indicador.** "Rascunho salvo neste navegador." (`role="status"`), sem prometer sincronia que não há.
+- **Saída segura.** Em vez de um `beforeunload` que interrompe, o rascunho é gravado na hora em
+  `pagehide` e quando a aba fica oculta (mesmo padrão do commit adiado de D-130). Salvar o estudo
+  no servidor apaga o rascunho.
+- **Falha de armazenamento.** Janela privada, dados do site bloqueados ou cota cheia lançam
+  exceção; toda leitura e escrita está em `try/catch` e o assistente funciona sem rascunho.
+
+**Fora desta decisão.** Mover o foco ao título ao trocar de passo fica para o item de acessibilidade
+(plano, item 9). O rascunho não cobre as notas do estudo nem a matriz AHP em edição.
+
+**Consequências.** Frontend apenas. O assistente passa a chamar `/auth/me` (já em cache no app).
+## D-138 — Retirada dos avisos de dado demonstrativo e de limite de uso (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O autor quer o app com aparência profissional e oficial e mandou retirar toda
+mensagem do tipo "Dados exclusivamente demonstrativos…" e "Limite de uso desta ferramenta…
+apoio didático / triagem preliminar…", e variações, em tela, exportações, IA e landing, e depois
+simplificar a linguagem da interface. A decisão técnica de como cumprir é do assistente, por
+delegação, e é revisável. (O plano a chamava D-131 e Sessão 85, números que `main` já usava.)
+
+**Decisão.**
+1. **Remove-se o texto, não o marcador.** `is_demo`, `clear_demo`, a separação oficial × demo, a
+   recusa de comparar release fictícia com real e `includes_demo_data` como lógica interna
+   ficam; só deixam de gerar aviso.
+2. **Revogados:** o item 6 do `CLAUDE.md` (aviso na interface e nos arquivos) e o compromisso
+   "todo arquivo exportado carrega o aviso de limitação de uso" (item 5 da proposta;
+   `docs/CLAUDE.md` §1.8; regras de `exporters/`). **Mantida** a regra de criar e apagar seed de
+   `docs/15-dados-demonstrativos.md`.
+3. **IA.** A frase de "triagem preliminar / não substitui validação" sai de `ai/caveats.py` e
+   `ai/factory.py`. Ficam o aviso de que a saída é interpretação assistida por IA e as ressalvas
+   técnicas específicas do resultado (condições de validade de um índice), em tom neutro.
+4. **Texto de UI sobre "fictício" que descreve dado concreto** (selo "Demonstrativo", curva
+   fictícia, releases fictícias, contagem de demonstração) sai junto. Afirmações da landing que
+   viram falsas ("identificados como tais em toda a interface") são reescritas.
+5. **Linguagem simples** (faixa D): glossário de troca (release → versão, ranking →
+   classificação, restrição → limite…) sem mudar slug, rota, chave ou identificador; termo técnico
+   correto de engenharia fica.
+
+**Risco assumido pelo autor.** Dado fictício deixa de ser sinalizado ao leitor da tela e do
+arquivo exportado; um relatório com valor inventado pode circular sem sinal. O marcador `is_demo`
+continua no banco, e dá para voltar atrás.
+
+**Consequências.** Documentação (faixa C) neste PR; código em A e B. Sem schema nem migração.
+Pós-merge de A: **Deploy da API**.

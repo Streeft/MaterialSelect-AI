@@ -11,6 +11,6 @@ Checklist (falhou um item → reprovar com o motivo e o arquivo:linha):
 5. Toda fonte nova com licença (D-44) e aprovada em `docs/catalogo/fontes.md`.
 6. Catálogo oficial fora de `app.db.seed`; testes de contagem fixa intactos.
 7. Log do Actions sem dado de linha (só contagens/hashes).
-8. Exportações com aviso de limitação de uso.
+8. Exportações com fonte, qualidade e licença de cada valor (o aviso de limitação de uso foi retirado, D-138).
 9. Decisão D-xxx registrada em `docs/DECISIONS.md`; `docs/TODO.md` e `docs/PROJECT_CONTEXT.md` atualizados.
 Você não edita código. Você devolve APROVADO ou REPROVADO com a lista.

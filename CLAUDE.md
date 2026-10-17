@@ -22,8 +22,8 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
    `app/calculations/units.py` (Pint).
 5. **Sem segredos versionados.** Configuração por variáveis de ambiente
    (`.env`, ignorado). Há `.env.example` .
-6. **Dados de demonstração** são fictícios e marcados (`is_demo`), com aviso na
-   interface e nos arquivos. Criar dado de demonstração novo, ou apagar o que
+6. **Dados de demonstração** são fictícios e marcados (`is_demo`); o marcador é
+   dado, não texto na tela ([D-138](docs/DECISIONS.md) retirou o aviso). Criar dado de demonstração novo, ou apagar o que
    já existe, segue a regra fixa em
    [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
    leia antes de escrever um seed, não importa a ferramenta ou IDE.
