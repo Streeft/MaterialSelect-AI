@@ -120,7 +120,14 @@ muda ranking). D-141/D-142 e as Sessões 96/97 já estavam tomados; o D-143 é d
 extremos inválidos, determinismo, passo igual à síntese avulsa, painel sem resistência em `skipped`,
 par de limites Reuss–Voigt, qualidade, pontas degeneradas do painel; `test_family_sweep_api.py`: nada
 gravado, 422 de schema, 400 de domínio, isolamento). Backend em 4955 (4949 passam e 6 pulam sem
-`POSTGRES_TEST_URL`). Sem migração. Pendente: a tela (faixa V2).
+`POSTGRES_TEST_URL`). Sem migração. A tela (faixa V2) veio depois, abaixo.
+
+**Tela (faixa V2).** `SweepSection` (`app/app/sintetizar/`) e `SweepChart` (`components/charts/`,
+SVG próprio, tokens de cor): a seção reaproveita os pais e o tipo da receita, escolhe um índice do
+catálogo e a grade; a linha quebra no passo sem índice, o par Reuss–Voigt é faixa e a tabela de
+origem (D-31) lista também os passos sem índice com o motivo. Erros 400/404/422 em pt-BR. Tipos em
+`packages/shared-types`, `sweepSynthesis` em `lib/api.ts`. +14 de frontend (axe, tabela, passo sem
+índice, faixa, erros, estado vazio). Frontend em 1230. Pós-merge: só o frontend (Vercel).
 
 ## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
 

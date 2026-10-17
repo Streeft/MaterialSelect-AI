@@ -364,7 +364,8 @@ multiplica todos os candidatos pelo mesmo fator estrutural e não muda a ordem; 
 calculada por índice**, com os extremos exatos e teto de 50 passos, nunca por soma acumulada; e
 **passo sem índice sai em `skipped` com o motivo** — o painel sem resistência sintetizada exclui
 todo índice que a lê, com a frase dos modos de falha. Par de limites (Reuss–Voigt) gera par de
-índices, só para índice lei de potência.
+índices, só para índice lei de potência. Na tela (seção "Varrer", `SweepChart`) o passo sem índice
+quebra a linha e vai para a tabela de origem com o motivo escrito, e o par vira faixa — nunca média.
 
 ## Unidades e unidade de leitura (D-70)
 
