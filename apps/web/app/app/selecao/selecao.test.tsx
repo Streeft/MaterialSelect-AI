@@ -604,7 +604,7 @@ describe("exemplo em um clique (D-85)", () => {
     expect(screen.getByText(t.exampleLoaded)).toBeInTheDocument();
     expect(nameField).toHaveValue("Viga leve de bicicleta (exemplo)");
     expect(stepButton(t.stepObjective)).toHaveTextContent(beamIndex.name);
-    expect(stepButton(t.stepConstraints)).toHaveTextContent("3 restrições");
+    expect(stepButton(t.stepConstraints)).toHaveTextContent("3 limites");
 
     await user.click(screen.getByShadowRole("button", { name: t.exampleUndo }));
     expect(nameField).toHaveValue("Meu estudo");
