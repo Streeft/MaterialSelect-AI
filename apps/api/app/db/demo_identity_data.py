@@ -1,7 +1,5 @@
 """Fictitious designations and compositions for the demo catalogue (D-105).
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 This is data in Python on purpose, and it does not violate principle 1 (no
 invented material properties): every row it feeds is written with
 ``is_demo=True`` through ``app.db.seed_extended_identity``, which

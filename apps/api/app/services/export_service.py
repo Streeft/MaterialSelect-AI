@@ -134,7 +134,6 @@ class ExportService:
             title=f"Relatório de seleção — {study.name}",
             subtitle=study.description or "",
             notices=standard_notices(
-                includes_demo_data=any(r.is_demo for r in records.values()),
                 includes_own_records=any(self._is_own_record(r) for r in records.values()),
             ),
             sheets=self._sheets(study, result, records, root_group_description),
@@ -153,7 +152,6 @@ class ExportService:
             title=f"Laudo de engenharia — {study.name}",
             subtitle=study.description or "",
             notices=standard_notices(
-                includes_demo_data=any(r.is_demo for r in records.values()),
                 includes_own_records=any(self._is_own_record(r) for r in records.values()),
             ),
             sheets=self._sheets(study, result, records, root_group_description),
@@ -835,7 +833,7 @@ class ExportService:
         definitions = self.chart_repo.list_properties()
 
         readings = readings_for(definitions, self.unit_choices)
-        header = ["Material", "Classe", "Demonstrativo", "Registro próprio"] + [
+        header = ["Material", "Classe", "Registro próprio"] + [
             f"{d.name} [{readings[d.slug].label}]" for d in definitions
         ]
         rows: list[list[object]] = []
@@ -846,7 +844,6 @@ class ExportService:
             row: list[object] = [
                 material.name,
                 material.material_class.name,
-                material.is_demo,
                 self._is_own_record(material),
             ]
             for definition in definitions:
@@ -880,7 +877,6 @@ class ExportService:
             title="Catálogo de materiais",
             subtitle=f"{len(materials)} materiais ativos, {len(definitions)} propriedades",
             notices=standard_notices(
-                includes_demo_data=any(m.is_demo for m in materials),
                 includes_own_records=any(self._is_own_record(m) for m in materials),
             ),
             sheets=[
@@ -941,7 +937,6 @@ class ExportService:
             title=f"Ficha técnica — {material_detail.name}",
             subtitle=subtitle,
             notices=standard_notices(
-                includes_demo_data=material_detail.is_demo,
                 includes_own_records=material_detail.is_own_record,
             ),
             sheets=sheets,
@@ -956,7 +951,6 @@ class ExportService:
             ["Subclasse", d.subclass or _MISSING],
             ["Descrição", d.description or _MISSING],
             ["Palavras-chave", ", ".join(d.keywords) if d.keywords else _MISSING],
-            ["Dados demonstrativos", "Sim" if d.is_demo else "Não"],
             ["Registro próprio", "Sim" if d.is_own_record else "Não"],
             ["Registro oficial", "Sim" if d.is_official else "Não"],
             [

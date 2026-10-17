@@ -123,7 +123,7 @@ def test_export_is_a_versioned_json_attachment_with_the_limitation_notice(client
     document = json.loads(response.content)
     assert document["format"] == STUDY_FILE_FORMAT
     assert document["version"] == STUDY_FILE_VERSION
-    assert "apoio didático" in document["notice"]
+    assert document["notice"] is None  # D-138: no usage-limitation notice
     assert document["study"]["notes"] == "Estudo da aula 3."
     # nothing the engine computed, and no ids, travel in the file
     assert "id" not in document["study"] and "created_at" not in document["study"]

@@ -112,7 +112,7 @@ def composition_sheet(
     rows: list[list[object]] = []
     for name, lines in items:
         if not lines:
-            rows.append([name, "—", "—", NO_COMPOSITION, "—", "—", "—", "—"])
+            rows.append([name, "—", "—", NO_COMPOSITION, "—", "—", "—"])
             continue
         for line in lines:
             rows.append(
@@ -122,9 +122,8 @@ def composition_sheet(
                     line.condition_label or NO_CONDITION,
                     content_text(line),
                     line.data_quality,
-                    line.source_label + (" (demonstrativa)" if line.is_demo else ""),
+                    line.source_label,
                     line.citation or "—",
-                    line.is_demo,
                 ]
             )
     return Sheet(
@@ -137,7 +136,6 @@ def composition_sheet(
             "Qualidade do dado",
             "Fonte",
             "Citação",
-            "Demonstrativo",
         ],
         rows=rows,
         notes=[
@@ -157,7 +155,7 @@ def designation_sheet(
     rows: list[list[object]] = []
     for name, lines in items:
         if not lines:
-            rows.append([name, "—", NO_DESIGNATION, "—", "—", "—", "—"])
+            rows.append([name, "—", NO_DESIGNATION, "—", "—", "—"])
             continue
         for line in lines:
             rows.append(
@@ -166,9 +164,8 @@ def designation_sheet(
                     line.system_label,
                     line.code,
                     line.region or "—",
-                    line.source_label + (" (demonstrativa)" if line.is_demo else ""),
+                    line.source_label,
                     line.citation or "—",
-                    line.is_demo,
                 ]
             )
     return Sheet(
@@ -180,7 +177,6 @@ def designation_sheet(
             "Região",
             "Fonte",
             "Citação",
-            "Demonstrativo",
         ],
         rows=rows,
         notes=[

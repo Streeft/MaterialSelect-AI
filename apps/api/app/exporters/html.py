@@ -30,7 +30,7 @@ from __future__ import annotations
 from html import escape
 
 from app.exporters.cells import format_number
-from app.exporters.report import DEMO_DATA_NOTICE, Report, Sheet
+from app.exporters.report import Report, Sheet
 
 # Kept inline: the report must render identically with no network access.
 _STYLES = """
@@ -62,7 +62,6 @@ h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 0.35rem; }
   border-left: 4px solid #475569;
 }
 .notice { margin: 0.45rem 0; font-size: 0.875rem; color: #334155; }
-.notice-demo { font-weight: 700; color: #9a3412; border-left-color: #ea580c; }
 section { margin: 0 0 2.75rem; }
 h2 {
   font-size: 1.05rem;
@@ -191,11 +190,7 @@ def _render_narrative(report: Report, position: int) -> str:
 
 def to_html(report: Report) -> str:
     """Render the whole report as one standalone HTML document."""
-    notices = []
-    for notice in report.notices:
-        # The demo warning is the one a reader who skims must not miss.
-        css = "notice notice-demo" if notice == DEMO_DATA_NOTICE else "notice"
-        notices.append(f'<p class="{css}">{escape(notice)}</p>')
+    notices = [f'<p class="notice">{escape(notice)}</p>' for notice in report.notices]
 
     sections = [_render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]
     if report.narrative is not None or report.narrative_note is not None:

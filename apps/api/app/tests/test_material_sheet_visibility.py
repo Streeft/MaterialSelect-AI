@@ -17,13 +17,14 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import select
 
-from app.exporters.report import LIMITATION_NOTICE
+from app.exporters.report import REPRODUCIBILITY_NOTICE
 from app.main import app
 from app.models.catalog import CatalogDataset, CatalogRecordRef
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.user import User
 from app.routers.exports import HTML_CSP
+from app.tests.removed_notices import assert_no_removed_notice
 
 ROUTE = "/api/exports/materiais/{material_id}.{fmt}"
 
@@ -76,7 +77,8 @@ def _assert_printable_sheet(response, name: str) -> str:
     assert response.headers["content-security-policy"] == HTML_CSP
     text = response.text
     assert f"Ficha técnica — {name}" in text
-    assert LIMITATION_NOTICE in text
+    assert REPRODUCIBILITY_NOTICE in text
+    assert_no_removed_notice(text)
     assert "@page" in text  # the print stylesheet that makes "Salvar como PDF" work
     return text
 
@@ -91,7 +93,8 @@ def test_demo_material_sheet(client, db_session) -> None:
     text = _assert_printable_sheet(
         client.get(ROUTE.format(material_id=mid, fmt="html")), "Aço Demo B"
     )
-    assert "demonstra" in text.lower()
+    # D-138: a demo record prints no demo warning nor a "Dados demonstrativos" row.
+    assert "dados demonstrativos" not in text.lower()
 
 
 def test_own_material_sheet(client, db_session, test_user) -> None:

@@ -29,19 +29,12 @@ from app.domain.plasticity import PlasticTable
 from app.exporters.cae.quantities import QUANTITIES, YOUNG, CaeQuantity, UnitSystem
 from app.exporters.cae.text import real
 from app.exporters.identity import CompositionLine, DesignationLine
-from app.exporters.report import LIMITATION_NOTICE, OWN_RECORD_NOTICE
+from app.exporters.report import OWN_RECORD_NOTICE
 
 #: The one phrase for a quantity the catalogue has no value for.
 NOT_REGISTERED = "não cadastrado"
 
-#: First line of a card whose numbers are fictitious, like ``DEMO_DATA_NOTICE``
-#: in a report: a reader who stops after one line stops on this one.
-CAE_DEMO_NOTICE = (
-    "ATENÇÃO: este cartão contém valores marcados como demonstrativos, que são "
-    "fictícios. Não utilizar em projetos reais."
-)
-
-#: Specific to a CAE card, after the limitation notice.
+#: Specific to a CAE card.
 CAE_NOTICE = (
     "Cartão de material para pré-processamento CAE. Os valores são pontos "
     "representativos de catálogo, independentes de temperatura, sem curvas de "
@@ -289,12 +282,11 @@ def build_card(material: MaterialInput, system: UnitSystem) -> CaeCard:
         or any(d.is_demo for d in material.designations)
     )
     # The report's notices, in the report's order, minus the reproducibility
-    # one: it speaks of re-running a study, and a card re-runs nothing.
-    notices = [LIMITATION_NOTICE, CAE_NOTICE]
+    # one: it speaks of re-running a study, and a card re-runs nothing. No
+    # demo-data or usage-limitation line (D-138); ``is_demo`` stays internal.
+    notices = [CAE_NOTICE]
     if material.is_own_record:
         notices.insert(0, OWN_RECORD_NOTICE)
-    if is_demo:
-        notices.insert(0, CAE_DEMO_NOTICE)
     return CaeCard(
         material_id=material.id,
         name=material.name,
@@ -362,8 +354,6 @@ def with_plastic(card: CaeCard, plastic: PlasticInput, table: PlasticTable) -> C
     )
     is_demo = card.is_demo or plastic_card.is_demo
     notices = [CAE_PLASTIC_NOTICE if n == CAE_NOTICE else n for n in card.notices]
-    if is_demo and CAE_DEMO_NOTICE not in notices:
-        notices.insert(0, CAE_DEMO_NOTICE)
     return replace(
         card,
         values={**card.values, YOUNG.key: young},

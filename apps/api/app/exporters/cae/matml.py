@@ -68,8 +68,6 @@ def _sub(parent: ET.Element, tag: str, text: str | None = None, **attrs: str) ->
 
 def _value_notes(value: CardValue) -> str:
     source = value.source_label or "sem fonte registrada"
-    if value.source_is_demo:
-        source += " (FICTÍCIA, demonstração)"
     parts = [f"Qualidade do dado: {value.data_quality or 'não informada'}", f"Fonte: {source}"]
     if value.license_label:
         parts.append(f"Licença: {value.license_label}")
@@ -110,8 +108,6 @@ def render(card: CaeCard) -> str:
         f"{q.label}: {card.get(q).omitted_reason}" for q in SUPPORTED if not card.get(q).present
     ]
     notes = list(card.notices)
-    if card.is_demo:
-        notes.insert(0, "MATERIAL FICTÍCIO: dado de demonstração, valores inventados para ensino.")
     if card.is_own_record:
         notes.append("Registro próprio do usuário, fora da revisão de fonte do catálogo.")
     if not card.is_active:
@@ -151,8 +147,7 @@ def render(card: CaeCard) -> str:
     # so nothing a user typed can close it.
     header = (
         "<!-- MaterialSelect AI - cartão MatML. "
-        + ("MATERIAL FICTÍCIO. " if card.is_demo else "")
-        + "Leia as Notes de BulkDetails: aviso de limitação de uso e proveniência. -->"
+        "Leia as Notes de BulkDetails: avisos e proveniência. -->"
     )
     assert "--" not in header[4:-3]
     return f'<?xml version="1.0" encoding="UTF-8"?>\n{header}\n{body}\n'

@@ -1,7 +1,5 @@
 """Designations, compositions and curves for every demo material (D-105, D-106, D-107).
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 The 75 demo materials (5 in ``app.db.seed`` + 70 in ``app.db.seed_extended``) all
 get at least one designation and one composition entry, and all 3 engineering curves
 (stress–strain, temperature and fatigue S–N), so the author can open every screen with
@@ -62,7 +60,7 @@ AMBIENT_C = 20.0
 
 _STRAIN_LABEL = "Deformação de engenharia"
 _STRESS_LABEL = "Tensão de engenharia"
-_CITATION_NOTE = "Fictícia: derivada das propriedades fictícias do próprio material."
+_CITATION_NOTE = "Derivada das propriedades cadastradas do próprio material."
 
 
 @dataclass(frozen=True)
@@ -282,7 +280,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
         if tensile is None:
             tensile = 25e6
             notes.append(
-                "A resistência à tração está ausente no cadastro; a resistência fictícia "
+                "A resistência à tração está ausente no cadastro; a resistência "
                 "(25 MPa) é premissa da própria curva."
             )
         break_strain = _ELASTOMER_BREAK.get(name, _ELASTOMER_BREAK_DEFAULT)
@@ -292,7 +290,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
         )
         series = [
             {
-                "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
+                "conditions": "Tração uniaxial; temperatura ambiente.",
                 "points": _points(_elastomer_shape(youngs, tensile, break_strain)),
             }
         ]
@@ -304,14 +302,14 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             yield_eff = 200e6
             notes.append(
                 "O limite de escoamento está ausente no cadastro deste material; a tensão de "
-                "escoamento (200 MPa) é premissa da própria curva fictícia."
+                "escoamento (200 MPa) é premissa da própria curva."
             )
         tensile = inp.tensile_pa
         if tensile is None:
             tensile = 1.2 * yield_eff
             notes.append(
                 "A resistência à tração está ausente no cadastro deste material; o pico da "
-                "curva (1,2 × o escoamento) é premissa da própria curva fictícia, não "
+                "curva (1,2 × o escoamento) é premissa da própria curva, não "
                 "propriedade do material."
             )
         if yield_eff > 0.9 * tensile:
@@ -328,7 +326,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             )
             series = [
                 {
-                    "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
+                    "conditions": "Tração uniaxial; temperatura ambiente.",
                     "points": _points(
                         _ductile_shape(
                             youngs, yield_eff, tensile, _uniform_strain(yield_eff, tensile)
@@ -345,7 +343,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             ]
             notes.append(
                 "A família varre da temperatura ambiente até a temperatura máxima de serviço "
-                "cadastrada; módulo e resistências caem com a temperatura (premissa fictícia)."
+                "cadastrada; módulo e resistências caem com a temperatura (premissa da curva)."
             )
             series = []
             for temperature in temperatures:
@@ -357,9 +355,9 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
                     {
                         "parameter": temperature,
                         "conditions": (
-                            "Tração uniaxial; forno (fictício)."
+                            "Tração uniaxial; forno."
                             if temperature > AMBIENT_C
-                            else "Tração uniaxial; temperatura ambiente (fictício)."
+                            else "Tração uniaxial; temperatura ambiente."
                         ),
                         "points": _points(
                             _ductile_shape(
@@ -376,14 +374,14 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             yield_val = 30e6
             notes.append(
                 "O limite de escoamento está ausente no cadastro; o valor de 30 MPa é premissa "
-                "da própria curva fictícia."
+                "da própria curva."
             )
         break_stress = inp.tensile_pa
         if break_stress is None:
             break_stress = 1.15 * yield_val
             notes.append(
                 "A resistência à tração está ausente no cadastro; a tensão de ruptura "
-                "(1,15 × o escoamento) é premissa da própria curva fictícia."
+                "(1,15 × o escoamento) é premissa da própria curva."
             )
         elif break_stress < yield_val:
             notes.append(
@@ -392,7 +390,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             )
         series = [
             {
-                "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
+                "conditions": "Tração uniaxial; temperatura ambiente.",
                 "points": _points(_polymer_ductile_shape(youngs, yield_val, break_stress)),
             }
         ]
@@ -412,7 +410,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
             )
             series = [
                 {
-                    "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
+                    "conditions": "Tração uniaxial; temperatura ambiente.",
                     "points": _points(_cmc_shape(youngs, matrix, tensile)),
                 }
             ]
@@ -427,8 +425,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
         "kind": CurveKind.TENSAO_DEFORMACAO,
         "title": "Tensão–deformação de engenharia (fictícia)",
         "description": _description(
-            "Curva fictícia de tração para demonstrar a figura; não representa ensaio nenhum. "
-            + anchor,
+            "Curva de tração. " + anchor,
             notes,
         ),
         "x": ("deformacao", _STRAIN_LABEL, "%"),
@@ -451,12 +448,12 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
             strength = 350e6
             notes.append(
                 "A resistência à tração e o limite de escoamento estão ausentes no cadastro; "
-                "a resistência de ruptura fictícia de 350 MPa é premissa da própria curva."
+                "a resistência de ruptura de 350 MPa é premissa da própria curva."
             )
         else:
             notes.append(
                 "A resistência à tração está ausente; o limite de escoamento cadastrado faz as "
-                "vezes de resistência de ruptura (premissa da própria curva fictícia)."
+                "vezes de resistência de ruptura (premissa da própria curva)."
             )
     elif inp.yield_pa is not None:
         notes.append("O escoamento cadastrado não entra: o material rompe antes de escoar.")
@@ -465,8 +462,7 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
         "kind": CurveKind.TENSAO_DEFORMACAO,
         "title": "Tensão–deformação de engenharia (fictícia)",
         "description": _description(
-            "Curva fictícia de tração para demonstrar a figura; não representa ensaio nenhum. "
-            + anchor,
+            "Curva de tração. " + anchor,
             notes,
         ),
         "x": ("deformacao", _STRAIN_LABEL, "%"),
@@ -474,7 +470,7 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
         "parameter": None,
         "series": [
             {
-                "conditions": "Tração uniaxial; temperatura ambiente (fictício).",
+                "conditions": "Tração uniaxial; temperatura ambiente.",
                 "points": _points(_brittle_shape(youngs, strength, softening)),
             }
         ],
@@ -502,7 +498,7 @@ def _modulus_temperature_spec(name: str, inp: Inputs) -> dict | None:
         "kind": CurveKind.TEMPERATURA,
         "title": "Módulo de elasticidade × temperatura (fictícia)",
         "description": _description(
-            "Curva fictícia da queda do módulo com a temperatura, da ambiente à máxima de "
+            "Curva da queda do módulo com a temperatura, da ambiente à máxima de "
             f"serviço cadastrada; parte do módulo cadastrado ({_fmt(_gpa(youngs))} GPa) "
             "e perde 25 % ao chegar nela.",
             notes,
@@ -510,7 +506,7 @@ def _modulus_temperature_spec(name: str, inp: Inputs) -> dict | None:
         "x": ("temperatura", "Temperatura", "degC"),
         "y": ("modulo", "Módulo de elasticidade", "GPa"),
         "parameter": None,
-        "series": [{"conditions": "Módulo dinâmico (fictício).", "points": points}],
+        "series": [{"conditions": "Módulo dinâmico.", "points": points}],
     }
 
 
@@ -522,13 +518,13 @@ def _fatigue_spec(name: str, inp: Inputs) -> dict | None:
             tensile = 1.2 * inp.yield_pa
             notes.append(
                 "A resistência à tração está ausente no cadastro; a curva parte de 1,2 × o "
-                "escoamento (premissa da própria curva fictícia)."
+                "escoamento (premissa da própria curva)."
             )
         else:
             tensile = 350e6
             notes.append(
                 "A resistência à tração e o limite de escoamento estão ausentes no cadastro; "
-                "a resistência de 350 MPa é premissa da própria curva fictícia."
+                "a resistência de 350 MPa é premissa da própria curva."
             )
     points = []
     for cycles, fraction in zip(_FATIGUE_N, _FATIGUE_FRACTION, strict=True):
@@ -546,8 +542,7 @@ def _fatigue_spec(name: str, inp: Inputs) -> dict | None:
         "kind": CurveKind.FADIGA,
         "title": "Curva S–N com faixa de dispersão (fictícia)",
         "description": _description(
-            "Curva fictícia de fadiga com faixa mín.–máx. declarada, para demonstrar a escala "
-            "logarítmica e o envelope; não representa ensaio nenhum. Parte da resistência à "
+            "Curva de fadiga com faixa mín.–máx. declarada. Parte da resistência à "
             f"tração ({_fmt(_mpa(tensile))} MPa) e cai com o número de ciclos.",
             notes,
         ),
@@ -557,7 +552,7 @@ def _fatigue_spec(name: str, inp: Inputs) -> dict | None:
         "series": [
             {
                 "parameter": -1,
-                "conditions": "Flexão rotativa, R = −1; corpos de prova polidos (fictício).",
+                "conditions": "Flexão rotativa, R = −1; corpos de prova polidos.",
                 "points": points,
             }
         ],

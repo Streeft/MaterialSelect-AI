@@ -6,9 +6,8 @@ licence review M1 imposes on the shared catalogue. A report where the two read
 alike would be the single place in the product where that distinction is lost,
 and it is the place it matters most: the file is what leaves the tool.
 
-The shape of the answer is borrowed wholesale from how demonstration data is
-already declared (a notice at the top, a column in the sheet), because a reader
-who has learnt to look for one will find the other in the same place.
+The shape of the answer is a notice at the top and a column in the sheet. (The
+demo-data notice and column this once mirrored were removed by D-138.)
 """
 
 from __future__ import annotations
@@ -17,8 +16,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.exporters.report import DEMO_DATA_NOTICE, OWN_RECORD_NOTICE
+from app.exporters.report import OWN_RECORD_NOTICE, REPRODUCIBILITY_NOTICE
 from app.models.material_class import MaterialClass
+from app.tests.removed_notices import assert_no_removed_notice
 
 
 def _own_record(client: TestClient, db_session: Session, name: str = "Liga exportável") -> int:
@@ -81,9 +81,8 @@ def test_the_catalogue_export_marks_the_row_itself(client: TestClient, db_sessio
     assert "Registro próprio" in text
     row = next(line for line in text.splitlines() if line.startswith("Liga marcada"))
     # The spreadsheet renderer writes booleans in Portuguese, like every other
-    # boolean column in the file — the mark has to read the same as the demo
-    # one beside it, or a reader parses two conventions in one row.
-    assert row.split(",")[3].strip() == "sim"
+    # boolean column in the file.
+    assert row.split(",")[2].strip() == "sim"
 
 
 def test_a_shared_catalogue_row_is_not_marked(client: TestClient, db_session: Session) -> None:
@@ -102,17 +101,17 @@ def test_a_shared_catalogue_row_is_not_marked(client: TestClient, db_session: Se
     text = client.get("/api/exports/catalogo.csv").text
 
     row = next(line for line in text.splitlines() if line.startswith("Liga partilhada"))
-    assert row.split(",")[3].strip() == "não"
+    assert row.split(",")[2].strip() == "não"
 
 
-def test_the_demo_warning_still_comes_first(client: TestClient, db_session: Session) -> None:
-    """Order is the argument: fictitious is worse than unreviewed, and a reader
-    who stops after one line must stop on the worse one."""
+def test_the_own_record_notice_comes_first(client: TestClient, db_session: Session) -> None:
+    """With the demo warning gone (D-138), the own-record notice opens the file."""
     _own_record(client, db_session)
 
     text = client.get("/api/exports/catalogo.csv").text
 
-    assert text.index(DEMO_DATA_NOTICE) < text.index(OWN_RECORD_NOTICE)
+    assert text.index(OWN_RECORD_NOTICE) < text.index(REPRODUCIBILITY_NOTICE)
+    assert_no_removed_notice(text)
 
 
 def _study_over_own_record(client: TestClient) -> int:

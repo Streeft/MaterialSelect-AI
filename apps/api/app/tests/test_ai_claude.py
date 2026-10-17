@@ -257,7 +257,9 @@ class TestCaveatsAreNotTheModels:
 
     def test_the_mandatory_caveat_appears_even_when_the_model_writes_none(self) -> None:
         result = self._explain({"summary": "s", "paragraphs": ["p"]})
-        assert any("validação experimental" in caveat for caveat in result["caveats"])
+        assert any("não recalcula" in caveat for caveat in result["caveats"])
+        # D-138: the usage-limitation sentence left the backend's caveats.
+        assert all("validação experimental" not in caveat for caveat in result["caveats"])
 
     def test_caveats_the_model_writes_are_ignored(self) -> None:
         # The reservations are the backend's, both to write and to keep.

@@ -1,7 +1,5 @@
 """Seed the database with synthetic demonstration data.
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 The five materials below are FICTITIOUS. Their property values are invented to
 exercise the system's features — unit conversion, intervals, missing data and
 uncertainty — not to describe any real material. Running this module is
@@ -57,7 +55,7 @@ from app.repositories.curve_repository import curve_rows
 from app.repositories.material_repository import MaterialRepository
 from app.repositories.subscription_repository import SubscriptionRepository
 
-DEMO_WARNING = "Dados exclusivamente demonstrativos. Não utilizar em projetos reais."
+DEMO_SOURCE_REFERENCE = "Conjunto de dados de exemplo do MaterialSelect."
 
 # Stable, fictitious Google `sub` for the E2E fixture user — never a real
 # Google identity, since this row is never reached through the OAuth flow.
@@ -335,9 +333,9 @@ DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
 SOURCES = [
     {
         "label": DEMO_SOURCE_LABEL,
-        "reference": DEMO_WARNING,
+        "reference": DEMO_SOURCE_REFERENCE,
         "is_demo": True,
-        "license_label": "Dado fictício de demonstração — não é conteúdo de terceiro",
+        "license_label": "Conjunto de exemplo próprio do MaterialSelect — não é conteúdo de terceiro",
     },
     {
         # Diferente do conjunto acima: estes números **não** são fictícios, são
@@ -899,7 +897,7 @@ DEMO_MATERIALS = [
     {
         "name": "Liga Alumínio Demo A",
         "class_slug": "metais",
-        "subclass": "Liga leve fictícia",
+        "subclass": "Liga leve",
         "description": "Liga de alumínio sintética para demonstração.",
         "keywords": ["leve", "aeroespacial", "demo"],
         "values": [
@@ -974,7 +972,7 @@ DEMO_MATERIALS = [
     {
         "name": "Aço Demo B",
         "class_slug": "metais",
-        "subclass": "Aço estrutural fictício",
+        "subclass": "Aço estrutural",
         "description": "Aço sintético de alta rigidez para demonstração.",
         "keywords": ["estrutural", "rígido", "demo"],
         "values": [
@@ -1047,7 +1045,7 @@ DEMO_MATERIALS = [
     {
         "name": "Polímero Demo C",
         "class_slug": "polimeros",
-        "subclass": "Termoplástico fictício",
+        "subclass": "Termoplástico",
         "description": "Polímero sintético com faixa de escoamento para demonstração.",
         "keywords": ["leve", "isolante", "demo"],
         "values": [
@@ -1116,7 +1114,7 @@ DEMO_MATERIALS = [
     {
         "name": "Cerâmica Demo D",
         "class_slug": "ceramicas",
-        "subclass": "Óxido técnico fictício",
+        "subclass": "Óxido técnico",
         "description": "Cerâmica sintética; condutividade térmica não disponível (demo de dado ausente).",
         "keywords": ["rígido", "refratário", "demo"],
         "values": [
@@ -1172,19 +1170,19 @@ DEMO_MATERIALS = [
             {
                 "slug": "energia_reciclagem",
                 "kind": "missing",
-                "notes": "Rota de reciclagem não estabelecida para esta cerâmica fictícia.",
+                "notes": "Rota de reciclagem não estabelecida para esta cerâmica.",
             },
             {
                 "slug": "co2_reciclagem",
                 "kind": "missing",
-                "notes": "Rota de reciclagem não estabelecida para esta cerâmica fictícia.",
+                "notes": "Rota de reciclagem não estabelecida para esta cerâmica.",
             },
         ],
     },
     {
         "name": "Compósito Demo E",
         "class_slug": "compositos",
-        "subclass": "Laminado fictício",
+        "subclass": "Laminado",
         "description": "Compósito sintético com custo incerto para demonstração.",
         "keywords": ["leve", "anisotrópico", "alto desempenho", "demo"],
         "values": [
@@ -2282,8 +2280,8 @@ def _seed_battery_chemistries(db: Session, source: Source | None) -> int:
 # testes de contagem fixa reexecutam. Os outros 73 materiais demo recebem a
 # sua em `app.db.seed_extended_identity` (D-107), pelo mesmo escritor
 # (`_seed_demo_identity`), chamado por `python -m app.db.seed_extended`.
-DEMO_DESIGNATION_CITATION = "Tabela fictícia de demonstração — não é designação real."
-DEMO_COMPOSITION_CITATION = "Tabela fictícia de demonstração — não é composição real."
+DEMO_DESIGNATION_CITATION = "Tabela de designações de exemplo do MaterialSelect."
+DEMO_COMPOSITION_CITATION = "Tabela de composição de exemplo do MaterialSelect."
 
 DEMO_DESIGNATIONS: dict[str, list[dict]] = {
     "Liga Alumínio Demo A": [
@@ -2451,24 +2449,21 @@ def _seed_demo_identity(
 # curva. As curvas dos demais materiais demo vêm de
 # `app.db.seed_extended_identity` (D-107), derivadas das propriedades de cada um;
 # o que não tem curva ali tem a razão escrita em `DEMO_KNOWN_GAPS` (D-24).
-DEMO_CURVE_CITATION = "Curva fictícia de demonstração — não é dado de ensaio."
+DEMO_CURVE_CITATION = "Curva de exemplo do MaterialSelect."
 
 DEMO_CURVES: list[dict] = [
     {
         "material": "Aço Demo B",
         "kind": CurveKind.TENSAO_DEFORMACAO,
         "title": "Tensão–deformação de engenharia em três temperaturas (fictícia)",
-        "description": (
-            "Família fictícia de curvas de tração para demonstrar a figura; "
-            "não representa ensaio nenhum."
-        ),
+        "description": ("Família de curvas de tração em três temperaturas."),
         "x": ("deformacao", "Deformação de engenharia", "%"),
         "y": ("tensao", "Tensão de engenharia", "MPa"),
         "parameter": ("temperatura", "degC"),
         "series": [
             {
                 "parameter": 20,
-                "conditions": "Tração uniaxial; ar ambiente (fictício).",
+                "conditions": "Tração uniaxial; ar ambiente.",
                 "points": [
                     (0, 0),
                     (0.1, 205),
@@ -2485,7 +2480,7 @@ DEMO_CURVES: list[dict] = [
             },
             {
                 "parameter": 300,
-                "conditions": "Tração uniaxial; forno (fictício).",
+                "conditions": "Tração uniaxial; forno.",
                 "points": [
                     (0, 0),
                     (0.1, 185),
@@ -2502,7 +2497,7 @@ DEMO_CURVES: list[dict] = [
             },
             {
                 "parameter": 500,
-                "conditions": "Tração uniaxial; forno (fictício).",
+                "conditions": "Tração uniaxial; forno.",
                 "points": [
                     (0, 0),
                     (0.1, 160),
@@ -2523,10 +2518,7 @@ DEMO_CURVES: list[dict] = [
         "material": "Liga Alumínio Demo A",
         "kind": CurveKind.TENSAO_DEFORMACAO,
         "title": "Tensão–deformação de engenharia em três temperaturas (fictícia)",
-        "description": (
-            "Família fictícia de curvas de tração para demonstrar a figura; "
-            "não representa ensaio nenhum."
-        ),
+        "description": ("Família de curvas de tração em três temperaturas."),
         "x": ("deformacao", "Deformação de engenharia", "%"),
         "y": ("tensao", "Tensão de engenharia", "MPa"),
         "parameter": ("temperatura", "degC"),
@@ -2579,17 +2571,14 @@ DEMO_CURVES: list[dict] = [
         "material": "Liga Alumínio Demo A",
         "kind": CurveKind.FADIGA,
         "title": "Curva S–N com faixa de dispersão (fictícia)",
-        "description": (
-            "Curva fictícia de fadiga com faixa mín.–máx. declarada, para demonstrar "
-            "a escala logarítmica e o envelope; não representa ensaio nenhum."
-        ),
+        "description": ("Curva de fadiga com faixa mín.–máx. declarada."),
         "x": ("ciclos", "Número de ciclos até a falha, N", "dimensionless"),
         "y": ("tensao", "Amplitude de tensão", "MPa"),
         "parameter": ("razao_tensao", "dimensionless"),
         "series": [
             {
                 "parameter": -1,
-                "conditions": "Flexão rotativa, R = −1; corpos de prova polidos (fictício).",
+                "conditions": "Flexão rotativa, R = −1; corpos de prova polidos.",
                 "points": [
                     (1e3, 260, 240, 280),
                     (1e4, 205, 185, 225),
@@ -2851,7 +2840,6 @@ def main() -> None:
     with SessionLocal() as db:
         summary = seed(db)
         seed_e2e_session(db)
-    print(f"[seed] {DEMO_WARNING}")
     print(f"[seed] Concluído: {summary}")
 
 

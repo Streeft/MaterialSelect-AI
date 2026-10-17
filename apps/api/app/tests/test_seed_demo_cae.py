@@ -140,4 +140,4 @@ def test_the_thermal_decks_accept_a_complete_extended_demo_material(
             f"/api/exports/materiais/{material.id}/cae?formato={fmt}&unidades=mm-t-s"
         )
         assert response.status_code == 200, (fmt, response.text)
-        assert "MATERIAL FICTICIO" in response.text, fmt
+        assert "MATERIAL FICTICIO" not in response.text, fmt  # D-138

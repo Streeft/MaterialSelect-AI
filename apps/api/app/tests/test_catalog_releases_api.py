@@ -31,7 +31,7 @@ from app.catalog.importer import (
 )
 from app.db.clear_demo import clear_demo_data
 from app.domain.curves import PointInput, SeriesInput, build_curve
-from app.exporters.report import DEMO_DATA_NOTICE, LIMITATION_NOTICE
+from app.exporters.report import REPRODUCIBILITY_NOTICE
 from app.models.catalog import CatalogDataset, CatalogImportRun, CatalogRecordRef
 from app.models.enums import CurveKind
 from app.models.material import Material
@@ -41,6 +41,7 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.user import User
 from app.repositories.curve_repository import curve_rows
+from app.tests.removed_notices import assert_no_removed_notice
 
 LINEAGE = "catalogo-ficticio-teste"
 FORMULA_NAME = "=1+1 Liga Fictícia E"
@@ -590,8 +591,8 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
     rows = _csv_rows(text)
     flat = [cell for row in rows for cell in row]
 
-    assert LIMITATION_NOTICE in flat
-    assert DEMO_DATA_NOTICE not in flat
+    assert REPRODUCIBILITY_NOTICE in flat
+    assert_no_removed_notice(text)
     # Provenance: both releases, licence, lineage, the sources the values cite.
     assert ["Slug da release", "ficticio-r1", "ficticio-r2"] in rows
     assert ["Licença", "Fixture fictícia de teste", "Fixture fictícia de teste"] in rows
@@ -651,7 +652,8 @@ def test_the_xlsx_keeps_negative_numbers_numeric(client, two_releases) -> None:
     assert rows and rows[0]["Antes (leitura)"] == pytest.approx(-40.0)
     assert isinstance(rows[0]["Depois (canônico)"], float)
     cover = [c.value for c in workbook["Aviso"]["A"]]
-    assert LIMITATION_NOTICE in cover
+    assert REPRODUCIBILITY_NOTICE in cover
+    assert_no_removed_notice(" ".join(str(c) for c in cover if c))
 
 
 # -- demo releases (D-108 contract for the seed) ---------------------------------
@@ -710,7 +712,8 @@ def test_two_demo_releases_compare_and_clear_demo_removes_them(client, db_sessio
     (item,) = body["items"]
     assert _change(item, "propriedade:densidade")["kind"] == "ausencia"
     csv_text = client.get("/api/exports/catalogo/releases/demo-diff-r1/diff/demo-diff-r2.csv").text
-    assert DEMO_DATA_NOTICE in csv_text
+    assert_no_removed_notice(csv_text)
+    assert "\nDado fictício," not in csv_text  # the removed row
 
     removed = clear_demo_data(db_session)
     db_session.flush()

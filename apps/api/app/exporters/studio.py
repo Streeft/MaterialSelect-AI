@@ -2,9 +2,8 @@
 
 The same two promises as every other export of this project:
 
-* **Every file carries the limitation notice** (item 5 of the proposal), and a
-  second one saying what an AI-made file is: made from the notebook's sources,
-  each item citing the passage it rests on — to be checked there.
+* **Every file says what an AI-made file is:** made from the notebook's
+  sources, each item citing the passage it rests on — to be checked there.
 * **The escape is by format.** Spreadsheets go through ``Report``/``Sheet`` and
   :mod:`app.exporters.spreadsheet`, which neutralises formula injection cell by
   cell; the SVG escapes every string with ``html.escape``; python-docx writes
@@ -41,7 +40,7 @@ from docx.shared import Pt, RGBColor
 # (D-98): the screen says "Apresentador(a) 1/2", and so does every file and a
 # note saved from the artifact — one constant, in the reader's module.
 from app.ai.studio import SPEAKER_LABEL
-from app.exporters.report import LIMITATION_NOTICE, Report, Sheet
+from app.exporters.report import Report, Sheet
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.exporters.studio_pptx import deck_to_pptx
 from app.notebooks import infographic
@@ -55,7 +54,7 @@ AI_NOTICE = (
     "escritos no trecho citado."
 )
 
-NOTICES = [LIMITATION_NOTICE, AI_NOTICE]
+NOTICES = [AI_NOTICE]
 
 _MEDIA = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

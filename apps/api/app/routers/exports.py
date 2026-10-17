@@ -245,7 +245,7 @@ def export_material_curve(
 ) -> Response:
     """A material curve's points as CSV or XLSX (D-106).
 
-    The limitation notice, the provenance and the three units of each axis
+    The notices, the provenance and the three units of each axis
     (reading, original, canonical) travel in the file; every cell goes through
     ``cells.py``, so a curve title written as a formula leaves as text.
     """

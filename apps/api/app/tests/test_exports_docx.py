@@ -9,8 +9,6 @@ from fastapi.testclient import TestClient
 
 from app.exporters.docx import to_docx
 from app.exporters.report import (
-    DEMO_DATA_NOTICE,
-    LIMITATION_NOTICE,
     OWN_RECORD_NOTICE,
     REPRODUCIBILITY_NOTICE,
     Report,
@@ -18,13 +16,14 @@ from app.exporters.report import (
     standard_notices,
 )
 from app.routers.exports import DOCX_MEDIA_TYPE
+from app.tests.removed_notices import assert_no_removed_notice
 
 
-def _sample_report(*, demo: bool = True, own: bool = False) -> Report:
+def _sample_report(*, own: bool = False) -> Report:
     return Report(
         title="Relatório de Seleção Teste",
         subtitle="Subtítulo do estudo",
-        notices=standard_notices(includes_demo_data=demo, includes_own_records=own),
+        notices=standard_notices(includes_own_records=own),
         sheets=[
             Sheet(
                 name="Candidatos",
@@ -59,7 +58,7 @@ class TestDocxRendering:
         assert "Eng. Responsável" in text
 
     def test_to_docx_includes_mandatory_notices(self) -> None:
-        doc = Document(io.BytesIO(to_docx(_sample_report(demo=True, own=True))))
+        doc = Document(io.BytesIO(to_docx(_sample_report(own=True))))
         text = ""
         for p in doc.paragraphs:
             text += p.text + "\n"
@@ -68,13 +67,12 @@ class TestDocxRendering:
                 for cell in row.cells:
                     text += cell.text + "\n"
 
-        assert LIMITATION_NOTICE in text
         assert REPRODUCIBILITY_NOTICE in text
-        assert DEMO_DATA_NOTICE in text
         assert OWN_RECORD_NOTICE in text
+        assert_no_removed_notice(text)
 
-    def test_to_docx_omits_demo_notice_when_not_applicable(self) -> None:
-        doc = Document(io.BytesIO(to_docx(_sample_report(demo=False, own=False))))
+    def test_to_docx_omits_own_record_notice_when_not_applicable(self) -> None:
+        doc = Document(io.BytesIO(to_docx(_sample_report(own=False))))
         text = ""
         for p in doc.paragraphs:
             text += p.text + "\n"
@@ -83,9 +81,9 @@ class TestDocxRendering:
                 for cell in row.cells:
                     text += cell.text + "\n"
 
-        assert LIMITATION_NOTICE in text
-        assert DEMO_DATA_NOTICE not in text
+        assert REPRODUCIBILITY_NOTICE in text
         assert OWN_RECORD_NOTICE not in text
+        assert_no_removed_notice(text)
 
     def test_to_docx_renders_tables_and_headers(self) -> None:
         doc = Document(io.BytesIO(to_docx(_sample_report())))
@@ -137,7 +135,8 @@ class TestDocxEndpoints:
             for r in t.rows:
                 for c in r.cells:
                     all_text += "\n" + c.text
-        assert LIMITATION_NOTICE in all_text
+        assert REPRODUCIBILITY_NOTICE in all_text
+        assert_no_removed_notice(all_text)
 
     def test_study_docx_download_headers(self, client: TestClient) -> None:
         response_post = client.post(
@@ -166,4 +165,5 @@ class TestDocxEndpoints:
             for r in t.rows:
                 for c in r.cells:
                     all_text += "\n" + c.text
-        assert LIMITATION_NOTICE in all_text
+        assert REPRODUCIBILITY_NOTICE in all_text
+        assert_no_removed_notice(all_text)

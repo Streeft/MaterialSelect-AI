@@ -56,10 +56,6 @@ def material_text(detail: MaterialDetail) -> str:
     lines = [f"Ficha do material: {detail.name}", f"Classe: {detail.class_name}"]
     if detail.subclass:
         lines.append(f"Subclasse: {detail.subclass}")
-    if detail.is_demo:
-        lines.append(
-            "Atenção: registro de demonstração, com valores fictícios. Não use em projeto real."
-        )
     if detail.is_own_record:
         lines.append("Registro próprio do usuário, fora da revisão do catálogo compartilhado.")
     if detail.description:

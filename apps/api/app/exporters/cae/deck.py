@@ -15,16 +15,9 @@ from app.exporters.cae.quantities import QUANTITIES
 from app.exporters.cae.text import real
 from app.exporters.identity import composition_summary, designation_summary
 
-FICTITIOUS_LINE = (
-    "MATERIAL FICTICIO: dado de demonstracao, valores inventados para ensino. "
-    "Nao usar em projeto real."
-)
-
 
 def _provenance(value: CardValue) -> str:
     source = value.source_label or "sem fonte registrada"
-    if value.source_is_demo:
-        source += " (FICTICIA, demonstracao)"
     parts = [f"qualidade: {value.data_quality or 'nao informada'}", f"fonte: {source}"]
     if value.license_label:
         parts.append(f"licenca: {value.license_label}")
@@ -50,8 +43,6 @@ def header_lines(
         "",
         f"Material: {card.name} (id {card.material_id}; classe {card.class_name})",
     ]
-    if card.is_demo:
-        lines.append(FICTITIOUS_LINE)
     if card.is_own_record:
         lines.append("Registro proprio do usuario, fora da revisao de fonte do catalogo.")
     if not card.is_active:
@@ -103,8 +94,6 @@ _MEASURES = {
 
 def _curve_provenance(curve: CurveProvenance) -> str:
     source = curve.source_label
-    if curve.source_is_demo:
-        source += " (FICTICIA, demonstracao)"
     parts = [
         f'curva id {curve.curve_id} "{curve.title}"',
         f"qualidade: {curve.data_quality}",
@@ -114,8 +103,6 @@ def _curve_provenance(curve: CurveProvenance) -> str:
         parts.append(f"licenca: {curve.license_label}")
     if curve.citation:
         parts.append(f"citacao: {curve.citation}")
-    if curve.is_demo:
-        parts.append("CURVA FICTICIA")
     return "; ".join(parts)
 
 

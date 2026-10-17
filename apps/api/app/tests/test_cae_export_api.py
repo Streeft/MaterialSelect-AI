@@ -153,7 +153,7 @@ def test_a_complete_demo_material_is_accepted_by_every_deck(
     for fmt in _DECKS:
         response = client.get(URL.format(id=demo.id, fmt=fmt, units="m-kg-s"))
         assert response.status_code == 200, (fmt, response.text)
-        assert "MATERIAL FICTICIO" in response.text, fmt  # decks are ASCII
+        assert "FICTICIO" not in response.text, fmt  # D-138: no demo mark
     mapdl = client.get(URL.format(id=demo.id, fmt="mapdl", units="m-kg-s")).text
     assert "MP,PRXY,MATID," in mapdl and "MP,ALPX,MATID," in mapdl
 
@@ -177,11 +177,12 @@ def test_a_demo_material_whose_poisson_is_removed_is_refused_with_422(
         assert response.status_code == 422, fmt
         assert "coeficiente de Poisson" in response.json()["detail"], fmt
 
-    # MatML has no minimum beyond one property, and says the data is fictitious.
+    # MatML has no minimum beyond one property; since D-138 it prints no demo
+    # or usage-limitation notice.
     matml = client.get(URL.format(id=demo.id, fmt="matml", units="m-kg-s"))
     assert matml.status_code == 200, matml.text
-    assert "MATERIAL FICTÍCIO" in matml.text
-    assert "Esta ferramenta destina-se a apoio didático" in matml.text
+    assert "MATERIAL FICTÍCIO" not in matml.text
+    assert "apoio didático" not in matml.text
 
 
 def test_a_real_material_without_poisson_is_refused_never_zero(

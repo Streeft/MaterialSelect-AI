@@ -1,9 +1,10 @@
 """The reservations every explanation carries, written by the backend.
 
 A provider may write prose; it may not decide what the prose leaves out. Keeping
-these sentences here means the things a reader depends on — this is preliminary
-triage, absence is not a bad value, the leader may be an artefact of the weights
-— survive a provider that would rather not mention them.
+these sentences here means the things a reader depends on — the prose computes
+nothing, absence is not a bad value, the leader may be an artefact of the
+weights — survive a provider that would rather not mention them. The
+usage-limitation sentence was removed by the author's decision (D-138).
 
 It is also why ``AIService.explain`` only has to police the provider's own text:
 nothing in a caveat came from a model, so there is nothing here to check.
@@ -24,8 +25,6 @@ def standard_caveats(context: ResultContext) -> list[str]:
     caveats = [
         "Esta redação descreve resultados já calculados; ela não recalcula, não "
         "ajusta e não acrescenta nenhum valor.",
-        "A ferramenta faz triagem preliminar. Não substitui validação experimental, "
-        "análise estrutural detalhada nem julgamento de engenharia.",
     ]
     if context.excluded_for_missing:
         names = ", ".join(name for name, _ in context.excluded_for_missing)

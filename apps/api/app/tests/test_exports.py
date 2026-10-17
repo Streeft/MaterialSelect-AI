@@ -20,14 +20,15 @@ from openpyxl import load_workbook
 from app.exporters.cells import format_number, is_dangerous, safe_number, safe_text
 from app.exporters.html import to_html
 from app.exporters.report import (
-    DEMO_DATA_NOTICE,
-    LIMITATION_NOTICE,
+    OWN_RECORD_NOTICE,
+    REPRODUCIBILITY_NOTICE,
     Report,
     Sheet,
     standard_notices,
 )
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.routers.exports import HTML_CSP
+from app.tests.removed_notices import assert_no_removed_notice
 
 HOSTILE_NAMES = [
     "=cmd|'/c calc'!A1",
@@ -82,22 +83,26 @@ class TestCellSafety:
 
 
 class TestNotices:
-    def test_limitation_notice_is_always_present(self) -> None:
-        assert LIMITATION_NOTICE in standard_notices(includes_demo_data=False)
+    def test_reproducibility_notice_is_always_present(self) -> None:
+        assert standard_notices() == [REPRODUCIBILITY_NOTICE]
 
-    def test_demo_warning_comes_first_when_it_applies(self) -> None:
-        notices = standard_notices(includes_demo_data=True)
-        assert notices[0] == DEMO_DATA_NOTICE
+    def test_own_record_notice_comes_first_when_it_applies(self) -> None:
+        assert standard_notices(includes_own_records=True) == [
+            OWN_RECORD_NOTICE,
+            REPRODUCIBILITY_NOTICE,
+        ]
 
-    def test_no_demo_warning_when_no_demo_data(self) -> None:
-        assert DEMO_DATA_NOTICE not in standard_notices(includes_demo_data=False)
+    def test_no_limitation_or_demo_notice(self) -> None:
+        # D-138: the author removed both; ``is_demo`` no longer prints a line.
+        for notices in (standard_notices(), standard_notices(includes_own_records=True)):
+            assert_no_removed_notice(" ".join(notices))
 
 
 def _report() -> Report:
     return Report(
         title="Relatório de teste",
         subtitle="subtítulo",
-        notices=standard_notices(includes_demo_data=True),
+        notices=standard_notices(),
         sheets=[
             Sheet(
                 name="Dados",
@@ -115,7 +120,7 @@ class TestCsvRendering:
 
     def test_notices_are_written_before_the_data(self) -> None:
         text = to_csv(_report())
-        assert text.index(LIMITATION_NOTICE) < text.index("Material")
+        assert text.index(REPRODUCIBILITY_NOTICE) < text.index("Material")
 
     def test_starts_with_a_bom_so_excel_reads_utf8(self) -> None:
         # Without it Excel on Windows renders "Relatório" as "RelatÃ³rio".
@@ -188,19 +193,11 @@ class TestHtmlRendering:
 
     def test_notices_appear_before_the_data(self) -> None:
         rendered = to_html(_report())
-        assert rendered.index(LIMITATION_NOTICE) < rendered.index("Material")
+        assert rendered.index(REPRODUCIBILITY_NOTICE) < rendered.index("Material")
 
-    def test_demo_warning_is_singled_out(self) -> None:
-        # Assert on the class being *applied*, not on the stylesheet that
-        # defines it — the rule is present in every document either way.
-        assert 'class="notice notice-demo"' in to_html(_report())
-        without_demo = Report(
-            title="t",
-            subtitle="",
-            notices=standard_notices(includes_demo_data=False),
-            sheets=[],
-        )
-        assert 'class="notice notice-demo"' not in to_html(without_demo)
+    def test_no_notice_is_styled_as_a_demo_warning(self) -> None:
+        # D-138: the demo warning and its style left together.
+        assert "notice-demo" not in to_html(_report())
 
     def test_document_is_self_contained(self) -> None:
         # It has to render identically offline, from an email attachment,
@@ -294,8 +291,8 @@ class TestHtmlEndpoint:
 
     def test_html_carries_the_mandatory_notices(self, client: TestClient) -> None:
         text = client.get("/api/exports/catalogo.html").text
-        assert LIMITATION_NOTICE in text
-        assert DEMO_DATA_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
 
     def test_a_hostile_material_name_cannot_escape_as_markup(self, client: TestClient) -> None:
         created = client.post(
@@ -339,8 +336,8 @@ class TestCatalogueExport:
 
     def test_csv_carries_the_mandatory_notices(self, client: TestClient) -> None:
         text = client.get("/api/exports/catalogo.csv").text
-        assert LIMITATION_NOTICE in text
-        assert DEMO_DATA_NOTICE in text  # the seeded catalogue is demo data
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)  # the seeded catalogue is demo data
 
     def test_missing_value_is_reported_as_absent(self, client: TestClient) -> None:
         # Cerâmica Demo D has an explicitly missing thermal conductivity.
@@ -548,9 +545,10 @@ class TestStudyExport:
         assert "Restrições e funil" in text
         assert "Módulo de Young" in text
 
-    def test_report_carries_the_limitation_notice(self, client: TestClient) -> None:
+    def test_report_carries_no_limitation_notice(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
 
     def test_provenance_lists_the_properties_the_decision_used(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text
@@ -771,9 +769,10 @@ class TestStudyLaudo:
         assert response.headers["content-disposition"].startswith("inline")
         assert response.headers["content-security-policy"] == HTML_CSP
 
-    def test_laudo_carries_the_limitation_notice(self, client: TestClient) -> None:
+    def test_laudo_carries_no_limitation_notice(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
 
     def test_unknown_study_is_404(self, client: TestClient) -> None:
         assert client.get("/api/exports/estudos/999999/laudo.html").status_code == 404
@@ -855,7 +854,8 @@ class TestMaterialSheetExport:
         assert response.status_code == 200, response.text
         assert "attachment" in response.headers["content-disposition"]
         text = response.text
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
         assert "Ficha técnica" in text
         assert "Propriedades" in text
 

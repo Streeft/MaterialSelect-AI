@@ -238,7 +238,12 @@ class TestSeedCoverage:
             assert all(row.source_id == source.id for row in rows), model
         curves = db_session.execute(select(MaterialCurve)).scalars().all()
         assert all(curve.citation == DEMO_CURVE_CITATION for curve in curves)
-        assert all("fictícia" in curve.description.lower() for curve in curves if curve.description)
+        # D-138: the marker is ``is_demo``; descriptions no longer warn in prose.
+        assert all(
+            "não representa ensaio" not in curve.description.lower()
+            for curve in curves
+            if curve.description
+        )
 
 
 class TestCompositionConsistency:

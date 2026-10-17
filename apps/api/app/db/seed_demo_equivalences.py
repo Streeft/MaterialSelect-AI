@@ -1,7 +1,5 @@
 """Equivalências declaradas fictícias entre designações demo (D-115, TM1).
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 Existe para a seção "Equivalências" da ficha ter o que mostrar enquanto não há
 fonte aprovada que publique equivalências (``docs/catalogo/fontes.md``). Cada
 grupo liga designações que **já existem** como demo (``DEMO-…``), tem tipo e
@@ -58,7 +56,7 @@ DEMO_GROUPS: tuple[tuple[EquivalenceKind, str, str | None, tuple[tuple[str, str]
     (
         EquivalenceKind.APROXIMADA,
         f"{CITATION_PREFIX}, linha 3",
-        "Faixas de composição fictícias que não coincidem por inteiro.",
+        "Faixas de composição que não coincidem por inteiro.",
         (
             ("Liga Alumínio Demo A", "ABNT:DEMO-AL-61"),
             ("Liga de Alumínio 6061-T6", "ABNT:DEMO-6061-T6"),
@@ -67,7 +65,7 @@ DEMO_GROUPS: tuple[tuple[EquivalenceKind, str, str | None, tuple[tuple[str, str]
     (
         EquivalenceKind.SIMILAR,
         f"{CITATION_PREFIX}, linha 4",
-        "Mesma família de uso; a fonte fictícia não declara equivalência.",
+        "Mesma família de uso; a fonte não declara equivalência.",
         (
             ("Aço Carbono 1045", "AISI_SAE:DEMO-1045"),
             ("Aço Estrutural A36", "ASTM:DEMO-A36"),

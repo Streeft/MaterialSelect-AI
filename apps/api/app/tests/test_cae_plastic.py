@@ -1,9 +1,9 @@
 """Elastoplastic CAE cards (D-119, TM5-b): golden files, units, E, refusal.
 
-Same fictitious material as ``test_cae_exporters.py`` (``Liga Fictícia CAE-1
-(demonstração)``) plus an invented engineering stress–strain series and an
-invented E × T curve, both marked fictitious; the golden files therefore open
-with the demo warning. Regenerate them, after a deliberate change, with
+Same invented material as ``test_cae_exporters.py`` (``Liga Exemplo CAE-1``)
+plus an invented engineering stress–strain series and an invented E × T curve,
+both marked ``is_demo``; since D-138 the golden files carry no demo-data or
+usage-limitation line. Regenerate them, after a deliberate change, with
 ``UPDATE_CAE_GOLDEN=1 pytest app/tests/test_cae_plastic.py`` and read the diff.
 """
 
@@ -18,7 +18,6 @@ from app.calculations.units import to_canonical
 from app.domain.plasticity import plastic_table
 from app.exporters.cae import ALL_FORMATS, CAE_FORMATS, PLASTIC_FORMATS, refusal_reason
 from app.exporters.cae.card import (
-    CAE_DEMO_NOTICE,
     CAE_NOTICE,
     CAE_PLASTIC_NOTICE,
     CurveProvenance,
@@ -28,8 +27,14 @@ from app.exporters.cae.card import (
 )
 from app.exporters.cae.quantities import UNIT_SYSTEMS
 from app.exporters.cae.text import ascii_fold
-from app.exporters.report import LIMITATION_NOTICE
-from app.tests.test_cae_exporters import FULL, GOLDEN_DIR, _material, _prose, _without
+from app.tests.test_cae_exporters import (
+    FULL,
+    GOLDEN_DIR,
+    _assert_no_removed_notice,
+    _material,
+    _prose,
+    _without,
+)
 
 E_AT_T = 2.0e11  # Pa, invented: differs from the catalogue's 2.1e11 on purpose
 TEMPERATURE = to_canonical(20, "degC", "K")[0]
@@ -50,9 +55,9 @@ def _curve(curve_id: int, title: str, **extra) -> CurveProvenance:
     base = {
         "curve_id": curve_id,
         "title": title,
-        "source_label": "Fonte fictícia de teste CAE",
+        "source_label": "Fonte de teste CAE",
         "source_is_demo": True,
-        "license_label": "Dado fictício de demonstração",
+        "license_label": "Licença de teste CAE",
         "citation": "Curva inventada para teste — não é ensaio.",
         "data_quality": "ESTIMADO",
         "is_demo": True,
@@ -61,12 +66,12 @@ def _curve(curve_id: int, title: str, **extra) -> CurveProvenance:
 
 
 PLASTIC_INPUT = PlasticInput(
-    curve=_curve(41, "Tração fictícia CAE-1 (engenharia)"),
+    curve=_curve(41, "Tração CAE-1 (engenharia)"),
     series_position=0,
     series_label=None,
-    conditions="Tração uniaxial, 20 °C (fictício).",
+    conditions="Tração uniaxial, 20 °C.",
     temperature=TEMPERATURE,
-    modulus_curve=_curve(42, "Módulo de Young × temperatura fictício CAE-1"),
+    modulus_curve=_curve(42, "Módulo de Young × temperatura CAE-1"),
 )
 
 
@@ -84,7 +89,7 @@ def _plastic_card(system: str = "mm-t-s", values=None, series=None, **material_f
 @pytest.mark.parametrize("fmt", sorted(PLASTIC_FORMATS))
 def test_each_plastic_format_matches_its_golden_file(fmt: str) -> None:
     rendered = PLASTIC_FORMATS[fmt].render(_plastic_card())
-    golden = GOLDEN_DIR / f"liga-ficticia-mm-t-s{PLASTIC_FORMATS[fmt].suffix}"
+    golden = GOLDEN_DIR / f"liga-exemplo-mm-t-s{PLASTIC_FORMATS[fmt].suffix}"
     if os.environ.get("UPDATE_CAE_GOLDEN"):
         golden.write_text(rendered, encoding="utf-8", newline="\n")
     assert rendered == golden.read_text(encoding="utf-8")
@@ -120,14 +125,13 @@ def test_e_at_the_series_temperature_replaces_the_catalogue_value() -> None:
 def test_the_plastic_notice_replaces_the_elastic_one_and_the_rest_stay() -> None:
     card = _plastic_card()
     assert CAE_PLASTIC_NOTICE in card.notices and CAE_NOTICE not in card.notices
-    assert LIMITATION_NOTICE in card.notices
-    assert card.notices[0] == CAE_DEMO_NOTICE
+    assert card.notices == [CAE_PLASTIC_NOTICE]
 
 
-def test_a_real_material_with_a_fictitious_curve_is_marked_fictitious() -> None:
+def test_a_real_material_with_a_demo_curve_is_marked_internally() -> None:
     card = _plastic_card(is_demo=False, values=_with_real_sources())
     assert card.is_demo
-    assert card.notices[0] == CAE_DEMO_NOTICE
+    assert card.notices == [CAE_PLASTIC_NOTICE]
 
 
 def _with_real_sources():
@@ -226,8 +230,8 @@ def test_lsdyna_plastic_points_lcss_to_a_curve_of_plastic_strain() -> None:
 def test_every_plastic_file_keeps_the_notices_and_80_columns(fmt: str, system: str) -> None:
     raw = ALL_FORMATS[fmt].render(_plastic_card(system))
     text = _prose(raw)
-    assert ascii_fold(LIMITATION_NOTICE) in text
-    assert "FICTICI" in text.upper()
+    assert ascii_fold(CAE_PLASTIC_NOTICE)[:40] in text
+    _assert_no_removed_notice(raw)
     assert "D-119" in text
     assert "Medida declarada pela fonte: engenharia" in text
     assert "sigma_t = sigma*(1+eps)" in text

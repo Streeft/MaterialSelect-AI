@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 
 from app.db.clear_demo import clear_demo_data
 from app.db.seed_demo_releases import DEMO_LINEAGE, DEMO_RELEASES, seed_demo_releases
-from app.exporters.report import DEMO_DATA_NOTICE
 from app.models.catalog import CatalogDataset, CatalogRecordRef
 from app.models.material import Material
 from app.models.source import Source
+from app.tests.removed_notices import assert_no_removed_notice
 
 R1, R2 = "catalogo-demo-r1", "catalogo-demo-r2"
 
@@ -108,10 +108,12 @@ def test_the_script_covers_every_case_the_screen_shows(client, db_session: Sessi
     assert unregistered["after"]["canonical"]["value"] == 383.15
 
 
-def test_the_demo_export_carries_the_fictitious_notice(client, db_session: Session) -> None:
+def test_the_demo_export_carries_no_fictitious_notice(client, db_session: Session) -> None:
     seed_demo_releases(db_session)
     response = client.get(f"/api/exports/catalogo/releases/{R1}/diff/{R2}.csv")
-    assert response.status_code == 200 and DEMO_DATA_NOTICE in response.text
+    assert response.status_code == 200
+    assert_no_removed_notice(response.text)
+    assert "\nDado fictício," not in response.text  # the removed row
 
 
 def test_clear_demo_removes_the_releases_their_materials_and_sources(

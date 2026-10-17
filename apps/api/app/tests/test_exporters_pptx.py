@@ -3,14 +3,15 @@ from io import BytesIO
 from pptx import Presentation
 
 from app.exporters.pptx import to_pptx
-from app.exporters.report import Report, Sheet, standard_notices
+from app.exporters.report import REPRODUCIBILITY_NOTICE, Report, Sheet, standard_notices
+from app.tests.removed_notices import assert_no_removed_notice
 
 
 def test_to_pptx_produces_a_title_and_one_slide_per_sheet():
     report = Report(
         title="Seleção de materiais",
         subtitle="Estudo de exemplo",
-        notices=standard_notices(includes_demo_data=True),
+        notices=standard_notices(),
         sheets=[
             Sheet(
                 name="Ranking",
@@ -45,11 +46,11 @@ def test_to_pptx_table_slide_has_header_and_data_rows():
     assert table.cell(1, 0).text == "1"
 
 
-def test_to_pptx_includes_the_limitation_notice():
+def test_to_pptx_closes_with_the_notices_and_no_limitation_notice():
     report = Report(
         title="T",
         subtitle="",
-        notices=standard_notices(includes_demo_data=False),
+        notices=standard_notices(),
         sheets=[Sheet(name="S", header=["x"], rows=[[1]])],
     )
     presentation = Presentation(BytesIO(to_pptx(report)))
@@ -58,4 +59,5 @@ def test_to_pptx_includes_the_limitation_notice():
         for shape in list(presentation.slides)[-1].shapes
         if shape.has_text_frame
     )
-    assert "didático" in notices_slide_text.lower()
+    assert REPRODUCIBILITY_NOTICE in notices_slide_text
+    assert_no_removed_notice(notices_slide_text)
