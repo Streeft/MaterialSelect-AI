@@ -211,7 +211,7 @@ def test_compare_refuses_an_empty_catalogue():
         )
 
 
-# --- Ragone: linhas de iso-tempo (D-143) --------------------------------------
+# --- Ragone: linhas de iso-tempo (D-145) --------------------------------------
 
 
 def test_iso_time_line_is_energy_equals_power_times_time() -> None:

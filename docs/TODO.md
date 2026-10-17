@@ -209,7 +209,7 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
 - *Science Notes* de família e imagem de família continuam pendentes (fora do
   D-130: o glossário é por propriedade, não por família).
 
-**Gráfico de Ragone das baterias (lacuna do EduPack; [D-143](DECISIONS.md), Sessão 98).** ✔
+**Gráfico de Ragone das baterias (lacuna do EduPack; [D-145](DECISIONS.md), Sessão 100).** ✔
 Entregue: ~~`GET /api/baterias/ragone` (pontos do catálogo, eixos log, linhas de iso-tempo E = P·t e
 `excluded` com motivo escrito)~~ e ~~aba "Ragone" em `/app/baterias` (`RagoneChart`, tabela de
 origem D-31)~~. Resíduos:
