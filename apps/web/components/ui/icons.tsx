@@ -444,6 +444,14 @@ export const IconPencil = (p: IconProps) => (
   </Svg>
 );
 
+export const IconMoreVertical = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconAudio = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4.5 10.5v3" />

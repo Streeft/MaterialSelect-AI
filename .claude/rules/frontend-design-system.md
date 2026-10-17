@@ -114,6 +114,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   só responde com `/offline.html` a uma navegação que falhou. Nunca cache de API, catálogo, estudo
   ou resultado: propriedade sem fonte e data fere o princípio 1. Ao mudar `offline.html`, mude `CACHE`.
 
+- **Caderno tem menu no cartão e painéis ajustáveis** ([D-143](docs/DECISIONS.md)): ações do cartão
+  ficam num `MenuButton` ao lado do link (nunca dentro); `PanelResizer` é um `separator` com teclado
+  e só existe de `lg` para cima. Largura de painel não é gravada.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

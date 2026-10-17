@@ -13,6 +13,7 @@
         "http://127.0.0.1:3000/app/mapas",
         "http://127.0.0.1:3000/app/comparar",
         "http://127.0.0.1:3000/app/painel",
+        "http://127.0.0.1:3000/app/cadernos",
         "http://127.0.0.1:3000/app/estilo",
         "http://127.0.0.1:3000/entrar",
         "http://127.0.0.1:3000/app/admin/classes",
