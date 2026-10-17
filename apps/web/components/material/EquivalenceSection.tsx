@@ -33,10 +33,8 @@ const t = ptBR.equivalences;
  */
 export function EquivalenceSection({
   materialId,
-  materialIsDemo,
 }: {
   materialId: number;
-  materialIsDemo: boolean;
 }) {
   const query = useQuery({
     queryKey: ["material-equivalences", materialId],
@@ -57,7 +55,6 @@ export function EquivalenceSection({
         <EquivalenceGroupView
           key={group.id}
           group={group}
-          materialIsDemo={materialIsDemo}
         />
       ))}
     </div>
@@ -66,10 +63,8 @@ export function EquivalenceSection({
 
 function EquivalenceGroupView({
   group,
-  materialIsDemo,
 }: {
   group: EquivalenceGroup;
-  materialIsDemo: boolean;
 }) {
   return (
     <div
@@ -79,9 +74,6 @@ function EquivalenceGroupView({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-support text-ink-subtle">{t.kindLabel}</span>
         <Badge tone="brand">{group.kind_label}</Badge>
-        {group.is_demo && !materialIsDemo && (
-          <Badge tone="warning">{t.demoRow}</Badge>
-        )}
         <span className="text-support">{group.kind_meaning}</span>
       </div>
       <TableScroll label={t.groupCaption(group.kind_label)}>

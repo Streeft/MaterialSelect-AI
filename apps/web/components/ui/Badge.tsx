@@ -12,8 +12,8 @@ export type BadgeTone = "neutral" | "brand" | "success" | "warning" | "danger" |
  * than delegating to MSDS's `Badge` component function, which only takes
  * `tone`/`children`. Real call sites need `className`
  * (`components/layout/AppSidebar.tsx`, `components/dashboard/
- * CoverageSummary.tsx`) and `title` (`components/DemoDataBadge.tsx`); `icon`
- * has no real call site today but stays in the signature for API stability.
+ * CoverageSummary.tsx`); `icon` and `title` have no real call site today but
+ * stay in the signature for API stability.
  */
 export function Badge({
   tone = "neutral",

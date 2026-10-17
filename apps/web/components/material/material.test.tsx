@@ -65,7 +65,7 @@ describe("composição em palavras (D-105)", () => {
 
 describe("CompositionTable", () => {
   it("says, in words, that no composition is registered", () => {
-    render(<CompositionTable entries={[]} materialIsDemo={false} />);
+    render(<CompositionTable entries={[]} />);
     expect(screen.getByText(t.noComposition)).toBeInTheDocument();
     expect(screen.getByText(t.noCompositionHint)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -74,7 +74,6 @@ describe("CompositionTable", () => {
   it("lists every state with its source, and passes axe", async () => {
     const { container } = render(
       <CompositionTable
-        materialIsDemo={false}
         entries={[
           row({ normalized_min: 17.5, normalized_max: 19.5, value_min: 17.5, value_max: 19.5 }),
           row({
@@ -99,8 +98,6 @@ describe("CompositionTable", () => {
     expect(within(table).getByText(t.contentAbsent)).toBeInTheDocument();
     expect(within(table).getByText(t.contentBalance)).toBeInTheDocument();
     expect(within(table).getByText("Tabela 2")).toBeInTheDocument();
-    // A fictitious row on a real material says so.
-    expect(within(table).getByText(t.demoRow)).toBeInTheDocument();
     // No dash and no zero stand in for absence.
     expect(within(table).queryByText("—")).not.toBeInTheDocument();
     expect(within(table).queryByText("0")).not.toBeInTheDocument();
@@ -122,7 +119,7 @@ const designation: Designation = {
 
 describe("DesignationTable", () => {
   it("states that none is registered", () => {
-    render(<DesignationTable designations={[]} materialIsDemo={false} />);
+    render(<DesignationTable designations={[]} />);
     expect(screen.getByText(t.noDesignations)).toBeInTheDocument();
   });
 
@@ -130,7 +127,6 @@ describe("DesignationTable", () => {
     const { container } = render(
       <DesignationTable
         designations={[designation, { ...designation, system: "EN", system_label: "EN", code: "DEMO-1.4001", region: "Europa" }]}
-        materialIsDemo
       />,
     );
     const table = screen.getByRole("table", { name: t.designationsCaption });
@@ -138,8 +134,6 @@ describe("DesignationTable", () => {
     expect(within(table).getByText("DEMO-304")).toBeInTheDocument();
     expect(within(table).getByText("Europa")).toBeInTheDocument();
     expect(within(table).getByText(t.noRegion)).toBeInTheDocument();
-    // The page already says the material is fictitious; rows don't repeat it.
-    expect(within(table).queryByText(t.demoRow)).not.toBeInTheDocument();
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
   });

@@ -46,10 +46,6 @@ export function StartScreen() {
             {ptBR.home.start}
             <IconArrowRight className="h-[18px] w-[18px]" />
           </Link>
-
-          <p className="max-w-md text-caption text-rail-ink-subtle">
-            {ptBR.limitation.short} {ptBR.demoWarning}
-          </p>
         </div>
         <AshbyPreview />
       </div>

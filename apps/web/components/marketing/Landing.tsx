@@ -2,7 +2,7 @@ import Link from "next/link";
 import { marketing } from "@/lib/marketing/content";
 import { ptBR } from "@/lib/i18n";
 import { DataQualityLegend } from "@/components/ui";
-import { IconArrowRight, IconCheck, IconClose, IconInfo } from "@/components/ui/icons";
+import { IconArrowRight, IconCheck, IconClose } from "@/components/ui/icons";
 import { AshbyPreview } from "./AshbyPreview";
 import { FunnelPreview } from "./FunnelPreview";
 
@@ -16,9 +16,8 @@ import { FunnelPreview } from "./FunnelPreview";
  *
  * The section order is the argument: the figure that proves it works, the
  * provenance no spreadsheet offers, the method that shows there's no black
- * box, the report the client hands their boss, the price, and only then the
- * usage limitation — stated with confidence, because that's exactly what
- * separates a trustworthy screening from a guess dressed up as an answer.
+ * box, the report the client hands their boss, the price, and the closing
+ * call to start a study.
  *
  * The hue classes (`bg-brand`, `text-brand-700`) inherit the opening
  * section's ramp, since `/` maps to `inicio` in lib/design/sections.ts. The
@@ -269,15 +268,8 @@ export function Landing() {
         </ul>
       </section>
 
-      {/* --- usage limitation + closing --------------------------------------- */}
-      <section className="grid items-center gap-10 border-t border-edge bg-surface-raised px-5 py-14 sm:px-8 lg:grid-cols-2 lg:px-14">
-        <div className="flex flex-col gap-2.5 rounded-card border border-info/30 bg-info-soft p-6">
-          <h2 className="inline-flex items-center gap-2.5 text-[0.9375rem] font-semibold text-info-fg">
-            <IconInfo aria-hidden className="h-[17px] w-[17px] shrink-0" />
-            {m.limitation.title}
-          </h2>
-          <p className="text-[0.9375rem] leading-relaxed text-ink-muted">{m.limitation.body}</p>
-        </div>
+      {/* --- closing --------------------------------------- */}
+      <section className="grid items-center gap-10 border-t border-edge bg-surface-raised px-5 py-14 sm:px-8 lg:px-14">
         <div className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold tracking-[-0.03em] lg:text-3xl">{m.close.title}</h2>
           <p className="max-w-prose text-[0.9375rem] leading-relaxed text-ink-muted">{m.close.body}</p>

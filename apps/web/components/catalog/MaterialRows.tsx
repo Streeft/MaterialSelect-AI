@@ -84,11 +84,9 @@ export function QualityBar({
 
 function MaterialName({
   material,
-  demoBadge,
   searchQuery,
 }: {
   material: MaterialListItem;
-  demoBadge: boolean;
   searchQuery?: string;
 }) {
   return (
@@ -96,7 +94,6 @@ function MaterialName({
       <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
         <HighlightText text={material.name} query={searchQuery} />
       </Link>
-      {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
     </span>
   );
 }
@@ -118,12 +115,9 @@ type SortKey = "name" | "class";
  */
 export function MaterialTable({
   materials,
-  demoBadge = true,
   searchQuery,
 }: {
   materials: MaterialListItem[];
-  /** False when the list already says, once, that every row is fictitious. */
-  demoBadge?: boolean;
   searchQuery?: string;
 }) {
   const [sort, setSort] = useState<SortState<SortKey> | null>(null);
@@ -235,7 +229,7 @@ export function MaterialTable({
                   />
                 </Td>
                 <RowHeader>
-                  <MaterialName material={m} demoBadge={demoBadge} searchQuery={searchQuery} />
+                  <MaterialName material={m} searchQuery={searchQuery} />
                   {m.subclass && (
                     <span className="block text-xs text-ink-subtle">
                       <HighlightText text={m.subclass} query={searchQuery} />

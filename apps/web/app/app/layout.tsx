@@ -2,17 +2,15 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
-import { LimitationNotice } from "@/components/LimitationNotice";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { ptBR } from "@/lib/i18n";
 
 /**
  * The authenticated app shell: everything that used to live directly under
  * the root layout's <body>, now scoped to /app so `/` (the public vitrine,
- * Task 6) never sees AuthGate or the sidebar. AuthGate itself has to be
- * here, not just AppSidebar/LimitationNotice — the patch's own README only
- * mentions moving the latter two, but AuthGate is what actually gates
- * access; leaving it at the root would keep the vitrine behind login.
+ * Task 6) never sees AuthGate or the sidebar. AuthGate has to be
+ * here, not at the root: it is what gates access, and leaving it at the root
+ * would keep the vitrine behind login.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -44,12 +42,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             {children}
           </main>
-          <footer className="border-t border-edge bg-surface-raised">
-            <div className="mx-auto max-w-screen-2xl space-y-2 px-4 py-3 sm:px-6 lg:px-8">
-              <p className="text-xs text-warning-fg">⚠️ {ptBR.demoWarning}</p>
-              <LimitationNotice variant="footer" />
-            </div>
-          </footer>
         </div>
       </div>
       <BottomNav />

@@ -163,7 +163,6 @@ describe("painel", () => {
     // at once, in its own node, instead of the animation read aloud.
     const tileOf = (label: string) => screen.getByText(label).closest(".msds-stat") as HTMLElement;
     expect(within(tileOf(t.materials)).getByText("5", { selector: ".sr-only" })).toBeInTheDocument();
-    expect(screen.getByText(t.demoNote(5))).toBeInTheDocument();
     expect(
       within(tileOf(t.overallCoverage)).getByText("60,0%", { selector: ".sr-only" }),
     ).toBeInTheDocument();
@@ -264,7 +263,7 @@ describe("painel", () => {
     getDashboardOverview.mockResolvedValueOnce(overview);
     await user.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
 
-    expect(await screen.findByText(t.demoNote(5))).toBeInTheDocument();
+    expect(await screen.findByText(t.materials)).toBeInTheDocument();
     expect(screen.queryByShadowRole("alert")).not.toBeInTheDocument();
   });
 });

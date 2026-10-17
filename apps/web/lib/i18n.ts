@@ -25,9 +25,6 @@ function stageKindWord(kind: StageKindWord): string {
 export const ptBR = {
   appName: "MaterialSelect AI",
   tagline: "Apoio à seleção de materiais pela metodologia de Ashby",
-  demoWarning:
-    "Dados exclusivamente demonstrativos. Não utilizar em projetos reais.",
-  demoBadge: "Demonstrativo",
   // D-130: o aviso (snackbar) e o "Desfazer" das exclusões.
   snackbar: {
     undo: "Desfazer",
@@ -846,7 +843,7 @@ export const ptBR = {
     htmlHint: "Abre em nova aba, para imprimir ou salvar em PDF",
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
-    hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número — com o aviso de limitação exigido.",
+    hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número.",
     laudoTitle: "Laudo de engenharia",
     laudoButton: "Gerar laudo",
     laudoHint:
@@ -884,7 +881,7 @@ export const ptBR = {
     refusedTitle: "O cartão não foi gerado",
     errorTitle: "Não foi possível exportar",
     notice:
-      "Todo arquivo leva o aviso de limitação de uso, a fonte e a qualidade de cada valor, e a marca de fictício quando o dado é de demonstração.",
+      "Todo arquivo leva a fonte e a qualidade de cada valor.",
   },
   similar: {
     title: "Materiais semelhantes",
@@ -1851,9 +1848,6 @@ export const ptBR = {
 
   catalog: {
     title: "Catálogo de materiais",
-    // D-91: said once above the list, instead of a badge on every row.
-    allDemo:
-      "Todos os materiais desta lista são fictícios — dados de demonstração, que não devem ser usados em projetos reais.",
     densityLabel: "Densidade da tabela",
     densityComfortable: "Confortável",
     densityCompact: "Compacta",
@@ -1998,7 +1992,7 @@ export const ptBR = {
     keywords: "Palavras-chave",
     position: "Onde este material fica",
     positionHint:
-      "Densidade × módulo de Young, os dois eixos do mapa demonstrativo. Este material aparece destacado.",
+      "Densidade × módulo de Young, os dois eixos do mapa. Este material aparece destacado.",
     openInMaps: "Ver no mapa completo",
     // The sheet is where §3.2 has to pay off: every number says where it came
     // from, and the legend explains the vocabulary once, no matter how many
@@ -2047,7 +2041,6 @@ export const ptBR = {
     },
     conversion: (method: string) => `Conversão: ${method}`,
     noOriginal: "Sem número — assim declarado pela fonte",
-    demoRow: "fictício",
     designations: "Designações",
     designationsHint:
       "Códigos com que este registro é conhecido, cada um com a fonte que o afirma. Uma designação não declara equivalência com outro material.",
@@ -2127,7 +2120,6 @@ export const ptBR = {
     columnMaterial: "Material",
     thisMaterial: "este material",
     withdrawn: "retirado do catálogo",
-    demoRow: "fictício",
   },
   // D-106 (TM4): curvas do material na ficha.
   curves: {
@@ -2217,9 +2209,8 @@ export const ptBR = {
     conditions: (text: string) => `Condições: ${text}`,
     conversion: (axis: string, original: string, method: string) =>
       `Eixo ${axis}: a fonte deu os valores em ${original}; conversão ${method}.`,
-    demo: "Curva fictícia — não é dado de ensaio.",
     exportCsv: "Pontos (CSV)",
-    exportCsvHint: "Com aviso de limitação, proveniência e unidades",
+    exportCsvHint: "Com proveniência e unidades",
     exportXlsx: "Pontos (XLSX)",
     exportXlsxHint: "A mesma tabela, como planilha",
     seriesAria: (name: string, n: number) =>
@@ -2238,7 +2229,7 @@ export const ptBR = {
     clearChoice: "Limpar filtros e página",
     noPair: "Não há duas releases para comparar",
     noPairHint:
-      "Uma comparação precisa de duas releases do mesmo catálogo, ambas reais ou ambas fictícias. Importe uma nova release do catálogo oficial para ter o que comparar.",
+      "Uma comparação precisa de duas releases do mesmo catálogo. Importe uma nova release do catálogo oficial para ter o que comparar.",
     noPairUndeclared: (n: number) =>
       `${n} ${n === 1 ? "release não declara" : "releases não declaram"} a qual catálogo ${n === 1 ? "pertence" : "pertencem"}, e por isso não ${n === 1 ? "é comparável" : "são comparáveis"} com nenhuma outra.`,
     chooseTitle: "Releases comparadas",
@@ -2246,20 +2237,18 @@ export const ptBR = {
     target: "Release alvo",
     swap: "Inverter a direção",
     direction: "A comparação vai da base para o alvo; invertida, novo e desativado trocam de lugar.",
-    releaseOption: (release: string | null, name: string, demo: boolean) =>
-      `${release ?? name}${demo ? " (fictícia)" : ""}`,
+    releaseOption: (release: string | null, name: string) =>
+      `${release ?? name}`,
     metaCaption: "As duas releases comparadas",
     metaRelease: "Release",
     metaName: "Catálogo",
     metaLicense: "Licença",
     metaRecords: "Registros de material",
     metaImported: "Importada em",
-    metaNotImported: "Não passou pelo importador (dado de demonstração)",
+    metaNotImported: "Não passou pelo importador",
     metaActive: "Situação",
     active: "Ativa",
     inactive: "Desativada",
-    demoNotice:
-      "Releases fictícias de demonstração. Os números foram inventados para mostrar a tela e não são dado de catálogo real.",
     summaryTitle: "Resumo",
     summaryAria: "Contagem de registros por situação",
     summaryTotal: (n: number) => `${n} ${n === 1 ? "registro" : "registros"} no total`,
@@ -2348,7 +2337,7 @@ export const ptBR = {
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
-    exportCsvHint: "Com aviso de limitação, proveniência das duas releases e unidades",
+    exportCsvHint: "Com proveniência das duas releases e unidades",
     exportXlsx: "Mudanças (XLSX)",
     exportXlsxHint: "A mesma tabela, como planilha",
     exportScope: "A exportação leva os filtros, não a página.",
@@ -2530,7 +2519,6 @@ export const ptBR = {
     error: "Não foi possível carregar o painel.",
     empty: "Nenhum material cadastrado ainda.",
     materials: "Materiais ativos",
-    demoNote: (n: number) => `${n} de demonstração`,
     classes: "Classes",
     properties: "Propriedades",
     overallCoverage: "Cobertura geral",
@@ -2870,19 +2858,6 @@ export const ptBR = {
     missingTitle: "Sem valor cadastrado",
     missingBody:
       "Nenhum valor foi medido, importado ou estimado para esta propriedade neste material. O sistema não supõe um.",
-  },
-
-  // Canonical text lives in apps/api/app/exporters/report.py (LIMITATION_NOTICE).
-  // The copy below is kept byte-identical by a test — see lib/i18n.test.ts. The
-  // proposal (§3.6) requires this notice in the system *and* in every export;
-  // two surfaces saying it differently would be worse than one saying it once.
-  limitation: {
-    title: "Limite de uso desta ferramenta",
-    full:
-      "Esta ferramenta destina-se a apoio didático e à triagem preliminar de candidatos. " +
-      "Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia.",
-    short:
-      "Apoio didático e triagem preliminar — não substitui validação experimental.",
   },
 
   indexCard: {

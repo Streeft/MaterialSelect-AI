@@ -14,10 +14,8 @@ const TONES: Record<AlertTone, { box: string; icon: ReactNode }> = {
 /**
  * A standing notice.
  *
- * Deliberately not dismissible. Two of the notices this application must show —
- * the demonstration-data warning and the scope-of-use limitation (§3.6 da
- * proposta) — are commitments, and a commitment the reader can click away stops
- * being one the moment they do.
+ * Deliberately not dismissible: a notice the reader can click away is a notice
+ * the reader clicks away once and never sees again.
  */
 export function Alert({
   tone = "info",

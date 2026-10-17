@@ -53,11 +53,11 @@ describe("CurveChart (D-106)", () => {
     expect(within(table).getByText("175 – 195")).toBeInTheDocument();
   });
 
-  it("states provenance, conversion and the demo mark under the figure", () => {
+  it("states provenance and conversion under the figure", () => {
     render(<CurveChart curve={stressStrain} />);
     expect(screen.getByText(t.source("Dataset Demo MaterialSelect"))).toBeInTheDocument();
     expect(screen.getByText(/pint:MPa->Pa/)).toBeInTheDocument();
-    expect(screen.getByText(t.demo)).toBeInTheDocument();
+    expect(screen.queryByText(/fictíci/i)).not.toBeInTheDocument();
   });
 
   it("writes the reason instead of an empty plot when nothing can be drawn", () => {

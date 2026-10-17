@@ -350,8 +350,6 @@ function DeckPrint({
         </section>
       ))}
       <section className="deck-print-notices">
-        <h2>{ptBR.limitation.title}</h2>
-        <p>{ptBR.limitation.full}</p>
         <p>{ptBR.notebooks.accuracy}</p>
         {withheld.length > 0 ? (
           <>

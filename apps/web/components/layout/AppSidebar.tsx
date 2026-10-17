@@ -14,7 +14,7 @@ import { logout } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
-import { Badge, IconButton, ThemeToggle } from "@/components/ui";
+import { IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
   IconBattery,
@@ -416,9 +416,6 @@ export function AppSidebar() {
           onClick={() => setOpen(true)}
         />
         <BrandLink pathname={pathname} />
-        <Badge tone="warning" className="ml-auto hidden sm:inline-flex">
-          {ptBR.demoBadge}
-        </Badge>
       </header>
 
       {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place
@@ -433,11 +430,6 @@ export function AppSidebar() {
       >
         <div className={cn("flex flex-col gap-2", collapsed && "items-center")}>
           <BrandLink pathname={pathname} collapsed={collapsed} />
-          {!collapsed && (
-            <Badge tone="warning" className="self-start">
-              {ptBR.demoBadge}
-            </Badge>
-          )}
         </div>
 
         <nav

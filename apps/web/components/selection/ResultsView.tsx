@@ -26,7 +26,6 @@ import {
   Tr,
   type TabItem,
 } from "@/components/ui";
-import { LimitationNotice } from "@/components/LimitationNotice";
 import { candidatesTsv } from "@/lib/selection/copyTable";
 import { CopyTableButton } from "./CopyTableButton";
 
@@ -771,11 +770,6 @@ export function ResultsView({
           </div>
         )}
       </Tabs>
-
-      {/* Item 5 of the proposal: the notice belongs on the screen that produces
-          a recommendation, not only on the file exported from it — outside the
-          tabs, so no tab can be the one where it is missing. */}
-      <LimitationNotice />
     </div>
   );
 }
