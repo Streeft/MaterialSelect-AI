@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [93](#sessão-93--171026--sai-o-aviso-de-dado-demonstrativo-e-de-limite-de-uso-d-138) | 17/10/2026 | Retirada dos avisos de dado demonstrativo e de limite de uso (tela, exportações, IA, landing) e linguagem simples; regras e docs (D-138) | — | — |
 | [86](#sessão-86--161026--home-saudação-e-vistos-recentemente-d-132) | 16/10/2026 | Home: saudação pelo primeiro nome (só se a conta tem nome) e prateleira *Vistos recentemente* (até 6, mesma consulta de Meus registros, estados escritos); quarto item do Material 3; sem backend | — | +7 |
 | [85](#sessão-85--151026--tabela-do-catálogo-ordenar-e-selecionar-em-massa-d-131) | 15/10/2026 | Tabela do catálogo com cabeçalho ordenável (`aria-sort`, só rótulo) e seleção em massa com barra *Comparar selecionados*; segundo item do Material 3 (Data tables/Lists); sem backend | — | +12 |
 | [84](#sessão-84--151026--busca-global-e-aviso-com-desfazer-padrões-do-material-3-d-129-d-130) | 15/10/2026 | Busca global no topo (Ctrl/Cmd+K ou `/`, só navega) e aviso com Desfazer nas exclusões (commit adiado no cliente), ambos a partir das páginas Search, Snackbar e Lists de `m3.material.io`; esqueletos de carregamento; sem migração, sem backend | — | +17 |
@@ -100,6 +101,25 @@ As sessões entre a 11 e a 12 — o patch de design "Prisma" (D-49, D-50), o
 upgrade de segurança S1 e a rodada de desempenho — **não têm seção própria
 aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
+
+---
+
+## Sessão 93 — 17/10/26 — Sai o aviso de dado demonstrativo e de limite de uso (D-138)
+
+**O que mudou (faixa C, só documentação e regras).** Registrada a decisão do autor de retirar
+todo aviso de "dado demonstrativo" e de "limite de uso" (tela, exportações, IA, landing) e de
+simplificar a linguagem da interface. Revogados o item 6 do `CLAUDE.md` (aviso) e o compromisso
+de que todo arquivo exportado carregue o aviso de limitação (`docs/CLAUDE.md` §1.8,
+`.claude/rules/backend-ai-exporters.md`). Ajustados `10-relatorios`, `11-usabilidade`,
+`15-dados-demonstrativos`, `REGRAS_POR_AREA`, `PROJECT_CONTEXT`, README, `sample-data/README.md`,
+`09-camada-ia`, `13-deploy`, `14-plataforma-selecao` e dois agentes de `.claude/agents/`. A
+regra de criar e apagar seed (`docs/15`) e o marcador `is_demo`/`clear_demo` ficam.
+
+**Numeração.** O plano reservava D-131 e Sessão 85, mas ambos já existiam em `main`
+(D-131 é a tabela do catálogo; Sessão 85, idem) e a Sessão 92 está no PR #152; usados D-138 e
+Sessão 93. As faixas A (backend) e B (frontend) entregam o código em PRs próprios.
+
+**Testes.** Nenhum (documentação).
 
 ---
 

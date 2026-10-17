@@ -523,7 +523,7 @@ provedor novo e sem custo:
   por isso o SVG não tem `foreignObject` nem referência externa, e tem fundo.
   O PDF dos slides é a impressão do navegador, em página paisagem nomeada.
 - **Exportações** (`app/exporters/studio.py`, `studio_pptx.py`): todas com
-  `LIMITATION_NOTICE`, o aviso de IA, o que foi omitido e as referências com
+  o aviso de IA (sem o aviso de limitação de uso, D-138), o que foi omitido e as referências com
   endereço e atribuição (D-97). Escape por formato — `html.escape` no SVG,
   filtro de caracteres de controle no PPTX e no DOCX. Os caracteres de controle
   já saem na leitura (`app/ai/studio.py`), em todo campo de toda ferramenta; o

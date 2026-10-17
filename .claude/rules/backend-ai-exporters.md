@@ -12,8 +12,9 @@ paths:
 `importers/` (Fase 3), `ai/` (Fase 6) e `exporters/` (Fase 7) estão
 implementadas.
 
-Em `exporters/`, **todo arquivo exportado carrega o aviso de limitação de uso**
-(compromisso do item 5 da proposta). O modelo `Report` é agnóstico de formato e
+Em `exporters/`, o arquivo exportado **não** carrega aviso de limitação de uso nem
+de dado demonstrativo ([D-138](docs/DECISIONS.md) revogou o compromisso do item 5
+da proposta); fonte, qualidade e licença de cada valor continuam. O modelo `Report` é agnóstico de formato e
 tem dois renderizadores: `spreadsheet.py` (CSV/XLSX) e `html.py` (imprimível). O cartão
 de material para CAE ([D-104](docs/DECISIONS.md)) **não** passa pelo `Report`:
 `exporters/cae/` lê um `CaeCard` já convertido para o sistema de unidades que o

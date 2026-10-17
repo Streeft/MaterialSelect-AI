@@ -7,18 +7,14 @@ dizer o que **não** é.
 
 ## O que todo arquivo exportado carrega
 
-Três avisos, sempre, sem opção de desligar
-(`app/exporters/report.py`):
+Uma nota, sempre (`app/exporters/report.py`): a **reprodutibilidade** — os números
+vieram de cálculo determinístico no backend sobre valores cadastrados; reexecutar
+reproduz o mesmo resultado.
 
-1. **Limitação de uso** — compromisso do item 5 da proposta: a ferramenta apoia
-   ensino e triagem preliminar, e não substitui validação experimental, análise
-   estrutural detalhada nem julgamento de engenharia. Um relatório que viaja sem
-   essa frase pode ser lido como conclusão de engenharia, que ele não é.
-2. **Reprodutibilidade** — os números vieram de cálculo determinístico no
-   backend sobre valores cadastrados; reexecutar reproduz o mesmo resultado.
-3. **Dados demonstrativos** — quando algum material exportado é fictício, este
-   aviso vem **primeiro**: quem parar na primeira linha deve parar naquela que
-   diz que os valores são inventados.
+Os avisos de **limitação de uso** (compromisso do item 5 da proposta) e de
+**dados demonstrativos** foram retirados dos arquivos por decisão do autor
+([D-138](DECISIONS.md)). O marcador `is_demo` continua no dado; só o texto saiu.
+O risco de um relatório com valor fictício viajar sem sinal é do autor.
 
 ## Injeção de fórmula
 
@@ -67,7 +63,7 @@ determinístico e organiza o resultado em seções:
 
 | Seção | O que responde |
 |---|---|
-| Aviso | os três avisos obrigatórios (aba própria no XLSX; cabeçalho no CSV, no HTML e no DOCX; slide no PPTX) |
+| Aviso | a nota de reprodutibilidade (aba própria no XLSX; cabeçalho no CSV, no HTML e no DOCX; slide no PPTX) |
 | Problema | função, objetivo, variáveis livres, contagens |
 | Restrições e funil | qual restrição eliminou o quê |
 | Candidatos | ordenação, índice e pontuação |
@@ -122,8 +118,8 @@ Três propriedades de formatação documental:
 
 - **Tabelas estruturadas e paginação:** repete a linha de cabeçalho da tabela a cada
   página (`w:tblHeader`) e impede a quebra de linhas no meio entre páginas (`w:cantSplit`).
-- **Avisos obrigatórios destacados:** os avisos de limitação de uso, reprodutibilidade e
-  dados demonstrativos abrem o documento com formatação visual destacada.
+- **Nota destacada:** a nota de reprodutibilidade abre o documento com formatação visual
+  destacada (os avisos de limitação de uso e de dados demonstrativos saíram, D-138).
 - **Formatação de células e ausência explícita:** números formatados com os mesmos 12 dígitos
   significativos de `cells.py`, e dados ausentes impressos com o texto `"ausente"` explícito (D-24).
 
@@ -138,8 +134,8 @@ Três propriedades de formatação para apresentação:
   divididas automaticamente em blocos sequenciais com numeração de continuação `(1/N)`.
 - **Interpretação técnica e laudo executivo:** no laudo, a interpretação gerada pela IA
   ganha slide dedicado com layout tipográfico refinado e indicação clara de disponibilidade/degradação.
-- **Avisos obrigatórios de engenharia:** slide final mandatório com os três avisos de limitação
-  de uso, reprodutibilidade e dados demonstrativos.
+- **Nota de engenharia:** slide final com a nota de reprodutibilidade (sem os avisos de
+  limitação de uso e de dados demonstrativos, D-138).
 
 ## O laudo de engenharia (Fase 9)
 
@@ -202,9 +198,8 @@ Regras que não se afrouxam:
   no LS-DYNA), nunca pelo catálogo.
 - **Faixa sai pelo ponto representativo**, e o arquivo diz isso e traz os
   limites convertidos.
-- **Todo arquivo carrega** o aviso de limitação de uso, a fonte, a qualidade e
-  a licença de cada valor, e o aviso de fictício quando o material **ou a fonte
-  de algum valor** é de demonstração. Registro próprio (D-62) é declarado.
+- **Todo arquivo carrega** a fonte, a qualidade e a licença de cada valor. Não leva
+  mais aviso de limitação de uso nem de fictício (D-138). Registro próprio (D-62) é declarado.
 - **Escape por formato.** MatML é escapado como XML (e os caracteres que o XML
   1.0 não carrega saem); nos decks o nome nunca quebra linha, vira rótulo
   `[A-Za-z0-9_-]` de até 80 caracteres no `*MATERIAL, NAME=` do Abaqus, perde

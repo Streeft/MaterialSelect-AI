@@ -90,8 +90,10 @@ seja uma escrita escapa do rollback e vaza para todos os testes seguintes**.
 `app/tests/test_isolation.py` é o canário que protege isso; se ele ficar
 vermelho, o isolamento quebrou.
 
-### 1.8 Todo arquivo exportado carrega o aviso de limitação
-Compromisso do item 5 da proposta. Sem opção de desligar.
+### 1.8 O arquivo exportado não leva aviso de limitação nem de dado demonstrativo
+O compromisso do item 5 da proposta foi revogado em [D-138](DECISIONS.md), por
+decisão do autor. Seguem em todo arquivo a fonte, a qualidade e a licença de
+cada valor; o marcador `is_demo` segue no dado.
 
 ### 1.9 Sem segredos versionados
 Configuração por variáveis de ambiente. Há `.env.example`.
