@@ -76,7 +76,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   componentes e vários trechos de transporte, e sete rotas de fim de vida
   (D-121).
 - **Sintetizar** — compósito de dois constituintes, espuma e **painel
-  sanduíche**, cada valor com a lei que o produziu e a sua base.
+  sanduíche**, cada valor com a lei que o produziu e a sua base; e a
+  **varredura de família** (API), que mostra como um índice anda ao longo da
+  razão núcleo/face do painel ou da fração do compósito, sem gravar nada.
 - **Baterias** — dimensionamento de um pack a partir de químicas de célula
   catalogadas, cada uma com a sua fonte.
 
