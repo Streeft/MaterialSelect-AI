@@ -10582,3 +10582,35 @@ cor; `link` ainda troca de cor ao passar, por ser texto.
 
 **Consequências.** Frontend apenas. Todo o MSDS ganha o véu 8/10/10, não só botões, chips e
 FAB. Segue a Etapa 3 (campos).
+
+
+## D-135 — Material 3, campos: contorno de 4 px, papéis da rota nos controles de seleção
+
+**Contexto.** Etapa 3 do design system do Material 3 (D-133, D-134), páginas *Text fields*,
+*Checkbox*, *Radio button*, *Switch* e *Sliders* de `m3.material.io`. Duas escolhas do autor,
+com a medição à frente.
+
+**Decisão.**
+- **Campo de texto: contorno M3, rótulo acima.** Raio 4 px (`--shape-extra-small`, era 10),
+  borda `--m3-outline`, `--m3-on-surface` ao passar o mouse, foco com contorno de 2 px em
+  `--m3-primary` desenhado por dentro da borda (a caixa não cresce) e erro em `--m3-error`.
+  O **rótulo continua acima do campo**: o flutuante mudaria a estrutura do `Field` e o nome
+  acessível de todo formulário; fica registrado como divergência deliberada, não como pendência.
+- **Controles de seleção nos papéis da rota.** Caixa de seleção, rádio, switch e slider usam
+  `--m3-outline` desmarcados e `--m3-primary` / `--m3-on-primary` marcados. A caixa tem raio 2 px
+  e borda de 2 px; o switch tem 52 × 32 px, com polegar de 16 px que cresce para 24 px ao
+  marcar; o slider só troca de cor e ganha o halo. Sombra de controle some.
+- **Halo de estado.** Círculo de 40 px atrás da caixa, do rádio e do polegar do slider, em
+  `on-surface` (desmarcado) ou `primary` (marcado), a 8/10/10 % (D-133). Sem movimento.
+
+**Medição (D-34).** A borda do controle desmarcado tem de passar de 3:1 sobre o painel. Testado
+nas 34 combinações de rota e tema contra `--surface-raised` de cada tema (branco no claro,
+27 30 38 no escuro): todas passam. Antes era uma cor neutra fixa; agora acompanha o matiz.
+
+**O que não muda.** `--quality-*`, `--success/warning/danger/info` e a Okabe–Ito. O texto de
+apoio e o contador seguem nos tokens atuais. A nota de erro dos campos continua em
+`--danger-fg`, que já atende 4,5:1; só a borda passou para `--m3-error`.
+
+**Consequências.** Frontend apenas. Mexe em todo formulário do app (raio e cor), então a
+conferência visual no preview vale mais que nas etapas anteriores. Segue a Etapa 4
+(contêineres e sobreposições).
