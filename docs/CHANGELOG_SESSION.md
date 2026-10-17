@@ -105,6 +105,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 97 — 17/10/26 — App instalável: manifesto, ícone e página offline (D-142)
+
+**O que mudou.** `app/manifest.ts`, `viewport.themeColor` no layout raiz, ícones provisórios (monograma
+"MS") em `public/icons/`, `app/icon.svg` e `app/apple-icon.png`, `public/offline.html`, `public/sw.js`
+(só responde navegação que falha, com a página offline) e `RegisterServiceWorker` (só em produção).
+
+**Testes.** +13 de frontend (`lib/pwa/pwa.test.tsx`: manifesto, ícones existentes, página offline
+sem recurso externo, o worker contra um escopo simulado, registro). Sem backend nem migração.
+
 ## Sessão 96 — 17/10/26 — Transição entre telas: esmaecer (D-141)
 
 **O que mudou.** `RouteTransition` (esmaece a tela nova, só opacidade, desligado sob

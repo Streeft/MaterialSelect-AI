@@ -10788,3 +10788,34 @@ exportações do backend e pede o Deploy da API.
 
 **Consequências.** Frontend apenas; os testes que buscavam o texto antigo foram atualizados. Depende
 da D-138 (a branch parte do PR da faixa B).
+
+
+## D-142 — App instalável: manifesto, ícone provisório e só a página "Sem conexão" offline
+
+**Contexto.** Sétimo item da lista de padrões dos apps do Google: abrir o MaterialSelect AI da
+tela inicial do celular ou como janela própria. Duas escolhas do autor, com o custo à frente.
+
+**Decisão.**
+- **Manifesto** (`app/manifest.ts`): nome, `start_url: /app` (quem instala quer retomar o
+  trabalho, não ver a vitrine), `display: standalone`, `lang: pt-BR`, `theme_color` no azul da marca.
+  A cor da barra do navegador acompanha o tema do leitor por `viewport.themeColor` (papel claro,
+  superfície escura).
+- **Ícone provisório.** O app não tinha favicon nem marca. Um monograma "MS" em traço geométrico
+  branco sobre `#4567A8` (sem arquivo de fonte), em 192 e 512, em versão *maskable* com a marca
+  dentro dos 80 % de área segura, `apple-icon` de 180 e `app/icon.svg` de favicon. Os SVG de origem
+  ficam em `public/icons/`. **Troca-se o arquivo quando houver a marca de verdade**; nada no
+  código muda.
+- **Offline: só a página.** `public/sw.js` responde com `/offline.html` quando uma *navegação* falha
+  por falta de rede, e mais nada. Não guarda catálogo, estudo, resultado nem resposta de API, e
+  não responde nenhum pedido que não seja navegação. Guardar dado de material sem fonte e data
+  quebraria a regra de nunca mostrá-lo assim (princípio 1). A página diz o que falta e que o
+  rascunho do assistente (D-139) continua salvo no navegador. Instalável, mas **não utilizável offline**.
+- **Registro** (`RegisterServiceWorker`) só em produção: em `next dev` o worker ficaria na frente do
+  recarregamento a quente. Falha de registro (janela privada) é engolida.
+
+**Descartado.** Guardar as últimas respostas do catálogo, com "dados de <data>": útil e muito
+maior (invalidação, escopo por conta, risco de mostrar catálogo velho); seria PR próprio e decisão
+própria.
+
+**Consequências.** Frontend apenas. `cache` do worker é versionado (`msai-offline-v1`): mude o nome
+ao alterar `offline.html`. O Lighthouse não tem mais categoria PWA, então nenhum limiar muda.

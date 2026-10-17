@@ -110,6 +110,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   Nunca `transform` num ancestral do conteúdo (quebra todo `position: fixed` dentro); movimento
   novo respeita `prefers-reduced-motion`.
 
+- **O app é instalável, mas não guarda dado de material** ([D-142](docs/DECISIONS.md)): `public/sw.js`
+  só responde com `/offline.html` a uma navegação que falhou. Nunca cache de API, catálogo, estudo
+  ou resultado: propriedade sem fonte e data fere o princípio 1. Ao mudar `offline.html`, mude `CACHE`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum
