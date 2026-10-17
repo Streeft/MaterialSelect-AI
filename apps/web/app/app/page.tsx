@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ptBR } from "@/lib/i18n";
-import { Alert, ButtonLink, Disclosure, Section } from "@/components/ui";
+import { ButtonLink, Disclosure, Section } from "@/components/ui";
 import { IconArrowRight } from "@/components/ui/icons";
-import { LimitationNotice } from "@/components/LimitationNotice";
 import { Greeting } from "@/components/home/Greeting";
 import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
@@ -35,14 +34,6 @@ export default function HomePage() {
           {t.start}
         </ButtonLink>
       </section>
-
-      {/* The two notices the proposal requires, on the first screen someone
-          sees — short here, in full in the footer of this same page. Neither
-          can be closed. */}
-      <div className="space-y-2">
-        <Alert tone="warning">{ptBR.demoWarning}</Alert>
-        <LimitationNotice variant="compact" />
-      </div>
 
       <RecentRecords />
 

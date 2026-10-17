@@ -264,7 +264,7 @@ describe("SlidesView (D-98)", () => {
     expect(seen.slides).toBe(3);
     for (const slide of deck.slides) expect(seen.text).toContain(slide.title);
     expect(seen.text).toContain("Ânodo de sacrifício");
-    expect(seen.text).toContain(ptBR.limitation.full);
+    expect(seen.text).not.toContain("Limite de uso");
     expect(seen.text).toContain(ptBR.notebooks.accuracy);
     expect(seen.text).toContain(
       "Um slide foi omitido: número fora do trecho citado.",

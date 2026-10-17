@@ -1,7 +1,6 @@
 import type { Designation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import {
-  Badge,
   EmptyState,
   RowHeader,
   TBody,
@@ -24,10 +23,8 @@ const t = ptBR.detail;
  */
 export function DesignationTable({
   designations,
-  materialIsDemo,
 }: {
   designations: Designation[];
-  materialIsDemo: boolean;
 }) {
   if (designations.length === 0) {
     return <EmptyState title={t.noDesignations} description={t.noDesignationsHint} />;
@@ -58,7 +55,6 @@ export function DesignationTable({
                 <span className="flex flex-col">
                   <span className="flex flex-wrap items-center gap-1.5">
                     {d.source_label}
-                    {d.is_demo && !materialIsDemo && <Badge tone="warning">{t.demoRow}</Badge>}
                   </span>
                   <span className="text-2xs text-ink-subtle">{d.citation ?? t.noCitation}</span>
                 </span>

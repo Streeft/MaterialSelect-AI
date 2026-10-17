@@ -101,8 +101,6 @@ describe("Mudanças entre releases (D-108)", () => {
     expect(counts.novo).toMatch(/1/);
     expect(counts.desativado).toMatch(/1/);
     expect(counts.inalterado).toMatch(/1/);
-    // The fictitious releases say so.
-    expect(screen.getByText(t.demoNotice)).toBeInTheDocument();
     // Both releases are described, not just named by slug.
     expect(screen.getByRole("table", { name: t.metaCaption })).toBeInTheDocument();
   });

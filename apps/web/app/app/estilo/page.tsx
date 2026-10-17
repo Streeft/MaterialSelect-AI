@@ -572,8 +572,8 @@ export default function StyleGuidePage() {
           <Alert tone="info" title="Informação">
             Um aviso permanente, não descartável.
           </Alert>
-          <Alert tone="warning" title={ptBR.limitation.title}>
-            {ptBR.limitation.full}
+          <Alert tone="warning" title="Atenção">
+            Um aviso de atenção, também permanente.
           </Alert>
         </div>
       </Section>
@@ -773,8 +773,8 @@ export default function StyleGuidePage() {
               <RadioOption name="demo-goal" label="Minimizar" />
             </RadioGroup>
             <Checkbox
-              label="Incluir materiais demonstrativos"
-              hint="Valores fictícios, marcados na interface"
+              label="Incluir materiais inativos"
+              hint="Mostra também os desativados"
               className="sm:col-span-2"
             />
           </CardBody>

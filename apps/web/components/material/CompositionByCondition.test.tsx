@@ -111,7 +111,7 @@ describe("atomicContent", () => {
 
 describe("CompositionByCondition (TM2-c)", () => {
   it("opens on the composition with no condition, and writes the absent atomic percent", () => {
-    render(<CompositionByCondition entries={entries} atomic={atomic} materialIsDemo={false} />);
+    render(<CompositionByCondition entries={entries} atomic={atomic} />);
     const table = screen.getByRole("table", { name: t.compositionCaption });
     expect(within(table).getByText(t.contentBalance)).toBeInTheDocument();
     // Not a column of blanks: a sentence, with the reason.
@@ -123,7 +123,7 @@ describe("CompositionByCondition (TM2-c)", () => {
   it("shows the chosen condition from the URL, with the derived atomic percent labelled", async () => {
     nav.query = `${CONDITION_PARAM}=laminado`;
     const { container } = render(
-      <CompositionByCondition entries={entries} atomic={atomic} materialIsDemo={false} />,
+      <CompositionByCondition entries={entries} atomic={atomic} />,
     );
     const table = screen.getByRole("table", { name: t.conditionCaption("laminado") });
     expect(within(table).getByText(t.columnAtomic)).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe("CompositionByCondition (TM2-c)", () => {
 
   it("keeps the choice in the URL, and no condition is the absence of the parameter", async () => {
     nav.query = `${CONDITION_PARAM}=laminado&unidades=x`;
-    render(<CompositionByCondition entries={entries} atomic={atomic} materialIsDemo={false} />);
+    render(<CompositionByCondition entries={entries} atomic={atomic} />);
     const picker = screen.getByRole("group", { name: t.conditionPicker });
     await userEvent.click(within(picker).getByRole("button", { name: t.conditionNone }));
     expect(nav.replace).toHaveBeenCalledWith("/app/materiais/2?unidades=x", { scroll: false });
@@ -144,20 +144,20 @@ describe("CompositionByCondition (TM2-c)", () => {
 
   it("an unknown condition in the URL falls back to the first, never to an empty table", () => {
     nav.query = `${CONDITION_PARAM}=forjado`;
-    render(<CompositionByCondition entries={entries} atomic={atomic} materialIsDemo={false} />);
+    render(<CompositionByCondition entries={entries} atomic={atomic} />);
     expect(screen.getByRole("table", { name: t.compositionCaption })).toBeInTheDocument();
     expect(screen.queryByText(t.noComposition)).not.toBeInTheDocument();
   });
 
   it("a single composition has no picker", () => {
     render(
-      <CompositionByCondition entries={entries.slice(2)} atomic={atomic.slice(0, 1)} materialIsDemo={false} />,
+      <CompositionByCondition entries={entries.slice(2)} atomic={atomic.slice(0, 1)} />,
     );
     expect(screen.queryByRole("group", { name: t.conditionPicker })).not.toBeInTheDocument();
   });
 
   it("no composition is still written out", () => {
-    render(<CompositionByCondition entries={[]} atomic={[]} materialIsDemo={false} />);
+    render(<CompositionByCondition entries={[]} atomic={[]} />);
     expect(screen.getByText(t.noComposition)).toBeInTheDocument();
   });
 });

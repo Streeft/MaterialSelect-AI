@@ -123,7 +123,6 @@ export function CoverageSummary({ overview }: { overview: DashboardOverview }) {
         label={t.materials}
         value={overview.materials}
         format={integer}
-        note={overview.demo_materials > 0 ? t.demoNote(overview.demo_materials) : undefined}
       />
       <StatTile index={1} label={t.classes} value={overview.classes} format={integer} />
       <StatTile index={2} label={t.properties} value={overview.properties} format={integer} />

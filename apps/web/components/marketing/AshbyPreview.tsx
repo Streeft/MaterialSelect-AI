@@ -80,7 +80,7 @@ export function AshbyPreview() {
         viewBox="0 0 700 400"
         className="mt-3 h-auto w-full"
         role="img"
-        aria-label="Mapa de Ashby de módulo de Young contra densidade, em escala logarítmica. Dez materiais do catálogo de demonstração, agrupados por classe, com a linha-guia do índice raiz de E sobre rho. A fibra de carbono e epóxi aparece em primeiro lugar."
+        aria-label="Mapa de Ashby de módulo de Young contra densidade, em escala logarítmica. Dez materiais do catálogo, agrupados por classe, com a linha-guia do índice raiz de E sobre rho. A fibra de carbono e epóxi aparece em primeiro lugar."
       >
         <g stroke="rgb(var(--edge-subtle))" strokeWidth="1">
           <line x1="66" y1="16" x2="66" y2="344" />

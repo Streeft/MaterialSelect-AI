@@ -52,10 +52,7 @@ const group: EquivalenceGroup = {
   ],
 };
 
-function mount(
-  data: MaterialEquivalences | Error | "pending",
-  materialIsDemo = false,
-) {
+function mount(data: MaterialEquivalences | Error | "pending") {
   if (data === "pending")
     api.listMaterialEquivalences.mockReturnValue(new Promise(() => {}));
   else if (data instanceof Error)
@@ -66,7 +63,7 @@ function mount(
   });
   return render(
     <QueryClientProvider client={client}>
-      <EquivalenceSection materialId={2} materialIsDemo={materialIsDemo} />
+      <EquivalenceSection materialId={2} />
     </QueryClientProvider>,
   );
 }
@@ -101,8 +98,6 @@ describe("EquivalenceSection (D-115)", () => {
     expect(screen.getByText("Aproximada")).toBeInTheDocument();
     expect(screen.getByText(group.kind_meaning)).toBeInTheDocument();
     expect(screen.getByText("Dataset Demo MaterialSelect")).toBeInTheDocument();
-    // A fictitious group on a real material says so.
-    expect(screen.getByText(t.demoRow)).toBeInTheDocument();
     // Absence is written, never blank, "—" or 0.
     expect(screen.getByText(t.noLicense)).toBeInTheDocument();
     expect(screen.getByText(t.noCitation)).toBeInTheDocument();
@@ -117,9 +112,4 @@ describe("EquivalenceSection (D-115)", () => {
     expect(violations, describeViolations(violations)).toHaveLength(0);
   });
 
-  it("does not repeat 'fictício' when the page already says the material is", async () => {
-    mount({ material_id: 2, groups: [group] }, true);
-    await screen.findByText("Aproximada");
-    expect(screen.queryByText(t.demoRow)).not.toBeInTheDocument();
-  });
 });

@@ -5,7 +5,6 @@ import type { Curve, CurveAxis, CurveSeries } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { paletteSeats, type ClassDash } from "@/lib/design/palette";
-import { Badge } from "@/components/ui";
 import { ChartFrame } from "./ChartFrame";
 import { ChartLegend, MarkerSymbol, type LegendItem } from "./ChartLegend";
 import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
@@ -200,11 +199,6 @@ export function CurveChart({
         </p>
       ))}
       <div className="flex flex-col gap-0.5 text-caption text-ink-muted">
-        {curve.is_demo ? (
-          <span>
-            <Badge tone="warning">{ptBR.demoBadge}</Badge> {t.demo}
-          </span>
-        ) : null}
         <span>{t.source(curve.source_label)}</span>
         {curve.citation ? <span>{t.citation(curve.citation)}</span> : null}
         <span>
