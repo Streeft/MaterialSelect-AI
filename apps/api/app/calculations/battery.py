@@ -542,3 +542,79 @@ def _generate_technical_summary(
         f"Para aplicações de segurança crítica ou recarga ultra-pesada, "
         f"{by_slug[safest].chemistry_name} oferece a maior estabilidade térmica intrínseca."
     )
+
+
+# --- Ragone: linhas de iso-tempo (D-143) --------------------------------------
+
+#: Os tempos de descarga das linhas de iso-tempo, em horas. Conjunto fixo e
+#: espaçado em meia década: o leitor compara figuras entre sessões, e um conjunto
+#: que mudasse com os dados faria duas telas discordarem sobre a mesma química.
+RAGONE_ISO_TIMES_H: tuple[float, ...] = (0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0)
+
+
+@dataclass(frozen=True)
+class RagoneIsoTimeLine:
+    """Uma reta E = P·t: `hours` e os dois extremos `(energia, potência)`."""
+
+    hours: float
+    points: tuple[tuple[float, float], tuple[float, float]]
+
+
+def ragone_iso_time_lines(
+    energy_range: tuple[float, float],
+    power_range: tuple[float, float],
+    times_h: tuple[float, ...] = RAGONE_ISO_TIMES_H,
+) -> list[RagoneIsoTimeLine]:
+    """Linhas de iso-tempo do plano de Ragone, recortadas à caixa do gráfico.
+
+    O eixo x é a energia específica E (Wh/kg) e o y a potência específica P
+    (W/kg). Descarregar à potência P durante t horas entrega E = P·t, então a
+    linha de tempo t é P = E / t — uma reta de inclinação 1 em log–log. É
+    **geometria**, não dado: nenhum valor de material entra além dos limites da
+    caixa, e por isso é calculada aqui e enviada em coordenadas de dados (ADR
+    0004). Uma linha que não cruza a caixa é omitida, nunca encurtada a um ponto.
+
+    As extremidades saem de `E` (nunca de somas de passos), e `P` é derivada
+    delas, para que `E = P·t` valha em cada extremidade até o arredondamento do
+    ponto flutuante.
+    """
+    e_min, e_max = energy_range
+    p_min, p_max = power_range
+    for bound in (e_min, e_max, p_min, p_max):
+        if not (math.isfinite(bound) and bound > 0):
+            raise ValueError("Os limites do plano de Ragone devem ser positivos e finitos.")
+    if e_min >= e_max or p_min >= p_max:
+        raise ValueError("Os limites do plano de Ragone devem ter mínimo menor que o máximo.")
+
+    lines: list[RagoneIsoTimeLine] = []
+    for hours in times_h:
+        if not (math.isfinite(hours) and hours > 0):
+            raise ValueError("O tempo de uma linha de iso-tempo deve ser positivo.")
+        # P = E / t dentro de [p_min, p_max]  <=>  E dentro de [p_min·t, p_max·t].
+        low = max(e_min, p_min * hours)
+        high = min(e_max, p_max * hours)
+        if low >= high:
+            continue
+        lines.append(
+            RagoneIsoTimeLine(
+                hours=hours,
+                points=((low, low / hours), (high, high / hours)),
+            )
+        )
+    return lines
+
+
+def ragone_bounds(values: list[float] | tuple[float, ...], pad: float = 2.0) -> tuple[float, float]:
+    """Limites de um eixo log: o menor e o maior valor, com folga multiplicativa.
+
+    `pad` é um fator (2 = metade e o dobro), porque em escala log a folga é uma
+    razão — somar uma constante a um eixo log não tem sentido. Recusa conjunto
+    vazio ou com valor não positivo: ausência não vira limite.
+    """
+    if not values:
+        raise ValueError("Sem valores, não há limites para o eixo de Ragone.")
+    if any(not (math.isfinite(v) and v > 0) for v in values):
+        raise ValueError("Os valores de um eixo log devem ser positivos e finitos.")
+    if not (pad > 1 and math.isfinite(pad)):
+        raise ValueError("A folga do eixo deve ser um fator maior que 1.")
+    return (min(values) / pad, max(values) * pad)

@@ -15,6 +15,8 @@ from app.calculations.battery import (
     CellSpec,
     compare_chemistries,
     design_pack,
+    ragone_bounds,
+    ragone_iso_time_lines,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.models.battery_chemistry import BatteryChemistry
@@ -26,6 +28,12 @@ from app.schemas.battery import (
     ChemistryComparisonItemOut,
     PackDesignRequest,
     PackDesignResultOut,
+    RagoneAxisOut,
+    RagoneExcludedOut,
+    RagoneIsoTimeOut,
+    RagoneLinePointOut,
+    RagoneOut,
+    RagonePointOut,
 )
 
 
@@ -125,6 +133,98 @@ class BatteryService:
     def get_chemistry(self, slug: str) -> BatteryChemistryOut:
         """Uma química pelo slug, ou 404 com o slug escrito."""
         return self._out(self._row(slug))
+
+    #: A base da potência não está declarada no catálogo (D-143): o aviso diz isso
+    #: em vez de supor pico ou contínua.
+    RAGONE_POWER_NOTE = (
+        "A potência específica é da célula, não do pack, e o catálogo não declara a "
+        "base dela (pico ou contínua). Compare as químicas entre si, mas não leia "
+        "o valor como a potência que um pack entrega."
+    )
+
+    def ragone(self) -> RagoneOut:
+        """Plano de Ragone (energia × potência específicas, log–log) das químicas.
+
+        Os pontos são os valores do catálogo, sem conta. Química sem energia ou
+        potência positivas não entra no gráfico — vai para `excluded` com o
+        motivo escrito, nunca como zero (princípio 3). As linhas de iso-tempo
+        (E = P·t) são geometria calculada em `calculations/battery.py`.
+        """
+        points: list[RagonePointOut] = []
+        excluded: list[RagoneExcludedOut] = []
+        for row in self._rows():
+            missing = [
+                label
+                for label, value in (
+                    ("energia específica", row.specific_energy),
+                    ("potência específica", row.specific_power),
+                )
+                if value is None or not (value == value and 0 < value < float("inf"))
+            ]
+            if missing:
+                excluded.append(
+                    RagoneExcludedOut(
+                        slug=row.slug,
+                        name=row.name,
+                        reason=(
+                            "Fora do gráfico: sem "
+                            + " e sem ".join(missing)
+                            + " positiva no catálogo. Escala logarítmica não representa "
+                            "zero, e ausência não é zero."
+                        ),
+                    )
+                )
+                continue
+            out = self._out(row)
+            points.append(
+                RagonePointOut(
+                    slug=out.slug,
+                    name=out.name,
+                    specific_energy=out.specific_energy,
+                    specific_power=out.specific_power,
+                    citation=out.citation,
+                    source=out.source,
+                )
+            )
+
+        if not points:
+            return RagoneOut(
+                points=[],
+                iso_time=[],
+                excluded=excluded,
+                power_basis_note=self.RAGONE_POWER_NOTE,
+            )
+
+        e_lo, e_hi = ragone_bounds([p.specific_energy for p in points])
+        p_lo, p_hi = ragone_bounds([p.specific_power for p in points])
+        lines = ragone_iso_time_lines((e_lo, e_hi), (p_lo, p_hi))
+        return RagoneOut(
+            points=points,
+            x_axis=RagoneAxisOut(
+                key="specific_energy",
+                label="Energia específica da célula",
+                unit="Wh/kg",
+                min_value=e_lo,
+                max_value=e_hi,
+            ),
+            y_axis=RagoneAxisOut(
+                key="specific_power",
+                label="Potência específica da célula (base não declarada)",
+                unit="W/kg",
+                min_value=p_lo,
+                max_value=p_hi,
+            ),
+            iso_time=[
+                RagoneIsoTimeOut(
+                    hours=line.hours,
+                    label=f"{line.hours:g} h".replace(".", ","),
+                    points=[RagoneLinePointOut(x=x, y=y) for x, y in line.points],
+                )
+                for line in lines
+            ],
+            excluded=excluded,
+            power_basis_note=self.RAGONE_POWER_NOTE,
+        )
 
     def list_archetypes(self) -> list[ApplicationArchetypeOut]:
         """List standard application presets (EV, Drone, Power Tools, BESS)."""

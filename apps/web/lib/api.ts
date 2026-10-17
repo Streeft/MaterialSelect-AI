@@ -7,6 +7,7 @@ import type {
   AIStatus,
   ApplicationArchetype,
   BatteryChemistry,
+  RagoneResult,
   BatteryComparisonRequest,
   BatteryComparisonResult,
   BillingStatus,
@@ -1121,6 +1122,10 @@ export function createSynthesis(
 
 export function listBatteryChemistries(): Promise<BatteryChemistry[]> {
   return request<BatteryChemistry[]>("/api/baterias/quimicas");
+}
+
+export function getBatteryRagone(): Promise<RagoneResult> {
+  return request<RagoneResult>("/api/baterias/ragone");
 }
 
 export function getBatteryChemistry(slug: string): Promise<BatteryChemistry> {

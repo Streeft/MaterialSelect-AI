@@ -3,6 +3,7 @@
 Endpoints:
 - GET  /api/baterias/quimicas: List all electrochemical cell chemistries.
 - GET  /api/baterias/quimicas/{slug}: Get chemistry details and guidelines.
+- GET  /api/baterias/ragone: Ragone plane (specific energy x power) with iso-time lines.
 - GET  /api/baterias/arquetipos: List application archetypes (EV, Drone, Power Tools, BESS).
 - POST /api/baterias/dimensionar: Size a battery pack for a given chemistry and target requirements.
 - POST /api/baterias/comparar: Size and compare all chemistries under identical requirements.
@@ -23,6 +24,7 @@ from app.schemas.battery import (
     BatteryComparisonResultOut,
     PackDesignRequest,
     PackDesignResultOut,
+    RagoneOut,
 )
 from app.services.battery_service import BatteryService
 
@@ -36,6 +38,15 @@ def list_chemistries(
 ) -> list[BatteryChemistryOut]:
     """List all available electrochemical cell chemistries in the catalog."""
     return BatteryService(db, user.id).list_chemistries()
+
+
+@router.get("/ragone", response_model=RagoneOut)
+def ragone(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> RagoneOut:
+    """Ragone plane of the catalogued chemistries, with iso-time lines (E = P·t)."""
+    return BatteryService(db, user.id).ragone()
 
 
 @router.get("/quimicas/{slug}", response_model=BatteryChemistryOut)

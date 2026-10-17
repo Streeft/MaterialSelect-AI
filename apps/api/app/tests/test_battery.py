@@ -209,3 +209,70 @@ def test_compare_refuses_an_empty_catalogue():
             target_energy_kwh=60.0,
             target_power_kw=150.0,
         )
+
+
+# --- Ragone: linhas de iso-tempo (D-143) --------------------------------------
+
+
+def test_iso_time_line_is_energy_equals_power_times_time() -> None:
+    """Em cada extremidade, E = P·t: a linha de tempo t é P = E/t."""
+    from app.calculations.battery import ragone_iso_time_lines
+
+    lines = ragone_iso_time_lines((10.0, 1000.0), (10.0, 100000.0))
+    assert lines
+    for line in lines:
+        for energy, power in line.points:
+            assert energy == pytest.approx(power * line.hours, rel=1e-12)
+
+
+def test_iso_time_line_is_a_straight_line_of_slope_one_in_log_log() -> None:
+    import math
+
+    from app.calculations.battery import ragone_iso_time_lines
+
+    for line in ragone_iso_time_lines((10.0, 1000.0), (10.0, 100000.0)):
+        (x0, y0), (x1, y1) = line.points
+        slope = (math.log10(y1) - math.log10(y0)) / (math.log10(x1) - math.log10(x0))
+        assert slope == pytest.approx(1.0, rel=1e-9)
+
+
+def test_iso_time_lines_stay_inside_the_box_and_drop_those_outside() -> None:
+    from app.calculations.battery import ragone_iso_time_lines
+
+    box_e, box_p = (50.0, 400.0), (100.0, 5000.0)
+    lines = ragone_iso_time_lines(box_e, box_p, times_h=(0.1, 1.0, 1000.0))
+    for line in lines:
+        for energy, power in line.points:
+            assert box_e[0] <= energy <= box_e[1]
+            assert box_p[0] * (1 - 1e-12) <= power <= box_p[1] * (1 + 1e-12)
+    # 1000 h pede P = E/1000 <= 0,4 W/kg, abaixo do piso de 100: não cruza a caixa.
+    assert [line.hours for line in lines] == [0.1, 1.0]
+
+
+def test_iso_time_lines_are_deterministic() -> None:
+    from app.calculations.battery import ragone_iso_time_lines
+
+    a = ragone_iso_time_lines((10.0, 1000.0), (10.0, 100000.0))
+    b = ragone_iso_time_lines((10.0, 1000.0), (10.0, 100000.0))
+    assert a == b
+
+
+@pytest.mark.parametrize(
+    "energy,power",
+    [((0.0, 10.0), (1.0, 2.0)), ((1.0, 10.0), (-1.0, 2.0)), ((5.0, 5.0), (1.0, 2.0))],
+)
+def test_iso_time_lines_refuse_zero_negative_or_degenerate_bounds(energy, power) -> None:
+    from app.calculations.battery import ragone_iso_time_lines
+
+    with pytest.raises(ValueError):
+        ragone_iso_time_lines(energy, power)
+
+
+def test_ragone_bounds_pad_by_a_factor_and_refuse_absence() -> None:
+    from app.calculations.battery import ragone_bounds
+
+    assert ragone_bounds([100.0, 200.0], pad=2.0) == (50.0, 400.0)
+    with pytest.raises(ValueError):
+        ragone_bounds([])
+    with pytest.raises(ValueError):
+        ragone_bounds([100.0, 0.0])

@@ -117,7 +117,7 @@ function guideText(map: PropertyMap): string | undefined {
  * The range is widened by a third of a decade each way, so a tick is ready
  * wherever Plotly's autorange stops; Plotly only draws the ones in view.
  */
-function logAxisTicks(min: number | null, max: number | null) {
+export function logAxisTicks(min: number | null, max: number | null) {
   const values =
     min !== null && max !== null ? logTicks(min / 3, max * 3) : null;
   if (!values) return {};
@@ -209,7 +209,7 @@ function tipFor(point: MapPoint, map: PropertyMap): TooltipContent {
 }
 
 /** An axis title that keeps the theme's title font instead of replacing it. */
-function titled(axis: Partial<LayoutAxis> | undefined, text: string): Partial<LayoutAxis> {
+export function titled(axis: Partial<LayoutAxis> | undefined, text: string): Partial<LayoutAxis> {
   const base = axis?.title;
   return { ...axis, title: { ...(typeof base === "object" ? base : {}), text } };
 }
