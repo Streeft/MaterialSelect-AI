@@ -84,7 +84,7 @@ export function TBody({ className, children, ...rest }: HTMLAttributes<HTMLTable
       // in the first column to the value in the last. `colors` only — a row that
       // also scaled would shift every row under it.
       className={cn(
-        "divide-y divide-edge-subtle [&>tr:hover]:bg-surface-sunken [&>tr]:transition-colors",
+        "divide-y divide-edge-subtle [&>tr:hover]:bg-m3-on-surface/[0.08] [&>tr]:transition-colors",
         className,
       )}
     >

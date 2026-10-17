@@ -103,6 +103,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 91 — 17/10/26 — Material 3, navegação e dados (D-137)
+
+**O que mudou.** Abas com indicador de 3 px em `--m3-primary` (some o sublinhado de 2 px);
+pílula de 56 × 32 no destino ativo da barra inferior (`BottomNav.tsx`, sobre o trilho escuro);
+hover de item de lista e de linha de tabela em véu de 8 %.
+
+**Testes.** +5 de frontend (`lib/msds/navigation.test.ts`). Sem backend nem migração.
+
 ## Sessão 90 — 17/10/26 — Material 3, contêineres e sobreposições (D-136)
 
 **O que mudou.** `msds.css`: card interativo sem `translateY` (véu + elevação 2); diálogo de 28 px

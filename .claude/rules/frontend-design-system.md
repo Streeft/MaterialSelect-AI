@@ -98,6 +98,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `translateY` (véu + elevação 2); diálogo 28 px em `surface-container-high`; scrim `--m3-scrim`
   a 32 %; menu/popover em `surface-container`; snackbar e dica em `inverse-surface`.
 
+- **Navegação e dados no M3** ([D-137](docs/DECISIONS.md)): aba com indicador de 3 px em
+  `--m3-primary`; barra inferior com pílula 56 × 32 **sobre o trilho escuro** (D-37 vale);
+  item de lista e linha de tabela com véu de 8 %, nunca preenchimento fixo.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

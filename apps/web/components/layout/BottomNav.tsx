@@ -98,9 +98,8 @@ function useHideOnScrollDown(pathname: string): boolean {
  * `pb-[env(safe-area-inset-bottom)]` keeps the row above iOS's gesture bar;
  * without it, the fifth item sits under it and stops being tappable.
  *
- * The active indicator is a 3 px bar at the top of the item, not the bottom:
- * at the bottom it would fall inside the safe area, where half the devices
- * hide it.
+ * The active indicator is a 56 x 32 pill behind the icon (D-137, after the M3
+ * navigation bar); it replaced the 3 px bar at the top of the item.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -134,18 +133,22 @@ export function BottomNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex min-h-12 flex-col items-center justify-center gap-1 rounded-control px-1 transition",
+              "group relative flex min-h-12 flex-col items-center justify-center gap-1 rounded-control px-1 transition",
               "active:scale-[0.96]",
-              active ? "bg-rail-accent/20 text-rail-accent" : "text-rail-ink-subtle",
+              active ? "text-rail-accent" : "text-rail-ink-subtle",
             )}
           >
-            {active ? (
-              <span
-                aria-hidden
-                className="absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-full bg-rail-accent"
-              />
-            ) : null}
-            <Icon className="h-[19px] w-[19px] shrink-0" />
+            {/* D-137: the M3 active indicator, a 56 x 32 pill behind the icon. The bar is the dark rail (D-37),
+                so the pill is the rail accent tint rather than secondary-container; hover is the state veil. */}
+            <span
+              aria-hidden
+              className={cn(
+                "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+                active ? "bg-rail-accent/20" : "group-hover:bg-rail-ink/[0.08] group-active:bg-rail-ink/10",
+              )}
+            >
+              <Icon className="h-[19px] w-[19px] shrink-0" />
+            </span>
             <span className={cn("text-[0.5625rem] leading-tight", active && "font-semibold")}>
               {item.label}
             </span>
