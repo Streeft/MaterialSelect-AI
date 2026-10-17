@@ -2332,6 +2332,86 @@ export interface SynthesisResult extends SynthesisPreview {
   material_name: string;
 }
 
+// --- Varredura de família (D-144) --------------------------------------------
+
+export type SweepKind = "painel" | "composito";
+export type SweepSpacing = "linear" | "log";
+
+export interface SweepRequest {
+  kind: SweepKind;
+  /** Painel: a **face**. Compósito: o primeiro constituinte. */
+  parent_a_id: number;
+  /** Painel: o **núcleo**. Compósito: o segundo constituinte. */
+  parent_b_id: number;
+  start: number;
+  stop: number;
+  steps: number;
+  spacing: SweepSpacing;
+  index: IndexIn;
+}
+
+export interface SweepIndexOut {
+  name: string | null;
+  expression: string;
+  goal: string;
+  dimension: string;
+}
+
+export interface SweepProperty {
+  slug: string;
+  name: string;
+  canonical_unit: string | null;
+  display_unit: string | null;
+  rule: SynthesisRule;
+}
+
+export interface SweepValue {
+  slug: string;
+  value: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  quality: string;
+  display_value: number | null;
+  display_min: number | null;
+  display_max: number | null;
+}
+
+export interface SweepStep {
+  position: number;
+  parameter: number;
+  parameters: Record<string, number>;
+  /** Escalar, ou `null` quando o índice leu um par de limites (Reuss–Voigt). */
+  index_value: number | null;
+  index_min: number | null;
+  index_max: number | null;
+  quality: string;
+  values: SweepValue[];
+}
+
+export interface SweepSkippedStep {
+  position: number;
+  parameter: number;
+  parameters: Record<string, number>;
+  reason: string;
+}
+
+export interface SweepResult {
+  kind: string;
+  kind_label: string;
+  kind_note: string;
+  parents: string[];
+  variable: string;
+  variable_label: string;
+  spacing: string;
+  grid: number[];
+  note: string;
+  index: SweepIndexOut;
+  properties: SweepProperty[];
+  steps: SweepStep[];
+  skipped: SweepSkippedStep[];
+  absent: SynthesisSkipped[];
+}
+
 // --- Battery Designer (P4 / Módulo S) ----------------------------------------
 
 export type ThermalSafetyLevel =

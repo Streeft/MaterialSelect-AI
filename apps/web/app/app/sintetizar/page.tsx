@@ -47,6 +47,7 @@ import {
   type ComboboxOption,
   type QualityState,
 } from "@/components/ui";
+import { SweepSection } from "./SweepSection";
 
 const t = ptBR.synthesis;
 
@@ -560,6 +561,8 @@ export default function SintetizarPage() {
             )}
         </StepCard>
       </div>
+
+      <SweepSection key={kind} kind={kind} parentA={selectedA} parentB={selectedB} />
     </div>
   );
 }

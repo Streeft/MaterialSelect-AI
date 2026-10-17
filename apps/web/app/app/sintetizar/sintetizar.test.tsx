@@ -180,6 +180,10 @@ vi.mock("@/lib/api", () => ({
   listSynthesisKinds: () => Promise.resolve(kinds),
   previewSynthesis: (payload: SynthesisRequest) => previewSynthesis(payload),
   createSynthesis: (payload: SynthesisRequest) => createSynthesis(payload),
+  // A seção "Varrer" (D-144) monta junto da página; o que ela faz tem teste próprio.
+  listPerformanceIndices: () => Promise.resolve([]),
+  sweepSynthesis: () => Promise.reject(new Error("não usado aqui")),
+  ApiError: class ApiError extends Error {},
 }));
 
 function wrap(node: ReactNode) {
