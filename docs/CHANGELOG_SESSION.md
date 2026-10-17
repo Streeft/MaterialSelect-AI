@@ -105,6 +105,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 98 — 17/10/26 — Cadernos: menu de três pontos e painéis redimensionáveis (D-143)
+
+**O que mudou.** `NotebookCard` (menu com Renomear no lugar e Excluir com Desfazer), `PanelResizer`
+(separador acessível entre Fontes, Conversa e Estúdio, de `lg` para cima), `IconMoreVertical`,
+textos em `ptBR.notebooks`, `/app/cadernos` no Lighthouse.
+
+**Testes.** +4 de frontend (renomear, Esc, excluir com Desfazer, alça por teclado). Sem backend nem migração.
+
 ## Sessão 97 — 17/10/26 — App instalável: manifesto, ícone e página offline (D-142)
 
 **O que mudou.** `app/manifest.ts`, `viewport.themeColor` no layout raiz, ícones provisórios (monograma

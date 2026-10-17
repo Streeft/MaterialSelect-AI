@@ -10819,3 +10819,25 @@ própria.
 
 **Consequências.** Frontend apenas. `cache` do worker é versionado (`msai-offline-v1`): mude o nome
 ao alterar `offline.html`. O Lighthouse não tem mais categoria PWA, então nenhum limiar muda.
+
+## D-143 — Cadernos: menu de três pontos no cartão e painéis redimensionáveis
+
+**Contexto.** Oitavo item da lista de padrões dos apps do Google. A lista de cadernos já era uma
+grade e o espaço de trabalho já tinha Fontes | Conversa | Estúdio, recolhíveis a um trilho; faltavam
+as ações no próprio cartão e larguras que o leitor escolha.
+
+**Decisão** (M3 *Cards* — ações do cartão num menu — e *Divider/Canonical layouts* — painel de apoio
+com largura ajustável; a página foi lida em 17/10/26).
+- **Cartão com menu** (`NotebookCard`): o cartão inteiro abre o caderno; um `MenuButton` de ícone
+  (três pontos), ao lado do link e nunca dentro dele, traz **Renomear** (campo no lugar do título,
+  Enter confirma, Esc e saída do campo sem mudança não chamam a API) e **Excluir caderno**, que
+  usa o aviso com Desfazer da D-130 — o cartão some na hora e a API só roda quando o aviso vence.
+  O botão de lixeira do cabeçalho do caderno continua como está.
+- **Separador entre painéis** (`PanelResizer`): alça com `role="separator"`, `aria-valuenow/min/max`,
+  setas (16 px), Home/End, arrastar com o ponteiro e Enter ou duplo clique para voltar ao padrão.
+  Fontes 224–480 px, Estúdio 256–640 px; a alça só existe de `lg` para cima, onde há painéis lado a
+  lado. Largura nunca é gravada: vale na visita. Enquanto não for arrastada, valem as larguras
+  responsivas de antes. No celular continua um painel por vez, com o `ButtonGroup`.
+- `/app/cadernos` entra na lista do Lighthouse; o teste de axe das rotas já o cobria.
+
+**Fora desta decisão.** Gravar as larguras por conta; arrastar para reordenar painéis.
