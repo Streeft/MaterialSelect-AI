@@ -10708,3 +10708,35 @@ texto digitado; fechar a aba, um travamento ou um Voltar a mais custava o estudo
 (plano, item 9). O rascunho não cobre as notas do estudo nem a matriz AHP em edição.
 
 **Consequências.** Frontend apenas. O assistente passa a chamar `/auth/me` (já em cache no app).
+## D-138 — Retirada dos avisos de dado demonstrativo e de limite de uso (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O autor quer o app com aparência profissional e oficial e mandou retirar toda
+mensagem do tipo "Dados exclusivamente demonstrativos…" e "Limite de uso desta ferramenta…
+apoio didático / triagem preliminar…", e variações, em tela, exportações, IA e landing, e depois
+simplificar a linguagem da interface. A decisão técnica de como cumprir é do assistente, por
+delegação, e é revisável. (O plano a chamava D-131 e Sessão 85, números que `main` já usava.)
+
+**Decisão.**
+1. **Remove-se o texto, não o marcador.** `is_demo`, `clear_demo`, a separação oficial × demo, a
+   recusa de comparar release fictícia com real e `includes_demo_data` como lógica interna
+   ficam; só deixam de gerar aviso.
+2. **Revogados:** o item 6 do `CLAUDE.md` (aviso na interface e nos arquivos) e o compromisso
+   "todo arquivo exportado carrega o aviso de limitação de uso" (item 5 da proposta;
+   `docs/CLAUDE.md` §1.8; regras de `exporters/`). **Mantida** a regra de criar e apagar seed de
+   `docs/15-dados-demonstrativos.md`.
+3. **IA.** A frase de "triagem preliminar / não substitui validação" sai de `ai/caveats.py` e
+   `ai/factory.py`. Ficam o aviso de que a saída é interpretação assistida por IA e as ressalvas
+   técnicas específicas do resultado (condições de validade de um índice), em tom neutro.
+4. **Texto de UI sobre "fictício" que descreve dado concreto** (selo "Demonstrativo", curva
+   fictícia, releases fictícias, contagem de demonstração) sai junto. Afirmações da landing que
+   viram falsas ("identificados como tais em toda a interface") são reescritas.
+5. **Linguagem simples** (faixa D): glossário de troca (release → versão, ranking →
+   classificação, restrição → limite…) sem mudar slug, rota, chave ou identificador; termo técnico
+   correto de engenharia fica.
+
+**Risco assumido pelo autor.** Dado fictício deixa de ser sinalizado ao leitor da tela e do
+arquivo exportado; um relatório com valor inventado pode circular sem sinal. O marcador `is_demo`
+continua no banco, e dá para voltar atrás.
+
+**Consequências.** Documentação (faixa C) neste PR; código em A e B. Sem schema nem migração.
+Pós-merge de A: **Deploy da API**.

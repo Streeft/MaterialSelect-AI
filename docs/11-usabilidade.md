@@ -51,10 +51,10 @@ risco de uma ferramenta de seleção. Registre os eixos separadamente.
   e não o participante, que ele pode parar a qualquer momento, e o que será
   registrado (anotações e, se ele autorizar, a tela). Sem autorização, só
   anotações.
-- **Aviso obrigatório:** diga, antes da primeira tarefa, que os dados do
-  catálogo são **demonstrativos e fictícios**. O aviso está na tela, mas se o
-  participante não o notar, isso é um achado do teste — anote — e ainda assim
-  ele não pode sair da sessão achando que os valores são reais.
+- **Origem dos dados:** a tela não traz mais aviso de dado demonstrativo
+  ([D-138](DECISIONS.md)). Diga, antes da primeira tarefa, se os dados do catálogo
+  são fictícios, para o participante não sair da sessão achando que os valores são
+  reais; essa fala é do moderador, e não da interface.
 
 ### O que o observador faz e não faz
 
@@ -105,7 +105,7 @@ lista vazia, e não o método — o que é um teste válido, mas outro.
 | T3 | Registre as três restrições | As três aparecem na lista, com unidade | Ele conferiu a unidade (GPa, MPa) antes de digitar? Leu a frase "Lê-se: …"? O contador de candidatos foi notado? |
 | T4 | Execute e leia o resultado | Ele nomeia o primeiro colocado **e diz por quê** | Ele achou o funil? Entendeu quem foi excluído e por quê? Reparou nos materiais excluídos por **dado ausente**? |
 | T5 | Verifique de onde veio um número | Ele abre a proveniência de um valor e diz a unidade original e a fonte | Ele descobriu que o valor é clicável? |
-| T6 | Exporte o relatório | O arquivo é baixado ou aberto | Ele escolheu o formato conscientemente? Notou o aviso de limitação? |
+| T6 | Exporte o relatório | O arquivo é baixado ou aberto | Ele escolheu o formato conscientemente? Entendeu de onde vêm os números do arquivo? |
 | T7 | *(opcional, se sobrar tempo)* Compare os dois primeiros colocados | Ele abre `/comparar` com os dois e diz onde um ganha do outro | Ele encontrou o comparador? A escala normalizada foi entendida? |
 
 Registre por tarefa: **concluída sem ajuda / concluída com dificuldade / não

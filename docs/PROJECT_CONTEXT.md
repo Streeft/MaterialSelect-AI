@@ -758,8 +758,9 @@ CSV, XLSX e **HTML imprimível** do catálogo e do **relatório de seleção
 auditável** em 9 seções, incluindo proveniência de cada número. O HTML é
 autocontido e traz folha de estilo de impressão — o PDF sai do navegador, sem
 dependência de geração de PDF ([D-20](DECISIONS.md)). Cada formato neutraliza a
-injeção que lhe cabe: fórmula na planilha, marcação no HTML. Avisos obrigatórios
-de limitação, reprodutibilidade e dados demonstrativos.
+injeção que lhe cabe: fórmula na planilha, marcação no HTML. Nota de
+reprodutibilidade; os avisos de limitação e de dados demonstrativos foram
+retirados ([D-138](DECISIONS.md)).
 
 **Cartão de material para CAE** ([D-104](DECISIONS.md)):
 `GET /api/exports/materiais/{id}/cae?formato=&unidades=` e o "Exportar ▾" da
@@ -1045,7 +1046,7 @@ que mais afetam quem for mexer no código:
   `app.db.seed`, exercitando conversão/intervalo/ausência/incerteza; 70 de
   `app.db.seed_extended`, cobertura mais ampla das cinco famílias) existem
   para exercitar o sistema, não para descrever materiais reais. Marcados com
-  `is_demo` e avisados na interface e em todo arquivo exportado. **Os dois
+  `is_demo`; a interface e as exportações não os avisam mais ([D-138](DECISIONS.md)). **Os dois
   módulos ficaram meses sem chegar à produção** por um defeito de integração
   registrado no [D-71](DECISIONS.md#d-71) — corrigido, e
   `docs/15-dados-demonstrativos.md` é a regra para não repeti-lo com o
