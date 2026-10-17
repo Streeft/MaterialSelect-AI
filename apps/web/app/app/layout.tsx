@@ -3,7 +3,6 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
 import { RouteTransition } from "@/components/layout/RouteTransition";
-import { LimitationNotice } from "@/components/LimitationNotice";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { ptBR } from "@/lib/i18n";
 
