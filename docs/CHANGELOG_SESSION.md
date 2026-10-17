@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
 | [93](#sessão-93--171026--sai-o-aviso-de-dado-demonstrativo-e-de-limite-de-uso-d-138) | 17/10/2026 | Retirada dos avisos de dado demonstrativo e de limite de uso (tela, exportações, IA, landing) e linguagem simples; regras e docs (D-138) | — | — |
 | [86](#sessão-86--161026--home-saudação-e-vistos-recentemente-d-132) | 16/10/2026 | Home: saudação pelo primeiro nome (só se a conta tem nome) e prateleira *Vistos recentemente* (até 6, mesma consulta de Meus registros, estados escritos); quarto item do Material 3; sem backend | — | +7 |
 | [85](#sessão-85--151026--tabela-do-catálogo-ordenar-e-selecionar-em-massa-d-131) | 15/10/2026 | Tabela do catálogo com cabeçalho ordenável (`aria-sort`, só rótulo) e seleção em massa com barra *Comparar selecionados*; segundo item do Material 3 (Data tables/Lists); sem backend | — | +12 |
@@ -112,6 +113,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 **Testes.** +4 de frontend (`RouteTransition.test.tsx`: classe, tela nova reconstrói, mesmo caminho
 mantém, só opacidade e redução de movimento). Sem backend nem migração.
 
+## Sessão 95 — 17/10/26 — Linguagem simples na interface (D-140)
+
+**O que mudou.** Glossário de troca aplicado só dentro de textos de tela: restrição → limite,
+ranking → classificação, release → versão, template → modelo, trade-offs → equilíbrio entre critérios,
+backend → servidor, link → endereço, heatmap → mapa de calor, zoom → ampliar (glossário também no
+topo de `lib/i18n.ts`). Concordância de gênero revisada (artigos e adjetivos). Parte da branch da
+D-138 (faixa B), que edita o mesmo `i18n.ts`.
+
+**Testes.** Texto esperado atualizado em `selecao.test.tsx`, `releaseDiff.test.ts` e nas specs E2E
+(`golden-path`, `cadernos`). Sem backend nem migração. Pendência: rótulos "release" vindos da API.
 ## Sessão 94 — 17/10/26 — Seleção: rascunho salvo no navegador (D-139)
 
 **O que mudou.** `lib/selectionDraft.ts` (leitura, escrita e validação do rascunho, por conta) e o

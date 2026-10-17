@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${ptBR.appName} — seleção de materiais pelo método de Ashby`,
     description:
-      "Restrições que eliminam candidatos à vista, índice de mérito auditável e a proveniência de cada valor.",
+      "Limites que eliminam candidatos à vista, índice de mérito auditável e a proveniência de cada valor.",
     type: "website",
   },
 };
