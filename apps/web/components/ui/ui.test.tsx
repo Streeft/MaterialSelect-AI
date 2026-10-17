@@ -545,8 +545,8 @@ describe("acessibilidade das primitivas", () => {
     const { container } = render(
       <main>
         <h1>Seleção</h1>
-        <Alert tone="warning" title={ptBR.limitation.title}>
-          {ptBR.limitation.full}
+        <Alert tone="warning" title="Atenção">
+          Um aviso permanente.
         </Alert>
         <Section title="Objetivo" description="Índice de mérito e critérios">
           <Card>

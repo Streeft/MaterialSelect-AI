@@ -8,8 +8,7 @@
  * price revision touch the file the results table depends on.
  *
  * Every claim here is verifiable in the product. That's the rule that keeps
- * the page honest, and it's what turns the `limitation` paragraph into an
- * argument instead of a caveat hidden in the footer.
+ * the page honest.
  */
 
 export const marketing = {
@@ -82,7 +81,7 @@ export const marketing = {
         name: "Estudante",
         price: "R$ —",
         period: "/ mês",
-        note: "Catálogo de demonstração e um estudo salvo.",
+        note: "Catálogo básico e um estudo salvo.",
         features: [
           { label: "Mapas de Ashby completos", included: true },
           { label: "Exportação em CSV", included: true },
@@ -122,12 +121,6 @@ export const marketing = {
     ],
   },
 
-  limitation: {
-    title: "O que esta ferramenta não faz",
-    body:
-      "Ela destina-se a apoio didático e à triagem preliminar de candidatos. Não substitui validação experimental, análise estrutural detalhada nem julgamento de engenharia. Dizemos isso na página de vendas porque é exatamente o que separa uma triagem confiável de um chute com aparência de resposta.",
-  },
-
   close: {
     title: "Comece pelo estudo que se parece com o seu.",
     body: "O assistente guia da restrição ao ranking, passo a passo.",
@@ -137,7 +130,7 @@ export const marketing = {
 
   footer: {
     note:
-      "Projeto de conclusão de curso em engenharia. Dados de demonstração são identificados como tais em toda a interface.",
+      "Projeto de conclusão de curso em engenharia.",
     columns: [
       {
         title: "produto",

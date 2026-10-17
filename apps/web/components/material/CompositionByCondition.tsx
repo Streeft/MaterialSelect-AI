@@ -25,11 +25,9 @@ export const CONDITION_PARAM = "condicao";
 export function CompositionByCondition({
   entries,
   atomic,
-  materialIsDemo,
 }: {
   entries: CompositionEntry[];
   atomic: AtomicComposition[] | undefined;
-  materialIsDemo: boolean;
 }) {
   const search = useSearchParams();
   const router = useRouter();
@@ -67,7 +65,6 @@ export function CompositionByCondition({
       )}
       <CompositionTable
         entries={rows}
-        materialIsDemo={materialIsDemo}
         conditionLabel={selected}
         atomic={block}
       />

@@ -23,27 +23,14 @@ function material(id: number, is_demo: boolean): MaterialListItem {
   };
 }
 
-describe("MaterialList — the demonstration notice (D-91)", () => {
-  it("says once, above the list, that every row is fictitious", () => {
-    const { container } = render(<MaterialList materials={[material(1, true), material(2, true)]} />);
-
-    expect(within(container).getByText(ptBR.catalog.allDemo)).toBeInTheDocument();
-    // No badge per row: repeated on every line it stopped being read.
-    expect(within(container).queryAllByText(ptBR.demoBadge)).toHaveLength(0);
-  });
-
-  it("marks each fictitious row when the list mixes demonstration and real records", () => {
+describe("MaterialList", () => {
+  it("lists every material without any demonstration notice or badge", () => {
     const { container } = render(<MaterialList materials={[material(1, true), material(2, false)]} />);
 
-    expect(within(container).queryByText(ptBR.catalog.allDemo)).not.toBeInTheDocument();
-    // Card and table row both render (the breakpoint picks one), one badge each.
-    expect(within(container).getAllByText(ptBR.demoBadge)).toHaveLength(2);
-  });
-
-  it("says nothing about demonstration data when there is none", () => {
-    const { container } = render(<MaterialList materials={[material(1, false)]} />);
-    expect(within(container).queryByText(ptBR.catalog.allDemo)).not.toBeInTheDocument();
-    expect(within(container).queryAllByText(ptBR.demoBadge)).toHaveLength(0);
+    // Card and table row both render (the breakpoint picks one), so each name appears twice.
+    expect(within(container).getAllByText("Material 1")).toHaveLength(2);
+    expect(within(container).getAllByText("Material 2")).toHaveLength(2);
+    expect(container.textContent).not.toMatch(/demonstrativ|fictíci/i);
   });
 });
 

@@ -335,12 +335,10 @@ describe("ResultsView", () => {
     expect(within(table).queryByText("—")).not.toBeInTheDocument();
   });
 
-  it("carries the limitation notice onto the screen that recommends", () => {
+  it("does not print a usage-limit notice on the screen that recommends", () => {
     render(<ResultsView result={makeResult()} />);
 
-    // Item 5 of the proposal. Until now it only existed on exported files, so
-    // the commitment held only for a reader who exported something.
-    expect(screen.getByText(ptBR.limitation.full)).toBeInTheDocument();
+    expect(screen.queryByText(/Limite de uso/)).not.toBeInTheDocument();
   });
 
   it("breaks a score into its criteria in words, not only in colour", () => {

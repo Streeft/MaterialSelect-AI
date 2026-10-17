@@ -24,12 +24,10 @@ const t = ptBR.catalog;
 function MaterialCard({
   material,
   index,
-  demoBadge,
   searchQuery,
 }: {
   material: MaterialListItem;
   index: number;
-  demoBadge: boolean;
   searchQuery?: string;
 }) {
   const { quality } = material;
@@ -48,7 +46,6 @@ function MaterialCard({
               >
                 <HighlightText text={material.name} query={searchQuery} />
               </Link>
-              {demoBadge && material.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
             </span>
             {material.subclass ? (
               <span className="text-xs text-ink-subtle">
@@ -117,12 +114,9 @@ function MaterialCard({
  */
 export function MaterialCards({
   materials,
-  demoBadge = true,
   searchQuery,
 }: {
   materials: MaterialListItem[];
-  /** False when the list already says, once, that every row is fictitious. */
-  demoBadge?: boolean;
   searchQuery?: string;
 }) {
   return (
@@ -132,7 +126,6 @@ export function MaterialCards({
           <MaterialCard
             material={material}
             index={index}
-            demoBadge={demoBadge}
             searchQuery={searchQuery}
           />
         </li>

@@ -2,7 +2,6 @@ import type { AtomicComposition, CompositionEntry } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { atomicContent, compositionContent, compositionOriginal } from "@/lib/composition";
 import {
-  Badge,
   DataQualityBadge,
   EmptyState,
   MissingValue,
@@ -35,13 +34,11 @@ const t = ptBR.detail;
  */
 export function CompositionTable({
   entries,
-  materialIsDemo,
   conditionLabel = null,
   atomic,
 }: {
   entries: CompositionEntry[];
   /** The page already says the material is fictitious; rows then don't repeat it. */
-  materialIsDemo: boolean;
   /** The condition these rows are stated for; `null` is "no condition stated". */
   conditionLabel?: string | null;
   /** The derived atomic percent of these rows, or its written absence. */
@@ -122,9 +119,6 @@ export function CompositionTable({
                   <span className="flex flex-col">
                     <span className="flex flex-wrap items-center gap-1.5">
                       {entry.source_label}
-                      {entry.is_demo && !materialIsDemo && (
-                        <Badge tone="warning">{t.demoRow}</Badge>
-                      )}
                     </span>
                     <span className="text-2xs text-ink-subtle">
                       {entry.citation ?? t.noCitation}

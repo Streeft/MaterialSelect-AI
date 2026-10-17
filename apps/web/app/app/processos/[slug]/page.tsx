@@ -74,7 +74,6 @@ export default function ProcessDetailPage() {
         group="dados"
         actions={
           <span className="flex items-center gap-2">
-            {data.is_demo && <Badge tone="warning">{ptBR.demoBadge}</Badge>}
             <FavoriteButton universe="process" recordId={data.id} />
           </span>
         }

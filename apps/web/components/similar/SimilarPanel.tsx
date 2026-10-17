@@ -256,9 +256,6 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                               >
                                 {neighbour.name}
                               </Link>
-                              {neighbour.is_demo && (
-                                <Badge tone="warning">{ptBR.demoBadge}</Badge>
-                              )}
                               {neighbour.is_own_record && (
                                 <Badge tone="info">
                                   {ptBR.myRecords.ownBadge}

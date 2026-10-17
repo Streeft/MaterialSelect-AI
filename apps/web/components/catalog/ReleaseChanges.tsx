@@ -27,7 +27,6 @@ import {
 } from "@/lib/releaseDiff";
 import { ReleaseRecordDetail } from "@/components/catalog/ReleaseRecordDetail";
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -266,10 +265,6 @@ function ReleaseComparison({
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      {data?.is_demo || (baseRelease?.is_demo && targetRelease?.is_demo) ? (
-        <Alert tone="warning">{t.demoNotice}</Alert>
-      ) : null}
-
       <Card>
         <CardHeader headingLevel={2} title={t.chooseTitle} description={t.direction} />
         <CardBody className="flex flex-col gap-4">
@@ -292,7 +287,7 @@ function ReleaseComparison({
             >
               {bases.map((r) => (
                 <SelectOption key={r.slug} value={r.slug}>
-                  {t.releaseOption(r.release, r.name, r.is_demo)}
+                  {t.releaseOption(r.release, r.name)}
                 </SelectOption>
               ))}
             </Select>
@@ -303,7 +298,7 @@ function ReleaseComparison({
             >
               {partners.map((r) => (
                 <SelectOption key={r.slug} value={r.slug}>
-                  {t.releaseOption(r.release, r.name, r.is_demo)}
+                  {t.releaseOption(r.release, r.name)}
                 </SelectOption>
               ))}
             </Select>

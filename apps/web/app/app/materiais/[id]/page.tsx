@@ -174,13 +174,7 @@ export default function MaterialDetailPage() {
                   <h1 className="text-2xl font-semibold text-ink">
                     {data.name}
                   </h1>
-                  {data.is_demo && (
-                    <Badge tone="warning">{ptBR.demoBadge}</Badge>
-                  )}
-                  {/* P1-4: the sheet says whose record this is. Beside the demo
-                      badge because they answer the same question — how far this
-                      material's numbers may be trusted — and a reader who has
-                      learnt to look here finds both. */}
+                  {/* P1-4: the sheet says whose record this is. */}
                   {data.is_own_record && (
                     <Badge tone="info">{ptBR.myRecords.ownBadge}</Badge>
                   )}
@@ -432,7 +426,6 @@ export default function MaterialDetailPage() {
                   <CompositionByCondition
                     entries={data.composition}
                     atomic={data.atomic_composition}
-                    materialIsDemo={data.is_demo}
                   />
                   {canEditIdentity && (
                     <Button
@@ -465,7 +458,6 @@ export default function MaterialDetailPage() {
                 <>
                   <DesignationTable
                     designations={data.designations}
-                    materialIsDemo={data.is_demo}
                   />
                   {canEditIdentity && (
                     <Button
@@ -490,7 +482,7 @@ export default function MaterialDetailPage() {
             description={ptBR.equivalences.hint}
             className="min-w-0"
           >
-            <EquivalenceSection materialId={data.id} materialIsDemo={data.is_demo} />
+            <EquivalenceSection materialId={data.id} />
           </Section>
 
           {/* D-106 (TM4): the material's curves, each a figure with its table of
