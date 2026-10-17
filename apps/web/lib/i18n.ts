@@ -1400,6 +1400,69 @@ export const ptBR = {
       class: "Escolha a classe do registro.",
       name: "Dê um nome ao registro.",
     },
+    // D-144: varredura de família — um índice ao longo da receita.
+    sweep: {
+      title: "Varrer uma família",
+      description:
+        "Veja como um índice de desempenho anda quando a receita anda: a razão núcleo/face de um painel ou a fração de um compósito. Nada é gravado.",
+      unavailable:
+        "A varredura vale para o compósito e para o painel sanduíche. Escolha um desses dois tipos acima.",
+      indexLabel: "Índice de desempenho",
+      indexHint: "Quanto maior (ou menor) o índice, melhor o material para o objetivo dele.",
+      indexLoading: "Carregando os índices…",
+      indexEmpty: "Nenhum índice de desempenho cadastrado.",
+      indexError: "Não foi possível carregar os índices de desempenho.",
+      startLabel: "Início",
+      stopLabel: "Fim",
+      stepsLabel: "Passos",
+      stepsHint: "De 2 a 50 pontos.",
+      spacingLabel: "Espaçamento",
+      spacingLinear: "Linear (passos iguais)",
+      spacingLog: "Logarítmico (razões iguais)",
+      variableComposite: "Fração volumétrica do primeiro constituinte (entre 0 e 1, sem incluir os extremos)",
+      variablePanel: "Razão entre a espessura do núcleo e a de cada face (c/t)",
+      run: "Varrer",
+      running: "Varrendo…",
+      idleTitle: "Nada varrido ainda",
+      idleHint:
+        "Escolha o índice e a faixa e peça a varredura: a linha mostra o índice em cada passo, e os passos sem índice aparecem com o motivo.",
+      emptyTitle: "Nenhum passo teve índice",
+      emptyHint: "Veja abaixo por que cada passo ficou de fora.",
+      errorTitle: "Não foi possível varrer",
+      // 422: o servidor devolve a mensagem do esquema em inglês; a frase fixa
+      // diz o que fazer, e o detalhe vem depois, se houver.
+      error422: "Algum valor está fora do que a varredura aceita. Confira início, fim e passos.",
+      error400: "A varredura foi recusada",
+      error404: "Um dos materiais não está mais disponível para você.",
+      errorGeneric: "A varredura falhou.",
+      blocked: {
+        parents: "Escolha dois materiais diferentes na receita acima.",
+        index: "Escolha um índice de desempenho.",
+        range: "O início precisa ser positivo e menor que o fim.",
+        fraction: "Numa fração, o fim fica abaixo de 1.",
+        steps: "Use de 2 a 50 passos.",
+      },
+      parents: "Materiais",
+      chart: {
+        figure: "Varredura de família",
+        title: (index: string) => `${index} ao longo da família`,
+        yAxis: (name: string, dimension: string) =>
+          dimension && dimension !== "dimensionless" ? `${name} (${dimension})` : name,
+        figureLabel: (index: string, variable: string) =>
+          `Linha de ${index} contra ${variable}`,
+        band: "Faixa Reuss–Voigt: do menor ao maior valor possível do índice, sem média",
+        tableCaption: (index: string) => `Origem da varredura: ${index} em cada passo`,
+        columnStep: "Passo",
+        columnIndex: "Índice",
+        columnStatus: "Situação",
+        calculated: (quality: string) => `Calculado (${quality})`,
+        withoutIndex: (reason: string) => `Sem índice: ${reason}`,
+        skippedTitle: "Passos sem índice",
+        skippedHint: "O índice não foi calculado nestes passos, e o motivo está escrito.",
+        absentTitle: "Propriedades que nenhum passo tem",
+        pointLabel: (position: number) => `Passo ${position}`,
+      },
+    },
   },
 
   myRecords: {

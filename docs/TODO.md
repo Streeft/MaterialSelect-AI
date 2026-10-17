@@ -87,13 +87,15 @@ quitados".
 
 ## Média prioridade
 
-- **Varredura de família do Synthesizer ([D-144](DECISIONS.md), Sessão 99)** — ~~V1, backend~~
-  entregue: `POST /api/sintetizar/varredura` varre a razão c/t do painel ou a fração do compósito
-  numa grade por índice (até 50 passos, linear ou log), avalia o índice em cada passo e devolve
-  `skipped` com motivo, sem gravar. **Falta a V2, frontend:** seção "Varrer" em `/app/sintetizar`,
-  linha do índice contra o parâmetro (par Reuss–Voigt como faixa), tabela de origem (D-31), as
-  exclusões nomeadas e os estados de carga/erro/vazio. Fora da v1: espuma, dois parâmetros,
-  laminados, colmeia, persistir a varredura.
+- ~~**Varredura de família do Synthesizer ([D-144](DECISIONS.md), Sessão 99)**~~ — feita
+  nas duas pontas. Backend: `POST /api/sintetizar/varredura` varre a razão c/t do painel ou a fração
+  do compósito numa grade por índice (até 50 passos, linear ou log), avalia o índice em cada passo e
+  devolve `skipped` com motivo, sem gravar. Tela (V2): seção "Varrer" em `/app/sintetizar` com os pais
+  e o tipo da receita, índice do catálogo, início/fim/passos/espaçamento; linha do índice contra o
+  parâmetro (`SweepChart`, que quebra no passo sem índice; par Reuss–Voigt como faixa, nunca média),
+  tabela de origem (D-31) com os passos sem índice e o motivo, nota da API e estados de
+  carga/erro/vazio. Resíduos: espuma, dois parâmetros, laminados, colmeia e persistir a varredura
+  (fora da v1).
 
 - **Avisos de demonstração e de limite de uso retirados, linguagem simples
   ([D-138](DECISIONS.md), Sessão 93)** — decisão do autor, em três faixas: A (backend e

@@ -10907,4 +10907,6 @@ modos de cisalhamento (fora da v1); persistir a varredura; espuma (densidade rel
 depois pelo mesmo caminho, mas não entrou na v1.
 
 **Consequências.** Backend apenas; sem migração. A tela (seção "Varrer" em `/app/sintetizar`, linha
-do índice contra o parâmetro com a tabela de origem, D-31) é a faixa V2, pendente no `TODO.md`.
+do índice contra o parâmetro com a tabela de origem, D-31) é a faixa V2, entregue sobre o mesmo
+desenho: o passo sem índice quebra a linha, o par Reuss–Voigt é faixa, e a nota da API aparece
+junto da figura.

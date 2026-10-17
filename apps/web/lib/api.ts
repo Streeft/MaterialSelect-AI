@@ -106,6 +106,8 @@ import type {
   SynthesisPreview,
   SynthesisRequest,
   SynthesisResult,
+  SweepRequest,
+  SweepResult,
   StudyDetail,
   StudyIn,
   StudySummary,
@@ -1104,6 +1106,14 @@ export function previewSynthesis(
   body: SynthesisRequest,
 ): Promise<SynthesisPreview> {
   return request<SynthesisPreview>("/api/sintetizar/previa", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Um índice ao longo da receita (D-144); nada é gravado. */
+export function sweepSynthesis(body: SweepRequest): Promise<SweepResult> {
+  return request<SweepResult>("/api/sintetizar/varredura", {
     method: "POST",
     body: JSON.stringify(body),
   });

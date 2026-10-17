@@ -77,7 +77,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   (D-121).
 - **Sintetizar** — compósito de dois constituintes, espuma e **painel
   sanduíche**, cada valor com a lei que o produziu e a sua base; e a
-  **varredura de família** (API), que mostra como um índice anda ao longo da
+  **varredura de família** (seção "Varrer"), que mostra como um índice anda ao longo da
   razão núcleo/face do painel ou da fração do compósito, sem gravar nada.
 - **Baterias** — dimensionamento de um pack a partir de químicas de célula
   catalogadas, cada uma com a sua fonte.
