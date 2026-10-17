@@ -101,7 +101,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   leitura e escala escolhidas na URL, tabela de pontos como alternativa textual
   e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
   curva, a ficha diz "Nenhuma curva cadastrada" (D-106).
-- **Mudanças entre releases** — em `/app/catalogo/releases` (link discreto no
+- **Mudanças entre versões** — em `/app/catalogo/releases` (link discreto no
   catálogo), duas releases do mesmo catálogo oficial lado a lado: contagem de
   registros novos, alterados, desativados e inalterados, filtros por situação e
   classe, lista paginada e, por registro, cada campo "antes → depois" com a

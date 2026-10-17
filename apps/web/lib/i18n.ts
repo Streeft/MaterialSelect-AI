@@ -1,5 +1,11 @@
 // Minimal pt-BR dictionary. Structured as a flat map so an English locale can be
 // added later without touching call sites (swap the active dictionary).
+//
+// Linguagem simples (D-139) — mesma palavra para o mesmo conceito em todo o app:
+// restrição→limite, ranking→classificação, release→versão, template→modelo,
+// trade-offs→equilíbrio entre critérios, backend→servidor, link→endereço,
+// heatmap→mapa de calor, zoom→ampliar. Ficam os termos técnicos corretos (módulo de
+// Young, Ashby, limite de escoamento, estágio, proveniência). Chaves não mudam.
 
 /**
  * The word an unnamed stage is described by (P0-2).
@@ -224,11 +230,11 @@ export const ptBR = {
     errorPropertyWithoutSlug:
       "Há colunas de propriedade sem a propriedade selecionada.",
     errorNoClass: "Mapeie uma coluna de classe ou escolha uma classe padrão.",
-    errorTemplateName: "Informe um nome para o template.",
-    templates: "Template de mapeamento",
-    applyTemplate: "Aplicar template…",
-    saveTemplate: "Salvar como template",
-    templateName: "Nome do template",
+    errorTemplateName: "Informe um nome para o modelo.",
+    templates: "Modelo de mapeamento",
+    applyTemplate: "Aplicar modelo…",
+    saveTemplate: "Salvar como modelo",
+    templateName: "Nome do modelo",
     validate: "Validar",
     validating: "Validando…",
     reportTitle: "Relatório de validação",
@@ -284,10 +290,10 @@ export const ptBR = {
   selection: {
     title: "Seleção de materiais",
     subtitle:
-      "Função → Objetivo → Restrições → Resultados (determinístico, sem IA)",
+      "Função → Objetivo → Limites → Resultados (determinístico, sem IA)",
     // The stepper numbers the steps itself; a "1." in the label would print twice.
     stepFunction: "Função",
-    stepConstraints: "Restrições",
+    stepConstraints: "Limites",
     stepObjective: "Objetivo",
     stepResults: "Resultados",
     // Why a step cannot be opened yet. Shown at the moment someone tries.
@@ -297,15 +303,15 @@ export const ptBR = {
     // D-85: navegação lida da ordem dos passos, e o resumo embaixo de cada um.
     backToHome: "Voltar ao início",
     advancedConstraintsHint:
-      "Para estudos com mais de uma etapa: estágios por classe, por processo ou por região de um gráfico, e grupos E/OU entre restrições.",
-    methodInUse: (label: string) => `Método de ranking: ${label} (em Opções avançadas).`,
+      "Para estudos com mais de uma etapa: estágios por classe, por processo ou por região de um gráfico, e grupos E/OU entre limites.",
+    methodInUse: (label: string) => `Método de classificação: ${label} (em Opções avançadas).`,
     methodFieldHint: "Como os critérios viram uma nota única. Na dúvida, soma ponderada.",
     normalizationHint: "Como cada critério é posto na mesma escala antes de somar.",
     indexBlockTitle: "1. Índice de desempenho",
     criteriaBlockTitle: "2. Critérios e pesos",
     continueToCriteria: "Continuar: critérios e pesos",
     indexLockedReason: "Escolha um índice (ou “Nenhum índice”) e clique em Continuar.",
-    noIndexChosen: "Sem índice: o ranking usa só os critérios abaixo.",
+    noIndexChosen: "Sem índice: a classificação usa só os critérios abaixo.",
     indexChosen: (name: string, maximize: boolean) =>
       `${name} — ${maximize ? "maximizar" : "minimizar"}`,
     criterionHint: "O que entra na nota final. O índice acima também pode ser um critério.",
@@ -314,7 +320,7 @@ export const ptBR = {
     exampleIntro: "Primeira vez? Veja um estudo completo funcionando e depois mude o que quiser.",
     loadExample: "Carregar exemplo: viga leve de bicicleta",
     exampleLoaded:
-      "Exemplo carregado: função, índice, critério e três restrições. Avance pelos passos ou execute.",
+      "Exemplo carregado: função, índice, critério e três limites. Avance pelos passos ou execute.",
     exampleUndo: "Desfazer",
     draftSaved: "Rascunho salvo neste navegador.",
     draftFound: (when: string) => `Há um rascunho deste assistente, salvo em ${when}.`,
@@ -343,7 +349,7 @@ export const ptBR = {
         .join(" · "),
     summaryConstraints: (constraints: number, stages: number) =>
       [
-        constraints === 1 ? "1 restrição" : `${constraints} restrições`,
+        constraints === 1 ? "1 limite" : `${constraints} limites`,
         stages > 1 ? `${stages} estágios` : null,
       ]
         .filter(Boolean)
@@ -355,12 +361,12 @@ export const ptBR = {
     objectiveText: "Objetivo",
     freeVariables: "Variáveis livres (separadas por vírgula)",
     functionHint: "Descreva o que o componente faz e o que se deseja otimizar.",
-    constraintsTitle: "Restrições",
+    constraintsTitle: "Limites",
     constraintsHint:
-      "Cada restrição elimina candidatos. A contagem restante é recalculada a cada mudança.",
-    combinator: "Combinar restrições com",
-    addConstraint: "Adicionar restrição",
-    noConstraints: "Nenhuma restrição — todos os materiais são candidatos.",
+      "Cada limite elimina candidatos. A contagem restante é recalculada a cada mudança.",
+    combinator: "Combinar limites com",
+    addConstraint: "Adicionar limite",
+    noConstraints: "Nenhum limite — todos os materiais são candidatos.",
     // M6: grupos aninhados de AND/OR. Cada grupo tem seu próprio operador —
     // o rótulo abaixo nomeia esse controle quando ele não é o do grupo-raiz
     // (esse usa `combinator` acima, com o mesmo sentido).
@@ -368,7 +374,7 @@ export const ptBR = {
     removeGroup: "Remover grupo",
     groupOperatorLabel: "Operador do grupo",
     groupNumber: (n: number) => `Grupo ${n}`,
-    emptyGroup: "Grupo vazio — adicione uma restrição ou um subgrupo.",
+    emptyGroup: "Grupo vazio — adicione um limite ou um subgrupo.",
     // P0-1: a seleção é uma pilha ordenada de estágios. O padrão continua sendo
     // um único estágio de limites, então quem faz um estudo simples não vê
     // vocabulário novo — os rótulos abaixo só aparecem quando há pilha.
@@ -534,7 +540,7 @@ export const ptBR = {
         ? `Nenhuma corrida da faixa declarada atende ${condition} (garantia)`
         : `Alguma corrida da faixa declarada atende ${condition} (alcance)`,
     undeterminedNote: (n: number) => `${n} sem o dado de composição`,
-    constraintNumber: (n: number) => `Restrição ${n}`,
+    constraintNumber: (n: number) => `Limite ${n}`,
     // D-85: a linha lida como frase, e uma dica por campo na primeira linha.
     operatorSymbols: { gte: "≥", gt: ">", lte: "≤", lt: "<" },
     sentenceLead: "Lê-se:",
@@ -570,13 +576,13 @@ export const ptBR = {
     // D-91: the phone's one-line action bar.
     remainingShort: "Restam",
     of: "de",
-    counterHint: "Atualizado a cada mudança nas restrições.",
+    counterHint: "Atualizado a cada mudança nos limites.",
     counterPending: "Recalculando…",
     counterError: "Não foi possível recontar os candidatos.",
     actionBar: "Ações da etapa",
-    objectiveTitle: "Índice de desempenho e ranking",
+    objectiveTitle: "Índice de desempenho e classificação",
     objectiveHint:
-      "Escolha um índice de mérito (opcional) e defina os critérios de ranking com pesos.",
+      "Escolha um índice de mérito (opcional) e defina os critérios de classificação com pesos.",
     performanceIndex: "Índice de desempenho",
     noIndex: "Nenhum índice",
     customIndex: "Expressão personalizada",
@@ -589,7 +595,7 @@ export const ptBR = {
     dimension: "Dimensão",
     validate: "Validar expressão",
     variablesAvailable: "Variáveis disponíveis",
-    rankingTitle: "Critérios de ranking",
+    rankingTitle: "Critérios de classificação",
     rankingHint:
       "Média ponderada dos critérios. Os pesos somam 1: a tabela abaixo mostra quanto cada um vale na nota.",
     // D-87: o orçamento de pesos, calculado no backend enquanto se digita.
@@ -612,7 +618,7 @@ export const ptBR = {
         `Total ${total} de 1 — passa do limite em ${excess}.`,
       checking: "Conferindo a soma dos pesos…",
       unavailable:
-        "Não foi possível conferir a soma agora. Executar continua liberado: o ranking usa os pesos renormalizados.",
+        "Não foi possível conferir a soma agora. Executar continua liberado: a classificação usa os pesos renormalizados.",
       invalidNumber: "Use um número, como 0,25.",
       issues: {
         missing_key: "Escolha o critério desta linha.",
@@ -632,14 +638,14 @@ export const ptBR = {
       suggestionValues: (values: string) => `Fica: ${values}`,
       undo: "Desfazer",
       applied: "Pesos ajustados.",
-      previewTitle: "Prévia do ranking — top 5",
+      previewTitle: "Prévia da classificação — 5 primeiros",
       previewScore: "Nota",
       previewWholeCatalogue: (n: number) =>
-        `Sem restrições ainda, a prévia ordena o catálogo inteiro (${n}). As restrições vão reduzir a lista, e as notas podem mudar, porque a normalização é feita sobre quem sobra.`,
+        `Sem limites ainda, a prévia ordena o catálogo inteiro (${n}). Os limites vão reduzir a lista, e as notas podem mudar, porque a normalização é feita sobre quem sobra.`,
       previewConstrained: (candidates: number, initial: number) =>
-        `Ordenando os ${candidates} de ${initial} que passam pelas restrições atuais.`,
+        `Ordenando os ${candidates} de ${initial} que passam pelos limites atuais.`,
       previewRenormalized:
-        "Os pesos ainda não fecham 1: a prévia usa os pesos renormalizados, como o ranking faria.",
+        "Os pesos ainda não fecham 1: a prévia usa os pesos renormalizados, como a classificação faria.",
       blockedRun: "Os pesos precisam fechar 1 antes de executar.",
       notBlocking: (reason: string) =>
         `${reason} Você pode seguir; o Executar só libera quando a soma fechar 1.`,
@@ -655,7 +661,7 @@ export const ptBR = {
     normalization: "Normalização",
     normMinmax: "Min-máx",
     normVector: "Vetorial",
-    method: "Método de ranking",
+    method: "Método de classificação",
     methodWeightedSum: "Soma ponderada",
     methodTopsis: "TOPSIS",
     methodPromethee: "PROMETHEE II",
@@ -674,7 +680,7 @@ export const ptBR = {
     passed: "Passam",
     eliminated: "eliminados",
     candidates: "Candidatos",
-    ranking: "Ranking",
+    ranking: "Classificação",
     rank: "#",
     score: "Pontuação",
     indexValue: "Índice",
@@ -697,7 +703,7 @@ export const ptBR = {
     // D-85: o resultado resumido primeiro, o resto em abas.
     resultsTabs: "Seções do resultado",
     tabSummary: "Resumo",
-    tabRanking: "Ranking",
+    tabRanking: "Classificação",
     tabExcluded: "Eliminados",
     tabSensitivity: "Sensibilidade",
     tabProvenance: "Origem dos dados",
@@ -713,23 +719,23 @@ export const ptBR = {
     winnerByIndex: (index: string, value: string, maximize: boolean) =>
       `${maximize ? "Maior" : "Menor"} valor de ${index}: ${value}.`,
     winnerPassed: (initial: number, final: number) =>
-      `Passou em todas as restrições: de ${initial} ${initial === 1 ? "registro" : "registros"}, ${final === 1 ? "sobrou 1" : `sobraram ${final}`}.`,
+      `Passou em todos os limites: de ${initial} ${initial === 1 ? "registro" : "registros"}, ${final === 1 ? "sobrou 1" : `sobraram ${final}`}.`,
     winnerNoneTitle: "Nenhum vencedor declarado",
     winnerNone: {
-      no_candidates: "Nenhum candidato passou nas restrições. Veja na aba Eliminados o que cortou cada um.",
+      no_candidates: "Nenhum candidato passou nos limites. Veja na aba Eliminados o que cortou cada um.",
       no_objective:
-        "Sem índice nem critério de ranking, a seleção só filtrou: os candidatos estão na aba Ranking, sem ordem.",
+        "Sem índice nem critério de classificação, a seleção só filtrou: os candidatos estão na aba Classificação, sem ordem.",
       no_defined_index:
-        "O índice não pôde ser calculado para nenhum candidato (falta dado). A aba Ranking mostra o motivo de cada um.",
+        "O índice não pôde ser calculado para nenhum candidato (falta dado). A aba Classificação mostra o motivo de cada um.",
     },
     funnelLine: (initial: number, final: number) =>
       `Funil: ${initial} → ${final}. Detalhes na aba Eliminados.`,
     sensitivityNone:
-      "Sem análise de sensibilidade: ela só existe quando há critérios de ranking com peso.",
+      "Sem análise de sensibilidade: ela só existe quando há critérios de classificação com peso.",
     provenanceTitle: "Proveniência do resultado",
     provenanceHint:
       "O que gerou exatamente estes números. É o mesmo conteúdo que vai para o relatório exportado.",
-    provCombinator: "Combinação das restrições",
+    provCombinator: "Combinação dos limites",
     provConstraints: "Etapas de eliminação",
     provIndexExpression: "Expressão do índice",
     provIndexGoal: "Sentido do índice",
@@ -746,7 +752,7 @@ export const ptBR = {
     delete: "Excluir",
     deleteConfirm: "Excluir este estudo salvo?",
     runSaved: "Executar",
-    emptyResults: "Nenhum candidato após as restrições.",
+    emptyResults: "Nenhum candidato após os limites.",
     viewOnMap: "Ver candidatos no mapa",
     compareCandidates: "Comparar candidatos",
     genericError:
@@ -785,7 +791,7 @@ export const ptBR = {
   ai: {
     title: "Interpretar enunciado (opcional)",
     subtitle:
-      "A IA lê o enunciado e propõe função, restrições e índices já cadastrados. Ela não calcula nada: todo número vem do backend e toda sugestão passa pela sua revisão.",
+      "A IA lê o enunciado e propõe função, limites e índices já cadastrados. Ela não calcula nada: todo número vem do servidor e toda sugestão passa pela sua revisão.",
     disabled:
       "Camada de IA desativada. O sistema funciona integralmente sem ela.",
     simulatedBadge: "Provedor simulado",
@@ -808,7 +814,7 @@ export const ptBR = {
     functionRead: "Função",
     objectiveRead: "Objetivo",
     freeVariablesRead: "Variáveis livres",
-    constraintsRead: "Restrições reconhecidas",
+    constraintsRead: "Limites reconhecidos",
     indicesRead: "Índices sugeridos do catálogo",
     propertiesRead: "Propriedades citadas",
     chartRead: "Mapa sugerido",
@@ -929,9 +935,9 @@ export const ptBR = {
     caseStep: "1. O caso de carga",
     caseLabel: "Caso",
     caseHint:
-      "Função, restrição e objetivo. É essa combinação que determina o índice de desempenho.",
+      "Função, limite e objetivo. É essa combinação que determina o índice de desempenho.",
     facetFunction: "Função",
-    facetConstraint: "Restrição",
+    facetConstraint: "Limite",
     facetObjective: "Objetivo",
     // D-65: o objetivo deixou de ser propriedade do caso e virou escolha de quem
     // lê. A faceta diz os dois, senão afirmaria \"minimizar massa\" numa tela em
@@ -1058,7 +1064,7 @@ export const ptBR = {
       "A massa acabada. O dimensionamento calcula esta massa para você.",
     recycledLabel: "Teor reciclado (0 a 1)",
     recycledHint:
-      "Fração do material comprado que vem de reciclagem. A 0, a figura de reciclagem nem é lida — o que o cálculo precisa depende do briefing.",
+      "Fração do material comprado que vem de reciclagem. A 0, a figura de reciclagem nem é lida — o que o cálculo precisa depende do enunciado do projeto.",
     transportStep: "2. O transporte",
     transportModeLabel: "Modal",
     transportDistanceLabel: "Distância (km)",
@@ -1183,7 +1189,7 @@ export const ptBR = {
     subtitle:
       "Dimensionamento determinístico de packs (Ns × Np) e seleção comparativa de químicas eletroquímicas.",
     tabDesign: "Dimensionamento de Pack",
-    tabCompare: "Trade-offs de Químicas",
+    tabCompare: "Equilíbrio entre químicas",
     archetypesTitle: "Arquétipo de aplicação",
     archetypesHint:
       "Escolha uma aplicação de referência ou configure livremente os requisitos elétricos e mecânicos.",
@@ -1457,8 +1463,8 @@ export const ptBR = {
 
     // D-97: fontes externas — link, vídeo e pesquisa.
     link: {
-      tab: "Link",
-      title: "Link",
+      tab: "Página da web",
+      title: "Página da web",
       urlLabel: "Endereço",
       urlHint:
         "O endereço de uma página pública ou de um vídeo do YouTube. O servidor lê a página uma vez e guarda só o texto.",
@@ -1495,12 +1501,12 @@ export const ptBR = {
       resultsCount: (n: number) => (n === 1 ? "1 resultado" : `${n} resultados`),
       select: (title: string) => `Adicionar “${title}” ao caderno`,
       add: (n: number) => `Adicionar ${n}`,
-      noText: "sem resumo — adicione o link aberto",
+      noText: "sem resumo — adicione o endereço aberto",
       noYear: "ano não informado",
       noAuthors: "autoria não informada",
       noTitle: "sem título",
       noSnippet: "sem trecho de prévia",
-      searchLink: "link da busca do Google",
+      searchLink: "endereço da busca do Google",
       alreadyAdded: "já está no caderno",
       openResult: (title: string) => `Abrir “${title}” em outra aba`,
       usage: (used: number, limit: number) => `${used} de ${limit} buscas hoje`,
@@ -1881,7 +1887,7 @@ export const ptBR = {
     searchHelpExample: "Consulta",
     searchHelpMeaning: "O que pergunta",
     searchError: "A busca não foi entendida",
-    releasesLink: "Mudanças entre releases",
+    releasesLink: "Mudanças entre versões",
     // D-105: what a composition search says besides its rows.
     compositionReportTitle: "Busca por composição",
     compositionUndetermined: (n: number) =>
@@ -1961,7 +1967,7 @@ export const ptBR = {
     optionsCount: (level: number, shown: number, total: number) =>
       `O Nível ${level} oferece ${shown} de ${total} grandezas nos eixos.`,
     notMissing:
-      "As demais não estão ausentes: continuam gravadas e entram na seleção, no ranking e nas exportações. Escolha o Nível 3 para vê-las.",
+      "As demais não estão ausentes: continuam gravadas e entram na seleção, na classificação e nas exportações. Escolha o Nível 3 para vê-las.",
     noneAtLevel: (level: number) =>
       `Nenhuma propriedade desta ficha é do Nível ${level}.`,
   },
@@ -2218,29 +2224,29 @@ export const ptBR = {
   },
   // D-108 (TM7): o que mudou entre duas releases do catálogo oficial.
   releases: {
-    title: "Mudanças entre releases",
+    title: "Mudanças entre versões",
     subtitle:
-      "O que entrou, saiu ou mudou de uma release do catálogo oficial para outra. Os registros são casados pela identidade da fonte, nunca pelo nome.",
+      "O que entrou, saiu ou mudou de uma versão do catálogo oficial para outra. Os registros são casados pela identidade da fonte, nunca pelo nome.",
     backToCatalog: "Voltar ao catálogo",
-    loading: "Carregando as releases…",
-    error: "Não foi possível carregar as releases do catálogo.",
-    diffLoading: "Comparando as releases…",
-    diffError: "Não foi possível comparar estas releases.",
+    loading: "Carregando as versões…",
+    error: "Não foi possível carregar as versões do catálogo.",
+    diffLoading: "Comparando as versões…",
+    diffError: "Não foi possível comparar estas versões.",
     clearChoice: "Limpar filtros e página",
-    noPair: "Não há duas releases para comparar",
+    noPair: "Não há duas versões para comparar",
     noPairHint:
-      "Uma comparação precisa de duas releases do mesmo catálogo. Importe uma nova release do catálogo oficial para ter o que comparar.",
+      "Uma comparação precisa de duas versões do mesmo catálogo. Importe uma nova versão do catálogo oficial para ter o que comparar.",
     noPairUndeclared: (n: number) =>
-      `${n} ${n === 1 ? "release não declara" : "releases não declaram"} a qual catálogo ${n === 1 ? "pertence" : "pertencem"}, e por isso não ${n === 1 ? "é comparável" : "são comparáveis"} com nenhuma outra.`,
-    chooseTitle: "Releases comparadas",
-    base: "Release base",
-    target: "Release alvo",
+      `${n} ${n === 1 ? "versão não declara" : "versões não declaram"} a qual catálogo ${n === 1 ? "pertence" : "pertencem"}, e por isso não ${n === 1 ? "é comparável" : "são comparáveis"} com nenhuma outra.`,
+    chooseTitle: "Versões comparadas",
+    base: "Versão base",
+    target: "Versão alvo",
     swap: "Inverter a direção",
     direction: "A comparação vai da base para o alvo; invertida, novo e desativado trocam de lugar.",
     releaseOption: (release: string | null, name: string) =>
       `${release ?? name}`,
-    metaCaption: "As duas releases comparadas",
-    metaRelease: "Release",
+    metaCaption: "As duas versões comparadas",
+    metaRelease: "Versão",
     metaName: "Catálogo",
     metaLicense: "Licença",
     metaRecords: "Registros de material",
@@ -2265,7 +2271,7 @@ export const ptBR = {
     clearFilters: "Limpar filtros",
     listTitle: (n: number) => `${n} ${n === 1 ? "registro" : "registros"}`,
     listShowing: (shown: number, total: number) => `${shown} de ${total} no total`,
-    listCaption: "Registros da comparação entre as duas releases",
+    listCaption: "Registros da comparação entre as duas versões",
     columnStatus: "Situação",
     columnRecord: "Registro",
     columnIdentity: "Identidade na fonte",
@@ -2278,13 +2284,13 @@ export const ptBR = {
     selected: "Aberto abaixo",
     renamedFrom: (name: string) => `Antes: ${name}`,
     changesCount: (n: number) => `${n} ${n === 1 ? "campo alterado" : "campos alterados"}`,
-    onlyInTarget: "Existe só na release alvo",
-    onlyInBase: "Existe só na release base",
+    onlyInTarget: "Existe só na versão alvo",
+    onlyInBase: "Existe só na versão base",
     noChanges: "Nenhum campo mudou",
-    empty: "As duas releases não têm registros para comparar",
-    emptyHint: "Nenhuma das duas release traz registros de material.",
+    empty: "As duas versões não têm registros para comparar",
+    emptyHint: "Nenhuma das duas versões traz registros de material.",
     emptyFiltered: "Nenhum registro com estes filtros",
-    emptyFilteredHint: "Tire um filtro para ver os registros das duas releases.",
+    emptyFilteredHint: "Tire um filtro para ver os registros das duas versões.",
     pageOf: (page: number, count: number) => `Página ${page} de ${count}`,
     previousPage: "Página anterior",
     nextPage: "Próxima página",
@@ -2292,12 +2298,12 @@ export const ptBR = {
     detailTitle: "Detalhe do registro",
     detailLoading: "Carregando o registro…",
     detailError: "Não foi possível carregar este registro.",
-    detailNotFound: "Este registro não está em nenhuma das duas releases.",
+    detailNotFound: "Este registro não está em nenhuma das duas versões.",
     detailIdentity: (table: string, id: string) => `${table} · ${id}`,
     detailGruid: (gruid: string) => `GRUID ${gruid}`,
-    notInRelease: "Não está nesta release",
-    baseSide: "Na release base",
-    targetSide: "Na release alvo",
+    notInRelease: "Não está nesta versão",
+    baseSide: "Na versão base",
+    targetSide: "Na versão alvo",
     rawChanged:
       "A linha de origem deste registro mudou na fonte, mas nenhum campo que o catálogo lê mudou.",
     rawChangedWith: "A linha de origem deste registro também mudou na fonte.",
@@ -2309,7 +2315,7 @@ export const ptBR = {
     columnAsWritten: "Como a fonte escreveu",
     asWritten: (text: string) => `Fonte: ${text}`,
     noChangesInRecord: "Este registro não tem campo alterado.",
-    notRegistered: "não cadastrado nesta release",
+    notRegistered: "não cadastrado nesta versão",
     notInformed: "não informado",
     changeSentence: (before: string, after: string) => `Passou de ${before} para ${after}.`,
     writingSentence: (before: string, after: string) =>
@@ -2337,7 +2343,7 @@ export const ptBR = {
     } as Record<string, string>,
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
-    exportCsvHint: "Com proveniência das duas releases e unidades",
+    exportCsvHint: "Com proveniência das duas versões e unidades",
     exportXlsx: "Mudanças (XLSX)",
     exportXlsxHint: "A mesma tabela, como planilha",
     exportScope: "A exportação leva os filtros, não a página.",
@@ -2394,14 +2400,14 @@ export const ptBR = {
     thisMaterial: "Este material",
     dragMode: "Modo do cursor",
     dragModeSelect: "Selecionar região",
-    dragModeZoom: "Navegar / Zoom",
+    dragModeZoom: "Navegar / Ampliar",
     selectedRegion: "Região selecionada",
     clearBoxSelection: "Limpar seleção",
   },
   map: {
     title: "Mapas de propriedades",
     subtitle:
-      "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no backend.",
+      "Mapa de Ashby: dois eixos, envelopes por classe e linhas de índice com inclinação calculada no servidor.",
     universeTitle: "Universo",
     universeMaterials: "Materiais",
     universeProcesses: "Processos",
@@ -2494,7 +2500,7 @@ export const ptBR = {
     figure: "Mapa de Ashby",
     guide: "guia",
     share: "Compartilhar",
-    shareTooltip: "Copia um link com os filtros atuais",
+    shareTooltip: "Copia o endereço da página com os filtros atuais",
     save: "Salvar",
     saveTooltip: "Salva a configuração atual do mapa com um nome",
     savedCharts: "Meus mapas salvos",
@@ -2555,7 +2561,7 @@ export const ptBR = {
     // A distribuição por propriedade.
     distributionTitle: "Distribuição por propriedade",
     distributionSubtitle:
-      "Mínimo, quartis, mediana e máximo de cada classe, calculados no backend (ADR 0004).",
+      "Mínimo, quartis, mediana e máximo de cada classe, calculados no servidor (ADR 0004).",
     property: "Propriedade",
     scale: "Escala",
     linear: "Linear",
@@ -2617,7 +2623,7 @@ export const ptBR = {
     computed: {
       title: "Propriedades computadas",
       description:
-        "Índices calculados no backend a partir de propriedades cadastradas, em unidade canônica composta. Faltando algum insumo, o valor fica ausente com o motivo.",
+        "Índices calculados no servidor a partir de propriedades cadastradas, em unidade canônica composta. Faltando algum insumo, o valor fica ausente com o motivo.",
       pick: "Índices do catálogo",
       none: "Nenhum índice escolhido.",
       noneAvailable: "Não há índices cadastrados.",
@@ -2634,7 +2640,7 @@ export const ptBR = {
     },
     title: "Comparador de materiais",
     subtitle:
-      "Tabela, barras, radar, coordenadas paralelas e heatmap sobre valores normalizados no backend.",
+      "Tabela, barras, radar, coordenadas paralelas e mapa de calor sobre valores normalizados no servidor.",
     materials: "Materiais",
     properties: "Propriedades",
     pickMaterials: "Selecione de 1 a 12 materiais.",
@@ -2866,7 +2872,7 @@ export const ptBR = {
     assumptionFuncao: "Função",
     assumptionGeometria: "Geometria",
     assumptionObjetivo: "Objetivo",
-    assumptionRestricao: "Restrição",
+    assumptionRestricao: "Limite",
     assumptionReferencia: "Referência",
     expression: "Expressão",
     dimension: "Dimensão do resultado",
@@ -2878,14 +2884,14 @@ export const ptBR = {
     slopeUnavailable: "Sem reta de índice nestes eixos",
     noAssumptions: "Este índice não declara hipóteses.",
     noAssumptionsHint:
-      "Sem função, geometria, objetivo e restrição declarados não é possível verificar se ele se aplica ao seu problema. Ele continua calculável; a responsabilidade pela aplicação é sua.",
+      "Sem função, geometria, objetivo e limite declarados não é possível verificar se ele se aplica ao seu problema. Ele continua calculável; a responsabilidade pela aplicação é sua.",
     warning:
-      "Um índice só vale nas condições em que foi derivado. Confira função, geometria e restrição antes de usá-lo.",
+      "Um índice só vale nas condições em que foi derivado. Confira função, geometria e limite antes de usá-lo.",
     selectLabel: "Escolha o índice de desempenho",
     selected: "Selecionado",
     select: "Selecionar",
     none: "Nenhum índice",
-    noneHint: "O ranking usará apenas os critérios de propriedade.",
+    noneHint: "A classificação usará apenas os critérios de propriedade.",
     custom: "Expressão personalizada",
     customHint: "Você declara a expressão e as hipóteses.",
   },
@@ -2905,17 +2911,17 @@ export const ptBR = {
     methodTitle: "O método, em quatro passos",
     methodDisclosure: "Como funciona: o método em quatro passos",
     methodHint:
-      "É o percurso de Ashby: descreva a função, diga o que se quer otimizar, elimine com restrições e leia o resultado com a proveniência de cada número. O cálculo filtra e só então ordena — a ordem da tela é a de quem pensa o problema.",
+      "É o percurso de Ashby: descreva a função, diga o que se quer otimizar, elimine com limites e leia o resultado com a proveniência de cada número. O cálculo filtra e só então ordena — a ordem da tela é a de quem pensa o problema.",
     // D-88: chaves por nome, não por posição — a ordem da tela mudou uma vez e
     // \"step2\" passaria a querer dizer outra coisa.
     stepFunction: "Função",
     stepFunctionHint: "O que o componente faz e o que se quer otimizar.",
     stepObjective: "Objetivo",
-    stepObjectiveHint: "Um índice de mérito e os critérios de ranking, com os pesos somando 1.",
-    stepConstraints: "Restrições",
+    stepObjectiveHint: "Um índice de mérito e os critérios de classificação, com os pesos somando 1.",
+    stepConstraints: "Limites",
     stepConstraintsHint: "Cada uma elimina candidatos, e o funil mostra quantos.",
     stepResults: "Resultados",
-    stepResultsHint: "Ranking, contribuições, excluídos e sensibilidade.",
+    stepResultsHint: "Classificação, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
     savedTitle: "Retomar um estudo",
@@ -2928,14 +2934,14 @@ export const ptBR = {
     resume: "Retomar",
     // Counted nouns, both forms. Lowercasing another label to reuse it breaks
     // the moment a label starts with an acronym.
-    constraintOne: "restrição",
-    constraintMany: "restrições",
+    constraintOne: "limite",
+    constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
     exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
-    compareHint: "Tabela, barras, radar e heatmap sobre valores normalizados.",
+    compareHint: "Tabela, barras, radar e mapa de calor sobre valores normalizados.",
     importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
   },
 

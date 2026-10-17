@@ -793,7 +793,7 @@ export default function StyleGuidePage() {
           steps={[
             { id: "funcao", label: "1. Função", summary: "Viga leve de bicicleta" },
             { id: "objetivo", label: "2. Objetivo" },
-            { id: "restricoes", label: "3. Restrições" },
+            { id: "restricoes", label: "3. Limites" },
             {
               id: "resultados",
               label: "4. Resultados",
@@ -888,7 +888,7 @@ export default function StyleGuidePage() {
         actions={<DensityToggle />}
         headingLevel={2}
       >
-        <TableScroll label="Exemplo de ranking">
+        <TableScroll label="Exemplo de classificação">
           <Table>
             <THead>
               <Tr>
@@ -1055,8 +1055,8 @@ export default function StyleGuidePage() {
           </Card>
           <ErrorState description="O servidor não respondeu." onRetry={() => {}} />
           <EmptyState
-            title="Nenhum candidato após as restrições."
-            description="Afrouxe um limiar ou remova uma restrição para ver candidatos."
+            title="Nenhum candidato após os limites."
+            description="Afrouxe um limiar ou remova um limite para ver candidatos."
             action={<Button variant="secondary">Rever restrições</Button>}
           />
           <Card>

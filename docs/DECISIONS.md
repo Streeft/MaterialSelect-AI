@@ -10740,3 +10740,23 @@ continua no banco, e dá para voltar atrás.
 
 **Consequências.** Documentação (faixa C) neste PR; código em A e B. Sem schema nem migração.
 Pós-merge de A: **Deploy da API**.
+## D-140 — Linguagem simples na interface: glossário de troca (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O autor pediu textos mais simples, técnicos e com menos jargão e anglicismos. O texto da
+interface vive quase todo em `apps/web/lib/i18n.ts`, mais `lib/marketing/content.ts`,
+`lib/msds/msds.tsx` e `app/app/estilo/page.tsx`.
+
+**Decisão.** Uma palavra para cada conceito, em todo o app: restrição → **limite**; ranking →
+**classificação**; release → **versão**; template → **modelo**; trade-offs → **equilíbrio entre
+critérios**; backend → **servidor**; link → **endereço** (a aba do caderno vira "Página da web");
+heatmap → **mapa de calor**; zoom → **ampliar**. Ficam os termos corretos de engenharia (módulo de
+Young, Ashby, limite de escoamento), *estágio*, *proveniência* e *pack* (bateria). Chaves de i18n,
+slugs, rotas (`?etapa=restricoes`), identificadores e nomes de componente não mudam.
+
+**Fora do alcance (backend).** Os rótulos que a API devolve continuam com "release"
+(`app/domain/release_diff.py`, `app/services/catalog_release_service.py`: "Novo nesta release",
+"não cadastrado nesta release", "não está nesta release"); trocá-los mexe nos testes e nas
+exportações do backend e pede o Deploy da API.
+
+**Consequências.** Frontend apenas; os testes que buscavam o texto antigo foram atualizados. Depende
+da D-138 (a branch parte do PR da faixa B).

@@ -76,7 +76,7 @@ describe("a change in words (D-24)", () => {
   it("writes an absence out instead of a zero, a dash or a blank", () => {
     expect(sideText(absentToValue.before)).toBe("declarado ausente pela fonte");
     expect(sideText(notRegisteredToValue.before)).toBe("não cadastrado nesta release");
-    expect(sideText(null)).toBe("não cadastrado nesta release");
+    expect(sideText(null)).toBe("não cadastrado nesta versão");
     expect(readingText(valueToAbsent.after?.reading ?? null)).toBeNull();
   });
 
