@@ -391,7 +391,7 @@ def reasons_for(kind: str) -> dict[str, str]:
     return dict(_NO_RULE.get(kind, {}))
 
 
-def _worst(qualities: list[DataQuality]) -> DataQuality:
+def worst_quality(qualities: list[DataQuality]) -> DataQuality:
     """A pior qualidade da lista. Sem entradas, o mais conservador."""
     if not qualities:
         return DataQuality.ESTIMADO
@@ -513,7 +513,7 @@ def _mix_two_parents(
                 continue
             assert rho_a is not None and rho_b is not None
             w_a = f * rho_a.value / density
-            quality = _worst([a.quality, b.quality, rho_a.quality, rho_b.quality])
+            quality = worst_quality([a.quality, b.quality, rho_a.quality, rho_b.quality])
             values.append(
                 SynthesizedValue(
                     slug=slug,
@@ -524,7 +524,7 @@ def _mix_two_parents(
             )
             continue
 
-        quality = _worst([a.quality, b.quality])
+        quality = worst_quality([a.quality, b.quality])
         if rule.key == "volume-linear":
             values.append(
                 SynthesizedValue(

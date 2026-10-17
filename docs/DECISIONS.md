@@ -10866,3 +10866,45 @@ com largura ajustável; a página foi lida em 17/10/26).
 - `/app/cadernos` entra na lista do Lighthouse; o teste de axe das rotas já o cobria.
 
 **Fora desta decisão.** Gravar as larguras por conta; arrastar para reordenar painéis.
+
+## D-144 — Varredura de família do Synthesizer: um índice ao longo da receita, sem gravar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Lacuna do EduPack que cabe sem dado licenciado: o Synthesizer (D-67, D-68) diz qual
+material sai de *uma* receita, e a pergunta seguinte do projetista é como um índice de desempenho
+anda quando a receita anda. Os números D-141/D-142 e as Sessões 96/97 já estavam tomados quando a
+faixa começou, e o D-143 já é dos Cadernos e a faixa paralela do Ragone fica com o D-145; por isso D-144.
+
+**Decisão.**
+- **Função pura, sem banco e sem gravação.** `sweep_family` (`app/calculations/family_sweep.py`)
+  chama `synthesize_sandwich` / `synthesize_composite` em cada ponto da grade e avalia o índice
+  com o mesmo `evaluate_index` da seleção, dos mapas e do comparador — um passo e um registro
+  gravado com a mesma receita não podem discordar. `POST /api/sintetizar/varredura` (mesma regra
+  de acesso da prévia, pais pelo filtro de visibilidade) lê os pais, as definições e valida o
+  índice **uma vez**; nada é persistido.
+- **Só se varre o que move o material.** Painel: a razão `c/t` (núcleo sobre cada face; roda com
+  `t = 1`, porque só a razão decide). Compósito: a fração volumétrica do primeiro constituinte.
+  **Espessura absoluta não se varre:** num índice a geometria já foi eliminada, e mudar a
+  espessura de uma peça multiplica todos os candidatos pelo mesmo fator estrutural — a ordem não
+  muda, e a curva não responderia nada. A nota da resposta diz isso ao leitor.
+- **Grade explícita, calculada por índice.** `x_i = (start·(n−1−i) + stop·i)/(n−1)` (ou o mesmo
+  nos logaritmos, espaçamento `log`), com os extremos devolvidos exatamente como pedidos; nunca soma
+  acumulada de passo. De 2 a 50 passos, extremos positivos e finitos, `start < stop`, fração
+  abaixo de 1; faixa estreita demais para `n` pontos distintos é recusada. O schema recusa com 422;
+  face e núcleo iguais e índice com variável desconhecida são 400, como na prévia.
+- **Passo sem índice vai para `skipped` com o motivo escrito**, nunca zero nem omissão: o painel
+  não tem resistência sintetizada, então um índice que lê `limite_escoamento` sai em todo passo com
+  o motivo do Synthesizer ("competição entre modos de falha"). Dado faltante no pai, propriedade
+  sem regra e aritmética que falha também viram frase.
+- **Par de limites gera par de índices.** No compósito o módulo e a condutividade são o intervalo
+  Reuss–Voigt; o índice é avaliado nos cantos e sai como `index_min`/`index_max`, nunca a média.
+  Isso só é exato para índice **lei de potência** (monótono em cada propriedade positiva); para
+  outra expressão o passo é recusado com o motivo.
+- **Qualidade do passo** é a pior entre os valores sintetizados que o índice leu (D-67, um nível
+  acima).
+
+**Descartado.** Varrer espessura (não muda ranking); varrer dois parâmetros, laminados, colmeia e
+modos de cisalhamento (fora da v1); persistir a varredura; espuma (densidade relativa) — cabe
+depois pelo mesmo caminho, mas não entrou na v1.
+
+**Consequências.** Backend apenas; sem migração. A tela (seção "Varrer" em `/app/sintetizar`, linha
+do índice contra o parâmetro com a tabela de origem, D-31) é a faixa V2, pendente no `TODO.md`.
