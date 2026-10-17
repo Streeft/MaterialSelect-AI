@@ -105,6 +105,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 96 — 17/10/26 — Transição entre telas: esmaecer (D-141)
+
+**O que mudou.** `RouteTransition` (esmaece a tela nova, só opacidade, desligado sob
+`prefers-reduced-motion`) em `app/app/layout.tsx` e a classe `.m3-route-enter` em `globals.css`.
+
+**Testes.** +4 de frontend (`RouteTransition.test.tsx`: classe, tela nova reconstrói, mesmo caminho
+mantém, só opacidade e redução de movimento). Sem backend nem migração.
+
 ## Sessão 95 — 17/10/26 — Linguagem simples na interface (D-140)
 
 **O que mudou.** Glossário de troca aplicado só dentro de textos de tela: restrição → limite,
