@@ -134,7 +134,7 @@ class BatteryService:
         """Uma química pelo slug, ou 404 com o slug escrito."""
         return self._out(self._row(slug))
 
-    #: A base da potência não está declarada no catálogo (D-143): o aviso diz isso
+    #: A base da potência não está declarada no catálogo (D-145): o aviso diz isso
     #: em vez de supor pico ou contínua.
     RAGONE_POWER_NOTE = (
         "A potência específica é da célula, não do pack, e o catálogo não declara a "

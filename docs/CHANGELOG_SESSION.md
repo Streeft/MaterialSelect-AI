@@ -106,6 +106,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 100 — 17/10/26 — Gráfico de Ragone das baterias (D-145)
 ## Sessão 99 — 17/10/26 — Varredura de família do Synthesizer, backend (D-144)
 
 **O que mudou.** `app/calculations/family_sweep.py` (`sweep_grid`, `sweep_family`: função pura que
