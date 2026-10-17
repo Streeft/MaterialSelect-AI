@@ -10678,6 +10678,36 @@ no uso do app. O trilho lateral não ganha pílula (D-37).
 "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito) e conferir tudo no navegador.
 
 
+## D-139 — Assistente da Seleção: rascunho salvo no navegador, por conta (Google Docs)
+
+**Contexto.** Quinto item da lista de padrões dos apps do Google (`m3.material.io`, páginas
+*Snackbar* e *Text fields*, e o "Salvo" do Google Docs). O assistente tem quatro passos e muito
+texto digitado; fechar a aba, um travamento ou um Voltar a mais custava o estudo inteiro.
+
+**Decisão.**
+- **Rascunho local.** O estado do assistente (o mesmo `WizardSnapshot` do exemplo, D-85) e o passo
+  atual vão para o `localStorage`, 800 ms depois da última alteração. Chave **por conta**
+  (`msai.selection.draft.<id>`): numa máquina de sala de aula, um aluno nunca recebe o texto de outro.
+  O rascunho **não é um estudo**: não vai ao servidor, não ranqueia nada e não vira resultado
+  (princípio 2).
+- **Quando não grava.** Assistente intocado (o estado serializado é igual ao de abertura: nenhum
+  campo é "vazio o bastante" por palpite), enquanto há um rascunho esperando resposta, e enquanto
+  se edita um estudo salvo (`?estudo=`, que tem o seu próprio salvar).
+- **Recuperar.** Ao abrir, um aviso diz a data do rascunho e oferece **Continuar de onde parou** (volta
+  ao passo guardado) ou **Descartar**. Nada é restaurado sem o clique, e o rascunho em espera não é
+  sobrescrito pelo formulário vazio. Os ids de editor do rascunho (`row-12`, `criterion-3`) vêm de
+  outra carga; os contadores pulam além do maior, para uma linha nova nunca reusar uma chave.
+- **Indicador.** "Rascunho salvo neste navegador." (`role="status"`), sem prometer sincronia que não há.
+- **Saída segura.** Em vez de um `beforeunload` que interrompe, o rascunho é gravado na hora em
+  `pagehide` e quando a aba fica oculta (mesmo padrão do commit adiado de D-130). Salvar o estudo
+  no servidor apaga o rascunho.
+- **Falha de armazenamento.** Janela privada, dados do site bloqueados ou cota cheia lançam
+  exceção; toda leitura e escrita está em `try/catch` e o assistente funciona sem rascunho.
+
+**Fora desta decisão.** Mover o foco ao título ao trocar de passo fica para o item de acessibilidade
+(plano, item 9). O rascunho não cobre as notas do estudo nem a matriz AHP em edição.
+
+**Consequências.** Frontend apenas. O assistente passa a chamar `/auth/me` (já em cache no app).
 ## D-138 — Retirada dos avisos de dado demonstrativo e de limite de uso (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O autor quer o app com aparência profissional e oficial e mandou retirar toda
