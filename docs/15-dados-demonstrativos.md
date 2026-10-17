@@ -7,6 +7,12 @@ repetir o defeito registrado em [D-71](DECISIONS.md#d-71) — 70 materiais
 fictícios que ficaram meses fora do ar porque viviam num módulo que nada
 chamava.
 
+> **Aviso na tela e nos arquivos: retirado ([D-138](DECISIONS.md)).** Por decisão
+> do autor, o app e as exportações não mostram mais texto de "dado demonstrativo"
+> nem de limite de uso. Isto **não** muda a regra abaixo: criar e apagar dado
+> fictício segue o mesmo caminho, e `is_demo` continua sendo o marcador (dado,
+> não texto). O risco de o leitor não ser avisado de que o dado é fictício é do autor.
+
 ## A regra em uma frase
 
 **Todo dado fictício se declara pela coluna `is_demo=True` do seu próprio

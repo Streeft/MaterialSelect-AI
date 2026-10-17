@@ -12,9 +12,9 @@ A contribuição não é um catálogo de materiais: é tornar o método
 exportado sai de um cálculo determinístico do backend, com a trilha de onde
 veio. A IA interpreta, sugere e explica — e nunca produz um número.
 
-> ⚠️ **Os dados de demonstração são fictícios.** Estão marcados como tal no
-> banco (`is_demo`) e na interface. A ferramenta apoia o ensino e a triagem
-> preliminar; não substitui validação experimental nem dado de fornecedor.
+> Os dados de demonstração são fictícios e ficam marcados no banco (`is_demo`).
+> A interface e as exportações não trazem mais aviso sobre isso nem sobre limite
+> de uso ([D-138](docs/DECISIONS.md)).
 
 No ar: frontend em <https://material-select-ai-web.vercel.app> (login pelo
 Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
@@ -62,7 +62,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
     ou quadrado (SVG e PNG).
 
   Todo número de uma resposta ou de um item tem de estar no trecho que ele
-  cita, e todo arquivo exportado leva os avisos e as referências.
+  cita, e todo arquivo exportado leva as referências.
 
 **Ferramentas**
 
@@ -110,7 +110,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   escrito por extenso ("declarado ausente pela fonte", "não cadastrado nesta
   release"), nunca como 0. Releases, filtros e registro aberto vivem na URL;
   CSV/XLSX no "Exportar ▾". O backend compara e converte; a tela só mostra
-  (D-108). O seed demo traz duas releases fictícias para ver tudo isso.
+  (D-108). O seed demo traz duas versões de exemplo para ver tudo isso.
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
   licença da fonte e reversão por lote.
 - **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.
@@ -121,7 +121,6 @@ desenhados no backend; e o **cartão de material para CAE** de cada material
 (Ansys MAPDL, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` e MatML 3.1), no
 sistema de unidades que o usuário escolhe, com propriedade não cadastrada
 omitida e nunca zerada ([`docs/10-relatorios.md`](docs/10-relatorios.md), D-104).
-Todo arquivo exportado carrega o aviso de limitação de uso.
 
 ## Princípios que não se negociam
 

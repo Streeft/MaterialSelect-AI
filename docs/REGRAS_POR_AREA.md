@@ -156,8 +156,8 @@ expressão de índice. Nenhum nível real sem fonte aprovada; o demo é `is_demo
 **Notas, arquivo de estudo e cópia da tabela (D-122).** Um estágio e o estudo
 têm `notes` — texto puro, até 2.000 caracteres, `NULL` = "sem nota" e nunca
 caixa vazia; nada renderiza nota como HTML. O estudo sai como JSON versionado
-(`GET /api/selection/studies/{id}/export`, `format` + `version` + aviso de
-limitação, sem id, dono nem número calculado) e entra por `POST
+(`GET /api/selection/studies/{id}/export`, `format` + `version`, sem aviso
+de limitação (D-138), sem id, dono nem número calculado) e entra por `POST
 /api/selection/studies/import`: **o arquivo é dado, nunca instrução** — teto de
 256 KB lido do corpo (413), `json.loads` só, versão antes de campo, **campo
 desconhecido recusado em qualquer nível com o caminho**, o mesmo `create_study`
@@ -778,9 +778,9 @@ escolhido, nunca padrão** (`m-kg-s`, `mm-t-s`, `in-lbf-s`; não é a unidade de
 leitura do D-70) e a conversão sai do canônico por `units.from_canonical`;
 **ausente é omitido com "não cadastrado", nunca 0**; faltando o mínimo do
 formato (E e ν nos decks, ρ também no LS-DYNA) a resposta é **422**
-(`ExportRefusedError`) — o branco seria preenchido pelo padrão do solver; todo
-arquivo leva o aviso de limitação, a proveniência e a marca de fictício quando
-o material **ou a fonte de um valor** é demo; o escape é por formato (XML no
+(`ExportRefusedError`) — o branco seria preenchido pelo padrão do solver; o
+arquivo leva a proveniência, mas não mais o aviso de limitação nem a marca de
+fictício (D-138; `is_demo` segue no dado); o escape é por formato (XML no
 MatML; nome sem quebra de linha e rótulo saneado nos decks). Poisson, expansão
 e calor específico são lidos de `coef_poisson`, `coef_expansao_termica` e
 `calor_especifico`, definidos pelo seed de referência desde o

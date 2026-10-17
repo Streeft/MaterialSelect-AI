@@ -28,7 +28,7 @@ usuário e sem produzir valores numéricos).
 - Modelo de dados e banco (Material, MaterialClass, PropertyDefinition,
   MaterialPropertyValue, Source).
 - Conversão de unidades determinística e rastreável (Pint).
-- Dados demonstrativos sintéticos.
+- Dados de exemplo sintéticos (marcados `is_demo` no banco).
 - API: listar materiais (com busca), detalhar material, gráfico X-Y, health.
 - Interface: catálogo pesquisável, ficha do material, mapa densidade × módulo de
   Young com escala linear/log.

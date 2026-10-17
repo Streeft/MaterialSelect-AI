@@ -239,8 +239,8 @@ Tree Stage, no manual, é uma junção: *materiais que este processo molda*,
 **Entregue** ([D-57](DECISIONS.md)): `ProcessClass` hierárquica, `Process`,
 a associação N–N `material_process`, um **terceiro tipo de estágio** (`process`)
 que filtra materiais por pasta ou por folha do universo de processos, os
-processos compatíveis na ficha do material, e um universo demonstrativo
-semeado — fictício e marcado, sendo a **compatibilidade** o que é inventado ali.
+processos compatíveis na ficha do material, e um universo de exemplo
+semeado — marcado `is_demo`, sendo a **compatibilidade** o que é inventado ali.
 
 ### P0-3 — A seleção só devolve materiais — **entregue**
 
