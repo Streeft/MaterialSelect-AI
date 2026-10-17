@@ -103,6 +103,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 90 — 17/10/26 — Material 3, contêineres e sobreposições (D-136)
+
+**O que mudou.** `msds.css`: card interativo sem `translateY` (véu + elevação 2); diálogo de 28 px
+em `surface-container-high`; scrim `--m3-scrim` a 32 % nos quatro fundos; menu e popover no
+`surface-container` com elevação 2; snackbar e dica em `inverse-surface`.
+
+**Testes.** +39 de frontend (`lib/msds/overlays.test.ts`: contraste do texto nos contêineres
+em 34 combinações, card, diálogo, scrim, menu, snackbar). Sem backend nem migração.
+
 ## Sessão 89 — 17/10/26 — Material 3, campos: contorno e controles de seleção (D-135)
 
 **O que mudou.** `msds.css`: campo de texto com raio 4, borda `--m3-outline`, foco em contorno de
