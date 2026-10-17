@@ -102,6 +102,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `--m3-primary`; barra inferior com pílula 56 × 32 **sobre o trilho escuro** (D-37 vale);
   item de lista e linha de tabela com véu de 8 %, nunca preenchimento fixo.
 
+- **Rascunho do assistente é local e por conta** ([D-138](docs/DECISIONS.md)): `lib/selectionDraft.ts`,
+  `localStorage` com a chave do usuário, nunca o servidor. Intocado não grava; nada é restaurado
+  sem o clique em "Continuar"; salvar o estudo apaga o rascunho. Todo acesso ao armazenamento em `try/catch`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

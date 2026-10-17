@@ -103,6 +103,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 93 — 17/10/26 — Seleção: rascunho salvo no navegador (D-138)
+
+**O que mudou.** `lib/selectionDraft.ts` (leitura, escrita e validação do rascunho, por conta) e o
+assistente de `/app/selecao`: grava o estado 800 ms depois da última alteração, mostra "Rascunho
+salvo neste navegador.", oferece Continuar/Descartar ao reabrir e grava na hora em `pagehide`.
+Salvar o estudo apaga o rascunho. `ConstraintEditor` ganhou `reserveEditorIds`.
+
+**Testes.** +18 de frontend (`selectionDraft.test.ts`, 11, e sete casos em `selecao.test.tsx`:
+gravação por conta, intocado não grava, Continuar, Descartar, outra conta, rascunho em espera,
+apagar ao salvar). Sem backend nem migração.
+
 ## Sessão 92 — 17/10/26 — Artefato "MaterialSelect AI" alinhado ao app
 
 **O que mudou.** Só o artefato (versão 24), nenhum arquivo do app: `tokens.json` com os neutros e a

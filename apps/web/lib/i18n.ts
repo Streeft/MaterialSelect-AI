@@ -319,6 +319,10 @@ export const ptBR = {
     exampleLoaded:
       "Exemplo carregado: função, índice, critério e três restrições. Avance pelos passos ou execute.",
     exampleUndo: "Desfazer",
+    draftSaved: "Rascunho salvo neste navegador.",
+    draftFound: (when: string) => `Há um rascunho deste assistente, salvo em ${when}.`,
+    draftContinue: "Continuar de onde parou",
+    draftDiscard: "Descartar",
     exampleUnavailable: (missing: string) =>
       `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
     aiOpen: "Preencher a partir de um texto (IA)",

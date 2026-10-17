@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { draftKey, parseDraft, serializeDraft, type DraftData } from "@/lib/selectionDraft";
 import { flowText } from "@/lib/i18n-flow";
 import type {
   PerformanceIndex,
@@ -64,6 +65,8 @@ function closedPreview(payload: WeightsPreviewRequest, budget: Partial<WeightBud
   };
 }
 let propertiesMock: PropertyDefinition[] = [];
+// D-138: the draft is kept per account.
+let currentUser = { id: 7, email: "a@x.br", name: "Ana", avatar_url: null, project_id: 1 };
 const listPerformanceIndices = vi.fn<() => Promise<PerformanceIndex[]>>();
 
 const density: PropertyDefinition = {
@@ -90,6 +93,7 @@ const density: PropertyDefinition = {
 // on what the wizard actually built.
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
+  getCurrentUser: () => Promise.resolve(currentUser),
   runSelection: (payload: RunRequest) => runSelection(payload),
   previewWeights: (payload: WeightsPreviewRequest) => previewWeights(payload),
   listProperties: () => Promise.resolve(propertiesMock),
@@ -168,6 +172,8 @@ beforeEach(() => {
   listPerformanceIndices.mockResolvedValue([]);
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
+  window.localStorage.clear();
+  currentUser = { id: 7, email: "a@x.br", name: "Ana", avatar_url: null, project_id: 1 };
 });
 
 /** Run, once the weight check has answered (D-87): the button waits for it. */
@@ -720,5 +726,98 @@ describe("pesos com limite 1", () => {
     await clickRun(user);
     await waitFor(() => expect(runSelection).toHaveBeenCalled());
     expect(screen.queryByText(t.weights.checking)).toBeNull();
+  });
+});
+
+describe("rascunho salvo (D-138)", () => {
+  const stored = (name: string, userId = 7) => {
+    const data: DraftData = {
+      name,
+      functionText: "Viga de bicicleta",
+      objectiveText: "",
+      freeVariables: "",
+      universe: "material",
+      stages: [],
+      indexMode: "none",
+      customExpression: "",
+      indexGoal: "maximize",
+      indexConfirmed: false,
+      criteria: [],
+      method: "weighted_sum",
+      normalization: "minmax",
+      useAhp: false,
+    };
+    window.localStorage.setItem(draftKey(userId), serializeDraft("function", data));
+  };
+
+  it("keeps what the reader typed in this browser, per account, and says so", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.type(await screen.findByLabelText(t.studyName), "Haste leve");
+    expect(await screen.findByText(t.draftSaved, {}, { timeout: 3000 })).toBeInTheDocument();
+
+    const draft = parseDraft(window.localStorage.getItem(draftKey(7)));
+    expect(draft?.data.name).toBe("Haste leve");
+    expect(window.localStorage.getItem(draftKey(8))).toBeNull();
+  });
+
+  it("writes nothing while the wizard is untouched", async () => {
+    render(wrap(<SelectionPage />));
+    await screen.findByLabelText(t.studyName);
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(window.localStorage.getItem(draftKey(7))).toBeNull();
+    expect(screen.queryByText(t.draftSaved)).not.toBeInTheDocument();
+  });
+
+  it("offers a stored draft back, and Continuar puts it in the form", async () => {
+    stored("Viga recuperada");
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(await screen.findByShadowRole("button", { name: t.draftContinue }));
+    expect(screen.getByLabelText(t.studyName)).toHaveValue("Viga recuperada");
+    expect(screen.queryByShadowRole("button", { name: t.draftContinue })).not.toBeInTheDocument();
+  });
+
+  it("Descartar removes the draft and leaves the form empty", async () => {
+    stored("Para descartar");
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.click(await screen.findByShadowRole("button", { name: t.draftDiscard }));
+    expect(window.localStorage.getItem(draftKey(7))).toBeNull();
+    expect(screen.getByLabelText(t.studyName)).toHaveValue("");
+  });
+
+  it("never offers another account's draft", async () => {
+    stored("Do colega", 8);
+    render(wrap(<SelectionPage />));
+    await screen.findByLabelText(t.studyName);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByShadowRole("button", { name: t.draftContinue })).not.toBeInTheDocument();
+  });
+
+  it("does not overwrite a waiting draft with the empty form", async () => {
+    stored("Ainda não respondi");
+    render(wrap(<SelectionPage />));
+    await screen.findByShadowRole("button", { name: t.draftContinue });
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(parseDraft(window.localStorage.getItem(draftKey(7)))?.data.name).toBe("Ainda não respondi");
+  });
+
+  it("clears the draft once the study is saved on the server", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    await user.type(await screen.findByLabelText(t.studyName), "Haste salva");
+    await screen.findByText(t.draftSaved, {}, { timeout: 3000 });
+    await user.click(stepButton(t.stepObjective));
+    await clickRun(user);
+    await waitFor(() => expect(screen.getByShadowRole("button", { name: t.saveStudy })).toBeEnabled());
+    await user.click(screen.getByShadowRole("button", { name: t.saveStudy }));
+
+    await waitFor(() => expect(createStudy).toHaveBeenCalled());
+    await waitFor(() => expect(window.localStorage.getItem(draftKey(7))).toBeNull());
   });
 });
