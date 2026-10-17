@@ -88,8 +88,8 @@ quitados".
 ## Média prioridade
 
 - **Design system do Material 3 sobre o do app (Sessão 87, [D-133](DECISIONS.md))** — Etapa 1
-  (tokens, aditivo) entregue. Restam, um PR por grupo e com o artefato "MaterialSelect AI"
-  sincronizado: (2) ações (botões, chip, FAB), (3) campos, (4) contêineres e sobreposições,
+  (tokens) e Etapa 2 (ações, [D-134](DECISIONS.md)) entregues. Restam, um PR por grupo e com o
+  artefato "MaterialSelect AI" sincronizado: (3) campos, (4) contêineres e sobreposições,
   (5) navegação e dados. Decidir caso a caso, com medição: `primary-container`, fonte, FAB,
   abas em pílula, um `primary` por tela, hover por borda × véu. Devolver a Okabe–Ito ao artefato.
 - **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —

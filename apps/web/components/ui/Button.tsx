@@ -41,7 +41,7 @@ import { Button as MsdsButton, useRipple, useShapeMorph } from "@/lib/msds";
  *   text, no fill, so a table of rows is not a column of red buttons.
  * - `link` — navigation that reads as prose.
  */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-quiet" | "link";
+export type ButtonVariant = "primary" | "secondary" | "tonal" | "ghost" | "danger" | "danger-quiet" | "link";
 export type ButtonSize = "sm" | "md";
 
 function msdsButtonClassName(variant: ButtonVariant, size: ButtonSize, className?: string) {

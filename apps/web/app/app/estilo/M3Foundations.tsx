@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui";
+
 /**
  * Specimen of the Material 3 foundations (D-133): colour roles of the current
  * route, shape, elevation, type and state layers. It reads the live tokens, so
@@ -115,12 +117,12 @@ export function M3Foundations() {
         <p className="mb-2 text-m3-body-small text-ink-muted">
           Passe o mouse, use Tab e clique: 8% ao passar, 10% no foco e ao pressionar. Sem movimento.
         </p>
-        <button
-          type="button"
-          className="m3-state rounded-m3-full bg-m3-secondary-container px-6 py-2.5 text-m3-label-large text-m3-on-secondary-container"
-        >
-          Botão tonal
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="primary">Preenchido</Button>
+          <Button variant="tonal">Tonal</Button>
+          <Button variant="secondary">Contornado</Button>
+          <Button variant="ghost">Texto</Button>
+        </div>
       </div>
     </div>
   );

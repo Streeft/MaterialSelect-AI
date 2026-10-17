@@ -103,6 +103,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 88 — 16/10/26 — Material 3, ações: véu de estado, tonal, FAB (D-134)
+
+**O que mudou.** `msds.css`: a camada de estado dos `.msds-ripple-host` lê os tokens 8/10/10 e
+só reage a hover onde há mouse; botões e chips perdem a subida, o zoom e a troca de borda ao
+passar; variante `tonal` (`ButtonVariant`); FAB com raio 16, elevação 3/4 e o container
+primário da rota. `/estilo` mostra os quatro botões.
+
+**Testes.** +4 de frontend (`lib/msds/stateLayer.test.ts`). Sem backend nem migração.
+
 ## Sessão 87 — 16/10/26 — Material 3: fundações de tokens (D-133)
 
 **O que mudou.** `lib/design/m3Roles.ts` deriva do `--accent` de cada rota os 33 papéis

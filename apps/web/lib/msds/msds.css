@@ -65,27 +65,25 @@ body {
     background var(--msds-dur) var(--msds-ease), border-color var(--msds-dur) var(--msds-ease);
 }
 .msds-btn-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.msds-btn:active:not(:disabled), .msds-btn[data-force-state="pressed"] { transform: scale(0.97) translateY(1px); }
+.msds-btn:active:not(:disabled), .msds-btn[data-force-state="pressed"] { transform: scale(0.97); }
 .msds-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .msds-btn-md { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
 .msds-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
 
 .msds-btn-primary { background: rgb(var(--action-primary)); color: rgb(var(--action-primary-ink)); box-shadow: var(--shadow-card); }
-.msds-btn-primary:hover:not(:disabled), .msds-btn-primary[data-force-state="hover"] { transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-glow); }
 
 .msds-btn-secondary { background: var(--surface-200); color: rgb(var(--ink)); border-color: rgb(var(--border-control)); box-shadow: var(--shadow-control); }
-.msds-btn-secondary:hover:not(:disabled), .msds-btn-secondary[data-force-state="hover"] { border-color: rgb(var(--accent)); color: rgb(var(--accent)); transform: translateY(-1px); box-shadow: var(--shadow-raised); }
+
+/* D-134: tonal = M3 secondary container (a quieter filled button); does not count as `primary` (D-91). */
+.msds-btn-tonal { background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container)); }
 
 .msds-btn-ghost { background: transparent; color: rgb(var(--ink)); }
-.msds-btn-ghost:hover:not(:disabled), .msds-btn-ghost[data-force-state="hover"] { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
 
 .msds-btn-danger { background: rgb(var(--danger)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-card); }
-.msds-btn-danger:hover:not(:disabled), .msds-btn-danger[data-force-state="hover"] { transform: translateY(-1px) scale(1.01); filter: brightness(1.06); }
 
 /* D-91: the destructive *entry point* in a list or header — quiet until
    hovered. The filled danger button is for the confirmation itself. */
 .msds-btn-danger-quiet { background: transparent; color: rgb(var(--danger-fg)); }
-.msds-btn-danger-quiet:hover:not(:disabled), .msds-btn-danger-quiet[data-force-state="hover"] { background: rgb(var(--danger-soft)); }
 
 .msds-btn-link { background: transparent; color: rgb(var(--accent)); text-decoration: underline; text-underline-offset: 3px; padding-left: 2px; padding-right: 2px; }
 .msds-btn-link:hover:not(:disabled), .msds-btn-link[data-force-state="hover"] { color: rgb(var(--brand-800)); }
@@ -132,7 +130,6 @@ body {
   border-radius: var(--radius-full); padding: 6px 12px 6px 10px; font-size: 13px; font-weight: 500;
   cursor: pointer; box-shadow: var(--shadow-control); transition: all var(--msds-dur) var(--msds-ease);
 }
-.msds-chip:hover, .msds-chip[data-force-state="hover"] { transform: translateY(-1px); border-color: rgb(var(--accent)); }
 .msds-chip[aria-pressed="true"] { background: rgb(var(--brand-50)); border-color: rgb(var(--accent)); color: rgb(var(--brand-800)); }
 .msds-chip-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); flex: none; }
 
@@ -456,21 +453,28 @@ body {
 @keyframes msds-ripple { to { transform: scale(1); opacity: 0; } }
 .msds-state-layer { position: absolute; inset: 0; background: currentColor; opacity: 0; pointer-events: none;
   transition: opacity 120ms var(--msds-ease); border-radius: inherit; }
-.msds-ripple-host:hover .msds-state-layer { opacity: 0.06; }
-.msds-ripple-host:active .msds-state-layer, .msds-ripple-host:focus-visible .msds-state-layer { opacity: 0.10; }
+/* D-134: the M3 state-layer opacities (8 / 10 / 10), read from the tokens in globals.css.
+   Hover only where a pointer can hover, so a tap does not leave the veil behind. */
+@media (hover: hover) {
+  .msds-ripple-host:hover .msds-state-layer { opacity: var(--state-hover); }
+}
+.msds-ripple-host[data-force-state="hover"] .msds-state-layer { opacity: var(--state-hover); }
+.msds-ripple-host:focus-visible .msds-state-layer, .msds-ripple-host[data-force-state="focus"] .msds-state-layer { opacity: var(--state-focus); }
+.msds-ripple-host:active .msds-state-layer, .msds-ripple-host[data-force-state="pressed"] .msds-state-layer { opacity: var(--state-pressed); }
+@media (prefers-reduced-motion: reduce) { .msds-state-layer { transition: none; } }
 
 /* FAB — ação primária da tela, fixa sobre o conteúdo. */
 .msds-fab {
   position: fixed; right: 24px; bottom: 24px; z-index: 30;
   display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; max-width: calc(100vw - 48px);
-  height: 56px; padding: 0 20px; border: none; border-radius: var(--radius-xl);
-  background: rgb(var(--accent)); color: rgb(var(--accent-fg)); box-shadow: var(--shadow-raised);
+  height: 56px; padding: 0 20px; border: none; border-radius: var(--shape-large);
+  background: rgb(var(--m3-primary-container)); color: rgb(var(--m3-on-primary-container)); box-shadow: var(--elevation-3);
   font: 600 14px var(--font-sans); cursor: pointer;
   transition: transform var(--msds-dur) var(--msds-ease), box-shadow var(--msds-dur) var(--msds-ease);
 }
-.msds-fab[data-icon-only="true"] { width: 56px; padding: 0; justify-content: center; border-radius: var(--radius-xl); }
-.msds-fab:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
-.msds-fab:active { transform: translateY(0) scale(0.97); }
+.msds-fab[data-icon-only="true"] { width: 56px; padding: 0; justify-content: center; border-radius: var(--shape-large); }
+.msds-fab:hover { box-shadow: var(--elevation-4); }
+.msds-fab:active { transform: scale(0.97); box-shadow: var(--elevation-3); }
 .msds-fab[data-raised-above-tray="true"] { bottom: 96px; }
 
 /* Elevação tonal — movida para a seção "Rodada 5" abaixo (data-tonal-hover),
@@ -575,7 +579,6 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-chip-assist .msds-chip-icon { display: flex; color: rgb(var(--ink-muted)); flex: none; }
 .msds-chip-assist .msds-chip-icon svg { width: 15px; height: 15px; }
 .msds-chip-suggestion { background: rgb(var(--brand-50)); border-color: transparent; color: rgb(var(--brand-800)); }
-.msds-chip-suggestion:hover { border-color: rgb(var(--accent)); }
 .msds-chip-input { padding-right: 6px; }
 .msds-chip-input .msds-chip-text { display: inline-flex; }
 .msds-chip-remove {
@@ -931,3 +934,4 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 /* Per-route color lives only in app/globals.css ([data-section] blocks, D-73).
    Do not redefine --accent/--primary here: the app reads --accent as an "R G B"
    triple (rgb(var(--accent))), and a hex value makes every such use invalid. */
+
