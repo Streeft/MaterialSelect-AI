@@ -10740,3 +10740,31 @@ continua no banco, e dá para voltar atrás.
 
 **Consequências.** Documentação (faixa C) neste PR; código em A e B. Sem schema nem migração.
 Pós-merge de A: **Deploy da API**.
+
+
+## D-140 — Transição entre telas: esmaecer, só opacidade, sem API de View Transitions
+
+**Contexto.** Sexto item da lista de padrões dos apps do Google (`m3.material.io`, página
+*Motion*, padrão *fade through*). Trocar de rota era um corte seco; o plano previa
+`useContainerTransform` no cartão→ficha e a View Transitions API.
+
+**Decisão.**
+- **`RouteTransition`** (`components/layout/RouteTransition.tsx`) envolve o conteúdo de
+  `<main>` em `app/app/layout.tsx`, com `key={pathname}`: tela nova é subárvore nova, que
+  esmaece em `medium1` (250 ms) na curva `standard-decelerate`. Mudança que **mantém o
+  caminho** (a etapa do assistente em `?etapa=`, um filtro na URL) não é tela nova e não
+  repete a animação.
+- **Só opacidade, nunca `transform`.** Um ancestral transformado vira o bloco de contenção de
+  todo descendente `position: fixed` (o FAB, a bandeja de comparação), que saltariam durante a
+  animação. `fill-mode: backwards` não deixa nada aplicado depois.
+- **`prefers-reduced-motion`** desliga a animação (`globals.css`).
+- **Sem a View Transitions API.** Ela exigiria interceptar cada navegação e esperar o React
+  confirmar a nova tela, o que o App Router não expõe de forma estável; um erro ali trava a
+  navegação inteira. O custo de não usar é não ter transição *compartilhada* entre telas.
+
+**Fora desta decisão.** A transformação de contêiner cartão→ficha (catálogo→material, caderno)
+fica pendente: pede um elemento compartilhado entre duas rotas e uma mola que o app não tem
+fora do diálogo. Fica registrada em `TODO.md`.
+
+**Consequências.** Frontend apenas. A subárvore da página é remontada a cada mudança de caminho,
+como já era (a página trocava); o que muda é a camada que a envolve.

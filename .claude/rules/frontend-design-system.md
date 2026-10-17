@@ -106,6 +106,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `localStorage` com a chave do usuário, nunca o servidor. Intocado não grava; nada é restaurado
   sem o clique em "Continuar"; salvar o estudo apaga o rascunho. Todo acesso ao armazenamento em `try/catch`.
 
+- **Tela nova esmaece, só opacidade** ([D-140](docs/DECISIONS.md)): `RouteTransition` em `app/app/layout.tsx`.
+  Nunca `transform` num ancestral do conteúdo (quebra todo `position: fixed` dentro); movimento
+  novo respeita `prefers-reduced-motion`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

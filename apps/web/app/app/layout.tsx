@@ -2,6 +2,7 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
+import { RouteTransition } from "@/components/layout/RouteTransition";
 import { LimitationNotice } from "@/components/LimitationNotice";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { ptBR } from "@/lib/i18n";
@@ -42,7 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             tabIndex={-1}
             className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 sm:px-6 lg:px-8"
           >
-            {children}
+            <RouteTransition>{children}</RouteTransition>
           </main>
           <footer className="border-t border-edge bg-surface-raised">
             <div className="mx-auto max-w-screen-2xl space-y-2 px-4 py-3 sm:px-6 lg:px-8">
