@@ -121,6 +121,14 @@ par de limites Reuss–Voigt, qualidade, pontas degeneradas do painel; `test_fam
 gravado, 422 de schema, 400 de domínio, isolamento). Backend em 4955 (4949 passam e 6 pulam sem
 `POSTGRES_TEST_URL`). Sem migração. Pendente: a tela (faixa V2).
 
+## Sessão 98 — 17/10/26 — Cadernos: menu de três pontos e painéis redimensionáveis (D-143)
+
+**O que mudou.** `NotebookCard` (menu com Renomear no lugar e Excluir com Desfazer), `PanelResizer`
+(separador acessível entre Fontes, Conversa e Estúdio, de `lg` para cima), `IconMoreVertical`,
+textos em `ptBR.notebooks`, `/app/cadernos` no Lighthouse.
+
+**Testes.** +4 de frontend (renomear, Esc, excluir com Desfazer, alça por teclado). Sem backend nem migração.
+
 ## Sessão 97 — 17/10/26 — App instalável: manifesto, ícone e página offline (D-142)
 
 **O que mudou.** `app/manifest.ts`, `viewport.themeColor` no layout raiz, ícones provisórios (monograma
