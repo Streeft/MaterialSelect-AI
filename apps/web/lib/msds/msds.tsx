@@ -2509,8 +2509,8 @@ const useEffect = React.useEffect;
   function ScreenTransitionDemo() {
     var STEPS = [
       { key: "material", title: "1. Escolha o material", desc: "Selecione a liga de partida para o estudo." },
-      { key: "restricoes", title: "2. Defina as restrições", desc: "Limites numéricos sobre as propriedades relevantes." },
-      { key: "resultado", title: "3. Veja o resultado", desc: "Ranking dos materiais que passaram pela pilha de estágios." }
+      { key: "restricoes", title: "2. Defina os limites", desc: "Limites numéricos sobre as propriedades relevantes." },
+      { key: "resultado", title: "3. Veja o resultado", desc: "Classificação dos materiais que passaram pela pilha de estágios." }
     ];
     var s = useState(0); var step = s[0], setStep = s[1];
     var trans = useScreenTransition(STEPS[step].key, { pattern: "sharedAxis", axis: "x", direction: function () { return 1; } });

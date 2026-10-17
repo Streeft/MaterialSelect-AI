@@ -74,7 +74,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // so the browser's Back button moves one step back instead of leaving.
   const actionBar = page.getByRole("group", { name: "Ações da etapa" });
   const steps = page.getByRole("navigation", { name: "Etapas" });
-  // D-88: Objetivo is step 2 and Restrições step 3.
+  // D-88: Objetivo is step 2 and Limites step 3.
   await actionBar.getByRole("button", { name: "Próximo: Objetivo" }).click();
   await expect(page).toHaveURL(/etapa=objetivo/);
 
@@ -85,7 +85,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // D-87: a single criterion carries the whole budget of 1.
   await expect(page.getByText("Total 1 de 1 — fechado.")).toBeVisible();
 
-  await actionBar.getByRole("button", { name: "Próximo: Restrições" }).click();
+  await actionBar.getByRole("button", { name: "Próximo: Limites" }).click();
   await expect(page).toHaveURL(/etapa=restricoes/);
   await page.goBack();
   await expect(steps.getByRole("button", { name: /Objetivo/ })).toHaveAttribute(
@@ -93,7 +93,7 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
     "step",
   );
   await page.goForward();
-  await expect(steps.getByRole("button", { name: /Restrições/ })).toHaveAttribute(
+  await expect(steps.getByRole("button", { name: /Limites/ })).toHaveAttribute(
     "aria-current",
     "step",
   );
@@ -101,8 +101,8 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   await actionBar.getByRole("button", { name: "Executar seleção" }).click();
   // The result opens on the winner; the full ranking is one tab away.
   await expect(page.getByRole("heading", { name: /^Vencedor: / })).toBeVisible();
-  await page.getByRole("tab", { name: /Ranking/ }).click();
-  await expect(page.getByRole("heading", { name: "Ranking", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: /Classificação/ }).click();
+  await expect(page.getByRole("heading", { name: "Classificação", exact: true })).toBeVisible();
 
   const rankRigido = await rankOf(page, MATERIAL_RIGIDO);
   const rankFlexivel = await rankOf(page, MATERIAL_FLEXIVEL);

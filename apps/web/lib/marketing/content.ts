@@ -45,12 +45,12 @@ export const marketing = {
     eyebrow: "como funciona",
     title: "Quatro passos, e nenhum deles é uma caixa preta.",
     body:
-      "É o percurso de Ashby, e você vê o efeito de cada decisão no momento em que a toma: quantos candidatos a restrição eliminou, quanto cada critério contribuiu, e a partir de que peso o ranking mudaria de primeiro lugar.",
+      "É o percurso de Ashby, e você vê o efeito de cada decisão no momento em que a toma: quantos candidatos o limite eliminou, quanto cada critério contribuiu, e a partir de que peso a classificação mudaria de primeiro lugar.",
     steps: [
       { n: "01", title: "Função", body: "O que o componente faz e o que se quer otimizar." },
-      { n: "02", title: "Objetivo", body: "Um índice de mérito e os critérios de ranking." },
-      { n: "03", title: "Restrições", body: "Cada uma elimina candidatos, e o funil mostra quantos." },
-      { n: "04", title: "Resultados", body: "Ranking, contribuições, excluídos e sensibilidade." },
+      { n: "02", title: "Objetivo", body: "Um índice de mérito e os critérios de classificação." },
+      { n: "03", title: "Limites", body: "Cada um elimina candidatos, e o funil mostra quantos." },
+      { n: "04", title: "Resultados", body: "Classificação, contribuições, excluídos e sensibilidade." },
     ],
   },
 
@@ -58,7 +58,7 @@ export const marketing = {
     eyebrow: "entregável",
     title: "O relatório que você entrega, não uma tela que você mostra.",
     body:
-      "Cada estudo sai como um documento nomeado: as restrições aplicadas, a expressão do índice, o ranking, os excluídos com o motivo, e a proveniência de cada valor usado. Em CSV, XLSX ou HTML pronto para impressão.",
+      "Cada estudo sai como um documento nomeado: os limites aplicados, a expressão do índice, a classificação, os excluídos com o motivo, e a proveniência de cada valor usado. Em CSV, XLSX ou HTML pronto para impressão.",
   },
 
   /**
@@ -123,7 +123,7 @@ export const marketing = {
 
   close: {
     title: "Comece pelo estudo que se parece com o seu.",
-    body: "O assistente guia da restrição ao ranking, passo a passo.",
+    body: "O assistente guia do limite à classificação, passo a passo.",
     primary: { label: "Começar um estudo", href: "/app/selecao" },
     secondary: { label: "Importar meu catálogo", href: "/app/importar" },
   },

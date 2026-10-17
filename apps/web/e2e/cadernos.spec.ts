@@ -150,7 +150,7 @@ test("Link: um vídeo do YouTube pede a transcrição e vira fonte com ela", asy
   await newNotebook(page);
   await page.getByRole("button", { name: "Adicionar fontes" }).click();
   const dialog = page.getByRole("dialog", { name: "Adicionar fontes" });
-  await dialog.getByRole("tab", { name: "Link" }).click();
+  await dialog.getByRole("tab", { name: "Página da web" }).click();
   await dialog.getByRole("textbox", { name: "Endereço" }).fill(VIDEO);
   await expect(dialog.getByText("Vídeo do YouTube: o texto da fonte é a transcrição.")).toBeVisible();
 
@@ -188,7 +188,7 @@ test("Link: um endereço da rede interna é recusado sem sair do servidor", asyn
 
   await page.getByRole("button", { name: "Adicionar fontes" }).click();
   const dialog = page.getByRole("dialog", { name: "Adicionar fontes" });
-  await dialog.getByRole("tab", { name: "Link" }).click();
+  await dialog.getByRole("tab", { name: "Página da web" }).click();
   await dialog.getByRole("textbox", { name: "Endereço" }).fill("http://127.0.0.1/");
   await dialog.getByRole("button", { name: "Adicionar site" }).click();
   await expect(dialog.getByRole("alert")).toHaveText(
