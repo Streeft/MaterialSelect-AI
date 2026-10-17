@@ -544,7 +544,7 @@ def _generate_technical_summary(
     )
 
 
-# --- Ragone: linhas de iso-tempo (D-143) --------------------------------------
+# --- Ragone: linhas de iso-tempo (D-145) --------------------------------------
 
 #: Os tempos de descarga das linhas de iso-tempo, em horas. Conjunto fixo e
 #: espaçado em meia década: o leitor compara figuras entre sessões, e um conjunto

@@ -10821,7 +10821,7 @@ própria.
 ao alterar `offline.html`. O Lighthouse não tem mais categoria PWA, então nenhum limiar muda.
 
 
-## D-143 — Gráfico de Ragone das baterias: pontos do catálogo, iso-tempo no backend (decidida pelo assistente por delegação do autor, revisável)
+## D-145 — Gráfico de Ragone das baterias: pontos do catálogo, iso-tempo no backend (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O EduPack mostra a energia contra a potência específicas das químicas de bateria (plano
 de Ragone). Os dados já estão no catálogo (`BatteryChemistry`, nove químicas com Wh/kg e W/kg

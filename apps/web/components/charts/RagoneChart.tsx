@@ -27,7 +27,7 @@ function axisTitle(axis: RagoneAxis): string {
 }
 
 /**
- * The Ragone plane of the battery chemistries (D-143).
+ * The Ragone plane of the battery chemistries (D-145).
  *
  * Draws only what the API sent: the catalogue's own points and the iso-time
  * lines (E = P·t) the backend computed in data coordinates (ADR 0004) — nothing

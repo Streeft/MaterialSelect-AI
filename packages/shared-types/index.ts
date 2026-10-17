@@ -2341,7 +2341,7 @@ export type ThermalSafetyLevel =
   | "ALTA"
   | "MUITO_ALTA";
 
-// Ragone (D-143): energia × potência específicas das químicas, com linhas de
+// Ragone (D-145): energia × potência específicas das químicas, com linhas de
 // iso-tempo (E = P·t) calculadas no backend.
 export interface RagonePoint {
   slug: string;

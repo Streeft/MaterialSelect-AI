@@ -105,7 +105,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
+## Sessão 100 — 17/10/26 — Gráfico de Ragone das baterias (D-145)
 
 **O que mudou.** Backend: `ragone_iso_time_lines` e `ragone_bounds` em `calculations/battery.py`
 (linhas E = P·t recortadas à caixa do gráfico), `BatteryService.ragone`, `GET /api/baterias/ragone`

@@ -80,7 +80,7 @@ function traces(): { x: number[]; y: number[]; mode: string; name?: string }[] {
   return JSON.parse(screen.getByTestId("plotly-mock").getAttribute("data-traces") ?? "[]");
 }
 
-describe("RagoneChart (D-143)", () => {
+describe("RagoneChart (D-145)", () => {
   it("passes axe and names the figure for assistive technology", async () => {
     const { container } = render(<RagoneChart data={fixture} />);
     expect(screen.getByRole("img", { name: ptBR.chart.figureLabel(t.figure) })).toBeInTheDocument();
