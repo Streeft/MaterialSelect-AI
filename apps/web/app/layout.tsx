@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
 // MSDS component styles (D-74) first, globals.css second (D-80): Tailwind's
 // output is unlayered, so on an equal-specificity tie the later file wins,
@@ -8,6 +8,7 @@ import { Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "../lib/msds/msds.css";
 import "./globals.css";
 import { Providers } from "./providers";
+import { RegisterServiceWorker } from "@/components/layout/RegisterServiceWorker";
 import { SectionTheme } from "@/components/layout/SectionTheme";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
@@ -15,6 +16,14 @@ import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 export const metadata: Metadata = {
   title: ptBR.appName,
   description: ptBR.tagline,
+};
+
+/** The browser toolbar follows the reader's colour scheme: the page paper, or the dark surface. */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F1EDE5" },
+    { media: "(prefers-color-scheme: dark)", color: "#14161C" },
+  ],
 };
 
 /**
@@ -42,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <SectionTheme />
+        <RegisterServiceWorker />
         <Providers>{children}</Providers>
       </body>
     </html>
