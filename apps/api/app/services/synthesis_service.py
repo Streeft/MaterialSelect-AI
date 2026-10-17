@@ -27,6 +27,13 @@ lê por classe precisa que alguém tenha decidido.
 
 from __future__ import annotations
 
+from app.calculations.expressions import (
+    ExpressionError,
+    result_dimension,
+    safe_variable,
+    validate_names,
+)
+from app.calculations.family_sweep import sweep_family
 from app.calculations.synthesis import (
     BASIS_LABELS,
     COMPOSITO,
@@ -59,6 +66,13 @@ from app.schemas.synthesis import (
     KindOut,
     RuleOut,
     SkippedPropertyOut,
+    SweepIndexOut,
+    SweepOut,
+    SweepPropertyOut,
+    SweepRequest,
+    SweepSkippedStepOut,
+    SweepStepOut,
+    SweepValueOut,
     SynthesisPreview,
     SynthesisRequest,
     SynthesisResultOut,
@@ -204,6 +218,135 @@ class SynthesisService:
             material_name=material.name,
         )
 
+    # --- a varredura de família (D-144) ---------------------------------------
+
+    def sweep(self, request: SweepRequest) -> SweepOut:
+        """Um índice ao longo de uma família de receitas, sem gravar nada.
+
+        O catálogo é lido **uma vez**: os dois pais, as definições e a
+        validação do índice. Cada passo é só a lei pura rodando sobre os mesmos
+        valores — nenhuma consulta por passo.
+        """
+        _refuse_same_parent(request.kind, request.parent_a_id, request.parent_b_id)
+        first = self._parent(request.parent_a_id)
+        second = self._parent(request.parent_b_id)
+        definitions = self._definitions()
+        expression = request.index.expression
+        dimension = self._validate_index(expression, definitions)
+
+        try:
+            result = sweep_family(
+                kind=request.kind,
+                start=request.start,
+                stop=request.stop,
+                steps=request.steps,
+                spacing=request.spacing,
+                first=self._values(first),
+                second=self._values(second),
+                expression=expression,
+                labels={slug: definition.name for slug, definition in definitions.items()},
+            )
+        except SynthesisError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        def name(slug: str) -> str:
+            definition = definitions.get(slug)
+            return definition.name if definition else slug
+
+        rules: dict[str, Rule] = {}
+        for step in result.steps:
+            for value in step.synthesis.values:
+                rules.setdefault(value.slug, value.rule)
+
+        return SweepOut(
+            kind=result.kind,
+            kind_label=result.kind_label,
+            kind_note=KIND_NOTES[result.kind],
+            parents=[first.name, second.name],
+            variable=result.variable,
+            variable_label=result.variable_label,
+            spacing=result.spacing,
+            grid=list(result.grid),
+            note=result.note,
+            index=SweepIndexOut(
+                name=request.index.name,
+                expression=expression,
+                goal=request.index.goal,
+                dimension=dimension,
+            ),
+            properties=[
+                SweepPropertyOut(
+                    slug=slug,
+                    name=name(slug),
+                    canonical_unit=definitions[slug].canonical_unit,
+                    display_unit=_reading_fields(definitions[slug], None)["display_unit"],
+                    rule=_rule_out(rule),
+                )
+                for slug, rule in sorted(rules.items())
+                if slug in definitions
+            ],
+            steps=[
+                SweepStepOut(
+                    position=step.position,
+                    parameter=step.parameter,
+                    parameters=dict(step.parameters),
+                    index_value=step.index_value,
+                    index_min=step.index_min,
+                    index_max=step.index_max,
+                    quality=step.quality.value,
+                    values=[
+                        SweepValueOut(
+                            slug=value.slug,
+                            value=value.value,
+                            value_min=value.value_min,
+                            value_max=value.value_max,
+                            quality=value.quality.value,
+                            **{
+                                key: field
+                                for key, field in _reading_fields(
+                                    definitions.get(value.slug), value
+                                ).items()
+                                if key != "display_unit"
+                            },
+                        )
+                        for value in step.synthesis.values
+                        if value.slug in definitions
+                    ],
+                )
+                for step in result.steps
+            ],
+            skipped=[
+                SweepSkippedStepOut(
+                    position=item.position,
+                    parameter=item.parameter,
+                    parameters=dict(item.parameters),
+                    reason=item.reason,
+                )
+                for item in result.skipped
+            ],
+            absent=[
+                SkippedPropertyOut(slug=item.slug, name=name(item.slug), reason=item.reason)
+                for item in result.absent
+                if item.slug in definitions
+            ],
+        )
+
+    def _validate_index(self, expression: str, definitions: dict[str, PropertyDefinition]) -> str:
+        """Valida o índice contra o catálogo e devolve a dimensão dele.
+
+        A mesma validação dos mapas e do comparador (nome conhecido, dimensão
+        coerente): um índice que não passa ali não passa aqui.
+        """
+        var_to_slug = {safe_variable(slug): slug for slug in definitions}
+        try:
+            used = validate_names(expression, set(var_to_slug))
+            return result_dimension(
+                expression,
+                {var: definitions[var_to_slug[var]].canonical_unit for var in used},
+            )
+        except ExpressionError as exc:
+            raise ValidationError(str(exc)) from exc
+
     # --- interno ------------------------------------------------------------
 
     def _run(self, request: SynthesisRequest) -> tuple[SynthesisResult, list[Material]]:
@@ -220,10 +363,7 @@ class SynthesisService:
                 raise ValidationError("Espessura é campo de painel e não entra num compósito.")
             if request.volume_fraction is None:
                 raise ValidationError("Informe a fração volumétrica do primeiro constituinte.")
-            if request.parent_b_id == request.parent_a_id:
-                raise ValidationError(
-                    "Os dois constituintes são o mesmo material; o resultado seria ele."
-                )
+            _refuse_same_parent(COMPOSITO, request.parent_a_id, request.parent_b_id)
             second = self._parent(request.parent_b_id)
             try:
                 result = synthesize_composite(
@@ -249,11 +389,7 @@ class SynthesisService:
                 )
             if request.face_thickness is None or request.core_thickness is None:
                 raise ValidationError("Informe a espessura da face e a do núcleo.")
-            if request.parent_b_id == request.parent_a_id:
-                raise ValidationError(
-                    "A face e o núcleo são o mesmo material; o painel seria uma "
-                    "placa maciça dele."
-                )
+            _refuse_same_parent(PAINEL, request.parent_a_id, request.parent_b_id)
             second = self._parent(request.parent_b_id)
             try:
                 result = synthesize_sandwich(
@@ -385,6 +521,21 @@ class SynthesisService:
                 if item.slug in definitions
             ],
         )
+
+
+def _refuse_same_parent(kind: str, parent_a_id: int, parent_b_id: int | None) -> None:
+    """Dois pais iguais não fazem compósito nem painel — o resultado seria ele.
+
+    Compartilhado pela prévia e pela varredura, para as duas recusarem a mesma
+    receita com a mesma frase.
+    """
+    if parent_a_id != parent_b_id:
+        return
+    if kind == PAINEL:
+        raise ValidationError(
+            "A face e o núcleo são o mesmo material; o painel seria uma placa maciça dele."
+        )
+    raise ValidationError("Os dois constituintes são o mesmo material; o resultado seria ele.")
 
 
 def _rule_out(rule: Rule) -> RuleOut:

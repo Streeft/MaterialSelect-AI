@@ -3,7 +3,10 @@
 ``GET /api/sintetizar/tipos`` é o catálogo de leis: para cada tipo de síntese,
 qual regra roda em cada propriedade e **quais propriedades ele declaradamente
 não calcula**, com o motivo. ``POST /api/sintetizar/previa`` roda a receita sem
-gravar; ``POST /api/sintetizar`` roda e grava.
+gravar; ``POST /api/sintetizar`` roda e grava. ``POST /api/sintetizar/varredura``
+roda a mesma receita numa grade da variável do material (razão c/t do painel,
+fração do compósito) e avalia um índice em cada passo — também sem gravar
+(D-144).
 
 A prévia existe porque quem sintetiza precisa ver as leis e as ausências antes
 de decidir se aquilo é o material que queria — gravar primeiro e explicar depois
@@ -20,6 +23,8 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.synthesis import (
     KindOut,
+    SweepOut,
+    SweepRequest,
     SynthesisPreview,
     SynthesisRequest,
     SynthesisResultOut,
@@ -46,6 +51,16 @@ def preview(
 ) -> SynthesisPreview:
     """O que a receita produziria, sem gravar nada."""
     return SynthesisService(db, user).preview(payload)
+
+
+@router.post("/varredura", response_model=SweepOut)
+def sweep(
+    payload: SweepRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SweepOut:
+    """Um índice ao longo de uma família de receitas, sem gravar nada."""
+    return SynthesisService(db, user).sweep(payload)
 
 
 @router.post("", response_model=SynthesisResultOut, status_code=201)
