@@ -10820,6 +10820,31 @@ própria.
 **Consequências.** Frontend apenas. `cache` do worker é versionado (`msai-offline-v1`): mude o nome
 ao alterar `offline.html`. O Lighthouse não tem mais categoria PWA, então nenhum limiar muda.
 
+
+## D-143 — Gráfico de Ragone das baterias: pontos do catálogo, iso-tempo no backend (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O EduPack mostra a energia contra a potência específicas das químicas de bateria (plano
+de Ragone). Os dados já estão no catálogo (`BatteryChemistry`, nove químicas com Wh/kg e W/kg
+positivos) e `/app/baterias` não tinha gráfico.
+
+**Decisão.**
+- **Sem cálculo novo de dado.** Os pontos saem do catálogo como estão, com a citação e a fonte que
+  já vêm. As **linhas de iso-tempo** (E = P·t, uma reta de inclinação 1 em log–log) são geometria e
+  por isso vivem no backend, em `calculations/battery.py` (ADR 0004): conjunto fixo de tempos
+  (0,01 a 10 h, em meia década), extremidades calculadas pela energia e recortadas à caixa do
+  gráfico. A caixa é o intervalo dos dados com folga multiplicativa de 2.
+- **`GET /api/baterias/ragone`** devolve pontos, eixos (rótulo pt-BR, unidade, escala log, limites),
+  iso-tempos e `excluded`. Química sem energia ou potência positivas **não vira ponto nem zero**:
+  vai para `excluded` com o motivo escrito (escala log não representa zero).
+- **A base da potência não é suposta.** O catálogo não diz se a potência é de pico ou contínua; o
+  rótulo do eixo diz "da célula (base não declarada)" e a legenda explica. Resolver exige dado (ver
+  `TODO.md`, RG-a).
+- **Componente próprio, não `AshbyMap`.** `PropertyMapOut` exige material, classe e `is_demo`; forjar
+  isso para células seria pior que um componente pequeno. `RagoneChart` usa o traço `scatter` já
+  registrado em `lib/plotly-custom.ts` (nenhum traço novo), cores só por token, e a tabela de origem
+  obrigatória (D-31, `FigureData`).
+
+**Consequências.** Sem migração. Backend e frontend: depois do merge, disparar **Deploy da API**.
 ## D-143 — Cadernos: menu de três pontos no cartão e painéis redimensionáveis
 
 **Contexto.** Oitavo item da lista de padrões dos apps do Google. A lista de cadernos já era uma

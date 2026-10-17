@@ -79,6 +79,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   sanduíche**, cada valor com a lei que o produziu e a sua base.
 - **Baterias** — dimensionamento de um pack a partir de químicas de célula
   catalogadas, cada uma com a sua fonte.
+  Inclui o **gráfico de Ragone** (energia × potência específicas, com linhas
+  de iso-tempo calculadas no servidor; a base da potência não é declarada no
+  catálogo e a figura avisa).
 
 **Dados**
 

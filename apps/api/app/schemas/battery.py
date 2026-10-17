@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -164,3 +166,54 @@ class BatteryComparisonResultOut(BaseModel):
     lowest_levelized_cost_slug: str
     safest_slug: str
     technical_summary: str
+
+
+class RagonePointOut(BaseModel):
+    """Uma química no plano de Ragone, com os valores exatamente como o catálogo os guarda."""
+
+    slug: str
+    name: str
+    #: Energia específica da célula, Wh/kg.
+    specific_energy: float
+    #: Potência específica da célula, W/kg. A base (pico ou contínua) não é declarada.
+    specific_power: float
+    citation: str | None = None
+    source: str | None = None
+
+
+class RagoneAxisOut(BaseModel):
+    key: str
+    label: str
+    unit: str
+    scale: Literal["log"] = "log"
+    #: Limites da caixa do gráfico, em coordenadas de dados (nunca zero).
+    min_value: float
+    max_value: float
+
+
+class RagoneLinePointOut(BaseModel):
+    x: float
+    y: float
+
+
+class RagoneIsoTimeOut(BaseModel):
+    hours: float
+    label: str
+    points: list[RagoneLinePointOut]
+
+
+class RagoneExcludedOut(BaseModel):
+    slug: str
+    name: str
+    #: O motivo escrito. Química sem energia ou potência positivas não vira ponto.
+    reason: str
+
+
+class RagoneOut(BaseModel):
+    points: list[RagonePointOut]
+    x_axis: RagoneAxisOut | None = None
+    y_axis: RagoneAxisOut | None = None
+    iso_time: list[RagoneIsoTimeOut]
+    excluded: list[RagoneExcludedOut]
+    #: Aviso sobre a base da potência, para a legenda e a tabela de origem.
+    power_basis_note: str

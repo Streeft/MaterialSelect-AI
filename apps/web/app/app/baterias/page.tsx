@@ -15,6 +15,7 @@ import {
   compareBatteries,
   designBatteryPack,
   listBatteryArchetypes,
+  getBatteryRagone,
   listBatteryChemistries,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -48,14 +49,16 @@ import {
   type TabItem,
 } from "@/components/ui";
 import { IconBattery } from "@/components/ui/icons";
+import { RagoneChart } from "@/components/charts/RagoneChart";
 
 const t = ptBR.battery;
 
-type TabView = "design" | "compare";
+type TabView = "design" | "compare" | "ragone";
 
 const TAB_ITEMS: readonly TabItem<TabView>[] = [
   { id: "design", label: t.tabDesign },
   { id: "compare", label: t.tabCompare },
+  { id: "ragone", label: t.tabRagone },
 ];
 
 /**
@@ -175,6 +178,31 @@ function StatTile({
       </div>
     </div>
   );
+}
+
+/**
+ * A seção Ragone: independente dos requisitos de projeto (não depende de
+ * arquétipo nem de energia alvo), então busca o próprio dado e trata os três
+ * estados — carregando, erro e vazio — sem passar pelo bloqueio das outras abas.
+ */
+function RagoneSection() {
+  const ragone = useQuery({
+    queryKey: ["battery-ragone"],
+    queryFn: getBatteryRagone,
+  });
+  if (ragone.isLoading) return <LoadingState label={t.ragone.loading} />;
+  if (ragone.isError) {
+    return (
+      <ErrorState
+        title={t.ragone.error}
+        description={
+          ragone.error instanceof Error ? ragone.error.message : String(ragone.error)
+        }
+      />
+    );
+  }
+  if (!ragone.data) return <EmptyState title={t.ragone.empty} />;
+  return <RagoneChart data={ragone.data} />;
 }
 
 export default function BateriasPage() {
@@ -816,6 +844,9 @@ export default function BateriasPage() {
             )}
           </>
         )}
+
+        {/* Tab 3: Ragone (energia × potência específicas) */}
+        {activeTab === "ragone" && <RagoneSection />}
 
         {/* Tab 2: Chemistry Trade-offs */}
         {activeTab === "compare" && (
