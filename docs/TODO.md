@@ -87,10 +87,11 @@ quitados".
 
 ## Média prioridade
 
-- **Design system do Material 3 sobre o do app (Sessões 87 a 91, [D-133](DECISIONS.md) a
-  [D-137](DECISIONS.md))** — as cinco etapas estão entregues. Resta sincronizar o artefato
-  "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito, azul na raiz) e conferir tudo
-  no navegador nos dois temas e a 375 px (nada disso foi visto ao vivo).
+- **Design system do Material 3 sobre o do app (Sessões 87 a 92, [D-133](DECISIONS.md) a
+  [D-137](DECISIONS.md))** — as cinco etapas e o artefato "MaterialSelect AI" (versão 24: tokens,
+  `bundle.css`, azul na raiz, Okabe–Ito restaurada) estão entregues. Resta: conferir tudo no
+  navegador, nos dois temas e a 375 px (nada foi visto ao vivo), e atualizar no artefato as
+  `preview.html` e a prosa do README que ainda descrevem o roxo `#6750A4` da Rodada 8.
 - **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —
   a busca global e o aviso com Desfazer saíram; restam, um PR por item e citando a
   página de `m3.material.io` de onde veio: ~~(3) tabelas ordenáveis com seleção em
