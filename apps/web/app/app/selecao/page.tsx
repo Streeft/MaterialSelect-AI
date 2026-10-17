@@ -5,6 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { useDebounced } from "@/lib/useDebounced";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "@/lib/auth";
+import {
+  type Draft,
+  type DraftData,
+  clearDraft,
+  draftKey,
+  maxIdSuffix,
+  readDraft,
+  serializeDraft,
+  writeDraft,
+} from "@/lib/selectionDraft";
 import {
   ApiError,
   createStudy,
@@ -72,6 +83,7 @@ import {
   emptyGroup,
   fromConstraintPayload,
   nextEditorId,
+  reserveEditorIds,
 } from "@/components/selection/ConstraintEditor";
 import {
   MAX_NOTE_LENGTH,
@@ -163,6 +175,11 @@ interface CriterionRow {
 
 let counter = 0;
 const nextId = () => `criterion-${counter++}`;
+
+/** D-139: a recovered draft carries criterion ids from an earlier load; skip past them. */
+function reserveCriterionIds(highest: number): void {
+  counter = Math.max(counter, highest + 1);
+}
 
 /**
  * One persisted stage as the editor holds it.
@@ -291,6 +308,10 @@ export default function SelectionPage() {
 function SelectionWizard() {
   const qc = useQueryClient();
   const params = useSearchParams();
+  // D-139: the draft is kept per account (a shared machine must not mix students).
+  const me = useCurrentUser();
+  const draftUserKey = me.data ? draftKey(me.data.id) : null;
+  const [draftState, setDraftState] = useState<"idle" | "saved">("idle");
   const [step, setStep] = useState<Step>(() => {
     if (params.get("novo_estagio") === "chart") return "constraints";
     return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
@@ -668,6 +689,10 @@ function SelectionWizard() {
     onSuccess: () => {
       setSaveMessage(t.saved);
       qc.invalidateQueries({ queryKey: ["studies"] });
+      // The study is on the server now; the draft has nothing left to protect.
+      if (draftUserKey) clearDraft(draftUserKey);
+      setDraftBaseline(currentSerialized);
+      setDraftState("idle");
     },
     onError: fail,
   });
@@ -812,6 +837,22 @@ function SelectionWizard() {
     normalization: NormalizationMethod;
     useAhp: boolean;
   }
+  const snapshotNow = (): WizardSnapshot => ({
+    name,
+    functionText,
+    objectiveText,
+    freeVariables,
+    universe,
+    stages,
+    indexMode,
+    customExpression,
+    indexGoal,
+    indexConfirmed,
+    criteria,
+    method,
+    normalization,
+    useAhp,
+  });
   const [beforeExample, setBeforeExample] = useState<WizardSnapshot | null>(null);
   const [exampleMessage, setExampleMessage] = useState<string | null>(null);
 
@@ -846,22 +887,7 @@ function SelectionWizard() {
       setBeforeExample(null);
       return;
     }
-    setBeforeExample({
-      name,
-      functionText,
-      objectiveText,
-      freeVariables,
-      universe,
-      stages,
-      indexMode,
-      customExpression,
-      indexGoal,
-      indexConfirmed,
-      criteria,
-      method,
-      normalization,
-      useAhp,
-    });
+    setBeforeExample(snapshotNow());
     const stagesFromExample: StageState[] = [
       {
         id: nextEditorId("stage"),
@@ -899,6 +925,73 @@ function SelectionWizard() {
     if (beforeExample) restore(beforeExample);
     setBeforeExample(null);
     setExampleMessage(null);
+  }
+
+  // D-139: the saved draft. Debounce the SERIALIZED state, never the object (a new
+  // object every render would be a new write every render). A pristine wizard is
+  // never written; nothing is written while a recovered draft is waiting for an
+  // answer or while a saved study is being edited (that has its own save).
+  const currentSerialized = JSON.stringify(snapshotNow());
+  // What the wizard opened with (and, after a save, what the server now holds).
+  const [draftBaseline, setDraftBaseline] = useState(currentSerialized);
+  const [draftAnswered, setDraftAnswered] = useState(false);
+  const stored = useMemo(
+    () => (draftUserKey && !requestedStudy ? readDraft(draftUserKey) : null),
+    [draftUserKey, requestedStudy],
+  );
+  const recovered: Draft | null = draftAnswered ? null : stored;
+  const dirty = currentSerialized !== draftBaseline;
+  const draftBlocked = recovered !== null || Boolean(requestedStudy);
+  const pendingDraft = useRef<{ key: string; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!draftUserKey || draftBlocked || !dirty) {
+      pendingDraft.current = null;
+      return;
+    }
+    const text = serializeDraft(step, JSON.parse(currentSerialized) as DraftData);
+    pendingDraft.current = { key: draftUserKey, text };
+    const timer = window.setTimeout(() => {
+      if (writeDraft(draftUserKey, text)) {
+        pendingDraft.current = null;
+        setDraftState("saved");
+      }
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [currentSerialized, step, draftUserKey, draftBlocked, dirty]);
+
+  // Closing the tab inside the debounce window must not lose the last keystrokes.
+  useEffect(() => {
+    const flush = () => {
+      const pending = pendingDraft.current;
+      if (pending && writeDraft(pending.key, pending.text)) pendingDraft.current = null;
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, []);
+
+  function continueDraft() {
+    if (!recovered) return;
+    const highest = maxIdSuffix(JSON.stringify(recovered.data));
+    reserveCriterionIds(highest);
+    reserveEditorIds(highest);
+    restore(recovered.data as unknown as WizardSnapshot);
+    const wanted = STEPS.find((s) => s.id === recovered.step)?.id ?? "function";
+    goToStep(wanted, { replace: true });
+    setDraftAnswered(true);
+    setDraftState("saved");
+  }
+
+  function discardDraft() {
+    if (draftUserKey) clearDraft(draftUserKey);
+    setDraftAnswered(true);
   }
 
   /**
@@ -1132,6 +1225,31 @@ function SelectionWizard() {
     <div className="space-y-6">
       <div className="space-y-4">
         <PageHeader title={t.title} description={t.subtitle} group="estudar" />
+
+        {recovered && (
+          <Alert tone="info" role="status">
+            <div className="flex flex-wrap items-center gap-3">
+              <span>
+                {t.draftFound(
+                  new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(
+                    new Date(recovered.savedAt),
+                  ),
+                )}
+              </span>
+              <Button size="sm" variant="secondary" onClick={continueDraft}>
+                {t.draftContinue}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={discardDraft}>
+                {t.draftDiscard}
+              </Button>
+            </div>
+          </Alert>
+        )}
+        {draftState === "saved" && !recovered && (
+          <p role="status" className="text-caption text-ink-muted">
+            {t.draftSaved}
+          </p>
+        )}
 
         <SavedStudiesPanel
           studies={studies.data}

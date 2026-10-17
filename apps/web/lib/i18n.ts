@@ -322,6 +322,10 @@ export const ptBR = {
     exampleLoaded:
       "Exemplo carregado: função, índice, critério e três limites. Avance pelos passos ou execute.",
     exampleUndo: "Desfazer",
+    draftSaved: "Rascunho salvo neste navegador.",
+    draftFound: (when: string) => `Há um rascunho deste assistente, salvo em ${when}.`,
+    draftContinue: "Continuar de onde parou",
+    draftDiscard: "Descartar",
     exampleUnavailable: (missing: string) =>
       `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
     aiOpen: "Preencher a partir de um texto (IA)",
@@ -846,6 +850,7 @@ export const ptBR = {
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint: "O relatório traz o mapa de seleção, limites, funil, índice, classificação, excluídos por dado ausente, sensibilidade e a proveniência de cada número.",
+    hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número.",
     laudoTitle: "Laudo de engenharia",
     laudoButton: "Gerar laudo",
     laudoHint:
@@ -2232,6 +2237,7 @@ export const ptBR = {
     noPair: "Não há duas versões para comparar",
     noPairHint:
       "Uma comparação precisa de duas versões do mesmo catálogo. Importe uma nova versão do catálogo oficial para ter o que comparar.",
+      "Uma comparação precisa de duas releases do mesmo catálogo. Importe uma nova release do catálogo oficial para ter o que comparar.",
     noPairUndeclared: (n: number) =>
       `${n} ${n === 1 ? "release não declara" : "releases não declaram"} a qual catálogo ${n === 1 ? "pertence" : "pertencem"}, e por isso não ${n === 1 ? "é comparável" : "são comparáveis"} com nenhuma outra.`,
     chooseTitle: "Versões comparadas",
@@ -2243,6 +2249,8 @@ export const ptBR = {
       `${release ?? name}`,
     metaCaption: "As duas versões comparadas",
     metaRelease: "Versão",
+    metaCaption: "As duas releases comparadas",
+    metaRelease: "Release",
     metaName: "Catálogo",
     metaLicense: "Licença",
     metaRecords: "Registros de material",
@@ -2340,6 +2348,7 @@ export const ptBR = {
     exportMenu: "Exportar",
     exportCsv: "Mudanças (CSV)",
     exportCsvHint: "Com proveniência das duas versões e unidades",
+    exportCsvHint: "Com proveniência das duas releases e unidades",
     exportXlsx: "Mudanças (XLSX)",
     exportXlsxHint: "A mesma tabela, como planilha",
     exportScope: "A exportação leva os filtros, não a página.",
