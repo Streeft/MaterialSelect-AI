@@ -105,7 +105,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 95 — 17/10/26 — Transição entre telas: esmaecer (D-140)
+## Sessão 96 — 17/10/26 — Transição entre telas: esmaecer (D-141)
 
 **O que mudou.** `RouteTransition` (esmaece a tela nova, só opacidade, desligado sob
 `prefers-reduced-motion`) em `app/app/layout.tsx` e a classe `.m3-route-enter` em `globals.css`.

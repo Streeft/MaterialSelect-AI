@@ -108,7 +108,7 @@ quitados".
   página de `m3.material.io` de onde veio: ~~(3) tabelas ordenáveis com seleção em
   massa~~ (entregue na Sessão 85, [D-131](DECISIONS.md), só no catálogo; as demais
   tabelas e a seleção nos cartões do celular seguem em aberto); ~~(4) home estilo Drive~~ (entregue na Sessão 86, [D-132](DECISIONS.md)); ~~(5) rascunho salvo e saída segura no assistente da
-  Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 95, [D-140](DECISIONS.md), só o esmaecer; a
+  Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 96, [D-141](DECISIONS.md), só o esmaecer; a
   transformação de contêiner cartão→ficha segue em aberto); (7) app instalável (manifest, service worker só do
   shell, página offline que diz o que falta); (8) Cadernos em grade com menu e
   painéis redimensionáveis; (9) região `aria-live` global e regressão visual em

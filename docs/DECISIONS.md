@@ -10742,7 +10742,7 @@ continua no banco, e dá para voltar atrás.
 Pós-merge de A: **Deploy da API**.
 
 
-## D-140 — Transição entre telas: esmaecer, só opacidade, sem API de View Transitions
+## D-141 — Transição entre telas: esmaecer, só opacidade, sem API de View Transitions
 
 **Contexto.** Sexto item da lista de padrões dos apps do Google (`m3.material.io`, página
 *Motion*, padrão *fade through*). Trocar de rota era um corte seco; o plano previa

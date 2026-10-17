@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 /**
- * The screen-to-screen transition (D-140, after the M3 "fade through" pattern).
+ * The screen-to-screen transition (D-141, after the M3 "fade through" pattern).
  *
  * Keyed by the pathname: a new screen is a new subtree that fades in over the
  * `medium1` duration, and a change that stays on the same path (the wizard's
