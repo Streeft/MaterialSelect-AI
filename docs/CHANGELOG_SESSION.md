@@ -113,7 +113,7 @@ roda `synthesize_sandwich`/`synthesize_composite` em cada ponto de uma grade exp
 índice com `evaluate_index`), `POST /api/sintetizar/varredura` (sem gravar; pais e definições lidos
 uma vez), schemas `SweepRequest`/`SweepOut` e o helper `_refuse_same_parent` compartilhado com a
 prévia. `worst_quality` passa a ser público em `synthesis.py`. Espessura absoluta não se varre (não
-muda ranking). D-141/D-142 e as Sessões 96/97 já estavam tomados; o D-143 fica para a faixa do Ragone.
+muda ranking). D-141/D-142 e as Sessões 96/97 já estavam tomados; o D-143 é dos Cadernos e o Ragone fica com o D-145 (Sessão 100).
 
 **Testes.** +57 de backend (`test_family_sweep.py`: grade por índice e extremos exatos, teto e piso,
 extremos inválidos, determinismo, passo igual à síntese avulsa, painel sem resistência em `skipped`,

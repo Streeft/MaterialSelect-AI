@@ -10848,7 +10848,7 @@ com largura ajustável; a página foi lida em 17/10/26).
 **Contexto.** Lacuna do EduPack que cabe sem dado licenciado: o Synthesizer (D-67, D-68) diz qual
 material sai de *uma* receita, e a pergunta seguinte do projetista é como um índice de desempenho
 anda quando a receita anda. Os números D-141/D-142 e as Sessões 96/97 já estavam tomados quando a
-faixa começou, e o D-143 fica para a faixa paralela do Ragone; por isso D-144.
+faixa começou, e o D-143 já é dos Cadernos e a faixa paralela do Ragone fica com o D-145; por isso D-144.
 
 **Decisão.**
 - **Função pura, sem banco e sem gravação.** `sweep_family` (`app/calculations/family_sweep.py`)
