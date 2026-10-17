@@ -103,6 +103,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 92 — 17/10/26 — Artefato "MaterialSelect AI" alinhado ao app
+
+**O que mudou.** Só o artefato (versão 24), nenhum arquivo do app: `tokens.json` com os neutros e a
+rampa `brand` do app, azul na raiz, 17 paletas de rota geradas da região `m3-roles`, categórica
+Okabe–Ito de volta, tipografia compacta, `shape-*`, `elevation-*`, `state-*` e `m3-*` de movimento;
+`bundle.css` com as regras de CSS das etapas 2 a 5 e blocos `[data-section]` regenerados;
+variante `tonal` no `index.d.ts` e no README do Button; nota de atualização no topo do README.
+**Fica de fora:** as `preview.html` e a prosa antiga da Rodada 8 (roxo).
+
 ## Sessão 91 — 17/10/26 — Material 3, navegação e dados (D-137)
 
 **O que mudou.** Abas com indicador de 3 px em `--m3-primary` (some o sublinhado de 2 px);
