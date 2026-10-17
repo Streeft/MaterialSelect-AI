@@ -5,6 +5,7 @@ import { render, waitFor, within } from "@testing-library/react";
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AnnouncerProvider } from "@/components/ui/Announcer";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
@@ -151,7 +152,7 @@ function stepButton(label: string) {
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>
-      <SnackbarProvider>{node}</SnackbarProvider>
+      <SnackbarProvider><AnnouncerProvider>{node}</AnnouncerProvider></SnackbarProvider>
     </QueryClientProvider>;
 }
 
@@ -319,6 +320,26 @@ describe("notas do estudo (D-122)", () => {
     await user.click(screen.getByShadowRole("button", { name: t.saveStudy }));
     await waitFor(() => expect(createStudy).toHaveBeenCalled());
     expect(createStudy.mock.calls[0]![0].notes).toBeNull();
+  });
+});
+
+describe("foco e anúncio (D-146)", () => {
+  it("moves focus to the step title when the reader changes step, and not on first render", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    expect(document.activeElement).toBe(document.body);
+    await user.click(screen.getByShadowRole("button", { name: t.nextStep(t.stepObjective) }));
+    const title = screen.getByShadowRole("heading", { name: t.stepTitle(2, 4, t.stepObjective) });
+    expect(document.activeElement).toBe(title);
+  });
+
+  it("says that the ranking is ready through the live region", async () => {
+    const user = userEvent.setup();
+    runSelection.mockResolvedValue(result({ final_count: 2 }));
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+    await clickRun(user);
+    await waitFor(() => expect(screen.getAllByRole("status").some((r) => r.textContent === t.announceReady)).toBe(true));
   });
 });
 

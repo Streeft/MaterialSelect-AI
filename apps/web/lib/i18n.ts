@@ -578,6 +578,11 @@ export const ptBR = {
     of: "de",
     counterHint: "Atualizado a cada mudança nos limites.",
     counterPending: "Recalculando…",
+    // D-146: o que o leitor de tela fala quando a etapa muda e quando a classificação termina.
+    stepTitle: (n: number, total: number, label: string) => `Etapa ${n} de ${total}: ${label}`,
+    announceRanked: (n: number) =>
+      n === 1 ? "Classificação pronta: 1 candidato." : `Classificação pronta: ${n} candidatos.`,
+    announceReady: "Resultado pronto.",
     counterError: "Não foi possível recontar os candidatos.",
     actionBar: "Ações da etapa",
     objectiveTitle: "Índice de desempenho e classificação",

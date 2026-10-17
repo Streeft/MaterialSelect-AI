@@ -77,6 +77,7 @@ import {
   type Step as StepItem,
   type StepStatus,
 } from "@/components/ui";
+import { useAnnounce } from "@/components/ui/Announcer";
 import { IconArrowLeft, IconArrowRight, IconPlus, IconTrash } from "@/components/ui/icons";
 import {
   emptyConstraint,
@@ -312,6 +313,9 @@ function SelectionWizard() {
   const me = useCurrentUser();
   const draftUserKey = me.data ? draftKey(me.data.id) : null;
   const [draftState, setDraftState] = useState<"idle" | "saved">("idle");
+  const announce = useAnnounce();
+  const stepTitleRef = useRef<HTMLHeadingElement>(null);
+  const focusStepTitle = useRef(false);
   const [step, setStep] = useState<Step>(() => {
     if (params.get("novo_estagio") === "chart") return "constraints";
     return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
@@ -324,6 +328,9 @@ function SelectionWizard() {
    * the reader's (landing after a study loads), which should not add history.
    */
   const goToStep = useCallback((next: Step, options?: { replace?: boolean }) => {
+    // D-146: a step the reader chose takes focus to its title; one the screen
+    // chose for them (a study loading) does not pull focus away.
+    if (!options?.replace) focusStepTitle.current = true;
     setStep(next);
     if (typeof window === "undefined") return;
     const query = new URLSearchParams(window.location.search);
@@ -333,6 +340,12 @@ function SelectionWizard() {
     if (options?.replace) window.history.replaceState(null, "", url);
     else window.history.pushState(null, "", url);
   }, []);
+
+  useEffect(() => {
+    if (!focusStepTitle.current) return;
+    focusStepTitle.current = false;
+    stepTitleRef.current?.focus();
+  }, [step]);
 
   // Browser Back/Forward: the history entry changed under us, so follow it.
   // `popstate` is what those buttons fire, and only they fire it — our own
@@ -666,6 +679,7 @@ function SelectionWizard() {
       setResult(data);
       goToStep("results");
       setError(null);
+      announce(data.ranking ? t.announceRanked(data.ranking.ranked.length) : t.announceReady);
     },
     onError: fail,
   });
@@ -793,6 +807,7 @@ function SelectionWizard() {
     onSuccess: (data) => {
       setResult(data);
       goToStep("results");
+      announce(data.ranking ? t.announceRanked(data.ranking.ranked.length) : t.announceReady);
     },
     onError: fail,
   });
@@ -1271,6 +1286,10 @@ function SelectionWizard() {
             {error}
           </Alert>
         )}
+
+        <h2 ref={stepTitleRef} tabIndex={-1} className="sr-only">
+          {t.stepTitle(STEPS.findIndex((s) => s.id === step) + 1, STEPS.length, labelOf(step))}
+        </h2>
 
         {/* Step 1: function */}
         {step === "function" && (

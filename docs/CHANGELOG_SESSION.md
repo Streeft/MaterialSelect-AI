@@ -106,6 +106,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 101 — 17/10/26 — Região aria-live global e foco no título da etapa (D-146)
+
+**O que mudou.** `AnnouncerProvider`/`useAnnounce` (`components/ui/Announcer.tsx`), montado em `app/app/layout.tsx`;
+no assistente da Seleção, escolher uma etapa leva o foco a um título só para leitor de tela ("Etapa 2 de 4: Objetivo")
+e terminar a classificação é anunciado; `/app/processos` entra no Lighthouse.
+
+**Testes.** +6 de frontend (região montada vazia, mesma frase duas vezes, fora do provedor, axe, foco por etapa,
+anúncio do resultado). Sem backend nem migração. **Não entregue:** Playwright em quatro larguras.
+
 ## Sessão 100 — 17/10/26 — Gráfico de Ragone das baterias (D-145)
 ## Sessão 99 — 17/10/26 — Varredura de família do Synthesizer, backend (D-144)
 
