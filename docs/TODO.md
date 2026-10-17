@@ -87,10 +87,22 @@ quitados".
 
 ## Média prioridade
 
+- **Avisos de demonstração e de limite de uso retirados, linguagem simples
+  ([D-138](DECISIONS.md), Sessão 93)** — decisão do autor, em três faixas: A (backend e
+  exportações), B (frontend) e C (docs, esta). Falta a faixa D (glossário de linguagem simples em
+  `i18n.ts`, depois de B). Resíduo: depois do merge de A e B, `rg -i "demonstrativ|fictíci|limite
+  de uso|triagem preliminar"` em `apps/` só pode achar nome de código, comentário interno e
+  `is_demo`. O aviso de saída por IA e as ressalvas técnicas da IA continuam.
+
 - **Design system do Material 3 sobre o do app (Sessões 87 a 91, [D-133](DECISIONS.md) a
   [D-137](DECISIONS.md))** — as cinco etapas estão entregues. Resta sincronizar o artefato
   "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito, azul na raiz) e conferir tudo
   no navegador nos dois temas e a 375 px (nada disso foi visto ao vivo).
+- **Design system do Material 3 sobre o do app (Sessões 87 a 92, [D-133](DECISIONS.md) a
+  [D-137](DECISIONS.md))** — as cinco etapas e o artefato "MaterialSelect AI" (versão 24: tokens,
+  `bundle.css`, azul na raiz, Okabe–Ito restaurada) estão entregues. Resta: conferir tudo no
+  navegador, nos dois temas e a 375 px (nada foi visto ao vivo), e atualizar no artefato as
+  `preview.html` e a prosa do README que ainda descrevem o roxo `#6750A4` da Rodada 8.
 - **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —
   a busca global e o aviso com Desfazer saíram; restam, um PR por item e citando a
   página de `m3.material.io` de onde veio: ~~(3) tabelas ordenáveis com seleção em

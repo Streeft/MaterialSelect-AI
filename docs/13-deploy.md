@@ -787,8 +787,8 @@ Depois, no navegador:
    `BACKEND_BASE_URL` é a URL da Vercel e não a do Fly (§2): é o erro mais
    provável, porque o cookie acaba gravado no domínio errado.
 5. Depois de rodar o §5, `/app/catalogo` deve listar os materiais do seed.
-6. Exporte um estudo e confirme que o aviso de limitação de uso está no arquivo
-   (item 5 da proposta, sem opção de desligar).
+6. Exporte um estudo e confirme que o arquivo abre com a fonte e a nota de
+   reprodutibilidade (o aviso de limitação de uso foi retirado, D-138).
 
 ## Falhas comuns
 

@@ -1,10 +1,7 @@
 # sample-data
 
-> ⚠️ **Dados exclusivamente demonstrativos. Não utilizar em projetos reais.**
-
-Este diretório contém dados sintéticos e fictícios usados para demonstração e
-para documentar o **formato de referência** esperado pelo futuro importador
-(Fase 3). Os valores **não** descrevem materiais reais.
+Este diretório contém dados sintéticos usados como exemplo e para documentar o
+**formato de referência** esperado pelo importador (Fase 3).
 
 - `materials_demo.csv` — exemplo de planilha "achatada" (uma linha por material,
   colunas de propriedades com unidade indicada no cabeçalho). Serve como
