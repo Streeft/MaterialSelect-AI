@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
 | [93](#sessão-93--171026--sai-o-aviso-de-dado-demonstrativo-e-de-limite-de-uso-d-138) | 17/10/2026 | Retirada dos avisos de dado demonstrativo e de limite de uso (tela, exportações, IA, landing) e linguagem simples; regras e docs (D-138) | — | — |
 | [86](#sessão-86--161026--home-saudação-e-vistos-recentemente-d-132) | 16/10/2026 | Home: saudação pelo primeiro nome (só se a conta tem nome) e prateleira *Vistos recentemente* (até 6, mesma consulta de Meus registros, estados escritos); quarto item do Material 3; sem backend | — | +7 |
@@ -106,6 +107,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 ---
 
 ## Sessão 100 — 17/10/26 — Gráfico de Ragone das baterias (D-145)
+## Sessão 99 — 17/10/26 — Varredura de família do Synthesizer, backend (D-144)
+
+**O que mudou.** `app/calculations/family_sweep.py` (`sweep_grid`, `sweep_family`: função pura que
+roda `synthesize_sandwich`/`synthesize_composite` em cada ponto de uma grade explícita e avalia o
+índice com `evaluate_index`), `POST /api/sintetizar/varredura` (sem gravar; pais e definições lidos
+uma vez), schemas `SweepRequest`/`SweepOut` e o helper `_refuse_same_parent` compartilhado com a
+prévia. `worst_quality` passa a ser público em `synthesis.py`. Espessura absoluta não se varre (não
+muda ranking). D-141/D-142 e as Sessões 96/97 já estavam tomados; o D-143 é dos Cadernos e o Ragone fica com o D-145 (Sessão 100).
+
+**Testes.** +57 de backend (`test_family_sweep.py`: grade por índice e extremos exatos, teto e piso,
+extremos inválidos, determinismo, passo igual à síntese avulsa, painel sem resistência em `skipped`,
+par de limites Reuss–Voigt, qualidade, pontas degeneradas do painel; `test_family_sweep_api.py`: nada
+gravado, 422 de schema, 400 de domínio, isolamento). Backend em 4955 (4949 passam e 6 pulam sem
+`POSTGRES_TEST_URL`). Sem migração. Pendente: a tela (faixa V2).
+
+## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
 
 **O que mudou.** Backend: `ragone_iso_time_lines` e `ragone_bounds` em `calculations/battery.py`
 (linhas E = P·t recortadas à caixa do gráfico), `BatteryService.ragone`, `GET /api/baterias/ragone`

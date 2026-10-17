@@ -308,7 +308,7 @@ premissa de oficina** — os três fatores de empacotamento são entrada com val
 visível. Química inexistente é 404; catálogo vazio recusa o pódio com o motivo
 escrito.
 
-## Sintetizador e painéis sanduíche (D-67, D-68)
+## Sintetizador e painéis sanduíche (D-67, D-68, D-144)
 
 **O Synthesizer fechou a terceira linha em zero da faixa P3**
 ([D-67](DECISIONS.md)): compósito de dois constituintes e espuma de um
@@ -355,6 +355,16 @@ de falha. E **onde existe convenção o número entra, onde não existe não ent
 o módulo de um painel é, por convenção, o de flexão equivalente, e ele vai para
 `modulo_young` com a lei colada na proveniência; a condutividade não vai, porque
 um painel é anisotrópico por construção e o slug é isotrópico.
+
+**A varredura de família** ([D-144](DECISIONS.md)) roda a mesma síntese numa grade e avalia um
+índice em cada passo, pelo mesmo `evaluate_index` da seleção — sem gravar
+(`POST /api/sintetizar/varredura`). Três regras que não se afrouxam: **só se varre o que move o
+material** (razão c/t do painel, fração do compósito) e **nunca a espessura absoluta**, que
+multiplica todos os candidatos pelo mesmo fator estrutural e não muda a ordem; **a grade é
+calculada por índice**, com os extremos exatos e teto de 50 passos, nunca por soma acumulada; e
+**passo sem índice sai em `skipped` com o motivo** — o painel sem resistência sintetizada exclui
+todo índice que a lê, com a frase dos modos de falha. Par de limites (Reuss–Voigt) gera par de
+índices, só para índice lei de potência.
 
 ## Unidades e unidade de leitura (D-70)
 
