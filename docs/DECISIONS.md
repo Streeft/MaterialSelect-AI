@@ -10645,3 +10645,34 @@ próprio e ficam; os `msds-toast-*` por tom (sucesso, aviso, perigo) também, po
 informação. Cartão dentro de cartão continua proibido (D-91).
 
 **Consequências.** Frontend apenas. Segue a Etapa 5 (navegação e dados) e a sincronia do artefato.
+
+
+## D-137 — Material 3, navegação e dados: abas de 3 px, pílula na barra inferior, hover em véu
+
+**Contexto.** Etapa 5 (a última) do design system do Material 3 (D-133 a D-136), páginas
+*Tabs*, *Navigation bar*, *Navigation rail*, *Lists* e *Data tables* de `m3.material.io`. Duas
+escolhas do autor, com a medição à frente. A fonte já estava decidida antes (Public Sans, com os
+15 nomes de papel de D-133) e não foi reaberta.
+
+**Decisão.**
+- **Abas.** Indicador de 3 px com cantos superiores arredondados em `--m3-primary`, que cresce sob
+  a aba ativa (`scaleX`, respeita `prefers-reduced-motion`); texto ativo em `--m3-primary`, inativo
+  em `--m3-on-surface-variant`; divisor em `--m3-outline-variant`. Some o sublinhado de 2 px e a
+  troca de cor ao passar o mouse: a aba já tem o véu de estado de D-134.
+- **Barra inferior do celular.** O destino ativo ganha uma pílula de 56 × 32 px atrás do ícone, no
+  lugar da barra de 3 px no topo do item. **A barra é o trilho escuro** (`bg-rail`, D-37), então a
+  pílula usa o tom do acento do trilho a 20 %, e não `secondary-container`; o hover é o véu de 8 %.
+  O trilho lateral não mudou.
+- **Listas e tabelas.** O item de lista e a linha de tabela passam de um preenchimento fixo para o
+  véu de 8 % em `on-surface`. A ordenação e a seleção de D-131 não mudam.
+
+**Medição.** O texto ativo e o inativo das abas são os mesmos pares de D-133 (`primary` sobre a
+superfície, `on-surface-variant`); a barra inferior mantém `rail-accent` / `rail-ink-subtle`, já
+medidos em D-37. Nenhuma cor nova de texto entrou.
+
+**Fora desta decisão.** Selo (`msds-badge`), progresso e *stepper* ficam como estão: o selo de
+qualidade de dado é informação e não segue rota (D-38), e nenhum dos três tem papel M3 equivalente
+no uso do app. O trilho lateral não ganha pílula (D-37).
+
+**Consequências.** Frontend apenas. Fecha as cinco etapas; falta sincronizar o artefato
+"MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito) e conferir tudo no navegador.

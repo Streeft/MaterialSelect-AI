@@ -355,9 +355,13 @@ body {
 .msds-dialog-footer { padding: 12px 16px 16px; display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Tabs */
-.msds-tablist { display: flex; gap: 4px; border-bottom: 1px solid rgb(var(--edge)); }
-.msds-tab { appearance: none; background: none; border: none; padding: 9px 14px; font: 600 13px var(--font-sans); color: rgb(var(--ink-muted)); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
-.msds-tab[data-active="true"] { color: rgb(var(--accent)); border-bottom-color: rgb(var(--accent)); }
+.msds-tablist { display: flex; gap: 4px; border-bottom: 1px solid rgb(var(--m3-outline-variant)); }
+.msds-tab { appearance: none; background: none; border: none; padding: 9px 14px; font: 600 13px var(--font-sans); color: rgb(var(--m3-on-surface-variant)); cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
+/* D-137: the M3 primary-tab indicator, 3 px with round top corners, grows in under the active tab. */
+.msds-tab::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: rgb(var(--m3-primary)); transform: scaleX(0); transition: transform var(--m3-dur-short3) var(--m3-ease-standard); }
+.msds-tab[data-active="true"] { color: rgb(var(--m3-primary)); }
+.msds-tab[data-active="true"]::after { transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) { .msds-tab::after { transition: none; } }
 .msds-tabpanel { padding: 14px 2px; font-size: 14px; color: rgb(var(--ink-muted)); }
 
 /* Popover */
@@ -544,7 +548,7 @@ body {
 .msds-list { display: flex; flex-direction: column; }
 .msds-list-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-control); position: relative; }
 button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-align: left; width: 100%; border: none; background: none; font: inherit; color: inherit; }
-.msds-list-item[role="button"]:hover, .msds-list-item:is(button):hover { background: var(--surface-300); }
+.msds-list-item[role="button"]:hover, .msds-list-item:is(button):hover { background: rgb(var(--m3-on-surface) / var(--state-hover)); }
 .msds-list-icon { display: flex; color: rgb(var(--ink-subtle)); flex: none; }
 .msds-list-body { flex: 1; min-width: 0; }
 .msds-list-label { font-size: 14px; color: rgb(var(--ink)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

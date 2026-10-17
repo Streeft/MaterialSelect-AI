@@ -87,10 +87,10 @@ quitados".
 
 ## Média prioridade
 
-- **Design system do Material 3 sobre o do app (Sessão 87, [D-133](DECISIONS.md))** — Etapa 1
-  (tokens) e Etapa 2 (ações, [D-134](DECISIONS.md)) e Etapa 3 (campos, [D-135](DECISIONS.md)) e Etapa 4 (contêineres e sobreposições, [D-136](DECISIONS.md)) entregues. Restam, um PR por grupo e com o
-  artefato "MaterialSelect AI" sincronizado: (5) navegação e dados. Decidir caso a caso,
-  com medição: fonte e abas em pílula. Devolver a Okabe–Ito ao artefato.
+- **Design system do Material 3 sobre o do app (Sessões 87 a 91, [D-133](DECISIONS.md) a
+  [D-137](DECISIONS.md))** — as cinco etapas estão entregues. Resta sincronizar o artefato
+  "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito, azul na raiz) e conferir tudo
+  no navegador nos dois temas e a 375 px (nada disso foi visto ao vivo).
 - **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —
   a busca global e o aviso com Desfazer saíram; restam, um PR por item e citando a
   página de `m3.material.io` de onde veio: ~~(3) tabelas ordenáveis com seleção em
