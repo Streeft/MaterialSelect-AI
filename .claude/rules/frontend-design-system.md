@@ -94,6 +94,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   sobre o painel, testado), foco em contorno de 2 px, rótulo **acima**. Caixa, rádio, switch e
   slider usam `--m3-primary`/`--m3-outline`; a borda desmarcada nunca fica abaixo de 3:1.
 
+- **Contêineres e sobreposições no M3** ([D-136](docs/DECISIONS.md)): card interativo sem
+  `translateY` (véu + elevação 2); diálogo 28 px em `surface-container-high`; scrim `--m3-scrim`
+  a 32 %; menu/popover em `surface-container`; snackbar e dica em `inverse-surface`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

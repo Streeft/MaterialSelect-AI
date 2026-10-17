@@ -164,7 +164,12 @@ body {
   box-shadow: var(--shadow-card); overflow: hidden;
   transition: box-shadow var(--msds-dur-slow) var(--msds-ease), transform var(--msds-dur-slow) var(--msds-ease);
 }
-.msds-card[data-interactive="true"]:hover { box-shadow: var(--shadow-float); transform: translateY(-3px); }
+/* D-136: an interactive card answers hover with the state veil and one more elevation level; it does not move. */
+.msds-card[data-interactive="true"] { position: relative; }
+.msds-card[data-interactive="true"]::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgb(var(--m3-on-surface)); opacity: 0; pointer-events: none; transition: opacity var(--m3-dur-short2) var(--m3-ease-standard); }
+@media (hover: hover) { .msds-card[data-interactive="true"]:hover { box-shadow: var(--elevation-2); } .msds-card[data-interactive="true"]:hover::before { opacity: var(--state-hover); } }
+.msds-card[data-interactive="true"]:focus-visible::before { opacity: var(--state-focus); }
+.msds-card[data-interactive="true"]:active::before { opacity: var(--state-pressed); }
 .msds-card-header { padding: var(--space-4) var(--space-4) var(--space-3); border-bottom: 1px solid rgb(var(--border-divider)); }
 .msds-card-title { margin: 0; font-size: 16px; font-weight: 600; color: rgb(var(--text-primary)); }
 .msds-card-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.25rem; color: rgb(var(--text-secondary)); }
@@ -337,8 +342,8 @@ body {
 .msds-rangefilter-values { display: flex; justify-content: space-between; font: 500 12px var(--font-mono); color: rgb(var(--ink-muted)); margin-top: 4px; }
 
 /* Dialog */
-.msds-dialog-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
-.msds-dialog { background: var(--surface-200); border-radius: var(--radius-card); box-shadow: var(--shadow-overlay); max-width: 420px; width: 100%; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
+.msds-dialog-backdrop { position: fixed; inset: 0; background: rgb(var(--m3-scrim) / 0.32); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-dialog { background: rgb(var(--m3-surface-container-high)); color: rgb(var(--m3-on-surface)); border-radius: var(--shape-extra-large); box-shadow: var(--elevation-3); max-width: 420px; width: 100%; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
 /* Rodada 8, item 4: enquanto useContainerTransform está ativo, a mola física
    já está animando top/left/width/height por estilo inline — a animação
    CSS de entrada (que também mexe em transform) desligada, ou as duas
@@ -346,8 +351,8 @@ body {
 .msds-dialog[data-container-transform="true"] { animation: none; overflow: hidden; }
 @keyframes msds-rise-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
 .msds-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; }
-.msds-dialog-body { padding: 4px 16px 16px; font-size: 14px; color: rgb(var(--ink-muted)); }
-.msds-dialog-footer { padding: 12px 16px; border-top: 1px solid rgb(var(--edge-subtle)); display: flex; justify-content: flex-end; gap: 8px; }
+.msds-dialog-body { padding: 4px 16px 16px; font-size: 14px; color: rgb(var(--m3-on-surface-variant)); }
+.msds-dialog-footer { padding: 12px 16px 16px; display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Tabs */
 .msds-tablist { display: flex; gap: 4px; border-bottom: 1px solid rgb(var(--edge)); }
@@ -358,7 +363,7 @@ body {
 /* Popover */
 .msds-popover-wrap { position: relative; display: inline-block; }
 .msds-popover-trigger { appearance: none; border: none; background: none; cursor: pointer; color: rgb(var(--accent)); font: 600 13px var(--font-sans); }
-.msds-popover { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control); box-shadow: var(--shadow-overlay); padding: 12px; min-width: 220px; font-size: 13px; color: rgb(var(--ink-muted)); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
+.msds-popover { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; background: rgb(var(--m3-surface-container)); color: rgb(var(--m3-on-surface-variant)); border-radius: var(--shape-medium); box-shadow: var(--elevation-2); padding: 12px; min-width: 220px; font-size: 13px; color: rgb(var(--ink-muted)); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
 
 /* Breadcrumb */
 .msds-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; }
@@ -405,10 +410,10 @@ body {
    Below `lg` it rides above the bottom nav (BottomNav publishes its height in
    --bottom-nav-offset), never in front of it; from `lg` it sits at the corner. */
 .msds-snackbar-host { position: fixed; z-index: 60; left: 12px; right: 12px; bottom: calc(var(--bottom-nav-offset, 0px) + 12px + env(safe-area-inset-bottom)); display: flex; justify-content: center; pointer-events: none; }
-.msds-snackbar { pointer-events: auto; display: flex; align-items: center; gap: 16px; min-width: 0; max-width: 560px; width: 100%; padding: 12px 8px 12px 16px; border-radius: var(--radius-control); background: rgb(var(--ink)); color: rgb(var(--surface-panel)); box-shadow: var(--shadow-overlay); font-size: 14px; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
+.msds-snackbar { pointer-events: auto; display: flex; align-items: center; gap: 16px; min-width: 0; max-width: 560px; width: 100%; padding: 12px 8px 12px 16px; border-radius: var(--shape-extra-small); background: rgb(var(--m3-inverse-surface)); color: rgb(var(--m3-inverse-on-surface)); box-shadow: var(--elevation-3); font-size: 14px; animation: msds-rise-in 200ms var(--msds-ease-out) both; }
 .msds-snackbar-message { flex: 1; min-width: 0; }
 .msds-snackbar-action { flex: none; min-height: 40px; padding: 0 12px; border: none; border-radius: var(--radius-seat); background: none; cursor: pointer; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; color: inherit; }
-.msds-snackbar-action:hover { background: rgb(var(--surface-panel) / 0.12); }
+.msds-snackbar-action:hover { background: rgb(var(--m3-inverse-on-surface) / var(--state-hover)); }
 .msds-snackbar-action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 @media (min-width: 1024px) { .msds-snackbar-host { left: auto; right: 20px; bottom: 20px; justify-content: flex-end; } .msds-snackbar { width: auto; min-width: 288px; } }
 @media (prefers-reduced-motion: reduce) { .msds-snackbar { animation: none; } }
@@ -520,18 +525,19 @@ body {
   border-radius: var(--radius-control); padding: 8px 12px; font: 500 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .msds-menu-trigger:hover { border-color: rgb(var(--accent)); }
 .msds-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; margin: 0; padding: 6px; list-style: none;
-  min-width: 180px; background: var(--surface-200); border: 1px solid rgb(var(--edge)); border-radius: var(--radius-control);
-  box-shadow: var(--shadow-overlay); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
+  min-width: 180px; background: rgb(var(--m3-surface-container)); border-radius: var(--shape-extra-small);
+  box-shadow: var(--elevation-2); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
 .msds-menu-item { width: 100%; display: flex; align-items: center; gap: 8px; appearance: none; border: none; background: none;
   text-align: left; padding: 8px 10px; border-radius: var(--radius-seat); font-size: 13px; color: rgb(var(--ink)); cursor: pointer; white-space: nowrap; }
-.msds-menu-item:hover:not(:disabled) { background: rgb(var(--brand-50)); color: rgb(var(--accent)); }
+.msds-menu-item:hover:not(:disabled) { background: rgb(var(--m3-on-surface) / var(--state-hover)); }
+.msds-menu-item:focus-visible { background: rgb(var(--m3-on-surface) / var(--state-focus)); outline: none; }
 .msds-menu-item:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; }
 .msds-menu-icon { display: flex; color: rgb(var(--ink-subtle)); flex: none; }
 
 /* Tooltip */
 .msds-tooltip-wrap { position: relative; display: inline-flex; }
 .msds-tooltip-bubble { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: rgb(var(--ink)); color: var(--surface-100); font-size: 12px; padding: 5px 9px; border-radius: var(--radius-seat);
+  background: rgb(var(--m3-inverse-surface)); color: rgb(var(--m3-inverse-on-surface)); font-size: 12px; padding: 5px 9px; border-radius: var(--shape-extra-small);
   white-space: nowrap; z-index: 15; pointer-events: none; animation: msds-fade-in 100ms var(--msds-ease-out) both; }
 
 /* List */
@@ -561,7 +567,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-appbar-actions { display: flex; align-items: center; gap: 6px; flex: none; }
 
 /* NavDrawer — variante modal do NavRail (compact/medium) */
-.msds-drawer-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); z-index: 45; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-drawer-backdrop { position: fixed; inset: 0; background: rgb(var(--m3-scrim) / 0.32); z-index: 45; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
 .msds-drawer-panel { position: fixed; inset: 0 auto 0 0; width: 280px; max-width: 85vw; padding: 12px; box-sizing: border-box;
   animation: msds-drawer-in 220ms var(--msds-ease-out) both; }
 @keyframes msds-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
@@ -647,7 +653,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 }
 
 /* BottomSheet — mesma base de backdrop/entrada do Dialog, geometria de rodapé */
-.msds-sheet-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-sheet-backdrop { position: fixed; inset: 0; background: rgb(var(--m3-scrim) / 0.32); display: flex; align-items: flex-end; justify-content: center; z-index: 50; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
 .msds-sheet {
   background: var(--surface-200); border-radius: var(--radius-card) var(--radius-card) 0 0; box-shadow: var(--shadow-overlay);
   width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
@@ -758,7 +764,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 /* SideSheet — modo modal (backdrop + foco preso, geometria lateral do
    Dialog/BottomSheet) e standalone (sem backdrop, painel no próprio fluxo —
    quem chama monta as duas colunas). */
-.msds-sidesheet-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.5); z-index: 50; display: flex; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
+.msds-sidesheet-backdrop { position: fixed; inset: 0; background: rgb(var(--m3-scrim) / 0.32); z-index: 50; display: flex; animation: msds-fade-in 160ms var(--msds-ease-out) both; }
 .msds-sidesheet {
   background: var(--surface-200); box-shadow: var(--shadow-overlay); width: 360px; max-width: 90vw;
   height: 100%; display: flex; flex-direction: column; overflow-y: auto;

@@ -10614,3 +10614,34 @@ apoio e o contador seguem nos tokens atuais. A nota de erro dos campos continua 
 **Consequências.** Frontend apenas. Mexe em todo formulário do app (raio e cor), então a
 conferência visual no preview vale mais que nas etapas anteriores. Segue a Etapa 4
 (contêineres e sobreposições).
+
+
+## D-136 — Material 3, contêineres e sobreposições: card sem movimento, diálogo de 28 px, inversos
+
+**Contexto.** Etapa 4 do design system do Material 3 (D-133 a D-135), páginas *Cards*,
+*Dialogs*, *Menus*, *Tooltips* e *Snackbar* de `m3.material.io`. Duas escolhas do autor, com a
+medição à frente.
+
+**Decisão.**
+- **Card interativo sem movimento.** Passar o mouse sobe **um** nível de elevação (`--elevation-2`)
+  e acende o véu de estado de 8 % em `on-surface`; foco e pressão a 10 %. Some o `translateY(-3px)`
+  (D-38). Cores e borda do card não mudam: o card continua no painel do tema, só o hover é M3.
+- **Diálogo.** Raio 28 px (`--shape-extra-large`), fundo `--m3-surface-container-high`, texto
+  `--m3-on-surface`/`on-surface-variant`, elevação 3, sem divisor no rodapé. Mais arredondado que
+  o resto do app; é o traço mais reconhecível dos apps do Google e foi escolha do autor.
+- **Véu de fundo (*scrim*).** `--m3-scrim` a 32 % em diálogo, gaveta, folha e folha lateral (eram
+  `rgba(10,12,16,0.5)`).
+- **Menu e popover.** Fundo `--m3-surface-container`, elevação 2, sem borda; menu com raio 4 e
+  popover com 12. O item do menu responde com o véu, não com troca de cor.
+- **Snackbar e dica (*tooltip*).** `--m3-inverse-surface` / `--m3-inverse-on-surface`; snackbar com
+  raio 4 e elevação 3. A D-130 (um por vez, uma ação, sem ícone) não muda.
+
+**Medição (D-34).** Texto sobre `surface-container` e `surface-container-high`
+(`on-surface`, `on-surface-variant`) e `inverse-on-surface` sobre `inverse-surface`: todos ≥ 4,5:1
+nas 34 combinações de rota e tema, por teste.
+
+**O que não muda.** O `ChartTooltip` dos gráficos (D-95) e o `.msds-tooltip` do mapa têm desenho
+próprio e ficam; os `msds-toast-*` por tom (sucesso, aviso, perigo) também, porque o tom é
+informação. Cartão dentro de cartão continua proibido (D-91).
+
+**Consequências.** Frontend apenas. Segue a Etapa 5 (navegação e dados) e a sincronia do artefato.
