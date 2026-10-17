@@ -121,6 +121,19 @@ par de limites Reuss–Voigt, qualidade, pontas degeneradas do painel; `test_fam
 gravado, 422 de schema, 400 de domínio, isolamento). Backend em 4955 (4949 passam e 6 pulam sem
 `POSTGRES_TEST_URL`). Sem migração. Pendente: a tela (faixa V2).
 
+## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
+
+**O que mudou.** Backend: `ragone_iso_time_lines` e `ragone_bounds` em `calculations/battery.py`
+(linhas E = P·t recortadas à caixa do gráfico), `BatteryService.ragone`, `GET /api/baterias/ragone`
+e os esquemas `Ragone*` em `schemas/battery.py`. Frontend: `RagoneChart`
+(`components/charts/`), aba "Ragone" em `app/app/baterias/page.tsx`, `getBatteryRagone` em
+`lib/api.ts`, tipos em `packages/shared-types`; `logAxisTicks` e `titled` passaram a ser exportadas
+de `AshbyMap.tsx`. Decisão tomada pelo assistente por delegação do autor.
+
+**Testes.** +10 de backend (iso-tempo: E = P·t, reta de inclinação 1 em log–log, recorte à caixa,
+determinismo, limites inválidos; API: pontos iguais ao catálogo, exclusão escrita) e +8 de frontend
+(axe, nome acessível, eixos log, reta E = P·t, tabela de origem, exclusão escrita, estado vazio, aba na
+página). Sem migração.
 ## Sessão 98 — 17/10/26 — Cadernos: menu de três pontos e painéis redimensionáveis (D-143)
 
 **O que mudou.** `NotebookCard` (menu com Renomear no lugar e Excluir com Desfazer), `PanelResizer`

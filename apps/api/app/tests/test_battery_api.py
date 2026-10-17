@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.battery_chemistry import BatteryChemistry
 
 
 def test_list_chemistries(client: TestClient) -> None:
@@ -182,3 +187,59 @@ def test_uma_quimica_inexistente_e_404_com_o_slug_escrito(client: TestClient) ->
 
     assert response.status_code == 404
     assert "nao-existe" in response.json()["detail"]
+
+
+def test_ragone_returns_catalogue_points_axes_and_iso_time(client: TestClient) -> None:
+    """GET /api/baterias/ragone: pontos do catálogo, eixos log e linhas E = P·t."""
+    response = client.get("/api/baterias/ragone")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert len(data["points"]) == 9
+    assert data["excluded"] == []
+
+    chemistries = {c["slug"]: c for c in client.get("/api/baterias/quimicas").json()}
+    for point in data["points"]:
+        source = chemistries[point["slug"]]
+        # Sem conta: os valores são os do catálogo, com a citação como já vem.
+        assert point["specific_energy"] == source["specific_energy"]
+        assert point["specific_power"] == source["specific_power"]
+        assert point["citation"] == source["citation"]
+        assert point["source"] == source["source"]
+
+    assert data["x_axis"]["scale"] == data["y_axis"]["scale"] == "log"
+    assert data["x_axis"]["unit"] == "Wh/kg"
+    assert data["y_axis"]["unit"] == "W/kg"
+    assert "célula" in data["y_axis"]["label"]
+    assert "não declarada" in data["y_axis"]["label"]
+    assert "pico ou contínua" in data["power_basis_note"]
+
+    # Todos os pontos cabem na caixa, que é a dos eixos.
+    for point in data["points"]:
+        assert data["x_axis"]["min_value"] < point["specific_energy"] < data["x_axis"]["max_value"]
+        assert data["y_axis"]["min_value"] < point["specific_power"] < data["y_axis"]["max_value"]
+
+    assert data["iso_time"]
+    for line in data["iso_time"]:
+        for p in line["points"]:
+            assert p["x"] == pytest.approx(p["y"] * line["hours"], rel=1e-9)
+
+
+def test_ragone_excludes_a_chemistry_without_positive_power_in_writing(
+    client: TestClient, db_session: Session
+) -> None:
+    """Química sem potência positiva sai do gráfico com o motivo escrito, nunca como zero."""
+    row = db_session.execute(
+        select(BatteryChemistry).where(BatteryChemistry.slug == "lfp")
+    ).scalar_one()
+    row.specific_power = 0.0
+    db_session.commit()
+
+    data = client.get("/api/baterias/ragone").json()
+    assert "lfp" not in {p["slug"] for p in data["points"]}
+    assert len(data["points"]) == 8
+    (excluded,) = data["excluded"]
+    assert excluded["slug"] == "lfp"
+    assert "potência específica" in excluded["reason"]
+    assert "zero" in excluded["reason"]
+    # Nenhum ponto de saída carrega zero.
+    assert all(p["specific_energy"] > 0 and p["specific_power"] > 0 for p in data["points"])

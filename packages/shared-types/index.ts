@@ -2341,6 +2341,49 @@ export type ThermalSafetyLevel =
   | "ALTA"
   | "MUITO_ALTA";
 
+// Ragone (D-143): energia × potência específicas das químicas, com linhas de
+// iso-tempo (E = P·t) calculadas no backend.
+export interface RagonePoint {
+  slug: string;
+  name: string;
+  /** Wh/kg, da célula. */
+  specific_energy: number;
+  /** W/kg, da célula; a base (pico ou contínua) não está declarada no catálogo. */
+  specific_power: number;
+  citation: string | null;
+  source: string | null;
+}
+
+export interface RagoneAxis {
+  key: string;
+  label: string;
+  unit: string;
+  scale: "log";
+  min_value: number;
+  max_value: number;
+}
+
+export interface RagoneIsoTime {
+  hours: number;
+  label: string;
+  points: { x: number; y: number }[];
+}
+
+export interface RagoneExcluded {
+  slug: string;
+  name: string;
+  reason: string;
+}
+
+export interface RagoneResult {
+  points: RagonePoint[];
+  x_axis: RagoneAxis | null;
+  y_axis: RagoneAxis | null;
+  iso_time: RagoneIsoTime[];
+  excluded: RagoneExcluded[];
+  power_basis_note: string;
+}
+
 export interface BatteryChemistry {
   slug: string;
   name: string;

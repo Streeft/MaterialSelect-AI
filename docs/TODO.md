@@ -209,6 +209,17 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
 - *Science Notes* de família e imagem de família continuam pendentes (fora do
   D-130: o glossário é por propriedade, não por família).
 
+**Gráfico de Ragone das baterias (lacuna do EduPack; [D-143](DECISIONS.md), Sessão 98).** ✔
+Entregue: ~~`GET /api/baterias/ragone` (pontos do catálogo, eixos log, linhas de iso-tempo E = P·t e
+`excluded` com motivo escrito)~~ e ~~aba "Ragone" em `/app/baterias` (`RagoneChart`, tabela de
+origem D-31)~~. Resíduos:
+
+- **RG-a — base da potência.** ▃ O catálogo não diz se `specific_power` é pico ou contínua; a
+  figura avisa em vez de supor. Só se resolve com dado: declarar a base por química no seed, com a
+  fonte de cada valor (hoje a citação é por linha, não por valor).
+- **RG-b — seleção e filtro.** ▁ Nove pontos sem classe: não há envelope nem seleção por caixa; se o
+  catálogo de baterias crescer (células oficiais), avaliar agrupar por família.
+
 **Perfis de profundidade L1/L2/L3 (relatório de lacunas do EduPack, #25,
 [D-127](DECISIONS.md), Sessão 82).** ✔ Entregue: ~~nível por slug com padrão
 seguro, seletor na ficha e nos eixos do mapa, nível na URL, canário "nível não

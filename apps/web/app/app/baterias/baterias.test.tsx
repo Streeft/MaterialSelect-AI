@@ -12,6 +12,7 @@ import type {
   BatteryChemistry,
   BatteryComparisonResult,
   PackDesignResult,
+  RagoneResult,
 } from "@/lib/types";
 
 const t = ptBR.battery;
@@ -175,7 +176,44 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+const mockRagone: RagoneResult = {
+  points: [
+    {
+      slug: "lfp",
+      name: "LFP (fosfato de ferro-lítio)",
+      specific_energy: 160,
+      specific_power: 1500,
+      citation: "Linden's Handbook of Batteries (4ª ed.)",
+      source: "Literatura de baterias (compilação)",
+    },
+  ],
+  x_axis: {
+    key: "specific_energy",
+    label: "Energia específica da célula",
+    unit: "Wh/kg",
+    scale: "log",
+    min_value: 80,
+    max_value: 320,
+  },
+  y_axis: {
+    key: "specific_power",
+    label: "Potência específica da célula (base não declarada)",
+    unit: "W/kg",
+    scale: "log",
+    min_value: 750,
+    max_value: 3000,
+  },
+  iso_time: [],
+  excluded: [],
+  power_basis_note: "Base da potência não declarada.",
+};
+
+vi.mock("react-plotly.js", () => ({
+  default: () => <div data-testid="plotly-mock" />,
+}));
+
 vi.mock("@/lib/api", () => ({
+  getBatteryRagone: () => Promise.resolve(mockRagone),
   listBatteryChemistries: () => Promise.resolve(mockChemistries),
   listBatteryArchetypes: () => Promise.resolve(mockArchetypes),
   designBatteryPack: () => Promise.resolve(mockDesignResult),
@@ -207,6 +245,17 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
 
     expect(await screen.findByShadowRole("tab", { name: t.tabDesign })).toBeDefined();
     expect(await screen.findByShadowRole("tab", { name: t.tabCompare })).toBeDefined();
+  });
+
+  it("a aba Ragone desenha o gráfico com a tabela de origem, sem depender dos requisitos", async () => {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+
+    await user.click(await screen.findByShadowRole("tab", { name: t.tabRagone }));
+
+    expect(await screen.findByRole("heading", { name: new RegExp(t.ragone.title) })).toBeDefined();
+    expect(screen.getByText("Base da potência não declarada.")).toBeDefined();
+    expect(screen.getByTestId("plotly-mock")).toBeDefined();
   });
 
   it("exibe a arquitetura Ns × Np e os balanços do pack dimensionado", async () => {
