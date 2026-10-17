@@ -39,7 +39,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.errors import ValidationError
-from app.exporters.report import LIMITATION_NOTICE
 from app.schemas.selection import StageIn, StudyIn, StudyOut
 
 STUDY_FILE_FORMAT = "materialselect-ai/estudo"
@@ -97,7 +96,6 @@ def build_study_file(study: StudyOut) -> dict[str, Any]:
     document = StudyFile(
         format=STUDY_FILE_FORMAT,
         version=STUDY_FILE_VERSION,
-        notice=LIMITATION_NOTICE,
         exported_at=datetime.now(UTC),
         study=payload,
     )

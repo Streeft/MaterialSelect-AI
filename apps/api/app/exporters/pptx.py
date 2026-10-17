@@ -1,9 +1,8 @@
 """PPTX renderer for Report (B2 — presentation export for studies and reports).
 
 Mirrors the CSV/XLSX renderers in spreadsheet.py, the HTML renderer in html.py,
-and the DOCX renderer in docx.py: same Report input, same "every export carries
-the limitation notice" guarantee (CLAUDE.md §1.8) and "missing data stays missing"
-rule (Principle 3, D-24).
+and the DOCX renderer in docx.py: same Report input, same notices and the same
+"missing data stays missing" rule (Principle 3, D-24).
 
 Generates a native Microsoft PowerPoint (.pptx) presentation via python-pptx
 (pure Python, cross-platform, zero C/GTK dependencies). Tables preserve the

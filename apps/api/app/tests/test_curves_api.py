@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.curves import PointInput, SeriesInput, build_curve
-from app.exporters.report import DEMO_DATA_NOTICE, LIMITATION_NOTICE
+from app.exporters.report import REPRODUCIBILITY_NOTICE
 from app.models.enums import CurveKind
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -23,6 +23,7 @@ from app.models.material_curve import MaterialCurve
 from app.models.source import Source
 from app.models.user import User
 from app.repositories.curve_repository import curve_rows
+from app.tests.removed_notices import assert_no_removed_notice
 
 
 def _material(db: Session, name: str) -> Material:
@@ -262,7 +263,9 @@ class TestExport:
         assert response.headers["content-type"].startswith("text/csv")
         assert response.headers["x-content-type-options"] == "nosniff"
         text_body = response.text
-        assert LIMITATION_NOTICE in text_body and DEMO_DATA_NOTICE in text_body
+        assert REPRODUCIBILITY_NOTICE in text_body
+        assert_no_removed_notice(text_body)
+        assert "\nDado fictício," not in text_body  # the removed row
         assert "pint:MPa->Pa" in text_body
         assert "Tensão de engenharia (GPa)" in text_body
         assert "y original (MPa)" in text_body
@@ -278,7 +281,7 @@ class TestExport:
         curve = _add_temperature_curve(db_session, material, title='=HYPERLINK("http://x")')
         text_body = client.get(f"/api/exports/materiais/{material.id}/curvas/{curve.id}.csv").text
         assert "'=HYPERLINK" in text_body
-        assert DEMO_DATA_NOTICE not in text_body
+        assert_no_removed_notice(text_body)
 
     def test_xlsx_and_unsupported_formats(self, client, db_session: Session) -> None:
         steel = _material(db_session, "Aço Demo B")

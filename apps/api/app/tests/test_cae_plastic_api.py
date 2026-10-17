@@ -134,8 +134,9 @@ def test_each_plastic_format_downloads_with_e_at_the_series_temperature(
         # 300 °C: E = 180 GPa from the modulus curve, not the catalogue's 210 GPa.
         assert "180000." in response.text, fmt
         assert "573.15 K" in response.text
-        assert "Esta ferramenta destina-se a apoio didatico" in response.text
-        assert "FICTICI" in response.text
+        # D-138: neither the usage-limitation notice nor the demo mark.
+        assert "apoio didatico" not in response.text
+        assert "FICTICI" not in response.text
 
 
 def test_a_curve_with_several_series_needs_the_series_named(

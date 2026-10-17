@@ -12,7 +12,6 @@ import pytest
 from docx import Document
 from pptx import Presentation
 
-from app.exporters.report import LIMITATION_NOTICE
 from app.exporters.studio import (
     AI_NOTICE,
     NO_CITATIONS,
@@ -24,6 +23,7 @@ from app.exporters.studio import (
 from app.exporters.studio_pptx import NARRATION_LABEL
 from app.notebooks import infographic
 from app.schemas.notebook import ArtifactOut, CitationOut
+from app.tests.removed_notices import assert_no_removed_notice
 
 SVG = "{http://www.w3.org/2000/svg}"
 URL = "https://pt.wikipedia.org/wiki/A%C3%A7o"
@@ -114,7 +114,7 @@ def test_audio_docx_is_the_script_with_notices_references_and_withheld():
     assert "Roteiro" in text
     assert f"{SPEAKER_LABEL} 1: Vamos ver o que a fonte diz. [1]" in text
     assert f"{SPEAKER_LABEL} 2: O alumínio tem 2700 kg/m³. [2]" in text
-    for expected in (LIMITATION_NOTICE, AI_NOTICE, WITHHELD, "Referências", "[1] Fonte 1, p. 3"):
+    for expected in (AI_NOTICE, WITHHELD, "Referências", "[1] Fonte 1, p. 3"):
         assert expected in text
     assert URL in text and CREDIT in text
     # One paragraph per spoken line.
@@ -126,11 +126,11 @@ def test_audio_txt_is_notices_then_the_script_then_the_references():
     data, media = render(_artifact("audio", AUDIO), "txt", NOTEBOOK)
     assert media == "text/plain; charset=utf-8"
     text = data.decode("utf-8")
-    notice = text.index(LIMITATION_NOTICE)
+    assert_no_removed_notice(text)
     ai = text.index(AI_NOTICE)
     script = text.index(f"{SPEAKER_LABEL} 1: Vamos ver o que a fonte diz. [1]")
     references = text.index("Referências")
-    assert notice < ai < script < references
+    assert ai < script < references
     assert f"\n\n{SPEAKER_LABEL} 1:" in text  # a blank line before the script
     assert WITHHELD in text and WITHHELD_TITLE in text
     assert "[2] Fonte 2" in text and URL in text and CREDIT in text
@@ -165,7 +165,8 @@ def test_slides_and_video_export_a_deck_that_reopens(tool):
     notes = "\n".join(s.notes_slide.notes_text_frame.text for s in slides if s.has_notes_slide)
     assert "Densidade" in text
     assert NOTEBOOK in text  # the subtitle line reaches the title slide
-    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    assert AI_NOTICE in text
+    assert_no_removed_notice(text)
     assert WITHHELD in text
     assert URL in text and CREDIT in text
     assert (NARRATION_LABEL in notes) is (tool == "video")
@@ -229,7 +230,7 @@ def test_infographic_footer_has_notices_references_and_withheld():
     for expected in ("Referências", "[1] Fonte 1, p. 3", "[2] Fonte 2", URL, WITHHELD_TITLE):
         assert expected in joined
     # Notices, credit and withheld sentences are wrapped: compare word by word.
-    for sentence in (LIMITATION_NOTICE, AI_NOTICE, CREDIT, WITHHELD):
+    for sentence in (AI_NOTICE, CREDIT, WITHHELD):
         assert " ".join(sentence.split()) in " ".join(joined.split())
     assert NOTEBOOK in joined
     footer_ys = [
@@ -298,7 +299,8 @@ def test_each_new_tool_exports_its_formats_and_refuses_the_others(
         assert "default-src 'none'" in response.headers["content-security-policy"]
         ElementTree.fromstring(response.content)
     if fmt == "txt":
-        assert LIMITATION_NOTICE in response.content.decode("utf-8")
+        assert AI_NOTICE in response.content.decode("utf-8")
+        assert_no_removed_notice(response.content.decode("utf-8"))
 
     other = client.get(f"{base}/export.{refused}")
     assert other.status_code == 400

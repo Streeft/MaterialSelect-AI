@@ -1,9 +1,8 @@
 """Rendering a :class:`~app.exporters.report.Report` as a DOCX document.
 
 Mirrors the CSV/XLSX renderers in spreadsheet.py and the HTML renderer in
-html.py: same Report input, same "every export carries the limitation notice"
-guarantee (CLAUDE.md §1.8) and "missing data stays missing" rule (Principle 3,
-D-24).
+html.py: same Report input, same notices and the same "missing data stays
+missing" rule (Principle 3, D-24).
 
 Generates a native Microsoft Word (.docx) document via python-docx (pure Python,
 cross-platform, zero C/GTK dependencies). Tables preserve the full provenance
@@ -23,11 +22,10 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from app.exporters.cells import format_number
-from app.exporters.report import DEMO_DATA_NOTICE, Report
+from app.exporters.report import Report
 
 _PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
 _SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
-_DEMO_COLOR = RGBColor(154, 52, 18)  # #9a3412 (warning-deep)
 
 
 def _text(value: object) -> str:
@@ -125,11 +123,7 @@ def to_docx(report: Report) -> bytes:
             p.paragraph_format.space_after = Pt(2)
             run = p.add_run(notice)
             run.font.size = Pt(9.5)
-            if notice == DEMO_DATA_NOTICE:
-                run.font.bold = True
-                run.font.color.rgb = _DEMO_COLOR
-            else:
-                run.font.color.rgb = _SUBTLE_COLOR
+            run.font.color.rgb = _SUBTLE_COLOR
 
         doc.add_paragraph().paragraph_format.space_after = Pt(8)
 

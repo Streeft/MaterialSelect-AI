@@ -6,30 +6,16 @@ which constraint removed which of them, what the index was and in what unit,
 how each candidate scored and why, who was excluded for missing data, and where
 every number originally came from.
 
-Two rules are structural rather than editorial:
+One rule is structural rather than editorial: **missing data stays missing.**
+Never a blank cell that reads as zero.
 
-* **Every export carries the limitation notice.** The proposal commits to it in
-  item 5 — the tool supports teaching and preliminary screening, and does not
-  replace experimental validation. A report that travels without that sentence
-  can be read as an engineering conclusion, which it is not.
-* **Missing data stays missing.** Never a blank cell that reads as zero.
+Exports carry no usage-limitation or demo-data notice (D-138, the author's
+decision): ``is_demo`` remains an internal marker and no longer prints a line.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-# Shown on every export, without exception. Item 5 of the proposal.
-LIMITATION_NOTICE = (
-    "Esta ferramenta destina-se a apoio didático e à triagem preliminar de "
-    "candidatos. Não substitui validação experimental, análise estrutural "
-    "detalhada nem julgamento de engenharia."
-)
-
-DEMO_DATA_NOTICE = (
-    "ATENÇÃO: este relatório inclui materiais marcados como demonstrativos, "
-    "cujos valores são fictícios. Não utilizar em projetos reais."
-)
 
 OWN_RECORD_NOTICE = (
     "Este documento inclui registros próprios do usuário, cadastrados por ele "
@@ -91,11 +77,8 @@ class Report:
         return next((s for s in self.sheets if s.name == name), None)
 
 
-def standard_notices(*, includes_demo_data: bool, includes_own_records: bool = False) -> list[str]:
+def standard_notices(*, includes_own_records: bool = False) -> list[str]:
     """The notices every export carries, in the order they must be read.
-
-    The demo warning comes first when it applies: a reader who stops after one
-    line should stop on the one that says the numbers are fictitious.
 
     ``includes_own_records`` (P1-4) declares the other way a document can carry
     numbers that are not catalogue numbers. A value the reader typed into a
@@ -103,12 +86,9 @@ def standard_notices(*, includes_demo_data: bool, includes_own_records: bool = F
     explicitly registered — but it never went through the source-and-licence
     review that M1 requires of the shared catalogue, and a document that let
     the two read alike would be the one place where that distinction is lost.
-    It sits after the demo warning and before the rest: fictitious is worse
-    than unreviewed, and both are worse than a footnote nobody reads.
+    It comes first: unreviewed is worse than a footnote nobody reads.
     """
-    notices = [LIMITATION_NOTICE, REPRODUCIBILITY_NOTICE]
+    notices = [REPRODUCIBILITY_NOTICE]
     if includes_own_records:
         notices.insert(0, OWN_RECORD_NOTICE)
-    if includes_demo_data:
-        notices.insert(0, DEMO_DATA_NOTICE)
     return notices

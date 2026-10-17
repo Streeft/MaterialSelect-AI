@@ -17,7 +17,6 @@ from pptx import Presentation
 from app.ai.mock import MockAIProvider
 from app.ai.provider import AIProvider
 from app.ai.studio import CATALOG, read_studio, studio_system, studio_user
-from app.exporters.report import LIMITATION_NOTICE
 from app.exporters.studio import AI_NOTICE, SPEAKER_LABEL
 from app.exporters.studio_pptx import NARRATION_LABEL
 from app.notebooks import infographic
@@ -473,7 +472,7 @@ def test_each_export_is_the_file_with_the_notices_and_the_references(client, too
         assert f"{SPEAKER_LABEL} 1: Vamos ver o que a fonte “Aula 1”" in text
     elif fmt == "txt":
         text = data.decode("utf-8")
-        assert text.index(LIMITATION_NOTICE) < text.index(f"{SPEAKER_LABEL} 1:")
+        assert text.index(AI_NOTICE) < text.index(f"{SPEAKER_LABEL} 1:")
     elif fmt == "pptx":
         text, notes = _pptx_text(data)
         assert "Aula 1" in text and "Aula 2" in text
@@ -484,7 +483,7 @@ def test_each_export_is_the_file_with_the_notices_and_the_references(client, too
         assert "foreignObject" not in data.decode("utf-8")
         assert "7850 kg/m³" in text
 
-    for sentence in (LIMITATION_NOTICE, AI_NOTICE):
+    for sentence in AI_NOTICE:
         assert _words(sentence) in _words(text)
     assert "Referências" in text and "[1] Aula 1" in text and "[2] Aula 2" in text
 

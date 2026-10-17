@@ -1,7 +1,5 @@
 """Fictitious CAE-card values for the demo catalogue (D-124, TM5-a).
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 The CAE card (D-104) reads Poisson's ratio, thermal expansion and specific
 heat from ``coef_poisson``, ``coef_expansao_termica`` and ``calor_especifico``.
 The definitions are reference data (``app.db.seed.PROPERTIES``); the *values*
@@ -44,7 +42,7 @@ from app.models.source import Source
 #: Slugs this module fills, in the order the card lists them.
 CAE_DEMO_SLUGS: tuple[str, ...] = ("coef_poisson", "coef_expansao_termica", "calor_especifico")
 
-DEMO_NOTE = "Valor fictício de demonstração (D-124); não usar em projeto real."
+DEMO_NOTE = "Valor de exemplo (D-124)."
 
 #: family -> slug -> (low, high, unit). Didactic bands, fictitious.
 _BANDS: dict[str, dict[str, tuple[float, float, str]]] = {

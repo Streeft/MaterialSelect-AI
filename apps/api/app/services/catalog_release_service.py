@@ -453,11 +453,6 @@ class CatalogReleaseService:
         counts = count_by_status(computed.diffs)
         base, target = computed.base, computed.target
 
-        includes_demo = (
-            base.is_demo
-            or target.is_demo
-            or any(demo for _, demo in (*computed.base_sources, *computed.target_sources))
-        )
         title = (
             f"Mudanças entre releases — {target.name}: "
             f"{base.release or base.slug} → {target.release or target.slug}"
@@ -476,7 +471,7 @@ class CatalogReleaseService:
         return Report(
             title=title,
             subtitle=subtitle,
-            notices=standard_notices(includes_demo_data=includes_demo),
+            notices=standard_notices(),
             sheets=[
                 self._releases_sheet(computed),
                 Sheet(
@@ -544,7 +539,6 @@ class CatalogReleaseService:
             ],
             ["Registros de material", base.material_count, target.material_count],
             ["Release ativa", base.is_active, target.is_active],
-            ["Dado fictício", base.is_demo, target.is_demo],
         ]
         return Sheet(name="Releases", header=["Campo", "Base", "Alvo"], rows=rows)
 

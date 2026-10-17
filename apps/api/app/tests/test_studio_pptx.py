@@ -7,7 +7,6 @@ from io import BytesIO
 from pptx import Presentation
 
 from app.exporters.pptx import SLIDE_HEIGHT, SLIDE_WIDTH
-from app.exporters.report import LIMITATION_NOTICE
 from app.exporters.studio_pptx import (
     DECK_SUBTITLE,
     NARRATION_LABEL,
@@ -19,7 +18,7 @@ from app.exporters.studio_pptx import (
 from app.schemas.notebook import CitationOut
 
 AI = "Gerado por IA a partir das fontes do caderno. Confira nas fontes."
-NOTICES = [LIMITATION_NOTICE, AI]
+NOTICES = [AI]
 
 
 def _citation(number: int, **extra) -> CitationOut:
@@ -81,7 +80,6 @@ def test_deck_is_16_9_with_title_content_references_and_notices():
     assert "[1] [2]" in _text(slides[1])
     assert "Referências" in _text(slides[4])
     assert "Avisos" in _text(slides[5])
-    assert "didático" in _text(slides[5])
     assert AI in _text(slides[5])
 
 
@@ -144,7 +142,7 @@ def test_an_empty_deck_still_has_title_references_and_notices():
         slides = _open(deck_to_pptx("T", content, [], [], notices=NOTICES))
         assert len(slides) == 3
         assert NO_CITATIONS in _text(slides[1])
-        assert "didático" in _text(slides[2])
+        assert AI in _text(slides[2])
 
 
 def test_control_characters_are_stripped_and_markup_stays_literal():

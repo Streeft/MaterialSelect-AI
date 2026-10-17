@@ -566,7 +566,7 @@ class CurveService:
         x_unit: str | None = None,
         y_unit: str | None = None,
     ) -> Report:
-        """The curve's points as a document: limitation notice, provenance, units.
+        """The curve's points as a document: notices, provenance, units.
 
         Every point leaves, drawn or not — a file is the table, not the figure —
         and the scale does not enter: it is how a figure is drawn, not a fact
@@ -618,7 +618,6 @@ class CurveService:
                 ["Fonte", curve.source.label],
                 ["Citação", curve.citation or "não informada"],
                 ["Qualidade do dado", DATA_QUALITY_LABELS.get(curve.data_quality.value, "")],
-                ["Dado fictício", "sim" if _is_demo(curve) else "não"],
             ],
             notes=[
                 "Pontos como a fonte os declarou: nada foi interpolado, extrapolado nem "
@@ -667,7 +666,6 @@ class CurveService:
                 f"a fonte os deu em {curve.x_original_unit} × {curve.y_original_unit}."
             ),
             notices=standard_notices(
-                includes_demo_data=_is_demo(curve),
                 includes_own_records=curve.material.owner_id is not None,
             ),
             sheets=[about, points],

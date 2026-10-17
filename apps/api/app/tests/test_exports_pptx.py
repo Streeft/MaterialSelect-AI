@@ -9,8 +9,6 @@ from pptx import Presentation
 
 from app.exporters.pptx import to_pptx
 from app.exporters.report import (
-    DEMO_DATA_NOTICE,
-    LIMITATION_NOTICE,
     OWN_RECORD_NOTICE,
     REPRODUCIBILITY_NOTICE,
     Report,
@@ -18,13 +16,14 @@ from app.exporters.report import (
     standard_notices,
 )
 from app.routers.exports import PPTX_MEDIA_TYPE
+from app.tests.removed_notices import assert_no_removed_notice
 
 
-def _sample_report(*, demo: bool = True, own: bool = False) -> Report:
+def _sample_report(*, own: bool = False) -> Report:
     return Report(
         title="Relatório de Seleção Teste",
         subtitle="Subtítulo do estudo",
-        notices=standard_notices(includes_demo_data=demo, includes_own_records=own),
+        notices=standard_notices(includes_own_records=own),
         sheets=[
             Sheet(
                 name="Candidatos",
@@ -73,21 +72,20 @@ class TestPptxRendering:
         assert "Eng. Responsável" in text
 
     def test_to_pptx_includes_mandatory_notices(self) -> None:
-        prs = Presentation(io.BytesIO(to_pptx(_sample_report(demo=True, own=True))))
+        prs = Presentation(io.BytesIO(to_pptx(_sample_report(own=True))))
         text = _extract_all_text(prs)
 
-        assert LIMITATION_NOTICE in text
         assert REPRODUCIBILITY_NOTICE in text
-        assert DEMO_DATA_NOTICE in text
         assert OWN_RECORD_NOTICE in text
+        assert_no_removed_notice(text)
 
-    def test_to_pptx_omits_demo_notice_when_not_applicable(self) -> None:
-        prs = Presentation(io.BytesIO(to_pptx(_sample_report(demo=False, own=False))))
+    def test_to_pptx_omits_own_record_notice_when_not_applicable(self) -> None:
+        prs = Presentation(io.BytesIO(to_pptx(_sample_report(own=False))))
         text = _extract_all_text(prs)
 
-        assert LIMITATION_NOTICE in text
-        assert DEMO_DATA_NOTICE not in text
+        assert REPRODUCIBILITY_NOTICE in text
         assert OWN_RECORD_NOTICE not in text
+        assert_no_removed_notice(text)
 
     def test_to_pptx_renders_tables_and_headers(self) -> None:
         prs = Presentation(io.BytesIO(to_pptx(_sample_report())))
@@ -127,7 +125,7 @@ class TestPptxRendering:
         report = Report(
             title="Relatório Extenso",
             subtitle="Teste de paginação de slides",
-            notices=standard_notices(includes_demo_data=True, includes_own_records=False),
+            notices=standard_notices(),
             sheets=[
                 Sheet(
                     name="Muitos Candidatos",
@@ -154,7 +152,8 @@ class TestPptxEndpoints:
 
         prs = Presentation(io.BytesIO(response.content))
         text = _extract_all_text(prs)
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
 
     def test_study_pptx_download_headers(self, client: TestClient) -> None:
         response_post = client.post(
@@ -179,7 +178,8 @@ class TestPptxEndpoints:
 
         prs = Presentation(io.BytesIO(response.content))
         text = _extract_all_text(prs)
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
 
     def test_study_laudo_pptx_download_headers(self, client: TestClient) -> None:
         response_post = client.post(
@@ -204,7 +204,8 @@ class TestPptxEndpoints:
 
         prs = Presentation(io.BytesIO(response.content))
         text = _extract_all_text(prs)
-        assert LIMITATION_NOTICE in text
+        assert REPRODUCIBILITY_NOTICE in text
+        assert_no_removed_notice(text)
         assert "Eng. Carlos" in text
 
     def test_study_laudo_unsupported_format_rejected(self, client: TestClient) -> None:

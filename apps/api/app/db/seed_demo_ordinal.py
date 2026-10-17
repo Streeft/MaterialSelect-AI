@@ -1,7 +1,5 @@
 """Propriedades ordinais fictícias e seus níveis nos materiais demo (D-126).
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 Existe para o critério "nível mínimo aceito" da Seleção (exercício 8, passo 2)
 ter o que filtrar enquanto nenhuma fonte aprovada publica durabilidade por agente
 (``docs/catalogo/fontes.md``). Duas definições **fictícias** — o próprio nome diz
@@ -9,8 +7,8 @@ ter o que filtrar enquanto nenhuma fonte aprovada publica durabilidade por agent
 
 O que estes níveis **não** são: uma afirmação sobre a durabilidade de qualquer
 material real. Saem de um hash estável do nome do material (sem regra por
-família, sem RNG), citam a fonte demo e a nota "Valor fictício de
-demonstração". Um a cada sete pares fica **registrado como ausente** de
+família, sem RNG), citam a fonte demo e a nota "Valor de
+exemplo". Um a cada sete pares fica **registrado como ausente** de
 propósito, para a tela mostrar o quarto estado (D-24) e o funil mostrar que
 ausência não passa.
 
@@ -38,7 +36,7 @@ from app.models.ordinal_property import (
 )
 from app.models.source import Source
 
-DEMO_NOTE = "Valor fictício de demonstração"
+DEMO_NOTE = "Valor de exemplo"
 
 #: Escala genérica, pior primeiro. É estrutura, não dado: não diz nada de material.
 DEMO_SCALE = ("Muito pobre", "Pobre", "Aceitável", "Bom", "Excelente")
@@ -48,14 +46,14 @@ DEMO_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     (
         "durabilidade-agua-doce-demo",
         "Durabilidade em água doce (demo)",
-        "Propriedade ordinal fictícia de demonstração (D-126): nível de resistência "
-        "ao agente, numa escala de cinco níveis. Nenhum valor é real.",
+        "Propriedade ordinal (D-126): nível de resistência "
+        "ao agente, numa escala de cinco níveis.",
     ),
     (
         "durabilidade-radiacao-uv-demo",
         "Durabilidade à radiação UV (demo)",
-        "Propriedade ordinal fictícia de demonstração (D-126): nível de resistência "
-        "ao agente, numa escala de cinco níveis. Nenhum valor é real.",
+        "Propriedade ordinal (D-126): nível de resistência "
+        "ao agente, numa escala de cinco níveis.",
     ),
 )
 

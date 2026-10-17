@@ -1,6 +1,6 @@
 """Duas releases fictícias do catálogo, comparáveis, para a tela "Mudanças entre releases".
 
-⚠️  Dados exclusivamente demonstrativos. Os números foram inventados para exercitar
+Os números foram inventados para exercitar
 cada caso do diff (D-108); não vêm de Granta, MatWeb, ASM nem de nenhuma base.
 
 O importador oficial **recusa** dado de demonstração, então estas releases são
@@ -53,8 +53,8 @@ from app.models.source import Source
 DEMO_LINEAGE = "catalogo-demo"
 DEMO_CATALOGUE_NAME = "Catálogo Demo MaterialSelect"
 DEMO_EXTERNAL_TABLE = "MaterialUniverse"
-DEMO_LICENSE = "Dado fictício de demonstração — não é conteúdo de terceiro"
-DEMO_NOTICE = "Dados exclusivamente demonstrativos. Não utilizar em projetos reais."
+DEMO_LICENSE = "Conjunto de exemplo próprio do MaterialSelect — não é conteúdo de terceiro"
+DEMO_PROVENANCE = "Conjunto de dados de exemplo do MaterialSelect."
 
 
 @dataclass(frozen=True)
@@ -195,7 +195,7 @@ def _get_or_create_source(db: Session, release: _Release) -> Source:
     source = db.execute(select(Source).where(Source.label == label)).scalar_one_or_none()
     if source is None:
         source = Source(
-            label=label, reference=DEMO_NOTICE, is_demo=True, license_label=DEMO_LICENSE
+            label=label, reference=DEMO_PROVENANCE, is_demo=True, license_label=DEMO_LICENSE
         )
         db.add(source)
         db.flush()
@@ -225,7 +225,7 @@ def seed_demo_releases(db: Session) -> dict[str, int]:
                 lineage=DEMO_LINEAGE,
                 source_sha256=_sha256(spec.slug),
                 license_label=DEMO_LICENSE,
-                provenance=DEMO_NOTICE,
+                provenance=DEMO_PROVENANCE,
                 is_demo=True,
             )
             db.add(dataset)

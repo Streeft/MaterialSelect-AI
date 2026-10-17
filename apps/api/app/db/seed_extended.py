@@ -1,7 +1,5 @@
 """Materiais fictícios estendidos para teste abrangente da plataforma.
 
-⚠️  Dados exclusivamente demonstrativos. Não utilizar em projetos reais.
-
 70 materiais adicionais distribuídos nas cinco famílias, exercitando
 todas as 12 propriedades (15 com as três do cartão CAE, D-124), conversões de unidade, intervalos e incerteza.
 
@@ -462,7 +460,6 @@ def main() -> None:
         ordinals = seed_demo_ordinals(db, demo_source)  # D-126
         db.commit()
 
-    print("[seed_extended] ⚠️  Dados exclusivamente demonstrativos.")
     print(f"[seed_extended] Concluído: {created} materiais criados.")
     print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")

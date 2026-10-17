@@ -295,9 +295,11 @@ class TestExplanation:
         assert body["summary"]
         assert body["paragraphs"]
 
-    def test_always_states_the_tool_does_not_replace_validation(self, client: TestClient) -> None:
+    def test_caveats_keep_the_technical_reservations_only(self, client: TestClient) -> None:
         body = client.post("/api/ai/explain", json={"study_id": self._study_id(client)}).json()
-        assert any("validação experimental" in caveat for caveat in body["caveats"])
+        assert any("não recalcula" in caveat for caveat in body["caveats"])
+        # D-138: the usage-limitation sentence left the backend's caveats.
+        assert all("validação experimental" not in caveat for caveat in body["caveats"])
 
     def test_is_deterministic(self, client: TestClient) -> None:
         study_id = self._study_id(client)

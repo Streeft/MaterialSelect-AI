@@ -1,9 +1,10 @@
 """CAE material cards (D-104): golden files, units, absence, refusal, escape.
 
-Every material in this file is **fictitious** and says so: the golden files in
-``fixtures/cae/`` are rendered from ``Liga Fictícia CAE-1 (demonstração)``,
-marked ``is_demo`` and sourced from a source marked fictitious, so the files
-themselves open with the demo warning. Regenerate them, after a deliberate
+Every material in this file is invented: the golden files in ``fixtures/cae/``
+are rendered from ``Liga Exemplo CAE-1``, marked ``is_demo`` and sourced from a
+source marked ``is_demo``. Since D-138 no file prints a demo-data or
+usage-limitation line, and the tests below pin that absence. Regenerate them,
+after a deliberate
 change of output, with ``UPDATE_CAE_GOLDEN=1 pytest app/tests/test_cae_exporters.py``
 and read the diff before committing it.
 """
@@ -21,7 +22,7 @@ import pytest
 from app.calculations.units import ureg
 from app.exporters.cae import ALL_FORMATS, CAE_FORMATS, refusal_reason
 from app.exporters.cae.card import (
-    CAE_DEMO_NOTICE,
+    CAE_NOTICE,
     NOT_REGISTERED,
     CatalogueValue,
     MaterialInput,
@@ -29,7 +30,6 @@ from app.exporters.cae.card import (
 )
 from app.exporters.cae.quantities import QUANTITIES, UNIT_SYSTEMS
 from app.exporters.cae.text import ascii_fold
-from app.exporters.report import LIMITATION_NOTICE
 
 GOLDEN_DIR = Path(__file__).parent / "fixtures" / "cae"
 DECKS = ("mapdl", "abaqus", "nastran", "lsdyna")
@@ -37,9 +37,9 @@ THERMAL = ("nastran-thermal", "lsdyna-thermal")
 
 _FICTITIOUS_SOURCE = {
     "data_quality": "ESTIMADO",
-    "source_label": "Fonte fictícia de teste CAE",
+    "source_label": "Fonte de teste CAE",
     "source_is_demo": True,
-    "license_label": "Dado fictício de demonstração",
+    "license_label": "Licença de teste CAE",
 }
 
 
@@ -66,7 +66,7 @@ FULL = {
 }
 
 
-def _material(values=None, name="Liga Fictícia CAE-1 (demonstração)", **flags) -> MaterialInput:
+def _material(values=None, name="Liga Exemplo CAE-1", **flags) -> MaterialInput:
     return MaterialInput(
         id=901,
         name=name,
@@ -89,19 +89,28 @@ def _without(*slugs: str) -> dict[str, CatalogueValue]:
 def test_each_format_matches_its_golden_file(fmt: str) -> None:
     card = build_card(_material(), UNIT_SYSTEMS["mm-t-s"])
     rendered = CAE_FORMATS[fmt].render(card)
-    golden = GOLDEN_DIR / f"liga-ficticia-mm-t-s{CAE_FORMATS[fmt].suffix}"
+    golden = GOLDEN_DIR / f"liga-exemplo-mm-t-s{CAE_FORMATS[fmt].suffix}"
     if os.environ.get("UPDATE_CAE_GOLDEN"):
         golden.write_text(rendered, encoding="utf-8", newline="\n")
     assert rendered == golden.read_text(encoding="utf-8")
 
 
-def test_golden_files_are_marked_fictitious() -> None:
+#: Words of the removed demo-data and usage-limitation notices (D-138).
+_REMOVED_NOTICE_WORDS = ("FICTICI", "DEMONSTRA", "TRIAGEM PRELIMINAR", "DIDATIC", "NAO SUBSTITUI")
+
+
+def _assert_no_removed_notice(text: str) -> None:
+    folded = ascii_fold(text).upper()
+    for word in _REMOVED_NOTICE_WORDS:
+        assert word not in folded, word
+
+
+def test_golden_files_carry_no_demo_or_limitation_notice() -> None:
     files = sorted(GOLDEN_DIR.iterdir())
     # One golden file per format, the elastoplastic ones (D-119) included.
     assert len(files) == len(ALL_FORMATS)
     for path in files:
-        text = path.read_text(encoding="utf-8")
-        assert "FICTICIO" in ascii_fold(text).upper(), path.name
+        _assert_no_removed_notice(path.read_text(encoding="utf-8"))
 
 
 # --- unit systems -----------------------------------------------------------
@@ -280,31 +289,30 @@ def test_matml_needs_one_property_and_nothing_more() -> None:
 
 @pytest.mark.parametrize("fmt", sorted(CAE_FORMATS))
 @pytest.mark.parametrize("is_demo", [True, False])
-def test_every_file_carries_the_limitation_notice(fmt: str, is_demo: bool) -> None:
+def test_no_file_carries_a_demo_or_limitation_notice(fmt: str, is_demo: bool) -> None:
     values = {
         k: _value(k, v.normalized_value, v.canonical_unit, source_is_demo=is_demo)
         for k, v in FULL.items()
     }
     card = build_card(_material(values, is_demo=is_demo), UNIT_SYSTEMS["m-kg-s"])
     text = CAE_FORMATS[fmt].render(card)
-    assert ascii_fold(LIMITATION_NOTICE) in _prose(text)
-    assert (ascii_fold(CAE_DEMO_NOTICE) in _prose(text)) is is_demo
+    assert card.notices == [CAE_NOTICE]
+    _assert_no_removed_notice(text)
 
 
-def test_a_real_material_with_a_fictitious_source_is_still_marked() -> None:
+def test_a_demo_source_still_marks_the_card_internally() -> None:
     card = build_card(_material(is_demo=False), UNIT_SYSTEMS["m-kg-s"])
     assert card.is_demo
-    assert "FICTICIA" in CAE_FORMATS["abaqus"].render(card)
-    assert ascii_fold(CAE_DEMO_NOTICE) in _prose(CAE_FORMATS["abaqus"].render(card))
+    _assert_no_removed_notice(CAE_FORMATS["abaqus"].render(card))
 
 
 def test_provenance_names_source_quality_and_licence() -> None:
     card = build_card(_material(), UNIT_SYSTEMS["m-kg-s"])
     text = CAE_FORMATS["mapdl"].render(card)
     prose = _prose(text)
-    assert "fonte: Fonte ficticia de teste CAE (FICTICIA, demonstracao)" in prose
+    assert "fonte: Fonte de teste CAE;" in prose
     assert "qualidade: ESTIMADO" in prose
-    assert "licenca: Dado ficticio de demonstracao" in prose
+    assert "licenca: Licenca de teste CAE" in prose
 
 
 def test_own_record_is_declared() -> None:
@@ -414,11 +422,11 @@ def test_a_thermal_card_without_density_declares_the_solver_default(fmt: str) ->
 
 
 @pytest.mark.parametrize("fmt", THERMAL)
-def test_thermal_cards_keep_the_notice_and_the_fiction_mark(fmt: str) -> None:
+def test_thermal_cards_keep_the_cae_notice_without_the_removed_ones(fmt: str) -> None:
     raw = CAE_FORMATS[fmt].render(build_card(_material(), UNIT_SYSTEMS["mm-t-s"]))
     text = ascii_fold(raw)
-    assert ascii_fold(LIMITATION_NOTICE)[:40] in text
-    assert "FICTICIO" in text.upper()
+    assert ascii_fold(CAE_NOTICE)[:40] in text
+    _assert_no_removed_notice(raw)
     assert max(len(line) for line in raw.splitlines()) <= 80
 
 
@@ -427,12 +435,12 @@ def test_thermal_cards_keep_the_notice_and_the_fiction_mark(fmt: str) -> None:
 from app.exporters.identity import CompositionLine, DesignationLine  # noqa: E402
 
 _COMP = (
-    CompositionLine("Fe", "resto", None, None, None, "ESTIMADO", "Fonte fictícia", None, True),
-    CompositionLine("Cr", "faixa", 16.0, 18.0, None, "ESTIMADO", "Fonte fictícia", None, True),
-    CompositionLine("C", "faixa", None, 0.08, None, "ESTIMADO", "Fonte fictícia", None, True),
-    CompositionLine("S", "ausente", None, None, None, "ESTIMADO", "Fonte fictícia", None, True),
+    CompositionLine("Fe", "resto", None, None, None, "ESTIMADO", "Fonte de teste", None, True),
+    CompositionLine("Cr", "faixa", 16.0, 18.0, None, "ESTIMADO", "Fonte de teste", None, True),
+    CompositionLine("C", "faixa", None, 0.08, None, "ESTIMADO", "Fonte de teste", None, True),
+    CompositionLine("S", "ausente", None, None, None, "ESTIMADO", "Fonte de teste", None, True),
 )
-_DESIG = (DesignationLine("UNS", "S99999", None, "Fonte fictícia", None, True),)
+_DESIG = (DesignationLine("UNS", "S99999", None, "Fonte de teste", None, True),)
 
 
 def _with_identity(composition=_COMP, designations=_DESIG) -> MaterialInput:

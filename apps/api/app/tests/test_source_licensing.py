@@ -127,7 +127,10 @@ def test_list_sources_includes_seeded_demo_source(client):
     sources = client.get("/api/sources").json()
     demo = next(s for s in sources if s["label"] == "Dataset Demo MaterialSelect")
     assert demo["is_demo"] is True
-    assert demo["license_label"] == "Dado fictício de demonstração — não é conteúdo de terceiro"
+    assert (
+        demo["license_label"]
+        == "Conjunto de exemplo próprio do MaterialSelect — não é conteúdo de terceiro"
+    )
     assert demo["contains_third_party_data"] is False
 
 

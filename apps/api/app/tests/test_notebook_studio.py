@@ -19,7 +19,6 @@ from app.ai.provider import AIProvider, AIUnavailableError
 from app.ai.studio import CATALOG, build_tree, read_studio
 from app.config import settings
 from app.exporters import studio as studio_exporter
-from app.exporters.report import LIMITATION_NOTICE
 from app.exporters.studio import (
     AI_NOTICE,
     NO_ATTRIBUTION_LABEL,
@@ -31,6 +30,7 @@ from app.notebooks import mindmap
 from app.repositories.notebook_repository import NotebookRepository
 from app.schemas.notebook import ArtifactOut
 from app.services import studio_service
+from app.tests.removed_notices import assert_no_removed_notice
 
 TEXT = (
     "O aço carbono tem densidade de 7850 kg/m³ e módulo de elasticidade de 210 GPa. "
@@ -507,7 +507,8 @@ def test_the_report_docx_carries_both_notices_and_the_references(client):
         == 'attachment; filename="guia-de-estudo-materiais-estruturais.docx"'
     )
     text = "\n".join(p.text for p in Document(io.BytesIO(response.content)).paragraphs)
-    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    assert AI_NOTICE in text
+    assert_no_removed_notice(text)
     assert "Referências" in text and "[1] Aula 1" in text
 
 
@@ -529,7 +530,8 @@ def test_the_flashcards_csv_neutralises_a_formula_and_carries_the_notice(client)
     artifact = _generate(client, notebook_id, tool="flashcards")
     body = _export(client, notebook_id, artifact, "csv").content.decode("utf-8-sig")
     rows = list(csv.reader(io.StringIO(body)))
-    assert [LIMITATION_NOTICE] in rows and [AI_NOTICE] in rows
+    assert [AI_NOTICE] in rows
+    assert_no_removed_notice(" ".join(" ".join(row) for row in rows))
     backs = [row[1] for row in rows if len(row) == 3 and row[0] != "Frente"]
     assert backs and all(not back.startswith("=") for back in backs)
     assert backs[0].startswith("'=")
@@ -540,7 +542,8 @@ def test_the_table_xlsx_writes_absence_in_words(client):
     artifact = _generate(client, notebook_id, tool="table", template="propriedades")
     workbook = load_workbook(io.BytesIO(_export(client, notebook_id, artifact, "xlsx").content))
     cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
-    assert LIMITATION_NOTICE in cover and AI_NOTICE in cover
+    assert AI_NOTICE in cover
+    assert_no_removed_notice(cover)
     values = [cell for row in workbook["Tabela"].iter_rows(values_only=True) for cell in row]
     # The simulated provider fills two columns; the other three are silence.
     assert "não consta nas fontes" in values
@@ -556,7 +559,8 @@ def test_the_mind_map_svg_escapes_everything_and_is_served_inert(client):
     assert response.headers["content-type"].startswith("image/svg+xml")
     svg = response.text
     assert "<script>" not in svg and "&lt;script&gt;" in svg
-    assert "Esta ferramenta destina-se a apoio didático" in svg
+    assert "Gerado por IA" in svg
+    assert "apoio didático" not in svg
 
 
 def test_a_format_the_tool_does_not_export_is_refused_with_the_accepted_ones(client):
@@ -633,7 +637,8 @@ def test_the_address_and_credit_survive_into_the_stored_artifact_and_its_docx(cl
     assert all(c["source_url"] == WIKI_URL for c in artifact["citations"])
     assert all(c["source_attribution"] == WIKI_CREDIT for c in artifact["citations"])
     text = _docx_text(_export(client, notebook_id, artifact, "docx").content)
-    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    assert AI_NOTICE in text
+    assert_no_removed_notice(text)
     references = text[text.index("Referências") :]
     # On lines of their own, after the reference and before the excerpt.
     first = artifact["citations"][0]
@@ -643,7 +648,8 @@ def test_the_address_and_credit_survive_into_the_stored_artifact_and_its_docx(cl
 def test_the_spreadsheets_add_an_address_and_a_credit_column(client, db_session):
     notebook_id, artifact = _external(client, db_session, "flashcards")
     rows = _csv_rows(_export(client, notebook_id, artifact, "csv").content)
-    assert [LIMITATION_NOTICE] in rows and [AI_NOTICE] in rows
+    assert [AI_NOTICE] in rows
+    assert_no_removed_notice(" ".join(" ".join(row) for row in rows))
     header, *body = _references(rows)
     assert header == ["Nº", "Fonte", "Trecho citado", "Endereço", "Atribuição"]
     assert body and all(row[3:] == [WIKI_URL, WIKI_CREDIT] for row in body)
@@ -651,7 +657,8 @@ def test_the_spreadsheets_add_an_address_and_a_credit_column(client, db_session)
     notebook_id, artifact = _external(client, db_session, "table", template="propriedades")
     workbook = load_workbook(io.BytesIO(_export(client, notebook_id, artifact, "xlsx").content))
     cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
-    assert LIMITATION_NOTICE in cover and AI_NOTICE in cover
+    assert AI_NOTICE in cover
+    assert_no_removed_notice(cover)
     header, *body = list(workbook["Referências"].iter_rows(values_only=True))
     assert list(header) == ["Nº", "Fonte", "Trecho citado", "Endereço", "Atribuição"]
     assert body and all(list(row[3:]) == [WIKI_URL, WIKI_CREDIT] for row in body)
@@ -735,7 +742,8 @@ def test_a_hostile_credit_is_inert_in_the_csv_and_the_xlsx(client):
         attribution=HOSTILE,
     )
     rows = _csv_rows(render(artifact, "csv", "Caderno")[0])
-    assert [LIMITATION_NOTICE] in rows and [AI_NOTICE] in rows
+    assert [AI_NOTICE] in rows
+    assert_no_removed_notice(" ".join(" ".join(row) for row in rows))
     body = _references(rows)[1:]
     assert body
     for row in body:
@@ -751,7 +759,8 @@ def test_a_hostile_credit_is_inert_in_the_csv_and_the_xlsx(client):
 
     workbook = load_workbook(io.BytesIO(render(artifact, "xlsx", "Caderno")[0]))
     cover = [row[0] for row in workbook["Aviso"].iter_rows(values_only=True)]
-    assert LIMITATION_NOTICE in cover and AI_NOTICE in cover
+    assert AI_NOTICE in cover
+    assert_no_removed_notice(cover)
     _, *body = list(workbook["Referências"].iter_rows(values_only=True))
     for row in body:
         assert row[3] == "'=cmd|'/c calc'!A1"
@@ -765,7 +774,8 @@ def test_a_hostile_credit_is_text_in_the_docx(client):
     )
     data = render(artifact, "docx", "Caderno")[0]
     text = _docx_text(data)
-    assert LIMITATION_NOTICE in text and AI_NOTICE in text
+    assert AI_NOTICE in text
+    assert_no_removed_notice(text)
     # Every character but the control one, literally, as text.
     assert HOSTILE.replace("\x0b", " ") in text
     document = Document(io.BytesIO(data))
@@ -781,7 +791,8 @@ def test_a_hostile_credit_is_escaped_in_the_svg_and_kept_whole(client):
         generated, url='https://x.example/"><script>alert(1)</script>', attribution=HOSTILE
     )
     svg = render(artifact, "svg", "Caderno")[0].decode("utf-8")
-    assert "Esta ferramenta destina-se a apoio didático" in svg
+    assert "Gerado por IA" in svg
+    assert "apoio didático" not in svg
     assert "<script>" not in svg and "&lt;script&gt;" in svg
     assert '"><' not in svg.split("</g>")[-1]
     assert "\x0b" not in svg
