@@ -121,8 +121,8 @@ quitados".
   Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 96, [D-141](DECISIONS.md), só o esmaecer; a
   transformação de contêiner cartão→ficha segue em aberto); ~~(7) app instalável~~ (entregue na Sessão 97, [D-142](DECISIONS.md), com ícone provisório e só a
   página offline; o catálogo offline com data ficou de fora); ~~(8) Cadernos em grade com menu e
-  painéis redimensionáveis~~ (entregue na Sessão 98, [D-143](DECISIONS.md)); (9) região `aria-live` global e regressão visual em
-  quatro larguras. Candidato extra: catálogo em *list-detail* em tela larga.
+  painéis redimensionáveis~~ (entregue na Sessão 98, [D-143](DECISIONS.md)); ~~(9) região `aria-live` global~~ (entregue na Sessão 101, [D-146](DECISIONS.md), com o foco no título ao trocar de etapa); a regressão visual em
+  quatro larguras (Playwright, REDESIGN §10) segue em aberto. Candidato extra: catálogo em *list-detail* em tela larga.
 
 - ~~**Eco Audit de produto: vários componentes, vários trechos, fim de vida
   ampliado (Sessão 76, [D-121](DECISIONS.md))**~~ — `audit_product` soma

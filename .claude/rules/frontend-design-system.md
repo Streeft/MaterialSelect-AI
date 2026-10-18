@@ -118,6 +118,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
   ficam num `MenuButton` ao lado do link (nunca dentro); `PanelResizer` é um `separator` com teclado
   e só existe de `lg` para cima. Largura de painel não é gravada.
 
+- **Uma região aria-live para o app** ([D-146](docs/DECISIONS.md)): o que muda sem o leitor digitar passa
+  por `useAnnounce()`; etapa escolhida leva o foco ao título da etapa. Texto que já tem `role="status"` fica.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

@@ -10910,3 +10910,22 @@ depois pelo mesmo caminho, mas não entrou na v1.
 do índice contra o parâmetro com a tabela de origem, D-31) é a faixa V2, entregue sobre o mesmo
 desenho: o passo sem índice quebra a linha, o par Reuss–Voigt é faixa, e a nota da API aparece
 junto da figura.
+
+## D-146 — Uma região aria-live para o app e o foco no título da etapa
+
+**Contexto.** Nono item da lista de padrões dos apps do Google. O app já tinha regiões `role="status"`
+espalhadas (snackbar, contador de candidatos, mensagens), mas nenhuma para o que muda na tela sem o leitor
+digitar nada, e trocar de etapa no assistente deixava o foco no botão que sumiu da tela.
+
+**Decisão** (WAI-ARIA *live regions* e *Managing focus*; M3 *Accessibility — screen reader support*).
+- **`AnnouncerProvider`** monta uma região polida, vazia, em `app/app/layout.tsx`; `useAnnounce()` fala por ela
+  (e não faz nada fora do provedor). A mesma frase duas vezes seguidas ganha um espaço sem quebra no fim, ou a
+  segunda não seria lida. O que já tem `role="status"` próprio (snackbar, indicador de rascunho) fica onde está.
+- **Etapa do assistente:** uma etapa que o leitor escolheu leva o foco a um `h2` só para leitor de tela
+  ("Etapa n de 4: rótulo"), o que já é o anúncio; uma etapa que a tela escolheu (um estudo sendo carregado) não
+  tira o foco de onde está. Terminar a classificação diz quantos candidatos foram ordenados.
+- **Rota:** o anúncio de troca de rota é o do próprio Next (`next-route-announcer`); não se duplica.
+- `/app/processos` entra na lista do Lighthouse.
+
+**Fora desta decisão.** Playwright em quatro larguras (REDESIGN §10): precisa do backend de teste e fica para
+um PR que possa ser rodado na CI antes de entrar.
