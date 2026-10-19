@@ -7,9 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { Notebook, NotebookChat, NotebookSummary } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { installWideViewport } from "@/lib/testing/viewport";
 import NotebooksPage from "./page";
 import { NotebookWorkspace } from "@/components/notebooks/NotebookWorkspace";
 
+installWideViewport();
 const t = ptBR.notebooks;
 
 const push = vi.fn();
@@ -236,19 +238,44 @@ describe("painéis redimensionáveis", () => {
     const user = userEvent.setup();
     render(wrap(<NotebookWorkspace id={4} />));
     const handle = await screen.findByRole("separator", { name: t.resizePanel(t.panels.sources) });
-    expect(handle).toHaveAttribute("aria-valuenow", "288");
+    expect(handle).toHaveAttribute("aria-valuenow", "272");
     handle.focus();
     await user.keyboard("{ArrowRight}");
-    expect(handle).toHaveAttribute("aria-valuenow", "304");
+    expect(handle).toHaveAttribute("aria-valuenow", "288");
     await user.keyboard("{End}");
     expect(handle).toHaveAttribute("aria-valuenow", "480");
     await user.keyboard("{Enter}");
-    expect(handle).toHaveAttribute("aria-valuenow", "288");
+    expect(handle).toHaveAttribute("aria-valuenow", "272");
     // The studio handle narrows its panel when moved right.
     const studio = screen.getByRole("separator", { name: t.resizePanel(t.panels.studio) });
     studio.focus();
     await user.keyboard("{ArrowRight}");
-    expect(studio).toHaveAttribute("aria-valuenow", "304");
+    expect(studio).toHaveAttribute("aria-valuenow", "288");
+  });
+
+  it("starts with the Studio folded below xl, where three open panels crush the conversation", async () => {
+    window.matchMedia = ((query: string) => ({ matches: false, media: query }) as MediaQueryList) as typeof window.matchMedia;
+    render(wrap(<NotebookWorkspace id={4} />));
+    expect(await screen.findByRole("button", { name: t.expand(t.panels.studio) })).toBeInTheDocument();
+    expect(screen.queryByRole("separator", { name: t.resizePanel(t.panels.studio) })).toBeNull();
+  });
+
+  it("never lets the conversation get narrower than its minimum", async () => {
+    // jsdom lays nothing out; give the workspace row a width and the side panels theirs.
+    const clientWidth = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(960);
+    const offsetWidth = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    try {
+      const user = userEvent.setup();
+      render(wrap(<NotebookWorkspace id={4} />));
+      const handle = await screen.findByRole("separator", { name: t.resizePanel(t.panels.sources) });
+      handle.focus();
+      await user.keyboard("{End}");
+      // 960 (row) - 352 (conversation) - 24 (handles) - 320 (the studio) = 264, not the 480 maximum.
+      expect(handle).toHaveAttribute("aria-valuenow", "264");
+    } finally {
+      clientWidth.mockRestore();
+      offsetWidth.mockRestore();
+    }
   });
 });
 

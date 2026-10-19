@@ -106,6 +106,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 104 — 19/10/26 — Conferência ao vivo: transição e painéis dos Cadernos (D-149)
+
+**O que mudou.** Primeira conferência no navegador (Chromium, backend e Next reais) das telas dos itens 1 a 9, a 375 e a 1280 px, nos
+dois temas, com a animação da transição parada em cinco instantes. Três defeitos achados e corrigidos:
+`ContainerTransition` (curva e alvo), `NotebookWorkspace` (largura mínima da conversa ao arrastar e Estúdio dobrado abaixo de `xl`).
+Também `lib/testing/viewport.ts` (`useWideViewport`) para os testes dos Cadernos.
+
+**Testes.** +3 de frontend (alvo da transição limitado à janela, Estúdio dobrado abaixo de `xl`, a conversa nunca abaixo do mínimo).
+Sem backend nem migração.
+
 ## Sessão 103 — 19/10/26 — Transformação de contêiner: do cartão ou da linha para a ficha (D-148)
 
 **O que mudou.** `lib/containerTransition.ts` (a origem: o retângulo do cartão clicado), `components/layout/ContainerTransition.tsx`
