@@ -10977,7 +10977,29 @@ nada era desenhado. A origem agora fica numa `ref` do componente.
 **Fora desta decisão.** Voltar da ficha para a lista (a superfície encolhendo para o cartão); animar o conteúdo da ficha por elementos
 compartilhados.
 
-## D-149 — Linguagem simples nos textos do backend (decidida pelo assistente por delegação do autor, revisável)
+## D-149 — Conferência ao vivo: o que o navegador mostrou e os testes não
+
+**Contexto.** Os itens 1 a 9 só tinham sido verificados por testes automatizados e pela CI. Rodei o app (backend de E2E e `next dev`) e olhei
+as telas a 375 e 1280 px, nos dois temas, e a transição quadro a quadro (animação pausada em 0, 90, 175, 245 e 330 ms).
+
+**Corrigido** (corrige o D-148 e o D-143, que ficam como estão no resto):
+- **Transição (D-148).** Com `emphasized-decelerate` na linha do tempo inteira, a superfície chegava ao tamanho final em ~70 ms e os 280 ms
+  restantes eram só esmaecer (medido pelos valores computados). Agora a geometria cresce durante os 350 ms com a curva padrão
+  (`--m3-ease-standard`) e a opacidade, em outra animação, segura até 35 % e some, de modo que as duas se sobrepõem. O alvo passou a ser a
+  área de conteúdo **recortada à janela**: com a página ainda rolada (o roteador volta ao topo com `scroll-behavior: smooth`) o retângulo
+  de `#conteudo` começava acima da tela e a superfície terminava fora dela.
+- **Painéis dos Cadernos (D-143).** Arrastar Fontes para 408 px deixava a conversa com 206 px e a caixa de pergunta virava uma fresta.
+  A conversa nunca fica abaixo de 352 px: o arrasto e o teclado são limitados pelo espaço que sobra na linha depois do outro painel e das duas
+  alças (`aria-valuenow` mostra o valor aplicado).
+- **Largura padrão, anterior ao D-143.** Com a barra lateral de 256 px, os três painéis abertos deixavam a conversa com 136 px a 1024 px e
+  328 a 1280. O Estúdio agora começa dobrado abaixo de `xl` (o leitor o abre) e, de `xl` para cima, Fontes e Estúdio têm 272 e 304 px
+  (conversa de 360 px a 1280).
+
+**Visto e não alterado.** (a) Em Cadernos sem nenhum caderno, "Criar caderno" aparece duas vezes (cabeçalho e estado vazio), as duas no
+estilo `secondary`, e a tela não tem botão `primary`; vem de antes do D-143. (b) A aba "Web" da busca de fontes encosta na borda do painel
+de Fontes a 1024 px. (c) O indicador do Next em desenvolvimento cobre o primeiro item da barra inferior; só existe em `next dev`.
+
+## D-150 — Linguagem simples nos textos do backend (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** A D-140 trocou o vocabulário da interface e deixou de fora, por exigir Deploy da API, os textos que o backend
 devolve (rótulos do diff entre versões, recusas, ressalvas, exportações). Com a D-138, esses textos também não levam aviso de

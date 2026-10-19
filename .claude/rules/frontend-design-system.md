@@ -129,6 +129,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `data-container-origin` e o link, `onClick={markContainerOrigin}`; quem se move é uma superfície vazia no `<body>`
   (`ContainerTransition`), **nunca** o conteúdo nem um ancestral dele. Desligada sob redução de movimento.
 
+- **Olhe no navegador o que for movimento ou largura** ([D-149](docs/DECISIONS.md)): teste e CI não veem curva de animação
+  nem painel espremido. Pause a animação (`getAnimations()`) e meça os valores computados; a conversa dos Cadernos nunca fica abaixo de 352 px.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

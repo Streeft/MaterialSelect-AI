@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteNotebook, getNotebook, updateNotebook } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -33,8 +33,12 @@ type Panel = "sources" | "chat" | "studio";
 // D-143: the widths a side panel starts at (the old xl breakpoint sizes) and the
 // range the handle may move it through. `null` in state means "not dragged yet",
 // so the responsive Tailwind widths still apply until the reader picks one.
-const SOURCES_WIDTH = { initial: 288, min: 224, max: 480 };
-const STUDIO_WIDTH = { initial: 320, min: 256, max: 640 };
+const SOURCES_WIDTH = { initial: 272, min: 224, max: 480 };
+const STUDIO_WIDTH = { initial: 304, min: 256, max: 640 };
+// The conversation never gets narrower than this, whatever the side panels are dragged to
+// (at 206 px the question box was a sliver). Two handles of 12 px sit between the panels.
+const CHAT_MIN_WIDTH = 352;
+const HANDLES_WIDTH = 24;
 
 /**
  * One notebook: Fontes | Conversa | Estúdio, as NotebookLM lays them out.
@@ -51,10 +55,32 @@ export function NotebookWorkspace({ id }: { id: number }) {
   });
   const [mobilePanel, setMobilePanel] = useState<Panel>("chat");
   const [sourcesOpen, setSourcesOpen] = useState(true);
-  const [studioOpen, setStudioOpen] = useState(true);
+  // Below `xl` the Studio starts folded to its rail: with the sidebar taking 256 px, the three
+  // panels open side by side left the conversation 136 px at 1024 (measured). The reader can open it.
+  const [studioOpen, setStudioOpen] = useState(
+    () => window.matchMedia?.("(min-width: 1280px)").matches ?? true,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sourcesW, setSourcesW] = useState<number | null>(null);
   const [studioW, setStudioW] = useState<number | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const sourcesRef = useRef<HTMLDivElement>(null);
+  const studioRef = useRef<HTMLDivElement>(null);
+  // Called from the handles' event handlers only. `want` is capped by what is left of the row
+  // once the other side panel and the conversation's minimum are paid for.
+  const fit = (
+    want: number,
+    range: { min: number; max: number },
+    other: HTMLElement | null,
+  ) => {
+    // A row that has no width yet (not laid out) cannot say what is left: trust the range.
+    const width = rowRef.current?.clientWidth ?? 0;
+    const room =
+      width > 0
+        ? width - CHAT_MIN_WIDTH - HANDLES_WIDTH - (other?.offsetWidth ?? 0)
+        : range.max;
+    return Math.max(range.min, Math.min(want, range.max, room));
+  };
   // The Studio artifact open in the right panel, which widens while it is —
   // and folds the sources to their rail meanwhile, as NotebookLM does, or the
   // conversation between them is squeezed to a column of single words. The
@@ -113,8 +139,12 @@ export function NotebookWorkspace({ id }: { id: number }) {
         ))}
       </ButtonGroup>
 
-      <div className="flex min-h-[70vh] gap-3 lg:h-[calc(100vh-14rem)] lg:min-h-[32rem] lg:gap-0">
+      <div
+        ref={rowRef}
+        className="flex min-h-[70vh] gap-3 lg:h-[calc(100vh-14rem)] lg:min-h-[32rem] lg:gap-0"
+      >
         <div
+          ref={sourcesRef}
           className={cn(
             "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
             mobilePanel === "sources" ? "flex w-full" : "hidden",
@@ -122,7 +152,7 @@ export function NotebookWorkspace({ id }: { id: number }) {
               ? "lg:w-14 lg:shrink-0"
               : sourcesW !== null
                 ? "lg:w-[var(--panel-w)] lg:shrink-0"
-                : "lg:w-64 lg:shrink-0 xl:w-72",
+                : "lg:w-64 lg:shrink-0 xl:w-[17rem]",
           )}
           style={
             sourcesW !== null
@@ -146,7 +176,9 @@ export function NotebookWorkspace({ id }: { id: number }) {
             min={SOURCES_WIDTH.min}
             max={SOURCES_WIDTH.max}
             direction={1}
-            onResize={setSourcesW}
+            onResize={(w) =>
+              setSourcesW(fit(w, SOURCES_WIDTH, studioRef.current))
+            }
             onReset={() => setSourcesW(null)}
           />
         ) : (
@@ -167,13 +199,16 @@ export function NotebookWorkspace({ id }: { id: number }) {
             min={STUDIO_WIDTH.min}
             max={STUDIO_WIDTH.max}
             direction={-1}
-            onResize={setStudioW}
+            onResize={(w) =>
+              setStudioW(fit(w, STUDIO_WIDTH, sourcesRef.current))
+            }
             onReset={() => setStudioW(null)}
           />
         ) : (
           <div className="hidden w-3 shrink-0 lg:block" />
         )}
         <div
+          ref={studioRef}
           className={cn(
             "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
             mobilePanel === "studio" ? "flex w-full" : "hidden",
@@ -183,7 +218,7 @@ export function NotebookWorkspace({ id }: { id: number }) {
                 ? "lg:w-[var(--panel-w)] lg:shrink-0"
                 : viewing !== null
                   ? "lg:w-[26rem] lg:shrink-0 xl:w-[32rem] 2xl:w-[40rem]"
-                  : "lg:w-72 lg:shrink-0 xl:w-80",
+                  : "lg:w-72 lg:shrink-0 xl:w-[19rem]",
           )}
           style={
             studioW !== null

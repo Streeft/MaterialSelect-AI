@@ -104,7 +104,7 @@ quitados".
   de uso|triagem preliminar"` em `apps/` só pode achar nome de código, comentário interno e
   `is_demo`. O aviso de saída por IA e as ressalvas técnicas da IA continuam.
 
-- ~~**Linguagem simples nos textos do backend** ([D-149](DECISIONS.md), Sessão 104)~~ — release→versão,
+- ~~**Linguagem simples nos textos do backend** ([D-150](DECISIONS.md), Sessão 105)~~ — release→versão,
   ranking→classificação, restrição→limite, backend→servidor nas mensagens, ressalvas e exportações que a API devolve.
   Resíduo: comentários, docstrings e o prompt enviado ao provedor de IA seguem em inglês/técnico de propósito.
 
