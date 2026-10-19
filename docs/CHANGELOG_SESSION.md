@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
@@ -106,6 +107,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
+
+**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130): cinco notas autorais, uma por família de
+`seed.CLASSES`, em `apps/api/app/glossary/families.json` (o que a família é, por que se comporta assim, quando escolher, cuidados),
+validadas por `app/domain/family_notes.py` (sem algarismo no texto, campo desconhecido recusado, slug único, cobertura do seed) e
+servidas por `GET /api/familias/notas` e `/{slug}`. No frontend, `lib/familyNotes.ts`, `FamilyNote` dobrada sob a classe na ficha
+do material, `GlossaryNav` e a página irmã `/app/glossario/familias` (também na suíte de larguras). Todas as notas são `rascunho`.
+
+**Testes.** +44 de backend (`test_family_notes.py`) e +11 de frontend (componente, página e ficha, com axe). Sem migração nem
+seed. Pede o Deploy da API.
 
 ## Sessão 105 — 19/10/26 — Linguagem simples nos textos do backend (D-150)
 
