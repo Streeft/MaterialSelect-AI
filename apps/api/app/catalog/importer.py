@@ -690,7 +690,7 @@ class OfficialCatalogImporter:
             if dataset.source_sha256 != meta["source_sha256"]:
                 raise OfficialCatalogImportError(
                     "O slug do dataset já existe com outro source_sha256; "
-                    "use um slug de release distinto."
+                    "use um slug de versão distinto."
                 )
             if dataset.license_label != meta["license_label"]:
                 raise OfficialCatalogImportError(
@@ -712,8 +712,8 @@ class OfficialCatalogImporter:
             )
             if committed_manifests and committed_manifests != {self.bundle.manifest_sha256}:
                 raise OfficialCatalogImportError(
-                    "A release já foi importada com outro manifest_sha256; "
-                    "um bundle canônico diferente exige novo slug/release."
+                    "A versão já foi importada com outro manifest_sha256; "
+                    "um bundle canônico diferente exige novo slug/versão."
                 )
         else:
             dataset = CatalogDataset(

@@ -136,7 +136,7 @@ def study_text(study: StudyOut, pipeline: str, result: RunResultOut) -> str:
             lines.append(f"{item.rank}. {item.name}: escore {format_number(round(item.score, 4))}")
         for excluded in ranking.excluded:
             lines.append(
-                f"Fora do ranking por falta de dado: {excluded.name} "
+                f"Fora da classificação por falta de dado: {excluded.name} "
                 f"(falta: {', '.join(excluded.missing_labels)})."
             )
     elif result.candidates:

@@ -238,15 +238,15 @@ class MockAIProvider(AIProvider):
         for property_name, clause in unreadable_units:
             open_questions.append(
                 f"Em “{clause}” há um limite para {property_name}, mas não foi possível "
-                "identificar a unidade. A restrição não foi proposta: lida na unidade "
+                "identificar a unidade. O limite não foi proposto: lida na unidade "
                 "canônica ela poderia inverter o sentido do enunciado. Escreva a unidade "
                 "(ex.: “300 °C”, “70 GPa”, “3 g/cm3”)."
             )
         if not constraints:
             open_questions.append(
-                "Nenhuma restrição numérica foi reconhecida no enunciado. Escreva os "
+                "Nenhum limite numérico foi reconhecido no enunciado. Escreva os "
                 "limites com valor e unidade (ex.: “temperatura de serviço no mínimo "
-                "300 °C”) ou adicione-os manualmente na etapa de restrições."
+                "300 °C”) ou adicione-os manualmente na etapa de limites."
             )
         if not indices:
             open_questions.append(
@@ -524,13 +524,13 @@ class MockAIProvider(AIProvider):
         if context.constraint_labels:
             funnel = "; ".join(f"{label} → {remaining}" for label, remaining in context.funnel)
             paragraphs.append(
-                f"Partindo de {context.initial_count} {subject}, as restrições aplicadas "
+                f"Partindo de {context.initial_count} {subject}, os limites aplicados "
                 f"({', '.join(context.constraint_labels)}) reduziram o conjunto a "
                 f"{context.final_count}. Eliminação passo a passo: {funnel}."
             )
         else:
             paragraphs.append(
-                f"Nenhuma restrição foi aplicada, de modo que os {context.final_count} "
+                f"Nenhum limite foi aplicado, de modo que os {context.final_count} "
                 f"{subject} do catálogo seguiram como candidatos."
             )
 
@@ -540,7 +540,7 @@ class MockAIProvider(AIProvider):
             )
             paragraphs.append(
                 f"O mérito foi medido pelo índice “{context.index_name}” "
-                f"({context.index_expression}){dimension}, calculado pelo backend a partir "
+                f"({context.index_expression}){dimension}, calculado pelo servidor a partir "
                 "dos valores cadastrados."
             )
 
@@ -558,7 +558,7 @@ class MockAIProvider(AIProvider):
         summary = (
             f"{context.ranked[0][0]} lidera entre {context.final_count} candidatos."
             if context.ranked
-            else f"{context.final_count} candidatos após as restrições."
+            else f"{context.final_count} candidatos após os limites."
         )
         return {"summary": summary, "paragraphs": paragraphs, "caveats": caveats}
 

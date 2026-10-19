@@ -463,7 +463,7 @@ class TestStudyExport:
             "Aviso",
             "Problema",
             "Estágios",
-            "Restrições e funil",
+            "Limites e funil",
             "Candidatos",
             "Índice de desempenho",
             "Contribuições",
@@ -480,7 +480,7 @@ class TestStudyExport:
         for expected in [
             "Problema",
             "Estágios",
-            "Restrições e funil",
+            "Limites e funil",
             "Candidatos",
             "Índice de desempenho",
             "Contribuições",
@@ -542,7 +542,7 @@ class TestStudyExport:
 
     def test_report_records_the_funnel(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{self._study_id(client)}.csv").text
-        assert "Restrições e funil" in text
+        assert "Limites e funil" in text
         assert "Módulo de Young" in text
 
     def test_report_carries_no_limitation_notice(self, client: TestClient) -> None:
@@ -617,7 +617,7 @@ class TestStudyExport:
         study_id = client.post("/api/selection/studies", json=payload).json()["id"]
 
         text = client.get(f"/api/exports/estudos/{study_id}.csv").text
-        problem = text.split("Restrições e funil")[0]
+        problem = text.split("Limites e funil")[0]
         assert "OU(" in problem
         assert problem.count("E(") == 2
         assert "Densidade" in problem
@@ -637,7 +637,7 @@ class TestStudyLaudo:
         for expected in [
             "Problema",
             "Estágios",
-            "Restrições e funil",
+            "Limites e funil",
             "Candidatos",
             "Índice de desempenho",
             "Contribuições",

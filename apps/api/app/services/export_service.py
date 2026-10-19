@@ -498,8 +498,8 @@ class ExportService:
             if step.without_level is not None
         )
         return Sheet(
-            name="Restrições e funil",
-            header=["Restrição", "Operador", "Passaram", "Restantes"],
+            name="Limites e funil",
+            header=["Limite", "Operador", "Passaram", "Restantes"],
             rows=rows,
             notes=notes,
         )
@@ -649,7 +649,7 @@ class ExportService:
             rows=rows,
             notes=(
                 [
-                    "O ranking é recalculado sob pesos perturbados. 'Mudou' indica que a "
+                    "A classificação é recalculada sob pesos perturbados. 'Mudou' indica que a "
                     "recomendação depende da ponderação escolhida."
                 ]
                 if rows

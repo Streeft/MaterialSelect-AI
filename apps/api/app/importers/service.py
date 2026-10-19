@@ -626,7 +626,7 @@ class ImportService:
 
     def create_template(self, payload: TemplateIn) -> TemplateOut:
         if self.repo.template_name_exists(payload.name):
-            raise ConflictError(f"Já existe um template com o nome: {payload.name}")
+            raise ConflictError(f"Já existe um modelo com o nome: {payload.name}")
         template = ImportMappingTemplate(
             name=payload.name.strip(),
             description=payload.description,

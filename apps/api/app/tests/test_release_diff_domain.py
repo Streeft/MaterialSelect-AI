@@ -278,7 +278,7 @@ def test_value_view_keeps_the_three_units_and_writes_absence() -> None:
 def test_only_two_releases_of_one_catalogue_are_comparable() -> None:
     a = ReleaseIdentity("r1", "catalogo", False)
     ensure_comparable(a, ReleaseIdentity("r2", "catalogo", False))
-    with pytest.raises(ValidationError, match="duas releases diferentes"):
+    with pytest.raises(ValidationError, match="duas versões diferentes"):
         ensure_comparable(a, a)
     with pytest.raises(ValidationError, match="catálogos diferentes"):
         ensure_comparable(a, ReleaseIdentity("x1", "outro", False))

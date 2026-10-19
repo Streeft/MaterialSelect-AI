@@ -83,7 +83,7 @@ from app.schemas.catalog_release import (
 DEFAULT_PAGE_SIZE = 50
 
 #: Written in a cell where a side has no record, so absence is never a blank.
-NOT_IN_RELEASE = "não está nesta release"
+NOT_IN_RELEASE = "não está nesta versão"
 NOT_INFORMED = "não informado"
 
 
@@ -198,7 +198,7 @@ class CatalogReleaseService:
     ) -> tuple[ReleaseRow, CatalogReleaseOut]:
         found = releases.get(slug)
         if found is None:
-            raise NotFoundError(f"Release do catálogo não encontrada: '{slug}'.")
+            raise NotFoundError(f"Versão do catálogo não encontrada: '{slug}'.")
         return found
 
     # -- the diff -------------------------------------------------------------
@@ -430,7 +430,7 @@ class CatalogReleaseService:
             if diff.external_table == external_table and diff.external_record_id == external_id:
                 return self._item_out(diff, computed.readings)
         raise NotFoundError(
-            f"O registro {external_table}/{external_id} não está em nenhuma das duas releases."
+            f"O registro {external_table}/{external_id} não está em nenhuma das duas versões."
         )
 
     # -- the exported file ----------------------------------------------------
@@ -454,7 +454,7 @@ class CatalogReleaseService:
         base, target = computed.base, computed.target
 
         title = (
-            f"Mudanças entre releases — {target.name}: "
+            f"Mudanças entre versões — {target.name}: "
             f"{base.release or base.slug} → {target.release or target.slug}"
         )
         subtitle = "; ".join(f"{STATUS_LABELS[s]}: {counts[s]}" for s in STATUS_ORDER) + (
@@ -486,7 +486,7 @@ class CatalogReleaseService:
                             + "; ".join(filters)
                             + f" ({len(selected)} registros)."
                             if filters
-                            else "Sem filtro: todos os registros das duas releases."
+                            else "Sem filtro: todos os registros das duas versões."
                         ),
                     ],
                 ),
@@ -506,7 +506,7 @@ class CatalogReleaseService:
             return NOT_INFORMED if value is None or value == "" else value
 
         rows: list[list[object]] = [
-            ["Slug da release", base.slug, target.slug],
+            ["Slug da versão", base.slug, target.slug],
             ["Catálogo (nome)", base.name, target.name],
             ["Release", text(base.release), text(target.release)],
             ["Linha (catálogo comparável)", text(base.lineage), text(target.lineage)],
@@ -538,9 +538,9 @@ class CatalogReleaseService:
                 sources(computed.target_sources),
             ],
             ["Registros de material", base.material_count, target.material_count],
-            ["Release ativa", base.is_active, target.is_active],
+            ["Versão ativa", base.is_active, target.is_active],
         ]
-        return Sheet(name="Releases", header=["Campo", "Base", "Alvo"], rows=rows)
+        return Sheet(name="Versões", header=["Campo", "Base", "Alvo"], rows=rows)
 
     @staticmethod
     def _records_sheet(diffs: Sequence[RecordDiff]) -> Sheet:

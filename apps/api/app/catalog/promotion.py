@@ -65,7 +65,7 @@ def check_promotable(db: Session, dataset: CatalogDataset) -> None:
     """
     if not dataset.is_active:
         raise ReleasePromotionError(
-            f"A release {dataset.slug!r} já foi substituída e está inativa; "
+            f"A versão {dataset.slug!r} já foi substituída e está inativa; "
             "reimportá-la não a reativa."
         )
     newer = [
@@ -75,8 +75,8 @@ def check_promotable(db: Session, dataset: CatalogDataset) -> None:
     ]
     if newer:
         raise ReleasePromotionError(
-            f"A linha {dataset.lineage!r} já tem release mais recente que {dataset.slug!r}: "
-            f"{', '.join(newer)}. Uma release antiga não é reimportada por cima da nova."
+            f"A linha {dataset.lineage!r} já tem versão mais recente que {dataset.slug!r}: "
+            f"{', '.join(newer)}. Uma versão antiga não é reimportada por cima da nova."
         )
 
 

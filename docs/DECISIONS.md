@@ -10976,3 +10976,17 @@ nada era desenhado. A origem agora fica numa `ref` do componente.
 
 **Fora desta decisão.** Voltar da ficha para a lista (a superfície encolhendo para o cartão); animar o conteúdo da ficha por elementos
 compartilhados.
+
+## D-149 — Linguagem simples nos textos do backend (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A D-140 trocou o vocabulário da interface e deixou de fora, por exigir Deploy da API, os textos que o backend
+devolve (rótulos do diff entre versões, recusas, ressalvas, exportações). Com a D-138, esses textos também não levam aviso de
+demonstração nem de limite de uso.
+
+**Decisão.** O mesmo glossário da D-140 vale para o que a API escreve para o usuário: release → **versão**, ranking →
+**classificação**, restrição → **limite**, template → **modelo**, backend → **servidor**. Só texto: identificadores, chaves, slugs,
+campos, enums, códigos de erro e o texto enviado como instrução ao provedor de IA não mudam. A recusa de comparar versão fictícia
+com versão real é mantida, com o mesmo erro de validação. As ressalvas da IA mudam só de palavra, sem alterar o conteúdo técnico.
+
+**Consequências.** Testes que afirmavam o texto antigo foram atualizados; planilhas passam a ter a aba "Versões" e "Limites e
+funil". Sem migração. Depois do merge, rodar o Deploy da API.

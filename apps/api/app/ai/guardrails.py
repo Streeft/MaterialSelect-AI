@@ -218,7 +218,7 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
 
     if operator in _CLASS_OPERATORS:
         if not constraint.class_slugs:
-            return "Restrição de classe sem nenhuma classe indicada."
+            return "Limite de classe sem nenhuma classe indicada."
         unknown = sorted(set(constraint.class_slugs) - catalogue.class_slugs)
         if unknown:
             return f"Classes sugeridas não existem: {', '.join(unknown)}."
@@ -226,12 +226,12 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
 
     if operator == "text_contains":
         if not (constraint.text or "").strip():
-            return "Restrição de texto sem termo de busca."
+            return "Limite de texto sem termo de busca."
         return None
 
     slug = constraint.property_slug
     if not slug or slug not in catalogue.properties:
-        return f"Propriedade da restrição não existe no catálogo: '{slug}'."
+        return f"Propriedade do limite não existe no catálogo: '{slug}'."
 
     if operator in _EXISTENCE_OPERATORS:
         return None
@@ -248,11 +248,11 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
     # the only safe reading — the same rule that stops the layer converting.
     if not constraint.unit and not _is_dimensionless(canonical):
         return (
-            f"A restrição sobre '{slug}' não indica a unidade do valor "
+            f"O limite sobre '{slug}' não indica a unidade do valor "
             f"{constraint.value if constraint.value is not None else constraint.value_min}. "
             "Sem unidade explícita ela seria lida na unidade canônica "
             f"('{canonical}'), o que pode inverter o sentido do enunciado; "
-            "escreva a unidade no texto ou defina a restrição manualmente."
+            "escreva a unidade no texto ou defina o limite manualmente."
         )
 
     unit = constraint.unit or canonical
@@ -276,7 +276,7 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
         if not is_grounded(float(value), sources):  # type: ignore[arg-type]
             return (
                 f"O valor {value} não aparece no enunciado. A camada de IA não "
-                "produz nem converte números; informe-o no texto ou edite a "
-                "restrição manualmente."
+                "produz nem converte números; informe-o no texto ou edite o "
+                "limite manualmente."
             )
     return None

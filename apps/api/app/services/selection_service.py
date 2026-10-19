@@ -689,7 +689,7 @@ class SelectionService:
     ) -> None:
         if root_group_in is not None and constraints_in:
             raise ValidationError(
-                "Envie restrições no formato plano (constraints/combinator) ou em "
+                "Envie limites no formato plano (constraints/combinator) ou em "
                 "root_group — não os dois ao mesmo tempo."
             )
 
@@ -706,7 +706,7 @@ class SelectionService:
             return
         if constraints_in or root_group_in is not None:
             raise ValidationError(
-                "Envie os estágios ou as restrições no nível do estudo, não os dois."
+                "Envie os estágios ou os limites no nível do estudo, não os dois."
             )
         if not stages_in:
             raise ValidationError("Informe ao menos um estágio.")
@@ -1547,7 +1547,7 @@ class SelectionService:
     def _describe_limit(self, stage: SelectionStageNode) -> str:
         root = stage.root
         if root is None or (not root.constraints and not root.children):
-            return "Nenhuma restrição definida."
+            return "Nenhum limite definido."
         return self._render_group_tree(root)
 
     def _describe_stage(
@@ -2024,7 +2024,7 @@ class SelectionService:
                     prop = self._props.get(criterion.key)
                     name = prop.name if prop is not None else criterion.key
                 raise ValidationError(
-                    f"Critério repetido: {name}. Cada critério entra uma vez no ranking — "
+                    f"Critério repetido: {name}. Cada critério entra uma vez na classificação — "
                     "some os pesos numa linha só."
                 )
             seen.add(criterion.key)
@@ -2086,7 +2086,7 @@ class SelectionService:
         if not sound:
             out.unavailable_reason = "no_criteria"
             out.unavailable_message = (
-                "Escolha um critério e dê um peso a ele para ver a prévia do ranking."
+                "Escolha um critério e dê um peso a ele para ver a prévia da classificação."
             )
             return out
 
@@ -2100,7 +2100,7 @@ class SelectionService:
             if not candidates:
                 out.unavailable_reason = "no_candidates"
                 out.unavailable_message = (
-                    "Nenhum registro passa pelas restrições atuais: não há o que ordenar."
+                    "Nenhum registro passa pelos limites atuais: não há o que ordenar."
                 )
                 return out
             ranking = self._rank(
