@@ -4,7 +4,10 @@ import { useEffect, useRef } from "react";
 import { takeContainerOrigin, type ContainerOrigin } from "@/lib/containerTransition";
 
 const DURATION_MS = 350; // --m3-dur-medium3
-const EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)"; // --m3-ease-emphasized-decelerate
+// --m3-ease-standard. `emphasized-decelerate` here put 90 % of the growth in the first
+// 70 ms (measured in a browser) and left the rest as a bare fade: a flash, not a transform.
+const GROW_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+const FADE_START = 0.35; // the surface starts to fade while it is still growing
 
 /**
  * Container transform, the arrival half (D-148).
@@ -30,8 +33,15 @@ export function ContainerTransition() {
     if (!origin) return;
     if (typeof document.body.animate !== "function") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const target = document.getElementById("conteudo")?.getBoundingClientRect();
-    if (!target) return;
+    const content = document.getElementById("conteudo")?.getBoundingClientRect();
+    if (!content) return;
+    // The content area as the reader sees it: the page may still be scrolled (the router
+    // scrolls to the top with `scroll-behavior: smooth`), so its box can start above the
+    // window or run past it, and a surface that ends there would end off screen.
+    const top = Math.max(content.top, 0);
+    const bottom = Math.min(content.bottom, window.innerHeight);
+    const target = { top, left: content.left, width: content.width, height: Math.max(bottom - top, 0) };
+    if (target.height === 0) return;
 
     const surface = document.createElement("div");
     surface.setAttribute("aria-hidden", "true");
@@ -44,27 +54,34 @@ export function ContainerTransition() {
     });
     document.body.appendChild(surface);
 
-    const box = (r: { top: number; left: number; width: number; height: number }, radius: string, opacity: number) => ({
+    const box = (r: { top: number; left: number; width: number; height: number }, radius: string) => ({
       top: `${r.top}px`,
       left: `${r.left}px`,
       width: `${r.width}px`,
       height: `${r.height}px`,
       borderRadius: radius,
-      opacity,
     });
-    const animation = surface.animate(
+    // Two animations on different properties: the geometry grows over the whole duration,
+    // the opacity holds, then fades out, so the two overlap instead of taking turns.
+    const grow = surface.animate([box(origin, origin.radius), box(target, "0px")], {
+      duration: DURATION_MS,
+      easing: GROW_EASING,
+      fill: "both",
+    });
+    const fade = surface.animate(
       [
-        { ...box(origin, origin.radius, 1), offset: 0 },
-        { ...box(target, "0px", 1), offset: 0.6 },
-        { ...box(target, "0px", 0), offset: 1 },
+        { opacity: 1, offset: 0 },
+        { opacity: 1, offset: FADE_START },
+        { opacity: 0, offset: 1 },
       ],
-      { duration: DURATION_MS, easing: EASING, fill: "both" },
+      { duration: DURATION_MS, easing: "linear", fill: "both" },
     );
     const remove = () => surface.remove();
-    animation.onfinish = remove;
-    animation.oncancel = remove;
+    fade.onfinish = remove;
+    fade.oncancel = remove;
     return () => {
-      animation.cancel();
+      grow.cancel();
+      fade.cancel();
       remove();
     };
   }, []);

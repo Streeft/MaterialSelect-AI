@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { installWideViewport } from "@/lib/testing/viewport";
 import { Landing } from "@/components/marketing/Landing";
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -63,6 +64,8 @@ vi.mock("react-plotly.js", () => ({ default: () => null }));
 
 // Several routes read their initial state from the query string, and a screen
 // that never got past its empty state is not the screen worth auditing.
+// The notebook screens below open the Studio, which starts open only from `xl` (D-149).
+installWideViewport();
 const nav = vi.hoisted(() => ({ query: "" }));
 
 vi.mock("next/navigation", () => ({

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { Notebook } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { installWideViewport } from "@/lib/testing/viewport";
 import { RasterizeError } from "@/lib/rasterize";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { NotebookWorkspace } from "@/components/notebooks/NotebookWorkspace";
@@ -27,6 +28,7 @@ import {
   videoArtifact,
 } from "@/components/notebooks/studio/__fixtures__/studio";
 
+installWideViewport();
 const t = ptBR.notebooks;
 const s = t.studio;
 
