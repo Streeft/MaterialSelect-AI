@@ -3462,3 +3462,20 @@ export interface GlossaryEntry {
   review_status: "rascunho" | "revisado";
   lang: string;
 }
+
+/**
+ * Uma nota de família de materiais (D-151): o que a família é, por que se
+ * comporta assim, onde se usa e o que conferir — conceitual, nunca numérica.
+ */
+export interface FamilyNoteEntry {
+  slug: string;
+  summary: string;
+  /** Parágrafos curtos, na ordem de leitura. */
+  body: string[];
+  when_to_use: string[];
+  watch_out: string[];
+  reference: string | null;
+  license: string;
+  review_status: "rascunho" | "revisado";
+  lang: string;
+}
