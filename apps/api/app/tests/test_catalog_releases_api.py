@@ -409,7 +409,7 @@ def test_one_record_by_its_external_identity(client, two_releases) -> None:
     item = client.get(url, params={"tabela": "MaterialUniverse", "id": "mat-c"}).json()
     assert item["status"] == "alterado" and item["change_count"] == 2
     missing = client.get(url, params={"tabela": "MaterialUniverse", "id": "nao-existe"})
-    assert missing.status_code == 404 and "nenhuma das duas releases" in missing.json()["detail"]
+    assert missing.status_code == 404 and "nenhuma das duas versões" in missing.json()["detail"]
     # The name is never an identity: asking by name finds nothing.
     by_name = client.get(url, params={"tabela": "MaterialUniverse", "id": "Liga Fictícia C"})
     assert by_name.status_code == 404
@@ -497,7 +497,7 @@ def test_errors_in_portuguese(client, tmp_path: Path, db_session: Session, revie
     )
     cases = [
         ("/api/catalogo/releases/nao-existe/diff/ficticio-r2", 404, "não encontrada"),
-        ("/api/catalogo/releases/ficticio-r1/diff/ficticio-r1", 400, "duas releases diferentes"),
+        ("/api/catalogo/releases/ficticio-r1/diff/ficticio-r1", 400, "duas versões diferentes"),
         ("/api/catalogo/releases/ficticio-r1/diff/outro-r1", 400, "catálogos diferentes"),
         ("/api/catalogo/releases/ficticio-r1/diff/sem-linha", 400, "não declara"),
         ("/api/catalogo/releases/ficticio-r1/diff/ficticio-r2?tipo=removido", 400, "Admitidos"),
@@ -594,7 +594,7 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
     assert REPRODUCIBILITY_NOTICE in flat
     assert_no_removed_notice(text)
     # Provenance: both releases, licence, lineage, the sources the values cite.
-    assert ["Slug da release", "ficticio-r1", "ficticio-r2"] in rows
+    assert ["Slug da versão", "ficticio-r1", "ficticio-r2"] in rows
     assert ["Licença", "Fixture fictícia de teste", "Fixture fictícia de teste"] in rows
     sources = next(row for row in rows if row and row[0] == "Fontes citadas pelos valores")
     assert sources[1] == "Catálogo Fictício de Teste — R1"
@@ -617,7 +617,7 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
     assert density["Antes (canônico)"] == "declarado ausente pela fonte"
     assert density["Antes mín. (leitura)"] == "declarado ausente pela fonte"
     unregistered = by_field[("mat-d", "Temperatura mínima fictícia")]
-    assert unregistered["Antes (leitura)"] == "não cadastrado nesta release"
+    assert unregistered["Antes (leitura)"] == "não cadastrado nesta versão"
     renamed = by_field[("mat-r", "Nome")]
     assert (renamed["Antes (leitura)"], renamed["Depois (leitura)"]) == (
         "Liga Fictícia R",
@@ -625,7 +625,7 @@ def test_the_csv_carries_notice_provenance_and_safe_cells(client, two_releases) 
     )
     records_header = next(row for row in rows if row and row[0] == "Situação" and "GRUID" in row)
     removed = next(row for row in rows if len(row) == len(records_header) and row[3] == "mat-b")
-    assert removed[6] == "não está nesta release"
+    assert removed[6] == "não está nesta versão"
 
 
 def test_the_export_applies_the_filters(client, two_releases) -> None:
@@ -639,7 +639,7 @@ def test_the_xlsx_keeps_negative_numbers_numeric(client, two_releases) -> None:
     response = client.get("/api/exports/catalogo/releases/ficticio-r1/diff/ficticio-r2.xlsx")
     assert response.status_code == 200
     workbook = load_workbook(io.BytesIO(response.content))
-    assert {"Aviso", "Releases", "Resumo", "Registros", "Alterações"} <= set(workbook.sheetnames)
+    assert {"Aviso", "Versões", "Resumo", "Registros", "Alterações"} <= set(workbook.sheetnames)
     sheet = workbook["Alterações"]
     header = [
         cell.value for cell in next(r for r in sheet.iter_rows() if r[0].value == "Tabela externa")

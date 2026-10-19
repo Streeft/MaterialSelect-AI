@@ -17,7 +17,7 @@ from app.config import settings as default_settings
 
 DISCLAIMER = (
     "Interpretação assistida por IA: sugestões editáveis, sem valor numérico "
-    "produzido pela IA. Todo cálculo é determinístico no backend e todo critério "
+    "produzido pela IA. Todo cálculo é determinístico no servidor e todo critério "
     "passa pela sua revisão."
 )
 

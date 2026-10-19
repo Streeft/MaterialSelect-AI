@@ -278,7 +278,7 @@ def test_a_new_curve_is_presence_written_in_words() -> None:
     diff = changes_of(rec(), rec(curves={"c1": curve([point(0, 0)])}))
     (change,) = diff.changes
     assert change.kind is ChangeKind.PRESENCE
-    assert change.before_text == "não cadastrado nesta release"
+    assert change.before_text == "não cadastrado nesta versão"
     assert change.after_text == "1 série, 1 ponto"
 
 

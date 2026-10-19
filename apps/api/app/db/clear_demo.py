@@ -207,7 +207,7 @@ def clear_demo_catalog_releases(db: Session) -> int:
     )
     if real_curves:
         raise RuntimeError(
-            "Release demo ainda é citada por curva real; limpeza recusada para "
+            "Versão demo ainda é citada por curva real; limpeza recusada para "
             f"preservar proveniência: {{'material_curves': {real_curves}}}"
         )
     demo_curves = list(

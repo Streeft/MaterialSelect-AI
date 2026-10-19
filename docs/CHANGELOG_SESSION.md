@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
 | [93](#sessão-93--171026--sai-o-aviso-de-dado-demonstrativo-e-de-limite-de-uso-d-138) | 17/10/2026 | Retirada dos avisos de dado demonstrativo e de limite de uso (tela, exportações, IA, landing) e linguagem simples; regras e docs (D-138) | — | — |
@@ -105,6 +106,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 105 — 19/10/26 — Linguagem simples nos textos do backend (D-150)
+
+**O que mudou.** O glossário da D-140 chegou aos textos que a API devolve: rótulos e recusas do diff entre versões do catálogo
+(`domain/release_diff.py`, `services/catalog_release_service.py`, incluindo os cabeçalhos da planilha), limites e classificação nas
+mensagens de seleção, nas ressalvas e nos textos do assistente de IA (`ai/caveats.py`, `ai/guardrails.py`, `ai/mock.py`) e nas
+exportações (`Limites e funil`, aviso de reprodutibilidade). A recusa de versão fictícia contra versão real continua, com o mesmo erro.
+
+**Testes.** Nenhum novo; os que afirmavam o texto antigo foram atualizados. Sem migração nem seed. Pede o Deploy da API.
 
 ## Sessão 104 — 19/10/26 — Conferência ao vivo: transição e painéis dos Cadernos (D-149)
 

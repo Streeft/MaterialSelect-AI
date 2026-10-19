@@ -75,8 +75,8 @@ STATUS_ORDER: tuple[RecordStatus, ...] = (
 
 STATUS_LABELS: dict[RecordStatus, str] = {
     RecordStatus.CHANGED: "Alterado",
-    RecordStatus.NEW: "Novo nesta release",
-    RecordStatus.REMOVED: "Desativado (saiu da release)",
+    RecordStatus.NEW: "Novo nesta versão",
+    RecordStatus.REMOVED: "Desativado (saiu da versão)",
     RecordStatus.UNCHANGED: "Inalterado",
 }
 
@@ -112,7 +112,7 @@ class ValueState(str, Enum):
 
 
 STATE_LABELS: dict[ValueState, str] = {
-    ValueState.NOT_REGISTERED: "não cadastrado nesta release",
+    ValueState.NOT_REGISTERED: "não cadastrado nesta versão",
     ValueState.MISSING: "declarado ausente pela fonte",
     ValueState.SCALAR: "valor único",
     ValueState.INTERVAL: "faixa",
@@ -808,7 +808,7 @@ def _index(records: Iterable[RecordSnapshot], which: str) -> dict[tuple[str, str
     indexed: dict[tuple[str, str], RecordSnapshot] = {}
     for record in records:
         if record.key in indexed:
-            raise ValueError(f"Identidade externa repetida na release {which}: {record.key}")
+            raise ValueError(f"Identidade externa repetida na versão {which}: {record.key}")
         indexed[record.key] = record
     return indexed
 
@@ -846,7 +846,7 @@ def diff_releases(
             continue
         if old.universe is not new.universe:
             raise ValidationError(
-                f"O registro {key[0]}/{key[1]} mudou de universo entre as releases "
+                f"O registro {key[0]}/{key[1]} mudou de universo entre as versões "
                 f"({UNIVERSE_LABELS[old.universe]} → {UNIVERSE_LABELS[new.universe]}); "
                 "a identidade externa não pode apontar para duas tabelas."
             )
@@ -988,21 +988,21 @@ class ReleaseIdentity:
 def ensure_comparable(base: ReleaseIdentity, target: ReleaseIdentity) -> None:
     """Refuse, in Portuguese, any pair that is not two releases of one catalogue."""
     if base.slug == target.slug:
-        raise ValidationError("Escolha duas releases diferentes para comparar.")
+        raise ValidationError("Escolha duas versões diferentes para comparar.")
     for side in (base, target):
         if side.lineage is None:
             raise ValidationError(
-                f"A release '{side.slug}' não declara a qual catálogo pertence (linha); "
+                f"A versão '{side.slug}' não declara a qual catálogo pertence (linha); "
                 "sem isso ela não é comparável com nenhuma outra."
             )
     if base.lineage != target.lineage:
         raise ValidationError(
-            f"As releases '{base.slug}' e '{target.slug}' são de catálogos diferentes "
-            f"('{base.lineage}' e '{target.lineage}'); só releases do mesmo catálogo "
+            f"As versões '{base.slug}' e '{target.slug}' são de catálogos diferentes "
+            f"('{base.lineage}' e '{target.lineage}'); só versões do mesmo catálogo "
             "são comparáveis."
         )
     if base.is_demo != target.is_demo:
-        raise ValidationError("Uma release fictícia não se compara com uma release real.")
+        raise ValidationError("Uma versão fictícia não se compara com uma versão real.")
 
 
 @dataclass(frozen=True)

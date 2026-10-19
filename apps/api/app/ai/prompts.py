@@ -462,7 +462,7 @@ def explain_user(context: ResultContext) -> str:
 
     if context.excluded_for_missing:
         lines.append(
-            "Fora do ranking por dado ausente (não são candidatos ruins, são não avaliados):"
+            "Fora da classificação por dado ausente (não são candidatos ruins, são não avaliados):"
         )
         lines.extend(
             f"  - {name}: sem {', '.join(labels)}" for name, labels in context.excluded_for_missing

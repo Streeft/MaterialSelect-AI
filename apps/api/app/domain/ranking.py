@@ -279,7 +279,7 @@ def rank_topsis(
         ValidationError: if there are no criteria or the weights sum to zero.
     """
     if not criteria:
-        raise ValidationError("Defina ao menos um critério de ranking.")
+        raise ValidationError("Defina ao menos um critério de classificação.")
     weights = _renormalize({c.key: c.weight for c in criteria})
     complete, excluded = _split_complete_and_excluded(materials, criteria)
 
@@ -448,7 +448,7 @@ def rank_promethee(
             against).
     """
     if not criteria:
-        raise ValidationError("Defina ao menos um critério de ranking.")
+        raise ValidationError("Defina ao menos um critério de classificação.")
     weights = _renormalize({c.key: c.weight for c in criteria})
     complete, excluded = _split_complete_and_excluded(materials, criteria)
     if len(complete) < 2:
@@ -604,7 +604,7 @@ def degrade_promethee_for_few_candidates(
     two or more.
     """
     if not criteria:
-        raise ValidationError("Defina ao menos um critério de ranking.")
+        raise ValidationError("Defina ao menos um critério de classificação.")
     weights = _renormalize({c.key: c.weight for c in criteria})
     complete, excluded = _split_complete_and_excluded(materials, criteria)
 
@@ -649,7 +649,7 @@ def rank(
         ValidationError: if there are no criteria or the weights sum to zero.
     """
     if not criteria:
-        raise ValidationError("Defina ao menos um critério de ranking.")
+        raise ValidationError("Defina ao menos um critério de classificação.")
 
     weights = _renormalize({c.key: c.weight for c in criteria})
 

@@ -29,7 +29,7 @@ def standard_caveats(context: ResultContext) -> list[str]:
     if context.excluded_for_missing:
         names = ", ".join(name for name, _ in context.excluded_for_missing)
         caveats.append(
-            f"Materiais sem valor para algum critério ficaram fora do ranking e não "
+            f"Materiais sem valor para algum critério ficaram fora da classificação e não "
             f"foram avaliados: {names}. A ausência não é um valor ruim, é ausência."
         )
     if context.sensitivity_changed:

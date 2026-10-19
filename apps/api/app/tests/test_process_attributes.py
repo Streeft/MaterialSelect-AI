@@ -855,8 +855,8 @@ def test_the_interpretation_counts_processes_and_not_materials(client, documente
     """
     text = client.get(f"/api/exports/estudos/{documented_study}/laudo.html").text
 
-    assert "processos, as restrições aplicadas" in text
-    assert "materiais, as restrições aplicadas" not in text
+    assert "processos, os limites aplicados" in text
+    assert "materiais, os limites aplicados" not in text
 
 
 def test_the_csv_export_of_a_process_study_carries_the_same_trail(client, documented_study) -> None:

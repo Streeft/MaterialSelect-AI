@@ -25,7 +25,7 @@ OWN_RECORD_NOTICE = (
 
 REPRODUCIBILITY_NOTICE = (
     "Todos os números deste relatório foram calculados de forma determinística "
-    "no backend a partir dos valores cadastrados. Reexecutar o estudo com o "
+    "no servidor a partir dos valores cadastrados. Reexecutar o estudo com o "
     "mesmo catálogo reproduz exatamente estes resultados."
 )
 
