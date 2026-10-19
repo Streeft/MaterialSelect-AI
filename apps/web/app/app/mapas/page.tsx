@@ -31,6 +31,7 @@ import { toMapBox } from "@/lib/mapBox";
 import { optionsAtLevel } from "@/lib/depth";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { formatNumber, prettyUnit } from "@/lib/format";
+import { PropertyHint } from "@/components/glossary/PropertyHint";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
   Alert,
@@ -123,6 +124,7 @@ function AxisControl({
   allowIndex?: boolean;
 }) {
   const descriptor = describeAxisIndex(axis, indices);
+  const selectedProperty = properties.find((p) => p.slug === axis.property);
 
   return (
     <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
@@ -142,9 +144,10 @@ function AxisControl({
       )}
 
       {axis.mode === "property" || !allowIndex ? (
+        <div className="flex items-end gap-2">
         <Select
           label={label}
-          className="min-w-0"
+          className="min-w-0 flex-1"
           value={axis.property}
           onChange={(e) => onChange({ ...axis, property: e.target.value })}
         >
@@ -159,6 +162,16 @@ function AxisControl({
             </SelectOption>
           ))}
         </Select>
+        {/* GL-b: an <option> cannot hold a button, so the hint sits beside the
+            picker and follows the chosen property. Silent without an entry. */}
+        {selectedProperty && (
+          <PropertyHint
+            slug={selectedProperty.slug}
+            name={selectedProperty.name}
+            className="mb-2.5"
+          />
+        )}
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           <p className="text-support text-ink-muted">{t.axisIndexHint}</p>

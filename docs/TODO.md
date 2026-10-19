@@ -207,8 +207,12 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
 
 - **GL-a — revisão do autor.** ▁ Os 15 verbetes nascem `rascunho`; o autor revisa
   o texto (e as normas citadas) e muda para `revisado` no próprio arquivo.
-- **GL-b — dica no comparador e nos mapas.** ▁ O `GlossaryHint` existe; falta
-  pô-lo nos rótulos de propriedade do comparador e nos seletores de eixo.
+- ~~**GL-b — dica no comparador e nos mapas.**~~ ✔ `PropertyHint` (só desenha
+  quando há verbete; carregando, erro ou sem verbete não aparece nada, e a
+  requisição ao glossário é uma por tela) no cabeçalho de propriedade da tabela
+  do comparador e ao lado do seletor de propriedade dos mapas. Fora de propósito:
+  chips (botão dentro de botão), `<option>` e título de eixo do Plotly; a tabela
+  de origem (D-31) não mudou.
 - **GL-c — slugs do bundle oficial.** ▃ Propriedades que o bundle do D-102 trouxer
   aparecem como "Sem verbete no glossário" até ganharem verbete autoral; o
   canário de cobertura só cobre `seed.PROPERTIES`.
