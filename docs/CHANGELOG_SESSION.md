@@ -106,6 +106,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 103 — 19/10/26 — Transformação de contêiner: do cartão ou da linha para a ficha (D-148)
+
+**O que mudou.** `lib/containerTransition.ts` (a origem: o retângulo do cartão clicado), `components/layout/ContainerTransition.tsx`
+(a chegada: uma superfície vazia que cresce até a área de conteúdo e some), montado dentro de `RouteTransition`. Ligado nos cartões e
+nas linhas do catálogo (→ ficha do material) e nos cartões de caderno (→ caderno).
+
+**Testes.** +12 de frontend (origem uma vez, clique modificado ignorado, origem velha descartada, superfície, redução de movimento,
+desmontagem no meio, StrictMode) e +2 de E2E (`e2e/transicao.spec.ts`: a superfície aparece ao abrir pela linha do catálogo e não
+aparece sob redução de movimento). Sem backend nem migração. **Achado:** o efeito em desenvolvimento (StrictMode) consumia a origem
+na primeira passada e desenhava nada na segunda; a origem agora fica numa `ref`.
+
 ## Sessão 102 — 19/10/26 — Playwright em quatro larguras (D-147)
 
 **O que mudou.** `e2e/larguras.spec.ts`: 19 rotas sem id, cada uma a 375, 768, 1280 e 1920 px, com a regra

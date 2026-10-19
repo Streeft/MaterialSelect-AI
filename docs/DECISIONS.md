@@ -10950,3 +10950,29 @@ sem inchar a CI", e o §3 manda que nenhuma página role na horizontal. O teste 
 **Achado.** A primeira rodada reprovou `/app/importar` a 768 px (1022 px numa janela de 768): o `Stepper` tem
 `<li class="sm:flex-1">` sem `min-w-0`, então o item não encolhia abaixo do conteúdo e o 4º passo saía da tela.
 Corrigido com `sm:min-w-0` em `components/ui/Stepper.tsx`.
+
+## D-148 — Transformação de contêiner: uma superfície própria, nunca um ancestral do conteúdo
+
+**Contexto.** Sobrou do item 6 a transformação de contêiner cartão→ficha. O D-141 tinha limitado a transição de tela a opacidade porque um
+`transform` num ancestral vira o bloco de contenção de todo `position: fixed` do conteúdo (o FAB, a bandeja de comparação).
+
+**Decisão** (M3 *Motion → Transitions → Container transform*, *Style → Motion → Easing and duration*; lidas em 19/10/26).
+- **O que se move é uma cópia vazia, não o conteúdo.** Ao clicar no link de um cartão (ou de uma linha de tabela) marcado com
+  `data-container-origin`, `markContainerOrigin` guarda o retângulo e o raio dele (`lib/containerTransition.ts`). Na tela seguinte,
+  `ContainerTransition` acrescenta ao `<body>` um `<div>` fixo, `aria-hidden`, sem eventos de ponteiro, na cor `--m3-surface-container`,
+  que cresce do retângulo do cartão até o de `#conteudo` em 350 ms (`medium3`, `emphasized-decelerate`) e some em opacidade
+  nos últimos 40 %. O conteúdo continua com o esmaecer de D-141 e nenhum ancestral dele ganha `transform`: o que o D-141 protege fica
+  intacto.
+- **Quando não anima:** sob `prefers-reduced-motion`, sem `Element.animate`, em clique modificado (Ctrl, Cmd, Shift, Alt, botão do meio),
+  em origem com mais de 1,5 s (um clique que não virou navegação), ao recarregar ou abrir em outra aba. A origem vale uma vez (estado de
+  módulo, não armazenamento).
+- **Onde:** catálogo (cartão no celular, linha da tabela no desktop → ficha) e lista de cadernos (cartão → caderno). Tela nova que abra
+  um detalhe a partir de uma lista marca o contêiner com `data-container-origin` e põe `onClick={markContainerOrigin}` no link.
+- **Linha de tabela como origem.** No desktop o catálogo é a tabela, e os cartões só aparecem abaixo de `sm`; só o cartão deixaria a
+  transformação valendo apenas no celular.
+
+**Achado.** O React em desenvolvimento roda o efeito, desmonta e roda de novo; a origem, consumida na primeira, não existia na segunda e
+nada era desenhado. A origem agora fica numa `ref` do componente.
+
+**Fora desta decisão.** Voltar da ficha para a lista (a superfície encolhendo para o cartão); animar o conteúdo da ficha por elementos
+compartilhados.
