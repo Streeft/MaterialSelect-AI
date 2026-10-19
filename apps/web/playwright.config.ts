@@ -47,7 +47,17 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // A machine whose Chromium was installed outside Playwright's own cache
+        // (a container image, say) points here; CI leaves it unset.
+        launchOptions: { executablePath: process.env.E2E_CHROMIUM_PATH || undefined },
+      },
+    },
+  ],
   webServer: [
     {
       command: `"${apiPython}" scripts/e2e_server.py`,

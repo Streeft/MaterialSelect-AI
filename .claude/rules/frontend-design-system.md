@@ -121,6 +121,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Uma região aria-live para o app** ([D-146](docs/DECISIONS.md)): o que muda sem o leitor digitar passa
   por `useAnnounce()`; etapa escolhida leva o foco ao título da etapa. Texto que já tem `role="status"` fica.
 
+- **Tela nova entra na suíte de larguras** ([D-147](docs/DECISIONS.md)): acrescente a rota a `ROUTES` em
+  `e2e/larguras.spec.ts`. A página nunca rola na horizontal a 375/768/1280/1920 px; só a caixa de uma tabela ou
+  de um mapa pode. Sem comparação de pixel.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

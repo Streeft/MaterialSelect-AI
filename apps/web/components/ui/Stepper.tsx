@@ -96,7 +96,7 @@ export function Stepper<T extends string>({
           const isCurrent = step.id === current;
           const disabled = status === "blocked";
           return (
-            <li key={step.id} className="sm:flex-1">
+            <li key={step.id} className="sm:min-w-0 sm:flex-1">
               <button
                 type="button"
                 onClick={() => onSelect(step.id)}
