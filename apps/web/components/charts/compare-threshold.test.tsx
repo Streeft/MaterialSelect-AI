@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { renderWithQuery as render } from "@/lib/testing/queryWrapper";
 import { screen } from "shadow-dom-testing-library";
 import { ComparisonView } from "./ComparisonView";
 import { ComputedTable } from "./ComputedSection";

@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { renderWithQuery as render } from "@/lib/testing/queryWrapper";
 // See the note in components/layout/layout.test.tsx: MWC button roles live
 // inside a shadow root, invisible to plain @testing-library/react queries.
 import { screen, within } from "shadow-dom-testing-library";

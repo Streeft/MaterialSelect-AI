@@ -25,6 +25,7 @@ import {
   provenanceOfCell,
   qualityState,
 } from "@/components/ui";
+import { PropertyHint } from "@/components/glossary/PropertyHint";
 import { ChartFrame } from "./ChartFrame";
 import { FigureData, type FigureColumn } from "./FigureData";
 import {
@@ -284,6 +285,11 @@ export function ComparisonView({
                     <span className="ml-1 font-normal normal-case text-ink-subtle">
                       [{prettyUnit(p.unit)}]
                     </span>
+                    <PropertyHint
+                      slug={p.property_slug}
+                      name={p.property_name}
+                      className="ml-1.5 align-middle"
+                    />
                     {/* The percentage rides inside the property's own column
                       rather than doubling the table's width: it is a reading of
                       that property, not a separate measurement. */}
