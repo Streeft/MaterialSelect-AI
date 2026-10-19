@@ -1,0 +1,132 @@
+[
+  {
+    "slug": "ceramicas",
+    "summary": "Compostos inorgânicos de ligação iônica ou covalente, como óxidos, carbonetos e nitretos: duros, rígidos e estáveis no calor, porém frágeis e sensíveis a defeitos pequenos.",
+    "body": [
+      "Nas cerâmicas técnicas os átomos ficam presos por ligações iônicas ou covalentes, fortes e direcionais. Essas ligações dão rigidez, dureza e resistência ao calor e a muitos ataques químicos, mas praticamente impedem o movimento de discordâncias: o material não escoa para aliviar uma concentração de tensão.",
+      "Sem esse alívio, uma trinca pequena, um poro ou um risco na superfície basta para iniciar a fratura. Por isso a resistência à tração fica bem abaixo da resistência à compressão e muda de peça para peça, conforme o maior defeito presente. A resistência de uma cerâmica é, por natureza, uma grandeza estatística.",
+      "Vidros, que não têm ordem cristalina, e cerâmicas tradicionais, como porcelana e tijolo, compartilham a mesma fragilidade, ainda que por microestruturas diferentes."
+    ],
+    "when_to_use": [
+      "Superfícies sujeitas a desgaste e ferramentas de corte.",
+      "Serviço em alta temperatura, como revestimento refratário e isolamento térmico.",
+      "Isolamento elétrico em ambiente quente ou quimicamente agressivo.",
+      "Peças carregadas sobretudo em compressão."
+    ],
+    "watch_out": [
+      "Fragilidade: a peça rompe sem aviso. Evite tração localizada, cantos vivos e impacto.",
+      "Dispersão: a resistência é tratada de forma estatística (distribuição de Weibull) e cai com o tamanho da peça; um valor único de catálogo esconde isso.",
+      "Choque térmico: aquecer ou resfriar depressa gera tensões internas que podem trincar a peça.",
+      "Fabricação a partir de pó e sinterização: a contração na queima limita a tolerância, e usinar depois é difícil e caro.",
+      "União com metal pede cuidado com a diferença de dilatação térmica entre as partes."
+    ],
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "compositos",
+    "summary": "Um reforço, quase sempre fibras, preso numa matriz que o mantém no lugar. Rigidez e resistência por unidade de massa podem ser muito altas, mas dependem da direção da carga e de como a peça foi fabricada.",
+    "body": [
+      "Um compósito junta materiais que continuam distintos dentro da peça. O reforço carrega a maior parte da carga; a matriz, polimérica na maioria dos casos, mantém as fibras alinhadas, transfere a carga entre elas e as protege. Matrizes metálicas e cerâmicas existem, com uso mais restrito.",
+      "As propriedades vêm da combinação e, sobretudo, da arquitetura: tipo de fibra, fração de fibra, orientação das camadas e qualidade da fabricação. Na direção das fibras o laminado é rígido e resistente; na direção transversal e entre camadas quem responde é a matriz, bem mais fraca. Essa anisotropia é o que mais muda a forma de projetar.",
+      "Por isso um valor de propriedade de compósito só tem sentido junto com a configuração a que se refere. O mesmo par de fibra e matriz rende peças muito diferentes conforme o empilhamento escolhido."
+    ],
+    "when_to_use": [
+      "Estruturas em que massa é penalizada: aeronáutica, transporte, artigos esportivos e pás.",
+      "Peças projetadas junto com o material, com as fibras orientadas na direção das cargas principais.",
+      "Ambientes corrosivos em que um metal exigiria proteção.",
+      "Cascos, tanques e vasos de pressão moldados como peça única."
+    ],
+    "watch_out": [
+      "Anisotropia: confira em que direção o valor cadastrado foi medido e em que direção a peça será carregada.",
+      "Delaminação: um impacto pode separar camadas por dentro sem marca visível na superfície.",
+      "Furos e fixadores concentram tensão; colagem e regiões reforçadas costumam ser necessárias.",
+      "A matriz polimérica limita a temperatura de serviço e pode absorver umidade.",
+      "Inspeção, reparo e reciclagem são mais difíceis que nos metais, e o custo depende muito do processo."
+    ],
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "elastomeros",
+    "summary": "Polímeros de cadeias flexíveis com poucas ligações cruzadas, usados acima da transição vítrea: deformam muito sob carga pequena e voltam quase à forma original. É a família das vedações, dos amortecedores e das peças flexíveis.",
+    "body": [
+      "Um elastômero é um polímero em que as cadeias se movem com facilidade, porque ele trabalha acima da sua temperatura de transição vítrea. Ligações cruzadas esparsas, criadas na vulcanização ou na cura, impedem que as cadeias escorreguem de vez umas sobre as outras: puxado, o material estica; solto, volta.",
+      "A rigidez de uma borracha tem origem sobretudo entrópica. Esticar alinha as cadeias, e a tendência de voltarem ao arranjo desordenado produz a força de retorno. Por isso o módulo é muito baixo e, ao contrário do que ocorre na maioria dos materiais, tende a subir com a temperatura dentro da faixa elástica.",
+      "A resposta não é linear e depende da velocidade de carga. Parte da energia de cada ciclo vira calor, a histerese, que é útil para amortecer e prejudicial em peças de ciclo rápido."
+    ],
+    "when_to_use": [
+      "Vedações, juntas e anéis de vedação, que precisam se acomodar à superfície e manter contato.",
+      "Amortecimento de vibração e de impacto, como coxins e batentes.",
+      "Peças de grande deformação recuperável, como mangueiras, correias e pneus.",
+      "Superfícies de pega e de aderência."
+    ],
+    "watch_out": [
+      "Frio: abaixo da transição vítrea o elastômero endurece e perde a função. Confira a temperatura mínima de uso.",
+      "Deformação permanente por compressão: uma vedação comprimida por muito tempo pode não voltar e deixar de vedar.",
+      "Compatibilidade química: óleos, combustíveis e solventes incham ou degradam certos elastômeros, e o tipo escolhido depende do fluido.",
+      "Envelhecimento por ozônio, oxigênio, radiação ultravioleta e calor endurece e trinca a superfície.",
+      "Um módulo único descreve só um trecho da curva; em grande deformação a análise pede modelo hiperelástico."
+    ],
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "metais",
+    "summary": "Materiais de ligação metálica, quase sempre usados como ligas: rígidos, tenazes e bons condutores. São a escolha de partida para peças que carregam carga e precisam deformar, avisando, antes de romper.",
+    "body": [
+      "Nos metais os átomos formam um arranjo cristalino e compartilham uma nuvem de elétrons livres. Essa ligação não é direcional, então planos de átomos conseguem escorregar uns sobre os outros pelo movimento de discordâncias. Daí vêm a ductilidade e a capacidade de deformar antes da ruptura.",
+      "Os mesmos elétrons livres explicam a boa condução de calor e de eletricidade. Quase nunca se usa um metal puro: elementos de liga, tratamento térmico e trabalho mecânico mudam bastante a resistência, porque controlam quão difícil é mover as discordâncias.",
+      "Por isso a família é larga. A mesma base de ferro, alumínio ou titânio dá ligas de comportamento muito diferente, e a designação da liga e o estado de fornecimento dizem mais que o nome da família."
+    ],
+    "when_to_use": [
+      "Peças estruturais e de máquina que precisam combinar rigidez, resistência e tenacidade.",
+      "Quando a falha deve ser progressiva e visível, com deformação antes da ruptura.",
+      "Quando é preciso conduzir calor ou eletricidade.",
+      "Montagens unidas por solda, rebite ou parafuso."
+    ],
+    "watch_out": [
+      "Corrosão: a maioria dos metais reage com o ambiente, e dois metais diferentes em contato com um eletrólito aceleram o ataque ao menos nobre.",
+      "Fadiga: carga cíclica pode romper uma peça abaixo do limite de escoamento, a partir de entalhes, furos e marcas de usinagem.",
+      "Densidade alta em boa parte das ligas: em peça que se move ou voa, compare por índice de desempenho por massa.",
+      "Aços de estrutura cúbica de corpo centrado perdem tenacidade no frio (transição dúctil-frágil).",
+      "A propriedade depende do estado, como tratamento térmico e encruamento: confira se o valor cadastrado é do estado que será usado."
+    ],
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "polimeros",
+    "summary": "Materiais de moléculas muito longas, em geral à base de carbono: leves, isolantes e moldáveis em formas complexas a baixo custo por peça. Rigidez, resistência e temperatura de serviço ficam bem abaixo das de metais e cerâmicas.",
+    "body": [
+      "Um polímero é feito de cadeias longas, formadas pela repetição de uma unidade básica. Dentro da cadeia a ligação é covalente e forte; entre cadeias vizinhas as forças são fracas. Boa parte da resposta mecânica depende dessas forças fracas, o que explica a rigidez baixa e a sensibilidade à temperatura.",
+      "Nos termoplásticos as cadeias não estão ligadas entre si e amolecem com o calor, o que permite moldar e remoldar. Nos termofixos a cura cria ligações cruzadas: o material não amolece de novo nem se remolda. Cristalinidade, cargas e aditivos mudam bastante o comportamento dentro de um mesmo polímero base.",
+      "Acima da temperatura de transição vítrea a parte amorfa amolece, e a rigidez cai depressa com o aquecimento. Essa temperatura é uma das primeiras coisas a conferir na seleção."
+    ],
+    "when_to_use": [
+      "Peças de forma complexa em grande série, moldadas por injeção ou extrusão.",
+      "Isolamento elétrico e térmico, carcaças e embalagens.",
+      "Ambientes úmidos ou químicos em que um metal corroeria, desde que o polímero seja compatível com o meio.",
+      "Mancais e guias de carga baixa, em que alguns polímeros trabalham sem lubrificação."
+    ],
+    "watch_out": [
+      "Fluência e relaxação: sob carga constante a deformação cresce com o tempo, já na temperatura ambiente.",
+      "Temperatura de serviço limitada, com propriedades que mudam bastante dentro da faixa de uso.",
+      "Degradação por radiação ultravioleta e por alguns solventes; certos polímeros absorvem umidade, que muda dimensão e rigidez.",
+      "Muitos polímeros queimam: quando houver requisito de fogo, confirme a classificação do tipo comercial escolhido.",
+      "O nome genérico cobre tipos comerciais muito diferentes; o valor cadastrado vale para o tipo de onde foi tirado."
+    ],
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  }
+]
