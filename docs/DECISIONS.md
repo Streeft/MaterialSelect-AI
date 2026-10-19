@@ -10929,3 +10929,24 @@ digitar nada, e trocar de etapa no assistente deixava o foco no botão que sumiu
 
 **Fora desta decisão.** Playwright em quatro larguras (REDESIGN §10): precisa do backend de teste e fica para
 um PR que possa ser rodado na CI antes de entrar.
+
+## D-147 — Regressão de largura no Playwright: mede a rolagem da página, não pixels
+
+**Contexto.** O REDESIGN §10 pedia "Playwright com screenshots das rotas nos quatro alvos de largura, se couber
+sem inchar a CI", e o §3 manda que nenhuma página role na horizontal. O teste do axe e o Vitest não veem layout.
+
+**Decisão.**
+- **`e2e/larguras.spec.ts`:** cada rota sem id (19) é aberta a 375, 768, 1280 e 1920 px e falha se
+  `document.documentElement.scrollWidth` passar da janela. Uma tabela ou um mapa pode rolar na própria caixa;
+  a página não. Um teste por rota, as quatro larguras na mesma página, para o `next dev` compilar a rota uma vez.
+- **Captura sem baseline.** Cada largura deixa um PNG em `test-results/larguras/`, publicado pela CI só quando o
+  job falha. Comparar pixel a pixel (`toHaveScreenshot`) fica de fora de propósito: a linha de base muda com o
+  sistema operacional e com cada atualização de fonte, e reprovaria a CI sem defeito nenhum.
+- **Custo:** ~3,5 min a mais no job de E2E (19 rotas compiladas pelo `next dev`).
+- **Rotas com id** (`/catalogo/[slug]`, `/cadernos/[id]`…) ficam de fora: precisam de um registro, e cada uma tem
+  o próprio spec. Acrescentar uma rota nova à lista é o que se faz ao criar uma tela.
+- **`E2E_CHROMIUM_PATH`** (opcional) aponta o Playwright para um Chromium instalado à parte; a CI não define.
+
+**Achado.** A primeira rodada reprovou `/app/importar` a 768 px (1022 px numa janela de 768): o `Stepper` tem
+`<li class="sm:flex-1">` sem `min-w-0`, então o item não encolhia abaixo do conteúdo e o 4º passo saía da tela.
+Corrigido com `sm:min-w-0` em `components/ui/Stepper.tsx`.

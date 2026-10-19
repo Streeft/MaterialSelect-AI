@@ -106,6 +106,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 102 — 19/10/26 — Playwright em quatro larguras (D-147)
+
+**O que mudou.** `e2e/larguras.spec.ts`: 19 rotas sem id, cada uma a 375, 768, 1280 e 1920 px, com a regra
+"a página não rola na horizontal" (REDESIGN §10) e uma captura por largura em `test-results/larguras/`.
+`playwright.config.ts` aceita `E2E_CHROMIUM_PATH` para um Chromium instalado fora do cache do Playwright.
+**Achado e corrigido:** em `/app/importar` a 768 px o `Stepper` ficava com 1022 px (o `<li>` flexível sem
+`min-w-0` não deixava o resumo truncar); `components/ui/Stepper.tsx`.
+
+**Testes.** +19 de E2E (rodados localmente: 19 passam depois da correção; antes, 1 falhava). Sem mudança nos
+1236 de unidade, sem backend nem migração.
+
 ## Sessão 101 — 17/10/26 — Região aria-live global e foco no título da etapa (D-146)
 
 **O que mudou.** `AnnouncerProvider`/`useAnnounce` (`components/ui/Announcer.tsx`), montado em `app/app/layout.tsx`;
