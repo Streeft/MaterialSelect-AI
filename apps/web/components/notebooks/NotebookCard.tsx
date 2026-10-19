@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteNotebook, updateNotebook } from "@/lib/api";
+import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
 import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
@@ -60,10 +61,11 @@ export function NotebookCard({
   );
 
   return (
-    <Card riseIndex={index} className="relative h-full">
+    <Card riseIndex={index} className="relative h-full" {...{ [ORIGIN_ATTRIBUTE]: "" }}>
       {draft === null ? (
         <Link
           href={`/app/cadernos/${notebook.id}`}
+          onClick={markContainerOrigin}
           className="flex h-full flex-col gap-3 p-4 pr-14 hover:bg-brand-50"
         >
           <span aria-hidden className="text-3xl">

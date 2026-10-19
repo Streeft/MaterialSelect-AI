@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
@@ -35,13 +36,14 @@ function MaterialCard({
   const total = filled + quality.missing;
 
   return (
-    <Card riseIndex={index}>
+    <Card riseIndex={index} {...{ [ORIGIN_ATTRIBUTE]: "" }}>
       <CardBody className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <span className="flex flex-wrap items-center gap-2">
               <Link
                 href={`/app/materiais/${material.id}`}
+                onClick={markContainerOrigin}
                 className="text-[0.9375rem] font-semibold text-brand-700"
               >
                 <HighlightText text={material.name} query={searchQuery} />

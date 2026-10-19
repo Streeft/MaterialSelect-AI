@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { ContainerTransition } from "./ContainerTransition";
 
 /**
  * The screen-to-screen transition (D-141, after the M3 "fade through" pattern).
@@ -19,6 +20,7 @@ export function RouteTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
     <div key={pathname} className="m3-route-enter">
+      <ContainerTransition />
       {children}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
 import type { DataQualitySummary, MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
@@ -91,7 +92,11 @@ function MaterialName({
 }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <Link href={`/app/materiais/${material.id}`} className="font-medium text-brand hover:underline">
+      <Link
+        href={`/app/materiais/${material.id}`}
+        onClick={markContainerOrigin}
+        className="font-medium text-brand hover:underline"
+      >
         <HighlightText text={material.name} query={searchQuery} />
       </Link>
     </span>
@@ -219,7 +224,11 @@ export function MaterialTable({
           </THead>
           <TBody>
             {rows.map((m) => (
-              <Tr key={m.id} className={picked.has(m.id) ? "bg-brand-50" : undefined}>
+              <Tr
+                key={m.id}
+                className={picked.has(m.id) ? "bg-brand-50" : undefined}
+                {...{ [ORIGIN_ATTRIBUTE]: "" }}
+              >
                 <Td>
                   <Checkbox
                     aria-label={t.selectRow(m.name)}

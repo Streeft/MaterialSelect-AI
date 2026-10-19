@@ -125,6 +125,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `e2e/larguras.spec.ts`. A página nunca rola na horizontal a 375/768/1280/1920 px; só a caixa de uma tabela ou
   de um mapa pode. Sem comparação de pixel.
 
+- **Abrir um detalhe a partir de uma lista é transformação de contêiner** ([D-148](docs/DECISIONS.md)): o cartão ou a linha leva
+  `data-container-origin` e o link, `onClick={markContainerOrigin}`; quem se move é uma superfície vazia no `<body>`
+  (`ContainerTransition`), **nunca** o conteúdo nem um ancestral dele. Desligada sob redução de movimento.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum
