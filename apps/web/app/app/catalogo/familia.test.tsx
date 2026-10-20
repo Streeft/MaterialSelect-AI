@@ -4,7 +4,13 @@ import { screen, within } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { MaterialClass, MaterialClassDetail, MaterialListItem } from "@/lib/types";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import type {
+  FamilyNoteEntry,
+  MaterialClass,
+  MaterialClassDetail,
+  MaterialListItem,
+} from "@/lib/types";
 
 const f = ptBR.family;
 
@@ -79,10 +85,26 @@ const detail: MaterialClassDetail = {
   descendant_material_count: 1,
 };
 
+const note: FamilyNoteEntry = {
+  slug: "metais",
+  summary: "Materiais de ligação metálica.",
+  body: ["Átomos num arranjo cristalino."],
+  when_to_use: ["Peças que carregam carga."],
+  watch_out: ["Corrosão."],
+  reference: null,
+  license: "Texto autoral do projeto MaterialSelect AI.",
+  review_status: "rascunho",
+  lang: "pt-BR",
+};
+
+const notesMock = vi.fn(() => Promise.resolve([note]));
+const classMock = vi.fn(() => Promise.resolve(detail));
+
 vi.mock("@/lib/api", () => ({
-  getClass: () => Promise.resolve(detail),
+  getClass: (...a: unknown[]) => (classMock as (...x: unknown[]) => unknown)(...a),
   listClasses: () => Promise.resolve(classes),
   listMaterials: () => Promise.resolve(materials),
+  listFamilyNotes: () => notesMock(),
 }));
 
 function wrap(node: ReactNode) {
@@ -138,5 +160,51 @@ describe("a ficha da família de material", () => {
     const trail = await screen.findByShadowRole("navigation", { name: "Trilha de navegação" });
     expect(within(trail).getByShadowRole("link", { name: f.allClasses })).toBeInTheDocument();
     expect(within(trail).getByText("Metais")).toHaveAttribute("aria-current", "page");
+  });
+
+  describe("nota da família (D-151)", () => {
+    it("aparece dobrada, com o estado de revisão em texto", async () => {
+      notesMock.mockClear();
+      render(wrap(<MaterialFamilyPage />));
+
+      const summary = await screen.findByText(ptBR.familyNotes.about("Metais"));
+      expect(summary.closest("details")?.open).toBe(false);
+      expect(screen.getAllByText(/rascunho/i).length).toBeGreaterThan(0);
+      expect(notesMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("não tem violação de acessibilidade com a nota aberta", async () => {
+      const { container } = render(wrap(<MaterialFamilyPage />));
+      const summary = await screen.findByText(ptBR.familyNotes.about("Metais"));
+      summary.closest("details")?.setAttribute("open", "");
+      const violations = await findA11yViolations(container);
+      expect(violations, describeViolations(violations)).toEqual([]);
+    });
+
+    it("diz que não há nota quando a família não tem", async () => {
+      route.slug = "ferrosos";
+      classMock.mockResolvedValueOnce({
+        ...(classes[1] as MaterialClass),
+        applications: null,
+        characteristics: null,
+        ancestors: [classes[0] as MaterialClass],
+        children: [],
+        descendant_material_count: 1,
+      });
+      render(wrap(<MaterialFamilyPage />));
+
+      expect(await screen.findByText(new RegExp(ptBR.familyNotes.missing))).toBeInTheDocument();
+      expect(screen.queryByText(ptBR.familyNotes.about("Ferrosos"))).toBeNull();
+      route.slug = "metais";
+    });
+
+    it("escreve o erro e deixa tentar de novo, sem derrubar a ficha", async () => {
+      notesMock.mockRejectedValueOnce(new Error("falhou"));
+      render(wrap(<MaterialFamilyPage />));
+
+      expect(await screen.findByText(ptBR.familyNotes.inlineError)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: ptBR.familyNotes.retry })).toBeInTheDocument();
+      expect(screen.getByText("Estruturas e componentes de máquina.")).toBeInTheDocument();
+    });
   });
 });

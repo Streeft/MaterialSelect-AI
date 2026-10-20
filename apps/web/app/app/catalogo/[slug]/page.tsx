@@ -9,6 +9,7 @@ import { ptBR } from "@/lib/i18n";
 import { descendantSlugs } from "@/lib/taxonomy";
 import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
+import { FamilyNote } from "@/components/glossary/FamilyNote";
 import {
   Breadcrumb,
   Card,
@@ -79,6 +80,15 @@ export default function MaterialFamilyPage() {
         applications={data.applications}
         characteristics={data.characteristics}
       />
+
+      {/* D-151: the conceptual note for this class, keyed by its slug. The query
+          is the same one the material sheet and the glossary use, so a reader
+          moving between them pays one request. */}
+      <Card>
+        <CardBody>
+          <FamilyNote slug={data.slug} name={data.name} />
+        </CardBody>
+      </Card>
 
       {hasChildren && (
         <Section id="subclasses" title={f.subclasses}>
