@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   CRITERION_PARAM,
+  TOLERANCE_PARAM,
   WEIGHT_PARAM,
   parseSettings,
+  parseTolerance,
+  parseToleranceInput,
   requestSettings,
   writeSettings,
+  writeTolerance,
 } from "./similarSettings";
 
 describe("ajustes de proximidade na URL (D-120)", () => {
@@ -68,5 +72,38 @@ describe("ajustes de proximidade na URL (D-120)", () => {
         "a",
       ]),
     ).toEqual({ weights: { a: 2 }, criteria: {} });
+  });
+});
+
+describe("tolerância na URL (D-155)", () => {
+  it("lê o que se digita, com vírgula, e recusa fora de (0, 100]", () => {
+    expect(parseToleranceInput("")).toBeNull();
+    expect(parseToleranceInput("  ")).toBeNull();
+    expect(parseToleranceInput("10")).toBe(10);
+    expect(parseToleranceInput("2,5")).toBe(2.5);
+    expect(parseToleranceInput("5%")).toBe(5);
+    expect(parseToleranceInput("100")).toBe(100);
+    expect(parseToleranceInput("0")).toBe("invalid");
+    expect(parseToleranceInput("-3")).toBe("invalid");
+    expect(parseToleranceInput("100,1")).toBe("invalid");
+    expect(parseToleranceInput("abc")).toBe("invalid");
+    expect(parseToleranceInput("Infinity")).toBe("invalid");
+  });
+
+  it("descarta valor inválido da URL em vez de consertar", () => {
+    const read = (raw: string) =>
+      parseTolerance(new URLSearchParams(`${TOLERANCE_PARAM}=${raw}`));
+    expect(read("10")).toBe(10);
+    expect(read("0")).toBeNull();
+    expect(read("x")).toBeNull();
+    expect(parseTolerance(new URLSearchParams())).toBeNull();
+  });
+
+  it("grava e apaga a tolerância sem tocar nos outros parâmetros", () => {
+    const base = new URLSearchParams(`${WEIGHT_PARAM}=densidade:2`);
+    const set = writeTolerance(base, 7.5);
+    expect(set.get(TOLERANCE_PARAM)).toBe("7.5");
+    expect(set.get(WEIGHT_PARAM)).toBe("densidade:2");
+    expect(writeTolerance(set, null).has(TOLERANCE_PARAM)).toBe(false);
   });
 });

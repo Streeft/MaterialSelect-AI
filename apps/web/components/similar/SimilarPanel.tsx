@@ -11,8 +11,11 @@ import { formatNumber } from "@/lib/format";
 import {
   WEIGHT_OPTIONS,
   parseSettings,
+  parseTolerance,
+  parseToleranceInput,
   requestSettings,
   writeSettings,
+  writeTolerance,
   type NearnessSettings,
 } from "@/lib/similarSettings";
 import {
@@ -24,9 +27,19 @@ import {
   Checkbox,
   EmptyState,
   ErrorState,
+  Input,
+  RowHeader,
   Section,
   Select,
   SelectOption,
+  TBody,
+  THead,
+  Table,
+  TableCaption,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
 } from "@/components/ui";
 
 const t = ptBR.similar;
@@ -79,7 +92,14 @@ function NamedList({
  * diagnostics for a developer: a ranked list without them is a verdict, and the
  * point of the feature is that a reader can check it.
  */
-export function SimilarPanel({ material }: { material: MaterialDetail }) {
+export function SimilarPanel({
+  material,
+  unitChoices,
+}: {
+  material: MaterialDetail;
+  /** The reader's units (D-70): they only print the tolerance bands. */
+  unitChoices?: Record<string, string>;
+}) {
   const [basis, setBasis] = useState<string[]>(() => proposedBasis(material));
   const properties = useQuery({
     queryKey: ["properties"],
@@ -90,12 +110,33 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
   const params = useSearchParams();
   // The settings live in the URL (D-120), so the same link asks the same question.
   const settings = useMemo(() => parseSettings(params), [params]);
+  // The tolerance lives in the URL too (D-155); the field keeps what is typed,
+  // so "2," on the way to "2,5" is not wiped by a re-parse.
+  const [toleranceText, setToleranceText] = useState(() => {
+    const value = parseTolerance(params);
+    return value === null ? "" : formatNumber(value);
+  });
+  const tolerance = parseToleranceInput(toleranceText);
 
   function updateSettings(next: NearnessSettings) {
     const query = writeSettings(
       new URLSearchParams(params.toString()),
       next,
       basis,
+    ).toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function changeTolerance(text: string) {
+    setToleranceText(text);
+    const value = parseToleranceInput(text);
+    // An invalid entry is reported in the field and never written to the link.
+    if (value === "invalid") return;
+    const query = writeTolerance(
+      new URLSearchParams(params.toString()),
+      value,
     ).toString();
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
@@ -118,11 +159,18 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
 
   const search = useMutation<Similar, Error>({
     mutationFn: () =>
-      findSimilar(material.id, {
-        property_slugs: basis,
-        limit: 10,
-        ...requestSettings(settings, basis),
-      }),
+      findSimilar(
+        material.id,
+        {
+          property_slugs: basis,
+          limit: 10,
+          ...requestSettings(settings, basis),
+          ...(typeof tolerance === "number"
+            ? { tolerance_pct: tolerance }
+            : {}),
+        },
+        unitChoices,
+      ),
   });
 
   const nameOf = (slug: string) =>
@@ -164,6 +212,17 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                 {t.settingsTitle}
               </legend>
               <p className="text-support text-ink-muted">{t.settingsHint}</p>
+              {/* Text with a decimal keypad, not type="number": a pt-BR reader
+                  types "2,5", and a number input drops what it cannot parse. */}
+              <Input
+                label={t.toleranceLabel}
+                hint={tolerance === "invalid" ? undefined : t.toleranceHint}
+                error={tolerance === "invalid" ? t.toleranceInvalid : undefined}
+                className="max-w-xs tabular-nums"
+                inputMode="decimal"
+                value={toleranceText}
+                onChange={(event) => changeTolerance(event.target.value)}
+              />
               <div className="flex flex-col gap-3">
                 {basis.map((slug) => {
                   const name = nameOf(slug);
@@ -216,7 +275,11 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
           <div className="flex items-center gap-3">
             <Button
               size="sm"
-              disabled={basis.length === 0 || search.isPending}
+              disabled={
+                basis.length === 0 ||
+                search.isPending ||
+                tolerance === "invalid"
+              }
               onClick={() => search.mutate()}
             >
               {search.isPending ? t.loading : t.search}
@@ -236,6 +299,10 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                 hint={t.distanceHint}
                 items={result.basis_labels}
               />
+
+              {result.tolerance_pct !== null && (
+                <ToleranceSummary result={result} pct={result.tolerance_pct} />
+              )}
 
               {result.neighbours.length === 0 ? (
                 <EmptyState title={t.empty} description={t.excludedHint} />
@@ -266,6 +333,14 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                               {t.distance}: {formatNumber(neighbour.distance)}
                             </span>
                           </div>
+                          {neighbour.tolerance_matches !== null && (
+                            <span className="text-xs text-ink">
+                              {t.toleranceSummary(
+                                neighbour.tolerance_matches,
+                                applicableCount(result),
+                              )}
+                            </span>
+                          )}
                           {/* Why this position: each property's weighted share (D-120). */}
                           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
                             <dt className="sr-only">{t.contributionsTitle}</dt>
@@ -283,6 +358,16 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
                                       {" "}
                                       <Badge tone="success">
                                         {t.satisfiedTag}
+                                      </Badge>
+                                    </>
+                                  )}
+                                  {neighbour.within_tolerance.includes(
+                                    slug,
+                                  ) && (
+                                    <>
+                                      {" "}
+                                      <Badge tone="success">
+                                        {t.toleranceInside}
                                       </Badge>
                                     </>
                                   )}
@@ -338,5 +423,84 @@ export function SimilarPanel({ material }: { material: MaterialDetail }) {
         </CardBody>
       </Card>
     </Section>
+  );
+}
+
+/** Basis properties that got a band: the denominator of "x de N". */
+function applicableCount(result: Similar): number {
+  return result.tolerance_bands.filter((band) => band.applicable).length;
+}
+
+/**
+ * The bands that ran and, as a table, who falls inside each one (D-155).
+ *
+ * Every state is written — "Dentro da faixa", "Fora da faixa", "Sem faixa" —
+ * never a colour alone, and the table is the textual source of the badges on
+ * the cards (D-31). A record without a value never reaches this table: it was
+ * excluded before any band was read, and the exclusion list says why (D-24).
+ */
+function ToleranceSummary({ result, pct }: { result: Similar; pct: number }) {
+  return (
+    <div className="subsection flex flex-col gap-2">
+      <span className="text-xs font-medium text-ink">
+        {t.toleranceTitle(formatNumber(pct))}
+      </span>
+      <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+        {result.tolerance_bands.map((band) => (
+          <li key={band.slug}>
+            {band.label}:{" "}
+            {band.applicable && band.low !== null && band.high !== null
+              ? t.toleranceBand(
+                  formatNumber(band.low),
+                  formatNumber(band.high),
+                  band.unit,
+                )
+              : t.toleranceNotApplicable}
+          </li>
+        ))}
+      </ul>
+      {result.neighbours.length > 0 && (
+        <TableScroll label={t.toleranceTableCaption}>
+          <Table>
+            <TableCaption>{t.toleranceTableCaption}</TableCaption>
+            <THead>
+              <Tr>
+                <Th>{t.toleranceMaterialHeader}</Th>
+                {result.tolerance_bands.map((band) => (
+                  <Th key={band.slug}>{band.label}</Th>
+                ))}
+                <Th>{t.toleranceMatchesHeader}</Th>
+              </Tr>
+            </THead>
+            <TBody>
+              {result.neighbours.map((neighbour) => (
+                <Tr key={neighbour.record_id}>
+                  <RowHeader>{neighbour.name}</RowHeader>
+                  {result.tolerance_bands.map((band) => (
+                    <Td key={band.slug}>
+                      {!band.applicable ? (
+                        t.toleranceNoBand
+                      ) : neighbour.within_tolerance.includes(band.slug) ? (
+                        <Badge tone="success">{t.toleranceInside}</Badge>
+                      ) : (
+                        t.toleranceOutside
+                      )}
+                    </Td>
+                  ))}
+                  <Td numeric>
+                    {neighbour.tolerance_matches === null
+                      ? t.toleranceNoBand
+                      : t.toleranceMatches(
+                          neighbour.tolerance_matches,
+                          applicableCount(result),
+                        )}
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </TableScroll>
+      )}
+    </div>
   );
 }
