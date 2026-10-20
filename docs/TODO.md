@@ -216,8 +216,18 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
 - **GL-c — slugs do bundle oficial.** ▃ Propriedades que o bundle do D-102 trouxer
   aparecem como "Sem verbete no glossário" até ganharem verbete autoral; o
   canário de cobertura só cobre `seed.PROPERTIES`.
-- *Science Notes* de família e imagem de família continuam pendentes (fora do
-  D-130: o glossário é por propriedade, não por família).
+- ~~*Science Notes* de família~~ ✔ ([D-151](DECISIONS.md), Sessão 106): nota
+  conceitual por família em `app/glossary/families.json` (sem algarismo, licença
+  MIT, `rascunho`), `GET /api/familias/notas` e `/{slug}` (404 escrito),
+  `FamilyNote` dobrada na ficha sob a classe e página `/app/glossario/familias`.
+  Resíduos:
+  - **SN-a — revisão do autor.** ▁ As cinco notas nascem `rascunho`; o autor
+    revisa as afirmações técnicas e muda para `revisado` no arquivo.
+  - **SN-b — nota na página da família.** ▁ `/app/catalogo/{slug}` ainda mostra só
+    a prosa curta do P1-4; a nota pode entrar ali com o mesmo `FamilyNoteContent`.
+  - **SN-c — famílias do bundle oficial.** ▃ Classes que o D-102 trouxer aparecem
+    como "Sem nota para esta família"; o canário de cobertura só cobre `seed.CLASSES`.
+- Imagem de família continua pendente (exige imagem com licença própria).
 
 **Gráfico de Ragone das baterias (lacuna do EduPack; [D-145](DECISIONS.md), Sessão 100).** ✔
 Entregue: ~~`GET /api/baterias/ragone` (pontos do catálogo, eixos log, linhas de iso-tempo E = P·t e

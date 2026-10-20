@@ -25,6 +25,7 @@ import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
+import { FamilyNote } from "@/components/glossary/FamilyNote";
 import { PropertyChart } from "@/components/PropertyChart";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { groupsAtLevel } from "@/lib/depth";
@@ -210,6 +211,12 @@ export default function MaterialDetailPage() {
                     </span>
                   )}
                 </div>
+                {/* D-151: the family's note, folded, right under the class it explains. */}
+                <FamilyNote
+                  slug={data.class_slug}
+                  name={data.class_name}
+                  className="mt-2 max-w-prose"
+                />
                 {data.description && (
                   <p className="mt-2 max-w-prose text-sm text-ink-muted">
                     {data.description}
