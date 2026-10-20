@@ -11,7 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1269 → 1276 |
+| [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
 | [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
