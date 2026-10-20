@@ -436,6 +436,13 @@ class ComputedColumnOut(BaseModel):
     values: list[ComputedValueOut]
     defined_count: int
     undefined_count: int
+    #: (max - min) / largest magnitude, in percent, over the defined values —
+    #: only when the index keeps a true zero (see ``is_multiplicative``); else
+    #: ``None`` with the reason in ``spread_state`` (D-24, D-128).
+    spread_pct: float | None = None
+    spread_state: SpreadState = "valores_insuficientes"
+    #: ``None`` when no threshold was asked or there is no spread to compare.
+    exceeds_threshold: bool | None = None
 
 
 class CompareOut(BaseModel):

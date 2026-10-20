@@ -207,6 +207,72 @@ def test_computed_ratio_is_evaluated_in_the_backend(
             assert item["undefined_reason"] is None
 
 
+def test_computed_carries_its_own_spread_and_flag(client: TestClient, db_session: Session) -> None:
+    ids = _ids(db_session)
+    expression = [{"expression": "modulo_young / densidade"}]
+    plain = _post(client, material_ids=ids, computed=expression).json()["computed"][0]
+    flagged = _post(
+        client, material_ids=ids, computed=expression, highlight_threshold_pct=0.001
+    ).json()["computed"][0]
+    # Without a threshold the spread is there and the flag is not.
+    assert plain["exceeds_threshold"] is None
+    assert plain["spread_state"] == "calculada"
+    defined = [v["value"] for v in plain["values"] if v["value"] is not None]
+    assert plain["spread_pct"] == pytest.approx(
+        (max(defined) - min(defined)) / max(abs(v) for v in defined) * 100
+    )
+    assert flagged["spread_pct"] == plain["spread_pct"]
+    assert flagged["exceeds_threshold"] is True
+    huge = _post(
+        client, material_ids=ids, computed=expression, highlight_threshold_pct=1000
+    ).json()["computed"][0]
+    assert huge["exceeds_threshold"] is False
+
+
+def test_computed_with_a_sum_gets_no_spread_and_says_why(
+    client: TestClient, db_session: Session
+) -> None:
+    # A difference can move the zero: a percentage of it would be a made-up claim.
+    body = _post(
+        client,
+        material_ids=_ids(db_session),
+        computed=[{"expression": "densidade - densidade / 2"}],
+        highlight_threshold_pct=10,
+    ).json()["computed"][0]
+    assert body["spread_pct"] is None
+    assert body["spread_state"] == "escala_sem_zero"
+    assert body["exceeds_threshold"] is None
+
+
+def test_computed_with_one_defined_value_has_no_spread(
+    client: TestClient, db_session: Session
+) -> None:
+    ids = _ids(db_session)
+    body = _post(
+        client, material_ids=ids[:1], computed=[{"expression": "modulo_young / densidade"}]
+    ).json()["computed"][0]
+    assert body["spread_pct"] is None
+    assert body["spread_state"] == "valores_insuficientes"
+
+
+def test_expression_errors_are_written_in_portuguese(
+    client: TestClient, db_session: Session
+) -> None:
+    ids = _ids(db_session)
+    for expression, expected in [
+        ("densidade /", "Sintaxe inválida"),
+        ("densidade > 3", "Construção não permitida"),
+        ("inexistente / densidade", "Variáveis desconhecidas"),
+        ("densidade + modulo_young", "dimensionalmente inconsistente"),
+    ]:
+        res = _post(client, material_ids=ids, computed=[{"expression": expression}])
+        assert res.status_code == 400, expression
+        detail = res.json()["detail"]
+        assert expected in detail
+        assert "invalid syntax" not in detail
+        assert "Compare" not in detail
+
+
 def test_computed_unknown_property_is_refused(client: TestClient, db_session: Session) -> None:
     res = _post(
         client, material_ids=_ids(db_session), computed=[{"expression": "inexistente / densidade"}]
