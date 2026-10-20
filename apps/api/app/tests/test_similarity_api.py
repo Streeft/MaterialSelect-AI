@@ -204,3 +204,59 @@ def test_nearness_settings_are_validated(client: TestClient, db_session: Session
     assert _post(client, material_id, weights={"densidade": 11}).status_code == 422
     assert _post(client, material_id, criteria={"densidade": "nearly"}).status_code == 422
     assert _post(client, material_id, weights={"resistividade": 2}).status_code == 422
+
+
+def test_without_tolerance_the_answer_is_unchanged(client: TestClient, db_session: Session) -> None:
+    """D-152 is opt-in: an older client that never sends it gets the old answer."""
+    body = _post(client, _first_material_id(db_session)).json()
+
+    assert body["tolerance_pct"] is None
+    assert body["tolerance_bands"] == []
+    for neighbour in body["neighbours"]:
+        assert neighbour["within_tolerance"] == []
+        assert neighbour["tolerance_matches"] is None
+
+
+def test_tolerance_marks_each_property_and_counts_matches(
+    client: TestClient, db_session: Session
+) -> None:
+    body = _post(client, _first_material_id(db_session), tolerance_pct=50).json()
+
+    assert body["tolerance_pct"] == 50
+    assert [band["slug"] for band in body["tolerance_bands"]] == BASIS
+    assert all(band["applicable"] for band in body["tolerance_bands"])
+    for band in body["tolerance_bands"]:
+        assert band["low"] < band["high"]
+    for neighbour in body["neighbours"]:
+        assert set(neighbour["within_tolerance"]) <= set(BASIS)
+        assert neighbour["tolerance_matches"] == len(neighbour["within_tolerance"])
+        for slug in neighbour["within_tolerance"]:
+            assert neighbour["contributions"][slug] == 0.0
+
+
+def test_tolerance_band_is_printed_in_the_reading_unit(
+    client: TestClient, db_session: Session
+) -> None:
+    """The band is drawn on canonical values; the reader's unit only prints it."""
+    material_id = _first_material_id(db_session)
+    path = f"/api/materials/{material_id}/similares"
+    payload = {"property_slugs": ["densidade"], "tolerance_pct": 10}
+    in_kg = client.post(f"{path}?unidades=densidade:kg/m**3", json=payload).json()
+    in_g = client.post(f"{path}?unidades=densidade:g/cm**3", json=payload).json()
+
+    kg_band = in_kg["tolerance_bands"][0]
+    g_band = in_g["tolerance_bands"][0]
+    assert abs(g_band["low"] * 1000 - kg_band["low"]) < 1e-6 * kg_band["low"]
+    assert abs(g_band["high"] * 1000 - kg_band["high"]) < 1e-6 * kg_band["high"]
+    assert g_band["unit"] != kg_band["unit"]
+    # Membership never depends on the unit the reader picked.
+    assert [n["within_tolerance"] for n in in_kg["neighbours"]] == [
+        n["within_tolerance"] for n in in_g["neighbours"]
+    ]
+
+
+def test_invalid_tolerance_is_refused(client: TestClient, db_session: Session) -> None:
+    material_id = _first_material_id(db_session)
+    for value in (0, -1, 100.5, "muito"):
+        assert _post(client, material_id, tolerance_pct=value).status_code == 422
+    assert _post(client, material_id, tolerance_pct=100).status_code == 200

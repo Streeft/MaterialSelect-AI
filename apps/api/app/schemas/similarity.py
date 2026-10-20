@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.domain.nearness import MAX_WEIGHT
+from app.domain.nearness import MAX_TOLERANCE_PCT, MAX_WEIGHT
 
 #: Enough to describe a material without turning the request into a survey. The
 #: basis is a question, and a question over twenty properties is not one.
@@ -35,6 +35,12 @@ class SimilarRequest(BaseModel):
     #: matter" is said by taking it out of the basis, where the answer shows it.
     weights: dict[str, Annotated[float, Field(gt=0, le=MAX_WEIGHT)]] = Field(default_factory=dict)
     criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
+    #: "100% se dentro de ±x%" (D-152): one percentage for every basis property,
+    #: drawn around the reference's canonical value. Omitted = no band, and the
+    #: answer is exactly the one before D-152.
+    tolerance_pct: float | None = Field(
+        default=None, gt=0, le=MAX_TOLERANCE_PCT, allow_inf_nan=False
+    )
 
     @model_validator(mode="after")
     def _settings_belong_to_the_basis(self) -> SimilarRequest:
@@ -62,6 +68,25 @@ class NeighbourOut(BaseModel):
     #: Properties where a one-sided criterion accepted a real difference
     #: ("100% se igual ou menor/maior"). Never a property the record lacks.
     satisfied: list[str] = Field(default_factory=list)
+    #: Basis properties inside ``reference ± x%`` (D-152), in basis order.
+    #: Never a property the record lacks: a missing value excludes the record.
+    within_tolerance: list[str] = Field(default_factory=list)
+    #: How many basis properties fall inside the band; ``None`` when no
+    #: tolerance was asked — "not asked" is not "zero matches".
+    tolerance_matches: int | None = None
+
+
+class ToleranceBandOut(BaseModel):
+    """The band one basis property ran with, in the unit the reader reads."""
+
+    slug: str
+    label: str
+    #: Bounds included. ``None`` on both when the property's scale has no true
+    #: zero, where a percentage of the value means nothing (``applicable`` false).
+    low: float | None
+    high: float | None
+    unit: str
+    applicable: bool
 
 
 class ExcludedOut(BaseModel):
@@ -92,3 +117,7 @@ class SimilarOut(BaseModel):
     #: The settings that ran, defaults written out (D-120): part of the basis.
     weights: dict[str, float] = Field(default_factory=dict)
     criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
+    #: The tolerance that ran (D-152), ``None`` when none was asked.
+    tolerance_pct: float | None = None
+    #: One band per basis property, in basis order; empty without a tolerance.
+    tolerance_bands: list[ToleranceBandOut] = Field(default_factory=list)

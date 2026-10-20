@@ -45,6 +45,18 @@ The distance becomes the **weighted** mean of the squared differences — still 
 mean, so the default weights reproduce the unweighted distance exactly. A weight
 never touches a missing value: absence still excludes the record before any
 weighting, so no criterion can turn a missing value into a "100%".
+
+**Percent tolerance: "100% if within ±x%" (D-152).** One optional percentage
+``x`` (``0 < x <= MAX_TOLERANCE_PCT``) draws, for each basis property, the band
+``reference ± x% of the reference`` on the **canonical** value, bounds included.
+A candidate inside the band counts as identical there — that property
+contributes zero, as the D-120 criterion does on its accepted side — and is
+named in ``within_tolerance``. Outside the band the difference counts in full,
+never reduced by the band's width. A percentage only means something on a ratio
+scale (``units.is_ratio_scale``), so a property on a scale without a true zero
+gets no band and is named in ``tolerance_not_applicable``. Absence still comes
+first: a record without the value was excluded before any band was read, so it
+can never be "inside" one. Without ``x`` nothing changes.
 """
 
 from __future__ import annotations
@@ -67,6 +79,15 @@ CRITERIA: tuple[Criterion, ...] = ("both", "at_most", "at_least")
 #: which is the silent narrowing ``degenerate`` exists to prevent.
 MAX_WEIGHT = 10.0
 
+#: Upper bound on the tolerance, in percent. ±100% already spans from zero to
+#: twice the reference; a wider band would call nearly everything "identical"
+#: and empty the ranking of meaning while still showing one.
+MAX_TOLERANCE_PCT = 100.0
+
+#: Relative slack on the band edge, so that a value exactly on ``ref ± x%`` is
+#: not pushed outside by the last bit of a float product (inclusive bounds).
+_EDGE_REL_TOL = 1e-12
+
 
 @dataclass
 class Neighbour:
@@ -87,6 +108,17 @@ class Neighbour:
     #: ever lists properties the candidate *has* — a missing value is excluded
     #: before any criterion is read.
     satisfied: list[str] = field(default_factory=list)
+    #: Basis properties whose value falls inside ``reference ± x%`` (D-152),
+    #: in basis order. Empty when no tolerance was asked.
+    within_tolerance: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ToleranceBand:
+    """The band one basis property ran with, in canonical units, bounds included."""
+
+    low: float
+    high: float
 
 
 @dataclass
@@ -120,6 +152,40 @@ class NearnessResult:
     #: included — the settings are part of the basis, so they come back with it.
     weights: dict[str, float] = field(default_factory=dict)
     criteria: dict[str, Criterion] = field(default_factory=dict)
+    #: The tolerance that ran (D-152), or ``None`` when none was asked.
+    tolerance_pct: float | None = None
+    #: Per-property band around the reference, for every basis property where a
+    #: percentage means something.
+    tolerance_bands: dict[str, ToleranceBand] = field(default_factory=dict)
+    #: Basis properties on a scale without a true zero: no band was drawn.
+    tolerance_not_applicable: list[str] = field(default_factory=list)
+
+
+def validate_tolerance(tolerance_pct: float | None) -> float | None:
+    """The tolerance as a float, or ``None``; anything else is refused (D-152)."""
+    if tolerance_pct is None:
+        return None
+    value = float(tolerance_pct)
+    if not math.isfinite(value) or value <= 0 or value > MAX_TOLERANCE_PCT:
+        raise ValidationError(
+            f"A tolerância precisa ser maior que 0% e no máximo {MAX_TOLERANCE_PCT:g}%."
+        )
+    return value
+
+
+def tolerance_band(reference: float, tolerance_pct: float) -> ToleranceBand:
+    """``reference ± tolerance_pct%`` of the reference, ordered low to high."""
+    half_width = abs(reference) * tolerance_pct / 100.0
+    return ToleranceBand(low=reference - half_width, high=reference + half_width)
+
+
+def is_within(value: float, band: ToleranceBand) -> bool:
+    """Whether ``value`` lies in ``band``, both bounds included."""
+    if band.low <= value <= band.high:
+        return True
+    return math.isclose(value, band.low, rel_tol=_EDGE_REL_TOL) or math.isclose(
+        value, band.high, rel_tol=_EDGE_REL_TOL
+    )
 
 
 def resolve_settings(
@@ -188,6 +254,8 @@ def find_similar(
     limit: int = 10,
     weights: dict[str, float] | None = None,
     criteria: dict[str, str] | None = None,
+    tolerance_pct: float | None = None,
+    ratio_scale: dict[str, bool] | None = None,
 ) -> NearnessResult:
     """Rank ``records`` by distance from ``reference_id`` over ``basis``.
 
@@ -207,6 +275,10 @@ def find_similar(
         weights: per-slug positive factor (default 1), D-120.
         criteria: per-slug ``both`` / ``at_most`` / ``at_least`` (default
             ``both``), D-120.
+        tolerance_pct: optional ``x`` of "100% if within ±x%" (D-152).
+        ratio_scale: per-slug answer of ``units.is_ratio_scale`` for the
+            canonical unit. A slug absent from the map gets no band — the
+            conservative reading, which never invents a percentage.
 
     Raises:
         ValidationError: empty basis, unknown reference, or a reference that
@@ -217,6 +289,7 @@ def find_similar(
     if limit < 1:
         raise ValidationError("O número de semelhantes precisa ser ao menos 1.")
     resolved_weights, resolved_criteria = resolve_settings(basis, weights, criteria)
+    tolerance = validate_tolerance(tolerance_pct)
 
     by_id = {record_id: (name, values) for record_id, name, values in records}
     if reference_id not in by_id:
@@ -228,6 +301,18 @@ def find_similar(
         raise ValidationError(
             "O registro de referência não tem valor para: " + ", ".join(reference_missing)
         )
+
+    # The bands depend only on the reference, so they are drawn before the pool
+    # is split: the answer states them even when nobody could be compared.
+    bands: dict[str, ToleranceBand] = {}
+    not_applicable: list[str] = []
+    if tolerance is not None:
+        ratio = ratio_scale or {}
+        for slug in basis:
+            if ratio.get(slug, False):
+                bands[slug] = tolerance_band(float(reference_values[slug]), tolerance)  # type: ignore[arg-type]
+            else:
+                not_applicable.append(slug)
 
     # Split the pool before measuring anything: a candidate missing any basis
     # property is not a distant neighbour, it is an unanswerable comparison.
@@ -250,6 +335,9 @@ def find_similar(
             excluded=excluded,
             weights=resolved_weights,
             criteria=resolved_criteria,
+            tolerance_pct=tolerance,
+            tolerance_bands=bands,
+            tolerance_not_applicable=not_applicable,
         )
 
     permissions = log_scale or {}
@@ -278,14 +366,21 @@ def find_similar(
 
     total_weight = sum(resolved_weights.values())
     neighbours: list[Neighbour] = []
-    for record_id, name, _ in comparable:
+    for record_id, name, values in comparable:
         contributions: dict[str, float] = {}
         satisfied: list[str] = []
+        within: list[str] = []
         for slug in basis:
             raw_difference = scaled[slug][record_id] - scaled[slug][reference_id]
             difference = one_sided_difference(raw_difference, resolved_criteria[slug])
             if raw_difference != 0 and difference == 0:
                 satisfied.append(slug)
+            band = bands.get(slug)
+            if band is not None and is_within(float(values[slug]), band):  # type: ignore[arg-type]
+                # "100% if within ±x%": the band absorbs the difference on this
+                # property, measured on the canonical value, not the scaled one.
+                within.append(slug)
+                difference = 0.0
             contributions[slug] = resolved_weights[slug] * difference**2
         # The (weighted) mean and not the sum: a distance over three properties
         # has to be readable beside one over six, and a sum would make the wider
@@ -299,6 +394,7 @@ def find_similar(
                 rank=0,
                 contributions=contributions,
                 satisfied=satisfied,
+                within_tolerance=within,
             )
         )
 
@@ -317,4 +413,7 @@ def find_similar(
         linear_fallback=linear_fallback,
         weights=resolved_weights,
         criteria=resolved_criteria,
+        tolerance_pct=tolerance,
+        tolerance_bands=bands,
+        tolerance_not_applicable=not_applicable,
     )

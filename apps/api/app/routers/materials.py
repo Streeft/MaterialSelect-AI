@@ -231,7 +231,7 @@ def similar_materials(
     respects" is a different question from "similar in these two", and putting a
     list of slugs in a query string would make the two share a cache entry.
     """
-    return SimilarityService(db, user.id).similar_to(material_id, payload)
+    return SimilarityService(db, user.id, unit_choices).similar_to(material_id, payload)
 
 
 @router.patch("/{material_id}", response_model=MaterialDetail)
