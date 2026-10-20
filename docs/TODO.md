@@ -223,8 +223,9 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
   Resíduos:
   - **SN-a — revisão do autor.** ▁ As cinco notas nascem `rascunho`; o autor
     revisa as afirmações técnicas e muda para `revisado` no arquivo.
-  - **SN-b — nota na página da família.** ▁ `/app/catalogo/{slug}` ainda mostra só
-    a prosa curta do P1-4; a nota pode entrar ali com o mesmo `FamilyNoteContent`.
+  - ~~**SN-b — nota na página da família.**~~ ✔ `/app/catalogo/{slug}` mostra a
+    nota dobrada (mesmo `FamilyNote`, mesma consulta compartilhada) abaixo da prosa
+    curta do P1-4; família sem nota lê "Sem nota para esta família".
   - **SN-c — famílias do bundle oficial.** ▃ Classes que o D-102 trouxer aparecem
     como "Sem nota para esta família"; o canário de cobertura só cobre `seed.CLASSES`.
 - Imagem de família continua pendente (exige imagem com licença própria).
