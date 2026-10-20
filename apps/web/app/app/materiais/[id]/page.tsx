@@ -389,7 +389,7 @@ export default function MaterialDetailPage() {
                   lives on the record's own page — the same reasoning that put
                   the compatible processes here rather than behind a second
                   screen. */}
-              <SimilarPanel material={data} />
+              <SimilarPanel material={data} unitChoices={unitChoices} />
 
               {chart.data && (
                 <PropertyChart data={chart.data} highlightMaterialId={id} />

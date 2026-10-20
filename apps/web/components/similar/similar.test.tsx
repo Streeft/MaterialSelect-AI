@@ -6,6 +6,7 @@ import { screen } from "shadow-dom-testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { MaterialDetail, PropertyDefinition, Similar } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 
 const t = ptBR.similar;
 
@@ -112,6 +113,8 @@ const answer: Similar = {
       rank: 1,
       contributions: { densidade: 0.0144 },
       satisfied: ["densidade"],
+      within_tolerance: [],
+      tolerance_matches: null,
     },
   ],
   excluded: [
@@ -128,6 +131,66 @@ const answer: Similar = {
   linear_fallback_labels: ["Densidade"],
   weights: { densidade: 2 },
   criteria: { densidade: "at_most" },
+  tolerance_pct: null,
+  tolerance_bands: [],
+};
+
+/** The same answer, asked with ±10% over a two-property basis (D-152). */
+const withTolerance: Similar = {
+  ...answer,
+  basis: ["densidade", "temp_fusao"],
+  basis_labels: ["Densidade", "Temperatura de fusão"],
+  neighbours: [
+    {
+      record_id: 2,
+      name: "Alumínio",
+      class_name: "Metais",
+      class_slug: "metais",
+      is_demo: false,
+      is_own_record: false,
+      distance: 0,
+      rank: 1,
+      contributions: { densidade: 0, temp_fusao: 0.3 },
+      satisfied: [],
+      within_tolerance: ["densidade"],
+      tolerance_matches: 1,
+    },
+    {
+      record_id: 4,
+      name: "Chumbo",
+      class_name: "Metais",
+      class_slug: "metais",
+      is_demo: false,
+      is_own_record: false,
+      distance: 0.5,
+      rank: 2,
+      contributions: { densidade: 0.25, temp_fusao: 0.25 },
+      satisfied: [],
+      within_tolerance: [],
+      tolerance_matches: 0,
+    },
+  ],
+  linear_fallback: [],
+  linear_fallback_labels: [],
+  tolerance_pct: 10,
+  tolerance_bands: [
+    {
+      slug: "densidade",
+      label: "Densidade",
+      low: 7065,
+      high: 8635,
+      unit: "kg/m³",
+      applicable: true,
+    },
+    {
+      slug: "temp_fusao",
+      label: "Temperatura de fusão",
+      low: null,
+      high: null,
+      unit: "°C",
+      applicable: false,
+    },
+  ],
 };
 
 const replace = vi.fn();
@@ -243,12 +306,16 @@ describe("materiais semelhantes", () => {
       await screen.findByShadowRole("button", { name: t.search }),
     );
 
-    expect(findSimilar).toHaveBeenCalledWith(1, {
-      property_slugs: ["densidade"],
-      limit: 10,
-      weights: { densidade: 2 },
-      criteria: { densidade: "at_most" },
-    });
+    expect(findSimilar).toHaveBeenCalledWith(
+      1,
+      {
+        property_slugs: ["densidade"],
+        limit: 10,
+        weights: { densidade: 2 },
+        criteria: { densidade: "at_most" },
+      },
+      undefined,
+    );
   });
 
   it("mostra os controles de peso e critério com nome acessível", async () => {
@@ -301,11 +368,111 @@ describe("materiais semelhantes", () => {
       await screen.findByShadowRole("button", { name: t.search }),
     );
 
-    expect(findSimilar).toHaveBeenCalledWith(1, {
-      property_slugs: ["densidade"],
-      limit: 10,
-      weights: {},
-      criteria: {},
+    expect(findSimilar).toHaveBeenCalledWith(
+      1,
+      {
+        property_slugs: ["densidade"],
+        limit: 10,
+        weights: {},
+        criteria: {},
+      },
+      undefined,
+    );
+  });
+
+  it("manda a tolerância da URL e a unidade de leitura na requisição (D-152)", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams("sim_tolerancia=2.5");
+    findSimilar.mockClear();
+    render(
+      wrap(
+        <SimilarPanel material={material} unitChoices={{ densidade: "g/cm**3" }} />,
+      ),
+    );
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.toleranceLabel,
     });
+    expect(field).toHaveValue("2,5");
+    await user.click(screen.getByShadowRole("button", { name: t.search }));
+
+    expect(findSimilar).toHaveBeenCalledWith(
+      1,
+      {
+        property_slugs: ["densidade"],
+        limit: 10,
+        weights: {},
+        criteria: {},
+        tolerance_pct: 2.5,
+      },
+      { densidade: "g/cm**3" },
+    );
+  });
+
+  it("grava a tolerância digitada com vírgula na URL", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams();
+    replace.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.toleranceLabel,
+    });
+    await user.type(field, "7,5");
+
+    expect(replace).toHaveBeenLastCalledWith(
+      "/app/materiais/1?sim_tolerancia=7.5",
+      { scroll: false },
+    );
+  });
+
+  it("recusa tolerância inválida com o motivo escrito e sem buscar", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams();
+    findSimilar.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.toleranceLabel,
+    });
+    await user.type(field, "150");
+
+    expect(await screen.findByShadowText(t.toleranceInvalid)).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: t.search })).toBeDisabled();
+  });
+
+  it("mostra a faixa, quem está dentro dela por escrito e a tabela de origem, e passa no axe", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams("sim_tolerancia=10");
+    findSimilar.mockImplementationOnce(() => Promise.resolve(withTolerance));
+    render(wrap(<SimilarPanel material={material} />));
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
+
+    expect(
+      await screen.findByShadowText(t.toleranceTitle("10")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByShadowText(/de 7\.065 a 8\.635 kg\/m³/),
+    ).toBeInTheDocument();
+    // A escala sem zero real não ganha faixa — e isso está escrito.
+    expect(
+      screen.getByShadowText(new RegExp(t.toleranceNotApplicable)),
+    ).toBeInTheDocument();
+    const table = screen.getByShadowRole("table", {
+      name: t.toleranceTableCaption,
+    });
+    expect(table).toHaveTextContent(t.toleranceInside);
+    expect(table).toHaveTextContent(t.toleranceOutside);
+    expect(table).toHaveTextContent(t.toleranceNoBand);
+    expect(table).toHaveTextContent(t.toleranceMatches(1, 1));
+    expect(table).toHaveTextContent(t.toleranceMatches(0, 1));
+    expect(
+      screen.getByShadowText(t.toleranceSummary(1, 1)),
+    ).toBeInTheDocument();
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });

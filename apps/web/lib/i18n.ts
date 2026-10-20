@@ -931,6 +931,26 @@ export const ptBR = {
     criterionAtLeast: "100% se igual ou maior",
     contributionsTitle: "Parcela de cada propriedade",
     satisfiedTag: "100% pelo critério",
+    // Tolerância "100% se dentro de ±x%" (D-152).
+    toleranceLabel: "Tolerância (± %)",
+    toleranceHint:
+      "Opcional. Ex.: 10 quer dizer ±10% do valor do material de referência. Quem cai dentro da faixa conta como igual (100%) naquela propriedade. Em branco: sem faixa.",
+    toleranceInvalid: "Informe um número maior que 0 e no máximo 100.",
+    toleranceTitle: (pct: string) => `Faixa de ±${pct}% em torno da referência`,
+    toleranceBand: (low: string, high: string, unit: string) =>
+      unit ? `de ${low} a ${high} ${unit}` : `de ${low} a ${high}`,
+    toleranceNotApplicable:
+      "não se aplica: a escala não tem zero real, e um percentual do valor não quer dizer nada",
+    toleranceTableCaption:
+      "Quais propriedades de cada material caem dentro da faixa",
+    toleranceMaterialHeader: "Material",
+    toleranceMatchesHeader: "Na faixa",
+    toleranceMatches: (count: number, total: number) => `${count} de ${total}`,
+    toleranceInside: "Dentro da faixa",
+    toleranceOutside: "Fora da faixa",
+    toleranceNoBand: "Sem faixa",
+    toleranceSummary: (count: number, total: number) =>
+      `Dentro da faixa em ${count} de ${total} propriedades`,
   },
 
   solver: {
