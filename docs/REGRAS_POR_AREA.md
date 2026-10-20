@@ -132,6 +132,13 @@ modo que pesos padrão reproduzem a distância de antes. Ausência exclui **ante
 de qualquer critério: nenhum ajuste transforma "sem valor" em "100%". Os ajustes
 voltam na resposta (`weights`, `criteria`, `satisfied`) e vivem na URL.
 
+**Tolerância ±x%** ([D-152](DECISIONS.md)): um só `tolerance_pct` opcional
+(0 < x ≤ 100). Faixa = referência ± x% **sobre o canônico**, pontas incluídas;
+dentro dela a parcela vale 0, fora conta **inteira**. Só em escala de razão
+(`units.is_ratio_scale`); sem zero real, `applicable: false`. Ausência continua
+excluindo antes; `tolerance_matches` é `null` sem tolerância, nunca 0. A unidade
+de leitura só imprime a faixa (`tolerance_bands`); a URL guarda `sim_tolerancia`.
+
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que

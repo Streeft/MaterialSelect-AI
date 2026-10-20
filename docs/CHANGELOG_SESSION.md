@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [107](#sessão-107--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-152) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 4965 → 4988 | 1258 → 1265 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
@@ -106,6 +107,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 107 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-152)
+
+**O que mudou.** Fecha o resíduo do D-120. `SimilarRequest` aceita `tolerance_pct` opcional (0 < x ≤ 100, finito; inválido é 422).
+`domain/nearness.py` desenha, por propriedade da base, a faixa referência ± x% sobre o valor canônico, com as pontas incluídas; quem
+cai dentro tem parcela 0 naquela propriedade e aparece em `within_tolerance`, com `tolerance_matches` contando quantas casam. Fora da
+faixa a diferença conta inteira. Só em escala de razão (`units.is_ratio_scale`); sem zero real a faixa não existe e isso vem escrito.
+A resposta traz `tolerance_bands` na unidade de leitura (`?unidades=`), convertida pelo `display_units`. No painel de semelhantes,
+campo "Tolerância (± %)" com vírgula (na URL como `sim_tolerancia`), marca "Dentro da faixa" em texto, resumo "x de N" por material e
+uma tabela de origem com "Dentro/Fora da faixa" e "Sem faixa".
+
+**Por quê.** Sem tolerância nada muda (contrato só ganhou campos opcionais). Ausência continua excluindo antes de qualquer faixa, então
+um registro sem valor nunca fica "dentro".
+
+**Testes.** +23 de backend (`test_nearness_tolerance.py`: pontas inclusivas, parcela 0, lado de fora inteiro, ausência, escala sem zero
+real, faixa mais larga nunca afasta, determinismo, x inválido; API: contrato antigo intacto, contagem, unidade de leitura, 422) e +7 de
+frontend (requisição com tolerância e unidade, vírgula na URL, erro escrito, faixa e tabela com axe; leitura da URL). Sem migração.
+Pós-merge: **Deploy da API**.
 
 ## Sessão 105 — 19/10/26 — Linguagem simples nos textos do backend (D-150)
 

@@ -44,7 +44,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   índice cuja inclinação é derivada da própria expressão (`E/ρ` → 1,
   `E^(1/2)/ρ` → 2). Um eixo pode ser uma propriedade ou um índice.
 - **Comparar** — tabela com proveniência de cada valor, gráficos e busca de
-  **materiais semelhantes** a uma referência.
+  **materiais semelhantes** a uma referência, com peso e critério por
+  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual).
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição
