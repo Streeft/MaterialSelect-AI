@@ -1027,8 +1027,13 @@ Registrados para não voltarem por engano:
   menor/maior") no `SimilarRequest`, média ponderada em `domain/nearness.py`,
   ajustes devolvidos na resposta e na URL (`sim_peso`, `sim_criterio`);
   ausência continua excluindo antes de qualquer critério ([D-120](DECISIONS.md),
-  Sessão 75). Resíduo: tolerância percentual ("100% se dentro de ±x%") e
-  similaridade no universo de processos.
+  Sessão 75). Resíduo: ~~tolerância percentual ("100% se dentro de ±x%")~~
+  (feita: `tolerance_pct` opcional, 0 < x ≤ 100, faixa sobre o canônico com
+  pontas incluídas, parcela 0 dentro dela, só em escala de razão; marcas
+  "Dentro/Fora da faixa", contagem por material e tabela no painel, na URL
+  `sim_tolerancia` — [D-155](DECISIONS.md), Sessão 110) e similaridade no
+  universo de processos. Novo resíduo: tolerância por propriedade (hoje um
+  só `x` vale para a base inteira).
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,

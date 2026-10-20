@@ -1019,8 +1019,11 @@ export function touchRecent(
 export function findSimilar(
   materialId: number,
   body: SimilarRequest,
+  unitChoices?: Record<string, string>,
 ): Promise<Similar> {
-  return request<Similar>(`/api/materials/${materialId}/similares`, {
+  // The reading units only print the tolerance bands (D-155); the band is
+  // drawn and tested on canonical values by the backend.
+  return request<Similar>(withUnits(`/api/materials/${materialId}/similares`, unitChoices), {
     method: "POST",
     body: JSON.stringify(body),
   });

@@ -1808,6 +1808,8 @@ export interface SimilarRequest {
   weights?: Record<string, number>;
   /** One-sided criterion per basis slug; omitted = "both" (D-120). */
   criteria?: Record<string, NearnessCriterion>;
+  /** "100% se dentro de ±x%" (D-155): 0 < x <= 100; omitted = no band. */
+  tolerance_pct?: number;
 }
 
 export interface Neighbour {
@@ -1828,6 +1830,21 @@ export interface Neighbour {
   contributions: Record<string, number>;
   /** Properties where a one-sided criterion accepted a real difference. */
   satisfied: string[];
+  /** Basis properties inside the reference ± x% band (D-155). */
+  within_tolerance: string[];
+  /** How many basis properties match; `null` when no tolerance was asked. */
+  tolerance_matches: number | null;
+}
+
+/** The band one basis property ran with, in the reading unit (D-155). */
+export interface ToleranceBand {
+  slug: string;
+  label: string;
+  /** `null` on a scale without a true zero, where a percentage means nothing. */
+  low: number | null;
+  high: number | null;
+  unit: string;
+  applicable: boolean;
 }
 
 /** A record that could not be placed on the basis, and what it lacked. */
@@ -1854,6 +1871,9 @@ export interface Similar {
   /** The weight and criterion every basis property ran with (D-120). */
   weights: Record<string, number>;
   criteria: Record<string, NearnessCriterion>;
+  /** The tolerance that ran (D-155); `null` when none was asked. */
+  tolerance_pct: number | null;
+  tolerance_bands: ToleranceBand[];
 }
 
 // --- Engineering Solver & Performance Index Finder (P2) ---------------------

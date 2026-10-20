@@ -11071,3 +11071,33 @@ mais a data em cada valor.
 **Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
 `describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
 e a ficha, hoje, já a escreve assim ("0,3496 —").
+
+## D-155 — Tolerância "100% se dentro de ±x%" no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-120 deixou como resíduo o terceiro ajuste das Nearness Settings do manual: "100% se dentro de ±x%". Ficou de
+fora porque pedia um número do usuário; o percentual dispensa unidade, mas só significa algo onde a escala tem zero real.
+
+**Decisão.**
+1. **Um só `x` por pergunta** (`tolerance_pct` no `SimilarRequest`, opcional, `0 < x ≤ 100`, finito). Omitido, a resposta é
+   exatamente a de antes: cliente antigo não muda nada. Teto de 100% porque ±100% já vai de zero ao dobro; mais largo chamaria quase
+   tudo de "igual" e esvaziaria a ordem sem dizer.
+2. **A faixa é `referência ± x% da referência`, sobre o valor canônico, com as duas pontas incluídas** (uma folga relativa de 1e-12
+   impede que o arredondamento empurre o valor da ponta para fora). Medida no valor guardado, nunca na unidade de leitura: a unidade
+   escolhida pelo leitor (D-70) só imprime a faixa (`tolerance_bands`, convertida pelo `display_units`/Pint), e quem cai dentro não
+   depende dela.
+3. **Dentro da faixa conta como igual naquela propriedade**: a parcela vale 0, como o lado aceito do critério unilateral do D-120. É o
+   que o "100%" do manual quer dizer, e é a única mudança na distância. Fora da faixa a diferença conta **inteira**, nunca descontada
+   da largura da faixa. Por isso uma faixa mais larga nunca afasta ninguém.
+4. **Só em escala de razão** (`units.is_ratio_scale`, a mesma regra da diferença percentual da tabela de comparação). Propriedade sem
+   zero real não ganha faixa e volta com `applicable: false` e o texto "não se aplica" na tela.
+5. **Ausência antes de tudo** (princípio 3, D-24): o registro sem valor já foi excluído e nomeado antes de qualquer faixa, então nunca
+   fica "dentro". `tolerance_matches` é `null` quando não se pediu tolerância — "não perguntado" não é "zero propriedades".
+6. **Resposta:** `within_tolerance` (lista por vizinho) e `tolerance_matches` (quantas casam); `tolerance_pct` e `tolerance_bands`
+   no topo. Na tela, campo "Tolerância (± %)" com vírgula, na URL (`sim_tolerancia`, como peso e critério); estado escrito "Dentro da
+   faixa" / "Fora da faixa" / "Sem faixa" além da cor e uma tabela com a faixa por material, que é a fonte textual das marcas (D-31).
+
+**Descartado.** Tolerância por propriedade (o manual permite; fica para quando alguém pedir — a forma atual não impede); faixa na
+unidade de leitura (dependeria da tela); descontar a largura da faixa da diferença de quem fica fora (amaciaria o lado de fora, o que o
+D-120 já recusou para o critério).
+
+**Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o Deploy da API.
