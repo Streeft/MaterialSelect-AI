@@ -1233,6 +1233,20 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getProcess: () => Promise.resolve(processDetail),
   getProcessClass: () => Promise.resolve(processFamily),
   getClass: () => Promise.resolve(materialFamily),
+  listFamilyNotes: () =>
+    Promise.resolve([
+      {
+        slug: materialFamily.slug,
+        summary: "Materiais de ligação metálica.",
+        body: ["Átomos num arranjo cristalino."],
+        when_to_use: ["Peças que carregam carga."],
+        watch_out: ["Corrosão."],
+        reference: null,
+        license: "Texto autoral do projeto MaterialSelect AI.",
+        review_status: "rascunho",
+        lang: "pt-BR",
+      },
+    ]),
   listProcessAttributes: () => Promise.resolve([]),
   listOrdinalProperties: () => Promise.resolve([]),
   listProperties: () => Promise.resolve(properties),
