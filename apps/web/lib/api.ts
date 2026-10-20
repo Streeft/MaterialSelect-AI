@@ -11,6 +11,7 @@ import type {
   BatteryComparisonRequest,
   BatteryComparisonResult,
   BillingStatus,
+  FamilyNoteEntry,
   GlossaryEntry,
   ChartData,
   CheckoutSession,
@@ -556,6 +557,13 @@ export function listGlossary(): Promise<GlossaryEntry[]> {
   return request<GlossaryEntry[]>(`/api/glossario`);
 }
 
+// --- Notas de família (D-151) ---------------------------------------------------
+
+/** As notas conceituais de família de materiais, por slug da classe. */
+export function listFamilyNotes(): Promise<FamilyNoteEntry[]> {
+  return request<FamilyNoteEntry[]>(`/api/familias/notas`);
+}
+
 export function listProperties(): Promise<PropertyDefinition[]> {
   return request<PropertyDefinition[]>(`/api/properties`);
 }
@@ -1013,7 +1021,7 @@ export function findSimilar(
   body: SimilarRequest,
   unitChoices?: Record<string, string>,
 ): Promise<Similar> {
-  // The reading units only print the tolerance bands (D-152); the band is
+  // The reading units only print the tolerance bands (D-155); the band is
   // drawn and tested on canonical values by the backend.
   return request<Similar>(withUnits(`/api/materials/${materialId}/similares`, unitChoices), {
     method: "POST",

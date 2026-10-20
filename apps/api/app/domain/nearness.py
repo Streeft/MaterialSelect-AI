@@ -46,7 +46,7 @@ mean, so the default weights reproduce the unweighted distance exactly. A weight
 never touches a missing value: absence still excludes the record before any
 weighting, so no criterion can turn a missing value into a "100%".
 
-**Percent tolerance: "100% if within ±x%" (D-152).** One optional percentage
+**Percent tolerance: "100% if within ±x%" (D-155).** One optional percentage
 ``x`` (``0 < x <= MAX_TOLERANCE_PCT``) draws, for each basis property, the band
 ``reference ± x% of the reference`` on the **canonical** value, bounds included.
 A candidate inside the band counts as identical there — that property
@@ -108,7 +108,7 @@ class Neighbour:
     #: ever lists properties the candidate *has* — a missing value is excluded
     #: before any criterion is read.
     satisfied: list[str] = field(default_factory=list)
-    #: Basis properties whose value falls inside ``reference ± x%`` (D-152),
+    #: Basis properties whose value falls inside ``reference ± x%`` (D-155),
     #: in basis order. Empty when no tolerance was asked.
     within_tolerance: list[str] = field(default_factory=list)
 
@@ -152,7 +152,7 @@ class NearnessResult:
     #: included — the settings are part of the basis, so they come back with it.
     weights: dict[str, float] = field(default_factory=dict)
     criteria: dict[str, Criterion] = field(default_factory=dict)
-    #: The tolerance that ran (D-152), or ``None`` when none was asked.
+    #: The tolerance that ran (D-155), or ``None`` when none was asked.
     tolerance_pct: float | None = None
     #: Per-property band around the reference, for every basis property where a
     #: percentage means something.
@@ -162,7 +162,7 @@ class NearnessResult:
 
 
 def validate_tolerance(tolerance_pct: float | None) -> float | None:
-    """The tolerance as a float, or ``None``; anything else is refused (D-152)."""
+    """The tolerance as a float, or ``None``; anything else is refused (D-155)."""
     if tolerance_pct is None:
         return None
     value = float(tolerance_pct)
@@ -275,7 +275,7 @@ def find_similar(
         weights: per-slug positive factor (default 1), D-120.
         criteria: per-slug ``both`` / ``at_most`` / ``at_least`` (default
             ``both``), D-120.
-        tolerance_pct: optional ``x`` of "100% if within ±x%" (D-152).
+        tolerance_pct: optional ``x`` of "100% if within ±x%" (D-155).
         ratio_scale: per-slug answer of ``units.is_ratio_scale`` for the
             canonical unit. A slug absent from the map gets no band — the
             conservative reading, which never invents a percentage.

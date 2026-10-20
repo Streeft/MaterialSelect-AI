@@ -11013,7 +11013,66 @@ com versão real é mantida, com o mesmo erro de validação. As ressalvas da IA
 **Consequências.** Testes que afirmavam o texto antigo foram atualizados; planilhas passam a ter a aba "Versões" e "Limites e
 funil". Sem migração. Depois do merge, rodar o Deploy da API.
 
-## D-152 — Tolerância "100% se dentro de ±x%" no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+## D-151 — Notas de família de materiais (Science Notes): texto conceitual, autoral e versionado (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Lacuna do EduPack: o leitor não tinha um texto curto sobre cada família de materiais (o que ela é, por que se
+comporta assim, onde se usa, o que conferir ao escolhê-la). O P1-4 deu a `MaterialClass` duas frases editáveis
+(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130) é por propriedade.
+
+**Decisão.**
+1. **Mesmo desenho do D-130, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
+   (Pydantic estrito, sem sessão de banco), servido por `GET /api/familias/notas` e `/{slug}` (404 escrito, nomeando o slug), com a
+   regra de acesso da lista de classes. Sem migração. Campos: `summary` (≤ 280), `body` em parágrafos curtos (≤ 1200 no total),
+   `when_to_use`, `watch_out`, `reference`, `license`, `review_status`, `lang`.
+2. **Conceitual, mais estrito que o glossário:** o texto da nota não leva algarismo nenhum (número com unidade tem mensagem
+   própria). Norma só em `reference`, e só com nome e número certos — hoje nenhuma nota cita. Texto autoral em pt-BR, nada
+   copiado do EduPack nem de bases comerciais; licença: texto autoral do projeto sob a licença MIT do repositório.
+3. **Rascunho escrito.** As cinco notas (as famílias de `seed.CLASSES`) nascem `rascunho`; a tela escreve o estado.
+4. **Canário de cobertura:** toda família do seed tem nota ou está em `FAMILIES_WITHOUT_NOTE` com o motivo escrito (vazia hoje);
+   nota para slug que o catálogo não tem falha o teste.
+5. **Onde aparece.** Na ficha do material, dobrada (`Disclosure` flush) logo abaixo da classe, no cartão do cabeçalho; e numa
+   **página irmã** `/app/glossario/familias`, com uma navegação de links "Propriedades | Famílias" nas duas páginas. Página irmã,
+   e não aba, porque é o menor atrito: o endereço `#slug` vindo da ficha cai na nota certa sem estado de tela, o botão Voltar
+   funciona, a página do glossário de propriedades e os seus testes não mudam, e a barra lateral já marca `/app/glossario` ativo
+   nas subrotas. Família sem nota: "Sem nota para esta família", nunca vazio.
+
+**Alternativas descartadas.** Reaproveitar `characteristics`/`applications` (curtos, no banco, sem licença nem revisão); aba no
+mesmo endereço (quebraria o `#slug` e pediria estado na URL); colunas novas em `MaterialClass` (migração sem ganho agora).
+
+**Consequências.** As notas complementam a prosa do P1-4, não a substituem. Classes do bundle oficial (D-102) aparecem sem nota
+até alguém escrever (TODO, SN-c). Depois do merge, **Deploy da API**; não há seed nem migração.
+
+## D-152 — Fichas de material para leitura sem conexão: retrato em texto, com fonte e a data da leitura em cada valor
+
+**Contexto.** O D-142 deixou o app instalável mas sem uso offline, porque mostrar dado de material de um cache, sem a fonte e a data,
+fere o princípio 1. O autor decidiu (20/10/26) abrir **uma** exceção: as fichas **já abertas**, com fonte e data, e o rótulo no topo
+mais a data em cada valor.
+
+**Decisão.**
+- **O que se guarda.** Ao abrir uma ficha com conexão, o app grava no `localStorage` (`msai.offline.sheets`) um retrato **em texto**: nome,
+  classe, e por linha o grupo, o nome, o valor **já escrito** com a unidade, a qualidade (Medido, Importado, Estimado ou Ausente), a fonte, a
+  condição e a nota, mais o instante da leitura. O texto do valor sai do mesmo `formatNumber`/`prettyUnit` da ficha, e um teste confere que é
+  igual ao que a ficha desenha. **Nenhum número é recalculado nem convertido fora do backend** (princípio 2), e a leitura é a da unidade que o
+  leitor tinha escolhido (D-70).
+- **Ausência continua escrita** (princípio 3): linha sem valor guarda "Ausente", sem fonte, e a página a mostra assim, nunca como 0 ou traço.
+- **O que não se guarda.** Registro próprio (`is_own_record`): é privado da conta e a máquina de sala é compartilhada. Também não se guarda a
+  visão provisória da troca de unidade (D-70), que não é o que o servidor respondeu para aquela leitura. No máximo as 20 mais recentes; a
+  releitura de um material troca o retrato antigo.
+- **Onde aparece.** `public/offline.html`, a página que o service worker já devolve a uma navegação que falhou. Ela lista as fichas lidas
+  (com a hora da leitura), abre a escolhida e mostra, **fixa no topo**, "Dados lidos em DD/MM/AAAA neste aparelho. Podem estar desatualizados",
+  e **em cada valor** a qualidade, a fonte e "lido em DD/MM/AAAA", para uma captura de tela nunca perder o aviso. O texto vindo do
+  armazenamento entra só por `textContent`. Sem ficha lida, a página diz isso.
+- **O service worker não muda de natureza.** Continua sem cachear catálogo, estudo, resultado ou resposta de API e sem responder pedido
+  que não seja navegação; só o nome do cache sobe (`msai-offline-v2`). A ficha não está no cache dele, está no armazenamento do navegador.
+- **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
+  e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
+- A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+
+**Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
+`describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
+e a ficha, hoje, já a escreve assim ("0,3496 —").
+
+## D-155 — Tolerância "100% se dentro de ±x%" no Find Similar (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O D-120 deixou como resíduo o terceiro ajuste das Nearness Settings do manual: "100% se dentro de ±x%". Ficou de
 fora porque pedia um número do usuário; o percentual dispensa unidade, mas só significa algo onde a escala tem zero real.

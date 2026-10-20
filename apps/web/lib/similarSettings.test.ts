@@ -75,7 +75,7 @@ describe("ajustes de proximidade na URL (D-120)", () => {
   });
 });
 
-describe("tolerância na URL (D-152)", () => {
+describe("tolerância na URL (D-155)", () => {
   it("lê o que se digita, com vírgula, e recusa fora de (0, 100]", () => {
     expect(parseToleranceInput("")).toBeNull();
     expect(parseToleranceInput("  ")).toBeNull();

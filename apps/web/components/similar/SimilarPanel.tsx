@@ -110,7 +110,7 @@ export function SimilarPanel({
   const params = useSearchParams();
   // The settings live in the URL (D-120), so the same link asks the same question.
   const settings = useMemo(() => parseSettings(params), [params]);
-  // The tolerance lives in the URL too (D-152); the field keeps what is typed,
+  // The tolerance lives in the URL too (D-155); the field keeps what is typed,
   // so "2," on the way to "2,5" is not wiped by a re-parse.
   const [toleranceText, setToleranceText] = useState(() => {
     const value = parseTolerance(params);
@@ -432,7 +432,7 @@ function applicableCount(result: Similar): number {
 }
 
 /**
- * The bands that ran and, as a table, who falls inside each one (D-152).
+ * The bands that ran and, as a table, who falls inside each one (D-155).
  *
  * Every state is written — "Dentro da faixa", "Fora da faixa", "Sem faixa" —
  * never a colour alone, and the table is the textual source of the badges on

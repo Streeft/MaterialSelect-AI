@@ -116,7 +116,7 @@ export function requestSettings(
   return { weights, criteria };
 }
 
-// --- Tolerance "100% se dentro de ±x%" (D-152) -----------------------------
+// --- Tolerance "100% se dentro de ±x%" (D-155) -----------------------------
 
 export const TOLERANCE_PARAM = "sim_tolerancia";
 

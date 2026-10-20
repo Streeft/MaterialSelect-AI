@@ -93,6 +93,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Glossário** — o que cada propriedade significa e como se mede, em
   verbetes autorais com fonte, licença e estado de revisão (sem valores típicos).
   A dica "?" aparece na ficha, na Seleção guiada, no comparador e nos mapas.
+  A aba **Famílias** (`/app/glossario/familias`) traz uma nota conceitual por
+  família de materiais — o que ela é, por que se comporta assim, quando escolher
+  e o que conferir —, que também aparece dobrada na ficha, sob a classe.
 - **Meus registros** — registros próprios de cada pessoa, ao lado do catálogo
   compartilhado; favoritos e recentes.
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.

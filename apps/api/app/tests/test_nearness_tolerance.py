@@ -1,4 +1,4 @@
-"""Nearness tolerance: "100% se dentro de ±x%" (D-152)."""
+"""Nearness tolerance: "100% se dentro de ±x%" (D-155)."""
 
 from __future__ import annotations
 

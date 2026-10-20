@@ -124,7 +124,7 @@ quitados".
   tabelas e a seleção nos cartões do celular seguem em aberto); ~~(4) home estilo Drive~~ (entregue na Sessão 86, [D-132](DECISIONS.md)); ~~(5) rascunho salvo e saída segura no assistente da
   Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 96, [D-141](DECISIONS.md), só o esmaecer; a
   transformação de contêiner cartão→ficha foi entregue na Sessão 103, [D-148](DECISIONS.md)); ~~(7) app instalável~~ (entregue na Sessão 97, [D-142](DECISIONS.md), com ícone provisório e só a
-  página offline; o catálogo offline com data ficou de fora); ~~(8) Cadernos em grade com menu e
+  página offline; ~~o catálogo offline com data~~ foi entregue na Sessão 107, [D-152](DECISIONS.md), só para fichas já abertas); ~~(8) Cadernos em grade com menu e
   painéis redimensionáveis~~ (entregue na Sessão 98, [D-143](DECISIONS.md)); ~~(9) região `aria-live` global~~ (entregue na Sessão 101, [D-146](DECISIONS.md), com o foco no título ao trocar de etapa); a regressão visual em
   quatro larguras (Playwright, REDESIGN §10) foi entregue na Sessão 102 ([D-147](DECISIONS.md)). Candidato extra: catálogo em *list-detail* em tela larga.
 
@@ -216,8 +216,18 @@ Seleção guiada e página `/app/glossario`~~. Resíduos:
 - **GL-c — slugs do bundle oficial.** ▃ Propriedades que o bundle do D-102 trouxer
   aparecem como "Sem verbete no glossário" até ganharem verbete autoral; o
   canário de cobertura só cobre `seed.PROPERTIES`.
-- *Science Notes* de família e imagem de família continuam pendentes (fora do
-  D-130: o glossário é por propriedade, não por família).
+- ~~*Science Notes* de família~~ ✔ ([D-151](DECISIONS.md), Sessão 106): nota
+  conceitual por família em `app/glossary/families.json` (sem algarismo, licença
+  MIT, `rascunho`), `GET /api/familias/notas` e `/{slug}` (404 escrito),
+  `FamilyNote` dobrada na ficha sob a classe e página `/app/glossario/familias`.
+  Resíduos:
+  - **SN-a — revisão do autor.** ▁ As cinco notas nascem `rascunho`; o autor
+    revisa as afirmações técnicas e muda para `revisado` no arquivo.
+  - **SN-b — nota na página da família.** ▁ `/app/catalogo/{slug}` ainda mostra só
+    a prosa curta do P1-4; a nota pode entrar ali com o mesmo `FamilyNoteContent`.
+  - **SN-c — famílias do bundle oficial.** ▃ Classes que o D-102 trouxer aparecem
+    como "Sem nota para esta família"; o canário de cobertura só cobre `seed.CLASSES`.
+- Imagem de família continua pendente (exige imagem com licença própria).
 
 **Gráfico de Ragone das baterias (lacuna do EduPack; [D-145](DECISIONS.md), Sessão 100).** ✔
 Entregue: ~~`GET /api/baterias/ragone` (pontos do catálogo, eixos log, linhas de iso-tempo E = P·t e
@@ -1020,7 +1030,7 @@ Registrados para não voltarem por engano:
   (feita: `tolerance_pct` opcional, 0 < x ≤ 100, faixa sobre o canônico com
   pontas incluídas, parcela 0 dentro dela, só em escala de razão; marcas
   "Dentro/Fora da faixa", contagem por material e tabela no painel, na URL
-  `sim_tolerancia` — [D-152](DECISIONS.md), Sessão 107) e similaridade no
+  `sim_tolerancia` — [D-155](DECISIONS.md), Sessão 110) e similaridade no
   universo de processos. Novo resíduo: tolerância por propriedade (hoje um
   só `x` vale para a base inteira).
 

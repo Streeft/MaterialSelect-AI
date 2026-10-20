@@ -6,6 +6,7 @@ import { listProperties } from "@/lib/api";
 import { glossaryQuery, matchesFilter, reviewLabel } from "@/lib/glossary";
 import { ptBR } from "@/lib/i18n";
 import type { GlossaryEntry } from "@/lib/types";
+import { GlossaryNav } from "@/components/glossary/GlossaryNav";
 import {
   Badge,
   Card,
@@ -49,6 +50,7 @@ export default function GlossaryPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} group="dados" />
+      <GlossaryNav current="propriedades" />
 
       {(entries.isLoading || properties.isLoading) && <LoadingState label={t.loading} />}
       {entries.isError && <ErrorState title={t.error} onRetry={() => void entries.refetch()} />}

@@ -11,7 +11,8 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
-| [107](#sessão-107--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-152) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 4965 → 4988 | 1258 → 1265 |
+| [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1269 → 1276 |
+| [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
@@ -108,7 +109,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 107 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-152)
+## Sessão 110 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-155)
 
 **O que mudou.** Fecha o resíduo do D-120. `SimilarRequest` aceita `tolerance_pct` opcional (0 < x ≤ 100, finito; inválido é 422).
 `domain/nearness.py` desenha, por propriedade da base, a faixa referência ± x% sobre o valor canônico, com as pontas incluídas; quem
@@ -125,6 +126,28 @@ um registro sem valor nunca fica "dentro".
 real, faixa mais larga nunca afasta, determinismo, x inválido; API: contrato antigo intacto, contagem, unidade de leitura, 422) e +7 de
 frontend (requisição com tolerância e unidade, vírgula na URL, erro escrito, faixa e tabela com axe; leitura da URL). Sem migração.
 Pós-merge: **Deploy da API**.
+
+## Sessão 107 — 20/10/26 — Fichas de material para leitura sem conexão (D-152)
+
+**O que mudou.** `lib/offlineSheets.ts` (o retrato da ficha em texto, o armazenamento e o limite de 20), `useKeepOfflineSheet`
+(chamado na ficha, uma linha), `public/offline.html` (lista as fichas lidas e mostra a escolhida com faixa fixa e a data em cada valor)
+e `public/sw.js` (só o nome do cache, `msai-offline-v2`, e o comentário).
+
+**Testes.** +26 de frontend (`offlineSheets.test.tsx`: o texto do valor igual ao da ficha, ausência, registro próprio recusado, limite,
+dado corrompido, armazenamento cheio, o gancho; `lib/pwa/offlinePage.test.ts`: o script da página executado contra o armazenamento,
+markup tratado como texto) e +1 de E2E (`e2e/offline.spec.ts`: abre uma ficha com conexão e depois `/offline.html`, que lista, abre e
+mostra a data). Sem backend nem migração.
+
+## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
+
+**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130): cinco notas autorais, uma por família de
+`seed.CLASSES`, em `apps/api/app/glossary/families.json` (o que a família é, por que se comporta assim, quando escolher, cuidados),
+validadas por `app/domain/family_notes.py` (sem algarismo no texto, campo desconhecido recusado, slug único, cobertura do seed) e
+servidas por `GET /api/familias/notas` e `/{slug}`. No frontend, `lib/familyNotes.ts`, `FamilyNote` dobrada sob a classe na ficha
+do material, `GlossaryNav` e a página irmã `/app/glossario/familias` (também na suíte de larguras). Todas as notas são `rascunho`.
+
+**Testes.** +44 de backend (`test_family_notes.py`) e +11 de frontend (componente, página e ficha, com axe). Sem migração nem
+seed. Pede o Deploy da API.
 
 ## Sessão 105 — 19/10/26 — Linguagem simples nos textos do backend (D-150)
 

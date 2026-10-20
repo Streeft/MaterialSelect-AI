@@ -135,7 +135,7 @@ const answer: Similar = {
   tolerance_bands: [],
 };
 
-/** The same answer, asked with ±10% over a two-property basis (D-152). */
+/** The same answer, asked with ±10% over a two-property basis (D-155). */
 const withTolerance: Similar = {
   ...answer,
   basis: ["densidade", "temp_fusao"],
@@ -380,7 +380,7 @@ describe("materiais semelhantes", () => {
     );
   });
 
-  it("manda a tolerância da URL e a unidade de leitura na requisição (D-152)", async () => {
+  it("manda a tolerância da URL e a unidade de leitura na requisição (D-155)", async () => {
     const user = userEvent.setup();
     search = new URLSearchParams("sim_tolerancia=2.5");
     findSimilar.mockClear();

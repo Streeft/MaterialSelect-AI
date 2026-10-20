@@ -1808,7 +1808,7 @@ export interface SimilarRequest {
   weights?: Record<string, number>;
   /** One-sided criterion per basis slug; omitted = "both" (D-120). */
   criteria?: Record<string, NearnessCriterion>;
-  /** "100% se dentro de ±x%" (D-152): 0 < x <= 100; omitted = no band. */
+  /** "100% se dentro de ±x%" (D-155): 0 < x <= 100; omitted = no band. */
   tolerance_pct?: number;
 }
 
@@ -1830,13 +1830,13 @@ export interface Neighbour {
   contributions: Record<string, number>;
   /** Properties where a one-sided criterion accepted a real difference. */
   satisfied: string[];
-  /** Basis properties inside the reference ± x% band (D-152). */
+  /** Basis properties inside the reference ± x% band (D-155). */
   within_tolerance: string[];
   /** How many basis properties match; `null` when no tolerance was asked. */
   tolerance_matches: number | null;
 }
 
-/** The band one basis property ran with, in the reading unit (D-152). */
+/** The band one basis property ran with, in the reading unit (D-155). */
 export interface ToleranceBand {
   slug: string;
   label: string;
@@ -1871,7 +1871,7 @@ export interface Similar {
   /** The weight and criterion every basis property ran with (D-120). */
   weights: Record<string, number>;
   criteria: Record<string, NearnessCriterion>;
-  /** The tolerance that ran (D-152); `null` when none was asked. */
+  /** The tolerance that ran (D-155); `null` when none was asked. */
   tolerance_pct: number | null;
   tolerance_bands: ToleranceBand[];
 }
@@ -3477,6 +3477,23 @@ export interface GlossaryEntry {
   summary: string;
   definition: string;
   how_measured: string | null;
+  reference: string | null;
+  license: string;
+  review_status: "rascunho" | "revisado";
+  lang: string;
+}
+
+/**
+ * Uma nota de família de materiais (D-151): o que a família é, por que se
+ * comporta assim, onde se usa e o que conferir — conceitual, nunca numérica.
+ */
+export interface FamilyNoteEntry {
+  slug: string;
+  summary: string;
+  /** Parágrafos curtos, na ordem de leitura. */
+  body: string[];
+  when_to_use: string[];
+  watch_out: string[];
   reference: string | null;
   license: string;
   review_status: "rascunho" | "revisado";

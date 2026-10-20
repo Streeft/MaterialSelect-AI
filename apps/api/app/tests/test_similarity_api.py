@@ -207,7 +207,7 @@ def test_nearness_settings_are_validated(client: TestClient, db_session: Session
 
 
 def test_without_tolerance_the_answer_is_unchanged(client: TestClient, db_session: Session) -> None:
-    """D-152 is opt-in: an older client that never sends it gets the old answer."""
+    """D-155 is opt-in: an older client that never sends it gets the old answer."""
     body = _post(client, _first_material_id(db_session)).json()
 
     assert body["tolerance_pct"] is None

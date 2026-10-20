@@ -35,9 +35,9 @@ class SimilarRequest(BaseModel):
     #: matter" is said by taking it out of the basis, where the answer shows it.
     weights: dict[str, Annotated[float, Field(gt=0, le=MAX_WEIGHT)]] = Field(default_factory=dict)
     criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
-    #: "100% se dentro de ±x%" (D-152): one percentage for every basis property,
+    #: "100% se dentro de ±x%" (D-155): one percentage for every basis property,
     #: drawn around the reference's canonical value. Omitted = no band, and the
-    #: answer is exactly the one before D-152.
+    #: answer is exactly the one before D-155.
     tolerance_pct: float | None = Field(
         default=None, gt=0, le=MAX_TOLERANCE_PCT, allow_inf_nan=False
     )
@@ -68,7 +68,7 @@ class NeighbourOut(BaseModel):
     #: Properties where a one-sided criterion accepted a real difference
     #: ("100% se igual ou menor/maior"). Never a property the record lacks.
     satisfied: list[str] = Field(default_factory=list)
-    #: Basis properties inside ``reference ± x%`` (D-152), in basis order.
+    #: Basis properties inside ``reference ± x%`` (D-155), in basis order.
     #: Never a property the record lacks: a missing value excludes the record.
     within_tolerance: list[str] = Field(default_factory=list)
     #: How many basis properties fall inside the band; ``None`` when no
@@ -117,7 +117,7 @@ class SimilarOut(BaseModel):
     #: The settings that ran, defaults written out (D-120): part of the basis.
     weights: dict[str, float] = Field(default_factory=dict)
     criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
-    #: The tolerance that ran (D-152), ``None`` when none was asked.
+    #: The tolerance that ran (D-155), ``None`` when none was asked.
     tolerance_pct: float | None = None
     #: One band per basis property, in basis order; empty without a tolerance.
     tolerance_bands: list[ToleranceBandOut] = Field(default_factory=list)
