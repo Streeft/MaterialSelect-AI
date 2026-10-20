@@ -30,9 +30,9 @@ describe("manifest (D-142)", () => {
 describe("offline page (D-142)", () => {
   const html = read("public/offline.html");
 
-  it("says what is missing and never shows material data", () => {
+  it("says what is missing", () => {
     expect(html).toContain("Sem conexão");
-    expect(html).toContain("nunca é mostrada sem a fonte");
+    expect(html).toContain("precisa da internet");
   });
 
   it("is self-contained: no external script, stylesheet or font", () => {
@@ -56,7 +56,7 @@ function loadWorker(cacheOf: Record<string, Map<string, unknown>> = {}) {
         match: async (url: string) => cacheOf[name]?.get(url),
       };
     },
-    keys: async () => ["msai-offline-v0", "msai-offline-v1", "other-app"],
+    keys: async () => ["msai-offline-v0", "msai-offline-v1", "msai-offline-v2", "other-app"],
     delete: async (name: string) => void deleted.push(name),
   };
   const skipWaiting = vi.fn();
@@ -87,7 +87,7 @@ describe("service worker (D-142)", () => {
     let waited: Promise<unknown> = Promise.resolve();
     w.listeners.activate!({ waitUntil: (p: Promise<unknown>) => (waited = p) });
     await waited;
-    expect(w.deleted).toEqual(["msai-offline-v0", "other-app"]);
+    expect(w.deleted).toEqual(["msai-offline-v0", "msai-offline-v1", "other-app"]);
     expect(w.claim).toHaveBeenCalled();
   });
 
@@ -107,7 +107,7 @@ describe("service worker (D-142)", () => {
   });
 
   it("answers a failed navigation with the offline page", async () => {
-    const w = loadWorker({ "msai-offline-v1": new Map([["/offline.html", "offline-page"]]) });
+    const w = loadWorker({ "msai-offline-v2": new Map([["/offline.html", "offline-page"]]) });
     w.setFetch(async () => {
       throw new TypeError("offline");
     });

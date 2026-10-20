@@ -108,6 +108,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 107 — 20/10/26 — Fichas de material para leitura sem conexão (D-152)
+
+**O que mudou.** `lib/offlineSheets.ts` (o retrato da ficha em texto, o armazenamento e o limite de 20), `useKeepOfflineSheet`
+(chamado na ficha, uma linha), `public/offline.html` (lista as fichas lidas e mostra a escolhida com faixa fixa e a data em cada valor)
+e `public/sw.js` (só o nome do cache, `msai-offline-v2`, e o comentário).
+
+**Testes.** +26 de frontend (`offlineSheets.test.tsx`: o texto do valor igual ao da ficha, ausência, registro próprio recusado, limite,
+dado corrompido, armazenamento cheio, o gancho; `lib/pwa/offlinePage.test.ts`: o script da página executado contra o armazenamento,
+markup tratado como texto) e +1 de E2E (`e2e/offline.spec.ts`: abre uma ficha com conexão e depois `/offline.html`, que lista, abre e
+mostra a data). Sem backend nem migração.
+
 ## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
 
 **O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130): cinco notas autorais, uma por família de

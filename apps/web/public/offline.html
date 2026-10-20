@@ -7,26 +7,147 @@
 <title>Sem conexão · MaterialSelect AI</title>
 <style>
   :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box;
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 72px 24px 32px;
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: #F1EDE5; color: #171A21; }
-  main { max-width: 34rem; }
+  main { max-width: 44rem; margin: 0 auto; }
   h1 { font-size: 1.5rem; line-height: 2rem; margin: 0 0 12px; }
+  h2 { font-size: 1.125rem; line-height: 1.75rem; margin: 24px 0 8px; }
   p { margin: 0 0 12px; color: #4A5162; }
+  .notice { position: fixed; top: 0; left: 0; right: 0; z-index: 10; padding: 10px 24px; font-size: 0.875rem; line-height: 1.25rem;
+    background: #3F3A00; color: #FFF8D6; }
+  .notice strong { font-weight: 700; }
   button { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 10px; background: #4567A8; color: #FFFFFF; cursor: pointer; }
+  button.quiet { background: transparent; color: #2A4F8E; padding: 6px 0; text-decoration: underline; }
   button:focus-visible { outline: 2px solid #171A21; outline-offset: 3px; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  li button { width: 100%; text-align: left; background: #FFFFFF; color: #171A21; border: 1px solid #B8B3A8; font-weight: 500; }
+  li small { display: block; color: #4A5162; font-weight: 400; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; margin: 0 0 12px; background: #FFFFFF; border-radius: 10px; }
+  caption { text-align: left; font-weight: 700; padding: 12px 12px 4px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-top: 1px solid #DDD8CC; }
+  th { font-weight: 400; color: #4A5162; width: 34%; }
+  td small { display: block; color: #4A5162; }
+  .absent { font-style: italic; }
   @media (prefers-color-scheme: dark) {
-    body { background: #14161C; color: #E7E9F0; } p { color: #B7BECE; }
-    button { background: #97BEFF; color: #14161C; } button:focus-visible { outline-color: #E7E9F0; }
+    body { background: #14161C; color: #E7E9F0; } p, li small, th, td small { color: #B7BECE; }
+    .notice { background: #E9D86A; color: #2A2500; }
+    button { background: #97BEFF; color: #14161C; } button.quiet { background: transparent; color: #97BEFF; }
+    button:focus-visible { outline-color: #E7E9F0; }
+    li button { background: #1E2129; color: #E7E9F0; border-color: #5B6275; }
+    table { background: #1E2129; } th, td { border-top-color: #343947; }
   }
 </style>
 </head>
 <body>
-<main>
+<div class="notice" role="status" id="notice"><strong>Sem conexão.</strong> <span id="notice-text">O MaterialSelect AI precisa da internet para abrir o catálogo, os estudos e os resultados.</span></div>
+<main id="main">
   <h1>Sem conexão</h1>
   <p>O MaterialSelect AI precisa da internet para abrir o catálogo, os estudos e os resultados.</p>
-  <p>Nenhum dado de material é guardado neste aparelho para uso sem conexão: o que você veria aqui poderia estar desatualizado, e uma propriedade de material nunca é mostrada sem a fonte e a data de hoje.</p>
   <p>Seu rascunho do assistente de seleção, se houver, continua salvo neste navegador.</p>
+  <div id="sheets"></div>
   <button type="button" onclick="location.reload()">Tentar de novo</button>
 </main>
+<script>
+/*
+ * D-152: the sheets this device has already read (written by the app into
+ * localStorage as text, see apps/web/lib/offlineSheets.ts). Nothing here computes
+ * a value or converts a unit: it prints what the app wrote, under a fixed notice
+ * with the day it was read beside every value. Text is set with textContent only.
+ */
+(function () {
+  var KEY = "msai.offline.sheets";
+  var root = document.getElementById("sheets");
+  var notice = document.getElementById("notice-text");
+
+  function el(tag, text, className) {
+    var node = document.createElement(tag);
+    if (text !== undefined && text !== null) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  }
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "data desconhecida";
+    return d.toLocaleDateString("pt-BR") + ", " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function day(iso) {
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? "data desconhecida" : d.toLocaleDateString("pt-BR");
+  }
+  function read() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.sheets)) return [];
+      return parsed.sheets.filter(function (s) { return s && typeof s.name === "string" && Array.isArray(s.rows); });
+    } catch (e) { return []; }
+  }
+  var sheets = read();
+
+  function showList() {
+    root.textContent = "";
+    notice.textContent = "O que você vê abaixo foi lido neste aparelho, em dias anteriores, e pode estar desatualizado.";
+    if (sheets.length === 0) {
+      root.appendChild(el("p", "Nenhuma ficha de material foi aberta neste aparelho ainda. Uma ficha aberta com conexão fica guardada aqui, com a fonte e a data da leitura, para ser lida sem internet."));
+      notice.textContent = "O MaterialSelect AI precisa da internet para abrir o catálogo, os estudos e os resultados.";
+      return;
+    }
+    root.appendChild(el("h2", "Fichas lidas neste aparelho"));
+    var list = el("ul");
+    sheets.forEach(function (sheet) {
+      var item = el("li");
+      var open = el("button", sheet.name);
+      open.type = "button";
+      open.appendChild(el("small", (sheet.className || "") + " · lida em " + when(sheet.readAt)));
+      open.addEventListener("click", function () { showSheet(sheet); });
+      item.appendChild(open);
+      list.appendChild(item);
+    });
+    root.appendChild(list);
+  }
+
+  function showSheet(sheet) {
+    root.textContent = "";
+    notice.textContent = "Dados lidos em " + day(sheet.readAt) + " neste aparelho. Podem estar desatualizados: confira com conexão antes de usar.";
+    var back = el("button", "← Voltar à lista", "quiet");
+    back.type = "button";
+    back.addEventListener("click", showList);
+    root.appendChild(back);
+    root.appendChild(el("h2", sheet.name));
+    root.appendChild(el("p", (sheet.className || "") + (sheet.subclass ? " · " + sheet.subclass : "") + " · lida em " + when(sheet.readAt)));
+
+    var order = [];
+    var byGroup = {};
+    sheet.rows.forEach(function (row) {
+      if (!byGroup[row.group]) { byGroup[row.group] = []; order.push(row.group); }
+      byGroup[row.group].push(row);
+    });
+    order.forEach(function (group) {
+      var table = el("table");
+      table.appendChild(el("caption", group));
+      var body = el("tbody");
+      byGroup[group].forEach(function (row) {
+        var tr = el("tr");
+        tr.appendChild(el("th", row.name + (row.symbol ? " (" + row.symbol + ")" : "")));
+        var td = el("td");
+        if (row.value === null || row.value === undefined) {
+          td.appendChild(el("span", row.quality || "Ausente", "absent"));
+        } else {
+          td.appendChild(el("span", row.value));
+          td.appendChild(el("small", row.quality + (row.source ? " · fonte: " + row.source : " · fonte não informada") + " · lido em " + day(sheet.readAt)));
+        }
+        if (row.condition) td.appendChild(el("small", "condição: " + row.condition));
+        if (row.notes) td.appendChild(el("small", row.notes));
+        tr.appendChild(td);
+        body.appendChild(tr);
+      });
+      table.appendChild(body);
+      root.appendChild(table);
+    });
+  }
+
+  showList();
+})();
+</script>
 </body>
 </html>
