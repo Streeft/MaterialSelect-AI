@@ -41,7 +41,18 @@ const result: Comparison = {
   computed: [],
 };
 
+const evaluate = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/api", () => ({
+  ApiError: class ApiError extends Error {
+    constructor(
+      message: string,
+      public readonly status: number,
+    ) {
+      super(message);
+    }
+  },
+  evaluateIndex: evaluate,
   getComparison: (request: ComparisonRequest) => {
     requests.push(request);
     return Promise.resolve(result);
@@ -56,6 +67,13 @@ vi.mock("@/lib/api", () => ({
         canonical_unit: "kg/m**3",
         better_direction: "LOWER",
         value_count: 2,
+      },
+      {
+        slug: "modulo_young",
+        name: "Módulo de Young",
+        canonical_unit: "Pa",
+        better_direction: "HIGHER",
+        value_count: 1,
       },
     ]),
   listPerformanceIndices: () =>
@@ -90,6 +108,7 @@ const lastRequest = () => requests[requests.length - 1];
 describe("comparador: limiar e computadas (D-128)", () => {
   beforeEach(() => {
     requests.length = 0;
+    evaluate.mockReset();
     window.history.replaceState(null, "", "/app/comparar");
   });
 
@@ -151,5 +170,57 @@ describe("comparador: limiar e computadas (D-128)", () => {
         { name: "Rigidez específica", expression: "modulo_young / densidade", goal: "maximize" },
       ]),
     );
+  });
+
+  it("um índice digitado vai ao backend como expressão, depois de validado", async () => {
+    nav.query = "materiais=1";
+    evaluate.mockResolvedValue({ dimension: "meter ** 2 / second ** 2" });
+    const user = userEvent.setup();
+    mount();
+
+    await user.type(await screen.findByLabelText(ptBR.compare.computed.custom.label), "modulo_young / densidade");
+    await user.click(screen.getByRole("button", { name: ptBR.compare.computed.custom.add }));
+
+    await waitFor(() =>
+      expect(lastRequest()?.computed).toEqual([{ expression: "modulo_young / densidade" }]),
+    );
+    expect(evaluate).toHaveBeenCalledWith("modulo_young / densidade", "maximize");
+    expect(
+      screen.getByRole("button", {
+        name: `${ptBR.compare.computed.custom.remove}: modulo_young / densidade`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("expressão recusada não entra na requisição: a tabela segue como estava", async () => {
+    nav.query = "materiais=1";
+    evaluate.mockRejectedValue(new Error("Variáveis desconhecidas: xyz"));
+    const user = userEvent.setup();
+    mount();
+
+    await waitFor(() => expect(requests.length).toBeGreaterThan(0));
+    const before = requests.length;
+    await user.type(await screen.findByLabelText(ptBR.compare.computed.custom.label), "xyz / densidade");
+    await user.click(screen.getByRole("button", { name: ptBR.compare.computed.custom.add }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(requests.length).toBe(before);
+    expect(lastRequest()?.computed).toEqual([]);
+  });
+
+  it("a mesma expressão do catálogo digitada de novo não duplica a coluna", async () => {
+    nav.query = "materiais=1";
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(await screen.findByRole("button", { name: "Rigidez específica" }));
+    await user.type(
+      screen.getByLabelText(ptBR.compare.computed.custom.label),
+      "modulo_young/densidade",
+    );
+    await user.click(screen.getByRole("button", { name: ptBR.compare.computed.custom.add }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(ptBR.compare.computed.custom.duplicate);
+    expect(evaluate).not.toHaveBeenCalled();
   });
 });

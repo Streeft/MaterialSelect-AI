@@ -2726,6 +2726,32 @@ export const ptBR = {
       dimension: "Dimensão",
       tableRegion: (n: number, p: number) =>
         `Tabela de propriedades computadas, ${n} materiais por ${p} índices`,
+      // D-153: a coluna calculada se diz calculada, com texto e ícone.
+      badge: "Calculada",
+      badgeTitle: "Valor derivado pelo servidor, não medido nem importado",
+      note:
+        "Cada número desta tabela é calculado: a expressão aplicada aos valores cadastrados de cada material, em unidade canônica composta. Não é medido nem importado. Faltando um insumo, o material fica sem valor, com o motivo escrito.",
+      inputs: (names: string) => `Insumos: ${names}`,
+      spreadNote:
+        "A dispersão só é dada quando a expressão não soma nem subtrai e todos os insumos têm zero verdadeiro.",
+      custom: {
+        title: "Índice digitado",
+        label: "Expressão",
+        placeholder: "modulo_young / densidade",
+        hint: "Use os nomes das propriedades, números, + - * / ** e as funções sqrt, cbrt e abs. O servidor valida e calcula; esta tela só mostra o resultado.",
+        add: "Adicionar à tabela",
+        examples: "Exemplos",
+        useExample: (expression: string) => `Usar o exemplo ${expression}`,
+        variables: (n: number) => `Variáveis disponíveis (${n})`,
+        variablesLoading: "Carregando as variáveis…",
+        variablesNone: "Nenhuma propriedade cadastrada.",
+        listLabel: "Expressões digitadas",
+        remove: "Remover expressão",
+        empty: "Digite uma expressão para adicioná-la.",
+        duplicate: "Esta expressão já está na tabela.",
+        limit: (max: number) => `No máximo ${max} índices por comparação.`,
+        genericError: "Não foi possível validar a expressão. Tente de novo.",
+      },
     },
     title: "Comparador de materiais",
     subtitle:

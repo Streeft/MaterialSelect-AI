@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getComparison, listMaterials, listPerformanceIndices, listProperties } from "@/lib/api";
 import { parseThreshold, thresholdParam } from "@/lib/compare-threshold";
 import { ComputedTable } from "@/components/charts/ComputedSection";
+import { CustomIndexForm } from "@/components/charts/CustomIndexForm";
+import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { MAX_COMPARE_MATERIALS } from "@/lib/compareLimits";
@@ -77,6 +79,9 @@ function ComparePageContent() {
   });
   const [thresholdInvalid, setThresholdInvalid] = useState(false);
   const [computedSlugs, setComputedSlugs] = useState<string[]>([]);
+  // D-153: expressions the reader typed. Each one was accepted by the backend's
+  // validator before it got here, so a typo cannot take the table away.
+  const [customExpressions, setCustomExpressions] = useState<string[]>([]);
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
   const [mode, setMode] = useState<ComparisonMode>("table");
 
@@ -124,6 +129,19 @@ function ComparePageContent() {
   const activeReference =
     referenceId !== null && selectedMaterials.includes(referenceId) ? referenceId : null;
 
+  // Catalogue indices first, then the typed ones; the same expression is never
+  // sent twice (the table keys its columns by expression).
+  const computedRequest = useMemo<NonNullable<ComparisonRequest["computed"]>>(() => {
+    const chosen = (indices.data ?? [])
+      .filter((index) => computedSlugs.includes(index.slug))
+      .map((index) => ({ name: index.name, expression: index.expression, goal: index.goal }));
+    const seen = new Set(chosen.map((entry) => expressionKey(entry.expression)));
+    const typed = customExpressions
+      .filter((expression) => !seen.has(expressionKey(expression)))
+      .map((expression) => ({ expression }));
+    return [...chosen, ...typed];
+  }, [indices.data, computedSlugs, customExpressions]);
+
   const request = useMemo<ComparisonRequest>(
     () => ({
       material_ids: selectedMaterials,
@@ -131,11 +149,9 @@ function ComparePageContent() {
       normalization,
       reference_id: activeReference,
       highlight_threshold_pct: threshold,
-      computed: (indices.data ?? [])
-        .filter((index) => computedSlugs.includes(index.slug))
-        .map((index) => ({ name: index.name, expression: index.expression, goal: index.goal })),
+      computed: computedRequest,
     }),
-    [selectedMaterials, selectedProperties, normalization, activeReference, threshold, computedSlugs, indices.data],
+    [selectedMaterials, selectedProperties, normalization, activeReference, threshold, computedRequest],
   );
 
   const ready = selectedMaterials.length > 0 && selectedProperties.length > 0;
@@ -405,6 +421,9 @@ function ComparePageContent() {
                   <ToggleChip
                     key={index.slug}
                     selected={computedSlugs.includes(index.slug)}
+                    disabled={
+                      !computedSlugs.includes(index.slug) && computedRequest.length >= MAX_COMPUTED
+                    }
                     onClick={() => toggleComputed(index.slug)}
                     title={index.expression}
                   >
@@ -413,7 +432,20 @@ function ComparePageContent() {
                 ))}
               </div>
             )}
-            {computedSlugs.length === 0 ? (
+            <CustomIndexForm
+              expressions={customExpressions}
+              takenKeys={new Set(computedRequest.map((entry) => expressionKey(entry.expression)))}
+              total={computedRequest.length}
+              slugs={properties.data?.map((p) => p.slug)}
+              slugsLoading={properties.isLoading}
+              onAdd={(expression) =>
+                setCustomExpressions((current) => [...current, expression])
+              }
+              onRemove={(expression) =>
+                setCustomExpressions((current) => current.filter((x) => x !== expression))
+              }
+            />
+            {computedRequest.length === 0 ? (
               <p className="text-sm text-ink-muted">{t.computed.none}</p>
             ) : (
               <>
