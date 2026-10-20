@@ -11066,3 +11066,62 @@ dispersão de qualquer índice (uma soma desloca o zero e o percentual passaria 
 misturadas à tabela principal (continuam na seção própria da D-128).
 
 **Consequências.** Campos opcionais novos no contrato, retrocompatível. Sem migração nem seed. Depois do merge, **Deploy da API**.
+## D-152 — Fichas de material para leitura sem conexão: retrato em texto, com fonte e a data da leitura em cada valor
+
+**Contexto.** O D-142 deixou o app instalável mas sem uso offline, porque mostrar dado de material de um cache, sem a fonte e a data,
+fere o princípio 1. O autor decidiu (20/10/26) abrir **uma** exceção: as fichas **já abertas**, com fonte e data, e o rótulo no topo
+mais a data em cada valor.
+
+**Decisão.**
+- **O que se guarda.** Ao abrir uma ficha com conexão, o app grava no `localStorage` (`msai.offline.sheets`) um retrato **em texto**: nome,
+  classe, e por linha o grupo, o nome, o valor **já escrito** com a unidade, a qualidade (Medido, Importado, Estimado ou Ausente), a fonte, a
+  condição e a nota, mais o instante da leitura. O texto do valor sai do mesmo `formatNumber`/`prettyUnit` da ficha, e um teste confere que é
+  igual ao que a ficha desenha. **Nenhum número é recalculado nem convertido fora do backend** (princípio 2), e a leitura é a da unidade que o
+  leitor tinha escolhido (D-70).
+- **Ausência continua escrita** (princípio 3): linha sem valor guarda "Ausente", sem fonte, e a página a mostra assim, nunca como 0 ou traço.
+- **O que não se guarda.** Registro próprio (`is_own_record`): é privado da conta e a máquina de sala é compartilhada. Também não se guarda a
+  visão provisória da troca de unidade (D-70), que não é o que o servidor respondeu para aquela leitura. No máximo as 20 mais recentes; a
+  releitura de um material troca o retrato antigo.
+- **Onde aparece.** `public/offline.html`, a página que o service worker já devolve a uma navegação que falhou. Ela lista as fichas lidas
+  (com a hora da leitura), abre a escolhida e mostra, **fixa no topo**, "Dados lidos em DD/MM/AAAA neste aparelho. Podem estar desatualizados",
+  e **em cada valor** a qualidade, a fonte e "lido em DD/MM/AAAA", para uma captura de tela nunca perder o aviso. O texto vindo do
+  armazenamento entra só por `textContent`. Sem ficha lida, a página diz isso.
+- **O service worker não muda de natureza.** Continua sem cachear catálogo, estudo, resultado ou resposta de API e sem responder pedido
+  que não seja navegação; só o nome do cache sobe (`msai-offline-v2`). A ficha não está no cache dele, está no armazenamento do navegador.
+- **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
+  e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
+- A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+
+**Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
+`describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
+e a ficha, hoje, já a escreve assim ("0,3496 —").
+
+## D-155 — Tolerância "100% se dentro de ±x%" no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-120 deixou como resíduo o terceiro ajuste das Nearness Settings do manual: "100% se dentro de ±x%". Ficou de
+fora porque pedia um número do usuário; o percentual dispensa unidade, mas só significa algo onde a escala tem zero real.
+
+**Decisão.**
+1. **Um só `x` por pergunta** (`tolerance_pct` no `SimilarRequest`, opcional, `0 < x ≤ 100`, finito). Omitido, a resposta é
+   exatamente a de antes: cliente antigo não muda nada. Teto de 100% porque ±100% já vai de zero ao dobro; mais largo chamaria quase
+   tudo de "igual" e esvaziaria a ordem sem dizer.
+2. **A faixa é `referência ± x% da referência`, sobre o valor canônico, com as duas pontas incluídas** (uma folga relativa de 1e-12
+   impede que o arredondamento empurre o valor da ponta para fora). Medida no valor guardado, nunca na unidade de leitura: a unidade
+   escolhida pelo leitor (D-70) só imprime a faixa (`tolerance_bands`, convertida pelo `display_units`/Pint), e quem cai dentro não
+   depende dela.
+3. **Dentro da faixa conta como igual naquela propriedade**: a parcela vale 0, como o lado aceito do critério unilateral do D-120. É o
+   que o "100%" do manual quer dizer, e é a única mudança na distância. Fora da faixa a diferença conta **inteira**, nunca descontada
+   da largura da faixa. Por isso uma faixa mais larga nunca afasta ninguém.
+4. **Só em escala de razão** (`units.is_ratio_scale`, a mesma regra da diferença percentual da tabela de comparação). Propriedade sem
+   zero real não ganha faixa e volta com `applicable: false` e o texto "não se aplica" na tela.
+5. **Ausência antes de tudo** (princípio 3, D-24): o registro sem valor já foi excluído e nomeado antes de qualquer faixa, então nunca
+   fica "dentro". `tolerance_matches` é `null` quando não se pediu tolerância — "não perguntado" não é "zero propriedades".
+6. **Resposta:** `within_tolerance` (lista por vizinho) e `tolerance_matches` (quantas casam); `tolerance_pct` e `tolerance_bands`
+   no topo. Na tela, campo "Tolerância (± %)" com vírgula, na URL (`sim_tolerancia`, como peso e critério); estado escrito "Dentro da
+   faixa" / "Fora da faixa" / "Sem faixa" além da cor e uma tabela com a faixa por material, que é a fonte textual das marcas (D-31).
+
+**Descartado.** Tolerância por propriedade (o manual permite; fica para quando alguém pedir — a forma atual não impede); faixa na
+unidade de leitura (dependeria da tela); descontar a largura da faixa da diferença de quem fica fora (amaciaria o lado de fora, o que o
+D-120 já recusou para o critério).
+
+**Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o Deploy da API.

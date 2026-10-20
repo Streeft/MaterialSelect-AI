@@ -47,6 +47,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   **materiais semelhantes** a uma referência e **índices calculados** (os do
   catálogo ou uma expressão digitada, validada e calculada no servidor, com a
   coluna marcada como "Calculada").
+- **Comparar** — tabela com proveniência de cada valor, gráficos e busca de
+  **materiais semelhantes** a uma referência, com peso e critério por
+  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual).
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição
@@ -96,7 +99,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   A dica "?" aparece na ficha, na Seleção guiada, no comparador e nos mapas.
   A aba **Famílias** (`/app/glossario/familias`) traz uma nota conceitual por
   família de materiais — o que ela é, por que se comporta assim, quando escolher
-  e o que conferir —, que também aparece dobrada na ficha, sob a classe.
+  e o que conferir —, que também aparece dobrada na ficha do material, sob a classe, e na página da
+  família (`/app/catalogo/{slug}`).
 - **Meus registros** — registros próprios de cada pessoa, ao lado do catálogo
   compartilhado; favoritos e recentes.
 - **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.

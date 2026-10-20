@@ -1,14 +1,15 @@
 /*
- * MaterialSelect AI service worker (D-142).
+ * MaterialSelect AI service worker (D-142, D-152).
  *
  * It does exactly one thing: when a page navigation fails because the device is
  * offline, it answers with /offline.html. It never caches the catalogue, a
  * study, a result or any API response, and it never answers any request other
- * than a navigation: showing material data from a cache, without its source and
- * date, would break the rule that a property is never shown without them.
+ * than a navigation. The sheets /offline.html can show are not in this cache:
+ * the app writes the ones the reader opened, as text with their read date, into
+ * localStorage (apps/web/lib/offlineSheets.ts), and the page only prints them.
  * Bump CACHE when /offline.html changes.
  */
-const CACHE = "msai-offline-v1";
+const CACHE = "msai-offline-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
