@@ -283,3 +283,11 @@ O comparador destaca, por escrito e com selo, as propriedades cuja dispersão
 0 < x ≤ 1000; inválido é descartado, nunca consertado) e mostra, numa seção
 própria, índices do catálogo avaliados pelo backend em unidade canônica
 composta. Tudo é calculado no backend; ausência vira texto com o motivo.
+
+**Índice digitado e coluna calculada (D-153).** O campo "Expressão" aceita uma
+expressão livre; ela passa pelo validador da Seleção (`POST /api/selection/index`)
+antes de entrar, e a recusa aparece escrita sob o campo sem derrubar a tabela.
+Toda coluna calculada leva o selo "Calculada" com ícone, a nota do que é
+calculado, os insumos e, no backend, a própria dispersão e o selo de limiar —
+só quando a expressão não soma nem subtrai e os insumos têm zero verdadeiro;
+senão a ausência é escrita (`escala_sem_zero`).

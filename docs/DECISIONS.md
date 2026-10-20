@@ -10316,7 +10316,7 @@ módulo/densidade quando cadastrada. Sem migração.
 propriedade (assimétrica e dependente da ordem; a referência continua servindo
 à diferença por célula); limitar silenciosamente o limiar à faixa; destaque só
 por cor; computadas em unidade de leitura (um índice mistura propriedades com
-unidades próprias — D-70); índice digitado livremente na tela (fica para depois).
+unidades próprias — D-70); índice digitado livremente na tela (entregue na D-153).
 
 **Consequências.** Contrato novo e retrocompatível (campos opcionais). Depois do
 merge, **Deploy da API** é obrigatório; não há seed nem migração.
@@ -11012,3 +11012,28 @@ com versão real é mantida, com o mesmo erro de validação. As ressalvas da IA
 
 **Consequências.** Testes que afirmavam o texto antigo foram atualizados; planilhas passam a ter a aba "Versões" e "Limites e
 funil". Sem migração. Depois do merge, rodar o Deploy da API.
+
+---
+
+## D-153 — Comparador: índice digitado e coluna calculada com marca própria (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A D-128 entregou as propriedades computadas e deixou duas pendências no TODO: o índice só podia ser um dos do
+catálogo, e a coluna calculada não tinha dispersão nem destaque próprios, podendo passar por valor medido.
+
+**Decisão.** (1) **Índice digitado, sem rota nova.** A tela tem um campo "Expressão" (com exemplos curtos e a lista de variáveis
+disponíveis, escritas como o avaliador as conhece). Antes de entrar na tabela, a expressão passa pelo validador que a Seleção já
+usa (`POST /api/selection/index`): se o servidor a recusa, a mensagem dele aparece sob o campo e a tabela continua como estava —
+um erro de digitação não derruba a comparação. Aceita, vai em `computed` do mesmo pedido da D-128; o cliente nunca interpreta nem
+calcula a expressão. Duplicada (ignorando espaços) e acima de 10 colunas são recusadas na tela. (2) **Coluna calculada com marca
+própria.** O cabeçalho leva o selo "Calculada" com ícone, a expressão, os insumos e a contagem com/sem valor; a tabela ganha uma
+nota do que é calculado e um filete de marca em toda a coluna. Cor nunca é o único canal. (3) **Dispersão e destaque da
+coluna.** `ComputedColumnOut` ganha `spread_pct`, `spread_state` e `exceeds_threshold`, pela mesma `spread_pct` da D-128 sobre os
+valores definidos. Um índice só tem "percentual" quando guarda zero verdadeiro: a expressão não soma nem subtrai
+(`expressions.is_multiplicative`) e todo insumo está em escala de razão; senão, `escala_sem_zero`, escrito. (4) A mensagem de
+sintaxe do avaliador deixou o inglês do Python ("invalid syntax") e a de construção não permitida deixou o nome do nó da árvore.
+
+**Descartado.** Rota nova para validar; deixar o pedido de comparação falhar com 400 e mostrar o erro no lugar da tabela;
+dispersão de qualquer índice (uma soma desloca o zero e o percentual passaria a afirmar o que ninguém conferiu); colunas calculadas
+misturadas à tabela principal (continuam na seção própria da D-128).
+
+**Consequências.** Campos opcionais novos no contrato, retrocompatível. Sem migração nem seed. Depois do merge, **Deploy da API**.

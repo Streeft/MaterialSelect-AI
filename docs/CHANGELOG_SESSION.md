@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
 | [95](#sessão-95--171026--linguagem-simples-na-interface-d-140) | 17/10/2026 | Linguagem simples: restrição→limite, ranking→classificação, release→versão, template→modelo, backend→servidor, link→endereço; chaves, rotas e slugs intactos | — | `lib/i18n.ts`, `marketing/content.ts`, `msds.tsx` |
@@ -106,6 +107,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 108 — 20/10/26 — Comparador: índice digitado e coluna calculada (D-153)
+
+**O que mudou.** Fecha duas pendências da D-128. O comparador aceita um índice digitado (`CustomIndexForm`): a expressão passa pelo
+validador da Seleção e só então vira coluna de `computed`; erro de expressão aparece sob o campo, em pt-BR, e a tabela não some.
+A coluna calculada ganhou selo "Calculada" com ícone, nota do que é calculado, insumos, dispersão e selo de limiar próprios
+(`ComputedColumnOut.spread_pct/spread_state/exceeds_threshold`; só quando a expressão não soma nem subtrai e os insumos têm zero
+verdadeiro). As mensagens de sintaxe e de construção não permitida do avaliador deixaram de citar o inglês do Python.
+
+**Testes.** +6 de backend (dispersão da coluna, soma sem dispersão, um valor só, mensagens em pt-BR, `is_multiplicative`, sintaxe) e
++19 de frontend (formulário, página, tabela calculada, axe). Sem migração nem seed. Pede o Deploy da API.
 
 ## Sessão 105 — 19/10/26 — Linguagem simples nos textos do backend (D-150)
 
