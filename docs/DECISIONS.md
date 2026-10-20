@@ -11041,3 +11041,33 @@ mesmo endereço (quebraria o `#slug` e pediria estado na URL); colunas novas em 
 
 **Consequências.** As notas complementam a prosa do P1-4, não a substituem. Classes do bundle oficial (D-102) aparecem sem nota
 até alguém escrever (TODO, SN-c). Depois do merge, **Deploy da API**; não há seed nem migração.
+
+## D-152 — Fichas de material para leitura sem conexão: retrato em texto, com fonte e a data da leitura em cada valor
+
+**Contexto.** O D-142 deixou o app instalável mas sem uso offline, porque mostrar dado de material de um cache, sem a fonte e a data,
+fere o princípio 1. O autor decidiu (20/10/26) abrir **uma** exceção: as fichas **já abertas**, com fonte e data, e o rótulo no topo
+mais a data em cada valor.
+
+**Decisão.**
+- **O que se guarda.** Ao abrir uma ficha com conexão, o app grava no `localStorage` (`msai.offline.sheets`) um retrato **em texto**: nome,
+  classe, e por linha o grupo, o nome, o valor **já escrito** com a unidade, a qualidade (Medido, Importado, Estimado ou Ausente), a fonte, a
+  condição e a nota, mais o instante da leitura. O texto do valor sai do mesmo `formatNumber`/`prettyUnit` da ficha, e um teste confere que é
+  igual ao que a ficha desenha. **Nenhum número é recalculado nem convertido fora do backend** (princípio 2), e a leitura é a da unidade que o
+  leitor tinha escolhido (D-70).
+- **Ausência continua escrita** (princípio 3): linha sem valor guarda "Ausente", sem fonte, e a página a mostra assim, nunca como 0 ou traço.
+- **O que não se guarda.** Registro próprio (`is_own_record`): é privado da conta e a máquina de sala é compartilhada. Também não se guarda a
+  visão provisória da troca de unidade (D-70), que não é o que o servidor respondeu para aquela leitura. No máximo as 20 mais recentes; a
+  releitura de um material troca o retrato antigo.
+- **Onde aparece.** `public/offline.html`, a página que o service worker já devolve a uma navegação que falhou. Ela lista as fichas lidas
+  (com a hora da leitura), abre a escolhida e mostra, **fixa no topo**, "Dados lidos em DD/MM/AAAA neste aparelho. Podem estar desatualizados",
+  e **em cada valor** a qualidade, a fonte e "lido em DD/MM/AAAA", para uma captura de tela nunca perder o aviso. O texto vindo do
+  armazenamento entra só por `textContent`. Sem ficha lida, a página diz isso.
+- **O service worker não muda de natureza.** Continua sem cachear catálogo, estudo, resultado ou resposta de API e sem responder pedido
+  que não seja navegação; só o nome do cache sobe (`msai-offline-v2`). A ficha não está no cache dele, está no armazenamento do navegador.
+- **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
+  e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
+- A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+
+**Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
+`describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
+e a ficha, hoje, já a escreve assim ("0,3496 —").

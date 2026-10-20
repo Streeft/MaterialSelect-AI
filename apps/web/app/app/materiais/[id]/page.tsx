@@ -23,6 +23,7 @@ import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { useCanEditCatalog } from "@/lib/billing";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
+import { useKeepOfflineSheet } from "@/components/material/useKeepOfflineSheet";
 import { classVisual } from "@/lib/design/palette";
 import { PropertyGroupCard } from "@/components/PropertyGroup";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
@@ -77,6 +78,8 @@ export default function MaterialDetailPage() {
   });
 
   useRecordVisit("material", Number.isFinite(id) ? id : undefined);
+  // D-152: a sheet the server answered is kept for reading without a connection.
+  useKeepOfflineSheet(material.data, material.isPlaceholderData);
 
   // As unidades que cada grandeza admite. Vêm da definição e não da ficha: é a
   // mesma lista curada que o backend aceita, então nenhuma escolha oferecida
