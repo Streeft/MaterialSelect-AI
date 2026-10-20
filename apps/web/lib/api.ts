@@ -11,6 +11,7 @@ import type {
   BatteryComparisonRequest,
   BatteryComparisonResult,
   BillingStatus,
+  FamilyNoteEntry,
   GlossaryEntry,
   ChartData,
   CheckoutSession,
@@ -554,6 +555,13 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 /** Os verbetes conceituais do glossário de propriedades. */
 export function listGlossary(): Promise<GlossaryEntry[]> {
   return request<GlossaryEntry[]>(`/api/glossario`);
+}
+
+// --- Notas de família (D-151) ---------------------------------------------------
+
+/** As notas conceituais de família de materiais, por slug da classe. */
+export function listFamilyNotes(): Promise<FamilyNoteEntry[]> {
+  return request<FamilyNoteEntry[]>(`/api/familias/notas`);
 }
 
 export function listProperties(): Promise<PropertyDefinition[]> {

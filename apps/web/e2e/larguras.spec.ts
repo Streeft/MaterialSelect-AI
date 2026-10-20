@@ -38,6 +38,7 @@ const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["sintetizar", "/app/sintetizar"],
   ["baterias", "/app/baterias"],
   ["glossario", "/app/glossario"],
+  ["glossario-familias", "/app/glossario/familias"],
   ["importar", "/app/importar"],
   ["meus-registros", "/app/meus-registros"],
   ["admin-classes", "/app/admin/classes"],

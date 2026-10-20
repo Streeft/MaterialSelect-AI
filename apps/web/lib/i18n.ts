@@ -2943,6 +2943,39 @@ export const ptBR = {
     hintError: "Não foi possível carregar o verbete.",
   },
 
+  // D-151: notas de família — o que a família é, por que se comporta assim, onde
+  // se usa e o que conferir. Conceituais: nenhum valor de propriedade.
+  familyNotes: {
+    title: "Glossário de famílias",
+    subtitle:
+      "O que cada família de materiais é, por que se comporta como se comporta, onde se usa e o que conferir ao escolhê-la. As notas são conceituais: não trazem valores de propriedade.",
+    navLabel: "Seções do glossário",
+    navProperties: "Propriedades",
+    navFamilies: "Famílias",
+    loading: "Carregando as notas de família…",
+    error: "Não foi possível carregar as notas de família.",
+    empty: "Nenhuma família no catálogo e nenhuma nota cadastrada.",
+    noMatch: (q: string) => `Nenhuma família corresponde a “${q}”.`,
+    filter: "Filtrar por nome",
+    filterHint: "Digite parte do nome ou do identificador da família.",
+    count: (n: number) => (n === 1 ? "1 família" : `${n.toLocaleString("pt-BR")} famílias`),
+    // Ausência escrita (D-24): família sem nota nunca vira vazio nem texto inventado.
+    missing: "Sem nota para esta família",
+    missingHint: "Esta família ainda não tem nota conceitual no glossário.",
+    about: (name: string) => `Sobre a família ${name}`,
+    whenToUse: "Quando escolher",
+    watchOut: "Cuidados na seleção",
+    reference: "Referência",
+    referenceMissing: "Nenhuma norma citada nesta nota.",
+    license: "Licença do texto",
+    review: "Estado de revisão",
+    seeAll: "Ver todas as notas de família",
+    seeInCatalog: "Ver a família no catálogo",
+    inlineLoading: "Carregando a nota da família…",
+    inlineError: "Não foi possível carregar a nota da família.",
+    retry: "Tentar de novo",
+  },
+
   // P1-4: o registro de família, nos dois universos.
   family: {
     applications: "Onde se usa",

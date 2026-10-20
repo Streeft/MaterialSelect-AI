@@ -11013,6 +11013,35 @@ com versão real é mantida, com o mesmo erro de validação. As ressalvas da IA
 **Consequências.** Testes que afirmavam o texto antigo foram atualizados; planilhas passam a ter a aba "Versões" e "Limites e
 funil". Sem migração. Depois do merge, rodar o Deploy da API.
 
+## D-151 — Notas de família de materiais (Science Notes): texto conceitual, autoral e versionado (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Lacuna do EduPack: o leitor não tinha um texto curto sobre cada família de materiais (o que ela é, por que se
+comporta assim, onde se usa, o que conferir ao escolhê-la). O P1-4 deu a `MaterialClass` duas frases editáveis
+(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130) é por propriedade.
+
+**Decisão.**
+1. **Mesmo desenho do D-130, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
+   (Pydantic estrito, sem sessão de banco), servido por `GET /api/familias/notas` e `/{slug}` (404 escrito, nomeando o slug), com a
+   regra de acesso da lista de classes. Sem migração. Campos: `summary` (≤ 280), `body` em parágrafos curtos (≤ 1200 no total),
+   `when_to_use`, `watch_out`, `reference`, `license`, `review_status`, `lang`.
+2. **Conceitual, mais estrito que o glossário:** o texto da nota não leva algarismo nenhum (número com unidade tem mensagem
+   própria). Norma só em `reference`, e só com nome e número certos — hoje nenhuma nota cita. Texto autoral em pt-BR, nada
+   copiado do EduPack nem de bases comerciais; licença: texto autoral do projeto sob a licença MIT do repositório.
+3. **Rascunho escrito.** As cinco notas (as famílias de `seed.CLASSES`) nascem `rascunho`; a tela escreve o estado.
+4. **Canário de cobertura:** toda família do seed tem nota ou está em `FAMILIES_WITHOUT_NOTE` com o motivo escrito (vazia hoje);
+   nota para slug que o catálogo não tem falha o teste.
+5. **Onde aparece.** Na ficha do material, dobrada (`Disclosure` flush) logo abaixo da classe, no cartão do cabeçalho; e numa
+   **página irmã** `/app/glossario/familias`, com uma navegação de links "Propriedades | Famílias" nas duas páginas. Página irmã,
+   e não aba, porque é o menor atrito: o endereço `#slug` vindo da ficha cai na nota certa sem estado de tela, o botão Voltar
+   funciona, a página do glossário de propriedades e os seus testes não mudam, e a barra lateral já marca `/app/glossario` ativo
+   nas subrotas. Família sem nota: "Sem nota para esta família", nunca vazio.
+
+**Alternativas descartadas.** Reaproveitar `characteristics`/`applications` (curtos, no banco, sem licença nem revisão); aba no
+mesmo endereço (quebraria o `#slug` e pediria estado na URL); colunas novas em `MaterialClass` (migração sem ganho agora).
+
+**Consequências.** As notas complementam a prosa do P1-4, não a substituem. Classes do bundle oficial (D-102) aparecem sem nota
+até alguém escrever (TODO, SN-c). Depois do merge, **Deploy da API**; não há seed nem migração.
+
 ---
 
 ## D-153 — Comparador: índice digitado e coluna calculada com marca própria (decidida pelo assistente por delegação do autor, revisável)
