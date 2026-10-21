@@ -476,3 +476,32 @@ describe("materiais semelhantes", () => {
     expect(violations, describeViolations(violations)).toEqual([]);
   });
 });
+
+describe("materiais semelhantes: nível de profundidade (D-162)", () => {
+  it("no Nível 1 não oferece a base de nível maior, mas mantém a já escolhida", async () => {
+    const extra = {
+      ...properties[0]!,
+      id: 9,
+      name: "Limite de fadiga",
+      slug: "fadiga",
+      min_level: 3,
+    } as PropertyDefinition;
+    const other = { ...extra, id: 10, name: "Tenacidade", slug: "tenacidade" } as PropertyDefinition;
+    properties.push(extra, other);
+    const before = search;
+    search = new URLSearchParams("nivel=1");
+    try {
+      render(wrap(<SimilarPanel material={material} />));
+      expect(await screen.findByShadowRole("checkbox", { name: "Densidade" })).toBeChecked();
+      expect(screen.queryByShadowRole("checkbox", { name: "Limite de fadiga" })).toBeNull();
+      expect(screen.queryByShadowRole("checkbox", { name: "Tenacidade" })).toBeNull();
+      expect(
+        screen.getByShadowText(new RegExp("O Nível 1 oferece 2 de 4 grandezas como base da busca")),
+      ).toBeInTheDocument();
+    } finally {
+      properties.splice(2, 2);
+      search = before;
+    }
+  });
+});
+

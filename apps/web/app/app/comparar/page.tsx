@@ -12,6 +12,9 @@ import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { MAX_COMPARE_MATERIALS } from "@/lib/compareLimits";
 import { prettyUnit } from "@/lib/format";
+import { optionsAtLevel } from "@/lib/depth";
+import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
+import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import {
   COMPARISON_MODES,
   ComparisonView,
@@ -102,6 +105,9 @@ function ComparePageContent() {
   }, [properties.data]);
 
   const selectedProperties = userSelectedProperties ?? defaultProperties;
+  // D-162: the level trims the chips on offer, never a property already chosen.
+  const depthLevel = useDepthLevel();
+  const offeredProperties = optionsAtLevel(properties.data ?? [], depthLevel, selectedProperties);
 
   // The search offers only what is not chosen yet: the chosen ones are the
   // chips below it, each with its own way out (D-86).
@@ -295,8 +301,18 @@ function ComparePageContent() {
               {/* The cap is stated before it bites: a chip that simply stops
                   responding reads as a broken button. */}
               {propertiesFull && <p className="text-support text-ink-subtle">{t.limitReached}</p>}
+              {(properties.data ?? []).length > 0 && (
+                <DepthLevelPicker
+                  summary={depthSelectorsText.count(
+                    depthLevel,
+                    offeredProperties.length,
+                    (properties.data ?? []).length,
+                    depthSelectorsText.whereCompare,
+                  )}
+                />
+              )}
               <div className="flex flex-wrap gap-2">
-                {(properties.data ?? []).map((p) => {
+                {offeredProperties.map((p) => {
                   const chosen = selectedProperties.includes(p.slug);
                   return (
                     <ToggleChip

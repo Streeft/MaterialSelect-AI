@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [119](#sessão-119--211026--nível-de-profundidade-nos-seletores-de-estágios-comparador-e-find-similar-d-162) | 21/10/2026 | `optionsAtLevel` nos critérios dos estágios, nas colunas do comparador e na base do Find Similar, sem tirar o já escolhido | sem mudança | 1364 → 1374 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -112,6 +113,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 119 — 21/10/26 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (D-162)
+
+**O pedido.** Resíduo PD-a do D-127: só a ficha e os eixos do mapa respeitavam o nível.
+
+**O que mudou.** `StageList` recebe `depthLevel` e filtra as propriedades por `optionsAtLevel`, mantendo as que um estágio já nomeia (`usedPropertySlugs`, inclusive grupos aninhados e eixos de gráfico). O comparador filtra os chips de propriedade mantendo os já escolhidos; o Find Similar, a base de busca, mantendo a base atual. Estágios e comparador ganham o `DepthLevelPicker`; o Find Similar usa o da ficha e escreve a contagem. Textos em `lib/i18n-depth-selectors.ts`. O nível segue só na URL e só na apresentação.
+
+**Atenção ao mesclar.** Toca `SimilarPanel.tsx` (lista da base), que o #182 também edita.
 
 ## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
 
