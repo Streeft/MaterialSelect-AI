@@ -31,7 +31,7 @@ const ROW = 32;
 const VALUE_COLUMN = 92;
 const PLOT_HEIGHT = 240;
 const Y_AXIS = 44;
-const X_LABELS = 36; // room for a label in two lines (D-158)
+const X_LABELS = 36; // room for a label in two lines (D-166)
 const RADIUS = 4;
 
 /**

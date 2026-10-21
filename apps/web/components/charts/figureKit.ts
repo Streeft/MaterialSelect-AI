@@ -103,7 +103,7 @@ export function truncate(text: string, max: number): string {
 }
 
 /**
- * A label for a column axis, in at most two lines of `max` characters (D-158).
+ * A label for a column axis, in at most two lines of `max` characters (D-166).
  *
  * `truncate` alone turned "Não registrado" into "Não regist…" on a half-width
  * panel, which drops the one word that says what the column is. A break at the

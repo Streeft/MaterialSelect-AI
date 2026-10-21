@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1364 → 1371 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -113,13 +114,32 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 117 — 21/10/26 — Suíte de larguras também nas fichas (D-147)
+## Sessão 125 — 21/10/26 — Suíte de larguras também nas fichas (D-147)
 
 **O que mudou.** `e2e/larguras.spec.ts` passa a medir a rolagem horizontal da ficha de material, da ficha de processo (caminho lido do primeiro link
 da lista) e de `/app/catalogo/releases`, nas quatro larguras. O laço foi extraído para `expectNoSidewaysScroll`. Nenhuma tela quebrou.
 **Verificação.** Os 3 testes novos passam localmente (Chromium + API de E2E). Sem backend nem migração. Caderno aberto segue fora: o banco de E2E não tem caderno.
 
 ## Sessão 116 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-158)
+## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
+
+**O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
+cima de `tolerance_pct` só naquela propriedade; propriedade sem nenhuma das duas fica sem faixa. A validação está no schema com mensagem
+em pt-BR simples (chave fora da busca, valor fora do intervalo, não número: 422). `domain/nearness.py` ganhou `resolve_tolerances` e
+`tolerance_by_property`; faixa, pontas, escala de razão e ausência seguem o D-155. Cada banda volta com o `tolerance_pct` com que foi
+desenhada. No painel, campo "Tolerância de X (± %)" em cada linha dos ajustes, com vírgula e erro escrito, `sim_tolerancia_prop` na URL,
+percentual em cada faixa e no cabeçalho da tabela de origem, e "Sem tolerância pedida" escrito para quem não tem faixa.
+
+**Por quê.** Sem nenhuma tolerância a resposta e a requisição são as de antes, chave por chave. Ausência continua excluindo antes de qualquer
+faixa.
+
+**Testes.** +21 de backend (`test_nearness_tolerance_per_property.py`: nada muda sem as duas, sobreposição só na propriedade, global escrita
+por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem zero real, ausência, faixa mais larga nunca afasta, ordem da
+base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
+propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
+escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
+
+## Sessão 124 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-166)
 
 **O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe
 quebra no último espaço que cabe, em vez de ser cortado com reticências. "Não registrado" deixa de sair "Não regist…" no Painel.
