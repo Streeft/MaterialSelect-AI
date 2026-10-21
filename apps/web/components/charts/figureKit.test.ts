@@ -68,7 +68,7 @@ describe("truncate", () => {
   });
 });
 
-describe("wrapLabel (D-158)", () => {
+describe("wrapLabel (D-166)", () => {
   it("leaves a label that fits as one line", () => {
     expect(wrapLabel("Medido", 9)).toEqual(["Medido"]);
   });

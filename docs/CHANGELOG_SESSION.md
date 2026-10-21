@@ -132,7 +132,7 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
-## Sessão 116 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-158)
+## Sessão 124 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-166)
 
 **O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe
 quebra no último espaço que cabe, em vez de ser cortado com reticências. "Não registrado" deixa de sair "Não regist…" no Painel.

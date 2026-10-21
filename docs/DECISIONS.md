@@ -11192,7 +11192,7 @@ e escreve o nome).
 
 **Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o **Deploy da API**.
 
-## D-158 — Rótulo do eixo de colunas: quebra em duas linhas, não reticências
+## D-166 — Rótulo do eixo de colunas: quebra em duas linhas, não reticências
 
 **Contexto.** Achado na conferência ao vivo (D-156): no Painel, com o cartão na metade da largura a 1280 px, o rótulo "Não registrado" saía
 "Não regist…", e é justamente a palavra cortada que diz o que a coluna é.
