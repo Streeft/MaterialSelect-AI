@@ -11146,3 +11146,33 @@ Nada quebrou de layout e o console ficou limpo; dois defeitos de texto e de repe
 alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos mostram o ponto decimal conforme a localidade do navegador
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
+
+## D-158 — Tolerância por propriedade no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-155 entregou um só `x` para a base inteira e deixou como resíduo a tolerância por propriedade, que o manual permite:
+±2% na densidade e ±20% no módulo são perguntas legítimas e diferentes de "±x% em tudo".
+
+**Decisão.**
+1. **`tolerances` no `SimilarRequest`: mapa slug → percentual**, opcional, com os mesmos limites do D-155 (`0 < x ≤ 100`, finito).
+   A tolerância global continua valendo como padrão; a da propriedade **passa por cima dela só naquela propriedade**. Sem nenhuma das
+   duas a resposta é a de antes, campo por campo, e uma requisição sem `tolerances` é a requisição de antes.
+2. **Validação no schema, em pt-BR simples** (`PydanticCustomError`, sem o "Value error," do Pydantic): chave fora das propriedades da
+   busca é 422 com "Tolerância para propriedade fora da busca: …"; valor que não é número, ou fora de (0, 100], é 422 com "A tolerância de
+   … precisa ser um número maior que 0 e no máximo 100%". O domínio repete a checagem (`resolve_tolerances`) para quem o chama direto.
+3. **Propriedade sem nenhuma tolerância não ganha faixa e não entra em `tolerance_bands`.** Isso é diferente de "não se aplica": aquilo é
+   escala sem zero real (`applicable: false`, como no D-155); aqui ninguém pediu, e a tela escreve "Sem tolerância pedida (a diferença conta
+   inteira)". A diferença nessa propriedade conta inteira, como sempre.
+4. **Cada banda diz com que percentual foi desenhada** (`tolerance_pct` em `ToleranceBandOut`), porque com mais de um `x` o título "±x%"
+   da resposta deixa de bastar. `SimilarOut.tolerance_pct` continua sendo só a global (`null` quando só há tolerâncias por propriedade).
+5. **Tudo o mais é o D-155 sem mudança:** faixa sobre o canônico com pontas incluídas, parcela 0 dentro, diferença inteira fora, só em
+   escala de razão, ausência excluída antes de qualquer faixa (nunca vira 0 nem "dentro"), unidade de leitura só imprime a faixa.
+6. **Na tela:** um campo "Tolerância de X (± %)" em cada linha dos ajustes de proximidade, com vírgula e erro escrito no próprio campo;
+   a busca fica desligada enquanto houver valor inválido. Na URL como `sim_tolerancia_prop=slug:x,…` (como `sim_peso`); só as propriedades
+   da base vão na requisição. A tabela de origem (D-31) leva o percentual no cabeçalho de cada coluna.
+
+**Descartado.** Tolerância 0 por propriedade para "desligar" a global ali (zero não é faixa; tirar a propriedade da base, ou apagar a
+global, é o jeito de dizer isso, como o peso zero recusado do D-120); tolerância absoluta na unidade de leitura (dependeria da tela e
+pediria unidade explícita); mensagem com o nome de exibição da propriedade no 422 (o schema não conhece as definições; o painel valida antes
+e escreve o nome).
+
+**Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o **Deploy da API**.

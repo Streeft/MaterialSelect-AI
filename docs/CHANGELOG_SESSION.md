@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1329 → 1336 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
 | [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
@@ -110,6 +111,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
+
+**O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
+cima de `tolerance_pct` só naquela propriedade; propriedade sem nenhuma das duas fica sem faixa. A validação está no schema com mensagem
+em pt-BR simples (chave fora da busca, valor fora do intervalo, não número: 422). `domain/nearness.py` ganhou `resolve_tolerances` e
+`tolerance_by_property`; faixa, pontas, escala de razão e ausência seguem o D-155. Cada banda volta com o `tolerance_pct` com que foi
+desenhada. No painel, campo "Tolerância de X (± %)" em cada linha dos ajustes, com vírgula e erro escrito, `sim_tolerancia_prop` na URL,
+percentual em cada faixa e no cabeçalho da tabela de origem, e "Sem tolerância pedida" escrito para quem não tem faixa.
+
+**Por quê.** Sem nenhuma tolerância a resposta e a requisição são as de antes, chave por chave. Ausência continua excluindo antes de qualquer
+faixa.
+
+**Testes.** +21 de backend (`test_nearness_tolerance_per_property.py`: nada muda sem as duas, sobreposição só na propriedade, global escrita
+por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem zero real, ausência, faixa mais larga nunca afasta, ordem da
+base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
+propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
+escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
 ## Sessão 111 — 21/10/26 — Conferência ao vivo das demais rotas: rótulo do cabeçalho e lista vazia dos Cadernos (D-156)
 
