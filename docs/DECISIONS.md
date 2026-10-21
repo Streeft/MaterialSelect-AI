@@ -11155,3 +11155,13 @@ Nada quebrou de layout e o console ficou limpo; dois defeitos de texto e de repe
 alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos mostram o ponto decimal conforme a localidade do navegador
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
+
+## D-160 — Comparador: o endereço é o único lugar do que se compartilha (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O resíduo de D-128/D-153 pedia persistir o limiar e os índices digitados além da URL.
+
+**Decisão.** (1) O que precisa chegar a outra pessoa vai no endereço: `materiais`, `referencia`, `limiar`, `calculadas` e `indice` (repetido, porque a expressão pode ter vírgula), escritos a cada mudança e com "Copiar link". (2) Nada disso vai para o armazenamento do navegador: um valor guardado num navegador faria o mesmo link mostrar duas tabelas (mesma razão da referência, P2). (3) Expressão vinda de link é entrada não confiável: passa pelo validador do servidor (D-153), a tabela espera o veredito, e a recusada sai do pedido e do endereço com a mensagem escrita, nunca consertada. (4) Slug de catálogo desconhecido é dito.
+
+**Descartado.** localStorage para "lembrar o último limiar"; salvar a comparação no servidor (exige modelo e decisão do autor, fica como resíduo); propriedades e normalização no link (resíduo).
+
+**Consequências.** Só frontend; sem migração. Depois do merge, nada a disparar além do deploy automático da Vercel.
