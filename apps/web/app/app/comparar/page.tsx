@@ -61,7 +61,7 @@ function parseIds(raw: string | null): number[] {
 function ComparePageContent() {
   const params = useSearchParams();
   const queryClient = useQueryClient();
-  // D-160: what the link carries besides the materials, read once. The address
+  // D-163: what the link carries besides the materials, read once. The address
   // stays the only copy of it; nothing is kept in the browser.
   const [fromLink] = useState(() => readCompareLink(params));
 
@@ -87,7 +87,7 @@ function ComparePageContent() {
   const [computedSlugs, setComputedSlugs] = useState<string[]>(fromLink.catalogue);
   // D-153: expressions the reader typed. Each one is accepted by the backend's
   // validator before it reaches the request, so a typo cannot take the table
-  // away. D-160: the ones that came in the link go through the same validator.
+  // away. D-163: the ones that came in the link go through the same validator.
   const [customExpressions, setCustomExpressions] = useState<string[]>(fromLink.expressions);
   const indexChecks = useIndexChecks(customExpressions);
   const acceptedExpressions = indexChecks
@@ -189,7 +189,7 @@ function ComparePageContent() {
     enabled: ready && !checkingLink,
   });
 
-  // The address is the link (D-160): every part that has to be shareable is
+  // The address is the link (D-163): every part that has to be shareable is
   // written to it as it changes, so a reload or a pasted link returns the same
   // table. An index still being checked stays in it; a refused one does not.
   const linkState = {

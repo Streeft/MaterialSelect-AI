@@ -1,5 +1,5 @@
 /**
- * The comparator's link: what a shared URL carries (D-160).
+ * The comparator's link: what a shared URL carries (D-163).
  *
  * The address is the only place the comparison lives. Whatever has to reach
  * another reader (the materials, the reference, the highlight threshold, the

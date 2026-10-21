@@ -1,5 +1,5 @@
 /**
- * Texts of the comparator's link (D-160). Kept apart from `i18n.ts` so the
+ * Texts of the comparator's link (D-163). Kept apart from `i18n.ts` so the
  * parallel lanes that edit that file do not collide with this one.
  */
 export const compareLinkText = {

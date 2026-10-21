@@ -7,7 +7,7 @@ import { Button } from "@/components/ui";
 import { IconCopy } from "@/components/ui/icons";
 
 /**
- * "Copiar link" for the comparator (D-160).
+ * "Copiar link" for the comparator (D-163).
  *
  * `getUrl` is read at click time, so the link is the comparison the reader is
  * looking at. What the link does not carry is said in the hint, not left to be

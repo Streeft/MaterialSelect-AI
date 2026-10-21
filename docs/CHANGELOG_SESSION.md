@@ -114,7 +114,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 117 — 21/10/26 — Comparador: o link leva limiar e índices (D-160)
+## Sessão 121 — 21/10/26 — Comparador: o link leva limiar e índices (D-163)
 
 **O pedido.** Resíduo do D-153: o limiar só vivia na URL se fosse digitado nela, e os índices digitados só viviam na página.
 

@@ -99,7 +99,7 @@ function writtenLink() {
   return new URL(window.location.href);
 }
 
-describe("comparador: o link leva limiar e índices (D-160)", () => {
+describe("comparador: o link leva limiar e índices (D-163)", () => {
   beforeEach(() => {
     requests.length = 0;
     evaluate.mockReset();

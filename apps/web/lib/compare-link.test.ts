@@ -10,7 +10,7 @@ import {
 
 const EMPTY = { materials: [], reference: null, threshold: null, catalogue: [], expressions: [] };
 
-describe("parseExpressions (D-160)", () => {
+describe("parseExpressions (D-163)", () => {
   it("mantém a ordem, apara e junta o que só difere em espaços", () => {
     expect(parseExpressions([" a / b ", "a/b", "sqrt(c)"])).toEqual(["a / b", "sqrt(c)"]);
   });
@@ -26,7 +26,7 @@ describe("parseExpressions (D-160)", () => {
   });
 });
 
-describe("parseCatalogueSlugs (D-160)", () => {
+describe("parseCatalogueSlugs (D-163)", () => {
   it("lê a lista separada por vírgula, sem repetidos", () => {
     expect(parseCatalogueSlugs("rigidez-especifica, resistencia_especifica,rigidez-especifica")).toEqual([
       "rigidez-especifica",
@@ -41,7 +41,7 @@ describe("parseCatalogueSlugs (D-160)", () => {
   });
 });
 
-describe("compareSearch (D-160)", () => {
+describe("compareSearch (D-163)", () => {
   it("o link de uma comparação vazia é o caminho puro", () => {
     expect(compareSearch("?materiais=1&limiar=5", EMPTY)).toBe("");
   });
@@ -84,7 +84,7 @@ describe("compareSearch (D-160)", () => {
   });
 });
 
-describe("readCompareLink (D-160)", () => {
+describe("readCompareLink (D-163)", () => {
   it("limiar inválido do link é descartado, sem conserto", () => {
     expect(readCompareLink(new URLSearchParams("limiar=5000")).threshold).toBeNull();
   });

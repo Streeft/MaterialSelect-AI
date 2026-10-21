@@ -173,7 +173,7 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   dispersão/destaque próprios~~ ✔ entregues (D-153, Sessão 108): campo de
   expressão validado pelo servidor antes de entrar, coluna com selo
   "Calculada", nota, dispersão e limiar próprios. ~~Limiar e índices só
-  na página~~ ✔ entregues em parte (D-160, Sessão 117): o endereço passa a levar
+  na página~~ ✔ entregues em parte (D-163, Sessão 121): o endereço passa a levar
   materiais, referência, limiar, índices do catálogo e índices digitados
   (conferidos pelo servidor ao abrir), com "Copiar link". Resíduos: (a) a escolha
   de propriedades e a normalização ainda não vão no link; (b) guardar a
