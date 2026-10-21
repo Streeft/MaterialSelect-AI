@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { sectionForPath, sectionMeta } from "@/lib/design/sections";
+import { labelForPath } from "@/lib/design/sections";
 
 /**
  * A route's header: where you are, what this screen is, and the controls
@@ -39,8 +39,8 @@ export function PageHeader({
   className?: string;
 }) {
   const pathname = usePathname();
-  const section = sectionMeta(sectionForPath(pathname));
-  const eyebrow = group ? `${group} · ${section.label.toLowerCase()}` : section.label.toLowerCase();
+  const label = labelForPath(pathname).toLowerCase();
+  const eyebrow = group ? `${group} · ${label}` : label;
 
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>

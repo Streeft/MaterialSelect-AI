@@ -110,6 +110,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 111 — 21/10/26 — Conferência ao vivo das demais rotas: rótulo do cabeçalho e lista vazia dos Cadernos (D-156)
+
+**O que mudou.** Segunda conferência no navegador, agora das 11 rotas que a primeira não cobriu (Mapas, Comparar, Painel, Eco, Custo,
+Dimensionar, Baterias, Sintetizar, Processos, Glossário, Meus registros), a 375 e a 1280 px, nos dois temas: 44 capturas, nenhum erro de
+console. Dois defeitos corrigidos: `labelForPath` em `lib/design/sections.ts` (usado pelo `PageHeader`) e o botão duplicado na lista vazia
+de Cadernos.
+
+**Testes.** +4 de frontend (`labelForPath`: seção própria, rotas sem matiz, volta ao início; um só "Criar caderno" na lista vazia e na cheia).
+Sem backend nem migração.
+
 ## Sessão 110 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-155)
 
 **O que mudou.** Fecha o resíduo do D-120. `SimilarRequest` aceita `tolerance_pct` opcional (0 < x ≤ 100, finito; inválido é 422).
