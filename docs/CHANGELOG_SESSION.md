@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [113](#sessão-113--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
 | [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
 | [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
@@ -109,6 +110,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 113 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
+
+**O que mudou.** Só frontend, três resíduos do TODO. **ORD-a:** a ficha ganha a seção "Propriedades ordinais" (`MaterialOrdinals`, lê `GET /api/materials/{id}/ordinais`): por propriedade, a escala como o catálogo a guarda e o nível do material marcado por preenchimento, texto e `aria-current`, com fonte e qualidade; `ausente` e `sem_dado` saem escritos, com a linha "não é o pior nível da escala". **TM4-b-tela:** `CurveValueReader` sob a figura de uma curva-função envia o x (vírgula aceita) e a unidade ao `…/curvas/{curva}/valor`, nas unidades de leitura da figura, e escreve valor com unidade, faixa, "como a fonte escreveu", qualidade, fonte e a regra do servidor; série sem ponto declarado mostra a frase de ausência e o selo "Ausente". Em trajetória o formulário não aparece e a razão do D-118 ocupa o lugar. **TM4-i:** em curva `path`, setas ao longo da linha (`pathArrows.ts`), anel no primeiro ponto, losango no último, nota no rodapé, coluna "Ordem no caminho" e nome acessível; o exemplo de laço de histerese é um *fixture* (`hysteresisLoop`).
+
+**Por quê.** As três rotas já existiam; faltava a tela. Cálculo, conversão e ausência continuam no servidor: a tela só pergunta e escreve.
+
+**Testes.** +35 de frontend (ordinais: estados, escala fiel, ausências, axe; leitor: pedido com unidades, vírgula, número inválido, ausência, erro, trajetória, axe; gráfico: setas, anel, losango, tabela, sem efeito em função; setas; integração na ficha; texto de `PATH_AMBIGUOUS` igual ao do Python) e as duas fichas auditadas em `routes.a11y`. Sem backend, migração ou seed. Pós-merge: nada além do deploy automático do frontend. Resíduo: TM4-i-b (curva de histerese no catálogo, por docs/15).
 
 ## Sessão 110 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-155)
 
