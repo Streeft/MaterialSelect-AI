@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
 | [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
 | [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
@@ -119,6 +120,16 @@ de Cadernos.
 
 **Testes.** +4 de frontend (`labelForPath`: seção própria, rotas sem matiz, volta ao início; um só "Criar caderno" na lista vazia e na cheia).
 Sem backend nem migração.
+## Sessão 113 — 21/10/26 — Resíduos TM7-e/f/g do diff entre versões, testados pela API
+
+**O pedido.** Quitar `is_active` no diff (e), faixa de um lado só (f) e propriedade sem definição / grafia da unidade (g). O código já fazia (f) e (g)
+desde a D-109, e (e) foi decidido ao contrário na [D-114](DECISIONS.md): `is_active` fica **fora** do diff, porque depois de uma promoção todo
+registro da versão base está inativo. Implementar (e) como pedido desfaria essa decisão e marcaria o diff inteiro como alterado, então não foi feito.
+
+**O que mudou.** Só testes e texto. `test_catalog_releases_api_residues.py` (+3, pelo endpoint real, com o importador): registro desligado continua
+`inalterado` com os dois `is_active` no contrato; `kg/m^3` × `kg/m³` é `escrita_da_fonte` e a regra impressa cita a grafia; faixa que perdeu o ponto
+representativo é `forma`, com o número ausente como `None`, nunca zero. O TODO tinha os três itens ainda abertos e `REGRAS_POR_AREA.md` ainda dizia
+que `is_active` diferente é metadado; os dois foram corrigidos. Sem decisão nova, sem migração, sem seed. Pós-merge: nada obrigatório (só testes e docs).
 
 ## Sessão 110 — 20/10/26 — Tolerância "100% se dentro de ±x%" no Find Similar (D-155)
 

@@ -313,18 +313,19 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   ainda não pagina; um par que não é "anterior → nova" (ex.: duas releases
   atrás) segue calculado a cada requisição; com 20.000 registros a leitura do
   JSON guardado ainda leva ≈ 1,4 s.
-- **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
-  releases que passa de ativo para inativo sai como "inalterado", porque
-  `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
-  entra junto com o TM7-a, que passa a desativar a release anterior.
-- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
-  representativo de uma faixa que tem `normalized_value` de um lado e nada do
-  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
-  importador não gera esse caso hoje.
-- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
-  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
-  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
-  vez de `ValidationError`; a chave estrangeira impede hoje.
+- ~~**TM7-e — `is_active` não entra no diff.**~~ — decidido que **não entra**
+  ([D-114](DECISIONS.md), que revogou o item 5 da D-109): depois de uma promoção
+  todo registro da release base fica inativo, e comparar o campo marcaria o diff
+  inteiro como alterado. O estado de cada lado segue em `base.is_active` e
+  `target.is_active`. Teste de API na Sessão 113.
+- ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ Feito na
+  D-109 (Sessão 64): número de um lado só é mudança de `forma`, checada antes de
+  comparar valores. Teste de API na Sessão 113 (o importador não gera o caso; o
+  teste tira o ponto representativo da linha gravada).
+- ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ Feito na D-109:
+  `kg/m^3` × `kg/m³` é `escrita_da_fonte` e a regra impressa na tela e no
+  arquivo diz isso; propriedade sem definição é `ValidationError` (400 escrito),
+  não `ValueError`. Teste de API na Sessão 113.
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
