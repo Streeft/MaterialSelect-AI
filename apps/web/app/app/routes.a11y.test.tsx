@@ -43,6 +43,10 @@ import type {
   TransportMode,
   StudySummary,
 } from "@/lib/types";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+
+// Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
+allowLoadedRunner();
 
 /**
  * Accessibility over the screens, not only over the primitives.

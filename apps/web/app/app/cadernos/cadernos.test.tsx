@@ -10,6 +10,10 @@ import { ptBR } from "@/lib/i18n";
 import { installWideViewport } from "@/lib/testing/viewport";
 import NotebooksPage from "./page";
 import { NotebookWorkspace } from "@/components/notebooks/NotebookWorkspace";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+
+// Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
+allowLoadedRunner();
 
 installWideViewport();
 const t = ptBR.notebooks;
