@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   CRITERION_PARAM,
+  PROPERTY_TOLERANCE_PARAM,
   TOLERANCE_PARAM,
   WEIGHT_PARAM,
+  parsePropertyTolerances,
   parseSettings,
   parseTolerance,
   parseToleranceInput,
   requestSettings,
+  requestTolerances,
+  writePropertyTolerances,
   writeSettings,
   writeTolerance,
 } from "./similarSettings";
@@ -105,5 +109,34 @@ describe("tolerância na URL (D-155)", () => {
     expect(set.get(TOLERANCE_PARAM)).toBe("7.5");
     expect(set.get(WEIGHT_PARAM)).toBe("densidade:2");
     expect(writeTolerance(set, null).has(TOLERANCE_PARAM)).toBe(false);
+  });
+});
+
+describe("tolerância por propriedade na URL (D-156)", () => {
+  it("lê cada propriedade e descarta o que não é tolerância válida", () => {
+    const params = new URLSearchParams(
+      `${PROPERTY_TOLERANCE_PARAM}=densidade:2.5,modulo_young:0,cond:abc,temp:100`,
+    );
+    expect(parsePropertyTolerances(params)).toEqual({
+      densidade: 2.5,
+      temp: 100,
+    });
+    expect(parsePropertyTolerances(new URLSearchParams())).toEqual({});
+  });
+
+  it("grava e apaga sem tocar na tolerância geral", () => {
+    const base = new URLSearchParams(`${TOLERANCE_PARAM}=10`);
+    const set = writePropertyTolerances(base, { densidade: 7.5, temp: 3 });
+    expect(set.get(PROPERTY_TOLERANCE_PARAM)).toBe("densidade:7.5,temp:3");
+    expect(set.get(TOLERANCE_PARAM)).toBe("10");
+    expect(
+      writePropertyTolerances(set, {}).has(PROPERTY_TOLERANCE_PARAM),
+    ).toBe(false);
+  });
+
+  it("a requisição leva só as propriedades da base", () => {
+    expect(
+      requestTolerances({ densidade: 5, fora: 3 }, ["densidade", "temp"]),
+    ).toEqual({ densidade: 5 });
   });
 });

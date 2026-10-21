@@ -181,6 +181,7 @@ const withTolerance: Similar = {
       high: 8635,
       unit: "kg/m³",
       applicable: true,
+      tolerance_pct: 10,
     },
     {
       slug: "temp_fusao",
@@ -189,6 +190,27 @@ const withTolerance: Similar = {
       high: null,
       unit: "°C",
       applicable: false,
+      tolerance_pct: 10,
+    },
+  ],
+};
+
+/**
+ * Only density asked its own ±5%, with no global tolerance (D-156): the
+ * melting point has no band and must say so in words.
+ */
+const perProperty: Similar = {
+  ...withTolerance,
+  tolerance_pct: null,
+  tolerance_bands: [
+    {
+      slug: "densidade",
+      label: "Densidade",
+      low: 7457.5,
+      high: 8242.5,
+      unit: "kg/m³",
+      applicable: true,
+      tolerance_pct: 5,
     },
   ],
 };
@@ -472,6 +494,103 @@ describe("materiais semelhantes", () => {
     expect(
       screen.getByShadowText(t.toleranceSummary(1, 1)),
     ).toBeInTheDocument();
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  it("manda a tolerância de cada propriedade da URL, só da base (D-156)", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams(
+      "sim_tolerancia=10&sim_tolerancia_prop=densidade:2.5,modulo_young:3",
+    );
+    findSimilar.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.propertyToleranceLabel("Densidade"),
+    });
+    expect(field).toHaveValue("2,5");
+    await user.click(screen.getByShadowRole("button", { name: t.search }));
+
+    // modulo_young is not in the basis: the server would refuse it (422).
+    expect(findSimilar).toHaveBeenCalledWith(
+      1,
+      {
+        property_slugs: ["densidade"],
+        limit: 10,
+        weights: {},
+        criteria: {},
+        tolerance_pct: 10,
+        tolerances: { densidade: 2.5 },
+      },
+      undefined,
+    );
+  });
+
+  it("grava a tolerância de uma propriedade digitada com vírgula na URL", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams();
+    replace.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.propertyToleranceLabel("Densidade"),
+    });
+    await user.type(field, "7,5");
+
+    expect(replace).toHaveBeenLastCalledWith(
+      "/app/materiais/1?sim_tolerancia_prop=densidade%3A7.5",
+      { scroll: false },
+    );
+  });
+
+  it("recusa tolerância de propriedade inválida com o motivo escrito e sem buscar", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams();
+    replace.mockClear();
+    render(wrap(<SimilarPanel material={material} />));
+
+    const field = await screen.findByShadowRole("textbox", {
+      name: t.propertyToleranceLabel("Densidade"),
+    });
+    await user.type(field, "0");
+
+    expect(
+      await screen.findByShadowText(t.propertyToleranceInvalid("Densidade")),
+    ).toBeInTheDocument();
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByShadowRole("button", { name: t.search })).toBeDisabled();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("mostra o percentual de cada faixa, a propriedade sem tolerância por escrito e a tabela de origem, e passa no axe", async () => {
+    const user = userEvent.setup();
+    search = new URLSearchParams("sim_tolerancia_prop=densidade:5");
+    findSimilar.mockImplementationOnce(() => Promise.resolve(perProperty));
+    render(wrap(<SimilarPanel material={material} />));
+
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.search }),
+    );
+
+    expect(
+      await screen.findByShadowText(t.toleranceTitlePerProperty),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByShadowText(/Densidade \(±5%\): de 7\.457,5 a 8\.242,5 kg\/m³/),
+    ).toBeInTheDocument();
+    // Nobody asked a band for the melting point, and that is written.
+    const noneAsked = t.toleranceNoneAsked.replace(/[()]/g, "\\$&");
+    expect(
+      screen.getByShadowText(new RegExp(`^${noneAsked} Temperatura de fusão$`)),
+    ).toBeInTheDocument();
+    const table = screen.getByShadowRole("table", {
+      name: t.toleranceTableCaption,
+    });
+    expect(table).toHaveTextContent(t.toleranceBandLabel("Densidade", "5"));
+    expect(table).toHaveTextContent(t.toleranceInside);
+    expect(table).toHaveTextContent(t.toleranceOutside);
+    expect(table).not.toHaveTextContent("Temperatura de fusão");
     const violations = await findA11yViolations(document.body);
     expect(violations, describeViolations(violations)).toEqual([]);
   });

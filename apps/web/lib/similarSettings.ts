@@ -159,3 +159,53 @@ export function writeTolerance(
   else next.set(TOLERANCE_PARAM, String(tolerance));
   return next;
 }
+
+// --- Per-property tolerance (D-156) ----------------------------------------
+
+export const PROPERTY_TOLERANCE_PARAM = "sim_tolerancia_prop";
+
+/**
+ * Per-property tolerances in the URL (`slug:x,slug:x`). An entry that is not a
+ * valid tolerance is dropped, not repaired, as a weight is. A property absent
+ * from the map uses the global tolerance, if any.
+ */
+export function parsePropertyTolerances(params: {
+  get(name: string): string | null;
+}): Record<string, number> {
+  const tolerances: Record<string, number> = {};
+  for (const [slug, raw] of pairs(params.get(PROPERTY_TOLERANCE_PARAM))) {
+    const value = parseToleranceInput(raw);
+    if (typeof value === "number") tolerances[slug] = value;
+  }
+  return tolerances;
+}
+
+/** Writes the per-property tolerances into ``params``; an empty map removes them. */
+export function writePropertyTolerances(
+  params: URLSearchParams,
+  tolerances: Record<string, number>,
+): URLSearchParams {
+  const next = new URLSearchParams(params);
+  const text = Object.entries(tolerances)
+    .map(([slug, value]) => `${slug}:${value}`)
+    .join(",");
+  if (text) next.set(PROPERTY_TOLERANCE_PARAM, text);
+  else next.delete(PROPERTY_TOLERANCE_PARAM);
+  return next;
+}
+
+/**
+ * The per-property tolerances a request sends: only the basis, since the
+ * server refuses a tolerance for a property outside the question (422).
+ */
+export function requestTolerances(
+  tolerances: Record<string, number>,
+  basis: string[],
+): Record<string, number> {
+  const sent: Record<string, number> = {};
+  for (const slug of basis) {
+    const value = tolerances[slug];
+    if (value !== undefined) sent[slug] = value;
+  }
+  return sent;
+}
