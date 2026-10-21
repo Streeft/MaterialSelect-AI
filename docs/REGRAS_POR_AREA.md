@@ -879,8 +879,11 @@ Só documentação.
 material, processo e modal, casados pela identidade externa; composição por
 elemento (o resto nunca vira número), curvas por id externo e rótulos discretos.
 Faixa com número de um lado só é mudança de forma, nunca número contra vazio;
-`is_active` diferente é mudança de metadado; a grafia da unidade é "só a escrita
-da fonte". Propriedade sem definição é 400.
+`is_active` **não** entra no diff ([D-114](DECISIONS.md) revogou esse item da
+D-109: depois de uma promoção todo registro da base está inativo, e comparar o
+campo marcaria tudo como alterado); a grafia da unidade (`kg/m^3` × `kg/m³`) é
+"só a escrita da fonte". Propriedade sem definição é 400 em palavras
+(`ValidationError`), nunca 500.
 
 4079 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4073 passam
 e 6 pulam) e 797 de frontend, todos verdes. CI no
