@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linearTicks, logTicks, makeScale, tok, truncate } from "./figureKit";
+import { linearTicks, logTicks, makeScale, tok, truncate, wrapLabel } from "./figureKit";
 
 describe("tok", () => {
   it("wraps a token in rgb(), the only form an 'R G B' triple is a colour in", () => {
@@ -65,5 +65,25 @@ describe("truncate", () => {
   it("keeps short labels and ellipsises long ones", () => {
     expect(truncate("ρ", 10)).toBe("ρ");
     expect(truncate("Energia incorporada (produção primária)", 12)).toBe("Energia inc…");
+  });
+});
+
+describe("wrapLabel (D-158)", () => {
+  it("leaves a label that fits as one line", () => {
+    expect(wrapLabel("Medido", 9)).toEqual(["Medido"]);
+  });
+
+  it("breaks at the last space that fits instead of cutting the second word off", () => {
+    expect(wrapLabel("Não registrado", 10)).toEqual(["Não", "registrado"]);
+    expect(wrapLabel("Não registrado", 10).join(" ")).toBe("Não registrado");
+  });
+
+  it("shortens only a line that still does not fit, and a single long word", () => {
+    expect(wrapLabel("Compósito polimérico estrutural", 10)).toEqual(["Compósito", truncate("polimérico estrutural", 10)]);
+    expect(wrapLabel("Elastômeros-vulcanizados", 8)).toEqual([truncate("Elastômeros-vulcanizados", 8)]);
+  });
+
+  it("never returns more than two lines", () => {
+    expect(wrapLabel("uma frase com muitas palavras curtas aqui", 12).length).toBeLessThanOrEqual(2);
   });
 });

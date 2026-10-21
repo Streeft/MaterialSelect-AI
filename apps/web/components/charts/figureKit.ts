@@ -103,6 +103,21 @@ export function truncate(text: string, max: number): string {
 }
 
 /**
+ * A label for a column axis, in at most two lines of `max` characters (D-158).
+ *
+ * `truncate` alone turned "Não registrado" into "Não regist…" on a half-width
+ * panel, which drops the one word that says what the column is. A break at the
+ * last space that fits keeps both words; only a line that still does not fit is
+ * shortened, and the full text stays in the `<title>` and in the table view.
+ */
+export function wrapLabel(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
+  const cut = text.lastIndexOf(" ", max);
+  if (cut <= 0) return [truncate(text, max)];
+  return [text.slice(0, cut), truncate(text.slice(cut + 1), max)];
+}
+
+/**
  * The width a figure has to fit in, in CSS pixels, kept current by a
  * `ResizeObserver`.
  *
