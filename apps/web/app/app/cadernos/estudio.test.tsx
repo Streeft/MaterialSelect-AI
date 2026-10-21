@@ -27,6 +27,10 @@ import {
   tableArtifact,
   videoArtifact,
 } from "@/components/notebooks/studio/__fixtures__/studio";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+
+// Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
+allowLoadedRunner();
 
 installWideViewport();
 const t = ptBR.notebooks;

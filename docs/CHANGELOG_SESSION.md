@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
@@ -111,6 +112,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
+
+**O pedido.** Testes de `routes.a11y.test.tsx` e de `selecao` passavam isolados e estouravam os 5 s do vitest quando outro processo pesado (as faixas em paralelo, o pytest) dividia a CPU.
+
+**A causa.** Reproduzida rodando o vitest inteiro ao lado de oito laços de CPU em 4 núcleos: 2 a 28 falhas, sempre nos mesmos arquivos. Medido com perfil de CPU, o tempo não estava em import nem em renderização: estava em jsdom calculando estilo, nó a nó. Dois consumidores. (1) Os `getByShadowRole`/`ByShadowText` herdados do tempo do `@material/web`: desde a D-80 nenhum componente cria shadow root, mas a biblioteca ainda percorre e serializa a árvore inteira e repete a consulta por raiz, 40 a 60% do tempo dos testes do assistente de Seleção. (2) O axe sobre as páginas mais densas (`/estilo`, painel, ficha, Estúdio): 1 a 2 s num computador ocioso, trabalho legítimo e sem atalho.
+
+**O que mudou.** Só infraestrutura de teste, nenhuma asserção e nenhum teste tocado. `vitest.config.ts` aponta `shadow-dom-testing-library` para `lib/testing/lightDomQueries.ts`, que resolve cada `*ByShadow*` na consulta equivalente do DOM comum (o que ela já resolvia, sem a travessia): o teste mais lento de Seleção caiu de 2,8 s para 1,4 s. `lib/testing/loadedRunner.ts` dá `testTimeout` de 30 s e `asyncUtilTimeout` de 5 s por arquivo, e só `routes.a11y`, `selecao`, `estudio`, `cadernos`, `charts` e `layout` pedem; o padrão global continua 5 s, nada é pulado. Sob a mesma carga pesada a suíte passou de 28 falhas para 1 (um arquivo ainda sem a folga, `layout`, que a recebeu em seguida). Sem decisão nova, sem backend, sem migração, sem seed; contagem de testes inalterada (1325). Pós-merge: só o frontend publica sozinho; nada a disparar.
+
+**Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
 
 ## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
 
