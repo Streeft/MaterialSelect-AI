@@ -11126,3 +11126,32 @@ dispersão de qualquer índice (uma soma desloca o zero e o percentual passaria 
 misturadas à tabela principal (continuam na seção própria da D-128).
 
 **Consequências.** Campos opcionais novos no contrato, retrocompatível. Sem migração nem seed. Depois do merge, **Deploy da API**.
+
+## D-157 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Três resíduos pediam tela e nenhum pedia rota nova: ORD-a (o `GET /api/materials/{id}/ordinais` do D-126 não tinha seção na ficha), TM4-b (o `…/curvas/{curva}/valor` do D-110 só existia como API) e TM4-i (a trajetória do D-118 era desenhada na ordem declarada, mas nada dizia em que sentido).
+
+**Decisão.** (1) **Seção "Propriedades ordinais"** (`MaterialOrdinals`): um poço por propriedade com a escala **como o catálogo a guarda** (lista ordenada, do pior ao melhor) e o nível do material marcado por preenchimento, peso, texto ("Nível deste material") e `aria-current` — nunca só por cor. O `rank` não é exibido nem a escala vira número. `ausente` (a fonte disse que não há nível) e `sem_dado` (ninguém cadastrou) saem com a frase do servidor, o selo "Ausente" e uma linha que diz que **não é o pior nível**. Carregando, erro com nova tentativa e "nenhuma propriedade ordinal definida" são estados escritos. (2) **Leitura de valor** (`CurveValueReader`) sob a figura de uma curva-função: o leitor digita o x (vírgula decimal aceita; vazio ou texto é recusado na tela, nunca vira 0) e escolhe a unidade entre as do eixo; a tela envia o x, a unidade e as **unidades de leitura da figura** (y e parâmetro), e escreve a resposta — valor com unidade, faixa declarada, "como a fonte escreveu", qualidade da curva, fonte e a regra **nas palavras do servidor**. Série sem ponto declarado mostra a frase de ausência do servidor e o selo "Ausente" numa célula só, sem coluna de valor que pudesse virar zero. Em trajetória o formulário **não aparece**: a razão (`PATH_AMBIGUOUS`, repetida palavra por palavra, com teste que a compara com o Python) ocupa o lugar. (3) **Sentido do caminho:** em curva `path`, setas ao longo da linha (uma a cada ~96 px de comprimento, ao menos uma), anel no primeiro ponto e losango no último — a forma, não a cor, distingue início de fim —, nota no rodapé com o mesmo desenho, coluna "Ordem no caminho" na tabela e nome acessível que diz "do primeiro ao último ponto". A posição e o giro das setas são **projeção de tela** (coordenadas de pixel já mapeadas por `makeScale`, em `pathArrows.ts`), da mesma natureza dos ticks do `figureKit`: não derivam grandeza do dado, não reordenam nem acrescentam ponto. (4) Textos novos em `lib/i18n-ficha.ts` (como `i18n-flow.ts`), para não colidir com as faixas que editam `i18n.ts`.
+
+**Descartado.** Mostrar o `rank` ou uma barra de progresso na escala (sugeriria distância entre níveis, que uma escala ordinal não tem); ler o valor "perto" do x digitado ou desenhar o ponto na figura (seria interpolar na tela); desabilitar o formulário em trajetória em vez de tirá-lo (um campo que nunca funciona pergunta o que a regra recusa); cor de início/fim (falha em daltonismo e em impressão); **criar a curva de histerese demo** — dado fictício novo segue docs/15 (seed no backend, ligado a `semear_demo`, que não roda em produção depois do cutover) e não havia uso que justificasse; o exemplo de laço é um *fixture* de teste, fictício, e o resíduo fica como TM4-i-b no TODO.
+
+**Consequências.** Só frontend: nenhum campo, rota ou migração nova. Depois do merge, apenas o deploy do frontend (Vercel, automático). A leitura de valor não é guardada na URL nem exportada (resíduo no TODO).
+## D-156 — Conferência ao vivo das demais rotas: o sobrescrito nunca mais diz "início" onde não é início
+
+**Contexto.** Segunda passada no navegador (o D-149 foi a primeira), sobre as 11 rotas restantes, a 375 e a 1280 px, nos dois temas.
+Nada quebrou de layout e o console ficou limpo; dois defeitos de texto e de repetição.
+
+**Corrigido.**
+- **Sobrescrito do cabeçalho.** `PageHeader` escreve "grupo · seção" a partir do caminho, e uma rota sem seção própria caía na seção
+  inicial: o glossário saía "DADOS · INÍCIO", o formulário de material (novo, cópia, edição) "INÍCIO" e o guia de estilo "INÍCIO". Agora
+  `labelForPath` (em `lib/design/sections.ts`) devolve o rótulo da seção, ou o de uma tabela curta de rotas **sem matiz próprio**
+  (`ROUTE_LABELS`: Glossário, Catálogo para tudo em `/app/materiais`, Estilo), ou, por fim, o da seção inicial. **O matiz não muda:** essas rotas
+  continuam na cor da raiz; dar-lhes cor própria é decisão de paleta (medida de contraste, região gerada do M3, tokens do artefato), não de rótulo.
+  Tela nova fora do mapa de seções entra em `ROUTE_LABELS` ou ganha seção.
+- **Lista vazia de Cadernos.** "Criar caderno" aparecia duas vezes (cabeçalho e estado vazio). O estado vazio já traz o botão, então o do
+  cabeçalho só existe quando há cadernos (ou enquanto carrega ou falha).
+
+**Visto e não alterado.** (a) No Painel, o rótulo "Não registrado" do eixo é cortado em "Não regist…" na metade da largura a 1280 px; a tabela
+alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos mostram o ponto decimal conforme a localidade do navegador
+(`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
+não tem Cadernos.

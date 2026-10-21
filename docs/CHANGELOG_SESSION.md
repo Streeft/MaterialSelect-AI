@@ -12,6 +12,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
+| [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
 | [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
@@ -122,6 +123,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
 
+## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
+
+**O que mudou.** Só frontend, três resíduos do TODO. **ORD-a:** a ficha ganha a seção "Propriedades ordinais" (`MaterialOrdinals`, lê `GET /api/materials/{id}/ordinais`): por propriedade, a escala como o catálogo a guarda e o nível do material marcado por preenchimento, texto e `aria-current`, com fonte e qualidade; `ausente` e `sem_dado` saem escritos, com a linha "não é o pior nível da escala". **TM4-b-tela:** `CurveValueReader` sob a figura de uma curva-função envia o x (vírgula aceita) e a unidade ao `…/curvas/{curva}/valor`, nas unidades de leitura da figura, e escreve valor com unidade, faixa, "como a fonte escreveu", qualidade, fonte e a regra do servidor; série sem ponto declarado mostra a frase de ausência e o selo "Ausente". Em trajetória o formulário não aparece e a razão do D-118 ocupa o lugar. **TM4-i:** em curva `path`, setas ao longo da linha (`pathArrows.ts`), anel no primeiro ponto, losango no último, nota no rodapé, coluna "Ordem no caminho" e nome acessível; o exemplo de laço de histerese é um *fixture* (`hysteresisLoop`).
+
+**Por quê.** As três rotas já existiam; faltava a tela. Cálculo, conversão e ausência continuam no servidor: a tela só pergunta e escreve.
+
+**Testes.** +35 de frontend (ordinais: estados, escala fiel, ausências, axe; leitor: pedido com unidades, vírgula, número inválido, ausência, erro, trajetória, axe; gráfico: setas, anel, losango, tabela, sem efeito em função; setas; integração na ficha; texto de `PATH_AMBIGUOUS` igual ao do Python) e as duas fichas auditadas em `routes.a11y`. Sem backend, migração ou seed. Pós-merge: nada além do deploy automático do frontend. Resíduo: TM4-i-b (curva de histerese no catálogo, por docs/15).
+## Sessão 111 — 21/10/26 — Conferência ao vivo das demais rotas: rótulo do cabeçalho e lista vazia dos Cadernos (D-156)
+
+**O que mudou.** Segunda conferência no navegador, agora das 11 rotas que a primeira não cobriu (Mapas, Comparar, Painel, Eco, Custo,
+Dimensionar, Baterias, Sintetizar, Processos, Glossário, Meus registros), a 375 e a 1280 px, nos dois temas: 44 capturas, nenhum erro de
+console. Dois defeitos corrigidos: `labelForPath` em `lib/design/sections.ts` (usado pelo `PageHeader`) e o botão duplicado na lista vazia
+de Cadernos.
+
+**Testes.** +4 de frontend (`labelForPath`: seção própria, rotas sem matiz, volta ao início; um só "Criar caderno" na lista vazia e na cheia).
+Sem backend nem migração.
 ## Sessão 113 — 21/10/26 — Resíduos TM7-e/f/g do diff entre versões, testados pela API
 
 **O pedido.** Quitar `is_active` no diff (e), faixa de um lado só (f) e propriedade sem definição / grafia da unidade (g). O código já fazia (f) e (g)

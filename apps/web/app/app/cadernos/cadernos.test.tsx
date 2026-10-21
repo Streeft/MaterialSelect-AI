@@ -183,6 +183,21 @@ describe("lista de cadernos", () => {
     expect(link.textContent).toContain(t.sourceCount(2));
   });
 
+  it("shows one 'Criar caderno' button on the empty list (the empty state's) and one in the header otherwise", async () => {
+    api.listNotebooks.mockResolvedValue([]);
+    const { unmount } = render(wrap(<NotebooksPage />));
+    expect(await screen.findByText(t.emptyTitle)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: t.create })).toHaveLength(1);
+    unmount();
+
+    api.listNotebooks.mockResolvedValue([
+      { id: 4, title: "Materiais estruturais", emoji: "📓", source_count: 0, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+    ]);
+    render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Materiais estruturais/ });
+    expect(screen.getAllByRole("button", { name: t.create })).toHaveLength(1);
+  });
+
   it("creating a notebook goes straight into it", async () => {
     api.listNotebooks.mockResolvedValue([]);
     api.createNotebook.mockResolvedValue(notebook({ id: 9 }));
