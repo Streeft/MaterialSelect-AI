@@ -14,6 +14,7 @@ import type { Curve, CurveScale } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { CurveChart } from "@/components/charts/CurveChart";
 import { CurveEditor } from "@/components/material/CurveEditor";
+import { CurveValueReader } from "@/components/material/CurveValueReader";
 import { MenuItem } from "@/components/ui/Menu";
 import {
   Button,
@@ -186,28 +187,32 @@ export function MaterialCurves({
           }
         />
       ) : curve.data ? (
-        <CurveChart
-          curve={curve.data}
-          controls={<CurveControls curve={curve.data} onChange={(c) => update({ curve: String(curve.data.id), ...c })} />}
-          exportItems={
-            <>
-              <MenuItem
-                href={curveExportUrl(materialId, curve.data.id, "csv", reading)}
-                download
-                hint={t.exportCsvHint}
-              >
-                {t.exportCsv}
-              </MenuItem>
-              <MenuItem
-                href={curveExportUrl(materialId, curve.data.id, "xlsx", reading)}
-                download
-                hint={t.exportXlsxHint}
-              >
-                {t.exportXlsx}
-              </MenuItem>
-            </>
-          }
-        />
+        <>
+          <CurveChart
+            curve={curve.data}
+            controls={<CurveControls curve={curve.data} onChange={(c) => update({ curve: String(curve.data.id), ...c })} />}
+            exportItems={
+              <>
+                <MenuItem
+                  href={curveExportUrl(materialId, curve.data.id, "csv", reading)}
+                  download
+                  hint={t.exportCsvHint}
+                >
+                  {t.exportCsv}
+                </MenuItem>
+                <MenuItem
+                  href={curveExportUrl(materialId, curve.data.id, "xlsx", reading)}
+                  download
+                  hint={t.exportXlsxHint}
+                >
+                  {t.exportXlsx}
+                </MenuItem>
+              </>
+            }
+          />
+          {/* TM4-b: the value at a declared x, asked of the backend — never read off the figure. */}
+          <CurveValueReader curve={curve.data} />
+        </>
       ) : (
         <LoadingState label={t.loading} />
       )}

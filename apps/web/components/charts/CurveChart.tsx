@@ -3,15 +3,18 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { Curve, CurveAxis, CurveSeries } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { fichaText } from "@/lib/i18n-ficha";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { paletteSeats, type ClassDash } from "@/lib/design/palette";
 import { ChartFrame } from "./ChartFrame";
 import { ChartLegend, MarkerSymbol, type LegendItem } from "./ChartLegend";
 import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { FigureData } from "./FigureData";
+import { arrowsAlong } from "./pathArrows";
 import { linearTicks, logTicks, makeScale, tok, useChartWidth, useRovingFocus } from "./figureKit";
 
 const t = ptBR.curves;
+const tp = fichaText.path;
 
 /** The SVG dash pattern of a palette seat — the second identity of a line (D-28). */
 export function dashArray(dash: ClassDash): string | undefined {
@@ -92,6 +95,8 @@ export function CurveChart({
   const [hovered, setHovered] = useState<string | null>(null);
   const [active, setActive] = useState<Active | null>(null);
 
+  // D-118: a trajectory is walked in the order declared; the figure says which way.
+  const isPath = curve.path_kind === "path";
   const names = curve.series.map((series, index) => seriesName(curve, series, index));
   const visible = curve.series
     .map((series, index) => ({ series, index }))
@@ -127,7 +132,7 @@ export function CurveChart({
       columns={[
         {
           key: "position",
-          header: t.columnPoint,
+          header: isPath ? tp.columnOrder : t.columnPoint,
           numeric: true,
           cell: (row) =>
             row.point.drawn
@@ -191,6 +196,27 @@ export function CurveChart({
             <rect width={18} height={10} rx={2} fill={tok("--ink-muted", 0.18)} />
           </svg>
           {t.band}
+        </p>
+      ) : null}
+      {isPath ? (
+        <p className="text-caption text-ink-muted" data-curve-direction-note>
+          <svg width={50} height={14} aria-hidden className="mr-1 inline-block align-middle">
+            <circle cx={7} cy={7} r={5.5} fill="none" stroke={tok("--ink-muted")} strokeWidth={1.5} />
+            <polygon
+              points="-4,-3.5 4,0 -4,3.5"
+              transform="translate(25 7)"
+              fill={tok("--ink-muted")}
+            />
+            <rect
+              x={-3.5}
+              y={-3.5}
+              width={7}
+              height={7}
+              transform="translate(43 7) rotate(45)"
+              fill={tok("--ink-muted")}
+            />
+          </svg>
+          {tp.direction}
         </p>
       ) : null}
       {curve.notes.map((note) => (
@@ -306,7 +332,7 @@ export function CurveChart({
         <svg
           data-chart-figure
           role="figure"
-          aria-label={t.figureLabel(curve.title)}
+          aria-label={isPath ? tp.figureLabel(curve.title) : t.figureLabel(curve.title)}
           className="chart-svg select-none"
           width={W}
           height={H}
@@ -389,7 +415,11 @@ export function CurveChart({
                 className="chart-mark"
                 role="img"
                 tabIndex={roving.tabIndexFor(visibleIndex)}
-                aria-label={t.seriesAria(names[index] ?? "", series.path.length)}
+                aria-label={
+                  isPath
+                    ? `${t.seriesAria(names[index] ?? "", series.path.length)}, ${tp.seriesOrder}`
+                    : t.seriesAria(names[index] ?? "", series.path.length)
+                }
                 onFocus={() => {
                   roving.setActive(visibleIndex);
                   setActive({ seriesIndex: index, position: null });
@@ -406,6 +436,7 @@ export function CurveChart({
                   strokeLinejoin="round"
                   opacity={dimmed ? 0.3 : 1}
                 />
+                {isPath ? <PathDirection path={series.path} project={[xScale, yScale]} color={seat.color} /> : null}
                 {drawnPoints.map((point) => (
                   <g
                     key={point.position}
@@ -429,5 +460,64 @@ export function CurveChart({
         <ChartTooltip content={tooltip} />
       </div>
     </ChartFrame>
+  );
+}
+
+/**
+ * The direction of a trajectory (TM4-i): arrowheads along the line, a ring on
+ * the first point and a diamond on the last. Shape, not colour, tells start from
+ * end; the whole group is decoration for the eye, since the order is also in the
+ * points table and in the series' accessible name.
+ */
+function PathDirection({
+  path,
+  project,
+  color,
+}: {
+  path: [number, number][];
+  project: [(x: number) => number, (y: number) => number];
+  color: string;
+}) {
+  if (path.length < 2) return null;
+  const [sx, sy] = project;
+  const pixels = path.map(([x, y]): [number, number] => [sx(x), sy(y)]);
+  const first = pixels[0]!;
+  const last = pixels[pixels.length - 1]!;
+  const halo = tok("--surface-panel");
+  return (
+    <g aria-hidden data-curve-direction>
+      {arrowsAlong(pixels).map((arrow, index) => (
+        <polygon
+          key={index}
+          data-curve-arrow
+          points="-5.5,-4.5 5.5,0 -5.5,4.5"
+          transform={`translate(${arrow.x.toFixed(1)} ${arrow.y.toFixed(1)}) rotate(${arrow.angle.toFixed(1)})`}
+          fill={color}
+          stroke={halo}
+          strokeWidth={1}
+          strokeLinejoin="round"
+        />
+      ))}
+      <circle
+        data-curve-start
+        cx={first[0]}
+        cy={first[1]}
+        r={7}
+        fill="none"
+        stroke={color}
+        strokeWidth={2}
+      />
+      <rect
+        data-curve-end
+        x={-3.5}
+        y={-3.5}
+        width={7}
+        height={7}
+        transform={`translate(${last[0].toFixed(1)} ${last[1].toFixed(1)}) rotate(45)`}
+        fill={color}
+        stroke={halo}
+        strokeWidth={1}
+      />
+    </g>
   );
 }
