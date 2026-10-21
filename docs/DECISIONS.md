@@ -10944,7 +10944,9 @@ sem inchar a CI", e o §3 manda que nenhuma página role na horizontal. O teste 
   sistema operacional e com cada atualização de fonte, e reprovaria a CI sem defeito nenhum.
 - **Custo:** ~3,5 min a mais no job de E2E (19 rotas compiladas pelo `next dev`).
 - **Rotas com id** (`/catalogo/[slug]`, `/cadernos/[id]`…) ficam de fora: precisam de um registro, e cada uma tem
-  o próprio spec. Acrescentar uma rota nova à lista é o que se faz ao criar uma tela.
+  o próprio spec. *Atualização (Sessão 117):* a ficha de material e a ficha de processo entram na mesma suíte, com o
+  caminho lido do primeiro link da lista (`DETAILS`), e `catalogo/releases` entra em `ROUTES`. O caderno aberto fica de fora:
+  o banco de E2E não traz caderno. Acrescentar uma rota nova à lista é o que se faz ao criar uma tela.
 - **`E2E_CHROMIUM_PATH`** (opcional) aponta o Playwright para um Chromium instalado à parte; a CI não define.
 
 **Achado.** A primeira rodada reprovou `/app/importar` a 768 px (1022 px numa janela de 768): o `Stepper` tem

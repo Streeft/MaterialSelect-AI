@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
 
 /**
@@ -43,31 +44,54 @@ const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["meus-registros", "/app/meus-registros"],
   ["admin-classes", "/app/admin/classes"],
   ["admin-propriedades", "/app/admin/propriedades"],
+  ["catalogo-releases", "/app/catalogo/releases"],
   ["estilo", "/app/estilo"],
 ];
 
+async function expectNoSidewaysScroll(page: Page, slug: string, path: string) {
+  for (const { name, width, height } of WIDTHS) {
+    await page.setViewportSize({ width, height });
+    await page.goto(path);
+    // The route has rendered once its page title is on screen; a skeleton or
+    // the shell alone would measure a layout the reader never sees.
+    await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
+    await page.waitForLoadState("networkidle");
+
+    const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    await page.screenshot({
+      path: `test-results/larguras/${slug}-${name}.png`,
+      fullPage: true,
+    });
+    expect(
+      scrollWidth,
+      `${path} a ${width}px: a página tem ${scrollWidth}px de largura em uma janela de ${innerWidth}px`,
+    ).toBeLessThanOrEqual(innerWidth);
+  }
+}
+
 for (const [slug, path] of ROUTES) {
   test(`${path} não rola na horizontal em nenhuma das quatro larguras`, async ({ page }) => {
-    for (const { name, width, height } of WIDTHS) {
-      await page.setViewportSize({ width, height });
-      await page.goto(path);
-      // The route has rendered once its page title is on screen; a skeleton or
-      // the shell alone would measure a layout the reader never sees.
-      await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
-      await page.waitForLoadState("networkidle");
+    await expectNoSidewaysScroll(page, slug, path);
+  });
+}
 
-      const { scrollWidth, innerWidth } = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        innerWidth: window.innerWidth,
-      }));
-      await page.screenshot({
-        path: `test-results/larguras/${slug}-${name}.png`,
-        fullPage: true,
-      });
-      expect(
-        scrollWidth,
-        `${path} a ${width}px: a página tem ${scrollWidth}px de largura em uma janela de ${innerWidth}px`,
-      ).toBeLessThanOrEqual(innerWidth);
-    }
+// Detail screens need a record, so the path is read off the first link of the
+// list that leads to them.
+const DETAILS: ReadonlyArray<readonly [string, string, string]> = [
+  ["ficha-material", "/app/catalogo", "a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible"],
+  ["ficha-processo", "/app/processos", "a[href^='/app/processos/']:not([href^='/app/processos/familia']):visible"],
+];
+
+for (const [slug, listPath, selector] of DETAILS) {
+  test(`${slug}: a ficha aberta de ${listPath} não rola na horizontal em nenhuma das quatro larguras`, async ({ page }) => {
+    await page.goto(listPath);
+    const link = page.locator(selector).first();
+    await expect(link).toBeVisible({ timeout: 45_000 });
+    const href = await link.getAttribute("href");
+    expect(href).toBeTruthy();
+    await expectNoSidewaysScroll(page, slug, href!);
   });
 }

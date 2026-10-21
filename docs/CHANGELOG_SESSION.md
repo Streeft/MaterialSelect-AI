@@ -111,6 +111,12 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 117 — 21/10/26 — Suíte de larguras também nas fichas (D-147)
+
+**O que mudou.** `e2e/larguras.spec.ts` passa a medir a rolagem horizontal da ficha de material, da ficha de processo (caminho lido do primeiro link
+da lista) e de `/app/catalogo/releases`, nas quatro larguras. O laço foi extraído para `expectNoSidewaysScroll`. Nenhuma tela quebrou.
+**Verificação.** Os 3 testes novos passam localmente (Chromium + API de E2E). Sem backend nem migração. Caderno aberto segue fora: o banco de E2E não tem caderno.
+
 ## Sessão 116 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-158)
 
 **O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe
