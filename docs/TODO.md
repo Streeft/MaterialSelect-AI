@@ -193,7 +193,7 @@ ausência escrita~~, ~~critério `level_at_least` no estágio de limites (ausent
 nunca passa; `without_level` no funil e no laudo)~~, ~~demo fictício e contrato
 do bundle~~ (migração `860cc669ff6a`). Resíduos:
 
-- ~~**ORD-a — seção na ficha.**~~ ✔ Entregue (Sessão 113, [D-157](DECISIONS.md)):
+- ~~**ORD-a — seção na ficha.**~~ ✔ Entregue (Sessão 114, [D-157](DECISIONS.md)):
   seção "Propriedades ordinais" (`MaterialOrdinals`) lê `GET /api/materials/{id}/ordinais`;
   escala como cadastrada, nível marcado por preenchimento, texto e `aria-current`,
   fonte e qualidade, `ausente` e `sem_dado` escritos com a razão; carregando, erro
@@ -316,18 +316,19 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   ainda não pagina; um par que não é "anterior → nova" (ex.: duas releases
   atrás) segue calculado a cada requisição; com 20.000 registros a leitura do
   JSON guardado ainda leva ≈ 1,4 s.
-- **TM7-e — `is_active` não entra no diff.** ▁ Um registro presente nas duas
-  releases que passa de ativo para inativo sai como "inalterado", porque
-  `is_active` não está em `TEXT_FIELDS`. Hoje o importador sempre grava `True`;
-  entra junto com o TM7-a, que passa a desativar a release anterior.
-- **TM7-f — faixa com `normalized_value` só de um lado.** ▁ Comparar o
-  representativo de uma faixa que tem `normalized_value` de um lado e nada do
-  outro compara número com `None` e produziria uma "mudança de valor" falsa. O
-  importador não gera esse caso hoje.
-- **TM7-g — grafia da unidade e defesa em profundidade.** ▁ `kg/m^3` contra
-  `kg/m³` conta como "só a escrita da fonte" (coerente com o nome da natureza;
-  documentar na tela). Propriedade sem definição levanta `ValueError` (500) em
-  vez de `ValidationError`; a chave estrangeira impede hoje.
+- ~~**TM7-e — `is_active` não entra no diff.**~~ — decidido que **não entra**
+  ([D-114](DECISIONS.md), que revogou o item 5 da D-109): depois de uma promoção
+  todo registro da release base fica inativo, e comparar o campo marcaria o diff
+  inteiro como alterado. O estado de cada lado segue em `base.is_active` e
+  `target.is_active`. Teste de API na Sessão 113.
+- ~~**TM7-f — faixa com `normalized_value` só de um lado.**~~ ✔ Feito na
+  D-109 (Sessão 64): número de um lado só é mudança de `forma`, checada antes de
+  comparar valores. Teste de API na Sessão 113 (o importador não gera o caso; o
+  teste tira o ponto representativo da linha gravada).
+- ~~**TM7-g — grafia da unidade e defesa em profundidade.**~~ ✔ Feito na D-109:
+  `kg/m^3` × `kg/m³` é `escrita_da_fonte` e a regra impressa na tela e no
+  arquivo diz isso; propriedade sem definição é `ValidationError` (400 escrito),
+  não `ValueError`. Teste de API na Sessão 113.
 
 **Resíduos da composição e das designações (TM2, [D-105](DECISIONS.md)).** O
 TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
@@ -386,7 +387,7 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   [D-110](DECISIONS.md)): regra conservadora em docs/18 §6 — só o ponto
   declarado exatamente no x pedido, convertido por units.py, sem interpolar,
   com ausência escrita; `GET .../curvas/{curva}/valor`. ✔ **Tela entregue**
-  (Sessão 113, [D-157](DECISIONS.md)): "Ler um valor da curva" sob a figura —
+  (Sessão 114, [D-157](DECISIONS.md)): "Ler um valor da curva" sob a figura —
   envia o x e a unidade, mostra valor com unidade, faixa, como a fonte escreveu,
   qualidade e fonte, e a ausência escrita; trajetória não oferece o formulário e
   diz a razão (D-118). **Resíduo:** o resultado não é guardado na URL nem
@@ -397,7 +398,7 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   cartão plástico recusam com 422 escrito; diff, CSV, bundle e formulário
   cientes. Resíduos: **TM4-i** abaixo.
 - ~~**TM4-i — trajetória sem exemplo e sem seta.**~~ ✔ O sentido está no gráfico
-  (Sessão 113, [D-157](DECISIONS.md)): setas ao longo do caminho, anel no primeiro
+  (Sessão 114, [D-157](DECISIONS.md)): setas ao longo do caminho, anel no primeiro
   ponto, losango no último, nota no rodapé, tabela "Ordem no caminho" e nome
   acessível; o exemplo de laço de histerese é um *fixture* de teste
   (`hysteresisLoop`), fictício. **Resíduo (TM4-i-b):** ▁ ainda não há curva de
