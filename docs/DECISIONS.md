@@ -11155,3 +11155,13 @@ Nada quebrou de layout e o console ficou limpo; dois defeitos de texto e de repe
 alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos mostram o ponto decimal conforme a localidade do navegador
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
+
+## D-161 — Nota do estudo nos relatórios e no laudo: uma seção própria, `Onde | Nota`, e o PPTX que quebra pela altura impressa (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A nota do estudo e a de cada estágio (D-122) viajavam com o estudo e com o arquivo JSON, mas não saíam em nenhum documento (FL-b). Um relatório que reexecuta o estudo e omite o "por que 200 MPa?" perde a justificativa que um leitor sem a tela precisa.
+
+**Decisão.** (1) **Seção "Notas do autor"** no `Report`, logo depois de "Estágios", com cabeçalho `Onde | Nota`: uma linha "Estudo" e uma por estágio com nota ("Estágio N — tipo — rótulo"). Como é uma `Sheet` comum, os cinco renderizadores a escrevem, cada um com o escape do **seu** formato: apóstrofo de `cells.py` em CSV/XLSX, `html.escape` no HTML, o escritor de XML em DOCX/PPTX — o escape não foi unificado. (2) **Ausência escrita:** a seção existe sempre; com notas diz "Só aparecem aqui o estudo e os estágios que têm nota."; sem nenhuma, "Nenhuma nota foi escrita neste estudo, nem em seus estágios." (3) **Quebras de linha preservadas** no HTML (`td { white-space: pre-line }`). (4) **PPTX quebra tabela pela altura impressa**: cada linha pesa o número de linhas impressas da maior célula (100 caracteres por linha), no máximo 10 de peso por slide. Células curtas seguem com 10 linhas por slide; uma nota de 2.000 caracteres fica num slide só dela.
+
+**Descartado.** Pôr a nota em `Sheet.notes`: o rótulo na frente tiraria o `=` do começo da célula e esconderia o apóstrofo em vez de testá-lo, e o PPTX só desenha `notes` quando não há linhas. Uma coluna "Nota" em "Estágios": uma nota de 2.000 caracteres estragaria a tabela. "Sem nota" por estágio: ruído. Renderizar a nota como HTML/Markdown: ela é texto puro (D-122).
+
+**Consequências.** Nenhum campo de contrato, rota ou migração; estudos antigos exportam com a frase de ausência. Depois do merge, **Deploy da API**.

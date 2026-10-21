@@ -173,7 +173,9 @@ desconhecido recusado em qualquer nível com o caminho**, o mesmo `create_study`
 do editor e uma execução em memória antes de gravar (salvar não resolve slugs).
 Nome repetido ganha "(importado)", nada é sobrescrito. "Copiar tabela" é só o
 texto que a tela já mostra, em TSV, com ausência escrita e apóstrofo em célula
-que uma planilha leria como fórmula (número não).
+que uma planilha leria como fórmula (número não). Nos relatórios e no laudo (D-161) a nota
+sai na seção "Notas do autor" (`Onde | Nota`), com o escape do formato de cada saída; sem nota,
+a seção diz que não há.
 
 ## Processos (D-57, D-59)
 
