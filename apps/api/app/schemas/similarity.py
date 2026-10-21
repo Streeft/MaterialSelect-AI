@@ -43,9 +43,9 @@ class SimilarRequest(BaseModel):
     tolerance_pct: float | None = Field(
         default=None, gt=0, le=MAX_TOLERANCE_PCT, allow_inf_nan=False
     )
-    #: Per-property tolerance (D-156): slug -> percentage, same bounds as
+    #: Per-property tolerance (D-158): slug -> percentage, same bounds as
     #: ``tolerance_pct``. It overrides the global value for that property only;
-    #: a property with neither gets no band. Empty = the answer before D-156.
+    #: a property with neither gets no band. Empty = the answer before D-158.
     #: Checked here, with messages a reader can act on, instead of Pydantic's
     #: own English ones — the 422 reaches the screen as it is written.
     tolerances: dict[str, float] = Field(default_factory=dict)
@@ -125,7 +125,7 @@ class ToleranceBandOut(BaseModel):
     high: float | None
     unit: str
     applicable: bool
-    #: The percentage this band was drawn with (D-156): the property's own
+    #: The percentage this band was drawn with (D-158): the property's own
     #: tolerance where one was given, the global one otherwise.
     tolerance_pct: float
 
@@ -161,6 +161,6 @@ class SimilarOut(BaseModel):
     #: The tolerance that ran (D-155), ``None`` when none was asked.
     tolerance_pct: float | None = None
     #: One band per basis property that has a tolerance (global or its own,
-    #: D-156), in basis order; empty without any. A property with neither is
+    #: D-158), in basis order; empty without any. A property with neither is
     #: absent here, which is not the same as ``applicable: false``.
     tolerance_bands: list[ToleranceBandOut] = Field(default_factory=list)

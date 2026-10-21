@@ -196,7 +196,7 @@ const withTolerance: Similar = {
 };
 
 /**
- * Only density asked its own ±5%, with no global tolerance (D-156): the
+ * Only density asked its own ±5%, with no global tolerance (D-158): the
  * melting point has no band and must say so in words.
  */
 const perProperty: Similar = {
@@ -498,7 +498,7 @@ describe("materiais semelhantes", () => {
     expect(violations, describeViolations(violations)).toEqual([]);
   });
 
-  it("manda a tolerância de cada propriedade da URL, só da base (D-156)", async () => {
+  it("manda a tolerância de cada propriedade da URL, só da base (D-158)", async () => {
     const user = userEvent.setup();
     search = new URLSearchParams(
       "sim_tolerancia=10&sim_tolerancia_prop=densidade:2.5,modulo_young:3",

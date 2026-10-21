@@ -85,7 +85,7 @@ class SimilarityService:
             return definitions[slug].name
 
         reference = by_id[material_id]
-        # Asked = a global tolerance or at least one per-property one (D-156).
+        # Asked = a global tolerance or at least one per-property one (D-158).
         # Without either, ``tolerance_by_property`` is empty and the answer is
         # the one before D-155, field for field.
         tolerance_asked = bool(result.tolerance_by_property)

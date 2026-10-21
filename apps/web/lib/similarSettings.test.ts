@@ -112,7 +112,7 @@ describe("tolerância na URL (D-155)", () => {
   });
 });
 
-describe("tolerância por propriedade na URL (D-156)", () => {
+describe("tolerância por propriedade na URL (D-158)", () => {
   it("lê cada propriedade e descarta o que não é tolerância válida", () => {
     const params = new URLSearchParams(
       `${PROPERTY_TOLERANCE_PARAM}=densidade:2.5,modulo_young:0,cond:abc,temp:100`,

@@ -58,7 +58,7 @@ gets no band and is named in ``tolerance_not_applicable``. Absence still comes
 first: a record without the value was excluded before any band was read, so it
 can never be "inside" one. Without ``x`` nothing changes.
 
-**Per-property tolerance (D-156).** ``tolerances`` maps a basis slug to its own
+**Per-property tolerance (D-158).** ``tolerances`` maps a basis slug to its own
 ``x``, with the same bounds. It overrides the global ``x`` for that property
 only; a property with neither gets no band at all (it is not "inapplicable",
 nobody asked). The band, the inclusive edges, the ratio-scale rule and the
@@ -166,7 +166,7 @@ class NearnessResult:
     tolerance_bands: dict[str, ToleranceBand] = field(default_factory=dict)
     #: Basis properties on a scale without a true zero: no band was drawn.
     tolerance_not_applicable: list[str] = field(default_factory=list)
-    #: The percentage each basis property ran with (D-156): the per-property
+    #: The percentage each basis property ran with (D-158): the per-property
     #: value where one was given, the global one otherwise. A property with
     #: neither is absent — "not asked" is not a band of zero width.
     tolerance_by_property: dict[str, float] = field(default_factory=dict)
@@ -189,7 +189,7 @@ def resolve_tolerances(
     tolerance_pct: float | None,
     tolerances: dict[str, float] | None,
 ) -> dict[str, float]:
-    """The percentage each basis property runs with (D-156), in basis order.
+    """The percentage each basis property runs with (D-158), in basis order.
 
     A per-property value overrides the global one for that property only. A
     slug outside the basis is refused rather than ignored, as a weight is: the
@@ -323,7 +323,7 @@ def find_similar(
         tolerance_pct: optional ``x`` of "100% if within ±x%" (D-155), the
             default for every basis property.
         tolerances: optional per-slug ``x`` that overrides ``tolerance_pct``
-            for that property only (D-156).
+            for that property only (D-158).
         ratio_scale: per-slug answer of ``units.is_ratio_scale`` for the
             canonical unit. A slug absent from the map gets no band — the
             conservative reading, which never invents a percentage.

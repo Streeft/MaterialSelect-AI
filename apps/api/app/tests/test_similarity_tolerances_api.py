@@ -1,4 +1,4 @@
-"""Per-property tolerance in Find Similar, through the API (D-156)."""
+"""Per-property tolerance in Find Similar, through the API (D-158)."""
 
 from __future__ import annotations
 

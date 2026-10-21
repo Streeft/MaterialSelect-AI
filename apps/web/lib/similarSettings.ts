@@ -160,7 +160,7 @@ export function writeTolerance(
   return next;
 }
 
-// --- Per-property tolerance (D-156) ----------------------------------------
+// --- Per-property tolerance (D-158) ----------------------------------------
 
 export const PROPERTY_TOLERANCE_PARAM = "sim_tolerancia_prop";
 

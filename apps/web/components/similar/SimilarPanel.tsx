@@ -120,7 +120,7 @@ export function SimilarPanel({
     return value === null ? "" : formatNumber(value);
   });
   const tolerance = parseToleranceInput(toleranceText);
-  // Per-property tolerances (D-156): one text per basis property, read from
+  // Per-property tolerances (D-158): one text per basis property, read from
   // the URL once, so a half-typed "1," is not wiped by a re-parse either.
   const [propertyToleranceText, setPropertyToleranceText] = useState<
     Record<string, string>
@@ -213,7 +213,7 @@ export function SimilarPanel({
             ? { tolerance_pct: tolerance }
             : {}),
           // Sent only when there is one, so a request without per-property
-          // tolerances is the request before D-156, key for key.
+          // tolerances is the request before D-158, key for key.
           ...(Object.keys(sentTolerances).length > 0
             ? { tolerances: sentTolerances }
             : {}),
@@ -510,7 +510,7 @@ function applicableCount(result: Similar): number {
  */
 function ToleranceSummary({ result }: { result: Similar }) {
   // Basis properties with no band at all — neither the global tolerance nor
-  // their own (D-156). Not "Sem faixa": nobody asked, and that is written too.
+  // their own (D-158). Not "Sem faixa": nobody asked, and that is written too.
   const banded = new Set(result.tolerance_bands.map((band) => band.slug));
   const unasked = result.basis
     .map((slug, index) => ({ slug, label: result.basis_labels[index] ?? slug }))

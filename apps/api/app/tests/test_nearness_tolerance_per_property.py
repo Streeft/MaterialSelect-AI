@@ -1,4 +1,4 @@
-"""Per-property tolerance in Find Similar (D-156), domain side."""
+"""Per-property tolerance in Find Similar (D-158), domain side."""
 
 from __future__ import annotations
 

@@ -1820,7 +1820,7 @@ export interface SimilarRequest {
   /** "100% se dentro de ±x%" (D-155): 0 < x <= 100; omitted = no band. */
   tolerance_pct?: number;
   /**
-   * Per-property tolerance (D-156): basis slug -> x, same bounds. Overrides
+   * Per-property tolerance (D-158): basis slug -> x, same bounds. Overrides
    * `tolerance_pct` for that property only; a slug outside the basis is a 422.
    */
   tolerances?: Record<string, number>;
@@ -1859,7 +1859,7 @@ export interface ToleranceBand {
   high: number | null;
   unit: string;
   applicable: boolean;
-  /** The percentage this band was drawn with: its own or the global (D-156). */
+  /** The percentage this band was drawn with: its own or the global (D-158). */
   tolerance_pct: number;
 }
 
@@ -1889,7 +1889,7 @@ export interface Similar {
   criteria: Record<string, NearnessCriterion>;
   /** The global tolerance that ran (D-155); `null` when none was asked. */
   tolerance_pct: number | null;
-  /** One per basis property with a tolerance, global or its own (D-156). */
+  /** One per basis property with a tolerance, global or its own (D-158). */
   tolerance_bands: ToleranceBand[];
 }
 
