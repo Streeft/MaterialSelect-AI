@@ -111,6 +111,12 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 115 — 21/10/26 — Fichas offline verificadas de ponta a ponta (D-152)
+
+**O que mudou.** Só documentação: o D-152 registra a verificação que faltava (build de produção, service worker ativo, rede derrubada no
+Chromium) e uma observação sobre rota já visitada, que sem rede pode abrir o app com "Algo não funcionou" e nenhum dado de material.
+Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migração.
+
 ## Sessão 111 — 21/10/26 — Conferência ao vivo das demais rotas: rótulo do cabeçalho e lista vazia dos Cadernos (D-156)
 
 **O que mudou.** Segunda conferência no navegador, agora das 11 rotas que a primeira não cobriu (Mapas, Comparar, Painel, Eco, Custo,
