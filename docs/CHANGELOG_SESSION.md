@@ -114,7 +114,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 119 — 21/10/26 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (D-162)
+## Sessão 123 — 21/10/26 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (D-165)
 
 **O pedido.** Resíduo PD-a do D-127: só a ficha e os eixos do mapa respeitavam o nível.
 

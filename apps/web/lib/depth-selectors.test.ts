@@ -3,7 +3,7 @@ import { usedPropertySlugs, emptyLimitStage, type StageState } from "@/component
 import { optionsAtLevel } from "./depth";
 import { depthSelectorsText } from "./i18n-depth-selectors";
 
-describe("usedPropertySlugs (D-162)", () => {
+describe("usedPropertySlugs (D-165)", () => {
   it("junta as propriedades de limites aninhados e dos eixos de gráfico", () => {
     const limit = emptyLimitStage() as Extract<StageState, { kind: "limit" }>;
     limit.group.constraints.push({
@@ -55,7 +55,7 @@ describe("usedPropertySlugs (D-162)", () => {
   });
 });
 
-describe("depthSelectorsText (D-162)", () => {
+describe("depthSelectorsText (D-165)", () => {
   it("diz quantas grandezas o nível oferece e onde", () => {
     expect(depthSelectorsText.count(1, 12, 40, depthSelectorsText.whereCompare)).toBe(
       "O Nível 1 oferece 12 de 40 grandezas como coluna da comparação.",

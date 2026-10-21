@@ -477,7 +477,7 @@ describe("materiais semelhantes", () => {
   });
 });
 
-describe("materiais semelhantes: nível de profundidade (D-162)", () => {
+describe("materiais semelhantes: nível de profundidade (D-165)", () => {
   it("no Nível 1 não oferece a base de nível maior, mas mantém a já escolhida", async () => {
     const extra = {
       ...properties[0]!,

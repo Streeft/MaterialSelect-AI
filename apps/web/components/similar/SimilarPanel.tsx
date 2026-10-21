@@ -187,7 +187,7 @@ export function SimilarPanel({
     );
   }
 
-  // D-162: the level trims the bases on offer, never one already chosen.
+  // D-165: the level trims the bases on offer, never one already chosen.
   const depthLevel = useDepthLevel();
   const offeredProperties = optionsAtLevel(properties.data ?? [], depthLevel, basis);
 

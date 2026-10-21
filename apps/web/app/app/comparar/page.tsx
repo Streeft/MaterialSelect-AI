@@ -105,7 +105,7 @@ function ComparePageContent() {
   }, [properties.data]);
 
   const selectedProperties = userSelectedProperties ?? defaultProperties;
-  // D-162: the level trims the chips on offer, never a property already chosen.
+  // D-165: the level trims the chips on offer, never a property already chosen.
   const depthLevel = useDepthLevel();
   const offeredProperties = optionsAtLevel(properties.data ?? [], depthLevel, selectedProperties);
 

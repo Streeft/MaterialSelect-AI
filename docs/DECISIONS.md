@@ -11156,7 +11156,7 @@ alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
 
-## D-162 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (decidida pelo assistente por delegação do autor, revisável)
+## D-165 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** A D-127 aplicou o nível à ficha e aos eixos do mapa; PD-a deixou os demais seletores oferecendo tudo.
 

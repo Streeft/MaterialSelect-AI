@@ -471,7 +471,7 @@ function SelectionWizard() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
-  // D-162: the level trims what the stage criteria offer, never what a stage names.
+  // D-165: the level trims what the stage criteria offer, never what a stage names.
   const depthLevel = useDepthLevel();
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
   // P0-2: the process universe a process stage picks from. Shared reference

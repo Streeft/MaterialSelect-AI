@@ -55,7 +55,7 @@ function mount() {
   );
 }
 
-describe("comparador: nível de profundidade nas colunas (D-162)", () => {
+describe("comparador: nível de profundidade nas colunas (D-165)", () => {
   beforeEach(() => {
     requests.length = 0;
     window.history.replaceState(null, "", "/app/comparar");

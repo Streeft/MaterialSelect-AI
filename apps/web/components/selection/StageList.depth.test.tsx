@@ -63,7 +63,7 @@ async function offered(): Promise<string[]> {
   return within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent ?? "");
 }
 
-describe("StageList: nível de profundidade nos critérios (D-162)", () => {
+describe("StageList: nível de profundidade nos critérios (D-165)", () => {
   it("no Nível 1 oferece só as grandezas do nível, e as sem nível declarado", async () => {
     mount([withRow()], 1);
     const names = await offered();

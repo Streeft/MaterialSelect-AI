@@ -252,7 +252,7 @@ origem D-31)~~. Resíduos:
 seguro, seletor na ficha e nos eixos do mapa, nível na URL, canário "nível não
 altera ranking"~~. Resíduos:
 
-- ~~**PD-a — nível nos demais seletores.**~~ ✔ Entregue (D-162, Sessão 119):
+- ~~**PD-a — nível nos demais seletores.**~~ ✔ Entregue (D-165, Sessão 123):
   `optionsAtLevel` nos critérios dos estágios, nas colunas do comparador e na
   base do Find Similar, sem tirar o que já está escolhido; cada tela escreve
   quantas grandezas o nível oferece. Resíduo: o seletor de nível só existe na

@@ -456,7 +456,7 @@ interface Props {
   /** Passed to each limit stage's editor (root E/OU, "Adicionar grupo"). */
   constraintAdvanced?: boolean;
   /**
-   * D-162: the depth level trims what a selector **offers**, never what a stage
+   * D-165: the depth level trims what a selector **offers**, never what a stage
    * already names. Default 3, everything: the behaviour before the level existed.
    */
   depthLevel?: DepthLevel;
@@ -467,7 +467,7 @@ function groupSlugs(group: ConstraintGroupState, into: Set<string>) {
   for (const child of group.groups) groupSlugs(child, into);
 }
 
-/** Every property a stage already names: those stay offered at any level (D-162). */
+/** Every property a stage already names: those stay offered at any level (D-165). */
 export function usedPropertySlugs(stages: readonly StageState[]): string[] {
   const used = new Set<string>();
   for (const stage of stages) {
