@@ -57,6 +57,13 @@ scale (``units.is_ratio_scale``), so a property on a scale without a true zero
 gets no band and is named in ``tolerance_not_applicable``. Absence still comes
 first: a record without the value was excluded before any band was read, so it
 can never be "inside" one. Without ``x`` nothing changes.
+
+**Per-property tolerance (D-156).** ``tolerances`` maps a basis slug to its own
+``x``, with the same bounds. It overrides the global ``x`` for that property
+only; a property with neither gets no band at all (it is not "inapplicable",
+nobody asked). The band, the inclusive edges, the ratio-scale rule and the
+absence rule are the very same — only where ``x`` comes from changes. Without
+either nothing changes.
 """
 
 from __future__ import annotations
@@ -159,6 +166,10 @@ class NearnessResult:
     tolerance_bands: dict[str, ToleranceBand] = field(default_factory=dict)
     #: Basis properties on a scale without a true zero: no band was drawn.
     tolerance_not_applicable: list[str] = field(default_factory=list)
+    #: The percentage each basis property ran with (D-156): the per-property
+    #: value where one was given, the global one otherwise. A property with
+    #: neither is absent — "not asked" is not a band of zero width.
+    tolerance_by_property: dict[str, float] = field(default_factory=dict)
 
 
 def validate_tolerance(tolerance_pct: float | None) -> float | None:
@@ -171,6 +182,39 @@ def validate_tolerance(tolerance_pct: float | None) -> float | None:
             f"A tolerância precisa ser maior que 0% e no máximo {MAX_TOLERANCE_PCT:g}%."
         )
     return value
+
+
+def resolve_tolerances(
+    basis: list[str],
+    tolerance_pct: float | None,
+    tolerances: dict[str, float] | None,
+) -> dict[str, float]:
+    """The percentage each basis property runs with (D-156), in basis order.
+
+    A per-property value overrides the global one for that property only. A
+    slug outside the basis is refused rather than ignored, as a weight is: the
+    reader believes the question includes that property.
+    """
+    tolerances = tolerances or {}
+    stray = sorted(set(tolerances) - set(basis))
+    if stray:
+        raise ValidationError("Tolerância para propriedade fora da busca: " + ", ".join(stray))
+    default = validate_tolerance(tolerance_pct)
+    resolved: dict[str, float] = {}
+    for slug in basis:
+        if slug in tolerances:
+            try:
+                value = validate_tolerance(tolerances[slug])
+            except ValidationError:
+                raise ValidationError(
+                    f"A tolerância de {slug} precisa ser maior que 0% e no máximo "
+                    f"{MAX_TOLERANCE_PCT:g}%."
+                ) from None
+            if value is not None:
+                resolved[slug] = value
+        elif default is not None:
+            resolved[slug] = default
+    return resolved
 
 
 def tolerance_band(reference: float, tolerance_pct: float) -> ToleranceBand:
@@ -256,6 +300,7 @@ def find_similar(
     criteria: dict[str, str] | None = None,
     tolerance_pct: float | None = None,
     ratio_scale: dict[str, bool] | None = None,
+    tolerances: dict[str, float] | None = None,
 ) -> NearnessResult:
     """Rank ``records`` by distance from ``reference_id`` over ``basis``.
 
@@ -275,7 +320,10 @@ def find_similar(
         weights: per-slug positive factor (default 1), D-120.
         criteria: per-slug ``both`` / ``at_most`` / ``at_least`` (default
             ``both``), D-120.
-        tolerance_pct: optional ``x`` of "100% if within ±x%" (D-155).
+        tolerance_pct: optional ``x`` of "100% if within ±x%" (D-155), the
+            default for every basis property.
+        tolerances: optional per-slug ``x`` that overrides ``tolerance_pct``
+            for that property only (D-156).
         ratio_scale: per-slug answer of ``units.is_ratio_scale`` for the
             canonical unit. A slug absent from the map gets no band — the
             conservative reading, which never invents a percentage.
@@ -290,6 +338,7 @@ def find_similar(
         raise ValidationError("O número de semelhantes precisa ser ao menos 1.")
     resolved_weights, resolved_criteria = resolve_settings(basis, weights, criteria)
     tolerance = validate_tolerance(tolerance_pct)
+    per_property = resolve_tolerances(basis, tolerance, tolerances)
 
     by_id = {record_id: (name, values) for record_id, name, values in records}
     if reference_id not in by_id:
@@ -306,13 +355,12 @@ def find_similar(
     # is split: the answer states them even when nobody could be compared.
     bands: dict[str, ToleranceBand] = {}
     not_applicable: list[str] = []
-    if tolerance is not None:
-        ratio = ratio_scale or {}
-        for slug in basis:
-            if ratio.get(slug, False):
-                bands[slug] = tolerance_band(float(reference_values[slug]), tolerance)  # type: ignore[arg-type]
-            else:
-                not_applicable.append(slug)
+    ratio = ratio_scale or {}
+    for slug, pct in per_property.items():
+        if ratio.get(slug, False):
+            bands[slug] = tolerance_band(float(reference_values[slug]), pct)  # type: ignore[arg-type]
+        else:
+            not_applicable.append(slug)
 
     # Split the pool before measuring anything: a candidate missing any basis
     # property is not a distant neighbour, it is an unanswerable comparison.
@@ -338,6 +386,7 @@ def find_similar(
             tolerance_pct=tolerance,
             tolerance_bands=bands,
             tolerance_not_applicable=not_applicable,
+            tolerance_by_property=per_property,
         )
 
     permissions = log_scale or {}
@@ -416,4 +465,5 @@ def find_similar(
         tolerance_pct=tolerance,
         tolerance_bands=bands,
         tolerance_not_applicable=not_applicable,
+        tolerance_by_property=per_property,
     )
