@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [118](#sessão-118--211026--copiar-tabela-no-comparador-no-funil-e-na-ficha-d-161) | 21/10/2026 | "Copiar tabela" (TSV) no comparador, no funil e nas propriedades da ficha, com ausência escrita | sem mudança | 1364 → 1373 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -112,6 +113,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `DECISIONS.md`.
 
 ---
+
+## Sessão 118 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-161)
+
+**O pedido.** Resíduo FL-d do D-122: só o ranking tinha "Copiar tabela".
+
+**O que mudou.** `lib/copyTables.ts` monta o TSV de cada tabela com as mesmas funções de formatação da tela (`comparisonTsv`, `funnelTsv`, `sheetTsv`) e reaproveita `toTsv`/`copyText` e o `CopyTableButton` (que ganhou `ariaLabel`, para nomear qual tabela). Ausência vira a palavra "Ausente"; contagem que não se aplica, "Não se aplica"; fonte não registrada, "Sem fonte registrada". Nunca célula vazia nem zero. Textos em `lib/i18n-copy-tables.ts`.
+
+**Resíduos.** Estágios do funil, colunas calculadas e as outras tabelas da ficha.
 
 ## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
 

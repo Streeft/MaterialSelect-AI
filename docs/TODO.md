@@ -281,8 +281,11 @@ próprio~~. Resíduos:
   trocam um pelo outro.
 - **FL-c — editar só a nota de um estudo salvo.** ▁ Hoje o estudo é criado e
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
-- **FL-d — copiar outras tabelas.** ▁ Só o ranking/candidatos tem "Copiar
-  tabela"; o comparador, o funil e a ficha ainda não.
+- ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-161, Sessão 118):
+  "Copiar tabela" no comparador, no funil e nas propriedades da ficha, em TSV
+  com ausência escrita. Resíduos: a tabela de estágios do funil, a tabela de
+  colunas calculadas do comparador e as demais tabelas da ficha (composição,
+  designações) ainda não têm o botão.
 - **FL-e — duplicar processo.** ▁ Não existe: processo não tem dono (D-62). Só
   muda se um dia houver "processo próprio".
 - **FL-f — duplicar a partir do catálogo compartilhado.** ▁ Continua sendo o

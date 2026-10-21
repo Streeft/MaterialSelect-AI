@@ -27,6 +27,8 @@ import {
   type TabItem,
 } from "@/components/ui";
 import { candidatesTsv } from "@/lib/selection/copyTable";
+import { funnelTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { CopyTableButton } from "./CopyTableButton";
 
 const t = ptBR.selection;
@@ -555,10 +557,16 @@ export function ResultsView({
         title={t.funnel}
         description={t.funnelHint}
         actions={
-          <span className="text-xs text-ink-muted">
-            {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
-            {result.initial_count}
-          </span>
+          <>
+            <span className="text-xs text-ink-muted">
+              {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
+              {result.initial_count}
+            </span>
+            <CopyTableButton
+              ariaLabel={copyTablesText.funnel.aria}
+              getText={() => funnelTsv(result.initial_count, funnel)}
+            />
+          </>
         }
       >
         <ol className="space-y-2">
