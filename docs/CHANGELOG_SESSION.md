@@ -113,6 +113,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 115 — 21/10/26 — Fichas offline verificadas de ponta a ponta (D-152)
+
+**O que mudou.** Só documentação: o D-152 registra a verificação que faltava (build de produção, service worker ativo, rede derrubada no
+Chromium) e uma observação sobre rota já visitada, que sem rede pode abrir o app com "Algo não funcionou" e nenhum dado de material.
+Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migração.
+
+
 ## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
 
 **O pedido.** Testes de `routes.a11y.test.tsx` e de `selecao` passavam isolados e estouravam os 5 s do vitest quando outro processo pesado (as faixas em paralelo, o pytest) dividia a CPU.

@@ -11067,6 +11067,12 @@ mais a data em cada valor.
 - **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
   e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
 - A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+- **Verificado de ponta a ponta em 21/10/26** (build de produção, `next start`, Chromium com o worker ativo e a rede derrubada por
+  `setOffline`): o worker assume, o cache `msai-offline-v2` guarda só a página offline, a navegação para a ficha sem rede cai em
+  `offline.html`, que lista a ficha lida e a abre com a faixa e "lido em" em cada valor, e com a rede de volta a ficha de verdade volta.
+  Uma rota já visitada (`/app/catalogo`) pode, sem rede, abrir o app em vez da página offline (a navegação foi atendida do cache HTTP do
+  navegador); a tela refaz a busca, que falha, e mostra "Algo não funcionou", **sem nenhum dado de material**. Não se mudou o worker para
+  forçar a página offline aí: `cache: "no-store"` nas navegações custaria o cache HTTP de toda visita com rede.
 
 **Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
 `describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
