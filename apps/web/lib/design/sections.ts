@@ -82,3 +82,26 @@ export function sectionForPath(pathname: string): SectionId {
 export function sectionMeta(id: SectionId): SectionMeta {
   return SECTIONS.find((s) => s.id === id) ?? SECTIONS[0];
 }
+
+/**
+ * Routes that have no hue of their own but still need a name in the page header's
+ * eyebrow. Without this the header fell back to the initial section and wrote
+ * "início" over the glossary, the style guide and the material form (found in a
+ * live check, D-156). Hue is untouched: these routes keep the root colour.
+ */
+export const ROUTE_LABELS = [
+  { route: "/app/glossario", label: "Glossário" },
+  // Creating, copying and editing a material belong to the catalogue.
+  { route: "/app/materiais", label: "Catálogo" },
+  { route: "/app/estilo", label: "Estilo" },
+] as const;
+
+/** What the page header's eyebrow calls the route: its section, else its own label, else the initial section. */
+export function labelForPath(pathname: string): string {
+  const own = SECTIONS.find(
+    (s) => s.route !== "/" && (pathname === s.route || pathname.startsWith(`${s.route}/`)),
+  );
+  if (own) return own.label;
+  const extra = ROUTE_LABELS.find((r) => pathname === r.route || pathname.startsWith(`${r.route}/`));
+  return extra?.label ?? sectionMeta(sectionForPath(pathname)).label;
+}
