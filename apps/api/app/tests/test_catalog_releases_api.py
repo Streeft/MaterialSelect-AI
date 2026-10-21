@@ -800,3 +800,137 @@ def test_clear_demo_refuses_a_demo_release_cited_by_a_real_curve(db_session: Ses
     db_session.flush()
     with pytest.raises(RuntimeError, match="preservar proveniência"):
         clear_demo_data(db_session)
+
+
+# -- paginated export (TM7-d-resid, D-162) ---------------------------------------
+
+EXPORT = "/api/exports/catalogo/releases/ficticio-r1/diff/ficticio-r2"
+
+
+def _record_ids(rows: list[list[str]]) -> list[str]:
+    header = next(row for row in rows if row and row[0] == "Situação" and "GRUID" in row)
+    return [row[3] for row in rows if len(row) == len(header) and row is not header]
+
+
+def _change_ids(rows: list[list[str]]) -> set[str]:
+    header = next(row for row in rows if row and row[0] == "Tabela externa" and "Campo" in row)
+    return {row[1] for row in rows if len(row) == len(header) and row[1] != "ID externo"}
+
+
+def test_pages_partition_the_whole_export(client, two_releases) -> None:
+    whole = _csv_rows(client.get(EXPORT + ".csv").text)
+    all_ids = _record_ids(whole)
+    assert len(all_ids) == 6
+
+    pages = [
+        _csv_rows(client.get(EXPORT + ".csv", params={"pagina": n, "por_pagina": 2}).text)
+        for n in (1, 2, 3)
+    ]
+    ids = [_record_ids(rows) for rows in pages]
+    assert [len(i) for i in ids] == [2, 2, 2]
+    # Nothing lost, nothing repeated, same order as the whole file.
+    assert [i for page in ids for i in page] == all_ids
+    # The field changes of a page belong to the records of that page, and only them.
+    for rows, page_ids in zip(pages, ids, strict=True):
+        assert _change_ids(rows) <= set(page_ids)
+    assert set().union(*(_change_ids(rows) for rows in pages)) == _change_ids(whole)
+
+
+def test_a_page_says_so_and_keeps_the_totals_of_the_whole_diff(client, two_releases) -> None:
+    response = client.get(EXPORT + ".csv", params={"pagina": 2, "por_pagina": 2})
+    assert response.status_code == 200
+    assert "pagina-2-de-3" in response.headers["content-disposition"]
+    rows = _csv_rows(response.text)
+    flat = [cell for row in rows for cell in row]
+    assert any("(página 2 de 3)" in cell for cell in flat)
+    assert "Página 2 de 3: registros 3 a 4 de 6 (com os filtros aplicados), 2 por página." in flat
+    assert next(row for row in rows if row and row[0] == "Total") == ["Total", "6"]
+    assert REPRODUCIBILITY_NOTICE in flat
+    assert_no_removed_notice(response.text)
+
+
+def test_the_whole_export_has_no_page_text(client, two_releases) -> None:
+    text = client.get(EXPORT + ".csv").text
+    assert "Página 1 de" not in text and "(página" not in text
+
+
+def test_only_one_of_the_two_parameters_still_paginates(client, two_releases) -> None:
+    only_size = _csv_rows(client.get(EXPORT + ".csv", params={"por_pagina": 4}).text)
+    assert len(_record_ids(only_size)) == 4
+    only_page = _csv_rows(client.get(EXPORT + ".csv", params={"pagina": 1}).text)
+    flat = [cell for row in only_page for cell in row]
+    assert (
+        "Página 1 de 1: registros 1 a 6 de 6 (com os filtros aplicados), 1000 por página." in flat
+    )
+
+
+def test_the_page_respects_the_filters(client, two_releases) -> None:
+    rows = _csv_rows(
+        client.get(EXPORT + ".csv", params={"tipo": "novo", "pagina": 1, "por_pagina": 1}).text
+    )
+    assert _record_ids(rows) == ["mat-e"]
+    flat = [cell for row in rows for cell in row]
+    assert any(cell.startswith("Página 1 de 1: registros 1 a 1 de 1") for cell in flat)
+
+
+def test_the_xlsx_page_neutralises_formulas_and_keeps_numbers(client, two_releases) -> None:
+    found_formula = False
+    for number in (1, 2, 3):
+        response = client.get(EXPORT + ".xlsx", params={"pagina": number, "por_pagina": 2})
+        assert response.status_code == 200
+        workbook = load_workbook(io.BytesIO(response.content))
+        records = workbook["Registros"]
+        names = [c.value for row in records.iter_rows() for c in row if isinstance(c.value, str)]
+        assert not any(n.startswith("=") for n in names)
+        found_formula = found_formula or ("'" + FORMULA_NAME) in names
+        notes = [c.value for c in workbook["Resumo"]["A"] if c.value]
+        assert any(str(n).startswith(f"Página {number} de 3:") for n in notes)
+    assert found_formula
+
+
+@pytest.mark.parametrize(
+    ("params", "fragment"),
+    [
+        ({"pagina": 4, "por_pagina": 2}, "A página 4 não existe: o resultado tem 3 páginas"),
+        ({"pagina": 0}, "A primeira página é 1"),
+        ({"por_pagina": 0}, "Use de 1 a 5000"),
+        ({"por_pagina": 5001}, "Use de 1 a 5000"),
+    ],
+)
+def test_a_page_outside_the_diff_is_refused_in_words(
+    client, two_releases, params: dict, fragment: str
+) -> None:
+    for ext in ("csv", "xlsx"):
+        response = client.get(f"{EXPORT}.{ext}", params=params)
+        assert response.status_code == 400, response.text
+        assert fragment in response.json()["detail"]
+
+
+def test_an_empty_filtered_diff_has_one_empty_page(client, two_releases) -> None:
+    rows = _csv_rows(
+        client.get(
+            EXPORT + ".csv", params={"tipo": "desativado", "classe": "ceramicas", "pagina": 1}
+        ).text
+    )
+    flat = [cell for row in rows for cell in row]
+    assert "Página 1 de 1: nenhum registro." in flat
+    assert "Nenhum registro com os filtros aplicados." in flat
+
+
+def test_the_refusal_to_compare_other_catalogues_survives_pagination(
+    client, two_releases, db_session: Session, tmp_path: Path, reviewer: User
+) -> None:
+    import_bundle(
+        db_session,
+        write_bundle(tmp_path, "outro-r1", "R1", RELEASE_1, lineage="outro-catalogo"),
+        reviewer,
+    )
+    response = client.get(
+        "/api/exports/catalogo/releases/ficticio-r1/diff/outro-r1.csv", params={"pagina": 1}
+    )
+    assert response.status_code == 400 and "catálogos" in response.json()["detail"]
+
+
+def test_the_screen_keeps_its_own_page_limit(client, two_releases) -> None:
+    refused = client.get("/api/catalogo/releases/ficticio-r1/diff/ficticio-r2?por_pagina=201")
+    assert refused.status_code == 400 and "Use de 1 a 200" in refused.json()["detail"]

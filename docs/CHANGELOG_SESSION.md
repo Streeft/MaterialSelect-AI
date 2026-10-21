@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [120](#sessão-120--211026--csvxlsx-do-diff-entre-versões-com-paginação-d-162) | 21/10/2026 | CSV/XLSX do diff entre versões com `?pagina=`/`?por_pagina=` (uma página dos registros e só as alterações deles; título e resumo dizem a página; totais do diff inteiro) (D-162) | 5041 → 5054 | sem mudança |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -122,6 +123,12 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 **O que mudou.** Só infraestrutura de teste, nenhuma asserção e nenhum teste tocado. `vitest.config.ts` aponta `shadow-dom-testing-library` para `lib/testing/lightDomQueries.ts`, que resolve cada `*ByShadow*` na consulta equivalente do DOM comum (o que ela já resolvia, sem a travessia): o teste mais lento de Seleção caiu de 2,8 s para 1,4 s. `lib/testing/loadedRunner.ts` dá `testTimeout` de 30 s e `asyncUtilTimeout` de 5 s por arquivo, e só `routes.a11y`, `selecao`, `estudio`, `cadernos`, `charts` e `layout` pedem; o padrão global continua 5 s, nada é pulado. Sob a mesma carga pesada a suíte passou de 28 falhas para 1 (um arquivo ainda sem a folga, `layout`, que a recebeu em seguida). Sem decisão nova, sem backend, sem migração, sem seed; contagem de testes inalterada (1325). Pós-merge: só o frontend publica sozinho; nada a disparar.
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
+
+## Sessão 120 — 21/10/26 — CSV/XLSX do diff entre versões com paginação (D-162)
+
+**O que mudou.** Resíduo do TM7-d: a exportação do diff (`/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}`) aceita `pagina` e `por_pagina`. Sem nenhum dos dois, o arquivo é o diff inteiro, como antes. Com qualquer um, traz uma página dos registros (já filtrados) e só as alterações de campo desses registros; o título ganha "(página N de M)" e o resumo escreve a faixa de registros. `paginate` ganhou um teto próprio para arquivo (5000; padrão 1000) sem mexer no da tela (200). A recusa de comparar versões de catálogos diferentes continua valendo antes da página.
+
+**Testes.** +13 de backend em `test_catalog_releases_api.py`: as páginas particionam o arquivo inteiro (nada perdido nem repetido), totais do resumo do diff inteiro, só um dos parâmetros, filtros, XLSX com fórmula neutralizada e número mantido, página/tamanho fora da faixa (400 escrito), página única vazia, recusa de catálogos diferentes e teto da tela intacto. Sem migração nem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
 

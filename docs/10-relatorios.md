@@ -311,9 +311,16 @@ faltando.
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
+| GET | `/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}?tipo=&classe=&universo=&pagina=&por_pagina=` | mudanças entre versões do catálogo oficial (D-108); paginado por `pagina`/`por_pagina` (D-162) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
-`?responsavel=` — texto livre, escapado, opcional.
+`?responsavel=` — texto livre, escapado, opcional. O diff entre versões sai inteiro por padrão;
+com `?pagina=` e/ou `?por_pagina=` (1–5000, padrão 1000) o arquivo traz **uma página dos
+registros** e só as alterações de campo desses registros. O título ganha "(página N de M)" e o
+resumo diz "Página N de M: registros a a b de T"; os totais do resumo seguem os das duas versões
+inteiras. Página fora do resultado ou tamanho fora da faixa é 400 escrito, e a recusa de comparar
+versões de catálogos diferentes (fictício com real) vale antes de qualquer página. A tela segue
+com o teto de 200 por página.
 
 ## Ainda fora desta fatia
 

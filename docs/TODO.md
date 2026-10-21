@@ -312,8 +312,8 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - ~~**TM7-d — desempenho.**~~ — feito na Sessão 78 ([D-123](DECISIONS.md)):
   medido com catálogo fictício (5.000 registros: 108,9 s → 10,3 s com o cache de
   unidade e o atalho do valor idêntico; 0,32 s lido do diff guardado no import,
-  com invalidação na escrita, impressão digital e versão). Resíduos: o CSV/XLSX
-  ainda não pagina; um par que não é "anterior → nova" (ex.: duas releases
+  com invalidação na escrita, impressão digital e versão). Resíduos: ~~o CSV/XLSX
+  ainda não pagina~~ (paginado na Sessão 120, [D-162](DECISIONS.md)); um par que não é "anterior → nova" (ex.: duas releases
   atrás) segue calculado a cada requisição; com 20.000 registros a leitura do
   JSON guardado ainda leva ≈ 1,4 s.
 - ~~**TM7-e — `is_active` não entra no diff.**~~ — decidido que **não entra**
