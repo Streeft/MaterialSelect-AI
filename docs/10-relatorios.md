@@ -311,9 +311,13 @@ faltando.
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
+| GET | `/api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}?unidade_x=&unidade_y=&unidade_parametro=` | pontos de uma curva na unidade de leitura escolhida (D-106, TM4-e) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
-`?responsavel=` — texto livre, escapado, opcional.
+`?responsavel=` — texto livre, escapado, opcional. A exportação de curva lê o parâmetro da
+família na unidade de `?unidade_parametro=` (a mesma da tela: convenção da grandeza se omitida;
+400 escrito para unidade que a grandeza não admite e para curva sem família); o cabeçalho
+`Parâmetro (unidade)` nomeia a unidade lida e as colunas "original" seguem como a fonte escreveu.
 
 ## Ainda fora desta fatia
 

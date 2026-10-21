@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -122,6 +123,12 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 **O que mudou.** Só infraestrutura de teste, nenhuma asserção e nenhum teste tocado. `vitest.config.ts` aponta `shadow-dom-testing-library` para `lib/testing/lightDomQueries.ts`, que resolve cada `*ByShadow*` na consulta equivalente do DOM comum (o que ela já resolvia, sem a travessia): o teste mais lento de Seleção caiu de 2,8 s para 1,4 s. `lib/testing/loadedRunner.ts` dá `testTimeout` de 30 s e `asyncUtilTimeout` de 5 s por arquivo, e só `routes.a11y`, `selecao`, `estudio`, `cadernos`, `charts` e `layout` pedem; o padrão global continua 5 s, nada é pulado. Sob a mesma carga pesada a suíte passou de 28 falhas para 1 (um arquivo ainda sem a folga, `layout`, que a recebeu em seguida). Sem decisão nova, sem backend, sem migração, sem seed; contagem de testes inalterada (1325). Pós-merge: só o frontend publica sozinho; nada a disparar.
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
+
+## Sessão 119 — 21/10/26 — Exportação de curva na unidade do parâmetro (TM4-e)
+
+**O que mudou.** Resíduo do TM4-e: `GET /api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}` aceita `?unidade_parametro=` e passa a unidade ao mesmo `draw_curve` da tela, então a conversão é a de `units.py` e as recusas são as mesmas (400 para unidade que a grandeza não admite e para curva sem família). O cabeçalho `Parâmetro (unidade)` e a linha "Família de curvas" nomeiam a unidade lida; as colunas "original" seguem como a fonte escreveu. Sem decisão nova (D-110 já cobria a tela).
+
+**Testes.** +8 de backend em `test_curves_api.py`: conversão a K e °F em CSV e XLSX (parâmetro numérico, negativo incluso), unidade original intacta, texto de série hostil (`=`, `@`) neutralizado, recusas 400 em CSV e XLSX, curva sem família com ausência escrita. Sem migração nem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
 

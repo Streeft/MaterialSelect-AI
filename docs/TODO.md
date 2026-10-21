@@ -411,8 +411,9 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do
   catálogo oficial fica só leitura.
 - ~~**TM4-e — escolher a unidade do parâmetro da família.**~~ Entregue (Sessão 65,
-  D-110): `?unidade_parametro=` e seletor rotulado na ficha. **Resíduo:** a
-  exportação CSV/XLSX ainda não aceita a unidade do parâmetro.
+  D-110): `?unidade_parametro=` e seletor rotulado na ficha. A exportação
+  CSV/XLSX da curva também aceita `?unidade_parametro=` (Sessão 119): mesma
+  conversão e mesmas recusas da tela, cabeçalho com a unidade lida.
 - ~~**TM4-f — nova grandeza de eixo exige migração.**~~ Entregue (Sessão 65,
   D-110): fonte única no domínio e teste que falha se o `CHECK` migrado divergir.
 - ~~**TM4-g — curvas duplicadas depois de um segundo cutover.**~~ ✔ Quitado
