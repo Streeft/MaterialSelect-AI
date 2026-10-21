@@ -131,6 +131,12 @@ por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem 
 base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
+## Sessão 115 — 21/10/26 — Fichas offline verificadas de ponta a ponta (D-152)
+
+**O que mudou.** Só documentação: o D-152 registra a verificação que faltava (build de produção, service worker ativo, rede derrubada no
+Chromium) e uma observação sobre rota já visitada, que sem rede pode abrir o app com "Algo não funcionou" e nenhum dado de material.
+Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migração.
+
 
 ## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
 
