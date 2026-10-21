@@ -234,13 +234,17 @@ declarado naquele x, a série responde `found = false` com a ausência escrita
 zero. O ponto vem com a referência ao dado original: posição na série, x e y
 como a fonte os escreveu, a faixa declarada e a fonte/citação da curva. Esse
 valor **não** vira propriedade escalar (`MaterialPropertyValue`) nem entra em
-ranking: é uma leitura da curva, com a curva ao lado.
+ranking: é uma leitura da curva, com a curva ao lado. A ficha tem a tela dessa
+leitura (D-157): "Ler um valor da curva", sob a figura, que só envia o x e a
+unidade e escreve a resposta.
 
 **Trajetórias (D-118, TM4-c).** Uma curva declarada `path_kind = "path"` (laço
 de histerese, carga e descarga) guarda os pontos na ordem da fonte e pode ter o
 mesmo x em mais de um trecho. A leitura de valor acima **recusa** essa curva
 com 422 e a razão escrita — escolher um ramo seria uma escolha que a fonte não
-fez —, e o cartão plástico CAE também. No bundle, `path_kind` é opcional no
+fez —, e o cartão plástico CAE também. A ficha desenha a trajetória com o
+sentido do caminho (setas, anel no início, losango no fim; D-157) e não oferece
+o formulário de leitura nela. No bundle, `path_kind` é opcional no
 registro de `material_curves`; ausente é `"function"` (x estritamente crescente).
 
 `CatalogDatasetValue` faz a mesma coisa para fatos que pertencem ao dataset

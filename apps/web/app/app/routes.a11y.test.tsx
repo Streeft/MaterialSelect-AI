@@ -10,6 +10,7 @@ import { Landing } from "@/components/marketing/Landing";
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { curveList, stressStrain } from "@/components/charts/curveFixtures";
+import { ordinalValues } from "@/components/material/ordinalFixtures";
 import { releaseDiff, releaseList, steelItem } from "@/components/catalog/releaseFixtures";
 // The load-case picker is an `md-outlined-select`: the real combobox lives in
 // its shadow root, where the plain `screen` above cannot reach.
@@ -1295,6 +1296,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listMaterialCurves: () => Promise.resolve(curveList),
   getMaterialCurve: () => Promise.resolve(stressStrain),
   curveExportUrl: (id: number, curveId: number, format: string) => `#${id}-${curveId}-${format}`,
+  // ORD-a: the sheet's ordinal section, audited with the three states written.
+  getMaterialOrdinals: () => Promise.resolve(ordinalValues),
   // D-108: "Mudanças entre releases", audited with one record open.
   listCatalogReleases: () => Promise.resolve(releaseList),
   getReleaseDiff: () => Promise.resolve(releaseDiff),
