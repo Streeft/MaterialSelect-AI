@@ -114,7 +114,13 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   uma série por parâmetro (cor, traço e marcador), faixa declarada, unidade de
   leitura e escala escolhidas na URL, tabela de pontos como alternativa textual
   e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
-  curva, a ficha diz "Nenhuma curva cadastrada" (D-106).
+  curva, a ficha diz "Nenhuma curva cadastrada" (D-106). Abaixo da figura, "Ler
+  um valor da curva" pergunta ao servidor o ponto que a fonte declarou
+  exatamente naquele x (ausência escrita, nunca interpolada); uma trajetória
+  (laço de histerese) leva setas no sentido do caminho, anel no início e losango
+  no fim, e não oferece leitura num x. A ficha também traz as **propriedades
+  ordinais** (escala cadastrada, nível do material, fonte e ausência escrita)
+  (D-157).
 - **Mudanças entre versões** — em `/app/catalogo/releases` (link discreto no
   catálogo), duas releases do mesmo catálogo oficial lado a lado: contagem de
   registros novos, alterados, desativados e inalterados, filtros por situação e

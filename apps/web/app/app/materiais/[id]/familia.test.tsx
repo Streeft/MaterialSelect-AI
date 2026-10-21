@@ -56,6 +56,7 @@ vi.mock("@/components/similar/SimilarPanel", () => ({ SimilarPanel: () => null }
 vi.mock("@/components/PropertyChart", () => ({ PropertyChart: () => null }));
 vi.mock("@/components/CaeExportDialog", () => ({ MaterialExportMenu: () => null }));
 vi.mock("@/components/material/MaterialCurves", () => ({ MaterialCurves: () => null }));
+vi.mock("@/components/material/MaterialOrdinals", () => ({ MaterialOrdinals: () => null }));
 vi.mock("@/components/material/EquivalenceSection", () => ({ EquivalenceSection: () => null }));
 
 const { default: MaterialPage } = await import("./page");

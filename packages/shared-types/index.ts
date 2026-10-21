@@ -3323,6 +3323,53 @@ export interface Curve {
   is_own_record: boolean;
 }
 
+/**
+ * What one series says at the asked x (TM4-b, D-110): the point the source
+ * declared exactly there, or the written absence. Never interpolated.
+ */
+export interface CurveSeriesValue {
+  series_id: number;
+  label: string | null;
+  conditions: string | null;
+  parameter_value: number | null;
+  parameter_original: number | null;
+  parameter_original_unit: string | null;
+  found: boolean;
+  /** Position of the declared point in its series. */
+  position: number | null;
+  x_original: number | null;
+  y: number | null;
+  y_min: number | null;
+  y_max: number | null;
+  y_original: number | null;
+  y_min_original: number | null;
+  y_max_original: number | null;
+  /** Written when `found` is false; the number is absent, never zero. */
+  absence: string | null;
+}
+
+/** The value of a curve at a declared x, by the rule the backend states. */
+export interface CurveValue {
+  curve_id: number;
+  material_id: number;
+  title: string;
+  /** The reading rule, in the backend's words. */
+  rule: string;
+  at: number;
+  at_unit: string;
+  at_unit_label: string;
+  x_quantity_label: string;
+  y_quantity_label: string;
+  y_unit: string;
+  y_unit_label: string;
+  parameter_unit_label: string | null;
+  found_count: number;
+  series: CurveSeriesValue[];
+  source_label: string;
+  citation: string | null;
+  is_demo: boolean;
+}
+
 // --- Changes between catalogue releases (D-108, TM7) ------------------------
 
 /** What happened to one external record from the base to the target release. */

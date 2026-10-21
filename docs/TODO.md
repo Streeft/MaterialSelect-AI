@@ -193,8 +193,11 @@ ausência escrita~~, ~~critério `level_at_least` no estágio de limites (ausent
 nunca passa; `without_level` no funil e no laudo)~~, ~~demo fictício e contrato
 do bundle~~ (migração `860cc669ff6a`). Resíduos:
 
-- **ORD-a — seção na ficha.** ▁ `GET /api/materials/{id}/ordinais` já devolve o
-  nível ou a ausência escrita; a ficha ainda não desenha.
+- ~~**ORD-a — seção na ficha.**~~ ✔ Entregue (Sessão 114, [D-157](DECISIONS.md)):
+  seção "Propriedades ordinais" (`MaterialOrdinals`) lê `GET /api/materials/{id}/ordinais`;
+  escala como cadastrada, nível marcado por preenchimento, texto e `aria-current`,
+  fonte e qualidade, `ausente` e `sem_dado` escritos com a razão; carregando, erro
+  e vazio escritos. Nenhum nível é inventado nem a escala vira número.
 - **ORD-b — dado real.** Bloqueado: durabilidade por agente só com fonte
   APROVADA (`docs/catalogo/fontes.md`) ou pelo bundle do D-102.
 - **ORD-c — edição à mão e curadoria da escala.** ▁ Hoje só seed e bundle
@@ -383,17 +386,26 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 - ~~**TM4-b — ler um valor de uma curva.**~~ Entregue em parte (Sessão 65,
   [D-110](DECISIONS.md)): regra conservadora em docs/18 §6 — só o ponto
   declarado exatamente no x pedido, convertido por units.py, sem interpolar,
-  com ausência escrita; `GET .../curvas/{curva}/valor`. **Resíduo:** não há
-  tela para a leitura (só API).
+  com ausência escrita; `GET .../curvas/{curva}/valor`. ✔ **Tela entregue**
+  (Sessão 114, [D-157](DECISIONS.md)): "Ler um valor da curva" sob a figura —
+  envia o x e a unidade, mostra valor com unidade, faixa, como a fonte escreveu,
+  qualidade e fonte, e a ausência escrita; trajetória não oferece o formulário e
+  diz a razão (D-118). **Resíduo:** o resultado não é guardado na URL nem
+  exportado.
 - ~~**TM4-c — histerese e curvas não monotônicas.**~~ ✔ Entregue (Sessão 73,
   [D-118](DECISIONS.md)): `path_kind` (`function`/`path`, migração
   `8bc0982d66b8`); trajetória na ordem declarada, sem faixa; valor por x e
   cartão plástico recusam com 422 escrito; diff, CSV, bundle e formulário
   cientes. Resíduos: **TM4-i** abaixo.
-- **TM4-i — trajetória sem exemplo e sem seta.** ▁ Não há curva demo nem real
-  de histerese (criar pela regra de docs/15 quando houver uso); o gráfico não
-  indica o sentido do caminho além da tabela e da nota. Eixos fora da lista de
-  grandezas continuam em `CatalogSupplementalValue`. Aberto pela Sessão 73.
+- ~~**TM4-i — trajetória sem exemplo e sem seta.**~~ ✔ O sentido está no gráfico
+  (Sessão 114, [D-157](DECISIONS.md)): setas ao longo do caminho, anel no primeiro
+  ponto, losango no último, nota no rodapé, tabela "Ordem no caminho" e nome
+  acessível; o exemplo de laço de histerese é um *fixture* de teste
+  (`hysteresisLoop`), fictício. **Resíduo (TM4-i-b):** ▁ ainda não há curva de
+  histerese **no catálogo** (demo nem real): criar pela regra de docs/15 exige
+  seed no backend e `semear_demo` (nunca em produção após o cutover) — fica para
+  quando houver uso. Eixos fora da lista de grandezas continuam em
+  `CatalogSupplementalValue`. Aberto pela Sessão 73.
 - ~~**TM4-d — edição pela API e pela interface.**~~ ✔ Entregue (Sessão 66,
   [D-111](DECISIONS.md)): `POST`/`PUT`/`DELETE …/curvas`, validados por
   `build_curve`, mesma permissão e auditoria do TM2-a, editor na ficha. Curva do

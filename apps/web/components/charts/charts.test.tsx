@@ -14,6 +14,10 @@ import { HorizontalBars } from "./HorizontalBars";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import type { CompareAxis, CompareCell, CompareMaterial, Comparison, PropertyMap } from "@/lib/types";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+
+// Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
+allowLoadedRunner();
 
 // Plotly pulls WebGL and canvas into a runtime that has neither, and none of
 // what it draws is under test here. Stubbing it also reproduces the reader's

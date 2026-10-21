@@ -12,6 +12,10 @@ import { AppSidebar, GROUPS, visibleGroups } from "./AppSidebar";
 import { ptBR } from "@/lib/i18n";
 import type { CurrentUser } from "@/lib/types";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+
+// Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
+allowLoadedRunner();
 
 // The sidebar reads the route to say where the reader is; nothing else about
 // Next's router matters here. The sidebar only ever renders under /app now
