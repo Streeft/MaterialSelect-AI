@@ -99,7 +99,11 @@ def parse(expression: str) -> ast.Expression:
     try:
         tree = ast.parse(expression, mode="eval")
     except SyntaxError as exc:
-        raise ExpressionError(f"Sintaxe inválida: {exc.msg}") from exc
+        # Python's own wording is English and says nothing a reader can act on.
+        raise ExpressionError(
+            "Sintaxe inválida: confira operadores, parênteses e se cada variável "
+            "está escrita como na lista de variáveis disponíveis."
+        ) from exc
     _check(tree)
     return tree
 
@@ -132,7 +136,10 @@ def _check(node: ast.AST) -> None:
             raise ExpressionError("As funções aceitam exatamente um argumento.")
         _check(node.args[0])
     else:
-        raise ExpressionError(f"Construção não permitida: {type(node).__name__}.")
+        raise ExpressionError(
+            "Construção não permitida: use só números, variáveis, + - * / ** e as funções "
+            "sqrt, cbrt e abs."
+        )
 
 
 def _collect_names(node: ast.AST, names: set[str]) -> None:
@@ -146,6 +153,20 @@ def _collect_names(node: ast.AST, names: set[str]) -> None:
         return
     for child in ast.iter_child_nodes(node):
         _collect_names(child, names)
+
+
+def is_multiplicative(expression: str) -> bool:
+    """Whether the expression has no addition or subtraction anywhere.
+
+    A product, quotient, power or root of quantities with a true zero keeps a
+    true zero, so a *ratio* between two of its values still means something
+    (D-128). Adding or subtracting anything — even a constant — moves the zero
+    (``T - 300``), and a percentage of such a number is a claim nobody checked.
+    """
+    return not any(
+        isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub))
+        for node in ast.walk(parse(expression))
+    )
 
 
 def variables_in(expression: str) -> set[str]:

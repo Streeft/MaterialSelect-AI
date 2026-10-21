@@ -17,6 +17,7 @@ from typing import TypeVar
 
 from app.calculations.expressions import (
     ExpressionError,
+    is_multiplicative,
     result_dimension,
     safe_variable,
     validate_names,
@@ -1119,7 +1120,7 @@ class ChartService:
                 for cell in row.cells:
                     cell.exceeds_threshold = exceeds(cell.difference_pct, threshold)
 
-        computed = self._computed_columns(request.computed, ordered)
+        computed = self._computed_columns(request.computed, ordered, threshold)
         return CompareOut(
             normalization=method.value,
             properties=axes,
@@ -1130,7 +1131,10 @@ class ChartService:
         )
 
     def _computed_columns(
-        self, indices: Sequence[IndexIn], materials: list[Material]
+        self,
+        indices: Sequence[IndexIn],
+        materials: list[Material],
+        threshold: float | None = None,
     ) -> list[ComputedColumnOut]:
         """Evaluate each requested index for every compared material (D-128).
 
@@ -1139,6 +1143,7 @@ class ChartService:
         input gets the evaluator's written reason, never a zero.
         """
         variables = self._material_variables(materials)
+        units = {safe_variable(p.slug): p.canonical_unit for p in self.repo.list_properties()}
         columns: list[ComputedColumnOut] = []
         for index in indices:
             used, dimension = self._validate_expression(index.expression)
@@ -1152,7 +1157,15 @@ class ChartService:
                         undefined_reason=evaluation.undefined_reason,
                     )
                 )
-            defined = sum(1 for v in values if v.value is not None)
+            defined_values = [v.value for v in values if v.value is not None]
+            defined = len(defined_values)
+            # A percentage of an index only means something when the index keeps
+            # a true zero: no + or -, and every input on a ratio scale.
+            spread, spread_state = spread_pct(
+                defined_values,
+                ratio_scale=is_multiplicative(index.expression)
+                and all(is_ratio_scale(units[var]) for var in used),
+            )
             columns.append(
                 ComputedColumnOut(
                     name=index.name or index.expression,
@@ -1163,6 +1176,9 @@ class ChartService:
                     values=values,
                     defined_count=defined,
                     undefined_count=len(values) - defined,
+                    spread_pct=spread,
+                    spread_state=spread_state,
+                    exceeds_threshold=exceeds(spread, threshold),
                 )
             )
         return columns

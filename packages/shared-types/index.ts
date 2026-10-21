@@ -1542,6 +1542,15 @@ export interface ComputedColumn {
   values: ComputedValue[];
   defined_count: number;
   undefined_count: number;
+  /**
+   * (max - min) / largest magnitude, in percent, over the defined values, and
+   * only when the index keeps a true zero; otherwise `null` with the reason in
+   * `spread_state` (D-24, D-128).
+   */
+  spread_pct?: number | null;
+  spread_state?: SpreadState;
+  /** `null` without a threshold or without a spread to compare. */
+  exceeds_threshold?: boolean | null;
 }
 
 export interface Comparison {

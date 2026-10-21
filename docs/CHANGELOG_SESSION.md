@@ -12,6 +12,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
 | [110](#sessão-110--201026--tolerância-100-se-dentro-de-x-no-find-similar-d-155) | 20/10/2026 | Find Similar: tolerância "100% se dentro de ±x%" (faixa sobre o canônico, pontas incluídas, só em escala de razão; marcas e tabela no painel; `sim_tolerancia` na URL) | 5009 → 5032 | 1295 → 1302 |
+| [108](#sessão-108--201026--comparador-índice-digitado-e-coluna-calculada-d-153) | 20/10/2026 | Comparador: campo para digitar um índice (validado pelo servidor antes de entrar, mensagem escrita sob o campo) e coluna calculada com selo "Calculada", ícone, nota, dispersão e destaque de limiar próprios; mensagens de sintaxe do avaliador em pt-BR; sem migração | +6 | +19 |
 | [106](#sessão-106--191026--notas-de-família-de-materiais-d-151) | 19/10/2026 | Notas de família (*Science Notes*): `families.json` conceitual e sem algarismo, `GET /api/familias/notas`, `FamilyNote` na ficha e página `/app/glossario/familias` (D-151) | 4965 → 5009 | 1258 → 1269 |
 | [105](#sessão-105--191026--linguagem-simples-nos-textos-do-backend-d-150) | 19/10/2026 | Linguagem simples nos textos que a API devolve: release→versão, ranking→classificação, restrição→limite, backend→servidor | 4955 → 4955 | 1230 → 1230 |
 | [99](#sessão-99--171026--varredura-de-família-do-synthesizer-backend-d-144) | 17/10/2026 | Varredura de família do Synthesizer (backend): `POST /api/sintetizar/varredura`, índice ao longo de c/t do painel ou da fração do compósito, grade por índice (teto 50), `skipped` com motivo, sem gravar (D-144) | 4955 | — |
@@ -137,6 +138,17 @@ e `public/sw.js` (só o nome do cache, `msai-offline-v2`, e o comentário).
 dado corrompido, armazenamento cheio, o gancho; `lib/pwa/offlinePage.test.ts`: o script da página executado contra o armazenamento,
 markup tratado como texto) e +1 de E2E (`e2e/offline.spec.ts`: abre uma ficha com conexão e depois `/offline.html`, que lista, abre e
 mostra a data). Sem backend nem migração.
+
+## Sessão 108 — 20/10/26 — Comparador: índice digitado e coluna calculada (D-153)
+
+**O que mudou.** Fecha duas pendências da D-128. O comparador aceita um índice digitado (`CustomIndexForm`): a expressão passa pelo
+validador da Seleção e só então vira coluna de `computed`; erro de expressão aparece sob o campo, em pt-BR, e a tabela não some.
+A coluna calculada ganhou selo "Calculada" com ícone, nota do que é calculado, insumos, dispersão e selo de limiar próprios
+(`ComputedColumnOut.spread_pct/spread_state/exceeds_threshold`; só quando a expressão não soma nem subtrai e os insumos têm zero
+verdadeiro). As mensagens de sintaxe e de construção não permitida do avaliador deixaram de citar o inglês do Python.
+
+**Testes.** +6 de backend (dispersão da coluna, soma sem dispersão, um valor só, mensagens em pt-BR, `is_multiplicative`, sintaxe) e
++19 de frontend (formulário, página, tabela calculada, axe). Sem migração nem seed. Pede o Deploy da API.
 
 ## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
 

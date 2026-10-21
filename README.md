@@ -43,9 +43,11 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Mapas** — mapas de Ashby com escala log, envelopes por classe e linhas de
   índice cuja inclinação é derivada da própria expressão (`E/ρ` → 1,
   `E^(1/2)/ρ` → 2). Um eixo pode ser uma propriedade ou um índice.
-- **Comparar** — tabela com proveniência de cada valor, gráficos e busca de
+- **Comparar** — tabela com proveniência de cada valor, gráficos, busca de
   **materiais semelhantes** a uma referência, com peso e critério por
-  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual).
+  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual), e
+  **índices calculados** (os do catálogo ou uma expressão digitada, validada e
+  calculada no servidor, com a coluna marcada como "Calculada").
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição

@@ -4,6 +4,7 @@ import { screen } from "shadow-dom-testing-library";
 import { ComparisonView } from "./ComparisonView";
 import { ComputedTable } from "./ComputedSection";
 import { ptBR } from "@/lib/i18n";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type { CompareAxis, CompareCell, Comparison } from "@/lib/types";
 
 const t = ptBR.compare;
@@ -171,6 +172,9 @@ describe("ComputedTable: propriedades computadas (D-128)", () => {
         variables: ["densidade", "modulo_young"],
         defined_count: 1,
         undefined_count: 1,
+        spread_pct: 40,
+        spread_state: "calculada",
+        exceeds_threshold: true,
         values: [
           { material_id: 1, value: 25_000_000, undefined_reason: null },
           { material_id: 2, value: null, undefined_reason: "Dados ausentes: modulo_young" },
@@ -198,5 +202,61 @@ describe("ComputedTable: propriedades computadas (D-128)", () => {
   it("sem índice escolhido não renderiza tabela", () => {
     const { container } = render(<ComputedTable comparison={comparison()} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("diz 'Calculada' por escrito, com ícone, e a nota do que é calculado", () => {
+    render(<ComputedTable comparison={withComputed} />);
+
+    expect(screen.getByShadowText(t.computed.badge)).toBeInTheDocument();
+    expect(screen.getByShadowText(t.computed.note)).toBeInTheDocument();
+    expect(screen.getByShadowText(new RegExp(t.computed.inputs("densidade, modulo_young")))).toBeInTheDocument();
+  });
+
+  it("a dispersão da coluna e o selo de limiar são texto, não só cor", () => {
+    render(<ComputedTable comparison={withComputed} />);
+
+    expect(screen.getByShadowText(/Acima do limiar · Dispersão 40%/)).toBeInTheDocument();
+  });
+
+  it("sem limiar mostra a dispersão sem veredito; sem dispersão escreve o motivo", () => {
+    const base = withComputed.computed![0]!;
+    const { rerender } = render(
+      <ComputedTable
+        comparison={{
+          ...withComputed,
+          threshold_pct: null,
+          computed: [{ ...base, exceeds_threshold: null }],
+        }}
+      />,
+    );
+    expect(screen.getByShadowText("Dispersão 40%")).toBeInTheDocument();
+    expect(screen.queryByShadowText(/Acima do limiar/)).not.toBeInTheDocument();
+
+    rerender(
+      <ComputedTable
+        comparison={{
+          ...withComputed,
+          computed: [
+            { ...base, spread_pct: null, spread_state: "escala_sem_zero", exceeds_threshold: null },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByShadowText(`${t.threshold.unavailable}: ${t.threshold.spread.escala_sem_zero}`),
+    ).toBeInTheDocument();
+  });
+
+  it("um índice digitado (nome = expressão) não repete a expressão e passa no axe", async () => {
+    const typed = comparison({
+      computed: [
+        { ...withComputed.computed![0]!, name: "modulo_young / densidade" },
+      ],
+    });
+    const { container } = render(<ComputedTable comparison={typed} />);
+
+    expect(screen.getAllByShadowText("modulo_young / densidade")).toHaveLength(1);
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });

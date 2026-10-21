@@ -154,3 +154,23 @@ def test_evaluating_the_same_expression_twice_is_independent():
     # And a walk over Quantities, which shares the very same cached tree.
     assert "[length]" in result_dimension("E / rho", {"E": "Pa", "rho": "kg/m**3"})
     assert evaluate("E / rho", {"E": 210e9, "rho": 7850.0}) == pytest.approx(210e9 / 7850.0)
+
+
+def test_is_multiplicative_rejects_any_sum_or_difference() -> None:
+    from app.calculations.expressions import is_multiplicative
+
+    assert is_multiplicative("modulo_young / densidade")
+    assert is_multiplicative("sqrt(modulo_young) * 2 / densidade ** 2")
+    assert is_multiplicative("-densidade")
+    assert not is_multiplicative("temp - 300")
+    assert not is_multiplicative("a + b")
+    assert not is_multiplicative("sqrt(a - b) / c")
+
+
+def test_syntax_error_message_is_portuguese() -> None:
+    import pytest
+
+    from app.calculations.expressions import ExpressionError, parse
+
+    with pytest.raises(ExpressionError, match="Sintaxe inválida: confira"):
+        parse("a +")
