@@ -24,6 +24,7 @@ import type {
   CurrentUser,
   Curve,
   CurveScale,
+  CurveValue,
   DashboardOverview,
   EcoAuditRequest,
   EndOfLifeRouteInfo,
@@ -46,6 +47,7 @@ import type {
   MaterialClassIn,
   MaterialCurves,
   MaterialCreate,
+  MaterialOrdinalValues,
   MaterialDetail,
   MaterialListItem,
   MaterialSearch,
@@ -314,6 +316,38 @@ export function getMaterialCurve(
   );
 }
 
+/** What the reader asks of a curve at one x (TM4-b): the number and its unit. */
+export interface CurveValueRequest {
+  at: number;
+  /** Unit of `at` — without it the backend refuses to read. */
+  atUnit: string;
+  /** Reading unit of y and of the family parameter: the figure's own. */
+  y?: string;
+  parameter?: string;
+}
+
+/**
+ * The curve read at a declared x (D-110): the point the source wrote exactly
+ * there, converted by the backend, or the absence written. The screen only
+ * sends the question — it never interpolates. A path (hysteresis) curve answers
+ * 422 with the reason, and a unit the axis refuses is a 400.
+ */
+export function getCurveValue(
+  materialId: number,
+  curveId: number,
+  ask: CurveValueRequest,
+): Promise<CurveValue> {
+  const params = new URLSearchParams({
+    em: String(ask.at),
+    unidade_em: ask.atUnit,
+  });
+  if (ask.y) params.set("unidade_y", ask.y);
+  if (ask.parameter) params.set("unidade_parametro", ask.parameter);
+  return request<CurveValue>(
+    `/api/materials/${materialId}/curvas/${curveId}/valor?${params.toString()}`,
+  );
+}
+
 /** The curve's points as a file, in the same reading units as the figure. */
 export function curveExportUrl(
   materialId: number,
@@ -566,6 +600,11 @@ export function listFamilyNotes(): Promise<FamilyNoteEntry[]> {
 
 export function listProperties(): Promise<PropertyDefinition[]> {
   return request<PropertyDefinition[]>(`/api/properties`);
+}
+
+/** The material's level on every ordinal property, absence written (D-126). */
+export function getMaterialOrdinals(materialId: number): Promise<MaterialOrdinalValues> {
+  return request<MaterialOrdinalValues>(`/api/materials/${materialId}/ordinais`);
 }
 
 /** Ordinal material properties and their scales, worst level first (D-126). */

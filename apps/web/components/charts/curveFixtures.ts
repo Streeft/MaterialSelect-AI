@@ -156,3 +156,77 @@ export const emptyCurveList: MaterialCurves = {
   counts_by_kind: curveList.counts_by_kind.map((c) => ({ ...c, count: 0 })),
   curves: [],
 };
+
+/**
+ * A hysteresis loop as the backend sends a `path` curve (D-118): one series, the
+ * points in the order the source declared them, x going up and coming back down
+ * (so an x repeats), no band. Fictitious, like the demo it mirrors — there is no
+ * hysteresis curve in the catalogue yet (TM4-i), so this is the example the
+ * figure's direction and the value reader are tested against.
+ */
+const LOOP: [number, number][] = [
+  [0, 0],
+  [0.5, 150],
+  [1, 260],
+  [1.5, 330],
+  [2, 360],
+  [1.5, 300],
+  [1, 190],
+  [0.5, 70],
+  [0.2, 0],
+];
+
+export const hysteresisLoop: Curve = {
+  ...stressStrain,
+  id: 12,
+  title: "Ciclo de carga e descarga",
+  parameter: null,
+  path_kind: "path",
+  path_kind_label: "Trajetória",
+  available_scales: ["linear"],
+  x_axis: { ...stressStrain.x_axis, domain: [0, 2.2] },
+  y_axis: { ...stressStrain.y_axis, domain: [0, 400] },
+  series: [
+    {
+      id: 201,
+      position: 0,
+      label: "Ciclo 1",
+      conditions: "Fictício, para teste.",
+      parameter_value: null,
+      parameter_original: null,
+      parameter_original_unit: null,
+      path: LOOP,
+      band: null,
+      points: LOOP.map(([x, y], position) => ({
+        position,
+        x,
+        y,
+        y_min: null,
+        y_max: null,
+        x_original: x,
+        y_original: y,
+        y_min_original: null,
+        y_max_original: null,
+        drawn: true,
+      })),
+      excluded: 0,
+    },
+  ],
+  notes: ["Trajetória: o caminho é desenhado na ordem declarada, sem faixa."],
+  citation: "Laço de exemplo.",
+};
+
+/** The list entry that goes with {@link hysteresisLoop}. */
+export const hysteresisList: MaterialCurves = {
+  ...curveList,
+  curves: [
+    {
+      ...curveList.curves[0]!,
+      id: 12,
+      title: hysteresisLoop.title,
+      parameter_quantity_label: null,
+      series_count: 1,
+      point_count: LOOP.length,
+    },
+  ],
+};

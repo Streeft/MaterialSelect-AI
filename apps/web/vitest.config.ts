@@ -21,6 +21,12 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),
+      // The `*ByShadow*` queries resolve on the light DOM (no component has a
+      // shadow root since D-80) and cost half the wizard tests' time; see the
+      // note in lib/testing/lightDomQueries.ts.
+      "shadow-dom-testing-library": fileURLToPath(
+        new URL("./lib/testing/lightDomQueries.ts", import.meta.url),
+      ),
     },
     // Vitest resolves node_modules through Vite's SSR pipeline, which favours
     // the "node" export condition. lit-html ships a separate `node/` build
