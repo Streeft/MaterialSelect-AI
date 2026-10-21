@@ -135,6 +135,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Olhe no navegador o que for movimento ou largura** ([D-149](docs/DECISIONS.md)): teste e CI não veem curva de animação
   nem painel espremido. Pause a animação (`getAnimations()`) e meça os valores computados; a conversa dos Cadernos nunca fica abaixo de 352 px.
 
+- **Rota nova tem rótulo no sobrescrito** ([D-156](docs/DECISIONS.md)): `PageHeader` lê `labelForPath`
+  (`lib/design/sections.ts`). Tela fora do mapa de seções entra em `ROUTE_LABELS` ou ganha seção; senão o cabeçalho escreve
+  "início". Um estado vazio que já traz o botão da tela não repete o do cabeçalho.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

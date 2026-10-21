@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sectionForPath } from "./sections";
+import { labelForPath, sectionForPath } from "./sections";
 
 describe("sectionForPath", () => {
   it("maps each section's own route to itself", () => {
@@ -38,5 +38,27 @@ describe("sectionForPath", () => {
     // real children, admin/classes and admin/propriedades, have a section.
     expect(sectionForPath("/app/admin")).toBe("inicio");
     expect(sectionForPath("/app/materiais/1")).toBe("inicio");
+  });
+});
+
+// D-156: the page header's eyebrow named every route without a hue "início".
+describe("labelForPath", () => {
+  it("is the section's own label where the route has one", () => {
+    expect(labelForPath("/app/catalogo")).toBe("Catálogo");
+    expect(labelForPath("/app/processos/familia/metais")).toBe("Processos");
+  });
+
+  it("names the routes that have no hue of their own, and keeps them in the initial section", () => {
+    expect(labelForPath("/app/glossario")).toBe("Glossário");
+    expect(labelForPath("/app/glossario/familias")).toBe("Glossário");
+    expect(labelForPath("/app/materiais/novo")).toBe("Catálogo");
+    expect(labelForPath("/app/materiais/7/editar")).toBe("Catálogo");
+    expect(labelForPath("/app/estilo")).toBe("Estilo");
+    expect(sectionForPath("/app/glossario")).toBe("inicio");
+  });
+
+  it("falls back to the initial section for anything else", () => {
+    expect(labelForPath("/")).toBe("Início");
+    expect(labelForPath("/entrar")).toBe("Início");
   });
 });

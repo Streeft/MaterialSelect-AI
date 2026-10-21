@@ -11126,3 +11126,23 @@ dispersão de qualquer índice (uma soma desloca o zero e o percentual passaria 
 misturadas à tabela principal (continuam na seção própria da D-128).
 
 **Consequências.** Campos opcionais novos no contrato, retrocompatível. Sem migração nem seed. Depois do merge, **Deploy da API**.
+
+## D-156 — Conferência ao vivo das demais rotas: o sobrescrito nunca mais diz "início" onde não é início
+
+**Contexto.** Segunda passada no navegador (o D-149 foi a primeira), sobre as 11 rotas restantes, a 375 e a 1280 px, nos dois temas.
+Nada quebrou de layout e o console ficou limpo; dois defeitos de texto e de repetição.
+
+**Corrigido.**
+- **Sobrescrito do cabeçalho.** `PageHeader` escreve "grupo · seção" a partir do caminho, e uma rota sem seção própria caía na seção
+  inicial: o glossário saía "DADOS · INÍCIO", o formulário de material (novo, cópia, edição) "INÍCIO" e o guia de estilo "INÍCIO". Agora
+  `labelForPath` (em `lib/design/sections.ts`) devolve o rótulo da seção, ou o de uma tabela curta de rotas **sem matiz próprio**
+  (`ROUTE_LABELS`: Glossário, Catálogo para tudo em `/app/materiais`, Estilo), ou, por fim, o da seção inicial. **O matiz não muda:** essas rotas
+  continuam na cor da raiz; dar-lhes cor própria é decisão de paleta (medida de contraste, região gerada do M3, tokens do artefato), não de rótulo.
+  Tela nova fora do mapa de seções entra em `ROUTE_LABELS` ou ganha seção.
+- **Lista vazia de Cadernos.** "Criar caderno" aparecia duas vezes (cabeçalho e estado vazio). O estado vazio já traz o botão, então o do
+  cabeçalho só existe quando há cadernos (ou enquanto carrega ou falha).
+
+**Visto e não alterado.** (a) No Painel, o rótulo "Não registrado" do eixo é cortado em "Não regist…" na metade da largura a 1280 px; a tabela
+alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos mostram o ponto decimal conforme a localidade do navegador
+(`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
+não tem Cadernos.
