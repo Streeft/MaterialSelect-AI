@@ -167,6 +167,8 @@ própria escala por chave composta. O critério `level_at_least` vive no estági
 diante do nível mais baixo, e nunca é lido como o pior nível. O funil traz
 `without_level`. Ordinal é recusado pelo nome em operador numérico, ranking e
 expressão de índice. Nenhum nível real sem fonte aprovada; o demo é `is_demo`.
+Na ficha (D-157) a escala é só **exibida**, como cadastrada: sem `rank`, sem número,
+e `ausente`/`sem_dado` escritos com a razão — nunca um nível, nem o pior.
 
 **Notas, arquivo de estudo e cópia da tabela (D-122).** Um estágio e o estudo
 têm `notes` — texto puro, até 2.000 caracteres, `NULL` = "sem nota" e nunca

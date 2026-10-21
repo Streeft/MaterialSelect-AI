@@ -19,6 +19,7 @@ import {
 import type { MaterialDetail, PropertyGroup } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { flowText } from "@/lib/i18n-flow";
+import { fichaText } from "@/lib/i18n-ficha";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { useCanEditCatalog } from "@/lib/billing";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
@@ -35,6 +36,7 @@ import { CompositionByCondition } from "@/components/material/CompositionByCondi
 import { DesignationTable } from "@/components/material/DesignationTable";
 import { EquivalenceSection } from "@/components/material/EquivalenceSection";
 import { MaterialCurves } from "@/components/material/MaterialCurves";
+import { MaterialOrdinals } from "@/components/material/MaterialOrdinals";
 import { CompositionEditor, DesignationEditor } from "@/components/material/IdentityEditors";
 import {
   Badge,
@@ -493,6 +495,18 @@ export default function MaterialDetailPage() {
             className="min-w-0"
           >
             <EquivalenceSection materialId={data.id} />
+          </Section>
+
+          {/* D-126 (ORD-a): the level this material holds on each ordinal scale.
+              The scale is shown as catalogued and the absence is written; no
+              level is ever estimated here. */}
+          <Section
+            id="ordinais"
+            title={fichaText.ordinals.title}
+            description={fichaText.ordinals.hint}
+            className="min-w-0"
+          >
+            <MaterialOrdinals materialId={data.id} />
           </Section>
 
           {/* D-106 (TM4): the material's curves, each a figure with its table of
