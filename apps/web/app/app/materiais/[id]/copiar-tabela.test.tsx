@@ -102,7 +102,7 @@ afterEach(() => {
   Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
 });
 
-describe("ficha: Copiar tabela (D-161)", () => {
+describe("ficha: Copiar tabela (D-164)", () => {
   it("copia as propriedades da ficha com a ausência escrita e a fonte dita", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();

@@ -173,7 +173,7 @@ desconhecido recusado em qualquer nível com o caminho**, o mesmo `create_study`
 do editor e uma execução em memória antes de gravar (salvar não resolve slugs).
 Nome repetido ganha "(importado)", nada é sobrescrito. "Copiar tabela" é só o
 texto que a tela já mostra, em TSV, com ausência escrita e apóstrofo em célula
-que uma planilha leria como fórmula (número não). Há o botão também no comparador, no funil e nas propriedades da ficha (D-161).
+que uma planilha leria como fórmula (número não). Há o botão também no comparador, no funil e nas propriedades da ficha (D-164).
 
 ## Processos (D-57, D-59)
 

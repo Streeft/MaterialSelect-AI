@@ -281,7 +281,7 @@ próprio~~. Resíduos:
   trocam um pelo outro.
 - **FL-c — editar só a nota de um estudo salvo.** ▁ Hoje o estudo é criado e
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
-- ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-161, Sessão 118):
+- ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-164, Sessão 122):
   "Copiar tabela" no comparador, no funil e nas propriedades da ficha, em TSV
   com ausência escrita. Resíduos: a tabela de estágios do funil, a tabela de
   colunas calculadas do comparador e as demais tabelas da ficha (composição,

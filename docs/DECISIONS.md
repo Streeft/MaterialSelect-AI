@@ -11156,7 +11156,7 @@ alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
 
-## D-161 — Copiar tabela no comparador, no funil e na ficha: a tabela de origem é a fonte (decidida pelo assistente por delegação do autor, revisável)
+## D-164 — Copiar tabela no comparador, no funil e na ficha: a tabela de origem é a fonte (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O D-122 entregou "Copiar tabela" só para o ranking; FL-d pedia as outras.
 

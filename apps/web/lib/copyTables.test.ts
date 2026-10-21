@@ -62,7 +62,7 @@ const comparison = {
   computed: [],
 } as unknown as Comparison;
 
-describe("comparisonTsv (D-161)", () => {
+describe("comparisonTsv (D-164)", () => {
   it("escreve a ausência, nunca célula vazia nem zero", () => {
     const lines = comparisonTsv(comparison, null).split("\n");
     expect(lines[0]).toContain("Densidade [");
@@ -84,7 +84,7 @@ describe("comparisonTsv (D-161)", () => {
   });
 });
 
-describe("funnelTsv (D-161)", () => {
+describe("funnelTsv (D-164)", () => {
   it("lista o inicial e o que cada estágio tirou; o que não se aplica é escrito", () => {
     const tsv = funnelTsv(10, [
       { label: "Densidade < 3000", operator: "lt", passed: 6, remaining: 6 },
@@ -128,7 +128,7 @@ function prop(overrides: Partial<PropertyValueOut>): PropertyValueOut {
   };
 }
 
-describe("sheetTsv (D-161)", () => {
+describe("sheetTsv (D-164)", () => {
   const groups: PropertyGroup[] = [
     {
       category: "FISICA",

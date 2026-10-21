@@ -114,7 +114,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 118 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-161)
+## Sessão 122 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-164)
 
 **O pedido.** Resíduo FL-d do D-122: só o ranking tinha "Copiar tabela".
 

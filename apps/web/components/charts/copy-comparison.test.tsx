@@ -76,7 +76,7 @@ const comparison = {
   computed: [],
 } as unknown as Comparison;
 
-describe("Comparador: Copiar tabela (D-161)", () => {
+describe("Comparador: Copiar tabela (D-164)", () => {
   it("copia a tabela da tela, com a ausência escrita, e diz que copiou", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();

@@ -1,5 +1,5 @@
 /**
- * Texts of "Copiar tabela" outside the ranking (D-161). Kept apart from
+ * Texts of "Copiar tabela" outside the ranking (D-164). Kept apart from
  * `i18n.ts` so the parallel lanes that edit that file do not collide with this one.
  */
 export const copyTablesText = {

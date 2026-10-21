@@ -7,7 +7,7 @@ import { formatNumber, prettyUnit } from "@/lib/format";
 const ABSENT = ptBR.quality.AUSENTE;
 
 /**
- * The comparison table as TSV (D-161): the cells the screen shows, formatted by
+ * The comparison table as TSV (D-164): the cells the screen shows, formatted by
  * the same functions, one column per property (unit in the header). A material
  * with no value gets the written word "Ausente", never a blank and never a 0.
  * With a reference, each property is followed by its difference column, and a
@@ -50,7 +50,7 @@ export function comparisonTsv(comparison: Comparison, referenceId: number | null
 }
 
 /**
- * The funnel as TSV (D-161): the initial count and, per stage, what remains and
+ * The funnel as TSV (D-164): the initial count and, per stage, what remains and
  * what it removed, from the counts the backend sent. A count that does not apply
  * to a stage is written "Não se aplica": a blank would read as zero.
  */
@@ -102,7 +102,7 @@ function sheetValue(p: PropertyValueOut): { text: string; unit: string } {
 }
 
 /**
- * The property table of a material sheet as TSV (D-161), for the groups on
+ * The property table of a material sheet as TSV (D-164), for the groups on
  * screen. Absence (value, unit) is written "Ausente"; a value with no recorded
  * source says so instead of leaving the cell empty.
  */

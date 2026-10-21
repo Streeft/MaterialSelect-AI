@@ -458,7 +458,7 @@ describe("ResultsView", () => {
   });
 });
 
-describe("ResultsView: Copiar tabela do funil (D-161)", () => {
+describe("ResultsView: Copiar tabela do funil (D-164)", () => {
   it("copia o funil com a contagem de cada estágio e o que não se aplica escrito", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
