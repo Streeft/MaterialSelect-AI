@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [120](#sessão-120--211026--csvxlsx-do-diff-entre-versões-com-paginação-d-162) | 21/10/2026 | CSV/XLSX do diff entre versões com `?pagina=`/`?por_pagina=` (uma página dos registros e só as alterações deles; título e resumo dizem a página; totais do diff inteiro) (D-162) | 5041 → 5054 | sem mudança |
 | [118](#sessão-118--211026--copiar-tabela-no-comparador-no-funil-e-na-ficha-d-161) | 21/10/2026 | "Copiar tabela" (TSV) no comparador, no funil e nas propriedades da ficha, com ausência escrita | sem mudança | 1364 → 1373 |
 | [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
 | [118](#sessão-118--211026--nota-do-estudo-nos-relatórios-e-no-laudo-d-161) | 21/10/2026 | Seção "Notas do autor" (estudo e estágios) nos relatórios e no laudo, nos cinco formatos, cada um com o seu escape; ausência escrita; PPTX quebra tabela pela altura impressa (D-161) | 5041 → 5061 | sem mudança |
@@ -175,6 +176,11 @@ Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migraç
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
 
+## Sessão 120 — 21/10/26 — CSV/XLSX do diff entre versões com paginação (D-162)
+
+**O que mudou.** Resíduo do TM7-d: a exportação do diff (`/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}`) aceita `pagina` e `por_pagina`. Sem nenhum dos dois, o arquivo é o diff inteiro, como antes. Com qualquer um, traz uma página dos registros (já filtrados) e só as alterações de campo desses registros; o título ganha "(página N de M)" e o resumo escreve a faixa de registros. `paginate` ganhou um teto próprio para arquivo (5000; padrão 1000) sem mexer no da tela (200). A recusa de comparar versões de catálogos diferentes continua valendo antes da página.
+
+**Testes.** +13 de backend em `test_catalog_releases_api.py`: as páginas particionam o arquivo inteiro (nada perdido nem repetido), totais do resumo do diff inteiro, só um dos parâmetros, filtros, XLSX com fórmula neutralizada e número mantido, página/tamanho fora da faixa (400 escrito), página única vazia, recusa de catálogos diferentes e teto da tela intacto. Sem migração nem seed. Pós-merge: **Deploy da API**.
 ## Sessão 119 — 21/10/26 — Exportação de curva na unidade do parâmetro (TM4-e)
 
 **O que mudou.** Resíduo do TM4-e: `GET /api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}` aceita `?unidade_parametro=` e passa a unidade ao mesmo `draw_curve` da tela, então a conversão é a de `units.py` e as recusas são as mesmas (400 para unidade que a grandeza não admite e para curva sem família). O cabeçalho `Parâmetro (unidade)` e a linha "Família de curvas" nomeiam a unidade lida; as colunas "original" seguem como a fonte escreveu. Sem decisão nova (D-110 já cobria a tela).

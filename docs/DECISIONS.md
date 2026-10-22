@@ -11162,6 +11162,15 @@ alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
 
+## D-162 — Diff entre versões em CSV/XLSX: página opcional, teto de arquivo próprio (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O arquivo do diff (D-108) sempre saía inteiro; com 20.000 registros a planilha de alterações cresce sem limite (resíduo do TM7-d, D-123).
+
+**Decisão.** `pagina` e `por_pagina` opcionais na rota de exportação. Sem eles nada muda (diff inteiro, compatível). Com qualquer um, o arquivo traz **uma página dos registros já filtrados** e **só as alterações de campo desses registros** (a página é de registros, nunca de linhas de alteração, para que um registro não seja cortado ao meio). O título ganha "(página N de M)" — o nome do arquivo também muda — e o resumo escreve "Página N de M: registros a a b de T"; os totais por situação seguem os das duas versões inteiras, porque a página não muda o que as versões são. Reutiliza `paginate` (mesma recusa escrita para página fora do resultado), com **teto de 5000 por página e padrão de 1000** para arquivo; o da tela continua 200. A recusa de comparar versões de catálogos diferentes (fictício com real) acontece antes de paginar.
+
+**Descartado.** Reutilizar o teto de 200 da tela (100 arquivos para 20.000 registros); paginar por linhas de alteração (cortaria um registro); ZIP com todas as páginas (outro formato, outro desenho). Fica como resíduo o par que não é "anterior → nova", ainda calculado a cada requisição.
+
+**Consequências.** Parâmetros opcionais novos; sem migração nem seed. Depois do merge, **Deploy da API**.
 ## D-164 — Copiar tabela no comparador, no funil e na ficha: a tabela de origem é a fonte (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O D-122 entregou "Copiar tabela" só para o ranking; FL-d pedia as outras.
