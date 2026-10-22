@@ -45,7 +45,8 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   `E^(1/2)/ρ` → 2). Um eixo pode ser uma propriedade ou um índice.
 - **Comparar** — tabela com proveniência de cada valor, gráficos, busca de
   **materiais semelhantes** a uma referência, com peso e critério por
-  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual), e
+  propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual),
+  geral ou própria de cada propriedade, e
   **índices calculados** (os do catálogo ou uma expressão digitada, validada e
   calculada no servidor, com a coluna marcada como "Calculada").
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes

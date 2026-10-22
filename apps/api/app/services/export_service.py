@@ -105,6 +105,7 @@ class ExportService:
         sheets = [
             self._problem_sheet(study, result, root_group_description),
             self._stages_sheet(result),
+            self._author_notes_sheet(study, result),
             self._funnel_sheet(result),
             self._candidates_sheet(result),
         ]
@@ -437,8 +438,7 @@ class ExportService:
         return Sheet(name="Problema", header=["Item", "Valor"], rows=rows)
 
     @staticmethod
-    def _stages_sheet(result: RunResultOut) -> Sheet:
-        """The pipeline, one row per stage (P0-1)."""
+    def _stage_kind_labels(universe: str) -> dict[str, str]:
         kinds = {
             "limit": "Limites",
             "tree": "Classes",
@@ -446,8 +446,42 @@ class ExportService:
             "material": "Materiais",
             "chart": "Gráfico",
         }
-        if result.universe == "process":
+        if universe == "process":
             kinds = {**kinds, "tree": "Famílias"}
+        return kinds
+
+    @staticmethod
+    def _author_notes_sheet(study, result: RunResultOut) -> Sheet:
+        """The author's own words on the study and on each stage (D-122, FL-b).
+
+        Plain text, never computed and never rendered as markup. Each renderer
+        escapes it its own way (``html.escape`` in the HTML, the leading
+        apostrophe in a spreadsheet cell, the XML writer in DOCX/PPTX); this
+        sheet only decides *which* notes appear. A study with no note says so
+        in words: an absent note is a stated absence, not a missing section.
+        """
+        kinds = ExportService._stage_kind_labels(result.universe)
+        rows: list[list[object]] = []
+        if getattr(study, "notes", None):
+            rows.append(["Estudo", study.notes])
+        for stage in sorted(getattr(study, "stages", []) or [], key=lambda st: st.position):
+            if not stage.notes:
+                continue
+            where = f"Estágio {stage.position + 1} — {kinds.get(stage.kind, stage.kind)}"
+            if stage.label:
+                where = f"{where} — {stage.label}"
+            rows.append([where, stage.notes])
+        notes = (
+            ["Só aparecem aqui o estudo e os estágios que têm nota."]
+            if rows
+            else ["Nenhuma nota foi escrita neste estudo, nem em seus estágios."]
+        )
+        return Sheet(name="Notas do autor", header=["Onde", "Nota"], rows=rows, notes=notes)
+
+    @staticmethod
+    def _stages_sheet(result: RunResultOut) -> Sheet:
+        """The pipeline, one row per stage (P0-1)."""
+        kinds = ExportService._stage_kind_labels(result.universe)
         rows = [
             [
                 stage.position + 1,
