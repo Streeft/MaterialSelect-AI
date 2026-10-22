@@ -11067,6 +11067,12 @@ mais a data em cada valor.
 - **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
   e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
 - A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+- **Verificado de ponta a ponta em 21/10/26** (build de produção, `next start`, Chromium com o worker ativo e a rede derrubada por
+  `setOffline`): o worker assume, o cache `msai-offline-v2` guarda só a página offline, a navegação para a ficha sem rede cai em
+  `offline.html`, que lista a ficha lida e a abre com a faixa e "lido em" em cada valor, e com a rede de volta a ficha de verdade volta.
+  Uma rota já visitada (`/app/catalogo`) pode, sem rede, abrir o app em vez da página offline (a navegação foi atendida do cache HTTP do
+  navegador); a tela refaz a busca, que falha, e mostra "Algo não funcionou", **sem nenhum dado de material**. Não se mudou o worker para
+  forçar a página offline aí: `cache: "no-store"` nas navegações custaria o cache HTTP de toda visita com rede.
 
 **Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
 `describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
@@ -11165,3 +11171,45 @@ não tem Cadernos.
 **Descartado.** localStorage para "lembrar o último limiar"; salvar a comparação no servidor (exige modelo e decisão do autor, fica como resíduo); propriedades e normalização no link (resíduo).
 
 **Consequências.** Só frontend; sem migração. Depois do merge, nada a disparar além do deploy automático da Vercel.
+## D-158 — Tolerância por propriedade no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-155 entregou um só `x` para a base inteira e deixou como resíduo a tolerância por propriedade, que o manual permite:
+±2% na densidade e ±20% no módulo são perguntas legítimas e diferentes de "±x% em tudo".
+
+**Decisão.**
+1. **`tolerances` no `SimilarRequest`: mapa slug → percentual**, opcional, com os mesmos limites do D-155 (`0 < x ≤ 100`, finito).
+   A tolerância global continua valendo como padrão; a da propriedade **passa por cima dela só naquela propriedade**. Sem nenhuma das
+   duas a resposta é a de antes, campo por campo, e uma requisição sem `tolerances` é a requisição de antes.
+2. **Validação no schema, em pt-BR simples** (`PydanticCustomError`, sem o "Value error," do Pydantic): chave fora das propriedades da
+   busca é 422 com "Tolerância para propriedade fora da busca: …"; valor que não é número, ou fora de (0, 100], é 422 com "A tolerância de
+   … precisa ser um número maior que 0 e no máximo 100%". O domínio repete a checagem (`resolve_tolerances`) para quem o chama direto.
+3. **Propriedade sem nenhuma tolerância não ganha faixa e não entra em `tolerance_bands`.** Isso é diferente de "não se aplica": aquilo é
+   escala sem zero real (`applicable: false`, como no D-155); aqui ninguém pediu, e a tela escreve "Sem tolerância pedida (a diferença conta
+   inteira)". A diferença nessa propriedade conta inteira, como sempre.
+4. **Cada banda diz com que percentual foi desenhada** (`tolerance_pct` em `ToleranceBandOut`), porque com mais de um `x` o título "±x%"
+   da resposta deixa de bastar. `SimilarOut.tolerance_pct` continua sendo só a global (`null` quando só há tolerâncias por propriedade).
+5. **Tudo o mais é o D-155 sem mudança:** faixa sobre o canônico com pontas incluídas, parcela 0 dentro, diferença inteira fora, só em
+   escala de razão, ausência excluída antes de qualquer faixa (nunca vira 0 nem "dentro"), unidade de leitura só imprime a faixa.
+6. **Na tela:** um campo "Tolerância de X (± %)" em cada linha dos ajustes de proximidade, com vírgula e erro escrito no próprio campo;
+   a busca fica desligada enquanto houver valor inválido. Na URL como `sim_tolerancia_prop=slug:x,…` (como `sim_peso`); só as propriedades
+   da base vão na requisição. A tabela de origem (D-31) leva o percentual no cabeçalho de cada coluna.
+
+**Descartado.** Tolerância 0 por propriedade para "desligar" a global ali (zero não é faixa; tirar a propriedade da base, ou apagar a
+global, é o jeito de dizer isso, como o peso zero recusado do D-120); tolerância absoluta na unidade de leitura (dependeria da tela e
+pediria unidade explícita); mensagem com o nome de exibição da propriedade no 422 (o schema não conhece as definições; o painel valida antes
+e escreve o nome).
+
+**Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o **Deploy da API**.
+
+## D-166 — Rótulo do eixo de colunas: quebra em duas linhas, não reticências
+
+**Contexto.** Achado na conferência ao vivo (D-156): no Painel, com o cartão na metade da largura a 1280 px, o rótulo "Não registrado" saía
+"Não regist…", e é justamente a palavra cortada que diz o que a coluna é.
+
+**Decisão.** Em figura de colunas (`HorizontalBars`, orientação vertical), o rótulo do eixo quebra no último espaço que cabe e ocupa até duas
+linhas (`wrapLabel`); só uma linha que ainda não cabe, ou uma palavra só longa demais, é encurtada com reticências, e o texto inteiro continua na
+dica (`<title>`) e na tabela alternativa (D-31). A estimativa de largura por caractere é a de antes mais um (a de 6,8 px por caractere era
+conservadora para o corpo de 11 px). A faixa do eixo ganha 6 px (`X_LABELS` 30 → 36). Barras horizontais não mudam: têm a coluna de rótulos à esquerda.
+
+**Verificado a 1280 e 375 px.** "Não / registrado" em duas linhas; sem sobreposição entre colunas vizinhas.
+

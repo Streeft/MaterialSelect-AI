@@ -74,6 +74,7 @@ class SimilarityService:
             weights=request.weights,
             criteria=dict(request.criteria),
             tolerance_pct=request.tolerance_pct,
+            tolerances=request.tolerances,
             # A percentage of a value only means something on a scale with a
             # true zero — the same test the comparison table's "+40%" uses.
             ratio_scale={slug: is_ratio_scale(definitions[slug].canonical_unit) for slug in basis},
@@ -84,11 +85,14 @@ class SimilarityService:
             return definitions[slug].name
 
         reference = by_id[material_id]
-        tolerance_asked = result.tolerance_pct is not None
+        # Asked = a global tolerance or at least one per-property one (D-158).
+        # Without either, ``tolerance_by_property`` is empty and the answer is
+        # the one before D-155, field for field.
+        tolerance_asked = bool(result.tolerance_by_property)
         bands: list[ToleranceBandOut] = []
         if tolerance_asked:
             readings = readings_for([definitions[slug] for slug in basis], self.unit_choices)
-            for slug in basis:
+            for slug, pct in result.tolerance_by_property.items():
                 reading = readings[slug]
                 band = result.tolerance_bands.get(slug)
                 bands.append(
@@ -99,6 +103,7 @@ class SimilarityService:
                         high=reading.value(band.high) if band else None,
                         unit=reading.label,
                         applicable=band is not None,
+                        tolerance_pct=pct,
                     )
                 )
         return SimilarOut(

@@ -1052,8 +1052,12 @@ Registrados para não voltarem por engano:
   pontas incluídas, parcela 0 dentro dela, só em escala de razão; marcas
   "Dentro/Fora da faixa", contagem por material e tabela no painel, na URL
   `sim_tolerancia` — [D-155](DECISIONS.md), Sessão 110) e similaridade no
-  universo de processos. Novo resíduo: tolerância por propriedade (hoje um
-  só `x` vale para a base inteira).
+  universo de processos. Resíduo: ~~tolerância por propriedade~~ (feita:
+  `tolerances` slug → %, sobrepõe a global só naquela propriedade; sem
+  nenhuma das duas, sem faixa; 422 em pt-BR; campo por linha no painel, na
+  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115). Novo
+  resíduo: desligar a tolerância global numa propriedade só (hoje, para isso,
+  apaga-se a global e dá-se a cada outra propriedade a sua).
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,

@@ -951,6 +951,15 @@ export const ptBR = {
     toleranceNoBand: "Sem faixa",
     toleranceSummary: (count: number, total: number) =>
       `Dentro da faixa em ${count} de ${total} propriedades`,
+    // Tolerância por propriedade (D-158).
+    propertyToleranceLabel: (name: string) => `Tolerância de ${name} (± %)`,
+    propertyToleranceHint:
+      "Cada propriedade pode ter a sua tolerância, no campo da linha dela: ela vale só para aquela propriedade e passa por cima da geral. Em branco: vale a geral, ou nenhuma faixa se a geral também estiver em branco.",
+    propertyToleranceInvalid: (name: string) =>
+      `A tolerância de ${name} precisa ser um número maior que 0 e no máximo 100.`,
+    toleranceTitlePerProperty: "Faixas por propriedade em torno da referência",
+    toleranceBandLabel: (label: string, pct: string) => `${label} (±${pct}%)`,
+    toleranceNoneAsked: "Sem tolerância pedida (a diferença conta inteira):",
   },
 
   solver: {
