@@ -66,6 +66,7 @@ extração em massa; o Total Materia ficou como inspiração de funcionalidade
 autorização dele está pendente de arquivo em `catalogo/autorizacoes/`. Regra
 em [`20-catalogo-fontes-abertas.md`](20-catalogo-fontes-abertas.md).
 
+**Testes: 5041 backend (5035 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 1374 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
 **Testes: 5054 backend (5048 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 1360 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
 **Testes: 5041 backend (5035 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 1373 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
 **Testes: 5049 backend (5043 passam e 6 pulam sem `POSTGRES_TEST_URL`) / 1360 frontend** — contagem atual; atualize aqui, não no `CLAUDE.md`.
@@ -655,6 +656,7 @@ na CI; sem `POSTGRES_TEST_URL`, 5055 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 1360 de frontend, todos
 **Saúde do código:** 5041 testes de backend (Python 3.11 e 3.12, nenhum skip
 na CI; sem `POSTGRES_TEST_URL`, 5035 passam e 6 pulam — os 4 das cotas e os 2
+da ingestão do Cérebro contra PostgreSQL) e 1374 de frontend, todos
 da ingestão do Cérebro contra PostgreSQL) e 1373 de frontend, todos
 da ingestão do Cérebro contra PostgreSQL) e 1383 de frontend, todos
 **Saúde do código:** 5062 testes de backend (Python 3.11 e 3.12, nenhum skip
@@ -1129,6 +1131,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
+| Regressão silenciosa | CI com 5041 testes de backend e 1374 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Regressão silenciosa | CI com 5054 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Regressão silenciosa | CI com 5041 testes de backend e 1373 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Regressão silenciosa | CI com 5049 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |

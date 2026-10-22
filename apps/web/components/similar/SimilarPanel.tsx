@@ -8,6 +8,9 @@ import type { MaterialDetail, NearnessCriterion, Similar } from "@/lib/types";
 import { findSimilar, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
+import { optionsAtLevel } from "@/lib/depth";
+import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
+import { useDepthLevel } from "@/components/DepthLevelPicker";
 import {
   WEIGHT_OPTIONS,
   parsePropertyTolerances,
@@ -233,6 +236,10 @@ export function SimilarPanel({
     );
   }
 
+  // D-165: the level trims the bases on offer, never one already chosen.
+  const depthLevel = useDepthLevel();
+  const offeredProperties = optionsAtLevel(properties.data ?? [], depthLevel, basis);
+
   const result = search.data;
 
   return (
@@ -243,8 +250,21 @@ export function SimilarPanel({
             <legend className="text-sm font-medium text-ink">
               {t.basisLabel}
             </legend>
+            {/* The picker itself is on the sheet above; here the level only says
+                what it did to this list, so "not offered" is never read as "absent". */}
+            {offeredProperties.length < (properties.data ?? []).length && (
+              <p className="text-support text-ink-muted">
+                {depthSelectorsText.count(
+                  depthLevel,
+                  offeredProperties.length,
+                  (properties.data ?? []).length,
+                  depthSelectorsText.whereSimilar,
+                )}{" "}
+                {ptBR.depth.notMissing}
+              </p>
+            )}
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {(properties.data ?? []).map((property) => (
+              {offeredProperties.map((property) => (
                 <Checkbox
                   key={property.slug}
                   label={property.name}

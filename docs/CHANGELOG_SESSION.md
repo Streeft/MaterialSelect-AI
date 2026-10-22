@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [119](#sessão-119--211026--nível-de-profundidade-nos-seletores-de-estágios-comparador-e-find-similar-d-162) | 21/10/2026 | `optionsAtLevel` nos critérios dos estágios, nas colunas do comparador e na base do Find Similar, sem tirar o já escolhido | sem mudança | 1364 → 1374 |
 | [120](#sessão-120--211026--csvxlsx-do-diff-entre-versões-com-paginação-d-162) | 21/10/2026 | CSV/XLSX do diff entre versões com `?pagina=`/`?por_pagina=` (uma página dos registros e só as alterações deles; título e resumo dizem a página; totais do diff inteiro) (D-162) | 5041 → 5054 | sem mudança |
 | [118](#sessão-118--211026--copiar-tabela-no-comparador-no-funil-e-na-ficha-d-161) | 21/10/2026 | "Copiar tabela" (TSV) no comparador, no funil e nas propriedades da ficha, com ausência escrita | sem mudança | 1364 → 1373 |
 | [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
@@ -119,6 +120,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 123 — 21/10/26 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (D-165)
+
+**O pedido.** Resíduo PD-a do D-127: só a ficha e os eixos do mapa respeitavam o nível.
+
+**O que mudou.** `StageList` recebe `depthLevel` e filtra as propriedades por `optionsAtLevel`, mantendo as que um estágio já nomeia (`usedPropertySlugs`, inclusive grupos aninhados e eixos de gráfico). O comparador filtra os chips de propriedade mantendo os já escolhidos; o Find Similar, a base de busca, mantendo a base atual. Estágios e comparador ganham o `DepthLevelPicker`; o Find Similar usa o da ficha e escreve a contagem. Textos em `lib/i18n-depth-selectors.ts`. O nível segue só na URL e só na apresentação.
+
+**Atenção ao mesclar.** Toca `SimilarPanel.tsx` (lista da base), que o #182 também edita.
 ## Sessão 122 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-164)
 
 **O pedido.** Resíduo FL-d do D-122: só o ranking tinha "Copiar tabela".

@@ -96,7 +96,11 @@ import {
   countStageConstraints,
   emptyLimitStage,
   toStagePayload,
+  usedPropertySlugs,
 } from "@/components/selection/StageList";
+import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
+import { optionsAtLevel } from "@/lib/depth";
+import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
 import { AhpMatrixInput, type AhpCriterionRef } from "@/components/selection/AhpMatrixInput";
 import {
   IndexCard,
@@ -467,6 +471,8 @@ function SelectionWizard() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
+  // D-165: the level trims what the stage criteria offer, never what a stage names.
+  const depthLevel = useDepthLevel();
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
   // P0-2: the process universe a process stage picks from. Shared reference
   // data like the taxonomy, so it is cached under its own key and read by every
@@ -1426,7 +1432,19 @@ function SelectionWizard() {
                 {t.ordinalLoadError}
               </Alert>
             )}
+            {!isProcessStudy && (properties.data ?? []).length > 0 && (
+              <DepthLevelPicker
+                className="mb-4"
+                summary={depthSelectorsText.count(
+                  depthLevel,
+                  optionsAtLevel(properties.data ?? [], depthLevel, usedPropertySlugs(stages)).length,
+                  (properties.data ?? []).length,
+                  depthSelectorsText.whereStages,
+                )}
+              />
+            )}
             <StageList
+              depthLevel={depthLevel}
               stages={stages}
               properties={properties.data ?? []}
               processAttributes={processAttributes.data ?? []}

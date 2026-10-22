@@ -256,9 +256,11 @@ origem D-31)~~. Resíduos:
 seguro, seletor na ficha e nos eixos do mapa, nível na URL, canário "nível não
 altera ranking"~~. Resíduos:
 
-- **PD-a — nível nos demais seletores.** ▁ Estágios da seleção, comparador e
-  Find Similar ainda oferecem todas as grandezas; aplicar `optionsAtLevel` sem
-  tirar o que já está escolhido.
+- ~~**PD-a — nível nos demais seletores.**~~ ✔ Entregue (D-165, Sessão 123):
+  `optionsAtLevel` nos critérios dos estágios, nas colunas do comparador e na
+  base do Find Similar, sem tirar o que já está escolhido; cada tela escreve
+  quantas grandezas o nível oferece. Resíduo: o seletor de nível só existe na
+  ficha, no mapa, nos estágios e no comparador; o Find Similar usa o da ficha.
 - **PD-b — ferramentas pelo nível.** ▃ `TOOL_MIN_LEVEL` está declarado e não é
   usado na barra lateral: o nível da URL não acompanha a navegação. Exige
   decidir onde o nível mora entre telas (cookie lido no servidor, como o D-37

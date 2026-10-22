@@ -41,6 +41,7 @@ import {
 import { flowText } from "@/lib/i18n-flow";
 import { cn } from "@/lib/cn";
 import { prettyUnit } from "@/lib/format";
+import { DEFAULT_DEPTH_LEVEL, optionsAtLevel, type DepthLevel } from "@/lib/depth";
 import {
   ConstraintEditor,
   type ConstraintGroupState,
@@ -454,6 +455,30 @@ interface Props {
   compactSingleStage?: boolean;
   /** Passed to each limit stage's editor (root E/OU, "Adicionar grupo"). */
   constraintAdvanced?: boolean;
+  /**
+   * D-165: the depth level trims what a selector **offers**, never what a stage
+   * already names. Default 3, everything: the behaviour before the level existed.
+   */
+  depthLevel?: DepthLevel;
+}
+
+function groupSlugs(group: ConstraintGroupState, into: Set<string>) {
+  for (const row of group.constraints) if (row.property_slug) into.add(row.property_slug);
+  for (const child of group.groups) groupSlugs(child, into);
+}
+
+/** Every property a stage already names: those stay offered at any level (D-165). */
+export function usedPropertySlugs(stages: readonly StageState[]): string[] {
+  const used = new Set<string>();
+  for (const stage of stages) {
+    if (stage.kind === "limit") groupSlugs(stage.group, used);
+    if (stage.kind === "chart") {
+      for (const axis of [stage.x, stage.y]) {
+        if (axis.mode === "property" && axis.propertySlug) used.add(axis.propertySlug);
+      }
+    }
+  }
+  return [...used];
 }
 
 /** Whether a stage carries anything its card chrome is needed to show. */
@@ -482,6 +507,7 @@ export function StageList({
   showAddButtons = true,
   compactSingleStage = false,
   constraintAdvanced = true,
+  depthLevel = DEFAULT_DEPTH_LEVEL,
 }: Props) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -490,7 +516,7 @@ export function StageList({
   // What a limit stage of a material study selects on: the numeric properties
   // and, after them, the ordinal ones (D-126) — no unit, a scale instead.
   const materialAttributes: SelectableAttribute[] = [
-    ...properties,
+    ...optionsAtLevel(properties, depthLevel, usedPropertySlugs(stages)),
     ...ordinalProperties.map((o) => ({
       slug: o.slug,
       name: o.name,

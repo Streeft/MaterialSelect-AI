@@ -129,6 +129,7 @@ const searchParams = new URLSearchParams();
 vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
   usePathname: () => "/app/selecao",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 function result(overrides: Partial<RunResult> = {}): RunResult {

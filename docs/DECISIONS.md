@@ -11162,6 +11162,15 @@ alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
 
+## D-165 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A D-127 aplicou o nível à ficha e aos eixos do mapa; PD-a deixou os demais seletores oferecendo tudo.
+
+**Decisão.** (1) O mesmo `optionsAtLevel`, com a lista do que já está escolhido como `keep`: um critério, eixo, coluna ou base já escolhidos continuam na lista, no nível que for. (2) Nos estágios, "o que já está escolhido" é tudo que algum estágio nomeia, em qualquer grupo aninhado e nos eixos de gráfico em modo propriedade. (3) O nível é só apresentação: não entra em requisição, ranking nem exportação, e cada tela escreve "o Nível N oferece X de Y grandezas …" e que as demais não estão ausentes. (4) O seletor de nível aparece nos estágios e no comparador; o Find Similar, que mora na ficha, usa o da ficha. (5) Atributos de processo e propriedades ordinais não declaram nível e ficam sempre visíveis.
+
+**Descartado.** Esconder o já escolhido; um segundo seletor de nível na ficha; filtrar a requisição pelo nível.
+
+**Consequências.** Só frontend; sem migração. Conflito provável de merge em `SimilarPanel.tsx` com a tolerância por propriedade (D-158).
 ## D-162 — Diff entre versões em CSV/XLSX: página opcional, teto de arquivo próprio (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O arquivo do diff (D-108) sempre saía inteiro; com 20.000 registros a planilha de alterações cresce sem limite (resíduo do TM7-d, D-123).
