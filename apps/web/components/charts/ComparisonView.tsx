@@ -28,6 +28,9 @@ import {
 import { PropertyHint } from "@/components/glossary/PropertyHint";
 import { ChartFrame } from "./ChartFrame";
 import { FigureData, type FigureColumn } from "./FigureData";
+import { CopyTableButton } from "@/components/selection/CopyTableButton";
+import { comparisonTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
 import {
   GroupedBarsFigure,
   HeatmapFigure,
@@ -262,6 +265,12 @@ export function ComparisonView({
         {hint !== null && refusal === null && (
           <p className="text-support text-ink-subtle">{hint}</p>
         )}
+        <div className="flex justify-end">
+          <CopyTableButton
+            ariaLabel={copyTablesText.comparison.aria}
+            getText={() => comparisonTsv(comparison, referenceId)}
+          />
+        </div>
         <ThresholdSummary comparison={comparison} />
         <TableScroll
           label={t.tableRegion(materials.length, properties.length)}

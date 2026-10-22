@@ -11162,6 +11162,15 @@ alternativa e a dica têm o texto inteiro. (b) Em Baterias, os campos numéricos
 (`0.85`), e não a vírgula do pt-BR: é o comportamento nativo do `<input type="number">`. (c) A lista de seções do `NavRail` do artefato ainda
 não tem Cadernos.
 
+## D-164 — Copiar tabela no comparador, no funil e na ficha: a tabela de origem é a fonte (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-122 entregou "Copiar tabela" só para o ranking; FL-d pedia as outras.
+
+**Decisão.** O TSV sai dos mesmos dados e das mesmas funções de formatação da tela (D-30, D-31), sem segunda conta. Ausência é escrita: "Ausente" para valor e unidade, "Não se aplica" para contagem do funil que o estágio não produz, "Sem fonte registrada" para fonte; com referência, a diferença traz o motivo (D-24). O escape de fórmula é o do `toTsv` (apóstrofo, número negativo preservado). O botão é o `CopyTableButton` com `ariaLabel` que contém o texto visível; o resultado é dito numa região viva.
+
+**Descartado.** Copiar o valor normalizado (a tela mostra o valor, a barra é decoração); linha em branco entre tabelas; "—" para o que não se aplica.
+
+**Consequências.** Só frontend; sem migração.
 ## D-161 — Nota do estudo nos relatórios e no laudo: uma seção própria, `Onde | Nota`, e o PPTX que quebra pela altura impressa (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** A nota do estudo e a de cada estágio (D-122) viajavam com o estudo e com o arquivo JSON, mas não saíam em nenhum documento (FL-b). Um relatório que reexecuta o estudo e omite o "por que 200 MPa?" perde a justificativa que um leitor sem a tela precisa.

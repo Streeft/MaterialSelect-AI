@@ -17,7 +17,14 @@ const t = flowText.copy;
  * live region: a silent copy leaves no way to know whether it worked, and a
  * refused one (permissions, insecure context) says so instead of pretending.
  */
-export function CopyTableButton({ getText }: { getText: () => string }) {
+export function CopyTableButton({
+  getText,
+  ariaLabel,
+}: {
+  getText: () => string;
+  /** Names which table, when a screen has more than one; it keeps the visible words. */
+  ariaLabel?: string;
+}) {
   const [state, setState] = useState<"idle" | "done" | "failed">("idle");
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -25,6 +32,7 @@ export function CopyTableButton({ getText }: { getText: () => string }) {
         size="sm"
         variant="secondary"
         icon={<IconCopy className="h-4 w-4" />}
+        aria-label={ariaLabel}
         onClick={async () => setState((await copyText(getText())) ? "done" : "failed")}
       >
         {t.button}

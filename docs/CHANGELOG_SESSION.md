@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [118](#sessão-118--211026--copiar-tabela-no-comparador-no-funil-e-na-ficha-d-161) | 21/10/2026 | "Copiar tabela" (TSV) no comparador, no funil e nas propriedades da ficha, com ausência escrita | sem mudança | 1364 → 1373 |
 | [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
 | [118](#sessão-118--211026--nota-do-estudo-nos-relatórios-e-no-laudo-d-161) | 21/10/2026 | Seção "Notas do autor" (estudo e estágios) nos relatórios e no laudo, nos cinco formatos, cada um com o seu escape; ausência escrita; PPTX quebra tabela pela altura impressa (D-161) | 5041 → 5061 | sem mudança |
 | [117](#sessão-117--211026--comparador-o-link-leva-limiar-e-índices-d-160) | 21/10/2026 | Comparador: o endereço leva materiais, referência, limiar e índices (catálogo e digitados, estes conferidos pelo servidor ao abrir) e "Copiar link" | sem mudança | 1360 → 1383 |
@@ -117,6 +118,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 122 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-164)
+
+**O pedido.** Resíduo FL-d do D-122: só o ranking tinha "Copiar tabela".
+
+**O que mudou.** `lib/copyTables.ts` monta o TSV de cada tabela com as mesmas funções de formatação da tela (`comparisonTsv`, `funnelTsv`, `sheetTsv`) e reaproveita `toTsv`/`copyText` e o `CopyTableButton` (que ganhou `ariaLabel`, para nomear qual tabela). Ausência vira a palavra "Ausente"; contagem que não se aplica, "Não se aplica"; fonte não registrada, "Sem fonte registrada". Nunca célula vazia nem zero. Textos em `lib/i18n-copy-tables.ts`.
+
+**Resíduos.** Estágios do funil, colunas calculadas e as outras tabelas da ficha.
 ## Sessão 121 — 21/10/26 — Comparador: o link leva limiar e índices (D-163)
 
 **O pedido.** Resíduo do D-153: o limiar só vivia na URL se fosse digitado nela, e os índices digitados só viviam na página.

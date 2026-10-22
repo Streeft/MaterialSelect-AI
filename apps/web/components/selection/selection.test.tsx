@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { IndexCard, IndexPicker, describeCustomIndex, describeIndex } from "./IndexCard";
 import { ResultsView, type ResultsTab } from "./ResultsView";
 import { ptBR } from "@/lib/i18n";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import type { PerformanceIndex, RunResult } from "@/lib/types";
 
@@ -454,5 +455,25 @@ describe("ResultsView", () => {
     const provenance = block(container, "proveniencia");
     expect(within(provenance).getByText(s.methodWeightedSum)).toBeInTheDocument();
     expect(within(provenance).getByText(s.normVector)).toBeInTheDocument();
+  });
+});
+
+describe("ResultsView: Copiar tabela do funil (D-164)", () => {
+  it("copia o funil com a contagem de cada estágio e o que não se aplica escrito", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { container } = render(<ResultsView result={makeResult()} initialTab="eliminados" />);
+
+    await user.click(screen.getByRole("button", { name: copyTablesText.funnel.aria }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const rows = (writeText.mock.calls[0]?.[0] as string).split("\n").map((l) => l.split("\t"));
+    expect(rows[0]?.[0]).toBe(copyTablesText.funnel.stage);
+    expect(rows[1]?.slice(0, 2)).toEqual([copyTablesText.funnel.initial, "10"]);
+    expect(rows[2]?.[2]).toBe("4");
+    for (const row of rows) for (const field of row) expect(field).not.toBe("");
+    expect(describeViolations(await findA11yViolations(container))).toBe("");
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
   });
 });
