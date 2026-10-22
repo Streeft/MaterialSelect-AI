@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [117](#sessão-117--211026--comparador-o-link-leva-limiar-e-índices-d-160) | 21/10/2026 | Comparador: o endereço leva materiais, referência, limiar e índices (catálogo e digitados, estes conferidos pelo servidor ao abrir) e "Copiar link" | sem mudança | 1360 → 1383 |
 | [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1364 → 1371 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
@@ -114,6 +115,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 121 — 21/10/26 — Comparador: o link leva limiar e índices (D-163)
+
+**O pedido.** Resíduo do D-153: o limiar só vivia na URL se fosse digitado nela, e os índices digitados só viviam na página.
+
+**O que mudou.** `lib/compare-link.ts` lê e escreve `materiais`, `referencia`, `limiar`, `calculadas` (slugs) e `indice` (repetido; uma expressão pode ter vírgula). A página escreve o endereço a cada mudança e traz um "Copiar link". Expressão que chega no link passa pelo mesmo validador de `POST /api/selection/index` antes de entrar no pedido (a tabela espera a resposta); recusada, fica de fora com a mensagem do servidor, escrita. Slug de catálogo que não existe mais é dito. Nada vai para o navegador.
+
+**Resíduos.** Propriedades e normalização fora do link; comparação salva com nome exige backend e decisão do autor.
 ## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
 
 **O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
