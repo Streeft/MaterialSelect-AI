@@ -11191,3 +11191,16 @@ pediria unidade explícita); mensagem com o nome de exibição da propriedade no
 e escreve o nome).
 
 **Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o **Deploy da API**.
+
+## D-166 — Rótulo do eixo de colunas: quebra em duas linhas, não reticências
+
+**Contexto.** Achado na conferência ao vivo (D-156): no Painel, com o cartão na metade da largura a 1280 px, o rótulo "Não registrado" saía
+"Não regist…", e é justamente a palavra cortada que diz o que a coluna é.
+
+**Decisão.** Em figura de colunas (`HorizontalBars`, orientação vertical), o rótulo do eixo quebra no último espaço que cabe e ocupa até duas
+linhas (`wrapLabel`); só uma linha que ainda não cabe, ou uma palavra só longa demais, é encurtada com reticências, e o texto inteiro continua na
+dica (`<title>`) e na tabela alternativa (D-31). A estimativa de largura por caractere é a de antes mais um (a de 6,8 px por caractere era
+conservadora para o corpo de 11 px). A faixa do eixo ganha 6 px (`X_LABELS` 30 → 36). Barras horizontais não mudam: têm a coluna de rótulos à esquerda.
+
+**Verificado a 1280 e 375 px.** "Não / registrado" em duas linhas; sem sobreposição entre colunas vizinhas.
+

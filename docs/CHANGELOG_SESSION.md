@@ -131,6 +131,15 @@ por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem 
 base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
+
+## Sessão 124 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-166)
+
+**O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe
+quebra no último espaço que cabe, em vez de ser cortado com reticências. "Não registrado" deixa de sair "Não regist…" no Painel.
+`X_LABELS` sobe de 30 para 36 px.
+
+**Testes.** +4 de frontend (`wrapLabel`). Sem backend nem migração.
+
 ## Sessão 115 — 21/10/26 — Fichas offline verificadas de ponta a ponta (D-152)
 
 **O que mudou.** Só documentação: o D-152 registra a verificação que faltava (build de produção, service worker ativo, rede derrubada no
