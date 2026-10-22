@@ -240,6 +240,13 @@ def export_material_curve(
     fmt: str,
     unidade_x: str | None = Query(default=None, description="Unidade de leitura do eixo x."),
     unidade_y: str | None = Query(default=None, description="Unidade de leitura do eixo y."),
+    unidade_parametro: str | None = Query(
+        default=None,
+        description=(
+            "Unidade de leitura do parâmetro da família (TM4-e); omitida, a convenção da "
+            "grandeza. Recusada (400) numa curva sem família."
+        ),
+    ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
@@ -255,7 +262,11 @@ def export_material_curve(
             f"Use {', '.join(CURVE_SUPPORTED_FORMATS)}."
         )
     report = CurveService(db, user.id).curve_report(
-        material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y
+        material_id,
+        curve_id,
+        x_unit=unidade_x,
+        y_unit=unidade_y,
+        parameter_unit=unidade_parametro,
     )
     return _file_response(report, fmt)
 
@@ -271,13 +282,22 @@ def export_release_diff(
     tipo: str | None = Query(default=None, description="Filtro: tipo de mudança."),
     classe: str | None = Query(default=None, description="Filtro: slug da classe."),
     universo: str | None = Query(default=None, description="Filtro: material, processo ou modal."),
+    pagina: int | None = Query(
+        default=None,
+        description="Página dos registros, a partir de 1; sem `pagina` nem `por_pagina`, o diff inteiro.",
+    ),
+    por_pagina: int | None = Query(
+        default=None,
+        description="Registros por página (1–5000; padrão 1000 quando o arquivo é paginado).",
+    ),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
     """What changed between two releases of the official catalogue (D-108).
 
-    The whole diff with the filters applied and no page: the releases and their
+    The whole diff with the filters applied — or, with ``pagina``/``por_pagina``,
+    one page of its records (TM7-d-resid, D-162): the releases and their
     provenance (slug, licence, hashes, the sources the values cite), the counts,
     one row per record and one per changed field, with the three units of every
     number. Every cell goes through ``cells.py``.
@@ -288,7 +308,13 @@ def export_release_diff(
             f"Use {', '.join(RELEASE_DIFF_SUPPORTED_FORMATS)}."
         )
     report = CatalogReleaseService(db, unit_choices).diff_report(
-        base, target, tipo=tipo, classe=classe, universo=universo
+        base,
+        target,
+        tipo=tipo,
+        classe=classe,
+        universo=universo,
+        page=pagina,
+        page_size=por_pagina,
     )
     return _file_response(report, fmt)
 

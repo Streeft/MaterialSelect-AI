@@ -291,3 +291,9 @@ Toda coluna calculada leva o selo "Calculada" com ícone, a nota do que é
 calculado, os insumos e, no backend, a própria dispersão e o selo de limiar —
 só quando a expressão não soma nem subtrai e os insumos têm zero verdadeiro;
 senão a ausência é escrita (`escala_sem_zero`).
+
+O endereço do comparador é o link (D-163): `materiais`, `referencia`, `limiar`,
+`calculadas` e `indice` (repetido) são escritos a cada mudança, e "Copiar link"
+entrega o conjunto. Uma expressão que chega no link passa pelo mesmo validador
+antes de entrar; a recusada sai com a mensagem do servidor. Propriedades e
+normalização ainda não vão no link.

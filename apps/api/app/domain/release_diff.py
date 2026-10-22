@@ -52,8 +52,15 @@ from app.domain.errors import ValidationError
 #: (3.9 g/cm³ → 3899.9999999999995 kg/m³); 1e-9 is beyond any measurement.
 REL_TOL = 1e-9
 
-#: Maximum page size: a page is a screen, not an export (the export has no page).
+#: Maximum page size on the screen: a page is a screen.
 MAX_PAGE_SIZE = 200
+
+#: A page of the exported file is a slice of a document, not a screen, so it is
+#: allowed to be larger (TM7-d-resid, D-162); the default fits a spreadsheet
+#: that opens at once. Still bounded: a request cannot ask for "everything" as
+#: a page and defeat the point of paginating.
+EXPORT_MAX_PAGE_SIZE = 5000
+EXPORT_DEFAULT_PAGE_SIZE = 1000
 
 
 class RecordStatus(str, Enum):
@@ -954,15 +961,21 @@ class Page:
     total: int
 
 
-def paginate(items: Sequence[RecordDiff], page: int, page_size: int) -> Page:
+def paginate(
+    items: Sequence[RecordDiff],
+    page: int,
+    page_size: int,
+    *,
+    max_page_size: int = MAX_PAGE_SIZE,
+) -> Page:
     """One page; a page past the end is refused, never answered with silence.
 
     An empty result still has page 1 (empty), so the screen can say "nenhum
     registro" instead of an error.
     """
-    if page_size < 1 or page_size > MAX_PAGE_SIZE:
+    if page_size < 1 or page_size > max_page_size:
         raise ValidationError(
-            f"Tamanho de página inválido: {page_size}. Use de 1 a {MAX_PAGE_SIZE}."
+            f"Tamanho de página inválido: {page_size}. Use de 1 a {max_page_size}."
         )
     if page < 1:
         raise ValidationError(f"Página inválida: {page}. A primeira página é 1.")

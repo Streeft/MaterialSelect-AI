@@ -27,6 +27,8 @@ from app.domain.errors import NotFoundError, ValidationError
 from app.domain.release_diff import (
     COMPOSITION_PREFIX,
     COMPOSITION_UNIT,
+    EXPORT_DEFAULT_PAGE_SIZE,
+    EXPORT_MAX_PAGE_SIZE,
     KIND_LABELS,
     RULE_TEXT,
     STATUS_LABELS,
@@ -443,13 +445,33 @@ class CatalogReleaseService:
         tipo: str | None = None,
         classe: str | None = None,
         universo: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
     ) -> Report:
-        """The whole diff (filters applied, no page) as a CSV/XLSX document."""
+        """The diff (filters applied) as a CSV/XLSX document.
+
+        Without ``page`` or ``page_size`` it is the whole diff. With either, the
+        file holds one page of the records — and only the field changes of those
+        records — and says so in the title and in the summary
+        (TM7-d-resid, D-162). The counts in the summary stay those of the whole
+        diff: a page never changes what the two versions are.
+        """
         status, class_slug, universe = self._filters(tipo, classe, universo)
         computed = self._compute(base_slug, target_slug)
-        selected = filter_diffs(
+        filtered = filter_diffs(
             computed.diffs, status=status, class_slug=class_slug, universe=universe
         )
+        paged = page is not None or page_size is not None
+        window = None
+        selected = filtered
+        if paged:
+            window = paginate(
+                filtered,
+                page if page is not None else 1,
+                page_size if page_size is not None else EXPORT_DEFAULT_PAGE_SIZE,
+                max_page_size=EXPORT_MAX_PAGE_SIZE,
+            )
+            selected = window.items
         counts = count_by_status(computed.diffs)
         base, target = computed.base, computed.target
 
@@ -460,6 +482,22 @@ class CatalogReleaseService:
         subtitle = "; ".join(f"{STATUS_LABELS[s]}: {counts[s]}" for s in STATUS_ORDER) + (
             f" — catálogo '{base.lineage}'"
         )
+        page_note: list[str] = []
+        if window is not None:
+            first = (window.page - 1) * window.page_size + 1 if window.items else 0
+            last = first + len(window.items) - 1 if window.items else 0
+            where = (
+                f"Página {window.page} de {window.page_count}: registros {first} a {last} "
+                f"de {window.total} (com os filtros aplicados), {window.page_size} por página."
+                if window.items
+                else f"Página {window.page} de {window.page_count}: nenhum registro."
+            )
+            title = f"{title} (página {window.page} de {window.page_count})"
+            page_note = [
+                where,
+                "Os totais do resumo são os das duas versões inteiras; as planilhas Registros e "
+                "Alterações trazem só os registros desta página.",
+            ]
         filters = []
         if status is not None:
             filters.append(f"tipo de mudança = {STATUS_LABELS[status]}")
@@ -484,10 +522,11 @@ class CatalogReleaseService:
                         (
                             "Filtros aplicados às planilhas Registros e Alterações: "
                             + "; ".join(filters)
-                            + f" ({len(selected)} registros)."
+                            + f" ({len(filtered)} registros)."
                             if filters
                             else "Sem filtro: todos os registros das duas versões."
                         ),
+                        *page_note,
                     ],
                 ),
                 self._records_sheet(selected),

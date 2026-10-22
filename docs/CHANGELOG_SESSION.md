@@ -12,6 +12,12 @@ por isso que ela tem menos detalhe de processo que as outras.
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
 | [119](#sessão-119--211026--nível-de-profundidade-nos-seletores-de-estágios-comparador-e-find-similar-d-162) | 21/10/2026 | `optionsAtLevel` nos critérios dos estágios, nas colunas do comparador e na base do Find Similar, sem tirar o já escolhido | sem mudança | 1364 → 1374 |
+| [120](#sessão-120--211026--csvxlsx-do-diff-entre-versões-com-paginação-d-162) | 21/10/2026 | CSV/XLSX do diff entre versões com `?pagina=`/`?por_pagina=` (uma página dos registros e só as alterações deles; título e resumo dizem a página; totais do diff inteiro) (D-162) | 5041 → 5054 | sem mudança |
+| [118](#sessão-118--211026--copiar-tabela-no-comparador-no-funil-e-na-ficha-d-161) | 21/10/2026 | "Copiar tabela" (TSV) no comparador, no funil e nas propriedades da ficha, com ausência escrita | sem mudança | 1364 → 1373 |
+| [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
+| [118](#sessão-118--211026--nota-do-estudo-nos-relatórios-e-no-laudo-d-161) | 21/10/2026 | Seção "Notas do autor" (estudo e estágios) nos relatórios e no laudo, nos cinco formatos, cada um com o seu escape; ausência escrita; PPTX quebra tabela pela altura impressa (D-161) | 5041 → 5061 | sem mudança |
+| [117](#sessão-117--211026--comparador-o-link-leva-limiar-e-índices-d-160) | 21/10/2026 | Comparador: o endereço leva materiais, referência, limiar e índices (catálogo e digitados, estes conferidos pelo servidor ao abrir) e "Copiar link" | sem mudança | 1360 → 1383 |
+| [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1364 → 1371 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
 | [114](#sessão-114--211026--ficha-propriedades-ordinais-leitura-de-valor-da-curva-e-sentido-da-trajetória-d-157) | 21/10/2026 | Ficha: seção de propriedades ordinais (escala e nível como cadastrados, ausência escrita), "Ler um valor da curva" (o servidor responde, a tela escreve) e sentido do caminho na trajetória (setas, anel no início, losango no fim) | — | +35 |
 | [113](#sessão-113--211026--resíduos-tm7-e-f-g-do-diff-entre-versões-testados-pela-api) | 21/10/2026 | Resíduos TM7-e/f/g do diff entre versões: já resolvidos (D-109, D-114); `is_active` fica fora por decisão; testes de API dos três casos e docs corrigidas | 5038 → 5041 | sem mudança |
@@ -121,6 +127,52 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 **O que mudou.** `StageList` recebe `depthLevel` e filtra as propriedades por `optionsAtLevel`, mantendo as que um estágio já nomeia (`usedPropertySlugs`, inclusive grupos aninhados e eixos de gráfico). O comparador filtra os chips de propriedade mantendo os já escolhidos; o Find Similar, a base de busca, mantendo a base atual. Estágios e comparador ganham o `DepthLevelPicker`; o Find Similar usa o da ficha e escreve a contagem. Textos em `lib/i18n-depth-selectors.ts`. O nível segue só na URL e só na apresentação.
 
 **Atenção ao mesclar.** Toca `SimilarPanel.tsx` (lista da base), que o #182 também edita.
+## Sessão 122 — 21/10/26 — Copiar tabela no comparador, no funil e na ficha (D-164)
+
+**O pedido.** Resíduo FL-d do D-122: só o ranking tinha "Copiar tabela".
+
+**O que mudou.** `lib/copyTables.ts` monta o TSV de cada tabela com as mesmas funções de formatação da tela (`comparisonTsv`, `funnelTsv`, `sheetTsv`) e reaproveita `toTsv`/`copyText` e o `CopyTableButton` (que ganhou `ariaLabel`, para nomear qual tabela). Ausência vira a palavra "Ausente"; contagem que não se aplica, "Não se aplica"; fonte não registrada, "Sem fonte registrada". Nunca célula vazia nem zero. Textos em `lib/i18n-copy-tables.ts`.
+
+**Resíduos.** Estágios do funil, colunas calculadas e as outras tabelas da ficha.
+## Sessão 121 — 21/10/26 — Comparador: o link leva limiar e índices (D-163)
+
+**O pedido.** Resíduo do D-153: o limiar só vivia na URL se fosse digitado nela, e os índices digitados só viviam na página.
+
+**O que mudou.** `lib/compare-link.ts` lê e escreve `materiais`, `referencia`, `limiar`, `calculadas` (slugs) e `indice` (repetido; uma expressão pode ter vírgula). A página escreve o endereço a cada mudança e traz um "Copiar link". Expressão que chega no link passa pelo mesmo validador de `POST /api/selection/index` antes de entrar no pedido (a tabela espera a resposta); recusada, fica de fora com a mensagem do servidor, escrita. Slug de catálogo que não existe mais é dito. Nada vai para o navegador.
+
+**Resíduos.** Propriedades e normalização fora do link; comparação salva com nome exige backend e decisão do autor.
+## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
+
+**O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
+cima de `tolerance_pct` só naquela propriedade; propriedade sem nenhuma das duas fica sem faixa. A validação está no schema com mensagem
+em pt-BR simples (chave fora da busca, valor fora do intervalo, não número: 422). `domain/nearness.py` ganhou `resolve_tolerances` e
+`tolerance_by_property`; faixa, pontas, escala de razão e ausência seguem o D-155. Cada banda volta com o `tolerance_pct` com que foi
+desenhada. No painel, campo "Tolerância de X (± %)" em cada linha dos ajustes, com vírgula e erro escrito, `sim_tolerancia_prop` na URL,
+percentual em cada faixa e no cabeçalho da tabela de origem, e "Sem tolerância pedida" escrito para quem não tem faixa.
+
+**Por quê.** Sem nenhuma tolerância a resposta e a requisição são as de antes, chave por chave. Ausência continua excluindo antes de qualquer
+faixa.
+
+**Testes.** +21 de backend (`test_nearness_tolerance_per_property.py`: nada muda sem as duas, sobreposição só na propriedade, global escrita
+por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem zero real, ausência, faixa mais larga nunca afasta, ordem da
+base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
+propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
+escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
+
+## Sessão 124 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-166)
+
+**O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe
+quebra no último espaço que cabe, em vez de ser cortado com reticências. "Não registrado" deixa de sair "Não regist…" no Painel.
+`X_LABELS` sobe de 30 para 36 px.
+
+**Testes.** +4 de frontend (`wrapLabel`). Sem backend nem migração.
+
+## Sessão 115 — 21/10/26 — Fichas offline verificadas de ponta a ponta (D-152)
+
+**O que mudou.** Só documentação: o D-152 registra a verificação que faltava (build de produção, service worker ativo, rede derrubada no
+Chromium) e uma observação sobre rota já visitada, que sem rede pode abrir o app com "Algo não funcionou" e nenhum dado de material.
+Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migração.
+
 
 ## Sessão 112 — 21/10/26 — Estouro de tempo intermitente nos testes do frontend
 
@@ -131,6 +183,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 **O que mudou.** Só infraestrutura de teste, nenhuma asserção e nenhum teste tocado. `vitest.config.ts` aponta `shadow-dom-testing-library` para `lib/testing/lightDomQueries.ts`, que resolve cada `*ByShadow*` na consulta equivalente do DOM comum (o que ela já resolvia, sem a travessia): o teste mais lento de Seleção caiu de 2,8 s para 1,4 s. `lib/testing/loadedRunner.ts` dá `testTimeout` de 30 s e `asyncUtilTimeout` de 5 s por arquivo, e só `routes.a11y`, `selecao`, `estudio`, `cadernos`, `charts` e `layout` pedem; o padrão global continua 5 s, nada é pulado. Sob a mesma carga pesada a suíte passou de 28 falhas para 1 (um arquivo ainda sem a folga, `layout`, que a recebeu em seguida). Sem decisão nova, sem backend, sem migração, sem seed; contagem de testes inalterada (1325). Pós-merge: só o frontend publica sozinho; nada a disparar.
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
+
+## Sessão 120 — 21/10/26 — CSV/XLSX do diff entre versões com paginação (D-162)
+
+**O que mudou.** Resíduo do TM7-d: a exportação do diff (`/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}`) aceita `pagina` e `por_pagina`. Sem nenhum dos dois, o arquivo é o diff inteiro, como antes. Com qualquer um, traz uma página dos registros (já filtrados) e só as alterações de campo desses registros; o título ganha "(página N de M)" e o resumo escreve a faixa de registros. `paginate` ganhou um teto próprio para arquivo (5000; padrão 1000) sem mexer no da tela (200). A recusa de comparar versões de catálogos diferentes continua valendo antes da página.
+
+**Testes.** +13 de backend em `test_catalog_releases_api.py`: as páginas particionam o arquivo inteiro (nada perdido nem repetido), totais do resumo do diff inteiro, só um dos parâmetros, filtros, XLSX com fórmula neutralizada e número mantido, página/tamanho fora da faixa (400 escrito), página única vazia, recusa de catálogos diferentes e teto da tela intacto. Sem migração nem seed. Pós-merge: **Deploy da API**.
+## Sessão 119 — 21/10/26 — Exportação de curva na unidade do parâmetro (TM4-e)
+
+**O que mudou.** Resíduo do TM4-e: `GET /api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}` aceita `?unidade_parametro=` e passa a unidade ao mesmo `draw_curve` da tela, então a conversão é a de `units.py` e as recusas são as mesmas (400 para unidade que a grandeza não admite e para curva sem família). O cabeçalho `Parâmetro (unidade)` e a linha "Família de curvas" nomeiam a unidade lida; as colunas "original" seguem como a fonte escreveu. Sem decisão nova (D-110 já cobria a tela).
+
+**Testes.** +8 de backend em `test_curves_api.py`: conversão a K e °F em CSV e XLSX (parâmetro numérico, negativo incluso), unidade original intacta, texto de série hostil (`=`, `@`) neutralizado, recusas 400 em CSV e XLSX, curva sem família com ausência escrita. Sem migração nem seed. Pós-merge: **Deploy da API**.
+## Sessão 118 — 21/10/26 — Nota do estudo nos relatórios e no laudo (D-161)
+
+**O que mudou.** FL-b: a nota do estudo e as dos estágios (D-122) saem numa seção "Notas do autor" (`Onde | Nota`), logo depois de "Estágios", no relatório (CSV, XLSX, HTML, DOCX, PPTX) e no laudo (HTML, DOCX, PPTX). Cada formato escapa a nota do seu jeito (apóstrofo em planilha, `html.escape` no HTML). Sem nota, a seção diz que não há. O HTML preserva as quebras de linha da nota e o PPTX passou a quebrar tabelas pela altura impressa, para que uma nota de 2.000 caracteres não saia do slide.
+
+**Testes.** +20 de backend (`test_exports_author_notes.py`): injeção de fórmula (`=`, `@`) e de marcação por formato, ausência, quebras de linha, estágio nomeado por posição/tipo/rótulo, laudo e quebra do PPTX. Sem migração nem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
 

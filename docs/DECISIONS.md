@@ -11067,6 +11067,12 @@ mais a data em cada valor.
 - **Limite honesto.** A página offline é a única tela que funciona sem conexão: abrir uma ficha pelo link, com internet caída, ainda cai nela
   e não na ficha de verdade. Não há catálogo offline, busca offline nem estudo offline.
 - A "data" de cada valor é a **da leitura neste aparelho**: a ficha não traz data própria por valor.
+- **Verificado de ponta a ponta em 21/10/26** (build de produção, `next start`, Chromium com o worker ativo e a rede derrubada por
+  `setOffline`): o worker assume, o cache `msai-offline-v2` guarda só a página offline, a navegação para a ficha sem rede cai em
+  `offline.html`, que lista a ficha lida e a abre com a faixa e "lido em" em cada valor, e com a rede de volta a ficha de verdade volta.
+  Uma rota já visitada (`/app/catalogo`) pode, sem rede, abrir o app em vez da página offline (a navegação foi atendida do cache HTTP do
+  navegador); a tela refaz a busca, que falha, e mostra "Algo não funcionou", **sem nenhum dado de material**. Não se mudou o worker para
+  forçar a página offline aí: `cache: "no-store"` nas navegações custaria o cache HTTP de toda visita com rede.
 
 **Consequências.** Frontend apenas. Ao mudar `offline.html`, mude `CACHE` em `sw.js`. Ao mudar o que a ficha escreve (`ValueText`), mude
 `describeValue`; o teste de igualdade avisa. Observado e não alterado: uma grandeza adimensional chega com a unidade `—` (por `prettyUnit`),
@@ -11165,3 +11171,81 @@ não tem Cadernos.
 **Descartado.** Esconder o já escolhido; um segundo seletor de nível na ficha; filtrar a requisição pelo nível.
 
 **Consequências.** Só frontend; sem migração. Conflito provável de merge em `SimilarPanel.tsx` com a tolerância por propriedade (D-158).
+## D-162 — Diff entre versões em CSV/XLSX: página opcional, teto de arquivo próprio (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O arquivo do diff (D-108) sempre saía inteiro; com 20.000 registros a planilha de alterações cresce sem limite (resíduo do TM7-d, D-123).
+
+**Decisão.** `pagina` e `por_pagina` opcionais na rota de exportação. Sem eles nada muda (diff inteiro, compatível). Com qualquer um, o arquivo traz **uma página dos registros já filtrados** e **só as alterações de campo desses registros** (a página é de registros, nunca de linhas de alteração, para que um registro não seja cortado ao meio). O título ganha "(página N de M)" — o nome do arquivo também muda — e o resumo escreve "Página N de M: registros a a b de T"; os totais por situação seguem os das duas versões inteiras, porque a página não muda o que as versões são. Reutiliza `paginate` (mesma recusa escrita para página fora do resultado), com **teto de 5000 por página e padrão de 1000** para arquivo; o da tela continua 200. A recusa de comparar versões de catálogos diferentes (fictício com real) acontece antes de paginar.
+
+**Descartado.** Reutilizar o teto de 200 da tela (100 arquivos para 20.000 registros); paginar por linhas de alteração (cortaria um registro); ZIP com todas as páginas (outro formato, outro desenho). Fica como resíduo o par que não é "anterior → nova", ainda calculado a cada requisição.
+
+**Consequências.** Parâmetros opcionais novos; sem migração nem seed. Depois do merge, **Deploy da API**.
+## D-164 — Copiar tabela no comparador, no funil e na ficha: a tabela de origem é a fonte (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-122 entregou "Copiar tabela" só para o ranking; FL-d pedia as outras.
+
+**Decisão.** O TSV sai dos mesmos dados e das mesmas funções de formatação da tela (D-30, D-31), sem segunda conta. Ausência é escrita: "Ausente" para valor e unidade, "Não se aplica" para contagem do funil que o estágio não produz, "Sem fonte registrada" para fonte; com referência, a diferença traz o motivo (D-24). O escape de fórmula é o do `toTsv` (apóstrofo, número negativo preservado). O botão é o `CopyTableButton` com `ariaLabel` que contém o texto visível; o resultado é dito numa região viva.
+
+**Descartado.** Copiar o valor normalizado (a tela mostra o valor, a barra é decoração); linha em branco entre tabelas; "—" para o que não se aplica.
+
+**Consequências.** Só frontend; sem migração.
+## D-161 — Nota do estudo nos relatórios e no laudo: uma seção própria, `Onde | Nota`, e o PPTX que quebra pela altura impressa (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A nota do estudo e a de cada estágio (D-122) viajavam com o estudo e com o arquivo JSON, mas não saíam em nenhum documento (FL-b). Um relatório que reexecuta o estudo e omite o "por que 200 MPa?" perde a justificativa que um leitor sem a tela precisa.
+
+**Decisão.** (1) **Seção "Notas do autor"** no `Report`, logo depois de "Estágios", com cabeçalho `Onde | Nota`: uma linha "Estudo" e uma por estágio com nota ("Estágio N — tipo — rótulo"). Como é uma `Sheet` comum, os cinco renderizadores a escrevem, cada um com o escape do **seu** formato: apóstrofo de `cells.py` em CSV/XLSX, `html.escape` no HTML, o escritor de XML em DOCX/PPTX — o escape não foi unificado. (2) **Ausência escrita:** a seção existe sempre; com notas diz "Só aparecem aqui o estudo e os estágios que têm nota."; sem nenhuma, "Nenhuma nota foi escrita neste estudo, nem em seus estágios." (3) **Quebras de linha preservadas** no HTML (`td { white-space: pre-line }`). (4) **PPTX quebra tabela pela altura impressa**: cada linha pesa o número de linhas impressas da maior célula (100 caracteres por linha), no máximo 10 de peso por slide. Células curtas seguem com 10 linhas por slide; uma nota de 2.000 caracteres fica num slide só dela.
+
+**Descartado.** Pôr a nota em `Sheet.notes`: o rótulo na frente tiraria o `=` do começo da célula e esconderia o apóstrofo em vez de testá-lo, e o PPTX só desenha `notes` quando não há linhas. Uma coluna "Nota" em "Estágios": uma nota de 2.000 caracteres estragaria a tabela. "Sem nota" por estágio: ruído. Renderizar a nota como HTML/Markdown: ela é texto puro (D-122).
+
+**Consequências.** Nenhum campo de contrato, rota ou migração; estudos antigos exportam com a frase de ausência. Depois do merge, **Deploy da API**.
+## D-163 — Comparador: o endereço é o único lugar do que se compartilha (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O resíduo de D-128/D-153 pedia persistir o limiar e os índices digitados além da URL.
+
+**Decisão.** (1) O que precisa chegar a outra pessoa vai no endereço: `materiais`, `referencia`, `limiar`, `calculadas` e `indice` (repetido, porque a expressão pode ter vírgula), escritos a cada mudança e com "Copiar link". (2) Nada disso vai para o armazenamento do navegador: um valor guardado num navegador faria o mesmo link mostrar duas tabelas (mesma razão da referência, P2). (3) Expressão vinda de link é entrada não confiável: passa pelo validador do servidor (D-153), a tabela espera o veredito, e a recusada sai do pedido e do endereço com a mensagem escrita, nunca consertada. (4) Slug de catálogo desconhecido é dito.
+
+**Descartado.** localStorage para "lembrar o último limiar"; salvar a comparação no servidor (exige modelo e decisão do autor, fica como resíduo); propriedades e normalização no link (resíduo).
+
+**Consequências.** Só frontend; sem migração. Depois do merge, nada a disparar além do deploy automático da Vercel.
+## D-158 — Tolerância por propriedade no Find Similar (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-155 entregou um só `x` para a base inteira e deixou como resíduo a tolerância por propriedade, que o manual permite:
+±2% na densidade e ±20% no módulo são perguntas legítimas e diferentes de "±x% em tudo".
+
+**Decisão.**
+1. **`tolerances` no `SimilarRequest`: mapa slug → percentual**, opcional, com os mesmos limites do D-155 (`0 < x ≤ 100`, finito).
+   A tolerância global continua valendo como padrão; a da propriedade **passa por cima dela só naquela propriedade**. Sem nenhuma das
+   duas a resposta é a de antes, campo por campo, e uma requisição sem `tolerances` é a requisição de antes.
+2. **Validação no schema, em pt-BR simples** (`PydanticCustomError`, sem o "Value error," do Pydantic): chave fora das propriedades da
+   busca é 422 com "Tolerância para propriedade fora da busca: …"; valor que não é número, ou fora de (0, 100], é 422 com "A tolerância de
+   … precisa ser um número maior que 0 e no máximo 100%". O domínio repete a checagem (`resolve_tolerances`) para quem o chama direto.
+3. **Propriedade sem nenhuma tolerância não ganha faixa e não entra em `tolerance_bands`.** Isso é diferente de "não se aplica": aquilo é
+   escala sem zero real (`applicable: false`, como no D-155); aqui ninguém pediu, e a tela escreve "Sem tolerância pedida (a diferença conta
+   inteira)". A diferença nessa propriedade conta inteira, como sempre.
+4. **Cada banda diz com que percentual foi desenhada** (`tolerance_pct` em `ToleranceBandOut`), porque com mais de um `x` o título "±x%"
+   da resposta deixa de bastar. `SimilarOut.tolerance_pct` continua sendo só a global (`null` quando só há tolerâncias por propriedade).
+5. **Tudo o mais é o D-155 sem mudança:** faixa sobre o canônico com pontas incluídas, parcela 0 dentro, diferença inteira fora, só em
+   escala de razão, ausência excluída antes de qualquer faixa (nunca vira 0 nem "dentro"), unidade de leitura só imprime a faixa.
+6. **Na tela:** um campo "Tolerância de X (± %)" em cada linha dos ajustes de proximidade, com vírgula e erro escrito no próprio campo;
+   a busca fica desligada enquanto houver valor inválido. Na URL como `sim_tolerancia_prop=slug:x,…` (como `sim_peso`); só as propriedades
+   da base vão na requisição. A tabela de origem (D-31) leva o percentual no cabeçalho de cada coluna.
+
+**Descartado.** Tolerância 0 por propriedade para "desligar" a global ali (zero não é faixa; tirar a propriedade da base, ou apagar a
+global, é o jeito de dizer isso, como o peso zero recusado do D-120); tolerância absoluta na unidade de leitura (dependeria da tela e
+pediria unidade explícita); mensagem com o nome de exibição da propriedade no 422 (o schema não conhece as definições; o painel valida antes
+e escreve o nome).
+
+**Consequências.** Sem migração; contrato só ganhou campos opcionais. Depois do merge, rodar o **Deploy da API**.
+
+## D-166 — Rótulo do eixo de colunas: quebra em duas linhas, não reticências
+
+**Contexto.** Achado na conferência ao vivo (D-156): no Painel, com o cartão na metade da largura a 1280 px, o rótulo "Não registrado" saía
+"Não regist…", e é justamente a palavra cortada que diz o que a coluna é.
+
+**Decisão.** Em figura de colunas (`HorizontalBars`, orientação vertical), o rótulo do eixo quebra no último espaço que cabe e ocupa até duas
+linhas (`wrapLabel`); só uma linha que ainda não cabe, ou uma palavra só longa demais, é encurtada com reticências, e o texto inteiro continua na
+dica (`<title>`) e na tabela alternativa (D-31). A estimativa de largura por caractere é a de antes mais um (a de 6,8 px por caractere era
+conservadora para o corpo de 11 px). A faixa do eixo ganha 6 px (`X_LABELS` 30 → 36). Barras horizontais não mudam: têm a coluna de rótulos à esquerda.
+
+**Verificado a 1280 e 375 px.** "Não / registrado" em duas linhas; sem sobreposição entre colunas vizinhas.
+

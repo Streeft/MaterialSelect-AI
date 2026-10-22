@@ -13,10 +13,13 @@ import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
 import { useDepthLevel } from "@/components/DepthLevelPicker";
 import {
   WEIGHT_OPTIONS,
+  parsePropertyTolerances,
   parseSettings,
   parseTolerance,
   parseToleranceInput,
   requestSettings,
+  requestTolerances,
+  writePropertyTolerances,
   writeSettings,
   writeTolerance,
   type NearnessSettings,
@@ -120,6 +123,29 @@ export function SimilarPanel({
     return value === null ? "" : formatNumber(value);
   });
   const tolerance = parseToleranceInput(toleranceText);
+  // Per-property tolerances (D-158): one text per basis property, read from
+  // the URL once, so a half-typed "1," is not wiped by a re-parse either.
+  const [propertyToleranceText, setPropertyToleranceText] = useState<
+    Record<string, string>
+  >(() =>
+    Object.fromEntries(
+      Object.entries(parsePropertyTolerances(params)).map(([slug, value]) => [
+        slug,
+        formatNumber(value),
+      ]),
+    ),
+  );
+  const propertyTolerance = (slug: string) =>
+    parseToleranceInput(propertyToleranceText[slug] ?? "");
+  const propertyTolerances: Record<string, number> = {};
+  for (const slug of basis) {
+    const value = propertyTolerance(slug);
+    if (typeof value === "number") propertyTolerances[slug] = value;
+  }
+  const sentTolerances = requestTolerances(propertyTolerances, basis);
+  const propertyToleranceInvalid = basis.some(
+    (slug) => propertyTolerance(slug) === "invalid",
+  );
 
   function updateSettings(next: NearnessSettings) {
     const query = writeSettings(
@@ -140,6 +166,24 @@ export function SimilarPanel({
     const query = writeTolerance(
       new URLSearchParams(params.toString()),
       value,
+    ).toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function changePropertyTolerance(slug: string, text: string) {
+    setPropertyToleranceText((current) => ({ ...current, [slug]: text }));
+    const value = parseToleranceInput(text);
+    // Same rule as the global field: an invalid entry stays in the field, with
+    // its error written, and never reaches the link.
+    if (value === "invalid") return;
+    const next = parsePropertyTolerances(params);
+    if (value === null) delete next[slug];
+    else next[slug] = value;
+    const query = writePropertyTolerances(
+      new URLSearchParams(params.toString()),
+      next,
     ).toString();
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
@@ -170,6 +214,11 @@ export function SimilarPanel({
           ...requestSettings(settings, basis),
           ...(typeof tolerance === "number"
             ? { tolerance_pct: tolerance }
+            : {}),
+          // Sent only when there is one, so a request without per-property
+          // tolerances is the request before D-158, key for key.
+          ...(Object.keys(sentTolerances).length > 0
+            ? { tolerances: sentTolerances }
             : {}),
         },
         unitChoices,
@@ -243,13 +292,17 @@ export function SimilarPanel({
                 value={toleranceText}
                 onChange={(event) => changeTolerance(event.target.value)}
               />
+              <p className="text-support text-ink-muted">
+                {t.propertyToleranceHint}
+              </p>
               <div className="flex flex-col gap-3">
                 {basis.map((slug) => {
                   const name = nameOf(slug);
+                  const own = propertyTolerance(slug);
                   return (
                     <div
                       key={slug}
-                      className="grid gap-2 sm:grid-cols-[1fr_8rem_14rem] sm:items-end"
+                      className="grid gap-2 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_8rem_14rem_11rem]"
                     >
                       <span className="text-sm text-ink">{name}</span>
                       <Select
@@ -285,6 +338,21 @@ export function SimilarPanel({
                           {t.criterionAtLeast}
                         </SelectOption>
                       </Select>
+                      {/* Text with a decimal keypad, like the global field. */}
+                      <Input
+                        label={t.propertyToleranceLabel(name)}
+                        error={
+                          own === "invalid"
+                            ? t.propertyToleranceInvalid(name)
+                            : undefined
+                        }
+                        className="tabular-nums"
+                        inputMode="decimal"
+                        value={propertyToleranceText[slug] ?? ""}
+                        onChange={(event) =>
+                          changePropertyTolerance(slug, event.target.value)
+                        }
+                      />
                     </div>
                   );
                 })}
@@ -298,7 +366,8 @@ export function SimilarPanel({
               disabled={
                 basis.length === 0 ||
                 search.isPending ||
-                tolerance === "invalid"
+                tolerance === "invalid" ||
+                propertyToleranceInvalid
               }
               onClick={() => search.mutate()}
             >
@@ -320,8 +389,8 @@ export function SimilarPanel({
                 items={result.basis_labels}
               />
 
-              {result.tolerance_pct !== null && (
-                <ToleranceSummary result={result} pct={result.tolerance_pct} />
+              {result.tolerance_bands.length > 0 && (
+                <ToleranceSummary result={result} />
               )}
 
               {result.neighbours.length === 0 ? (
@@ -459,16 +528,24 @@ function applicableCount(result: Similar): number {
  * the cards (D-31). A record without a value never reaches this table: it was
  * excluded before any band was read, and the exclusion list says why (D-24).
  */
-function ToleranceSummary({ result, pct }: { result: Similar; pct: number }) {
+function ToleranceSummary({ result }: { result: Similar }) {
+  // Basis properties with no band at all — neither the global tolerance nor
+  // their own (D-158). Not "Sem faixa": nobody asked, and that is written too.
+  const banded = new Set(result.tolerance_bands.map((band) => band.slug));
+  const unasked = result.basis
+    .map((slug, index) => ({ slug, label: result.basis_labels[index] ?? slug }))
+    .filter(({ slug }) => !banded.has(slug));
   return (
     <div className="subsection flex flex-col gap-2">
       <span className="text-xs font-medium text-ink">
-        {t.toleranceTitle(formatNumber(pct))}
+        {result.tolerance_pct !== null
+          ? t.toleranceTitle(formatNumber(result.tolerance_pct))
+          : t.toleranceTitlePerProperty}
       </span>
       <ul className="flex flex-col gap-1 text-xs text-ink-muted">
         {result.tolerance_bands.map((band) => (
           <li key={band.slug}>
-            {band.label}:{" "}
+            {t.toleranceBandLabel(band.label, formatNumber(band.tolerance_pct))}:{" "}
             {band.applicable && band.low !== null && band.high !== null
               ? t.toleranceBand(
                   formatNumber(band.low),
@@ -478,6 +555,12 @@ function ToleranceSummary({ result, pct }: { result: Similar; pct: number }) {
               : t.toleranceNotApplicable}
           </li>
         ))}
+        {unasked.length > 0 && (
+          <li>
+            {t.toleranceNoneAsked}{" "}
+            {unasked.map(({ label }) => label).join(", ")}
+          </li>
+        )}
       </ul>
       {result.neighbours.length > 0 && (
         <TableScroll label={t.toleranceTableCaption}>
@@ -487,7 +570,12 @@ function ToleranceSummary({ result, pct }: { result: Similar; pct: number }) {
               <Tr>
                 <Th>{t.toleranceMaterialHeader}</Th>
                 {result.tolerance_bands.map((band) => (
-                  <Th key={band.slug}>{band.label}</Th>
+                  <Th key={band.slug}>
+                    {t.toleranceBandLabel(
+                      band.label,
+                      formatNumber(band.tolerance_pct),
+                    )}
+                  </Th>
                 ))}
                 <Th>{t.toleranceMatchesHeader}</Th>
               </Tr>

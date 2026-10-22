@@ -1819,6 +1819,11 @@ export interface SimilarRequest {
   criteria?: Record<string, NearnessCriterion>;
   /** "100% se dentro de ±x%" (D-155): 0 < x <= 100; omitted = no band. */
   tolerance_pct?: number;
+  /**
+   * Per-property tolerance (D-158): basis slug -> x, same bounds. Overrides
+   * `tolerance_pct` for that property only; a slug outside the basis is a 422.
+   */
+  tolerances?: Record<string, number>;
 }
 
 export interface Neighbour {
@@ -1854,6 +1859,8 @@ export interface ToleranceBand {
   high: number | null;
   unit: string;
   applicable: boolean;
+  /** The percentage this band was drawn with: its own or the global (D-158). */
+  tolerance_pct: number;
 }
 
 /** A record that could not be placed on the basis, and what it lacked. */
@@ -1880,8 +1887,9 @@ export interface Similar {
   /** The weight and criterion every basis property ran with (D-120). */
   weights: Record<string, number>;
   criteria: Record<string, NearnessCriterion>;
-  /** The tolerance that ran (D-155); `null` when none was asked. */
+  /** The global tolerance that ran (D-155); `null` when none was asked. */
   tolerance_pct: number | null;
+  /** One per basis property with a tolerance, global or its own (D-158). */
   tolerance_bands: ToleranceBand[];
 }
 

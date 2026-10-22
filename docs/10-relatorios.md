@@ -65,6 +65,7 @@ determinístico e organiza o resultado em seções:
 |---|---|
 | Aviso | a nota de reprodutibilidade (aba própria no XLSX; cabeçalho no CSV, no HTML e no DOCX; slide no PPTX) |
 | Problema | função, objetivo, variáveis livres, contagens |
+| Notas do autor | a nota do estudo e a de cada estágio, **como foram escritas** (D-161); sem nenhuma, a seção diz que não há |
 | Restrições e funil | qual restrição eliminou o quê |
 | Candidatos | ordenação, índice e pontuação |
 | Índice de desempenho | expressão, objetivo e **dimensão derivada** |
@@ -81,6 +82,18 @@ argumento que outra pessoa pode conferir.
 O serviço **nunca calcula**: ele reexecuta o pipeline e arruma o que volta. Uma
 exportação tem de mostrar os mesmos números que a aplicação mostra, e a única
 forma de garantir isso é haver um único lugar que os produz.
+
+## Notas do autor (D-122, D-161)
+
+O estudo e cada estágio podem ter uma nota em texto puro (até 2.000 caracteres). A
+seção **Notas do autor** (logo depois de *Estágios*; no relatório em CSV, XLSX, HTML,
+DOCX e PPTX e no laudo em HTML, DOCX e PPTX) é uma tabela `Onde | Nota`: "Estudo" e
+"Estágio N — tipo — rótulo". Só entram os que têm nota, e a seção diz isso; sem nenhuma,
+escreve "Nenhuma nota foi escrita neste estudo, nem em seus estágios." — a ausência de
+nota é um estado escrito, não uma seção que some. A nota passa pelo escape do **seu**
+formato: apóstrofo à frente em CSV/XLSX quando uma planilha a leria como fórmula,
+`html.escape` no HTML (que preserva as quebras de linha com `white-space: pre-line`) e o
+escritor de XML em DOCX/PPTX. O texto da nota nunca é interpretado nem calculado.
 
 ## O relatório imprimível
 
@@ -132,6 +145,8 @@ Três propriedades de formatação para apresentação:
 
 - **Paginação de tabelas em múltiplos slides:** tabelas com mais de 10 linhas são
   divididas automaticamente em blocos sequenciais com numeração de continuação `(1/N)`.
+  A quebra conta a **altura impressa** (100 caracteres por linha), não só as linhas:
+  uma nota de 2.000 caracteres ocupa um slide inteiro em vez de sair do slide (D-161).
 - **Interpretação técnica e laudo executivo:** no laudo, a interpretação gerada pela IA
   ganha slide dedicado com layout tipográfico refinado e indicação clara de disponibilidade/degradação.
 - **Nota de engenharia:** slide final com a nota de reprodutibilidade (sem os avisos de
@@ -311,9 +326,23 @@ faltando.
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
+| GET | `/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}?tipo=&classe=&universo=&pagina=&por_pagina=` | mudanças entre versões do catálogo oficial (D-108); paginado por `pagina`/`por_pagina` (D-162) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
-`?responsavel=` — texto livre, escapado, opcional.
+`?responsavel=` — texto livre, escapado, opcional. O diff entre versões sai inteiro por padrão;
+com `?pagina=` e/ou `?por_pagina=` (1–5000, padrão 1000) o arquivo traz **uma página dos
+registros** e só as alterações de campo desses registros. O título ganha "(página N de M)" e o
+resumo diz "Página N de M: registros a a b de T"; os totais do resumo seguem os das duas versões
+inteiras. Página fora do resultado ou tamanho fora da faixa é 400 escrito, e a recusa de comparar
+versões de catálogos diferentes (fictício com real) vale antes de qualquer página. A tela segue
+com o teto de 200 por página.
+| GET | `/api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}?unidade_x=&unidade_y=&unidade_parametro=` | pontos de uma curva na unidade de leitura escolhida (D-106, TM4-e) |
+
+O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
+`?responsavel=` — texto livre, escapado, opcional. A exportação de curva lê o parâmetro da
+família na unidade de `?unidade_parametro=` (a mesma da tela: convenção da grandeza se omitida;
+400 escrito para unidade que a grandeza não admite e para curva sem família); o cabeçalho
+`Parâmetro (unidade)` nomeia a unidade lida e as colunas "original" seguem como a fonte escreveu.
 
 ## Ainda fora desta fatia
 

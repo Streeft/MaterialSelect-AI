@@ -90,6 +90,8 @@ th, td {
   padding: 0.35rem 0.5rem;
   text-align: left;
   vertical-align: top;
+  /* An author's note keeps its line breaks (D-122); other cells have none. */
+  white-space: pre-line;
 }
 th { background: #f1f5f9; font-weight: 600; }
 tbody tr:nth-child(even) { background: #f8fafc; }
