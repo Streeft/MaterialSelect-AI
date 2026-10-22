@@ -1,12 +1,16 @@
 "use client";
 
-import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getComparison, listMaterials, listPerformanceIndices, listProperties } from "@/lib/api";
-import { parseThreshold, thresholdParam } from "@/lib/compare-threshold";
+import { parseThreshold } from "@/lib/compare-threshold";
+import { compareSearch, readCompareLink } from "@/lib/compare-link";
+import { compareLinkText } from "@/lib/i18n-compare-link";
 import { ComputedTable } from "@/components/charts/ComputedSection";
+import { CopyCompareLink } from "@/components/charts/CopyCompareLink";
 import { CustomIndexForm } from "@/components/charts/CustomIndexForm";
+import { indexCheckKey, useIndexChecks } from "@/components/charts/useIndexChecks";
 import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
@@ -18,6 +22,7 @@ import {
   type ComparisonMode,
 } from "@/components/charts/ComparisonView";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -55,6 +60,10 @@ function parseIds(raw: string | null): number[] {
 
 function ComparePageContent() {
   const params = useSearchParams();
+  const queryClient = useQueryClient();
+  // D-163: what the link carries besides the materials, read once. The address
+  // stays the only copy of it; nothing is kept in the browser.
+  const [fromLink] = useState(() => readCompareLink(params));
 
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>(() =>
     parseIds(params.get("materiais")).slice(0, MAX_MATERIALS),
@@ -70,18 +79,23 @@ function ComparePageContent() {
   });
   // D-128: the highlight threshold is URL state too. An invalid `?limiar=` is
   // discarded (no highlight), never repaired into another number.
-  const [threshold, setThreshold] = useState<number | null>(() =>
-    parseThreshold(params.get("limiar")),
+  const [threshold, setThreshold] = useState<number | null>(fromLink.threshold);
+  const [thresholdText, setThresholdText] = useState<string>(() =>
+    fromLink.threshold === null ? "" : String(fromLink.threshold).replace(".", ","),
   );
-  const [thresholdText, setThresholdText] = useState<string>(() => {
-    const initial = parseThreshold(params.get("limiar"));
-    return initial === null ? "" : String(initial).replace(".", ",");
-  });
   const [thresholdInvalid, setThresholdInvalid] = useState(false);
-  const [computedSlugs, setComputedSlugs] = useState<string[]>([]);
-  // D-153: expressions the reader typed. Each one was accepted by the backend's
-  // validator before it got here, so a typo cannot take the table away.
-  const [customExpressions, setCustomExpressions] = useState<string[]>([]);
+  const [computedSlugs, setComputedSlugs] = useState<string[]>(fromLink.catalogue);
+  // D-153: expressions the reader typed. Each one is accepted by the backend's
+  // validator before it reaches the request, so a typo cannot take the table
+  // away. D-163: the ones that came in the link go through the same validator.
+  const [customExpressions, setCustomExpressions] = useState<string[]>(fromLink.expressions);
+  const indexChecks = useIndexChecks(customExpressions);
+  const acceptedExpressions = indexChecks
+    .filter((check) => check.state === "accepted")
+    .map((check) => check.expression);
+  const refusedChecks = indexChecks.filter((check) => check.state === "refused");
+  const refusedKeys = new Set(refusedChecks.map((check) => expressionKey(check.expression)));
+  const checkingLink = indexChecks.some((check) => check.state === "checking");
   const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
   const [mode, setMode] = useState<ComparisonMode>("table");
 
@@ -130,46 +144,78 @@ function ComparePageContent() {
     referenceId !== null && selectedMaterials.includes(referenceId) ? referenceId : null;
 
   // Catalogue indices first, then the typed ones; the same expression is never
-  // sent twice (the table keys its columns by expression).
-  const computedRequest = useMemo<NonNullable<ComparisonRequest["computed"]>>(() => {
-    const chosen = (indices.data ?? [])
-      .filter((index) => computedSlugs.includes(index.slug))
-      .map((index) => ({ name: index.name, expression: index.expression, goal: index.goal }));
-    const seen = new Set(chosen.map((entry) => expressionKey(entry.expression)));
-    const typed = customExpressions
-      .filter((expression) => !seen.has(expressionKey(expression)))
-      .map((expression) => ({ expression }));
-    return [...chosen, ...typed];
-  }, [indices.data, computedSlugs, customExpressions]);
+  // sent twice (the table keys its columns by expression). Only an expression the
+  // validator has accepted is sent.
+  const chosenCatalogue = (indices.data ?? [])
+    .filter((index) => computedSlugs.includes(index.slug))
+    .map((index) => ({ name: index.name, expression: index.expression, goal: index.goal }));
+  const catalogueKeys = new Set(chosenCatalogue.map((entry) => expressionKey(entry.expression)));
+  const computedRequest: NonNullable<ComparisonRequest["computed"]> = [
+    ...chosenCatalogue,
+    ...acceptedExpressions
+      .filter((expression) => !catalogueKeys.has(expressionKey(expression)))
+      .map((expression) => ({ expression })),
+  ];
+  // What the reader has asked for, checked or not yet: the cap and the duplicate
+  // test count the ones still with the validator, or two of them could pass.
+  const shownExpressions = customExpressions.filter((e) => !refusedKeys.has(expressionKey(e)));
+  const takenKeys = new Set([
+    ...catalogueKeys,
+    ...shownExpressions.map((expression) => expressionKey(expression)),
+  ]);
+  const requestedTotal = takenKeys.size;
 
-  const request = useMemo<ComparisonRequest>(
-    () => ({
-      material_ids: selectedMaterials,
-      property_slugs: selectedProperties,
-      normalization,
-      reference_id: activeReference,
-      highlight_threshold_pct: threshold,
-      computed: computedRequest,
-    }),
-    [selectedMaterials, selectedProperties, normalization, activeReference, threshold, computedRequest],
-  );
+  const request: ComparisonRequest = {
+    material_ids: selectedMaterials,
+    property_slugs: selectedProperties,
+    normalization,
+    reference_id: activeReference,
+    highlight_threshold_pct: threshold,
+    computed: computedRequest,
+  };
+
+  // A catalogue index named in the link that the catalogue no longer has: said,
+  // not dropped in silence.
+  const unknownSlugs = indices.data
+    ? fromLink.catalogue.filter((slug) => !indices.data.some((index) => index.slug === slug))
+    : [];
 
   const ready = selectedMaterials.length > 0 && selectedProperties.length > 0;
   const comparison = useQuery({
     queryKey: ["comparison", JSON.stringify(request)],
     queryFn: () => getComparison(request),
-    enabled: ready,
+    // Held back while a link's typed index is still with the validator: asking
+    // for it early would fail the whole table on a typo in a link.
+    enabled: ready && !checkingLink,
   });
 
-  function writeThresholdToUrl(value: number | null) {
+  // The address is the link (D-163): every part that has to be shareable is
+  // written to it as it changes, so a reload or a pasted link returns the same
+  // table. An index still being checked stays in it; a refused one does not.
+  const linkState = {
+    materials: selectedMaterials,
+    reference: activeReference,
+    threshold,
+    catalogue: computedSlugs,
+    expressions: shownExpressions,
+  };
+  const linkSearch = compareSearch(
+    typeof window === "undefined" ? "" : window.location.search,
+    linkState,
+  );
+  useEffect(() => {
     try {
-      const url = new URL(window.location.href);
-      if (value === null) url.searchParams.delete("limiar");
-      else url.searchParams.set("limiar", thresholdParam(value));
-      window.history.replaceState(null, "", url);
+      if (linkSearch === window.location.search) return;
+      window.history.replaceState(null, "", `${window.location.pathname}${linkSearch}`);
     } catch {
-      // The URL is a convenience; the state in the page is what counts.
+      // The address is a convenience; the state in the page is what counts.
     }
+  }, [linkSearch]);
+
+  function currentLink(): string {
+    const url = new URL(window.location.href);
+    url.search = compareSearch(url.search, linkState);
+    return url.toString();
   }
 
   function applyThreshold(event: FormEvent) {
@@ -183,14 +229,12 @@ function ComparePageContent() {
     }
     setThresholdInvalid(false);
     setThreshold(parsed);
-    writeThresholdToUrl(parsed);
   }
 
   function clearThreshold() {
     setThresholdText("");
     setThresholdInvalid(false);
     setThreshold(null);
-    writeThresholdToUrl(null);
   }
 
   function toggleComputed(slug: string) {
@@ -225,7 +269,12 @@ function ComparePageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} group="estudar" />
+      <PageHeader
+        title={t.title}
+        description={t.subtitle}
+        group="estudar"
+        actions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
+      />
 
       {/* Three steps, each open once the one before it has something in it; a
           link with `?materiais=` arrives with all three filled (D-86). */}
@@ -380,6 +429,7 @@ function ComparePageContent() {
                 <DensityToggle />
               </div>
             ) : null}
+            {checkingLink && <LoadingState label={compareLinkText.checking} />}
             {comparison.isLoading && <LoadingState label={t.loading} />}
             {comparison.isError && (
               <ErrorState
@@ -422,7 +472,7 @@ function ComparePageContent() {
                     key={index.slug}
                     selected={computedSlugs.includes(index.slug)}
                     disabled={
-                      !computedSlugs.includes(index.slug) && computedRequest.length >= MAX_COMPUTED
+                      !computedSlugs.includes(index.slug) && requestedTotal >= MAX_COMPUTED
                     }
                     onClick={() => toggleComputed(index.slug)}
                     title={index.expression}
@@ -432,15 +482,36 @@ function ComparePageContent() {
                 ))}
               </div>
             )}
+            {(refusedChecks.length > 0 || unknownSlugs.length > 0) && (
+              <Alert tone="warning" role="status" title={compareLinkText.refusedTitle}>
+                <ul className="flex flex-col gap-1">
+                  {refusedChecks.map((check) => (
+                    <li key={check.expression}>
+                      {compareLinkText.refused(check.expression, check.message ?? "")}
+                    </li>
+                  ))}
+                  {unknownSlugs.map((slug) => (
+                    <li key={slug}>{compareLinkText.unknownCatalogue(slug)}</li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
             <CustomIndexForm
-              expressions={customExpressions}
-              takenKeys={new Set(computedRequest.map((entry) => expressionKey(entry.expression)))}
-              total={computedRequest.length}
+              expressions={shownExpressions}
+              takenKeys={takenKeys}
+              total={requestedTotal}
               slugs={properties.data?.map((p) => p.slug)}
               slugsLoading={properties.isLoading}
-              onAdd={(expression) =>
-                setCustomExpressions((current) => [...current, expression])
-              }
+              onAdd={(expression) => {
+                // The server has just accepted it: seed the verdict so the page
+                // does not ask the same question again.
+                queryClient.setQueryData(indexCheckKey(expression), true);
+                setCustomExpressions((current) =>
+                  current.some((x) => expressionKey(x) === expressionKey(expression))
+                    ? current
+                    : [...current, expression],
+                );
+              }}
               onRemove={(expression) =>
                 setCustomExpressions((current) => current.filter((x) => x !== expression))
               }

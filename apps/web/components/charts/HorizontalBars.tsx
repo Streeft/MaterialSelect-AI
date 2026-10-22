@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ChartLegend } from "./ChartLegend";
 import { ChartTooltip, SERIES_SYMBOLS, type TooltipContent } from "./ChartTooltip";
-import { linearTicks, makeScale, truncate, useChartWidth, useRovingFocus } from "./figureKit";
+import { linearTicks, makeScale, truncate, useChartWidth, useRovingFocus, wrapLabel } from "./figureKit";
 import type { ClassSymbol } from "@/lib/design/palette";
 
 export interface BarSegment {
@@ -31,7 +31,7 @@ const ROW = 32;
 const VALUE_COLUMN = 92;
 const PLOT_HEIGHT = 240;
 const Y_AXIS = 44;
-const X_LABELS = 30;
+const X_LABELS = 36; // room for a label in two lines (D-166)
 const RADIUS = 4;
 
 /**
@@ -300,8 +300,12 @@ export function HorizontalBars({
                       textAnchor="middle"
                       aria-hidden
                     >
-                      {truncate(row.label, labelChars)}
-                      {row.label.length > labelChars ? <title>{row.label}</title> : null}
+                      {wrapLabel(row.label, labelChars + 1).map((line, i) => (
+                        <tspan key={i} x={cx} dy={i === 0 ? 0 : 13}>
+                          {line}
+                        </tspan>
+                      ))}
+                      {wrapLabel(row.label, labelChars + 1).join(" ") !== row.label ? <title>{row.label}</title> : null}
                     </text>
                   </g>
                 );

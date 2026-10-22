@@ -240,6 +240,13 @@ def export_material_curve(
     fmt: str,
     unidade_x: str | None = Query(default=None, description="Unidade de leitura do eixo x."),
     unidade_y: str | None = Query(default=None, description="Unidade de leitura do eixo y."),
+    unidade_parametro: str | None = Query(
+        default=None,
+        description=(
+            "Unidade de leitura do parâmetro da família (TM4-e); omitida, a convenção da "
+            "grandeza. Recusada (400) numa curva sem família."
+        ),
+    ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
@@ -255,7 +262,11 @@ def export_material_curve(
             f"Use {', '.join(CURVE_SUPPORTED_FORMATS)}."
         )
     report = CurveService(db, user.id).curve_report(
-        material_id, curve_id, x_unit=unidade_x, y_unit=unidade_y
+        material_id,
+        curve_id,
+        x_unit=unidade_x,
+        y_unit=unidade_y,
+        parameter_unit=unidade_parametro,
     )
     return _file_response(report, fmt)
 

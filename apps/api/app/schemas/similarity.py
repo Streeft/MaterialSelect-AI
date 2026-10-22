@@ -8,9 +8,11 @@ point of the feature is that a reader can check it.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+import math
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.domain.nearness import MAX_TOLERANCE_PCT, MAX_WEIGHT
 
@@ -41,12 +43,48 @@ class SimilarRequest(BaseModel):
     tolerance_pct: float | None = Field(
         default=None, gt=0, le=MAX_TOLERANCE_PCT, allow_inf_nan=False
     )
+    #: Per-property tolerance (D-158): slug -> percentage, same bounds as
+    #: ``tolerance_pct``. It overrides the global value for that property only;
+    #: a property with neither gets no band. Empty = the answer before D-158.
+    #: Checked here, with messages a reader can act on, instead of Pydantic's
+    #: own English ones — the 422 reaches the screen as it is written.
+    tolerances: dict[str, float] = Field(default_factory=dict)
+
+    @field_validator("tolerances", mode="before")
+    @classmethod
+    def _tolerances_are_percentages(cls, value: Any) -> Any:
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise PydanticCustomError(
+                "tolerances_not_a_map",
+                "As tolerâncias por propriedade precisam vir como propriedade: percentual.",
+            )
+        for slug, pct in value.items():
+            # bool is an int in Python, and "true%" is not a tolerance.
+            number = isinstance(pct, (int, float)) and not isinstance(pct, bool)
+            if not number or not math.isfinite(pct) or pct <= 0 or pct > MAX_TOLERANCE_PCT:
+                raise PydanticCustomError(
+                    "tolerance_out_of_range",
+                    "A tolerância de {slug} precisa ser um número maior que 0 e no máximo "
+                    "{ceiling}%.",
+                    {"slug": str(slug), "ceiling": f"{MAX_TOLERANCE_PCT:g}"},
+                )
+        return value
 
     @model_validator(mode="after")
     def _settings_belong_to_the_basis(self) -> SimilarRequest:
         stray = sorted((set(self.weights) | set(self.criteria)) - set(self.property_slugs))
         if stray:
             raise ValueError("Peso ou critério para propriedade fora da base: " + ", ".join(stray))
+        stray_tolerances = sorted(set(self.tolerances) - set(self.property_slugs))
+        if stray_tolerances:
+            raise PydanticCustomError(
+                "tolerance_outside_basis",
+                "Tolerância para propriedade fora da busca: {slugs}. "
+                "Marque a propriedade na base ou apague a tolerância dela.",
+                {"slugs": ", ".join(stray_tolerances)},
+            )
         return self
 
 
@@ -87,6 +125,9 @@ class ToleranceBandOut(BaseModel):
     high: float | None
     unit: str
     applicable: bool
+    #: The percentage this band was drawn with (D-158): the property's own
+    #: tolerance where one was given, the global one otherwise.
+    tolerance_pct: float
 
 
 class ExcludedOut(BaseModel):
@@ -119,5 +160,7 @@ class SimilarOut(BaseModel):
     criteria: dict[str, Literal["both", "at_most", "at_least"]] = Field(default_factory=dict)
     #: The tolerance that ran (D-155), ``None`` when none was asked.
     tolerance_pct: float | None = None
-    #: One band per basis property, in basis order; empty without a tolerance.
+    #: One band per basis property that has a tolerance (global or its own,
+    #: D-158), in basis order; empty without any. A property with neither is
+    #: absent here, which is not the same as ``applicable: false``.
     tolerance_bands: list[ToleranceBandOut] = Field(default_factory=list)

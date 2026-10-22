@@ -34,6 +34,9 @@ import { groupsAtLevel } from "@/lib/depth";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import { CompositionByCondition } from "@/components/material/CompositionByCondition";
 import { DesignationTable } from "@/components/material/DesignationTable";
+import { CopyTableButton } from "@/components/selection/CopyTableButton";
+import { sheetTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { EquivalenceSection } from "@/components/material/EquivalenceSection";
 import { MaterialCurves } from "@/components/material/MaterialCurves";
 import { MaterialOrdinals } from "@/components/material/MaterialOrdinals";
@@ -306,6 +309,14 @@ export default function MaterialDetailPage() {
               id="propriedades"
               title={t.properties}
               description={t.provenanceHint}
+              actions={
+                atLevel.groups.length > 0 ? (
+                  <CopyTableButton
+                    ariaLabel={copyTablesText.sheet.aria}
+                    getText={() => sheetTsv(atLevel.groups)}
+                  />
+                ) : undefined
+              }
             >
               {data.property_groups.length === 0 ? (
                 <EmptyState title={t.noProperties} />

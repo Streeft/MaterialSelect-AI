@@ -34,6 +34,14 @@ _SLIDE_HEIGHT = SLIDE_HEIGHT
 
 _MAX_TABLE_ROWS_PER_SLIDE = 10
 
+#: A table slide holds this many rendered lines of text, counted as
+#: ``_LINE_CHARS`` characters per line. A one-line row weighs 1, so a table of
+#: short cells still gets ``_MAX_TABLE_ROWS_PER_SLIDE`` rows per slide; a row
+#: holding a paragraph (an author's note, up to 2,000 characters) weighs what
+#: it prints, so it takes a slide of its own instead of running off the page.
+_LINES_PER_SLIDE = _MAX_TABLE_ROWS_PER_SLIDE
+_LINE_CHARS = 100
+
 
 def _text(value: object) -> str:
     """Render one cell value as formatted, human-readable text."""
@@ -102,14 +110,39 @@ def _add_sheet_slides(
             p.text = note
         return
 
-    total_chunks = (len(rows) + _MAX_TABLE_ROWS_PER_SLIDE - 1) // _MAX_TABLE_ROWS_PER_SLIDE
-    for chunk_idx in range(total_chunks):
-        chunk_start = chunk_idx * _MAX_TABLE_ROWS_PER_SLIDE
-        chunk_rows = rows[chunk_start : chunk_start + _MAX_TABLE_ROWS_PER_SLIDE]
+    chunks = _chunk_rows(rows)
+    total_chunks = len(chunks)
+    for chunk_idx, chunk_rows in enumerate(chunks):
         slide_title = (
             title_text if total_chunks == 1 else f"{title_text} ({chunk_idx + 1}/{total_chunks})"
         )
         _add_table_slide(presentation, slide_title, header, chunk_rows)
+
+
+def _row_weight(row: list[object]) -> int:
+    """How many printed lines the tallest cell of ``row`` takes."""
+    weight = 1
+    for value in row:
+        lines = _text(value).split("\n")
+        weight = max(weight, sum(max(1, -(-len(line) // _LINE_CHARS)) for line in lines))
+    return weight
+
+
+def _chunk_rows(rows: list[list[object]]) -> list[list[list[object]]]:
+    """Split ``rows`` into slides by printed height, keeping their order."""
+    chunks: list[list[list[object]]] = []
+    current: list[list[object]] = []
+    used = 0
+    for row in rows:
+        weight = _row_weight(row)
+        if current and used + weight > _LINES_PER_SLIDE:
+            chunks.append(current)
+            current, used = [], 0
+        current.append(row)
+        used += weight
+    if current:
+        chunks.append(current)
+    return chunks
 
 
 def _add_table_slide(

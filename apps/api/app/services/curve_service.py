@@ -565,8 +565,14 @@ class CurveService:
         *,
         x_unit: str | None = None,
         y_unit: str | None = None,
+        parameter_unit: str | None = None,
     ) -> Report:
         """The curve's points as a document: notices, provenance, units.
+
+        ``parameter_unit`` is the reading unit of the family parameter (TM4-e):
+        the same refusal as the screen (400 naming what is admitted, and on a
+        curve with no family), and the original unit the source wrote stays in
+        the file whatever the reading unit is.
 
         Every point leaves, drawn or not — a file is the table, not the figure —
         and the scale does not enter: it is how a figure is drawn, not a fact
@@ -574,7 +580,7 @@ class CurveService:
         ("sem faixa declarada"), never as a blank cell that could read as zero.
         """
         curve = self._load(material_id, curve_id)
-        drawn = self._draw(curve, x_unit, y_unit, "linear")
+        drawn = self._draw(curve, x_unit, y_unit, "linear", parameter_unit)
         xq, yq = drawn.x.quantity, drawn.y.quantity
         x_name = curve.x_label or xq.name
         y_name = curve.y_label or yq.name
