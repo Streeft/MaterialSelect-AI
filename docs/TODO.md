@@ -172,9 +172,13 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   (D-128, Sessão 83). ~~Índice digitado livremente na tela~~ e ~~computadas sem
   dispersão/destaque próprios~~ ✔ entregues (D-153, Sessão 108): campo de
   expressão validado pelo servidor antes de entrar, coluna com selo
-  "Calculada", nota, dispersão e limiar próprios. Resíduos: limiar sem estado
-  persistido além da URL, e a lista de índices digitados também só vive na
-  página (não vai no link).
+  "Calculada", nota, dispersão e limiar próprios. ~~Limiar e índices só
+  na página~~ ✔ entregues em parte (D-163, Sessão 121): o endereço passa a levar
+  materiais, referência, limiar, índices do catálogo e índices digitados
+  (conferidos pelo servidor ao abrir), com "Copiar link". Resíduos: (a) a escolha
+  de propriedades e a normalização ainda não vão no link; (b) guardar a
+  comparação com nome, para reabrir sem o link, exige backend e decisão do
+  autor (nada disso fica no navegador, de propósito).
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
@@ -1049,8 +1053,12 @@ Registrados para não voltarem por engano:
   pontas incluídas, parcela 0 dentro dela, só em escala de razão; marcas
   "Dentro/Fora da faixa", contagem por material e tabela no painel, na URL
   `sim_tolerancia` — [D-155](DECISIONS.md), Sessão 110) e similaridade no
-  universo de processos. Novo resíduo: tolerância por propriedade (hoje um
-  só `x` vale para a base inteira).
+  universo de processos. Resíduo: ~~tolerância por propriedade~~ (feita:
+  `tolerances` slug → %, sobrepõe a global só naquela propriedade; sem
+  nenhuma das duas, sem faixa; 422 em pt-BR; campo por linha no painel, na
+  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115). Novo
+  resíduo: desligar a tolerância global numa propriedade só (hoje, para isso,
+  apaga-se a global e dá-se a cada outra propriedade a sua).
 
   **O que ficou de fora:** similaridade no universo de processos, fixar a
   referência como estado de um projeto (o *reference record* propriamente dito,
