@@ -139,6 +139,14 @@ dentro dela a parcela vale 0, fora conta **inteira**. Só em escala de razão
 excluindo antes; `tolerance_matches` é `null` sem tolerância, nunca 0. A unidade
 de leitura só imprime a faixa (`tolerance_bands`); a URL guarda `sim_tolerancia`.
 
+**Tolerância por propriedade** ([D-158](DECISIONS.md)): `tolerances` (slug → %,
+mesmos limites) sobrepõe a global **só naquela propriedade**; sem nenhuma das
+duas, a propriedade fica fora de `tolerance_bands` — isso é "não pedida", não
+"não se aplica". Chave fora da busca ou valor inválido é 422 com texto em pt-BR
+(`PydanticCustomError`, nunca a mensagem crua do Pydantic). Cada banda traz o
+seu `tolerance_pct`; a URL guarda `sim_tolerancia_prop`, e só a base vai na
+requisição.
+
 **Preparação para a turma de 29/09 (D-84 a D-89).** Um estudo de processos voltou
 a ter o passo Objetivo (D-84). A Seleção virou assistente guiado — um passo de
 cada vez, Voltar em todo passo e no navegador, **o recolhido nunca esconde o que
@@ -174,6 +182,9 @@ do editor e uma execução em memória antes de gravar (salvar não resolve slug
 Nome repetido ganha "(importado)", nada é sobrescrito. "Copiar tabela" é só o
 texto que a tela já mostra, em TSV, com ausência escrita e apóstrofo em célula
 que uma planilha leria como fórmula (número não). Há o botão também no comparador, no funil e nas propriedades da ficha (D-164).
+que uma planilha leria como fórmula (número não). Nos relatórios e no laudo (D-161) a nota
+sai na seção "Notas do autor" (`Onde | Nota`), com o escape do formato de cada saída; sem nota,
+a seção diz que não há.
 
 ## Processos (D-57, D-59)
 
