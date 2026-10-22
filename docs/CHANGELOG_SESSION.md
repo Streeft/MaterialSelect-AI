@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [119](#sessão-119--211026--exportação-de-curva-na-unidade-do-parâmetro-tm4-e) | 21/10/2026 | CSV/XLSX da curva aceitam `?unidade_parametro=` (mesma conversão e recusas da tela; cabeçalho com a unidade lida) | 5041 → 5049 | sem mudança |
 | [118](#sessão-118--211026--nota-do-estudo-nos-relatórios-e-no-laudo-d-161) | 21/10/2026 | Seção "Notas do autor" (estudo e estágios) nos relatórios e no laudo, nos cinco formatos, cada um com o seu escape; ausência escrita; PPTX quebra tabela pela altura impressa (D-161) | 5041 → 5061 | sem mudança |
 | [117](#sessão-117--211026--comparador-o-link-leva-limiar-e-índices-d-160) | 21/10/2026 | Comparador: o endereço leva materiais, referência, limiar e índices (catálogo e digitados, estes conferidos pelo servidor ao abrir) e "Copiar link" | sem mudança | 1360 → 1383 |
 | [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1364 → 1371 |
@@ -166,6 +167,11 @@ Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migraç
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
 
+## Sessão 119 — 21/10/26 — Exportação de curva na unidade do parâmetro (TM4-e)
+
+**O que mudou.** Resíduo do TM4-e: `GET /api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}` aceita `?unidade_parametro=` e passa a unidade ao mesmo `draw_curve` da tela, então a conversão é a de `units.py` e as recusas são as mesmas (400 para unidade que a grandeza não admite e para curva sem família). O cabeçalho `Parâmetro (unidade)` e a linha "Família de curvas" nomeiam a unidade lida; as colunas "original" seguem como a fonte escreveu. Sem decisão nova (D-110 já cobria a tela).
+
+**Testes.** +8 de backend em `test_curves_api.py`: conversão a K e °F em CSV e XLSX (parâmetro numérico, negativo incluso), unidade original intacta, texto de série hostil (`=`, `@`) neutralizado, recusas 400 em CSV e XLSX, curva sem família com ausência escrita. Sem migração nem seed. Pós-merge: **Deploy da API**.
 ## Sessão 118 — 21/10/26 — Nota do estudo nos relatórios e no laudo (D-161)
 
 **O que mudou.** FL-b: a nota do estudo e as dos estágios (D-122) saem numa seção "Notas do autor" (`Onde | Nota`), logo depois de "Estágios", no relatório (CSV, XLSX, HTML, DOCX, PPTX) e no laudo (HTML, DOCX, PPTX). Cada formato escapa a nota do seu jeito (apóstrofo em planilha, `html.escape` no HTML). Sem nota, a seção diz que não há. O HTML preserva as quebras de linha da nota e o PPTX passou a quebrar tabelas pela altura impressa, para que uma nota de 2.000 caracteres não saia do slide.

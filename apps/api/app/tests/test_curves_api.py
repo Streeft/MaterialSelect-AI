@@ -290,3 +290,120 @@ class TestExport:
         assert client.get(base + ".xlsx").status_code == 200
         refused = client.get(base + ".docx")
         assert refused.status_code == 400 and "não suportado" in refused.json()["detail"]
+
+
+def _add_family_curve(db: Session, material: Material) -> MaterialCurve:
+    """A fictitious-free test curve: E × strain family by temperature, one hostile label."""
+    source = db.execute(select(Source).where(Source.is_demo.is_(False))).scalars().first()
+    row = curve_rows(
+        build_curve(
+            CurveKind.TENSAO_DEFORMACAO,
+            x_quantity="deformacao",
+            x_unit="dimensionless",
+            y_quantity="tensao",
+            y_unit="MPa",
+            parameter_quantity="temperatura",
+            series=[
+                SeriesInput(
+                    points=[PointInput(0.0, 0.0), PointInput(0.002, 400.0)],
+                    label='=HYPERLINK("http://x")',
+                    conditions="@SUM(A1)",
+                    parameter=-40.0,
+                    parameter_unit="degC",
+                ),
+                SeriesInput(
+                    points=[PointInput(0.0, 0.0), PointInput(0.002, 300.0)],
+                    label="Quente",
+                    parameter=300.0,
+                    parameter_unit="degC",
+                ),
+            ],
+        ),
+        material_id=material.id,
+        title="Família de teste",
+        source_id=source.id,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+class TestExportParameterUnit:
+    """TM4-e-resid: the file reads the family parameter in the reader's unit."""
+
+    def _url(self, db: Session, ext: str = "csv") -> str:
+        material = _new_material(db, "Aço real em família")
+        curve = _add_family_curve(db, material)
+        return f"/api/exports/materiais/{material.id}/curvas/{curve.id}.{ext}"
+
+    @staticmethod
+    def _rows(text: str) -> list[list[str]]:
+        return list(csv.reader(io.StringIO(text.lstrip("﻿"))))
+
+    def test_default_reads_the_conventional_unit(self, client, db_session: Session) -> None:
+        text = client.get(self._url(db_session)).text
+        assert "Parâmetro (°C)" in text
+        assert "por temperatura (°C)" in text
+
+    def test_the_parameter_is_converted_and_the_header_names_the_unit(
+        self, client, db_session: Session
+    ) -> None:
+        url = self._url(db_session)
+        kelvin = client.get(url + "?unidade_parametro=K")
+        assert kelvin.status_code == 200, kelvin.text
+        rows = self._rows(kelvin.text)
+        assert any(len(r) > 1 and r[1] == "Parâmetro (K)" for r in rows)
+        values = sorted(
+            {float(r[1]) for r in rows if r and r[0] in ("Quente", '\'=HYPERLINK("http://x")')}
+        )
+        assert values == pytest.approx([233.15, 573.15])
+        fahrenheit = self._rows(client.get(url + "?unidade_parametro=degF").text)
+        assert any(len(r) > 1 and r[1] == "Parâmetro (°F)" for r in fahrenheit)
+        hostile = [float(r[1]) for r in fahrenheit if r and r[0] == '\'=HYPERLINK("http://x")']
+        assert hostile == pytest.approx([-40.0] * len(hostile)) and hostile
+
+    def test_the_unit_the_source_wrote_does_not_move(self, client, db_session: Session) -> None:
+        text = client.get(self._url(db_session) + "?unidade_parametro=K").text
+        assert "x original (dimensionless)" in text
+        assert "y original (MPa)" in text
+
+    def test_xlsx_keeps_the_converted_parameter_numeric(self, client, db_session: Session) -> None:
+        from openpyxl import load_workbook
+
+        response = client.get(self._url(db_session, "xlsx") + "?unidade_parametro=degF")
+        sheet = load_workbook(io.BytesIO(response.content))["Pontos"]
+        header = [c.value for c in sheet[1]]
+        assert header[1] == "Parâmetro (°F)"
+        numbers = [row[1].value for row in sheet.iter_rows(min_row=2)]
+        assert all(isinstance(n, (int, float)) for n in numbers)
+        assert sorted(set(round(n, 6) for n in numbers)) == pytest.approx([-40.0, 572.0])
+
+    def test_hostile_series_text_is_still_neutralised(self, client, db_session: Session) -> None:
+        url = self._url(db_session)
+        rows = self._rows(client.get(url + "?unidade_parametro=K").text)
+        assert not any(c.startswith(("=", "@")) for row in rows for c in row)
+        assert any("'@SUM(A1)" in row for row in rows)
+
+    @pytest.mark.parametrize(
+        ("unit", "fragment"),
+        [("psi", "parâmetro da família"), ("furlong", "Admitidas")],
+    )
+    def test_a_unit_the_quantity_refuses_is_400(
+        self, client, db_session: Session, unit: str, fragment: str
+    ) -> None:
+        for ext in ("csv", "xlsx"):
+            response = client.get(self._url(db_session, ext) + f"?unidade_parametro={unit}")
+            assert response.status_code == 400
+            assert fragment in response.json()["detail"]
+
+    def test_a_curve_without_family_refuses_a_parameter_unit(
+        self, client, db_session: Session
+    ) -> None:
+        material = _new_material(db_session, "Aço real sem família no arquivo")
+        curve = _add_temperature_curve(db_session, material)
+        url = f"/api/exports/materiais/{material.id}/curvas/{curve.id}.csv"
+        refused = client.get(url + "?unidade_parametro=K")
+        assert refused.status_code == 400
+        assert "não é uma família" in refused.json()["detail"]
+        text = client.get(url).text
+        assert "sem família" in text  # absence written, parameter column untouched
