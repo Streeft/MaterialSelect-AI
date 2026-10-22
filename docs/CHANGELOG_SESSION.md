@@ -11,6 +11,7 @@ por isso que ela tem menos detalhe de processo que as outras.
 
 | Sessão | Quando | O que | Backend | Frontend |
 |---|---|---|---|---|
+| [118](#sessão-118--211026--nota-do-estudo-nos-relatórios-e-no-laudo-d-161) | 21/10/2026 | Seção "Notas do autor" (estudo e estágios) nos relatórios e no laudo, nos cinco formatos, cada um com o seu escape; ausência escrita; PPTX quebra tabela pela altura impressa (D-161) | 5041 → 5061 | sem mudança |
 | [117](#sessão-117--211026--comparador-o-link-leva-limiar-e-índices-d-160) | 21/10/2026 | Comparador: o endereço leva materiais, referência, limiar e índices (catálogo e digitados, estes conferidos pelo servidor ao abrir) e "Copiar link" | sem mudança | 1360 → 1383 |
 | [115](#sessão-115--211026--tolerância-por-propriedade-no-find-similar-d-158) | 21/10/2026 | Find Similar: tolerância por propriedade (`tolerances` slug → %, sobrepõe a global só ali; 422 em pt-BR; campo por linha no painel, `sim_tolerancia_prop` na URL, percentual em cada faixa e na tabela) | 5041 → 5062 | 1364 → 1371 |
 | [112](#sessão-112--211026--estouro-de-tempo-intermitente-nos-testes-do-frontend) | 21/10/2026 | Testes do frontend que estouravam os 5 s sob carga: consultas `*ByShadow*` resolvidas no DOM comum (metade do tempo do assistente de Seleção) e folga de tempo só nos seis arquivos mais pesados | sem mudança | 1325 → 1325 |
@@ -164,6 +165,12 @@ Nenhum código mudou, nem o service worker. Sem testes novos, backend ou migraç
 **O que mudou.** Só infraestrutura de teste, nenhuma asserção e nenhum teste tocado. `vitest.config.ts` aponta `shadow-dom-testing-library` para `lib/testing/lightDomQueries.ts`, que resolve cada `*ByShadow*` na consulta equivalente do DOM comum (o que ela já resolvia, sem a travessia): o teste mais lento de Seleção caiu de 2,8 s para 1,4 s. `lib/testing/loadedRunner.ts` dá `testTimeout` de 30 s e `asyncUtilTimeout` de 5 s por arquivo, e só `routes.a11y`, `selecao`, `estudio`, `cadernos`, `charts` e `layout` pedem; o padrão global continua 5 s, nada é pulado. Sob a mesma carga pesada a suíte passou de 28 falhas para 1 (um arquivo ainda sem a folga, `layout`, que a recebeu em seguida). Sem decisão nova, sem backend, sem migração, sem seed; contagem de testes inalterada (1325). Pós-merge: só o frontend publica sozinho; nada a disparar.
 
 **Risco conhecido.** Um componente futuro com shadow root não seria achado por `*ByShadow*` nos testes; a nota em `lightDomQueries.ts` diz como tirar o alias para os arquivos que precisarem.
+
+## Sessão 118 — 21/10/26 — Nota do estudo nos relatórios e no laudo (D-161)
+
+**O que mudou.** FL-b: a nota do estudo e as dos estágios (D-122) saem numa seção "Notas do autor" (`Onde | Nota`), logo depois de "Estágios", no relatório (CSV, XLSX, HTML, DOCX, PPTX) e no laudo (HTML, DOCX, PPTX). Cada formato escapa a nota do seu jeito (apóstrofo em planilha, `html.escape` no HTML). Sem nota, a seção diz que não há. O HTML preserva as quebras de linha da nota e o PPTX passou a quebrar tabelas pela altura impressa, para que uma nota de 2.000 caracteres não saia do slide.
+
+**Testes.** +20 de backend (`test_exports_author_notes.py`): injeção de fórmula (`=`, `@`) e de marcação por formato, ausência, quebras de linha, estágio nomeado por posição/tipo/rótulo, laudo e quebra do PPTX. Sem migração nem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 114 — 21/10/26 — Ficha: propriedades ordinais, leitura de valor da curva e sentido da trajetória (D-157)
 

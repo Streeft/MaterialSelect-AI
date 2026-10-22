@@ -65,6 +65,7 @@ determinístico e organiza o resultado em seções:
 |---|---|
 | Aviso | a nota de reprodutibilidade (aba própria no XLSX; cabeçalho no CSV, no HTML e no DOCX; slide no PPTX) |
 | Problema | função, objetivo, variáveis livres, contagens |
+| Notas do autor | a nota do estudo e a de cada estágio, **como foram escritas** (D-161); sem nenhuma, a seção diz que não há |
 | Restrições e funil | qual restrição eliminou o quê |
 | Candidatos | ordenação, índice e pontuação |
 | Índice de desempenho | expressão, objetivo e **dimensão derivada** |
@@ -81,6 +82,18 @@ argumento que outra pessoa pode conferir.
 O serviço **nunca calcula**: ele reexecuta o pipeline e arruma o que volta. Uma
 exportação tem de mostrar os mesmos números que a aplicação mostra, e a única
 forma de garantir isso é haver um único lugar que os produz.
+
+## Notas do autor (D-122, D-161)
+
+O estudo e cada estágio podem ter uma nota em texto puro (até 2.000 caracteres). A
+seção **Notas do autor** (logo depois de *Estágios*; no relatório em CSV, XLSX, HTML,
+DOCX e PPTX e no laudo em HTML, DOCX e PPTX) é uma tabela `Onde | Nota`: "Estudo" e
+"Estágio N — tipo — rótulo". Só entram os que têm nota, e a seção diz isso; sem nenhuma,
+escreve "Nenhuma nota foi escrita neste estudo, nem em seus estágios." — a ausência de
+nota é um estado escrito, não uma seção que some. A nota passa pelo escape do **seu**
+formato: apóstrofo à frente em CSV/XLSX quando uma planilha a leria como fórmula,
+`html.escape` no HTML (que preserva as quebras de linha com `white-space: pre-line`) e o
+escritor de XML em DOCX/PPTX. O texto da nota nunca é interpretado nem calculado.
 
 ## O relatório imprimível
 
@@ -132,6 +145,8 @@ Três propriedades de formatação para apresentação:
 
 - **Paginação de tabelas em múltiplos slides:** tabelas com mais de 10 linhas são
   divididas automaticamente em blocos sequenciais com numeração de continuação `(1/N)`.
+  A quebra conta a **altura impressa** (100 caracteres por linha), não só as linhas:
+  uma nota de 2.000 caracteres ocupa um slide inteiro em vez de sair do slide (D-161).
 - **Interpretação técnica e laudo executivo:** no laudo, a interpretação gerada pela IA
   ganha slide dedicado com layout tipográfico refinado e indicação clara de disponibilidade/degradação.
 - **Nota de engenharia:** slide final com a nota de reprodutibilidade (sem os avisos de

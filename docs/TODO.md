@@ -279,10 +279,11 @@ próprio~~. Resíduos:
   e quebraria "reexecuta para a mesma resposta" em outra release. Desenho
   possível, a decidir pelo autor: estágio "lista fixada" que guarda a
   identidade externa (e não o id) e diz, ao reexecutar, quantos da lista sumiram.
-- **FL-b — nota nos relatórios e no laudo.** ▁ A nota viaja com o estudo e com o
-  arquivo, mas ainda não sai no HTML/DOCX/PPTX; quando sair, tem de passar por
-  `html.escape` (HTML) e pelo apóstrofo de `cells.py` (planilha), que não se
-  trocam um pelo outro.
+- ~~**FL-b — nota nos relatórios e no laudo.**~~ ✔ Entregue (Sessão 118,
+  [D-161](DECISIONS.md)): a seção "Notas do autor" (estudo e estágios) sai em
+  CSV, XLSX, HTML, DOCX e PPTX (relatório) e HTML, DOCX e PPTX (laudo), cada
+  formato com o seu escape (apóstrofo de `cells.py` na planilha, `html.escape`
+  no HTML).
 - **FL-c — editar só a nota de um estudo salvo.** ▁ Hoje o estudo é criado e
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
 - **FL-d — copiar outras tabelas.** ▁ Só o ranking/candidatos tem "Copiar
