@@ -159,6 +159,12 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 125 — 27/10/26 — Grandeza adimensional sem traço (D-167)
+
+**O que mudou.** `dimensionName` (palavra "adimensional") na proveniência do índice e na validação da expressão da Seleção; `ComputedSection` deixa de
+escrever `[—]` ao lado do nome da coluna. +3 de frontend (2 em `format.test.ts`, 1 em `compare-threshold.test.tsx`, que falha sem a correção).
+**Achado que não virou código.** O "0.85" de Baterias é o `<input type="number">` seguindo a localidade do navegador. Sem backend nem migração.
+
 ## Sessão 124 — 21/10/26 — Rótulo do eixo das colunas em duas linhas (D-166)
 
 **O que mudou.** `wrapLabel` em `components/charts/figureKit.ts` e `HorizontalBars` (orientação vertical): o rótulo de uma coluna que não cabe

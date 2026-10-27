@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import type { Candidate, Contribution, RunResult } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
+import { dimensionName, formatNumber, formatScore, prettyUnit } from "@/lib/format";
 import { OKABE_ITO } from "@/lib/design/palette";
 import {
   Alert,
@@ -720,7 +720,7 @@ export function ResultsView({
                 {index.goal === "minimize" ? t.minimize : t.maximize}
               </ProvenanceItem>
               <ProvenanceItem term={t.provIndexDimension}>
-                {prettyUnit(index.dimension)}
+                {dimensionName(index.dimension)}
               </ProvenanceItem>
               <ProvenanceItem term={t.provIndexDefined}>
                 <span className="tabular-nums">

@@ -1217,6 +1217,9 @@ export const ptBR = {
     readingNote:
       "Os valores estão na unidade em que cada grandeza se lê. O que a fonte registrou, e a unidade canônica em que o valor é guardado, continuam na proveniência de cada número.",
     canonicalNote: "Unidade canônica:",
+    // Uma grandeza sem dimensão não tem unidade para escrever; a palavra diz isso
+    // sem usar o traço, que neste app quer dizer "ausente".
+    dimensionless: "adimensional",
   },
   battery: {
     title: "Dimensionar bateria",
