@@ -14,7 +14,7 @@ import type { Curve, CurveScale } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { CurveChart } from "@/components/charts/CurveChart";
 import { CurveEditor } from "@/components/material/CurveEditor";
-import { CurveValueReader } from "@/components/material/CurveValueReader";
+import { CurveValueReader, type AppliedReading } from "@/components/material/CurveValueReader";
 import { MenuItem } from "@/components/ui/Menu";
 import {
   Button,
@@ -38,6 +38,9 @@ export const CURVE_PARAMS = {
   y: "curva_y",
   parameter: "curva_param",
   scale: "curva_escala",
+  // D-175: the value read off the curve and the unit it was typed in.
+  at: "curva_valor",
+  atUnit: "curva_valor_un",
 } as const;
 
 /**
@@ -86,6 +89,13 @@ export function MaterialCurves({
       : undefined,
   };
 
+  // D-175: a value in the address belongs to the curve it was read on. With no
+  // `curva=` it is the default curve's, which is what the page then shows.
+  const valueLink =
+    selected !== undefined && (sameCurve || !search.has(CURVE_PARAMS.curve))
+      ? { at: search.get(CURVE_PARAMS.at), unit: search.get(CURVE_PARAMS.atUnit) }
+      : undefined;
+
   const curve = useQuery({
     queryKey: ["material-curve", materialId, selected?.id, reading.x, reading.y, reading.parameter, reading.scale],
     queryFn: () => getMaterialCurve(materialId, selected!.id, reading),
@@ -109,10 +119,20 @@ export function MaterialCurves({
     [pathname, router, search],
   );
 
+  const applyValue = useCallback(
+    (reading: AppliedReading | null) =>
+      update(
+        reading === null
+          ? { at: null, atUnit: null }
+          : { curve: String(selected?.id ?? ""), at: reading.at, atUnit: reading.unit },
+      ),
+    [selected?.id, update],
+  );
+
   const remove = useMutation({
     mutationFn: (curveId: number) => deleteMaterialCurve(materialId, curveId),
     onSuccess: async () => {
-      update({ curve: null, x: null, y: null, scale: null });
+      update({ curve: null, x: null, y: null, scale: null, at: null, atUnit: null });
       await qc.invalidateQueries({ queryKey: ["material-curves", materialId] });
     },
   });
@@ -162,7 +182,15 @@ export function MaterialCurves({
           label={t.picker}
           value={String(selected.id)}
           onChange={(event) =>
-            update({ curve: event.target.value, x: null, y: null, parameter: null, scale: null })
+            update({
+              curve: event.target.value,
+              x: null,
+              y: null,
+              parameter: null,
+              scale: null,
+              at: null,
+              atUnit: null,
+            })
           }
           className="max-w-xl"
         >
@@ -211,7 +239,7 @@ export function MaterialCurves({
             }
           />
           {/* TM4-b: the value at a declared x, asked of the backend — never read off the figure. */}
-          <CurveValueReader curve={curve.data} />
+          <CurveValueReader curve={curve.data} link={valueLink} onApplied={applyValue} />
         </>
       ) : (
         <LoadingState label={t.loading} />

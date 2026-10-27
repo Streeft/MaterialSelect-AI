@@ -118,7 +118,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
   curva, a ficha diz "Nenhuma curva cadastrada" (D-106). Abaixo da figura, "Ler
   um valor da curva" pergunta ao servidor o ponto que a fonte declarou
-  exatamente naquele x (ausência escrita, nunca interpolada); uma trajetória
+  exatamente naquele x (ausência escrita, nunca interpolada; a leitura feita vai no endereço e o link a refaz, D-175); uma trajetória
   (laço de histerese) leva setas no sentido do caminho, anel no início e losango
   no fim, e não oferece leitura num x. A ficha também traz as **propriedades
   ordinais** (escala cadastrada, nível do material, fonte e ausência escrita)

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -81,11 +82,11 @@ function answer(overrides: Partial<CurveValue> = {}): CurveValue {
   };
 }
 
-function mount(curve = stressStrain) {
+function mount(curve = stressStrain, props: Partial<ComponentProps<typeof CurveValueReader>> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <CurveValueReader curve={curve} />
+      <CurveValueReader curve={curve} {...props} />
     </QueryClientProvider>,
   );
 }
@@ -243,5 +244,92 @@ describe("CurveValueReader (TM4-b, D-110)", () => {
 
     const path = mount(hysteresisLoop);
     expect(await findA11yViolations(path.container), "path").toEqual([]);
+  });
+});
+
+describe("CurveValueReader: o valor lido no endereço (D-175)", () => {
+  const field = () => screen.getByLabelText(t.fieldAt("Deformação de engenharia"));
+
+  it("diz ao endereço o valor e a unidade lidos, com ponto decimal", async () => {
+    api.getCurveValue.mockResolvedValue(answer());
+    const onApplied = vi.fn();
+    mount(stressStrain, { onApplied });
+    await userEvent.selectOptions(screen.getByLabelText(t.fieldUnit), "dimensionless");
+    await userEvent.type(field(), "0,001");
+    await userEvent.click(screen.getByRole("button", { name: t.submit }));
+    await waitFor(() => expect(api.getCurveValue).toHaveBeenCalledTimes(1));
+    expect(onApplied).toHaveBeenCalledTimes(1);
+    expect(onApplied).toHaveBeenCalledWith({ at: "0.001", unit: "dimensionless" });
+  });
+
+  it("texto que não é número não vai para o endereço", async () => {
+    const onApplied = vi.fn();
+    mount(stressStrain, { onApplied });
+    await userEvent.type(field(), "vinte");
+    await userEvent.click(screen.getByRole("button", { name: t.submit }));
+    expect(await screen.findByText(t.invalidNumber)).toBeInTheDocument();
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it("abre com o valor do link: preenche o campo, lê e mostra o resultado, sem mexer no endereço", async () => {
+    api.getCurveValue.mockResolvedValue(answer());
+    const onApplied = vi.fn();
+    const { container } = mount(stressStrain, { link: { at: "0.1", unit: "%" }, onApplied });
+
+    expect(field()).toHaveValue("0,1");
+    expect(await screen.findByText("205 MPa")).toBeInTheDocument();
+    expect(api.getCurveValue).toHaveBeenCalledTimes(1);
+    expect(api.getCurveValue).toHaveBeenCalledWith(2, 11, {
+      at: 0.1,
+      atUnit: "%",
+      y: "MPa",
+      parameter: "degC",
+    });
+    expect(container.querySelector("[data-curve-value='result']")).not.toBeNull();
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it("usa a unidade do eixo quando o link traz só o valor", async () => {
+    api.getCurveValue.mockResolvedValue(answer());
+    mount(stressStrain, { link: { at: "0,1", unit: null } });
+    await waitFor(() =>
+      expect(api.getCurveValue).toHaveBeenCalledWith(2, 11, expect.objectContaining({ at: 0.1, atUnit: "%" })),
+    );
+  });
+
+  it("valor do link que não é número: erro escrito, nada é lido, sai do endereço", async () => {
+    const onApplied = vi.fn();
+    const { container } = mount(stressStrain, { link: { at: "abc", unit: "%" }, onApplied });
+
+    expect(await screen.findByText(t.linkInvalidAt("abc"))).toBeInTheDocument();
+    expect(field()).toHaveValue("");
+    expect(api.getCurveValue).not.toHaveBeenCalled();
+    await waitFor(() => expect(onApplied).toHaveBeenCalledWith(null));
+    expect(onApplied).toHaveBeenCalledTimes(1);
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  it("unidade do link que o eixo não aceita: não lê em outra unidade; mantém o número no campo", async () => {
+    const onApplied = vi.fn();
+    mount(stressStrain, { link: { at: "0.1", unit: "furlong" }, onApplied });
+
+    expect(await screen.findByText(t.linkInvalidUnit("furlong"))).toBeInTheDocument();
+    expect(field()).toHaveValue("0,1");
+    expect(api.getCurveValue).not.toHaveBeenCalled();
+    await waitFor(() => expect(onApplied).toHaveBeenCalledWith(null));
+  });
+
+  it("não cita um valor enorme do link por inteiro", async () => {
+    mount(stressStrain, { link: { at: "x".repeat(300), unit: null } });
+    const sentence = await screen.findByText(/não é um número/);
+    expect(sentence.textContent?.length ?? 0).toBeLessThan(220);
+  });
+
+  it("recusa do servidor ao abrir pelo link é escrita, não repetida", async () => {
+    api.getCurveValue.mockRejectedValue(new ApiError("Falha escrita.", 422));
+    mount(stressStrain, { link: { at: "1", unit: "%" } });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Falha escrita.");
+    expect(api.getCurveValue).toHaveBeenCalledTimes(1);
   });
 });

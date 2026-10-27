@@ -192,7 +192,10 @@ taxa, fadiga (S–N) e fluência — como SVG próprio, sem Plotly. Regras:
 - **Unidade e escala** são escolha do leitor, vivem na URL
   (`?curva=&curva_x=&curva_y=&curva_escala=`) e só oferecem o que a API lista
   (`accepted_units`, `available_scales`); a recusa (400) aparece em português
-  com as admitidas. Trocar de curva zera a escolha.
+  com as admitidas. Trocar de curva zera a escolha. O valor lido pelo leitor de
+  valor vai junto (`curva_valor`, com ponto decimal, e `curva_valor_un`): o link
+  reabre a leitura feita; valor que não é número ou unidade que o eixo não aceita
+  são ditos sob o campo, nada é lido e eles saem do endereço (D-175).
 - **Cada série se distingue por cor, traço e marcador** (assento da paleta,
   D-28), para ler em impressão cinza e por quem tem daltonismo; a legenda alterna
   séries. O resumo vem do `ChartTooltip`.

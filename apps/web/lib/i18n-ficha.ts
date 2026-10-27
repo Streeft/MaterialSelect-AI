@@ -51,6 +51,11 @@ export const fichaText = {
     pathTitle: "Leitura de valor indisponível nesta trajetória",
     pathReason:
       "Esta curva é uma trajetória (ex.: laço de histerese): o mesmo x pode ter mais de um y, conforme o trecho do caminho. Ler um valor num x é ambíguo, e nada é interpolado nem escolhido; consulte a tabela de pontos, na ordem declarada pela fonte.",
+    // D-175: o valor lido vai no endereço; o que chega no link e não vale é dito.
+    linkInvalidAt: (raw: string) =>
+      `O valor «${raw}» que veio no link não é um número, e foi ignorado. Digite um número; a vírgula decimal é aceita.`,
+    linkInvalidUnit: (raw: string) =>
+      `A unidade «${raw}» que veio no link não é aceita neste eixo, então o valor não foi lido. Escolha a unidade e leia de novo.`,
   },
   path: {
     /** The footer line that explains the arrows, the start and the end. */

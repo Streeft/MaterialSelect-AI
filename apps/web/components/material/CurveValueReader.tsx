@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ApiError, getCurveValue } from "@/lib/api";
 import type { Curve, CurveSeriesValue, CurveValue } from "@/lib/types";
 import { fichaText } from "@/lib/i18n-ficha";
@@ -38,6 +38,46 @@ function parseTyped(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
+/** What the address carries of a reading, as written there (D-175). */
+export interface CurveValueLink {
+  at: string | null;
+  unit: string | null;
+}
+
+/** The value and unit of a reading, as the address will carry them. */
+export interface AppliedReading {
+  at: string;
+  unit: string;
+}
+
+/** A piece of a link, cut to what a sentence can quote. */
+function quotable(raw: string): string {
+  return raw.length > 40 ? `${raw.slice(0, 40)}…` : raw;
+}
+
+/**
+ * What a link says about the reading, checked before anything is asked. A value
+ * that is not a number, or a unit the axis does not accept, is refused with a
+ * sentence and never repaired: reading 0,1 in a unit the sender did not mean
+ * would hand over a number that answers another question.
+ */
+function readLink(link: CurveValueLink | undefined, curve: Curve) {
+  const defaultUnit = curve.x_axis.unit;
+  const none = { applied: null, text: "", unit: defaultUnit, notice: null, clean: false };
+  if (!link || (link.at === null && link.unit === null)) return none;
+  const unitOk =
+    link.unit === null || curve.x_axis.accepted_units.some((option) => option.unit === link.unit);
+  if (link.at === null) return { ...none, clean: true };
+  const at = parseTyped(link.at);
+  if (at === null) return { ...none, notice: t.linkInvalidAt(quotable(link.at)), clean: true };
+  const text = String(at).replace(".", ",");
+  if (!unitOk) {
+    return { ...none, text, notice: t.linkInvalidUnit(quotable(link.unit ?? "")), clean: true };
+  }
+  const unit = link.unit ?? defaultUnit;
+  return { applied: { at, unit }, text, unit, notice: null, clean: false };
+}
+
 /**
  * Reading one value off a curve (TM4-b, D-110).
  *
@@ -50,8 +90,21 @@ function parseTyped(text: string): number | null {
  *
  * A trajectory (`path_kind = "path"`, a hysteresis loop) has no single y per x,
  * so the form is not offered: the reason is written instead (D-118).
+ *
+ * D-175: the reading that was made lives in the address too. `link` is what the
+ * address carried when the reader opened, and `onApplied` tells the page the
+ * reading to write (or `null`, to take a refused one off). The question is the
+ * query's key, so a link restores the answer without a second path.
  */
-export function CurveValueReader({ curve }: { curve: Curve }) {
+export function CurveValueReader({
+  curve,
+  link,
+  onApplied,
+}: {
+  curve: Curve;
+  link?: CurveValueLink;
+  onApplied?: (reading: AppliedReading | null) => void;
+}) {
   if (curve.path_kind === "path") {
     return (
       <div className="well flex flex-col gap-1" data-curve-value="path">
@@ -61,31 +114,64 @@ export function CurveValueReader({ curve }: { curve: Curve }) {
     );
   }
   // A different curve is a different question: start from a clean form.
-  return <Reader key={curve.id} curve={curve} />;
+  return <Reader key={curve.id} curve={curve} link={link} onApplied={onApplied} />;
 }
 
-function Reader({ curve }: { curve: Curve }) {
+function Reader({
+  curve,
+  link,
+  onApplied,
+}: {
+  curve: Curve;
+  link?: CurveValueLink;
+  onApplied?: (reading: AppliedReading | null) => void;
+}) {
   const announce = useAnnounce();
   const xLabel = curve.x_axis.title ?? curve.x_axis.quantity_label;
-  const [text, setText] = useState("");
-  const [unit, setUnit] = useState(curve.x_axis.unit);
-  const [typingError, setTypingError] = useState<string | null>(null);
+  // The address is read once, when the reader opens; after that the form is the
+  // state and the address only follows it.
+  const [fromLink] = useState(() => readLink(link, curve));
+  const [text, setText] = useState(fromLink.text);
+  const [unit, setUnit] = useState(fromLink.unit);
+  const [typingError, setTypingError] = useState<string | null>(fromLink.notice);
+  const [applied, setApplied] = useState<{ at: number; unit: string } | null>(fromLink.applied);
 
-  const read = useMutation({
-    mutationFn: (at: number) =>
+  // What the link carried that could not be used comes off the address, once.
+  const cleaned = useRef(false);
+  useEffect(() => {
+    if (cleaned.current || !fromLink.clean) return;
+    cleaned.current = true;
+    onApplied?.(null);
+  }, [fromLink.clean, onApplied]);
+
+  const read = useQuery({
+    queryKey: [
+      "curve-value",
+      curve.material_id,
+      curve.id,
+      applied?.at,
+      applied?.unit,
+      curve.y_axis.unit,
+      curve.parameter?.unit,
+    ],
+    queryFn: () =>
       getCurveValue(curve.material_id, curve.id, {
-        at,
-        atUnit: unit,
+        at: applied!.at,
+        atUnit: applied!.unit,
         // The figure's own reading units, so the answer sits beside the plot in
         // the same unit instead of in the canonical one.
         y: curve.y_axis.unit,
         parameter: curve.parameter?.unit,
       }),
-    onSuccess: (result) => {
-      const at = atText(result);
-      announce(t.announce(result.found_count, result.series.length, at));
-    },
+    enabled: applied !== null,
+    // A refused reading is said once, not asked three times.
+    retry: false,
   });
+
+  useEffect(() => {
+    if (!read.data) return;
+    announce(t.announce(read.data.found_count, read.data.series.length, atText(read.data)));
+  }, [read.data, announce]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -95,7 +181,8 @@ function Reader({ curve }: { curve: Curve }) {
       return;
     }
     setTypingError(null);
-    read.mutate(at);
+    setApplied({ at, unit });
+    onApplied?.({ at: String(at), unit });
   }
 
   const units = curve.x_axis.accepted_units;
@@ -137,12 +224,12 @@ function Reader({ curve }: { curve: Curve }) {
             {units[0]?.label ?? prettyUnit(curve.x_axis.unit)}
           </span>
         )}
-        <Button type="submit" variant="secondary" size="sm" loading={read.isPending}>
-          {read.isPending ? t.reading : t.submit}
+        <Button type="submit" variant="secondary" size="sm" loading={read.isFetching}>
+          {read.isFetching ? t.reading : t.submit}
         </Button>
       </div>
 
-      {read.isError ? (
+      {read.isError && applied !== null ? (
         <p role="alert" className="max-w-prose text-support text-danger-fg">
           <span className="font-semibold">{t.error}</span>{" "}
           {read.error instanceof ApiError ? read.error.message : null}

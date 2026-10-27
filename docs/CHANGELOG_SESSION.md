@@ -159,6 +159,13 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 133 — 27/10/26 — O valor lido da curva vai no endereço (D-175)
+
+**O pedido.** Resíduo TM4-b-res do D-157: o valor lido no leitor da ficha não ia para a URL.
+
+**O que mudou.** `MaterialCurves` ganha `curva_valor` e `curva_valor_un` (`CURVE_PARAMS.at`/`atUnit`); `CurveValueReader` recebe `link` (o que o endereço trazia ao abrir) e `onApplied` (o que escrever), passa de `useMutation` a `useQuery` com a leitura como chave, abre com o campo preenchido e a leitura feita, e recusa por escrito valor que não é número ou unidade que o eixo não aceita (nada é lido em outra unidade; o valor sai do endereço). Trocar ou excluir a curva tira o valor. Textos novos em `lib/i18n-ficha.ts` (`linkInvalidAt`, `linkInvalidUnit`).
++13 de frontend (8 em `CurveValueReader.test.tsx`, 5 em `MaterialCurvesValueUrl.test.tsx`, com axe no estado de erro do link). Suíte inteira: 1452 passam (1439 na main com o Eco Audit exportável, mais 13). Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 133 e D-175 (129 a 132 e D-171 a D-174 são de outros PRs).
 ## Sessão 132 — 27/10/26 — Comparador: o link leva propriedades e normalização (D-174)
 
 **O pedido.** Resíduo CMP-link do D-163: a escolha de propriedades e a normalização não iam no link.

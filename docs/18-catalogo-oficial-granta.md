@@ -236,7 +236,9 @@ como a fonte os escreveu, a faixa declarada e a fonte/citação da curva. Esse
 valor **não** vira propriedade escalar (`MaterialPropertyValue`) nem entra em
 ranking: é uma leitura da curva, com a curva ao lado. A ficha tem a tela dessa
 leitura (D-157): "Ler um valor da curva", sob a figura, que só envia o x e a
-unidade e escreve a resposta.
+unidade e escreve a resposta. A leitura feita vai no endereço (`curva_valor`,
+`curva_valor_un`, D-175) e o link a refaz ao abrir; valor ou unidade inválidos do
+link são ditos e não são lidos.
 
 **Trajetórias (D-118, TM4-c).** Uma curva declarada `path_kind = "path"` (laço
 de histerese, carga e descarga) guarda os pontos na ordem da fonte e pode ter o
