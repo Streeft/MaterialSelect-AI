@@ -11280,3 +11280,21 @@ o leitor lê "Algo não funcionou", sem saber que a causa é a conexão e sem sa
 
 Textos em `ptBR.offline`.
 
+## D-169 — Atalhos de teclado: "g" e uma letra vão para a tela; "?" abre a lista
+
+**Contexto.** A busca global (D-129) tem Ctrl/Cmd+K e "/", mas não havia como trocar de tela só com o teclado, nem uma lista dos atalhos
+(Gmail e Drive têm as duas coisas).
+
+**Decisão.**
+- **`KeyboardShortcuts`** (`app/app/layout.tsx`): "g" e, em até 1,5 s, uma letra leva à tela (`lib/shortcuts.ts`: Início `i`, Seleção `s`, Mapas `m`,
+  Comparar `c`, Cadernos `n`, Dimensionar `d`, Custo `u`, Eco `e`, Baterias `b`, Catálogo `t`, Processos `p`, Meus registros `r`). Uma letra por destino;
+  a letra é a inicial onde está livre.
+- **Fica fora do caminho:** não age em campo de texto, com Ctrl/Cmd/Alt (os atalhos do navegador ficam intactos) nem com um diálogo aberto.
+- **"?"** abre a lista (`Dialog`) com os atalhos, a busca e a própria lista.
+- **WCAG 2.1.4 (atalho de uma tecla):** quem usa ditado por voz ou aciona teclas sem querer precisa poder desligá-los. A lista traz o interruptor
+  "Atalhos de uma tecla", guardado em `localStorage` (`msai.shortcuts`, leitura em `try/catch`, sem armazenamento vale "ligado"). Desligado, o "g" para; o "?"
+  continua abrindo a lista, porque o interruptor mora nela e abrir uma janela não faz nada irreversível. O "/" da busca (D-129) não foi tocado.
+- **Admin e Importar** não ganham letra: ficam fora do uso diário e dependem do papel do leitor (D-86).
+
+Textos em `ptBR.shortcuts`.
+
