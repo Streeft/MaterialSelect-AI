@@ -159,6 +159,12 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 126 — 27/10/26 — Estado sem conexão (D-168)
+
+**O que mudou.** Faixa `OfflineBanner` abaixo da busca enquanto o navegador está offline, com o link para as fichas já abertas; `ErrorState` sem título próprio
+diz "Sem conexão" em vez de "Algo não funcionou"; hook `useOnline`. +6 de frontend (`components/layout/offline.test.tsx`); suíte inteira: 1419 passam.
+Sem backend nem migração; o service worker não mudou.
+
 ## Sessão 125 — 27/10/26 — Grandeza adimensional sem traço (D-167)
 
 **O que mudou.** `dimensionName` (palavra "adimensional") na proveniência do índice e na validação da expressão da Seleção; `ComputedSection` deixa de
