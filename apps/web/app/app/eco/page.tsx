@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import type {
+  EcoAuditRequest,
   EcoAuditResult,
   EcoComparisonResult,
   EcoDominance,
@@ -26,6 +27,7 @@ import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
 import { PhaseBars, type PhaseBarRow } from "@/components/eco/PhaseBars";
+import { EcoExportMenu } from "@/components/eco/EcoExportMenu";
 import {
   Alert,
   Badge,
@@ -588,6 +590,9 @@ export default function EcoPage() {
     { key: 0, mode: "", distance: DEFAULTS.distance },
   ]);
   const [result, setResult] = useState<EcoAuditResult | null>(null);
+  // The brief `result` was computed from: the export sends this one, not what
+  // the inputs say now, so the file cannot disagree with the screen (D-172).
+  const [resultBrief, setResultBrief] = useState<EcoAuditRequest | null>(null);
 
   // Compare mode state
   const [materialAId, setMaterialAId] = useState("");
@@ -661,40 +666,45 @@ export default function EcoPage() {
   const processesB = useMemo(() => detailB.data?.processes ?? [], [detailB.data]);
   const selectedProcB = processBId || String(processesB[0]?.id ?? "");
 
+  const briefFromScreen = (): EcoAuditRequest => ({
+    components: resolvedComponents.map((c) => ({
+      name: c.name.trim() === "" ? null : c.name.trim(),
+      material_id: Number(c.materialId),
+      process_id: Number(c.processId),
+      unit_mass: Number(c.mass),
+      quantity: Number(c.quantity),
+      recycled_fraction: Number(c.recycled),
+      end_of_life: c.endOfLife,
+    })),
+    transport_legs: resolvedLegs.map((leg) => ({
+      mode: leg.mode,
+      distance_km: Number(leg.distance),
+    })),
+    use:
+      useModel === "estatico"
+        ? {
+            model: "estatico",
+            power_watts: Number(power),
+            duty_cycle: Number(duty),
+            life_years: Number(life),
+            carbon_per_energy: Number(carbonPerEnergy),
+          }
+        : {
+            model: "movel",
+            distance_km: Number(travel),
+            mobile_intensity: Number(intensity),
+            life_years: Number(life),
+            carbon_per_energy: Number(carbonPerEnergy),
+          },
+  });
+
   const audit = useMutation({
-    mutationFn: () =>
-      runEcoAudit({
-        components: resolvedComponents.map((c) => ({
-          name: c.name.trim() === "" ? null : c.name.trim(),
-          material_id: Number(c.materialId),
-          process_id: Number(c.processId),
-          unit_mass: Number(c.mass),
-          quantity: Number(c.quantity),
-          recycled_fraction: Number(c.recycled),
-          end_of_life: c.endOfLife,
-        })),
-        transport_legs: resolvedLegs.map((leg) => ({
-          mode: leg.mode,
-          distance_km: Number(leg.distance),
-        })),
-        use:
-          useModel === "estatico"
-            ? {
-                model: "estatico",
-                power_watts: Number(power),
-                duty_cycle: Number(duty),
-                life_years: Number(life),
-                carbon_per_energy: Number(carbonPerEnergy),
-              }
-            : {
-                model: "movel",
-                distance_km: Number(travel),
-                mobile_intensity: Number(intensity),
-                life_years: Number(life),
-                carbon_per_energy: Number(carbonPerEnergy),
-              },
-      }),
-    onSuccess: setResult,
+    onMutate: briefFromScreen,
+    mutationFn: () => runEcoAudit(briefFromScreen()),
+    onSuccess: (data, _variables, brief) => {
+      setResult(data);
+      setResultBrief(brief ?? null);
+    },
   });
 
   const comparisonMutation = useMutation({
@@ -1305,6 +1315,7 @@ export default function EcoPage() {
         <StepCard title={t.resultStep}>
           {result ? (
             <>
+              <EcoExportMenu brief={resultBrief} />
               <div className="flex flex-col gap-3">
                 <span className="text-sm font-medium text-ink">
                   {t.dominanceTitle}

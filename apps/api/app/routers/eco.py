@@ -12,12 +12,14 @@ own records take part in their own audit and nobody else's appear (P1-4).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_user
+from app.domain.errors import ValidationError
 from app.models.user import User
+from app.routers.exports import SUPPORTED_FORMATS, _file_response
 from app.schemas.eco import (
     EcoAuditRequest,
     EcoAuditResultOut,
@@ -27,6 +29,7 @@ from app.schemas.eco import (
     TransportModeOut,
 )
 from app.services.eco_service import EcoService
+from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/eco", tags=["eco"])
 
@@ -67,3 +70,24 @@ def compare_eco_audits(
 ) -> EcoComparisonResultOut:
     """Compare two eco-audit alternatives side-by-side."""
     return EcoService(db, user.id).compare(payload)
+
+
+@router.post("/exportar.{fmt}")
+def export_eco_audit(
+    fmt: str,
+    payload: EcoAuditRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """The audit of a brief as CSV, XLSX, HTML, DOCX or PPTX (D-172).
+
+    A POST because the brief is a body, like ``/auditar``. The audit is re-run
+    server-side, so the file always carries the figures the screen shows; the
+    response is built by the same ``_file_response`` as every other export, so
+    the escape (per format), the CSP on HTML and the filename rules are shared.
+    """
+    if fmt not in SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de exportação não suportado: '{fmt}'. Use {', '.join(SUPPORTED_FORMATS)}."
+        )
+    return _file_response(ExportService(db, user).eco_report(payload), fmt)

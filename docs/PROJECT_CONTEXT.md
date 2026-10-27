@@ -645,6 +645,10 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
+**Contagem medida na Sessão 130 (Eco Audit exportável, D-172):** 5122 testes de backend coletados (5116 passam e 6 pulam sem `POSTGRES_TEST_URL`; +19) e 1439 de
+frontend (+7), medidos na branch com `pytest` e `vitest run`. O Eco Audit exporta em CSV, XLSX, HTML, DOCX e PPTX (`POST /api/eco/exportar.{fmt}`), por componente e por
+trecho, com a razão escrita de cada ausência e a fonte, a qualidade, a licença e o `is_demo` de cada dado lido; limite conhecido: o A × B (`/api/eco/comparar`) não exporta.
+
 **Saúde do código:** 5054 testes de backend (Python 3.11 e 3.12, nenhum skip
 na CI; sem `POSTGRES_TEST_URL`, 5048 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 1360 de frontend, todos
