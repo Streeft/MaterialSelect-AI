@@ -2,6 +2,7 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
+import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { RouteTransition } from "@/components/layout/RouteTransition";
 import { AnnouncerProvider } from "@/components/ui/Announcer";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
@@ -35,6 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <GlobalSearchButton />
             </div>
           </div>
+          <OfflineBanner />
           {/* D-80: 1536 px, not 1152. A data screen at 1920 left a third of the
               window blank beside a map squeezed to 1100 px; prose keeps its
               own measure through `max-w-prose` where it appears. */}

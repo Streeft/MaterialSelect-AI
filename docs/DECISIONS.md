@@ -11265,3 +11265,18 @@ de um índice digitado no comparador (`E/ρ [—]`), a linha "Dimensão" da prov
 **Fora do escopo, e por quê.** O campo "DoD" de Baterias mostra "0.85" ou "0,85" conforme a localidade do navegador: é um `<input type="number">`, e a
 exibição do valor é do navegador, não do app. Nada a corrigir no código.
 
+## D-168 — Sem conexão: o app diz que está sem conexão, e aponta para as fichas já abertas
+
+**Contexto.** Conferência ao vivo do fluxo offline (D-152): numa rota já visitada, sem rede, a tela abre do cache HTTP do navegador, a busca falha e
+o leitor lê "Algo não funcionou", sem saber que a causa é a conexão e sem saber que as fichas já abertas continuam legíveis.
+
+**Decisão** (M3 *Snackbar*/*Banners*: aviso que persiste enquanto a condição dura, sem cobrir o conteúdo).
+- **`useOnline`** (`lib/useOnline.ts`): `navigator.onLine` por `useSyncExternalStore`, com os eventos `online`/`offline`. É uma dica, não prova (um portal
+  cativo diz `true`); ela só escolhe a frase, nunca esconde nem mostra dado. O primeiro desenho do servidor é `true`.
+- **`OfflineBanner`** (`app/app/layout.tsx`, abaixo da busca): `role="status"`, "Sem conexão. Buscas e cálculos precisam do servidor…" e o link
+  "Ver fichas já abertas" para `/offline.html` (âncora comum: é um arquivo estático fora do roteador).
+- **`ErrorState`** sem título próprio troca "Algo não funcionou" por "Sem conexão" e explica a causa. Quem passa título continua com o dele.
+- **Não muda:** o service worker (D-142/D-152), o que é guardado offline, nem o princípio de nunca mostrar resultado antigo como atual.
+
+Textos em `ptBR.offline`.
+
