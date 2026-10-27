@@ -11319,3 +11319,13 @@ já evita para o conteúdo da página.
 **Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
 abaixo dele. Fica para a próxima rodada de copy.
 
+
+## D-174 — Comparador: o link leva também as propriedades e a normalização (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-163 deixou como resíduo (CMP-link) a escolha de propriedades e a normalização fora do link: quem abria o endereço via os mesmos materiais numa tabela de outras colunas e de outra escala.
+
+**Decisão.** (1) **`propriedades`** (slugs separados por vírgula, na ordem da tela) e **`normalizacao`** (`minmax` ou `vector`). (2) **As propriedades são escritas sempre que há material**, também quando ninguém as escolheu: o padrão ("as quatro com mais valores") depende do catálogo de quem abre, e um link que dependesse dele mostraria duas tabelas (a razão do D-163). Já a normalização padrão (`minmax`) é constante do código e **não** ocupa o endereço; só a outra é escrita. (3) Sem material o endereço continua nu. (4) **Entrada não confiável, dita e nunca consertada:** pedaço sem forma de slug, propriedades além do teto de 20 (ficam as 20 primeiras, e se diz quantas sobraram), slug que o catálogo não tem mais (conferido quando o catálogo chega) e normalização desconhecida saem do pedido e do endereço, cada um numa frase no aviso "O que o link trazia e ficou de fora". Normalização inválida cai na padrão, dita. (5) A tabela espera o catálogo de propriedades antes de pedir ao servidor, como já espera o validador dos índices: um slug velho no link não derruba a tabela inteira. (6) Nada vai para o navegador: o estado vive na tela e no endereço.
+
+**Descartado.** Escrever as propriedades só quando o leitor escolheu (o link de uma tela "padrão" mudaria de tabela com o catálogo); repetir `normalizacao=minmax` em todo link; cair nas propriedades padrão quando todas as do link são inválidas (a tela diz "escolha uma propriedade" e lista o que saiu: o leitor decide, não o código); guardar no `localStorage`.
+
+**Consequências.** Só frontend; sem migração. Fecha o resíduo (a) do D-163; segue o resíduo (b), guardar a comparação com nome, que exige backend e decisão do autor.

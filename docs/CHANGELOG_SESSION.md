@@ -159,6 +159,14 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 132 — 27/10/26 — Comparador: o link leva propriedades e normalização (D-174)
+
+**O pedido.** Resíduo CMP-link do D-163: a escolha de propriedades e a normalização não iam no link.
+
+**O que mudou.** `lib/compare-link.ts` ganha `propriedades` e `normalizacao` (`parseProperties`, `parseNormalization`; `compareSearch` e `readCompareLink` as levam e as leem); `comparar/page.tsx` abre com as duas, escreve as propriedades sempre que há material (o padrão depende do catálogo de quem abre) e a normalização só quando não é a padrão, e espera o catálogo de propriedades antes de pedir a tabela. O que não vale (slug sem forma, excesso sobre 20, slug que o catálogo não tem mais, normalização desconhecida) aparece no aviso "O que o link trazia e ficou de fora" e sai do pedido e do endereço. `MAX_COMPARE_PROPERTIES` vai para `lib/compareLimits.ts`. Dica do "Copiar link" atualizada.
++13 de frontend (`compare-link.test.ts`, 7, e `comparar-propriedades.test.tsx`, 6, com axe); suíte inteira: 1445 passam (1432 na main + 13). Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 132 e D-174 (131 e D-173 são do PR de "Copiar tabela"; 129/130 e D-171/D-172 de outras faixas).
+
 ## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
 
 **O que mudou.** Capturas a 375 px (claro e escuro) de início, busca, atalhos, menu, faixa sem conexão, catálogo e ficha acharam um defeito: a busca global abria dentro da

@@ -292,8 +292,12 @@ calculado, os insumos e, no backend, a própria dispersão e o selo de limiar �
 só quando a expressão não soma nem subtrai e os insumos têm zero verdadeiro;
 senão a ausência é escrita (`escala_sem_zero`).
 
-O endereço do comparador é o link (D-163): `materiais`, `referencia`, `limiar`,
-`calculadas` e `indice` (repetido) são escritos a cada mudança, e "Copiar link"
-entrega o conjunto. Uma expressão que chega no link passa pelo mesmo validador
-antes de entrar; a recusada sai com a mensagem do servidor. Propriedades e
-normalização ainda não vão no link.
+O endereço do comparador é o link (D-163, D-174): `materiais`, `referencia`,
+`limiar`, `calculadas`, `indice` (repetido), `propriedades` (slugs, na ordem da
+tela) e `normalizacao` (só quando não é a padrão, `minmax`) são escritos a cada
+mudança, e "Copiar link" entrega o conjunto. Uma expressão que chega no link passa
+pelo mesmo validador antes de entrar; a recusada sai com a mensagem do servidor.
+Propriedade que o catálogo não tem mais, pedaço sem forma de slug, excesso sobre
+as 20 propriedades e normalização desconhecida são ditos no aviso "O que o link
+trazia e ficou de fora" e saem do pedido e do endereço; a tabela espera o catálogo
+de propriedades antes de pedir ao servidor.

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getComparison, listMaterials, listPerformanceIndices, listProperties } from "@/lib/api";
 import { parseThreshold } from "@/lib/compare-threshold";
-import { compareSearch, readCompareLink } from "@/lib/compare-link";
+import { DEFAULT_NORMALIZATION, compareSearch, readCompareLink } from "@/lib/compare-link";
 import { compareLinkText } from "@/lib/i18n-compare-link";
 import { ComputedTable } from "@/components/charts/ComputedSection";
 import { CopyCompareLink } from "@/components/charts/CopyCompareLink";
@@ -14,7 +14,7 @@ import { indexCheckKey, useIndexChecks } from "@/components/charts/useIndexCheck
 import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { MAX_COMPARE_MATERIALS } from "@/lib/compareLimits";
+import { MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES } from "@/lib/compareLimits";
 import { prettyUnit } from "@/lib/format";
 import { optionsAtLevel } from "@/lib/depth";
 import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
@@ -51,7 +51,7 @@ const t = ptBR.compare;
 // Mirrors MAX_COMPARE_* in apps/api/app/schemas/charts.py; the server rejects
 // anything larger, and the UI should not let the user get that far.
 const MAX_MATERIALS = MAX_COMPARE_MATERIALS;
-const MAX_PROPERTIES = 20;
+const MAX_PROPERTIES = MAX_COMPARE_PROPERTIES;
 
 function parseIds(raw: string | null): number[] {
   if (!raw) return [];
@@ -71,7 +71,11 @@ function ComparePageContent() {
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>(() =>
     parseIds(params.get("materiais")).slice(0, MAX_MATERIALS),
   );
-  const [userSelectedProperties, setUserSelectedProperties] = useState<string[] | null>(null);
+  // D-174: the property choice is in the link too. `null` is "no choice made":
+  // the table then starts from the properties most materials have.
+  const [userSelectedProperties, setUserSelectedProperties] = useState<string[] | null>(
+    fromLink.properties.slugs,
+  );
   // P2: the reference is read from the URL like the material list beside it, so
   // "compared against X" survives a reload and travels in a shared link (B1).
   // A reference held on the server would make the same URL render two different
@@ -99,7 +103,9 @@ function ComparePageContent() {
   const refusedChecks = indexChecks.filter((check) => check.state === "refused");
   const refusedKeys = new Set(refusedChecks.map((check) => expressionKey(check.expression)));
   const checkingLink = indexChecks.some((check) => check.state === "checking");
-  const [normalization, setNormalization] = useState<NormalizationMethod>("minmax");
+  const [normalization, setNormalization] = useState<NormalizationMethod>(
+    fromLink.normalization.value ?? DEFAULT_NORMALIZATION,
+  );
   const [mode, setMode] = useState<ComparisonMode>("table");
 
   const materials = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials() });
@@ -118,7 +124,19 @@ function ComparePageContent() {
       .map((p) => p.slug);
   }, [properties.data]);
 
-  const selectedProperties = userSelectedProperties ?? defaultProperties;
+  // D-174: a property the link named that the catalogue no longer has is taken
+  // off the request and the address once the catalogue is known, and said.
+  const knownProperties = useMemo(
+    () => (properties.data ? new Set(properties.data.map((p) => p.slug)) : null),
+    [properties.data],
+  );
+  const chosenProperties = userSelectedProperties ?? defaultProperties;
+  const selectedProperties = knownProperties
+    ? chosenProperties.filter((slug) => knownProperties.has(slug))
+    : chosenProperties;
+  const unknownProperties = knownProperties
+    ? (fromLink.properties.slugs ?? []).filter((slug) => !knownProperties.has(slug))
+    : [];
   // D-165: the level trims the chips on offer, never a property already chosen.
   const depthLevel = useDepthLevel();
   const offeredProperties = optionsAtLevel(properties.data ?? [], depthLevel, selectedProperties);
@@ -190,9 +208,10 @@ function ComparePageContent() {
   const comparison = useQuery({
     queryKey: ["comparison", JSON.stringify(request)],
     queryFn: () => getComparison(request),
-    // Held back while a link's typed index is still with the validator: asking
-    // for it early would fail the whole table on a typo in a link.
-    enabled: ready && !checkingLink,
+    // Held back while a link's typed index is still with the validator (asking
+    // for it early would fail the whole table on a typo in a link) and until the
+    // catalogue of properties is known (a stale slug in a link would fail it too).
+    enabled: ready && !checkingLink && properties.data !== undefined,
   });
 
   // The address is the link (D-163): every part that has to be shareable is
@@ -204,6 +223,8 @@ function ComparePageContent() {
     threshold,
     catalogue: computedSlugs,
     expressions: shownExpressions,
+    properties: selectedProperties,
+    normalization,
   };
   const linkSearch = compareSearch(
     typeof window === "undefined" ? "" : window.location.search,
@@ -260,15 +281,32 @@ function ComparePageContent() {
   }
 
   function toggleProperty(slug: string) {
-    setUserSelectedProperties((current) => {
-      const base = current ?? defaultProperties;
-      return base.includes(slug)
-        ? base.filter((x) => x !== slug)
-        : base.length >= MAX_PROPERTIES
-          ? base
-          : [...base, slug];
-    });
+    setUserSelectedProperties(
+      selectedProperties.includes(slug)
+        ? selectedProperties.filter((x) => x !== slug)
+        : selectedProperties.length >= MAX_PROPERTIES
+          ? selectedProperties
+          : [...selectedProperties, slug],
+    );
   }
+
+  // D-174: what the link carried about the properties and the normalization
+  // that could not be used, in words; none of it is in the request or the address.
+  const ignoredByLink = [
+    ...fromLink.properties.malformed.map((raw) => compareLinkText.badProperty(raw)),
+    ...(fromLink.properties.overCap > 0
+      ? [compareLinkText.tooManyProperties(fromLink.properties.overCap, MAX_PROPERTIES)]
+      : []),
+    ...unknownProperties.map((slug) => compareLinkText.unknownProperty(slug)),
+    ...(fromLink.normalization.invalid !== null
+      ? [
+          compareLinkText.badNormalization(
+            fromLink.normalization.invalid,
+            DEFAULT_NORMALIZATION === "minmax" ? t.normMinmax : t.normVector,
+          ),
+        ]
+      : []),
+  ];
 
   const materialsFull = selectedMaterials.length >= MAX_MATERIALS;
   const propertiesFull = selectedProperties.length >= MAX_PROPERTIES;
@@ -281,6 +319,16 @@ function ComparePageContent() {
         group="estudar"
         actions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
       />
+
+      {ignoredByLink.length > 0 && (
+        <Alert tone="warning" role="status" title={compareLinkText.ignoredTitle}>
+          <ul className="flex flex-col gap-1">
+            {ignoredByLink.map((text, i) => (
+              <li key={`${i}:${text}`}>{text}</li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
       {/* Three steps, each open once the one before it has something in it; a
           link with `?materiais=` arrives with all three filled (D-86). */}
@@ -446,6 +494,7 @@ function ComparePageContent() {
               </div>
             ) : null}
             {checkingLink && <LoadingState label={compareLinkText.checking} />}
+            {properties.isLoading && <LoadingState label={t.loading} />}
             {comparison.isLoading && <LoadingState label={t.loading} />}
             {comparison.isError && (
               <ErrorState
