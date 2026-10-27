@@ -159,6 +159,14 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
+
+**O que mudou.** Capturas a 375 px (claro e escuro) de início, busca, atalhos, menu, faixa sem conexão, catálogo e ficha acharam um defeito: a busca global abria dentro da
+barra de topo (`backdrop-filter` vira bloco de contenção do `fixed`). `SearchDialog` agora vai para o `body`; cada tela da lista leva o ícone da barra lateral.
++2 de frontend (`globalSearch.test.tsx`, ambos falham sem a correção); suíte do layout: 43 passam. Sem backend nem migração.
+**Visto e sem defeito:** menu lateral, lista de atalhos, faixa sem conexão, catálogo. **Observação:** texto de exemplo do campo de busca do catálogo cortado a 375 px.
+Para rodar o E2E nesta máquina foi preciso um venv da API (o `cryptography` do sistema panica no Python 3.11).
+
 ## Sessão 127 — 27/10/26 — Atalhos de teclado e folha de ajuda (D-169)
 
 **O que mudou.** `KeyboardShortcuts` no layout do app: "g" + letra navega, "?" abre a lista, com interruptor para desligar os atalhos de uma tecla (WCAG 2.1.4).
