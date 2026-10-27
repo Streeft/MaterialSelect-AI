@@ -2,6 +2,7 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
+import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { RouteTransition } from "@/components/layout/RouteTransition";
 import { AnnouncerProvider } from "@/components/ui/Announcer";
@@ -49,6 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <KeyboardShortcuts />
       <BottomNav />
       </AnnouncerProvider>
       </SnackbarProvider>

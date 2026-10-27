@@ -159,6 +159,12 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 127 — 27/10/26 — Atalhos de teclado e folha de ajuda (D-169)
+
+**O que mudou.** `KeyboardShortcuts` no layout do app: "g" + letra navega, "?" abre a lista, com interruptor para desligar os atalhos de uma tecla (WCAG 2.1.4).
+`lib/shortcuts.ts` guarda a tabela e a preferência. +8 de frontend (`components/layout/shortcuts.test.tsx`, com axe na lista); suíte inteira: 1430 passam.
+Sem backend nem migração.
+
 ## Sessão 126 — 27/10/26 — Estado sem conexão (D-168)
 
 **O que mudou.** Faixa `OfflineBanner` abaixo da busca enquanto o navegador está offline, com o link para as fichas já abertas; `ErrorState` sem título próprio

@@ -2873,6 +2873,16 @@ export const ptBR = {
     NAO_REGISTRADO: "Nenhum registro para este par — ninguém preencheu ainda.",
   },
 
+  // D-169: atalhos para ir de uma tela a outra sem tirar a mão do teclado.
+  shortcuts: {
+    title: "Atalhos de teclado",
+    intro: "Aperte g e, em seguida, a letra da tela. Os atalhos não funcionam enquanto você digita num campo.",
+    search: "Buscar",
+    help: "Abrir esta lista",
+    enable: "Atalhos de uma tecla",
+    enableHint: "Desligue se uma tecla solta atrapalha (por exemplo, ao usar ditado por voz). A lista continua abrindo com ?.",
+  },
+
   // D-168: sem conexão. Os cálculos moram no servidor, então o app diz isso em vez
   // de "Algo não funcionou", e aponta para as fichas já abertas (D-152).
   offline: {
