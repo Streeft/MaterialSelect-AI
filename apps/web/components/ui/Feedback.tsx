@@ -1,6 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
+import { useOnline } from "@/lib/useOnline";
 import { IconInfo } from "./icons";
 import { Button } from "./Button";
 import { CircularProgress as MsdsCircularProgress, ErrorState as MsdsErrorState } from "@/lib/msds";
@@ -124,7 +127,7 @@ export function LoadingState({
 }
 
 export function ErrorState({
-  title = ptBR.ui.errorTitle,
+  title,
   description,
   onRetry,
   className,
@@ -134,11 +137,15 @@ export function ErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
+  // D-168: with no connection the failure has one honest cause, so the default
+  // wording says it. A caller that passes its own title keeps it.
+  const online = useOnline();
+  const offlineDefault = !online && title === undefined;
   return (
     <div role="alert" className={className}>
       <MsdsErrorState
-        title={title}
-        description={description}
+        title={title ?? (offlineDefault ? ptBR.offline.errorTitle : ptBR.ui.errorTitle)}
+        description={description ?? (offlineDefault ? ptBR.offline.errorDescription : undefined)}
         action={
           onRetry ? (
             <Button size="sm" variant="secondary" onClick={onRetry}>

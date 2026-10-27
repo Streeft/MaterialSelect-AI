@@ -2870,6 +2870,17 @@ export const ptBR = {
     NAO_REGISTRADO: "Nenhum registro para este par — ninguém preencheu ainda.",
   },
 
+  // D-168: sem conexão. Os cálculos moram no servidor, então o app diz isso em vez
+  // de "Algo não funcionou", e aponta para as fichas já abertas (D-152).
+  offline: {
+    banner: "Sem conexão.",
+    detail: "Buscas e cálculos precisam do servidor; o que já estava na tela pode estar desatualizado.",
+    savedSheets: "Ver fichas já abertas",
+    errorTitle: "Sem conexão",
+    errorDescription:
+      "Esta tela precisa do servidor. Quando a conexão voltar, tente de novo; as fichas já abertas continuam disponíveis para leitura.",
+  },
+
   ui: {
     loading: "Carregando…",
     errorTitle: "Algo não funcionou",
