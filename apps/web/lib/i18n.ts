@@ -865,7 +865,6 @@ export const ptBR = {
   // D-104: o cartão de material para CAE, no "Exportar ▾" da ficha.
   cae: {
     menuItem: "Cartão de material para CAE…",
-    menuHint: "Ansys MAPDL, Abaqus, Nastran, LS-DYNA ou MatML",
     title: "Cartão de material para CAE",
     description:
       "O arquivo leva só as propriedades cadastradas, convertidas para o sistema de unidades escolhido. O que não está cadastrado é omitido com um comentário — nunca vira zero nem valor padrão.",
@@ -885,8 +884,6 @@ export const ptBR = {
       "mm-t-s": "SI — mm, t, s, N, MPa, K",
       "in-lbf-s": "EUA — in, lbf·s²/in, s, lbf, psi, °F",
     },
-    requirements:
-      "MAPDL, Abaqus e Nastran exigem módulo de Young e coeficiente de Poisson; o LS-DYNA exige também a densidade. MatML aceita qualquer propriedade cadastrada.",
     download: "Baixar cartão",
     cancel: "Cancelar",
     refusedTitle: "O cartão não foi gerado",
