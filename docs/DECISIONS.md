@@ -11298,3 +11298,24 @@ Textos em `ptBR.offline`.
 
 Textos em `ptBR.shortcuts`.
 
+## D-170 — A busca global se monta no `body`: a barra que a abre tem `backdrop-filter`
+
+**Contexto.** Vistoria das interações no navegador (27/10/26), a 375 px nos dois temas. A busca global (D-129) abria como uma faixa de ~55 px sob a barra de topo, com
+o campo parcialmente coberto, a lista cortada e o resto da tela sem o escurecimento: o "tela cheia no celular" não acontecia. No desktop o diálogo também se
+posicionava em relação à barra, não à janela.
+
+**Causa.** `GlobalSearchButton` mora na barra de `app/app/layout.tsx` (`sticky … backdrop-blur`). `backdrop-filter` (como `transform`) faz do elemento o bloco de
+contenção de todo descendente `position: fixed`; o `msds-dialog-backdrop` (`fixed inset-0`) passava a medir a barra, não a janela. É o mesmo mecanismo que o D-141
+já evita para o conteúdo da página.
+
+**Decisão.**
+- **`SearchDialog` entra por `createPortal(…, document.body)`.** Só é montado depois de aberto, então `document` existe. Foco, `Esc` e `aria-modal` não mudam.
+- **Cada tela da lista leva o ícone que tem na barra lateral** (Catálogo mostrava a casa de "Início", o ícone do grupo "Telas"). Materiais, processos, cadernos
+  e estudos continuam com o ícone do grupo (M3 *Search*: o ícone nomeia o tipo).
+- **Regra para o que vier:** diálogo, menu ou dica aberto de dentro de um ancestral com `transform`, `filter` ou `backdrop-filter` precisa ir para o `body`.
+
+**Verificado no navegador** a 375 px (claro e escuro) e a 1280 px: tela cheia no celular, centralizado com o escurecimento da janela inteira no desktop.
+
+**Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
+abaixo dele. Fica para a próxima rodada de copy.
+

@@ -101,6 +101,28 @@ describe("GlobalSearch (D-129)", () => {
     expect(screen.getByLabelText("campo de texto")).toHaveValue("a/b");
   });
 
+  it("monta o diálogo no body, fora da barra que o abre (D-170)", async () => {
+    // A barra de cima tem `backdrop-filter`, que vira o bloco de contenção de todo
+    // `position: fixed` dentro dela; o diálogo ficaria preso numa faixa de 56 px.
+    const user = userEvent.setup();
+    const { container } = setup();
+    await user.keyboard("{Control>}k{/Control}");
+
+    const dialog = screen.getByRole("dialog", { name: ptBR.palette.title });
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.closest(".msds-dialog-backdrop")?.parentElement).toBe(document.body);
+  });
+
+  it("cada tela da lista leva o ícone que tem na barra lateral", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.keyboard("{Control>}k{/Control}");
+
+    const catalog = screen.getByRole("option", { name: new RegExp(ptBR.nav.catalog) });
+    const home = screen.getByRole("option", { name: new RegExp(ptBR.nav.home) });
+    expect(catalog.querySelector("svg")?.innerHTML).not.toBe(home.querySelector("svg")?.innerHTML);
+  });
+
   it("has no accessibility violations while open", async () => {
     const user = userEvent.setup();
     const { container } = setup();

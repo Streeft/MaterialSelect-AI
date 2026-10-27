@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { listMaterials, listNotebooks, listProcesses, listStudies } from "@/lib/api";
@@ -18,7 +19,9 @@ import {
   IconNotebook,
   IconSearch,
 } from "@/components/ui/icons";
-import { GROUPS, visibleGroups } from "./AppSidebar";
+import { GROUPS, visibleGroups, type NavItem } from "./AppSidebar";
+
+type IconComponent = NavItem["icon"];
 
 const t = ptBR.palette;
 
@@ -40,6 +43,8 @@ interface Entry {
   label: string;
   hint?: string;
   href: string;
+  /** A screen carries its own glyph from the rail; the other kinds use their group's. */
+  icon?: IconComponent;
 }
 
 /** Typing into a field must keep "/" as a character; everywhere else it opens the search. */
@@ -124,7 +129,9 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   const loading = [materials, processes, notebooks, studies].some((q) => q.isLoading);
 
   const entries = useMemo<Entry[]>(() => {
-    const pages: Entry[] = [{ id: "home", group: t.groupPages, label: ptBR.nav.home, href: "/app" }];
+    const pages: Entry[] = [
+      { id: "home", group: t.groupPages, label: ptBR.nav.home, href: "/app", icon: IconHome },
+    ];
     for (const group of visibleGroups(GROUPS, canEditCatalog)) {
       for (const item of group.items) {
         pages.push({
@@ -133,6 +140,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           label: item.label,
           hint: group.label,
           href: item.href,
+          icon: item.icon,
         });
       }
     }
@@ -204,7 +212,10 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   }, [current, listId]);
 
   let lastGroup = "";
-  return (
+  // A portal: the bar this is opened from has `backdrop-filter`, which makes it the
+  // containing block of every `position: fixed` descendant — the dialog would be laid
+  // out inside a 56 px strip, with the scrim covering only that.
+  return createPortal(
     <div
       className="msds-dialog-backdrop max-sm:p-0"
       onMouseDown={(event) => {
@@ -274,7 +285,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
                   onClick={() => go(entry)}
                 >
                   {(() => {
-                    const Icon = GROUP_ICON[entry.group as keyof typeof GROUP_ICON];
+                    const Icon = entry.icon ?? GROUP_ICON[entry.group as keyof typeof GROUP_ICON];
                     return Icon ? <Icon aria-hidden className="h-4 w-4 shrink-0 text-ink-subtle" /> : null;
                   })()}
                   <span className="truncate">{entry.label}</span>
@@ -296,6 +307,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           {t.results(results.length)}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
