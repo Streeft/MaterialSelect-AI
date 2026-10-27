@@ -11319,3 +11319,13 @@ já evita para o conteúdo da página.
 **Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
 abaixo dele. Fica para a próxima rodada de copy.
 
+
+## D-175 — O valor lido da curva vai no endereço: o link é a pergunta inteira (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-157 entregou "Ler um valor da curva" na ficha. O resíduo (TM4-b-res) era o resultado não ir para a URL: a curva, as unidades e a escala já iam (D-70), mas quem abria o link via a figura sem o valor lido.
+
+**Decisão.** (1) **`curva_valor`** (o x, com ponto decimal, como `String(number)`) e **`curva_valor_un`** (a unidade em que foi digitado) entram no endereço **quando a leitura é feita**, junto com `curva=` (sem ele o link abriria a curva padrão e o valor não teria dono). Digitar sem enviar não escreve nada. (2) **Ao abrir**, o campo vem preenchido (em pt-BR) e a leitura é feita pelo mesmo caminho do botão: o par valor-unidade é a chave da consulta, então o link restaura a resposta sem um segundo código. (3) **Entrada inválida é dita e sai do endereço, nunca consertada:** um valor que não é número não é lido, o campo fica vazio e a frase vai sob o campo; uma unidade que o eixo não aceita **não** é trocada pela do eixo (ler 0,1 numa unidade que o remetente não quis responderia outra pergunta): nada é lido, o número fica no campo e a frase pede para escolher a unidade; o que o link trazia sai do endereço uma vez, e o que a tela não possui fica. Sem unidade no link, vale a do eixo. Valor longo é citado cortado. (4) **Trocar de curva ou excluí-la tira o valor** (é da curva em que foi lido). (5) A recusa do servidor ao abrir é escrita uma vez, sem as três novas tentativas padrão da consulta. (6) Nada vai para o navegador.
+
+**Descartado.** Ler com a unidade do eixo quando a do link é inválida (reparo que muda a pergunta); guardar o último valor no `localStorage`; escrever o valor digitado antes de enviar; exportar o resultado (segue como resíduo, não é o link).
+
+**Consequências.** Só frontend; sem migração; o leitor deixa de usar `useMutation` e passa a `useQuery` (o resultado também sobrevive a voltar à aba da ficha).

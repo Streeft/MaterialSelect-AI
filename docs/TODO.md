@@ -400,7 +400,10 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   (Sessão 114, [D-157](DECISIONS.md)): "Ler um valor da curva" sob a figura —
   envia o x e a unidade, mostra valor com unidade, faixa, como a fonte escreveu,
   qualidade e fonte, e a ausência escrita; trajetória não oferece o formulário e
-  diz a razão (D-118). **Resíduo:** o resultado não é guardado na URL nem
+  diz a razão (D-118). ~~O resultado não é guardado na URL~~ ✔ entregue
+  (Sessão 133, [D-175](DECISIONS.md)): `curva_valor` e `curva_valor_un` vão no
+  endereço quando a leitura é feita, o link a restaura, e valor ou unidade
+  inválidos são ditos e saem do endereço. **Resíduo:** o resultado não é
   exportado.
 - ~~**TM4-c — histerese e curvas não monotônicas.**~~ ✔ Entregue (Sessão 73,
   [D-118](DECISIONS.md)): `path_kind` (`function`/`path`, migração
