@@ -52,7 +52,7 @@ import type {
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { flowText } from "@/lib/i18n-flow";
-import { prettyUnit } from "@/lib/format";
+import { dimensionName } from "@/lib/format";
 import {
   Alert,
   Button,
@@ -720,7 +720,7 @@ function SelectionWizard() {
   const validateExpr = useMutation({
     mutationFn: () => evaluateIndex(customExpression.trim(), indexGoal),
     onSuccess: (res) =>
-      setValidation(`${t.validationOk} ${t.dimension}: ${prettyUnit(res.dimension)}`),
+      setValidation(`${t.validationOk} ${t.dimension}: ${dimensionName(res.dimension)}`),
     onError: (err) => setValidation(err instanceof ApiError ? err.message : t.genericError),
   });
 

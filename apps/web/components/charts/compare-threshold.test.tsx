@@ -199,6 +199,16 @@ describe("ComputedTable: propriedades computadas (D-128)", () => {
     expect(screen.queryByShadowText("0")).not.toBeInTheDocument();
   });
 
+  it("coluna adimensional não escreve colchetes com traço depois do nome", () => {
+    const dimensionless = comparison({
+      computed: [{ ...withComputed.computed![0]!, dimension: "dimensionless" }],
+    });
+    render(<ComputedTable comparison={dimensionless} />);
+
+    expect(screen.getByShadowText("E/ρ")).toBeInTheDocument();
+    expect(screen.queryByShadowText(/\[—\]/)).not.toBeInTheDocument();
+  });
+
   it("sem índice escolhido não renderiza tabela", () => {
     const { container } = render(<ComputedTable comparison={comparison()} />);
     expect(container).toBeEmptyDOMElement();

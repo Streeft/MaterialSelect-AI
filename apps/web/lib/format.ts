@@ -1,4 +1,5 @@
 // Number/unit formatting helpers for the material sheet.
+import { ptBR } from "@/lib/i18n";
 
 /**
  * Format a number for display using pt-BR conventions, switching to compact
@@ -119,4 +120,14 @@ export function prettyUnit(unit: string | null): string {
       .replace(/\s*\*\*\s*/g, "^")
       .replace(/\*/g, "·")
   );
+}
+
+/**
+ * The dimension of a quantity as a word or a unit, for a line that names it
+ * ("Dimensão: …"). `prettyUnit` writes a dash for a dimensionless quantity,
+ * which in this app also reads as "missing"; where the dimension is stated on
+ * its own, the word is clearer.
+ */
+export function dimensionName(unit: string | null): string {
+  return unit === "dimensionless" ? ptBR.units.dimensionless : prettyUnit(unit);
 }

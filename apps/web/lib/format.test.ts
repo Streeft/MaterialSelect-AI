@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countLabel, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
+import { countLabel, dimensionName, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
 
 describe("formatNumber", () => {
   it("renders zero plainly", () => {
@@ -92,5 +92,16 @@ describe("formatDate", () => {
     // The caller decides what an unknown date looks like. A dash here would be
     // indistinguishable from a real absence in a column of real dates.
     expect(formatDate("nao é data")).toBeNull();
+  });
+});
+
+describe("dimensionName", () => {
+  it("writes dimensionless as a word, never as a dash", () => {
+    expect(dimensionName("dimensionless")).toBe("adimensional");
+  });
+
+  it("falls back to the pretty unit for a real dimension and to empty for none", () => {
+    expect(dimensionName("kg/m**3")).toBe("kg/m³");
+    expect(dimensionName(null)).toBe("");
   });
 });

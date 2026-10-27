@@ -90,9 +90,11 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
                 <span className="mt-1 block">
                   {/* A typed index has no name but its expression: said once. */}
                   {column.name !== column.expression ? column.name : null}
-                  <span className="ml-1 font-normal normal-case text-ink-subtle">
-                    [{prettyUnit(column.dimension)}]
-                  </span>
+                  {column.dimension !== "dimensionless" && (
+                    <span className="ml-1 font-normal normal-case text-ink-subtle">
+                      [{prettyUnit(column.dimension)}]
+                    </span>
+                  )}
                 </span>
                 <span className="block font-mono text-xs font-normal normal-case text-ink-subtle">
                   {column.expression}
