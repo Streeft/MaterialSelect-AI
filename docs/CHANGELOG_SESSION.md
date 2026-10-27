@@ -159,6 +159,19 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 129 — 27/10/26 — Diálogo CAE: formatos térmicos e elastoplásticos, com curva e série (D-171)
+
+**O que mudou.** O diálogo "Cartão de material para CAE…" passa de 5 para 11 formatos (elástico, térmico, elastoplástico; TM5-b2 e o resíduo do TM5-d). Backend:
+`GET /api/exports/cae/formatos` (aditivo, só leitura) devolve por formato chave, rótulo, `plastic`, `required` e `plastic_max_points`, do mesmo registro de onde a recusa
+422 lê; o front não copia exigências. Frontend: nos `*-plastic`, o diálogo pede a curva tensão–deformação do material (nunca a primeira por padrão) e, com mais de uma
+série, a série (rótulo e parâmetro em pt-BR); sem curva tensão–deformação escreve que o material não tem e não oferece o arquivo; carregando e erro de cada leitura
+têm estado escrito e "Tentar novamente"; a 422 do servidor continua aparecendo com a frase dele. Textos em `lib/i18n-cae.ts`.
+**Testes (medidos):** backend 5104 (5098 passam, 6 pulam sem PostgreSQL; +1 em `test_cae_export_api.py`); frontend 1448 (+20 em `CaeExportDialog.test.tsx`, com axe nos
+estados térmico, elastoplástico, sem curva, carregando e erro). Sem migração nem seed. Pós-merge: **Deploy da API**, sem migração nem seed.
+**Achado que não virou código.** O diálogo aberto dentro da ficha lia `listCaeFormats` ao renderizar fechado e quebrava a auditoria de acessibilidade das rotas, que
+substitui `@/lib/api`; os leitores são resolvidos só quando a consulta roda. Para rodar a suíte do backend fora de `apps/api`, os testes de migração precisam do diretório
+de trabalho em `apps/api` (caminho `alembic` relativo).
+
 ## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
 
 **O que mudou.** Capturas a 375 px (claro e escuro) de início, busca, atalhos, menu, faixa sem conexão, catálogo e ficha acharam um defeito: a busca global abria dentro da

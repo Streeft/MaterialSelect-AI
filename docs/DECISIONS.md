@@ -11319,3 +11319,28 @@ já evita para o conteúdo da página.
 **Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
 abaixo dele. Fica para a próxima rodada de copy.
 
+
+## D-171 — Diálogo CAE: formatos térmicos e elastoplásticos, com as exigências lidas do servidor
+
+**Contexto.** O backend já escrevia os cartões térmicos (D-112) e elastoplásticos (D-119), mas o diálogo "Cartão de material para CAE…" só oferecia os cinco
+formatos elásticos (TM5-b2 e o resíduo do TM5-d). Para oferecê-los, o diálogo precisa (a) saber o que cada formato exige e (b) pedir a curva e a série dos
+elastoplásticos.
+
+**Decisão.**
+- **`GET /api/exports/cae/formatos`** (aditivo, somente leitura, sem migração nem seed): por formato, `key`, `label`, `plastic`, `required` (os rótulos de
+  `CaeQuantity`, os mesmos da recusa 422) e `plastic_max_points`. Lê o registro Python (`ALL_FORMATS`) de onde a recusa também lê; o front não guarda cópia das
+  exigências, então lista e 422 não divergem.
+- **Formatos agrupados** (elástico, térmico, elastoplástico). Os rótulos da tela ficam em `lib/i18n-cae.ts` e `ptBR.cae.formats` (os do servidor trazem
+  trechos sem acento, pensados para o cabeçalho do arquivo).
+- **Elastoplástico pede curva e série, e o diálogo não escolhe nenhuma.** Só curvas `TENSAO_DEFORMACAO` do material; começa em "Escolha a curva" (nunca a
+  primeira por padrão); com mais de uma série, a série vem de `getMaterialCurve` (rótulo da série e valor do parâmetro com a unidade da curva, número em pt-BR)
+  e também começa vazia; com uma só, o texto diz que é ela e `serie` não é enviado. O botão "Baixar cartão" fica desabilitado até a escolha, com o que falta
+  escrito ao lado.
+- **Sem curva tensão–deformação no material:** aviso escrito ("este material não tem curva…") e nada a baixar. A recusa 422 do servidor (medida não declarada,
+  trajetória em vez de ramo, sem E × T declarado, tabela maior que o teto…) continua aparecendo com a frase do servidor, e o diálogo fica aberto.
+- **Carregando e erro** de cada leitura (exigências, curvas, série) têm estado escrito e "Tentar novamente". Se a lista de exigências não puder ser lida, os
+  elásticos e térmicos continuam baixáveis (o servidor recusa por escrito o que o cadastro não preenche); para o elastoplástico, até a lista chegar, o sufixo
+  `-plastic` da chave decide que a curva é necessária.
+
+**Descartado.** Copiar as exigências por formato para o front (desvia do servidor na primeira mudança de `REQUIRED`); escolher a curva ou a série "quando só há
+uma" (a exportação nunca escolhe, D-119); um pré-teste por material das propriedades que faltam (duplicaria `refusal_reason`; a frase do 422 já nomeia o que falta).

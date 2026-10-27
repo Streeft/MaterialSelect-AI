@@ -784,6 +784,14 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 
 ## Exportação CAE (D-104)
 
+**D-171 (Sessão 129, TM5-b2):** o diálogo oferece os onze formatos (elástico,
+térmico, elastoplástico) e lê o que cada um exige de
+`GET /api/exports/cae/formatos`, do mesmo registro da recusa 422; **não copie
+exigências para o front**. Nos `*-plastic`, a curva e a série são escolhas da
+pessoa, nunca do diálogo nem da exportação (sem curva tensão–deformação no
+material, o diálogo escreve isso e não oferece o arquivo); a recusa 422 aparece
+com a frase do servidor. Textos em `lib/i18n-cae.ts`.
+
 **D-119 (Sessão 74, TM5-b):** `abaqus-plastic`, `mapdl-plastic`,
 `nastran-plastic` e `lsdyna-plastic` exigem `curva` (e `serie` quando há mais
 de uma) — nunca escolhidas pela exportação. A curva declara `strain_measure`

@@ -95,10 +95,12 @@ export function CaeExportDialog({
   saveFile?: (blob: Blob, filename: string) => void;
   loaders?: Partial<CaeLoaders>;
 }) {
+  // Resolved when a query runs, not while rendering: the dialog sits closed in the
+  // datasheet, and nothing it reads from the API should be touched until it opens.
   const read: CaeLoaders = {
-    formats: loaders?.formats ?? listCaeFormats,
-    curves: loaders?.curves ?? listMaterialCurves,
-    curve: loaders?.curve ?? getMaterialCurve,
+    formats: (...args) => (loaders?.formats ?? listCaeFormats)(...args),
+    curves: (...args) => (loaders?.curves ?? listMaterialCurves)(...args),
+    curve: (...args) => (loaders?.curve ?? getMaterialCurve)(...args),
   };
   const [format, setFormat] = useState<CaeFormat>("mapdl");
   const [units, setUnits] = useState<CaeUnitSystem>("mm-t-s");
