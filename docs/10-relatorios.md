@@ -176,6 +176,20 @@ O que isso obriga:
   o estudo em vez de aceitar o resultado que o exportador já tem. Ver
   [D-41](DECISIONS.md) e a medição em [PROJECT_CONTEXT.md §12](PROJECT_CONTEXT.md).
 
+## O Eco Audit (D-172)
+
+`POST /api/eco/exportar.{fmt}` recebe o corpo de `/api/eco/auditar`, **reexecuta** a auditoria no servidor e devolve o arquivo; o `Report` e os cinco
+renderizadores são os mesmos dos outros relatórios, com o escape de cada formato (fórmula nas planilhas, marcação no HTML). Sete seções: *Resumo*, *Fases do
+produto*, *Componentes*, *Componentes por fase*, *Trechos de transporte*, *Premissas de uso* e *Proveniência*.
+
+- **Ausência escrita.** Valor ausente sai `ausente`, com a situação e a razão do cálculo (que nomeia o componente e o slug que faltou); total e pódio recusados saem
+  `ausente` e `recusado` com a razão. Nunca zero, nunca célula vazia.
+- **Unidades.** Energia em MJ, carbono em "kg de CO₂" (a nota do porquê está no Resumo), massas em kg, distâncias em km; a proveniência traz a unidade canônica, o valor
+  e a unidade originais e o método de conversão de cada fator.
+- **Proveniência por valor lido:** qualidade, fonte, licença, `is_demo` (coluna sim/não) e se o registro é próprio. Dado não cadastrado vira linha `ausente`.
+- **Transporte e uso são do produto**, não repartidos por componente (D-121).
+- Na tela, "Exportar ▾" no resultado; o HTML é salvo como arquivo (não aberto de um *blob*) para imprimir ou salvar em PDF.
+
 ## Catálogo
 
 `GET /api/exports/catalogo.{csv|xlsx|html|docx|pptx}` exporta todos os materiais ativos em
@@ -326,6 +340,7 @@ faltando.
 | GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
+| POST | `/api/eco/exportar.{csv,xlsx,html,docx,pptx}` | auditoria ambiental de um briefing (corpo de `/api/eco/auditar`), por componente e por trecho (D-172) |
 | GET | `/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}?tipo=&classe=&universo=&pagina=&por_pagina=` | mudanças entre versões do catálogo oficial (D-108); paginado por `pagina`/`por_pagina` (D-162) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
