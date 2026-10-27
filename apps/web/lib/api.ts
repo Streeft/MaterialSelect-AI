@@ -1182,6 +1182,42 @@ export function runEcoAudit(body: EcoAuditRequest): Promise<EcoAuditResult> {
   });
 }
 
+/**
+ * The audit as a file (D-172): the same brief the screen ran, re-run on the
+ * server and handed back as CSV, XLSX, HTML, DOCX or PPTX.
+ *
+ * Fetched rather than linked, like the CAE card: the brief is a body (a POST,
+ * as `/auditar` is), and a brief the audit refuses comes back as a 4xx whose
+ * `detail` has to reach the user, not a JSON page in a new tab. The caller
+ * saves the blob under the server's own filename. HTML is saved too, never
+ * rendered from a blob: a blob page would run on the app's own origin, which
+ * the API's `default-src 'none'` policy does not cover.
+ */
+export async function downloadEcoAudit(
+  body: EcoAuditRequest,
+  format: ExportFormat,
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`${API_URL}/api/eco/exportar.${format}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      await errorMessage(res, "Falha ao gerar o arquivo da auditoria."),
+      res.status,
+    );
+  }
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return {
+    blob: await res.blob(),
+    filename: match?.[1] ?? `auditoria-ambiental.${format}`,
+  };
+}
+
 export function compareEcoAudits(
   body: EcoComparisonRequest,
 ): Promise<EcoComparisonResult> {

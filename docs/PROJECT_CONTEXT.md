@@ -645,6 +645,10 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
+**Contagem medida na Sessão 130 (Eco Audit exportável, D-172):** 5122 testes de backend coletados (5116 passam e 6 pulam sem `POSTGRES_TEST_URL`; +19) e 1439 de
+frontend (+7), medidos na branch com `pytest` e `vitest run`. O Eco Audit exporta em CSV, XLSX, HTML, DOCX e PPTX (`POST /api/eco/exportar.{fmt}`), por componente e por
+trecho, com a razão escrita de cada ausência e a fonte, a qualidade, a licença e o `is_demo` de cada dado lido; limite conhecido: o A × B (`/api/eco/comparar`) não exporta.
+
 **Saúde do código:** 5054 testes de backend (Python 3.11 e 3.12, nenhum skip
 na CI; sem `POSTGRES_TEST_URL`, 5048 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 1360 de frontend, todos
@@ -659,10 +663,10 @@ na CI; sem `POSTGRES_TEST_URL`, 5035 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 1374 de frontend, todos
 da ingestão do Cérebro contra PostgreSQL) e 1373 de frontend, todos
 da ingestão do Cérebro contra PostgreSQL) e 1383 de frontend, todos
-**Saúde do código:** 5104 testes de backend (Python 3.11 e 3.12, nenhum skip
-na CI; sem `POSTGRES_TEST_URL`, 5098 passam e 6 pulam — os 4 das cotas e os 2
-da ingestão do Cérebro contra PostgreSQL) e 1448 de frontend (contagens medidas
-na Sessão 129), todos
+**Saúde do código:** 5123 testes de backend (Python 3.11 e 3.12, nenhum skip
+na CI; sem `POSTGRES_TEST_URL`, 5117 passam e 6 pulam — os 4 das cotas e os 2
+da ingestão do Cérebro contra PostgreSQL) e 1455 de frontend (contagens medidas
+na merge das Sessões 129 e 130), todos
 verdes. Desde o P0-1 a suíte também roda as migrações de
 verdade, nos dois sentidos, contra um banco temporário que já contém dados —
 `test_migration_selection_stage.py`, `test_migration_process_universe.py`,
@@ -1142,7 +1146,7 @@ que mais afetam quem for mexer no código:
 | Regressão silenciosa | CI com 5049 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Regressão silenciosa | CI com 5061 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Regressão silenciosa | CI com 5041 testes de backend e 1383 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5104 testes de backend e 1448 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 5123 testes de backend e 1455 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log publicado foi apagado pelo dono em 06/10/2026, pela interface do Actions ([TODO](TODO.md), "Débitos já quitados"); apagar não desfaz uma cópia feita enquanto esteve público. |

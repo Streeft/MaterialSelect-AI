@@ -22,6 +22,7 @@ from app.domain.composition import RULE_TEXT
 from app.domain.display_units import readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.exporters.cells import format_number
+from app.exporters.eco import eco_sheets
 from app.exporters.figures import (
     Axis,
     Bar,
@@ -40,14 +41,18 @@ from app.models.enums import ProcessAttributeKind
 from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.selection_repository import SelectionRepository
+from app.repositories.transport_repository import TransportRepository
 from app.schemas.charts import PropertyMapRequest
 from app.schemas.curve import MaterialCurvesOut
+from app.schemas.eco import EcoAuditRequest
 from app.schemas.equivalence import MaterialEquivalencesOut
 from app.schemas.material import MaterialDetail
 from app.schemas.selection import ChartStageIn, IndexIn, RankingResultOut, RunResultOut
 from app.services.ai_service import AIService
 from app.services.chart_service import ChartService
 from app.services.curve_service import CurveService
+from app.services.eco_provenance import component_rows, leg_rows
+from app.services.eco_service import EcoService
 from app.services.equivalence_service import EquivalenceService
 from app.services.identity_lines import composition_lines, designation_lines
 from app.services.material_service import MaterialService
@@ -938,6 +943,60 @@ class ExportService:
                     rows=provenance,
                 ),
             ],
+        )
+
+    # --- eco audit (D-121, D-172) -----------------------------------------
+
+    def eco_report(self, request: EcoAuditRequest) -> Report:
+        """The eco audit of a brief, by component and by transport leg.
+
+        The brief is re-run through ``EcoService`` — the same call that serves
+        the screen — so the file cannot disagree with what the reader saw. What
+        this adds is where each input came from (``eco_provenance``); the
+        arrangement into sheets is ``exporters/eco.py``.
+        """
+        result = EcoService(self.db, self.viewer_id).run(request)
+        items = request.resolved_components()
+        materials = {
+            m.id: m
+            for m in self.chart_repo.list_materials(
+                material_ids=[component.material_id for component in result.components]
+            )
+        }
+        processes = {
+            p.id: p
+            for p in self.selection_repo.processes_with_attributes(
+                [component.process_id for component in result.components]
+            )
+        }
+        property_names = {p.slug: p for p in self.chart_repo.list_properties()}
+
+        values = []
+        for component, item in zip(result.components, items, strict=True):
+            values += component_rows(
+                scope=component.name,
+                item=item,
+                material=materials[component.material_id],
+                process=processes[component.process_id],
+                property_names=property_names,
+            )
+        transport = TransportRepository(self.db)
+        for position, leg in enumerate(request.resolved_legs(), start=1):
+            mode = transport.get_active_by_slug(leg.mode)
+            if mode is not None:
+                values += leg_rows(scope=f"Trecho {position} — {mode.name}", mode=mode)
+
+        own = any(self._is_own_record(m) for m in materials.values())
+        phrase = "componente" if len(result.components) == 1 else "componentes"
+        legs = "trecho" if len(result.transport_legs) == 1 else "trechos"
+        return Report(
+            title="Auditoria ambiental do produto",
+            subtitle=(
+                f"{len(result.components)} {phrase} e {len(result.transport_legs)} {legs} "
+                "de transporte; cinco fases: material, manufatura, transporte, uso e fim de vida."
+            ),
+            notices=standard_notices(includes_own_records=own),
+            sheets=eco_sheets(result, request.use, values),
         )
 
     # --- material sheet (D-125) -------------------------------------------
