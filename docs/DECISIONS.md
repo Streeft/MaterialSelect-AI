@@ -11249,3 +11249,19 @@ conservadora para o corpo de 11 px). A faixa do eixo ganha 6 px (`X_LABELS` 30 �
 
 **Verificado a 1280 e 375 px.** "Não / registrado" em duas linhas; sem sobreposição entre colunas vizinhas.
 
+## D-167 — Grandeza sem dimensão: palavra ou nada, nunca o traço
+
+**Contexto.** Revisão de design de 27/10/26. `prettyUnit("dimensionless")` devolve "—", e três pontos o escreviam tal e qual: o título da coluna
+de um índice digitado no comparador (`E/ρ [—]`), a linha "Dimensão" da proveniência de um índice e a mensagem de validação da expressão na Seleção
+("Dimensão: —"). Neste app o traço significa dado ausente (D-24); uma grandeza adimensional não está faltando nada.
+
+**Decisão.**
+- **`dimensionName(unit)`** (`lib/format.ts`): onde a dimensão é dita numa linha própria, a palavra "adimensional" (`ptBR.units.dimensionless`); a unidade
+  de uma grandeza com dimensão continua saindo por `prettyUnit`.
+- **Cabeçalho de coluna:** sem unidade, sem colchetes (o `ResultsView` já fazia assim). `ComputedSection` passa a fazer igual.
+- **`prettyUnit` não muda** (o traço continua testado ali): os chamadores que já omitem a unidade adimensional (`copyTable`, `CurveChart`, `IndexCard`)
+  ficam como estão.
+
+**Fora do escopo, e por quê.** O campo "DoD" de Baterias mostra "0.85" ou "0,85" conforme a localidade do navegador: é um `<input type="number">`, e a
+exibição do valor é do navegador, não do app. Nada a corrigir no código.
+
