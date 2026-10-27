@@ -166,6 +166,13 @@ escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da
 **O que mudou.** `MaterialCurves` ganha `curva_valor` e `curva_valor_un` (`CURVE_PARAMS.at`/`atUnit`); `CurveValueReader` recebe `link` (o que o endereço trazia ao abrir) e `onApplied` (o que escrever), passa de `useMutation` a `useQuery` com a leitura como chave, abre com o campo preenchido e a leitura feita, e recusa por escrito valor que não é número ou unidade que o eixo não aceita (nada é lido em outra unidade; o valor sai do endereço). Trocar ou excluir a curva tira o valor. Textos novos em `lib/i18n-ficha.ts` (`linkInvalidAt`, `linkInvalidUnit`).
 +13 de frontend (8 em `CurveValueReader.test.tsx`, 5 em `MaterialCurvesValueUrl.test.tsx`, com axe no estado de erro do link). Suíte inteira: 1452 passam (1439 na main com o Eco Audit exportável, mais 13). Só frontend; sem migração. Pós-merge: nada a disparar.
 Numeração: Sessão 133 e D-175 (129 a 132 e D-171 a D-174 são de outros PRs).
+## Sessão 132 — 27/10/26 — Comparador: o link leva propriedades e normalização (D-174)
+
+**O pedido.** Resíduo CMP-link do D-163: a escolha de propriedades e a normalização não iam no link.
+
+**O que mudou.** `lib/compare-link.ts` ganha `propriedades` e `normalizacao` (`parseProperties`, `parseNormalization`; `compareSearch` e `readCompareLink` as levam e as leem); `comparar/page.tsx` abre com as duas, escreve as propriedades sempre que há material (o padrão depende do catálogo de quem abre) e a normalização só quando não é a padrão, e espera o catálogo de propriedades antes de pedir a tabela. O que não vale (slug sem forma, excesso sobre 20, slug que o catálogo não tem mais, normalização desconhecida) aparece no aviso "O que o link trazia e ficou de fora" e sai do pedido e do endereço. `MAX_COMPARE_PROPERTIES` vai para `lib/compareLimits.ts`. Dica do "Copiar link" atualizada.
++13 de frontend (`compare-link.test.ts`, 7, e `comparar-propriedades.test.tsx`, 6, com axe); suíte inteira: 1452 passam (1439 na main com a Sessão 130 + 13). Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 132 e D-174 (131 e D-173 são do PR de "Copiar tabela"; 129/130 e D-171/D-172 de outras faixas).
 
 ## Sessão 130 — 27/10/26 — Eco Audit exportável: por componente, por trecho e com a origem de cada número (D-172)
 
@@ -183,6 +190,26 @@ XLSX, nome de material do catálogo hostil, `<script>` escapado no HTML (e `=` l
 determinismo. Frontend 1439 passam, +7 (`EcoExportMenu.test.tsx`: cinco formatos num menu só, axe aberto e fechado, desabilitado antes de rodar, baixa e salva, carregando que
 bloqueia o segundo clique, erro escrito e nova tentativa; `eco.test.tsx`: o menu exporta o briefing que rodou). `ruff`, `black`, `tsc`, `eslint` (0 erros) e `vitest` verdes. Sem migração
 e sem seed. Pós-merge: **Deploy da API**.
+
+## Sessão 129 — 27/10/26 — Diálogo CAE: formatos térmicos e elastoplásticos, com curva e série (D-171)
+
+**O que mudou.** O diálogo "Cartão de material para CAE…" passa de 5 para 11 formatos (elástico, térmico, elastoplástico; TM5-b2 e o resíduo do TM5-d). Backend:
+`GET /api/exports/cae/formatos` (aditivo, só leitura) devolve por formato chave, rótulo, `plastic`, `required` e `plastic_max_points`, do mesmo registro de onde a recusa
+422 lê; o front não copia exigências. Frontend: nos `*-plastic`, o diálogo pede a curva tensão–deformação do material (nunca a primeira por padrão) e, com mais de uma
+série, a série (rótulo e parâmetro em pt-BR); sem curva tensão–deformação escreve que o material não tem e não oferece o arquivo; carregando e erro de cada leitura
+têm estado escrito e "Tentar novamente"; a 422 do servidor continua aparecendo com a frase dele. Textos em `lib/i18n-cae.ts`.
+**Testes (medidos):** backend 5104 (5098 passam, 6 pulam sem PostgreSQL; +1 em `test_cae_export_api.py`); frontend 1448 (+20 em `CaeExportDialog.test.tsx`, com axe nos
+estados térmico, elastoplástico, sem curva, carregando e erro). Sem migração nem seed. Pós-merge: **Deploy da API**, sem migração nem seed.
+**Achado que não virou código.** O diálogo aberto dentro da ficha lia `listCaeFormats` ao renderizar fechado e quebrava a auditoria de acessibilidade das rotas, que
+substitui `@/lib/api`; os leitores são resolvidos só quando a consulta roda. Para rodar a suíte do backend fora de `apps/api`, os testes de migração precisam do diretório
+de trabalho em `apps/api` (caminho `alembic` relativo).
+## Sessão 131 — 27/10/26 — Copiar tabela nas tabelas que faltavam (D-173)
+
+**O pedido.** Resíduo FL-d-res do D-164: a tabela de estágios do funil, as colunas calculadas do comparador e a composição e as designações da ficha não tinham "Copiar tabela".
+
+**O que mudou.** `stagesTsv`, `computedTsv`, `compositionTsv` e `designationsTsv` em `lib/copyTables.ts`, com os mesmos formatadores das telas; o `CopyTableButton` entra em `ResultsView` (estágios), `ComputedTable`, `CompositionTable` e `DesignationTable`, cada um com `ariaLabel` próprio (`lib/i18n-copy-tables.ts`). Ausência escrita ("Ausente", "Indefinido: motivo", "Sem localização na fonte", "Não restrita pela fonte"), nunca célula vazia nem zero; cabeçalho de coluna calculada começa por "Calculada:".
++7 de frontend (`components/copy-tables-rest.test.tsx`, 6, e um em `selection.test.tsx`, todos com axe onde há tela); suíte inteira: 1446 passam (medida após mesclar a main com a Sessão 130). Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 131 e D-173 (127 a 130 e D-169 a D-172 estavam ocupadas por outros trabalhos).
 
 ## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
 

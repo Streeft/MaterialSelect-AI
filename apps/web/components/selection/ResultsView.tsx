@@ -27,7 +27,7 @@ import {
   type TabItem,
 } from "@/components/ui";
 import { candidatesTsv } from "@/lib/selection/copyTable";
-import { funnelTsv } from "@/lib/copyTables";
+import { funnelTsv, stagesTsv } from "@/lib/copyTables";
 import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { CopyTableButton } from "./CopyTableButton";
 
@@ -593,6 +593,12 @@ export function ResultsView({
 
         {stages.length > 0 && (
           <div className="mt-5 overflow-x-auto">
+            <div className="mb-2 flex justify-end">
+              <CopyTableButton
+                ariaLabel={copyTablesText.stages.aria}
+                getText={() => stagesTsv(stages)}
+              />
+            </div>
             <table className="w-full text-sm">
               <caption className="mb-2 text-left text-xs text-ink-muted">
                 {t.stagesHint}

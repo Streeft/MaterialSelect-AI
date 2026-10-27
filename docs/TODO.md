@@ -177,10 +177,12 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   "Calculada", nota, dispersão e limiar próprios. ~~Limiar e índices só
   na página~~ ✔ entregues em parte (D-163, Sessão 121): o endereço passa a levar
   materiais, referência, limiar, índices do catálogo e índices digitados
-  (conferidos pelo servidor ao abrir), com "Copiar link". Resíduos: (a) a escolha
-  de propriedades e a normalização ainda não vão no link; (b) guardar a
-  comparação com nome, para reabrir sem o link, exige backend e decisão do
-  autor (nada disso fica no navegador, de propósito).
+  (conferidos pelo servidor ao abrir), com "Copiar link". ~~(a) A escolha de
+  propriedades e a normalização ainda não vão no link~~ ✔ entregue (D-174,
+  Sessão 132): vão em `propriedades` e `normalizacao`, e o que não vale mais é
+  dito e sai do pedido e do endereço. Resíduo: (b) guardar a comparação com nome,
+  para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
+  navegador, de propósito).
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
@@ -292,9 +294,10 @@ próprio~~. Resíduos:
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
 - ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-164, Sessão 122):
   "Copiar tabela" no comparador, no funil e nas propriedades da ficha, em TSV
-  com ausência escrita. Resíduos: a tabela de estágios do funil, a tabela de
-  colunas calculadas do comparador e as demais tabelas da ficha (composição,
-  designações) ainda não têm o botão.
+  com ausência escrita. Resíduos quitados (Sessão 131, [D-173](DECISIONS.md)):
+  a tabela de estágios do funil, as colunas calculadas do comparador e a
+  composição e as designações da ficha têm o botão. Nenhuma tabela de
+  resultado ou de ficha fica sem ele.
 - **FL-e — duplicar processo.** ▁ Não existe: processo não tem dono (D-62). Só
   muda se um dia houver "processo próprio".
 - **FL-f — duplicar a partir do catálogo compartilhado.** ▁ Continua sendo o
@@ -461,8 +464,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   - **TM5-b1 — família de temperaturas num cartão só.** ▃ `*PLASTIC` com
     coluna de temperatura, `TBTEMP`, `MATT1`/`TABLEST`, `*MAT_106`, com E(T)
     também no campo elástico; hoje o cartão vale numa temperatura.
-  - **TM5-b2 — diálogo do front.** ▃ `CaeExportDialog`/`lib/api.ts`/`i18n.ts`
-    não oferecem os formatos plásticos nem a escolha de curva e série.
+  - ~~**TM5-b2 — diálogo do front.**~~ Entregue (Sessão 129,
+    [D-171](DECISIONS.md)): o diálogo oferece os quatro `*-plastic` com a
+    escolha de curva e de série (nunca feita por ele).
   - Nenhuma curva do catálogo declara medida nem E `young` hoje (o demo não, de
     propósito); os formatos saem para curvas importadas/cadastradas com as duas
     declarações, e herdam o TM5-a.
@@ -474,8 +478,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   [D-112](DECISIONS.md)): formatos `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
   (`*MAT_THERMAL_ISOTROPIC_TITLE`); condutividade e calor específico são
   exigidos (422 sem eles). Desde o D-124 o demo os tem; material real
-  continua recusado até o bundle trazer os valores. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
-  `lib/api.ts`, `i18n.ts`) ainda lista só os cinco formatos antigos.
+  continua recusado até o bundle trazer os valores. Diálogo do front entregue na Sessão 129 ([D-171](DECISIONS.md)):
+  os dois formatos térmicos estão na lista, com as exigências lidas de
+  `GET /api/exports/cae/formatos`.
 - **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
   a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem
   LS-DYNA, e sem validar o MatML contra o XSD 3.1 (rede bloqueada). Abrir cada

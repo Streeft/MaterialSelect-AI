@@ -11319,6 +11319,32 @@ já evita para o conteúdo da página.
 **Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
 abaixo dele. Fica para a próxima rodada de copy.
 
+
+## D-171 — Diálogo CAE: formatos térmicos e elastoplásticos, com as exigências lidas do servidor
+
+**Contexto.** O backend já escrevia os cartões térmicos (D-112) e elastoplásticos (D-119), mas o diálogo "Cartão de material para CAE…" só oferecia os cinco
+formatos elásticos (TM5-b2 e o resíduo do TM5-d). Para oferecê-los, o diálogo precisa (a) saber o que cada formato exige e (b) pedir a curva e a série dos
+elastoplásticos.
+
+**Decisão.**
+- **`GET /api/exports/cae/formatos`** (aditivo, somente leitura, sem migração nem seed): por formato, `key`, `label`, `plastic`, `required` (os rótulos de
+  `CaeQuantity`, os mesmos da recusa 422) e `plastic_max_points`. Lê o registro Python (`ALL_FORMATS`) de onde a recusa também lê; o front não guarda cópia das
+  exigências, então lista e 422 não divergem.
+- **Formatos agrupados** (elástico, térmico, elastoplástico). Os rótulos da tela ficam em `lib/i18n-cae.ts` e `ptBR.cae.formats` (os do servidor trazem
+  trechos sem acento, pensados para o cabeçalho do arquivo).
+- **Elastoplástico pede curva e série, e o diálogo não escolhe nenhuma.** Só curvas `TENSAO_DEFORMACAO` do material; começa em "Escolha a curva" (nunca a
+  primeira por padrão); com mais de uma série, a série vem de `getMaterialCurve` (rótulo da série e valor do parâmetro com a unidade da curva, número em pt-BR)
+  e também começa vazia; com uma só, o texto diz que é ela e `serie` não é enviado. O botão "Baixar cartão" fica desabilitado até a escolha, com o que falta
+  escrito ao lado.
+- **Sem curva tensão–deformação no material:** aviso escrito ("este material não tem curva…") e nada a baixar. A recusa 422 do servidor (medida não declarada,
+  trajetória em vez de ramo, sem E × T declarado, tabela maior que o teto…) continua aparecendo com a frase do servidor, e o diálogo fica aberto.
+- **Carregando e erro** de cada leitura (exigências, curvas, série) têm estado escrito e "Tentar novamente". Se a lista de exigências não puder ser lida, os
+  elásticos e térmicos continuam baixáveis (o servidor recusa por escrito o que o cadastro não preenche); para o elastoplástico, até a lista chegar, o sufixo
+  `-plastic` da chave decide que a curva é necessária.
+
+**Descartado.** Copiar as exigências por formato para o front (desvia do servidor na primeira mudança de `REQUIRED`); escolher a curva ou a série "quando só há
+uma" (a exportação nunca escolhe, D-119); um pré-teste por material das propriedades que faltam (duplicaria `refusal_reason`; a frase do 422 já nomeia o que falta).
+
 ## D-172 — Eco Audit exportável: o briefing vai no corpo, o servidor reaudita, e o arquivo diz de onde veio cada número
 
 **Contexto.** O Eco Audit (D-121) não exportava nada, nem para peça única. O `TODO.md` deixava a regra anotada: quando existir, a exportação leva o detalhe por componente e por
@@ -11368,3 +11394,21 @@ Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
 **Descartado.** Ler com a unidade do eixo quando a do link é inválida (reparo que muda a pergunta); guardar o último valor no `localStorage`; escrever o valor digitado antes de enviar; exportar o resultado (segue como resíduo, não é o link).
 
 **Consequências.** Só frontend; sem migração; o leitor deixa de usar `useMutation` e passa a `useQuery` (o resultado também sobrevive a voltar à aba da ficha).
+## D-174 — Comparador: o link leva também as propriedades e a normalização (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-163 deixou como resíduo (CMP-link) a escolha de propriedades e a normalização fora do link: quem abria o endereço via os mesmos materiais numa tabela de outras colunas e de outra escala.
+
+**Decisão.** (1) **`propriedades`** (slugs separados por vírgula, na ordem da tela) e **`normalizacao`** (`minmax` ou `vector`). (2) **As propriedades são escritas sempre que há material**, também quando ninguém as escolheu: o padrão ("as quatro com mais valores") depende do catálogo de quem abre, e um link que dependesse dele mostraria duas tabelas (a razão do D-163). Já a normalização padrão (`minmax`) é constante do código e **não** ocupa o endereço; só a outra é escrita. (3) Sem material o endereço continua nu. (4) **Entrada não confiável, dita e nunca consertada:** pedaço sem forma de slug, propriedades além do teto de 20 (ficam as 20 primeiras, e se diz quantas sobraram), slug que o catálogo não tem mais (conferido quando o catálogo chega) e normalização desconhecida saem do pedido e do endereço, cada um numa frase no aviso "O que o link trazia e ficou de fora". Normalização inválida cai na padrão, dita. (5) A tabela espera o catálogo de propriedades antes de pedir ao servidor, como já espera o validador dos índices: um slug velho no link não derruba a tabela inteira. (6) Nada vai para o navegador: o estado vive na tela e no endereço.
+
+**Descartado.** Escrever as propriedades só quando o leitor escolheu (o link de uma tela "padrão" mudaria de tabela com o catálogo); repetir `normalizacao=minmax` em todo link; cair nas propriedades padrão quando todas as do link são inválidas (a tela diz "escolha uma propriedade" e lista o que saiu: o leitor decide, não o código); guardar no `localStorage`.
+
+**Consequências.** Só frontend; sem migração. Fecha o resíduo (a) do D-163; segue o resíduo (b), guardar a comparação com nome, que exige backend e decisão do autor.
+## D-173 — Copiar tabela nas tabelas que faltavam: o que a tela mostra, com a coluna que a tela pede (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-164 deixou sem o botão a tabela de estágios do funil, a das colunas calculadas do comparador e a composição e as designações da ficha (resíduo FL-d-res).
+
+**Decisão.** Mesma regra do D-164: o TSV sai dos mesmos dados e formatadores da tela, e ausência é escrita, nunca célula vazia nem zero. Cada tabela tem o seu `ariaLabel`. (1) **Estágios:** o nome que a tela mostra (rótulo ou "Estágio N (tipo)"), com "(Desligado)" no estágio desligado, e as duas contagens que o servidor mandou. (2) **Colunas calculadas:** cada cabeçalho começa por "Calculada:" (D-153: o número derivado não cola como medido), seguido do nome, da expressão e da unidade; material sem valor recebe "Indefinido" com o motivo do avaliador (D-24). (3) **Composição:** copia a condição que a tela mostra, com uma coluna "Condição" (a legenda da tabela não vai no texto); a coluna de % atômica só existe quando o servidor a derivou (D-117), como na tela; linha sem número diz o porquê ("Teor não informado pela fonte", "Resto — declarado pela fonte, não calculado", "Sem número — assim declarado pela fonte"); fonte e localização na fonte em colunas próprias, com "Sem localização na fonte". (4) **Designações:** norma, código, região ("Não restrita pela fonte") e fonte. Sem linha não há botão (a tela mostra o estado vazio).
+
+**Descartado.** Uma coluna de % atômica cheia de "Ausente" quando não derivada (a tela não a desenha; o D-117 recusa coluna em branco). Copiar a dispersão e o limiar junto das colunas calculadas (é leitura da coluna, não a tabela; fica na tela). Um botão único para as duas tabelas da ficha.
+
+**Consequências.** Só frontend; sem migração.

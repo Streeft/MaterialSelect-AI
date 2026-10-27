@@ -953,15 +953,60 @@ export function materialExportUrl(
 
 // --- CAE material card (D-104) ---------------------------------------------
 
-export type CaeFormat = "mapdl" | "abaqus" | "nastran" | "lsdyna" | "matml";
+/**
+ * Every key the route `GET /api/exports/materiais/{id}/cae` admits (D-104,
+ * D-112, D-119). What each one requires is not copied here: the server lists it
+ * (`listCaeFormats`, D-171), so the dialog and the 422 refusal read one registry.
+ */
+export type CaeFormat =
+  | "mapdl"
+  | "abaqus"
+  | "nastran"
+  | "lsdyna"
+  | "matml"
+  | "nastran-thermal"
+  | "lsdyna-thermal"
+  | "mapdl-plastic"
+  | "abaqus-plastic"
+  | "nastran-plastic"
+  | "lsdyna-plastic";
 export type CaeUnitSystem = "m-kg-s" | "mm-t-s" | "in-lbf-s";
+
+/** One entry of `GET /api/exports/cae/formatos` (D-171). */
+export interface CaeFormatSpec {
+  key: CaeFormat;
+  label: string;
+  /** Elastoplastic card (D-119): the route also needs `curva` (and `serie`). */
+  plastic: boolean;
+  /** Quantities the record must carry; a card missing one is refused (422). */
+  required: { key: string; label: string }[];
+  plastic_max_points: number | null;
+}
+
+/** The formats and what each requires, read from the server's own registry. */
+export function listCaeFormats(): Promise<CaeFormatSpec[]> {
+  return request<CaeFormatSpec[]>(`/api/exports/cae/formatos`);
+}
+
+/** The stress-strain curve and series an elastoplastic card is built from. */
+export interface CaePlasticChoice {
+  /** Curve id (`curva`). */
+  curve: number;
+  /** Series position (`serie`); left out when the curve has a single series. */
+  series?: number;
+}
 
 export function caeExportUrl(
   materialId: number,
   format: CaeFormat,
   units: CaeUnitSystem,
+  plastic?: CaePlasticChoice,
 ): string {
   const query = new URLSearchParams({ formato: format, unidades: units });
+  if (plastic) {
+    query.set("curva", String(plastic.curve));
+    if (plastic.series !== undefined) query.set("serie", String(plastic.series));
+  }
   return `${API_URL}/api/exports/materiais/${materialId}/cae?${query}`;
 }
 
@@ -975,8 +1020,9 @@ export async function downloadCaeCard(
   materialId: number,
   format: CaeFormat,
   units: CaeUnitSystem,
+  plastic?: CaePlasticChoice,
 ): Promise<{ blob: Blob; filename: string }> {
-  const res = await fetch(caeExportUrl(materialId, format, units), {
+  const res = await fetch(caeExportUrl(materialId, format, units, plastic), {
     credentials: "include",
     cache: "no-store",
   });

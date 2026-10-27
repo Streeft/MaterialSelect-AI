@@ -316,3 +316,38 @@ def test_the_card_names_designations_and_composition_even_when_absent(
     material_id = _own_full_record(client, db_session)
     text = client.get(URL.format(id=material_id, fmt="matml", units="mm-t-s")).text
     assert "sem composição cadastrada" in text and "sem designação cadastrada" in text
+
+
+def test_the_formats_listing_reads_the_registry_the_refusal_reads(client: TestClient) -> None:
+    # D-171: the dialog learns what each format requires from the server, so the
+    # list and the 422 cannot disagree.
+    response = client.get("/api/exports/cae/formatos")
+    assert response.status_code == 200, response.text
+    formats = {f["key"]: f for f in response.json()}
+    assert list(formats) == [
+        "mapdl",
+        "matml",
+        "abaqus",
+        "nastran",
+        "lsdyna",
+        "nastran-thermal",
+        "lsdyna-thermal",
+        "mapdl-plastic",
+        "abaqus-plastic",
+        "nastran-plastic",
+        "lsdyna-plastic",
+    ]
+    labels = {key: [q["label"] for q in f["required"]] for key, f in formats.items()}
+    assert labels["mapdl"] == ["módulo de Young", "coeficiente de Poisson"]
+    assert labels["matml"] == []
+    assert "calor específico" in labels["nastran-thermal"]
+    assert "condutividade térmica" in labels["lsdyna-thermal"]
+    assert "densidade" in labels["lsdyna-plastic"]
+    assert {key for key, f in formats.items() if f["plastic"]} == {
+        "mapdl-plastic",
+        "abaqus-plastic",
+        "nastran-plastic",
+        "lsdyna-plastic",
+    }
+    assert formats["mapdl-plastic"]["plastic_max_points"] is not None
+    assert formats["abaqus-plastic"]["plastic_max_points"] is None

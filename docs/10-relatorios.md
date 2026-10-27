@@ -204,6 +204,15 @@ zero.
 (`app/exporters/cae/`, [D-104](DECISIONS.md)). Na tela, é o item "Cartão de
 material para CAE…" do "Exportar ▾" da ficha.
 
+O diálogo lista os onze formatos em três grupos (elástico, térmico,
+elastoplástico) e escreve o que o formato escolhido exige lendo
+`GET /api/exports/cae/formatos` (D-171; chave, rótulo, `plastic`, `required` e
+`plastic_max_points`, do mesmo registro de onde a recusa 422 lê). Nos
+`*-plastic`, pede a curva tensão–deformação do material e, com mais de uma
+série, a série (`curva`, `serie`); não escolhe nenhuma, e sem curva
+tensão–deformação o diálogo escreve que o material não tem e não oferece o
+arquivo. A recusa 422 aparece com a frase do servidor.
+
 | `formato` | O que sai | Exige |
 |---|---|---|
 | `mapdl` | Ansys MAPDL: `/UNITS`, `MP,DENS/EX/PRXY/ALPX/KXX/C` | E e ν |
@@ -211,6 +220,12 @@ material para CAE…" do "Exportar ▾" da ficha.
 | `nastran` | Nastran `MAT1` em campo largo (E, NU, RHO, A) | E e ν |
 | `lsdyna` | LS-DYNA `*MAT_ELASTIC_TITLE` (RO, E, PR) | ρ, E e ν |
 | `matml` | MatML 3.1 (XML) | ao menos uma propriedade |
+| `nastran-thermal` | Nastran `MAT4*` (D-112) | condutividade e calor específico |
+| `lsdyna-thermal` | LS-DYNA `*MAT_THERMAL_ISOTROPIC_TITLE` (D-112) | calor específico e condutividade |
+| `mapdl-plastic` | MAPDL com `TB,PLAS` MISO (D-119) | E, ν, `curva` (`serie`); até o teto de pontos do formato |
+| `abaqus-plastic` | Abaqus com `*ELASTIC` e `*PLASTIC` (D-119) | E, ν, `curva` (`serie`) |
+| `nastran-plastic` | Nastran `MAT1`, `MATS1` e `TABLES1` (D-119) | E, ν, `curva` (`serie`) |
+| `lsdyna-plastic` | LS-DYNA `*MAT_024` e `*DEFINE_CURVE` (D-119) | ρ, E, ν, `curva` (`serie`) |
 
 `unidades` é o **sistema consistente** do modelo, sem padrão: `m-kg-s` (Pa),
 `mm-t-s` (t/mm³, MPa) ou `in-lbf-s` (lbf·s²/in⁴, psi, °F). Não é a unidade de
@@ -366,6 +381,7 @@ interface (A4 — Playwright cobrindo importar → selecionar → visualizar →
 exportar, `apps/web/e2e/`, check obrigatório de CI em `ci.yml`), a exportação
 nativa em DOCX (P4 restante), a exportação nativa em PPTX (B2) e o cartão para
 CAE (TM5, D-104) já foram entregues; ver "Débitos já quitados" no `TODO.md`.
-Do cartão CAE ficaram de fora a curva tensão-deformação plástica, os dados
-dependentes de temperatura (`MPTEMP`/`MPDATA`), o XML do Engineering Data do
-Workbench e os cartões térmicos (`MAT4`, material térmico do LS-DYNA).
+Do cartão CAE ficaram de fora a família de temperaturas num cartão só
+(TM5-b1), o XML do Engineering Data do Workbench (TM5-c) e a validação num
+solver (TM5-e); a curva plástica (D-119) e os cartões térmicos (D-112) saíram,
+e o diálogo os oferece desde o D-171.

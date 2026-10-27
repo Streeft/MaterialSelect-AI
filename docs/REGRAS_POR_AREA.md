@@ -181,7 +181,7 @@ desconhecido recusado em qualquer nível com o caminho**, o mesmo `create_study`
 do editor e uma execução em memória antes de gravar (salvar não resolve slugs).
 Nome repetido ganha "(importado)", nada é sobrescrito. "Copiar tabela" é só o
 texto que a tela já mostra, em TSV, com ausência escrita e apóstrofo em célula
-que uma planilha leria como fórmula (número não). Há o botão também no comparador, no funil e nas propriedades da ficha (D-164).
+que uma planilha leria como fórmula (número não). Há o botão também no comparador (tabela e colunas calculadas), no funil (e nos estágios) e na ficha (propriedades, composição e designações) (D-164, D-173).
 que uma planilha leria como fórmula (número não). Nos relatórios e no laudo (D-161) a nota
 sai na seção "Notas do autor" (`Onde | Nota`), com o escape do formato de cada saída; sem nota,
 a seção diz que não há.
@@ -790,6 +790,14 @@ leitores, e nenhuma recusa cita a linha, só o número (D-101, revisão do PR
 #100).
 
 ## Exportação CAE (D-104)
+
+**D-171 (Sessão 129, TM5-b2):** o diálogo oferece os onze formatos (elástico,
+térmico, elastoplástico) e lê o que cada um exige de
+`GET /api/exports/cae/formatos`, do mesmo registro da recusa 422; **não copie
+exigências para o front**. Nos `*-plastic`, a curva e a série são escolhas da
+pessoa, nunca do diálogo nem da exportação (sem curva tensão–deformação no
+material, o diálogo escreve isso e não oferece o arquivo); a recusa 422 aparece
+com a frase do servidor. Textos em `lib/i18n-cae.ts`.
 
 **D-119 (Sessão 74, TM5-b):** `abaqus-plastic`, `mapdl-plastic`,
 `nastran-plastic` e `lsdyna-plastic` exigem `curva` (e `serie` quando há mais

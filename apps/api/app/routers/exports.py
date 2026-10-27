@@ -38,6 +38,7 @@ from app.exporters.report import Report
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
+from app.schemas.cae_export import CaeFormatOut
 from app.services.cae_export_service import CaeExportService
 from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
@@ -176,6 +177,12 @@ def export_material(
         )
     report = ExportService(db, user, unit_choices).material_report(material_id)
     return _file_response(report, fmt)
+
+
+@router.get("/cae/formatos", response_model=list[CaeFormatOut])
+def list_cae_formats(_user: User = Depends(get_current_user)) -> list[CaeFormatOut]:
+    """The CAE formats and what each requires, in the registry's own words (D-171)."""
+    return CaeExportService.formats()
 
 
 @router.get("/materiais/{material_id}/cae")
