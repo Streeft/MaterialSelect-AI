@@ -477,3 +477,34 @@ describe("ResultsView: Copiar tabela do funil (D-164)", () => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
   });
 });
+
+describe("ResultsView: Copiar tabela dos estágios (D-173)", () => {
+  it("copia os estágios com o nome da tela, o desligado dito e as contagens", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const result = makeResult({
+      stages: [
+        { position: 0, kind: "limit", label: "Só metais leves", enabled: true, passed: 5, remaining: 5, steps: [] },
+        { position: 1, kind: "tree", label: null, enabled: false, passed: 7, remaining: 5, steps: [] },
+      ],
+    });
+    const { container } = render(<ResultsView result={result} initialTab="eliminados" />);
+
+    await user.click(screen.getByRole("button", { name: copyTablesText.stages.aria }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const rows = (writeText.mock.calls[0]?.[0] as string).split("\n").map((l) => l.split("\t"));
+    expect(rows[0]).toEqual([
+      ptBR.selection.stagesTitle,
+      ptBR.selection.stagePassedAlone,
+      ptBR.selection.stageRemaining,
+    ]);
+    expect(rows[1]).toEqual(["Só metais leves", "5", "5"]);
+    expect(rows[2]).toEqual([`${ptBR.selection.stageNumber(2, "tree")} (${ptBR.selection.stageDisabled})`, "7", "5"]);
+    // The funnel button and this one are two buttons with two names.
+    expect(screen.getByRole("button", { name: copyTablesText.funnel.aria })).toBeInTheDocument();
+    expect(describeViolations(await findA11yViolations(container))).toBe("");
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+  });
+});

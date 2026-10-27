@@ -1,8 +1,18 @@
-import type { Comparison, FunnelStep, PropertyGroup, PropertyValueOut } from "@/lib/types";
+import type {
+  AtomicComposition,
+  Comparison,
+  CompositionEntry,
+  Designation,
+  FunnelStep,
+  PropertyGroup,
+  PropertyValueOut,
+  StageResult,
+} from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { copyTablesText as c } from "@/lib/i18n-copy-tables";
 import { toTsv } from "@/lib/clipboard";
 import { formatNumber, prettyUnit } from "@/lib/format";
+import { atomicContent, compositionContent, compositionOriginal, conditionOf } from "@/lib/composition";
 
 const ABSENT = ptBR.quality.AUSENTE;
 
@@ -129,5 +139,117 @@ export function sheetTsv(groups: readonly PropertyGroup[]): string {
       ];
     }),
   );
+  return toTsv(header, rows);
+}
+
+/**
+ * The stage table of the funnel as TSV (D-173): one row per stage, with the
+ * name the screen shows (the stage's own label or "Estágio N (tipo)"), a
+ * switched-off stage flagged in words, and the two counts the backend sent.
+ */
+export function stagesTsv(stages: readonly StageResult[]): string {
+  const sel = ptBR.selection;
+  const header = [sel.stagesTitle, sel.stagePassedAlone, sel.stageRemaining];
+  const rows = stages.map((stage) => {
+    const name = stage.label || sel.stageNumber(stage.position + 1, stage.kind);
+    return [
+      stage.enabled ? name : `${name} (${sel.stageDisabled})`,
+      formatNumber(stage.passed),
+      formatNumber(stage.remaining),
+    ];
+  });
+  return toTsv(header, rows);
+}
+
+/**
+ * The calculated columns of the comparison as TSV (D-173). Each header says
+ * "Calculada" first, so a derived number never pastes as a measured one
+ * (D-153), then the index name, expression and unit. A material with no value
+ * gets the written "Indefinido" with the evaluator's reason, never a blank or
+ * a 0 (D-24). The numbers are the ones the backend evaluated.
+ */
+export function computedTsv(comparison: Comparison): string {
+  const columns = comparison.computed ?? [];
+  const k = ptBR.compare.computed;
+  const header = [
+    c.computed.material,
+    c.computed.className,
+    ...columns.map((column) => {
+      const name =
+        column.name !== column.expression ? `${column.name} (${column.expression})` : column.expression;
+      const unit =
+        column.dimension !== "dimensionless" ? ` [${prettyUnit(column.dimension)}]` : "";
+      return `${k.badge}: ${name}${unit}`;
+    }),
+  ];
+  const rows = comparison.materials.map((material) => [
+    material.name,
+    material.class_name,
+    ...columns.map((column) => {
+      const item = column.values.find((v) => v.material_id === material.material_id);
+      if (item && item.value !== null) return formatNumber(item.value);
+      return `${k.undefinedLabel}${item?.undefined_reason ? `: ${item.undefined_reason}` : ""}`;
+    }),
+  ]);
+  return toTsv(header, rows);
+}
+
+/**
+ * The composition shown on the sheet as TSV (D-173): the rows of the condition
+ * on screen, in the words the table uses. The derived atomic percent gets a
+ * column only when the backend derived it (D-117), exactly as on screen; a row
+ * with no number says why, never an empty cell. A source with no location says so.
+ */
+export function compositionTsv(
+  entries: readonly CompositionEntry[],
+  atomic?: AtomicComposition,
+): string {
+  const k = c.composition;
+  const d = ptBR.detail;
+  const derived = atomic && atomic.reason === null ? atomic : null;
+  const atomicByElement = new Map((derived?.entries ?? []).map((a) => [a.element, a]));
+  const header = [
+    k.condition,
+    k.element,
+    k.content,
+    ...(derived ? [k.atomic] : []),
+    k.original,
+    k.source,
+    k.citation,
+    k.quality,
+  ];
+  const rows = entries.map((entry) => {
+    const original = compositionOriginal(entry);
+    const value = atomicByElement.get(entry.element);
+    return [
+      conditionOf(entry) ?? d.conditionNone,
+      `${entry.element} (${entry.element_name})`,
+      compositionContent(entry) || ABSENT,
+      ...(derived ? [value ? atomicContent(value) : ABSENT] : []),
+      original === null
+        ? d.noOriginal
+        : entry.conversion_method
+          ? `${original} · ${d.conversion(entry.conversion_method)}`
+          : original,
+      entry.source_label || c.sheet.noSource,
+      entry.citation ?? d.noCitation,
+      ptBR.quality[entry.data_quality],
+    ];
+  });
+  return toTsv(header, rows);
+}
+
+/** The designations of the sheet as TSV (D-173); no region or citation is written as such. */
+export function designationsTsv(designations: readonly Designation[]): string {
+  const k = c.designations;
+  const d = ptBR.detail;
+  const header = [k.system, k.code, k.region, k.source, k.citation];
+  const rows = designations.map((designation) => [
+    designation.system_label,
+    designation.code,
+    designation.region ?? d.noRegion,
+    designation.source_label || c.sheet.noSource,
+    designation.citation ?? d.noCitation,
+  ]);
   return toTsv(header, rows);
 }

@@ -11384,3 +11384,22 @@ produziu); renderizador próprio (duplicaria o escape por formato); repartir tra
 **Não muda:** o cálculo, `/auditar`, `/comparar`, o catálogo. Sem migração e sem seed. Pós-merge: **Deploy da API**.
 
 Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
+
+## D-174 — Comparador: o link leva também as propriedades e a normalização (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-163 deixou como resíduo (CMP-link) a escolha de propriedades e a normalização fora do link: quem abria o endereço via os mesmos materiais numa tabela de outras colunas e de outra escala.
+
+**Decisão.** (1) **`propriedades`** (slugs separados por vírgula, na ordem da tela) e **`normalizacao`** (`minmax` ou `vector`). (2) **As propriedades são escritas sempre que há material**, também quando ninguém as escolheu: o padrão ("as quatro com mais valores") depende do catálogo de quem abre, e um link que dependesse dele mostraria duas tabelas (a razão do D-163). Já a normalização padrão (`minmax`) é constante do código e **não** ocupa o endereço; só a outra é escrita. (3) Sem material o endereço continua nu. (4) **Entrada não confiável, dita e nunca consertada:** pedaço sem forma de slug, propriedades além do teto de 20 (ficam as 20 primeiras, e se diz quantas sobraram), slug que o catálogo não tem mais (conferido quando o catálogo chega) e normalização desconhecida saem do pedido e do endereço, cada um numa frase no aviso "O que o link trazia e ficou de fora". Normalização inválida cai na padrão, dita. (5) A tabela espera o catálogo de propriedades antes de pedir ao servidor, como já espera o validador dos índices: um slug velho no link não derruba a tabela inteira. (6) Nada vai para o navegador: o estado vive na tela e no endereço.
+
+**Descartado.** Escrever as propriedades só quando o leitor escolheu (o link de uma tela "padrão" mudaria de tabela com o catálogo); repetir `normalizacao=minmax` em todo link; cair nas propriedades padrão quando todas as do link são inválidas (a tela diz "escolha uma propriedade" e lista o que saiu: o leitor decide, não o código); guardar no `localStorage`.
+
+**Consequências.** Só frontend; sem migração. Fecha o resíduo (a) do D-163; segue o resíduo (b), guardar a comparação com nome, que exige backend e decisão do autor.
+## D-173 — Copiar tabela nas tabelas que faltavam: o que a tela mostra, com a coluna que a tela pede (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-164 deixou sem o botão a tabela de estágios do funil, a das colunas calculadas do comparador e a composição e as designações da ficha (resíduo FL-d-res).
+
+**Decisão.** Mesma regra do D-164: o TSV sai dos mesmos dados e formatadores da tela, e ausência é escrita, nunca célula vazia nem zero. Cada tabela tem o seu `ariaLabel`. (1) **Estágios:** o nome que a tela mostra (rótulo ou "Estágio N (tipo)"), com "(Desligado)" no estágio desligado, e as duas contagens que o servidor mandou. (2) **Colunas calculadas:** cada cabeçalho começa por "Calculada:" (D-153: o número derivado não cola como medido), seguido do nome, da expressão e da unidade; material sem valor recebe "Indefinido" com o motivo do avaliador (D-24). (3) **Composição:** copia a condição que a tela mostra, com uma coluna "Condição" (a legenda da tabela não vai no texto); a coluna de % atômica só existe quando o servidor a derivou (D-117), como na tela; linha sem número diz o porquê ("Teor não informado pela fonte", "Resto — declarado pela fonte, não calculado", "Sem número — assim declarado pela fonte"); fonte e localização na fonte em colunas próprias, com "Sem localização na fonte". (4) **Designações:** norma, código, região ("Não restrita pela fonte") e fonte. Sem linha não há botão (a tela mostra o estado vazio).
+
+**Descartado.** Uma coluna de % atômica cheia de "Ausente" quando não derivada (a tela não a desenha; o D-117 recusa coluna em branco). Copiar a dispersão e o limiar junto das colunas calculadas (é leitura da coluna, não a tabela; fica na tela). Um botão único para as duas tabelas da ficha.
+
+**Consequências.** Só frontend; sem migração.

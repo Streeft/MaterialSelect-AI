@@ -177,10 +177,12 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   "Calculada", nota, dispersão e limiar próprios. ~~Limiar e índices só
   na página~~ ✔ entregues em parte (D-163, Sessão 121): o endereço passa a levar
   materiais, referência, limiar, índices do catálogo e índices digitados
-  (conferidos pelo servidor ao abrir), com "Copiar link". Resíduos: (a) a escolha
-  de propriedades e a normalização ainda não vão no link; (b) guardar a
-  comparação com nome, para reabrir sem o link, exige backend e decisão do
-  autor (nada disso fica no navegador, de propósito).
+  (conferidos pelo servidor ao abrir), com "Copiar link". ~~(a) A escolha de
+  propriedades e a normalização ainda não vão no link~~ ✔ entregue (D-174,
+  Sessão 132): vão em `propriedades` e `normalizacao`, e o que não vale mais é
+  dito e sai do pedido e do endereço. Resíduo: (b) guardar a comparação com nome,
+  para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
+  navegador, de propósito).
 - **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
@@ -292,9 +294,10 @@ próprio~~. Resíduos:
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
 - ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-164, Sessão 122):
   "Copiar tabela" no comparador, no funil e nas propriedades da ficha, em TSV
-  com ausência escrita. Resíduos: a tabela de estágios do funil, a tabela de
-  colunas calculadas do comparador e as demais tabelas da ficha (composição,
-  designações) ainda não têm o botão.
+  com ausência escrita. Resíduos quitados (Sessão 131, [D-173](DECISIONS.md)):
+  a tabela de estágios do funil, as colunas calculadas do comparador e a
+  composição e as designações da ficha têm o botão. Nenhuma tabela de
+  resultado ou de ficha fica sem ele.
 - **FL-e — duplicar processo.** ▁ Não existe: processo não tem dono (D-62). Só
   muda se um dia houver "processo próprio".
 - **FL-f — duplicar a partir do catálogo compartilhado.** ▁ Continua sendo o
