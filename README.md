@@ -78,7 +78,9 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 - **Eco** — auditoria ecológica em cinco fases (material, manufatura,
   transporte, uso, fim de vida), em energia e carbono, de um produto com vários
   componentes e vários trechos de transporte, e sete rotas de fim de vida
-  (D-121).
+  (D-121). **Exportável** em CSV, XLSX, HTML, DOCX e PPTX (menu "Exportar"):
+  por componente e por trecho, com a razão escrita de cada ausência e a fonte,
+  a qualidade e a licença de cada dado lido (D-172).
 - **Sintetizar** — compósito de dois constituintes, espuma e **painel
   sanduíche**, cada valor com a lei que o produziu e a sua base; e a
   **varredura de família** (seção "Varrer"), que mostra como um índice anda ao longo da
@@ -116,7 +118,7 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   e pontos em CSV/XLSX. Nada é interpolado nem reduzido a um valor único; sem
   curva, a ficha diz "Nenhuma curva cadastrada" (D-106). Abaixo da figura, "Ler
   um valor da curva" pergunta ao servidor o ponto que a fonte declarou
-  exatamente naquele x (ausência escrita, nunca interpolada); uma trajetória
+  exatamente naquele x (ausência escrita, nunca interpolada; a leitura feita vai no endereço e o link a refaz, D-175); uma trajetória
   (laço de histerese) leva setas no sentido do caminho, anel no início e losango
   no fim, e não oferece leitura num x. A ficha também traz as **propriedades
   ordinais** (escala cadastrada, nível do material, fonte e ausência escrita)

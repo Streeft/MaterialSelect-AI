@@ -145,9 +145,11 @@ quitados".
   - **Orientação textual por fase dominante** — fora do escopo.
   - **Comparação A × B por produto**: `/api/eco/comparar` continua comparando
     duas peças de um componente e um trecho.
-  - **Exportação do Eco Audit** (CSV/XLSX/HTML com o aviso de limitação de
-    uso): não existe hoje, nem para peça única; quando existir, deve levar o
-    detalhe por componente e por trecho.
+  - ~~**Exportação do Eco Audit**~~ — entregue na Sessão 130 ([D-172](DECISIONS.md)):
+    `POST /api/eco/exportar.{csv,xlsx,html,docx,pptx}`, com o detalhe por
+    componente e por trecho, a razão escrita de cada ausência e a proveniência
+    (fonte, qualidade, licença, `is_demo`) de cada dado lido; "Exportar ▾" na
+    tela. Resíduo: o `/api/eco/comparar` (A × B) não exporta.
 
 **Funcionalidades inspiradas no Total Materia (D-103).** Recursos observados
 só nas páginas públicas do produto ([`catalogo/fontes.md`
