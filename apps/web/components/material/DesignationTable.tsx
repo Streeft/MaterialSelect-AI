@@ -1,5 +1,8 @@
 import type { Designation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { designationsTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
+import { CopyTableButton } from "@/components/selection/CopyTableButton";
 import {
   EmptyState,
   RowHeader,
@@ -30,6 +33,13 @@ export function DesignationTable({
     return <EmptyState title={t.noDesignations} description={t.noDesignationsHint} />;
   }
   return (
+    <div className="flex flex-col gap-2">
+    <div className="flex justify-end">
+      <CopyTableButton
+        ariaLabel={copyTablesText.designations.aria}
+        getText={() => designationsTsv(designations)}
+      />
+    </div>
     <TableScroll label={t.designationsCaption}>
       <Table>
         <TableCaption>{t.designationsCaption}</TableCaption>
@@ -64,5 +74,6 @@ export function DesignationTable({
         </TBody>
       </Table>
     </TableScroll>
+    </div>
   );
 }

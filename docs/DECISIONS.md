@@ -11319,6 +11319,7 @@ já evita para o conteúdo da página.
 **Observação, sem código:** o texto de exemplo do campo "Buscar materiais" do catálogo é cortado a 375 px ("…ou"); o campo é um `<input>`, então o texto inteiro está na dica
 abaixo dele. Fica para a próxima rodada de copy.
 
+
 ## D-172 — Eco Audit exportável: o briefing vai no corpo, o servidor reaudita, e o arquivo diz de onde veio cada número
 
 **Contexto.** O Eco Audit (D-121) não exportava nada, nem para peça única. O `TODO.md` deixava a regra anotada: quando existir, a exportação leva o detalhe por componente e por
@@ -11358,3 +11359,13 @@ produziu); renderizador próprio (duplicaria o escape por formato); repartir tra
 **Não muda:** o cálculo, `/auditar`, `/comparar`, o catálogo. Sem migração e sem seed. Pós-merge: **Deploy da API**.
 
 Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
+
+## D-173 — Copiar tabela nas tabelas que faltavam: o que a tela mostra, com a coluna que a tela pede (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** O D-164 deixou sem o botão a tabela de estágios do funil, a das colunas calculadas do comparador e a composição e as designações da ficha (resíduo FL-d-res).
+
+**Decisão.** Mesma regra do D-164: o TSV sai dos mesmos dados e formatadores da tela, e ausência é escrita, nunca célula vazia nem zero. Cada tabela tem o seu `ariaLabel`. (1) **Estágios:** o nome que a tela mostra (rótulo ou "Estágio N (tipo)"), com "(Desligado)" no estágio desligado, e as duas contagens que o servidor mandou. (2) **Colunas calculadas:** cada cabeçalho começa por "Calculada:" (D-153: o número derivado não cola como medido), seguido do nome, da expressão e da unidade; material sem valor recebe "Indefinido" com o motivo do avaliador (D-24). (3) **Composição:** copia a condição que a tela mostra, com uma coluna "Condição" (a legenda da tabela não vai no texto); a coluna de % atômica só existe quando o servidor a derivou (D-117), como na tela; linha sem número diz o porquê ("Teor não informado pela fonte", "Resto — declarado pela fonte, não calculado", "Sem número — assim declarado pela fonte"); fonte e localização na fonte em colunas próprias, com "Sem localização na fonte". (4) **Designações:** norma, código, região ("Não restrita pela fonte") e fonte. Sem linha não há botão (a tela mostra o estado vazio).
+
+**Descartado.** Uma coluna de % atômica cheia de "Ausente" quando não derivada (a tela não a desenha; o D-117 recusa coluna em branco). Copiar a dispersão e o limiar junto das colunas calculadas (é leitura da coluna, não a tabela; fica na tela). Um botão único para as duas tabelas da ficha.
+
+**Consequências.** Só frontend; sem migração.
