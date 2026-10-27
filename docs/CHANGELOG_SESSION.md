@@ -184,6 +184,14 @@ determinismo. Frontend 1439 passam, +7 (`EcoExportMenu.test.tsx`: cinco formatos
 bloqueia o segundo clique, erro escrito e nova tentativa; `eco.test.tsx`: o menu exporta o briefing que rodou). `ruff`, `black`, `tsc`, `eslint` (0 erros) e `vitest` verdes. Sem migração
 e sem seed. Pós-merge: **Deploy da API**.
 
+## Sessão 131 — 27/10/26 — Copiar tabela nas tabelas que faltavam (D-173)
+
+**O pedido.** Resíduo FL-d-res do D-164: a tabela de estágios do funil, as colunas calculadas do comparador e a composição e as designações da ficha não tinham "Copiar tabela".
+
+**O que mudou.** `stagesTsv`, `computedTsv`, `compositionTsv` e `designationsTsv` em `lib/copyTables.ts`, com os mesmos formatadores das telas; o `CopyTableButton` entra em `ResultsView` (estágios), `ComputedTable`, `CompositionTable` e `DesignationTable`, cada um com `ariaLabel` próprio (`lib/i18n-copy-tables.ts`). Ausência escrita ("Ausente", "Indefinido: motivo", "Sem localização na fonte", "Não restrita pela fonte"), nunca célula vazia nem zero; cabeçalho de coluna calculada começa por "Calculada:".
++7 de frontend (`components/copy-tables-rest.test.tsx`, 6, e um em `selection.test.tsx`, todos com axe onde há tela); suíte inteira: 1446 passam (medida após mesclar a main com a Sessão 130). Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 131 e D-173 (127 a 130 e D-169 a D-172 estavam ocupadas por outros trabalhos).
+
 ## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
 
 **O que mudou.** Capturas a 375 px (claro e escuro) de início, busca, atalhos, menu, faixa sem conexão, catálogo e ficha acharam um defeito: a busca global abria dentro da
