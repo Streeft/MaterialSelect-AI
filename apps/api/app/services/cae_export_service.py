@@ -38,6 +38,7 @@ from app.models.material import Material
 from app.models.material_curve import MaterialCurve, MaterialCurveSeries
 from app.repositories.curve_repository import CurveRepository
 from app.repositories.material_repository import MaterialRepository
+from app.schemas.cae_export import CaeFormatOut, CaeRequirementOut
 from app.services.identity_lines import composition_lines, designation_lines
 
 
@@ -110,6 +111,24 @@ class CaeExportService:
     def __init__(self, db: Session, viewer_id: int | None) -> None:
         self.repo = MaterialRepository(db, viewer_id)
         self.curves = CurveRepository(db, viewer_id)
+
+    @staticmethod
+    def formats() -> list[CaeFormatOut]:
+        """Every format the route admits and what each requires (D-171).
+
+        Read from the same registry the refusal reads, so the dialog never
+        carries a second copy of the requirements.
+        """
+        return [
+            CaeFormatOut(
+                key=fmt.key,
+                label=fmt.label,
+                plastic=fmt.plastic,
+                required=[CaeRequirementOut(key=q.key, label=q.label) for q in fmt.required],
+                plastic_max_points=fmt.plastic_max_points,
+            )
+            for fmt in ALL_FORMATS.values()
+        ]
 
     def material_card(
         self,
