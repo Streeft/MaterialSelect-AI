@@ -30,4 +30,32 @@ export const copyTablesText = {
     noSource: "Sem fonte registrada",
     typical: "típico",
   },
+  // D-173 (FL-d-res): the tables D-164 left without the button.
+  stages: {
+    aria: "Copiar tabela dos estágios da seleção",
+  },
+  computed: {
+    aria: "Copiar tabela das colunas calculadas",
+    material: "Material",
+    className: "Classe",
+  },
+  composition: {
+    aria: "Copiar tabela de composição",
+    condition: "Condição",
+    element: "Elemento",
+    content: "Teor (% em massa)",
+    atomic: "% atômica (derivada)",
+    original: "Como a fonte escreveu",
+    source: "Fonte",
+    citation: "Localização na fonte",
+    quality: "Qualidade",
+  },
+  designations: {
+    aria: "Copiar tabela de designações",
+    system: "Norma",
+    code: "Código",
+    region: "Região",
+    source: "Fonte",
+    citation: "Localização na fonte",
+  },
 } as const;

@@ -3,6 +3,9 @@
 import type { Comparison, CompareMaterial, ComputedColumn } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
+import { computedTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
+import { CopyTableButton } from "@/components/selection/CopyTableButton";
 import {
   Badge,
   Table,
@@ -66,6 +69,12 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-support text-ink-subtle">{t.note}</p>
+      <div className="flex justify-end">
+        <CopyTableButton
+          ariaLabel={copyTablesText.computed.aria}
+          getText={() => computedTsv(comparison)}
+        />
+      </div>
       <TableScroll label={t.tableRegion(materials.length, columns.length)}>
       <Table>
         <TableCaption>{t.title}</TableCaption>

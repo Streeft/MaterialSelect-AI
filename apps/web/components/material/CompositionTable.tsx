@@ -1,6 +1,9 @@
 import type { AtomicComposition, CompositionEntry } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { atomicContent, compositionContent, compositionOriginal } from "@/lib/composition";
+import { compositionTsv } from "@/lib/copyTables";
+import { copyTablesText } from "@/lib/i18n-copy-tables";
+import { CopyTableButton } from "@/components/selection/CopyTableButton";
 import {
   DataQualityBadge,
   EmptyState,
@@ -52,6 +55,12 @@ export function CompositionTable({
   const caption = conditionLabel === null ? t.compositionCaption : t.conditionCaption(conditionLabel);
   return (
     <div className="flex flex-col gap-2">
+    <div className="flex justify-end">
+      <CopyTableButton
+        ariaLabel={copyTablesText.composition.aria}
+        getText={() => compositionTsv(entries, atomic)}
+      />
+    </div>
     <TableScroll label={caption}>
       <Table>
         <TableCaption>{caption}</TableCaption>

@@ -290,9 +290,10 @@ próprio~~. Resíduos:
   excluído, nunca editado; a nota se edita no assistente e se salva de novo.
 - ~~**FL-d — copiar outras tabelas.**~~ ✔ Entregue (D-164, Sessão 122):
   "Copiar tabela" no comparador, no funil e nas propriedades da ficha, em TSV
-  com ausência escrita. Resíduos: a tabela de estágios do funil, a tabela de
-  colunas calculadas do comparador e as demais tabelas da ficha (composição,
-  designações) ainda não têm o botão.
+  com ausência escrita. Resíduos quitados (Sessão 131, [D-173](DECISIONS.md)):
+  a tabela de estágios do funil, as colunas calculadas do comparador e a
+  composição e as designações da ficha têm o botão. Nenhuma tabela de
+  resultado ou de ficha fica sem ele.
 - **FL-e — duplicar processo.** ▁ Não existe: processo não tem dono (D-62). Só
   muda se um dia houver "processo próprio".
 - **FL-f — duplicar a partir do catálogo compartilhado.** ▁ Continua sendo o
