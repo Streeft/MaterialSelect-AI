@@ -20,6 +20,13 @@ const t = ptBR.eco;
 
 const runEcoAudit =
   vi.fn<(payload: EcoAuditRequest) => Promise<EcoAuditResult>>();
+const downloadEcoAudit =
+  vi.fn<
+    (
+      payload: EcoAuditRequest,
+      format: string,
+    ) => Promise<{ blob: Blob; filename: string }>
+  >();
 
 const materials: MaterialListItem[] = [
   {
@@ -255,6 +262,8 @@ vi.mock("@/lib/api", () => ({
   listTransportModes: () => Promise.resolve(modes),
   listEndOfLifeRoutes: () => Promise.resolve(routes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
+  downloadEcoAudit: (payload: EcoAuditRequest, format: string) =>
+    downloadEcoAudit(payload, format),
 }));
 
 function wrap(node: ReactNode) {
@@ -276,6 +285,11 @@ beforeEach(() => {
   nav.query = "material=7&massa=2";
   runEcoAudit.mockReset();
   runEcoAudit.mockResolvedValue(result);
+  downloadEcoAudit.mockReset();
+  downloadEcoAudit.mockResolvedValue({
+    blob: new Blob(["x"]),
+    filename: "auditoria-ambiental-do-produto.csv",
+  });
 });
 
 describe("Auditoria ambiental", () => {
@@ -593,5 +607,44 @@ describe("Auditoria ambiental", () => {
     expect(
       screen.getByText(/não abate crédito de reciclagem/),
     ).toBeInTheDocument();
+  });
+
+  it("exporta o briefing que gerou o resultado, por um menu Exportar (D-91)", async () => {
+    // jsdom has no object URLs; the real `save` needs them.
+    const created = vi.fn(() => "blob:eco");
+    URL.createObjectURL = created;
+    URL.revokeObjectURL = vi.fn();
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+    await screen.findByText(t.dominanceTitle);
+
+    const trigger = screen.getByRole("button", { name: ptBR.exports.title });
+    expect(trigger).toBeEnabled();
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    await user.click(trigger);
+    // Todos os formatos num menu só, nunca uma fileira de botões.
+    for (const label of [
+      ptBR.exports.csv,
+      ptBR.exports.xlsx,
+      ptBR.exports.docx,
+      ptBR.exports.pptx,
+      ptBR.exports.html,
+    ]) {
+      expect(screen.getByRole("menuitem", { name: new RegExp(label) })).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole("menuitem", { name: new RegExp(ptBR.exports.xlsx) }));
+
+    await waitFor(() => expect(downloadEcoAudit).toHaveBeenCalledTimes(1));
+    expect(downloadEcoAudit.mock.calls[0]![1]).toBe("xlsx");
+    // O mesmo briefing que o servidor auditou, não o que os campos dizem agora.
+    expect(downloadEcoAudit.mock.calls[0]![0]).toEqual(runEcoAudit.mock.calls[0]![0]);
+    await waitFor(() => expect(created).toHaveBeenCalled());
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
   });
 });

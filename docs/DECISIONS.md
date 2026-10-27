@@ -11329,3 +11329,42 @@ abaixo dele. Fica para a próxima rodada de copy.
 **Descartado.** Uma coluna de % atômica cheia de "Ausente" quando não derivada (a tela não a desenha; o D-117 recusa coluna em branco). Copiar a dispersão e o limiar junto das colunas calculadas (é leitura da coluna, não a tabela; fica na tela). Um botão único para as duas tabelas da ficha.
 
 **Consequências.** Só frontend; sem migração.
+## D-172 — Eco Audit exportável: o briefing vai no corpo, o servidor reaudita, e o arquivo diz de onde veio cada número
+
+**Contexto.** O Eco Audit (D-121) não exportava nada, nem para peça única. O `TODO.md` deixava a regra anotada: quando existir, a exportação leva o detalhe por componente e por
+trecho. O padrão das outras exportações é o `Report` agnóstico de formato (D-138: sem aviso de uso nem de dado demonstrativo; fonte, qualidade e licença por valor) com
+`spreadsheet.py` e `html.py` (e `docx.py`/`pptx.py`), escape por formato.
+
+**Decisão.**
+- **`POST /api/eco/exportar.{csv,xlsx,html,docx,pptx}`**, com o mesmo corpo de `/api/eco/auditar` (as duas formas, lista de componentes e peça única, valem). **POST** porque o
+  briefing é um corpo — até 50 componentes e 20 trechos, que a query string não carrega —, ao contrário das outras exportações, que só têm um id. A rota mora em
+  `routers/eco.py` e reaproveita `_file_response` de `routers/exports.py`: o escape por formato, o `Content-Security-Policy` do HTML, o `nosniff` e o nome de arquivo são os mesmos.
+- **O servidor reexecuta a auditoria** (`EcoService.run`, a mesma chamada da tela) e nunca recebe resultado pronto do cliente: o arquivo não pode divergir da conta, e um corpo
+  que a auditoria recusa (404 de material, 422 de formas misturadas) é recusado igual. **Nada é calculado no exportador**: `exporters/eco.py` só arruma os números que
+  `EcoAuditResultOut` já trouxe; `services/eco_provenance.py` só lê de onde veio cada dado; `ExportService.eco_report` orquestra. `eco_audit.py` não foi tocado.
+- **Sete seções:** *Resumo* (totais, pódios, massas, notas de método), *Fases do produto* (as cinco, energia e carbono em linhas próprias), *Componentes* (material, processo,
+  quantidade, massa unitária, na peça e comprada, refugo, teor reciclado, rota), *Componentes por fase* (material, manufatura e fim de vida de cada um), *Trechos de transporte*
+  (modal, distância, massa transportada), *Premissas de uso* e *Proveniência*.
+- **Ausência é palavra.** Valor ausente sai `ausente`, a situação diz `ausente` e a coluna "Razão da ausência" traz o texto do próprio cálculo (que nomeia o componente e o
+  slug que faltou); total e pódio recusados saem `ausente` e `recusado` com a razão. Nenhuma linha leva `None`: o CSV/XLSX o escreveriam vazio, que se lê como zero.
+- **Proveniência por valor lido:** valor normalizado, unidade canônica, valor e unidade originais, método de conversão, qualidade, fonte, **licença**, `is_demo` (coluna de
+  dado — sim/não —, nunca frase) e se o registro é próprio. Entram só os dados que a conta lê (o teor reciclado só pede os fatores de reciclagem se for maior que zero; a rota
+  `nenhum` não lê nada). Dado não cadastrado vira linha `ausente` com a razão, e dado cadastrado como ausente também; o modal de transporte tem fonte e licença, mas não escala
+  de qualidade, e a coluna diz "não registrada".
+- **As premissas de uso** (potência, intensidade, vida, carbono por energia) são do leitor, não do catálogo: saem com a origem "Informado pelo usuário"; o carbono por energia
+  não informado sai `ausente` com o que isso faz com a fase.
+- **Transporte e uso continuam do produto, não do componente** (D-121): repartir exigiria uma regra de alocação que o cálculo não escolhe, e a folha o diz.
+- **Doze algarismos significativos** nos números (`SIGNIFICANT_DIGITS` de `cells.py`), como célula numérica: `0,40800000000000003` não vira precisão que o dado nunca teve.
+- **Tela:** "Exportar ▾" (`MenuButton`, D-91, nunca um primary) dentro do resultado; os cinco formatos; **carregando** (botão desabilitado e "Gerando arquivo…") e **erro**
+  (a frase do servidor, num alerta, e o menu continua para tentar de novo). Exporta **o briefing que gerou o resultado exibido**, não o que os campos dizem agora. É *fetch* +
+  *blob* (como o cartão CAE, D-104), porque uma recusa tem de chegar escrita, não como página JSON numa aba.
+- **O HTML é salvo como arquivo**, não aberto a partir de um *blob*: uma página de *blob* roda na origem do app, que o `default-src 'none'` da API não cobre. O arquivo salvo
+  abre do disco, para imprimir ou salvar em PDF.
+
+**Descartado.** GET com o briefing na query (estoura o tamanho e quebra o determinismo do cache); aceitar o resultado do cliente (permitiria um arquivo que a conta nunca
+produziu); renderizador próprio (duplicaria o escape por formato); repartir transporte e uso entre componentes; abrir o HTML por *blob* em nova aba; exportar o
+`/api/eco/comparar` (A × B por produto é outra faixa).
+
+**Não muda:** o cálculo, `/auditar`, `/comparar`, o catálogo. Sem migração e sem seed. Pós-merge: **Deploy da API**.
+
+Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.

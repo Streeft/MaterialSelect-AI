@@ -166,6 +166,22 @@ escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da
 **O que mudou.** `stagesTsv`, `computedTsv`, `compositionTsv` e `designationsTsv` em `lib/copyTables.ts`, com os mesmos formatadores das telas; o `CopyTableButton` entra em `ResultsView` (estágios), `ComputedTable`, `CompositionTable` e `DesignationTable`, cada um com `ariaLabel` próprio (`lib/i18n-copy-tables.ts`). Ausência escrita ("Ausente", "Indefinido: motivo", "Sem localização na fonte", "Não restrita pela fonte"), nunca célula vazia nem zero; cabeçalho de coluna calculada começa por "Calculada:".
 +7 de frontend (`components/copy-tables-rest.test.tsx`, 6, e um em `selection.test.tsx`, todos com axe onde há tela); suíte inteira: 1439 passam. Só frontend; sem migração. Pós-merge: nada a disparar.
 Numeração: Sessão 131 e D-173 (127 a 130 e D-169 a D-172 estavam ocupadas por outros trabalhos).
+## Sessão 130 — 27/10/26 — Eco Audit exportável: por componente, por trecho e com a origem de cada número (D-172)
+
+**O que mudou.** `POST /api/eco/exportar.{csv,xlsx,html,docx,pptx}` reexecuta o briefing no servidor e entrega o `Report` do Eco Audit: *Resumo*, *Fases do produto*, *Componentes*,
+*Componentes por fase*, *Trechos de transporte*, *Premissas de uso* e *Proveniência* (fonte, qualidade, licença e `is_demo` de cada dado lido; dado não cadastrado vira linha
+`ausente` com a razão). Ausência é a palavra `ausente`, pódio recusado é `recusado`, nenhuma linha leva `None`. Novos: `exporters/eco.py`, `services/eco_provenance.py`,
+`ExportService.eco_report`; a rota mora em `routers/eco.py` (o `routers/exports.py` não foi tocado). `eco_audit.py` também não. Na tela, "Exportar ▾" (`MenuButton`) no resultado,
+com carregando e erro; exporta o briefing que gerou o resultado exibido; o HTML é salvo, não aberto de um *blob*.
+
+**Por quê.** O Eco Audit não exportava nada; o `TODO.md` pedia o detalhe por componente e por trecho. DOCX e PPTX saíram sem esforço: o `Report` já os cobre.
+
+**Testes (medidos).** Backend 5122 coletados (5116 passam e 6 pulam sem `POSTGRES_TEST_URL`), +19 em `test_eco_export.py`: seções e unidades, os números do arquivo contra `/auditar`,
+uma linha por componente e por trecho, proveniência com fonte, qualidade, licença e `is_demo`, ausência escrita nos três formatos, injeção de fórmula (`=`, `@`, `+`) em CSV e
+XLSX, nome de material do catálogo hostil, `<script>` escapado no HTML (e `=` literal ali, sem apóstrofo), DOCX e PPTX como pacotes válidos, formato recusado, forma de peça única,
+determinismo. Frontend 1439 passam, +7 (`EcoExportMenu.test.tsx`: cinco formatos num menu só, axe aberto e fechado, desabilitado antes de rodar, baixa e salva, carregando que
+bloqueia o segundo clique, erro escrito e nova tentativa; `eco.test.tsx`: o menu exporta o briefing que rodou). `ruff`, `black`, `tsc`, `eslint` (0 erros) e `vitest` verdes. Sem migração
+e sem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 128 — 27/10/26 — Vistoria das interações: a busca global presa na barra (D-170)
 
