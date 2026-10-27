@@ -140,9 +140,10 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
 **Documentos** — CSV, XLSX e HTML imprimível do catálogo e de cada estudo; o
 **laudo de engenharia** de um estudo, com mapa de seleção e gráfico de ranking
 desenhados no backend; e o **cartão de material para CAE** de cada material
-(Ansys MAPDL, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` e MatML 3.1), no
-sistema de unidades que o usuário escolhe, com propriedade não cadastrada
-omitida e nunca zerada ([`docs/10-relatorios.md`](docs/10-relatorios.md), D-104).
+(Ansys MAPDL, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` e MatML 3.1, mais
+os cartões térmicos e os elastoplásticos com a curva e a série que o usuário
+escolhe), no sistema de unidades que o usuário escolhe, com propriedade não
+cadastrada omitida e nunca zerada ([`docs/10-relatorios.md`](docs/10-relatorios.md), D-104).
 
 ## Princípios que não se negociam
 

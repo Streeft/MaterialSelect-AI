@@ -184,6 +184,18 @@ determinismo. Frontend 1439 passam, +7 (`EcoExportMenu.test.tsx`: cinco formatos
 bloqueia o segundo clique, erro escrito e nova tentativa; `eco.test.tsx`: o menu exporta o briefing que rodou). `ruff`, `black`, `tsc`, `eslint` (0 erros) e `vitest` verdes. Sem migração
 e sem seed. Pós-merge: **Deploy da API**.
 
+## Sessão 129 — 27/10/26 — Diálogo CAE: formatos térmicos e elastoplásticos, com curva e série (D-171)
+
+**O que mudou.** O diálogo "Cartão de material para CAE…" passa de 5 para 11 formatos (elástico, térmico, elastoplástico; TM5-b2 e o resíduo do TM5-d). Backend:
+`GET /api/exports/cae/formatos` (aditivo, só leitura) devolve por formato chave, rótulo, `plastic`, `required` e `plastic_max_points`, do mesmo registro de onde a recusa
+422 lê; o front não copia exigências. Frontend: nos `*-plastic`, o diálogo pede a curva tensão–deformação do material (nunca a primeira por padrão) e, com mais de uma
+série, a série (rótulo e parâmetro em pt-BR); sem curva tensão–deformação escreve que o material não tem e não oferece o arquivo; carregando e erro de cada leitura
+têm estado escrito e "Tentar novamente"; a 422 do servidor continua aparecendo com a frase dele. Textos em `lib/i18n-cae.ts`.
+**Testes (medidos):** backend 5104 (5098 passam, 6 pulam sem PostgreSQL; +1 em `test_cae_export_api.py`); frontend 1448 (+20 em `CaeExportDialog.test.tsx`, com axe nos
+estados térmico, elastoplástico, sem curva, carregando e erro). Sem migração nem seed. Pós-merge: **Deploy da API**, sem migração nem seed.
+**Achado que não virou código.** O diálogo aberto dentro da ficha lia `listCaeFormats` ao renderizar fechado e quebrava a auditoria de acessibilidade das rotas, que
+substitui `@/lib/api`; os leitores são resolvidos só quando a consulta roda. Para rodar a suíte do backend fora de `apps/api`, os testes de migração precisam do diretório
+de trabalho em `apps/api` (caminho `alembic` relativo).
 ## Sessão 131 — 27/10/26 — Copiar tabela nas tabelas que faltavam (D-173)
 
 **O pedido.** Resíduo FL-d-res do D-164: a tabela de estágios do funil, as colunas calculadas do comparador e a composição e as designações da ficha não tinham "Copiar tabela".

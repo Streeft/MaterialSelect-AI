@@ -461,8 +461,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   - **TM5-b1 — família de temperaturas num cartão só.** ▃ `*PLASTIC` com
     coluna de temperatura, `TBTEMP`, `MATT1`/`TABLEST`, `*MAT_106`, com E(T)
     também no campo elástico; hoje o cartão vale numa temperatura.
-  - **TM5-b2 — diálogo do front.** ▃ `CaeExportDialog`/`lib/api.ts`/`i18n.ts`
-    não oferecem os formatos plásticos nem a escolha de curva e série.
+  - ~~**TM5-b2 — diálogo do front.**~~ Entregue (Sessão 129,
+    [D-171](DECISIONS.md)): o diálogo oferece os quatro `*-plastic` com a
+    escolha de curva e de série (nunca feita por ele).
   - Nenhuma curva do catálogo declara medida nem E `young` hoje (o demo não, de
     propósito); os formatos saem para curvas importadas/cadastradas com as duas
     declarações, e herdam o TM5-a.
@@ -474,8 +475,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   [D-112](DECISIONS.md)): formatos `nastran-thermal` (`MAT4*`) e `lsdyna-thermal`
   (`*MAT_THERMAL_ISOTROPIC_TITLE`); condutividade e calor específico são
   exigidos (422 sem eles). Desde o D-124 o demo os tem; material real
-  continua recusado até o bundle trazer os valores. **Resíduo:** ▃ o diálogo do front (`CaeExportDialog`,
-  `lib/api.ts`, `i18n.ts`) ainda lista só os cinco formatos antigos.
+  continua recusado até o bundle trazer os valores. Diálogo do front entregue na Sessão 129 ([D-171](DECISIONS.md)):
+  os dois formatos térmicos estão na lista, com as exigências lidas de
+  `GET /api/exports/cae/formatos`.
 - **TM5-e — validar os arquivos num solver.** ▁ Os golden files foram escritos
   a partir da documentação pública, sem rodar MAPDL, Abaqus, Nastran nem
   LS-DYNA, e sem validar o MatML contra o XSD 3.1 (rede bloqueada). Abrir cada
