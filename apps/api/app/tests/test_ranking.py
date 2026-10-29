@@ -129,6 +129,36 @@ def test_vector_normalisation_all_zero_column_is_a_tie():
     assert normalize_column([0.0, 0.0], Direction.MAX, Normalization.VECTOR) == [1.0, 1.0]
 
 
+# D-178: with a negative value v/norm < 0 and 1 - v/norm > 1, so the "score in
+# [0, 1]" contract broke (audit: normalized 1.707, score 1.447). A custom index
+# such as E - 100 reaches this through the "__index__" criterion.
+@pytest.mark.parametrize("direction", [Direction.MIN, Direction.MAX])
+def test_vector_normalisation_refuses_negative_values(direction):
+    with pytest.raises(ValidationError, match="min-max"):
+        normalize_column([-1.0, 1.0], direction, Normalization.VECTOR)
+
+
+def test_vector_ranking_with_negative_index_is_refused_not_out_of_scale():
+    materials = [(1, "a", {"x": -2.0, "y": 1.0}), (2, "b", {"x": 1.0, "y": 0.0})]
+    criteria = [_crit("x", Direction.MIN, 1.0), _crit("y", Direction.MAX, 1.0)]
+    with pytest.raises(ValidationError, match="min-max"):
+        rank(materials, criteria, Normalization.VECTOR, run_sensitivity=False)
+    # Min-max keeps working on the same column, inside [0, 1].
+    result = rank(materials, criteria, Normalization.MINMAX, run_sensitivity=False)
+    assert all(0.0 <= r.score <= 1.0 for r in result.ranked)
+
+
+def test_vector_normalisation_negative_check_ignores_missing_materials():
+    # A material missing x is excluded before normalization, never zero-filled.
+    materials = [(1, "a", {"x": 2.0}), (2, "b", {"x": None}), (3, "c", {"x": 1.0})]
+    result = rank(
+        materials, [_crit("x", Direction.MAX, 1.0)], Normalization.VECTOR, run_sensitivity=False
+    )
+    assert [r.name for r in result.ranked] == ["a", "c"]
+    assert [e.name for e in result.excluded] == ["b"]
+    assert all(0.0 <= r.score <= 1.0 for r in result.ranked)
+
+
 def test_topsis_ranks_by_closeness_to_ideal():
     materials = [
         (1, "A", {"rigidez": 200.0, "densidade": 8.0}),
