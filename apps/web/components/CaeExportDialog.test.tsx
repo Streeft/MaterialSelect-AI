@@ -10,7 +10,33 @@ import { ptBR } from "@/lib/i18n";
 import { caeText } from "@/lib/i18n-cae";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { flowText } from "@/lib/i18n-flow";
+import { DOWNLOAD_REVOKE_DELAY_MS } from "@/lib/rasterize";
 import { CaeExportDialog, MaterialExportMenu } from "./CaeExportDialog";
+
+/** C3: the default save keeps the object URL alive past the click (Safari/Firefox). */
+async function expectDelayedRevoke(run: () => Promise<void>) {
+  const create = vi.fn(() => "blob:fake");
+  const revoke = vi.fn();
+  Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  const delayed: Array<() => void> = [];
+  const realSetTimeout = window.setTimeout.bind(window);
+  vi.spyOn(window, "setTimeout").mockImplementation(((cb: () => void, ms?: number) => {
+    if (ms === DOWNLOAD_REVOKE_DELAY_MS) {
+      delayed.push(cb);
+      return 0;
+    }
+    return realSetTimeout(cb, ms);
+  }) as never);
+  await run();
+  await vi.waitFor(() => expect(create).toHaveBeenCalled());
+  expect(revoke).not.toHaveBeenCalled();
+  expect(delayed).toHaveLength(1);
+  delayed[0]!();
+  expect(revoke).toHaveBeenCalledWith("blob:fake");
+  vi.restoreAllMocks();
+}
+
 
 const t = ptBR.cae;
 const x = caeText;
@@ -116,6 +142,17 @@ describe("CaeExportDialog (D-104)", () => {
     expect(download).toHaveBeenCalledWith(42, "abaqus", "in-lbf-s");
     await vi.waitFor(() => expect(saveFile).toHaveBeenCalledWith(blob, "liga-abaqus.inp"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("revokes the object URL only after the download delay (C3)", async () => {
+    const user = userEvent.setup();
+    const download = vi.fn().mockResolvedValue({ blob: new Blob(["x"]), filename: "a.inp" });
+    await expectDelayedRevoke(async () => {
+      wrap(<CaeExportDialog materialId={42} open onClose={vi.fn()} download={download} loaders={loaders()} />);
+      await user.selectOptions(screen.getByLabelText(t.formatLabel), "abaqus");
+      await user.selectOptions(screen.getByLabelText(t.unitsLabel), "in-lbf-s");
+      await user.click(screen.getByRole("button", { name: t.download }));
+    });
   });
 
   it("offers every format and every unit system, with no automatic system", () => {

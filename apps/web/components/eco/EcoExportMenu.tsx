@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { downloadEcoAudit, type ExportFormat } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { downloadBlob } from "@/lib/rasterize";
 import { ecoExportText } from "@/lib/i18n-eco-export";
 import type { EcoAuditRequest } from "@/lib/types";
 import { Alert, MenuButton, MenuItem } from "@/components/ui";
@@ -18,18 +19,6 @@ const FORMATS: { format: ExportFormat; label: string; hint: string }[] = [
   { format: "pptx", label: t.pptx, hint: text.pptxHint },
   { format: "html", label: t.html, hint: text.htmlHint },
 ];
-
-/** Hands a blob to the browser's own save dialog, under the server's filename. */
-function save(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
 
 /**
  * The Eco Audit's "Exportar ▾" (D-91, D-172): one menu button, never a row of
@@ -47,7 +36,7 @@ function save(blob: Blob, filename: string) {
 export function EcoExportMenu({
   brief,
   download = downloadEcoAudit,
-  saveFile = save,
+  saveFile = downloadBlob,
 }: {
   /** The brief the displayed result was computed from; `null` before any run. */
   brief: EcoAuditRequest | null;
