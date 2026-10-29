@@ -491,6 +491,12 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ## Baixa prioridade
 
+**Resíduos do D-177 (upload e exportações).** ▁ (a) Limpar caracteres de
+controle também na **entrada** (`name`/`description` de material, estudo e
+registro próprio), como higiene; a exportação já não cai sem isso. (b) As cópias
+da regex XML em `exporters/studio.py`, `studio_pptx.py` e `cae/matml.py` podem
+passar a usar `exporters/xml_text.py`.
+
 **Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
 uso; as três primeiras são decisão ou conferência do autor.
 
