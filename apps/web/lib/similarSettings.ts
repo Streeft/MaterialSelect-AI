@@ -20,12 +20,13 @@ const CRITERION_TOKENS: Record<NearnessCriterion, string> = {
   at_most: "menor",
   at_least: "maior",
 };
-const TOKEN_TO_CRITERION = Object.fromEntries(
-  Object.entries(CRITERION_TOKENS).map(([criterion, token]) => [
-    token,
-    criterion,
-  ]),
-) as Record<string, NearnessCriterion>;
+// A Map, not an object: `{}["toString"]` is a function inherited from the
+// prototype and would pass for a criterion.
+const TOKEN_TO_CRITERION = new Map<string, NearnessCriterion>(
+  (Object.entries(CRITERION_TOKENS) as [NearnessCriterion, string][]).map(
+    ([criterion, token]) => [token, criterion],
+  ),
+);
 
 export interface NearnessSettings {
   weights: Record<string, number>;
@@ -66,7 +67,7 @@ export function parseSettings(params: {
   }
   const criteria: Record<string, NearnessCriterion> = {};
   for (const [slug, token] of pairs(params.get(CRITERION_PARAM))) {
-    const criterion = TOKEN_TO_CRITERION[token];
+    const criterion = TOKEN_TO_CRITERION.get(token);
     if (criterion && criterion !== "both") criteria[slug] = criterion;
   }
   return { weights, criteria };

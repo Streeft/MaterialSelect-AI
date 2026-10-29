@@ -370,6 +370,12 @@ describe("navegação guiada (D-85)", () => {
     expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
   });
 
+  it("ignores an ?etapa= that only exists on the object prototype (C5)", () => {
+    searchParams.set("etapa", "toString");
+    render(wrap(<SelectionPage />));
+    expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
+  });
+
   it("follows the browser's Back button to the previous step", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
