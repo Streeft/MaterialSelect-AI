@@ -56,6 +56,9 @@ desconhecida, célula não interpretável, intervalo incompleto...) ou
 O commit importa **apenas as linhas válidas** — ou o usuário cancela tudo. O
 commit revalida imediatamente antes de gravar (o catálogo pode ter mudado entre
 validação e commit) e cria todos os materiais em **uma única transação**.
+Antes do primeiro material o job é reivindicado por um `UPDATE` condicional
+(`VALIDADO → IMPORTADO`); uma segunda chamada simultânea ou repetida recebe 409
+e não cria nada (D-176).
 
 ## Rollback lógico
 
@@ -79,6 +82,12 @@ planilhas futuras com o mesmo layout — casando pelas colunas presentes.
   1.000 partes, uma parte acima de 20 MB descomprimida, o total acima de 50 MB
   ou uma parte de 1 MB ou mais que cresça mais de 100 vezes
   ([D-177](DECISIONS.md)). É o mesmo limite do DOCX enviado ao Caderno.
+  ambiente), aplicados **durante** a leitura: o leitor para na primeira linha além
+  do limite. Até 300 colunas; XLSX que declare mais de 100 MB descompactados é
+  recusado antes de abrir (D-176).
+- **Quem pode:** todas as rotas do assistente, inclusive histórico, relatório e
+  criação de modelo, exigem curador do catálogo (`require_catalog_curator`);
+  listar modelos pede só login.
 - **Nome de arquivo sanitizado** (apenas o basename, charset restrito) e bytes
   armazenados sob nome derivado do id do job — o nome original nunca vira path.
 - **Fórmulas:** XLSX é lido com `data_only=True` (nunca texto de fórmula);

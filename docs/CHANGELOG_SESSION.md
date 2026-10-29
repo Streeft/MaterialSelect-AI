@@ -166,6 +166,13 @@ escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da
 **O que mudou.** `app/domain/zip_guard.py` (novo): entradas, tamanho por parte, total e razão de compressão conferidos antes do parser, pelos tamanhos declarados e pelos bytes contados; chamado em `knowledge/readers._read_docx` (DOCX do Caderno) e `importers/readers.read_xlsx` (XLSX do importador). `app/exporters/xml_text.py` (novo): `xml_legal`/`xml_legal_report`, usados em `cells.safe_text` (antes do apóstrofo), no nome da aba do XLSX e na entrada de `to_docx`, `to_pptx` e `to_html`. Docs: `09-camada-ia.md`, `06-importacao.md`, `10-relatorios.md`, `TODO.md` (resíduos).
 
 **Testes.** +17 de backend em `test_upload_export_hardening.py` (bomba DOCX de <200 KB recusada sem chegar ao python-docx, razão sozinha, XLSX-bomba sem chegar ao openpyxl, DOCX e XLSX legítimos aceitos, entradas/parte/total, cabeçalho mentiroso, não-zip; CSV/XLSX/DOCX/PPTX/HTML com controle, apóstrofo preservado, negativo numérico; as três rotas que davam 500). Na main, 11 dos 17 falham; na branch, todos passam. Suíte inteira medida na branch: 5140 testes de backend (5134 passam e 6 pulam sem `POSTGRES_TEST_URL`). Numeração: Sessão 135 e D-177 (134 e D-176 ficam para outro PR). Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
+## Sessão 134 — 29/10/26 — Importador: commit único, leitura com limite e portão de curador (D-176)
+
+**O pedido.** Achados A1, B2 e B5 da auditoria e o resíduo `var/` que um teste deixava na raiz.
+
+**O que mudou.** `commit` reivindica o job com UPDATE condicional `VALIDADO → IMPORTADO` (`ImportRepository.claim_status`); a segunda chamada recebe 409 e não cria material. Leitores de CSV/XLSX param na primeira linha além do limite (`_collect_rows`), SQLite usa `LIMIT`, teto de 300 colunas e de 100 MB descompactados no XLSX. `POST /import-templates`, `GET /imports` e `GET /imports/{id}/report` exigem curador. Fixture `autouse` põe os uploads dos testes no `tmp_path`; `/var/` no `.gitignore`.
++11 testes de backend em `app/tests/test_import_hardening.py` (7 falham na main). Sem migração nem seed. Pós-merge: **Deploy da API**.
+Numeração: Sessão 134 e D-176.
 ## Sessão 137 — 29/10/26 — Cota diária de IA também fora dos Cadernos (D-179)
 
 **O pedido.** Achado B4 da auditoria: `/ai/interpret`, `/ai/explain` e a narrativa do laudo gastavam a chave gratuita do Gemini sem cota, e um usuário esgotava a cota de todos os Cadernos.

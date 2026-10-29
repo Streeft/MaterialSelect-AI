@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.models.enums import ImportStatus
 from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -30,6 +31,24 @@ class ImportRepository:
 
     def get_job(self, job_id: int) -> ImportJob | None:
         return self.db.get(ImportJob, job_id)
+
+    def claim_status(self, job_id: int, expected: ImportStatus, new: ImportStatus) -> bool:
+        """Atomically move a job from ``expected`` to ``new``; True if this call won.
+
+        A conditional ``UPDATE ... WHERE status = :expected`` is the transition
+        itself, not a check followed by a write: on PostgreSQL the row lock it
+        takes makes a concurrent caller wait and then re-evaluate the WHERE
+        against the committed row, so exactly one transaction sees rowcount 1.
+        If the winner rolls back, its UPDATE is undone with it and the job is
+        claimable again. SQLite serialises writers, with the same outcome.
+        """
+        stmt = (
+            update(ImportJob)
+            .where(ImportJob.id == job_id, ImportJob.status == expected)
+            .values(status=new)
+            .execution_options(synchronize_session=False)
+        )
+        return self.db.execute(stmt).rowcount == 1
 
     def list_jobs(self) -> list[ImportJob]:
         stmt = select(ImportJob).order_by(ImportJob.created_at.desc(), ImportJob.id.desc())
