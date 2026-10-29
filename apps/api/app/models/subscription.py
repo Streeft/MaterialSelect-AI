@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -25,10 +25,15 @@ class Subscription(Base):
     """Um plano Stripe por usuário. `active` é o único status que libera acesso."""
 
     __tablename__ = "subscription"
+    # Mirrors migration d03e79073756 exactly (D-178): UNIQUE(user_id) as a
+    # constraint plus a separate non-unique index ix_subscription_user_id.
+    # ``unique=True, index=True`` on the column would instead declare a single
+    # unique index, and ``alembic check`` would report the drift.
+    __table_args__ = (Index("ix_subscription_user_id", "user_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False, index=True
+        ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     stripe_customer_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     stripe_subscription_id: Mapped[str | None] = mapped_column(

@@ -96,6 +96,11 @@ class RankingResult:
 # One material's raw values: (id, name, {criterion_key: value | None}).
 MaterialValues = tuple[int, str, dict[str, float | None]]
 
+VECTOR_NEGATIVE_VALUES = (
+    "A normalização vetorial exige valores não negativos; há valor negativo "
+    "neste critério. Use a normalização min-max."
+)
+
 
 def normalize_column(
     values: list[float], direction: Direction, method: Normalization
@@ -111,6 +116,13 @@ def normalize_column(
         return []
 
     if method is Normalization.VECTOR:
+        # D-178: vector normalization divides by the Euclidean norm, which only
+        # maps into [0, 1] when every value is non-negative. With a negative
+        # value v/norm goes below 0 and 1 - v/norm above 1, so a mixed-sign
+        # criterion silently outweighs the others. Refuse rather than switch
+        # method behind the user's back: min-max is the method for such a column.
+        if min(values) < 0:
+            raise ValidationError(VECTOR_NEGATIVE_VALUES)
         # ``math.hypot`` and not ``sum(v * v for v in values) ** 0.5``: the sum of
         # squares overflows to +inf at ~1e154, less than half the exponent range
         # of a float, and every material then normalizes to 0.0 — the column
