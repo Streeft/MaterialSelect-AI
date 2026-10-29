@@ -20,7 +20,7 @@ from app.calculations.expressions import variables_in
 from app.calculations.units import pretty_unit
 from app.domain.composition import RULE_TEXT
 from app.domain.display_units import readings_for
-from app.domain.errors import NotFoundError, ValidationError
+from app.domain.errors import NotFoundError, QuotaExceededError, ValidationError
 from app.exporters.cells import format_number
 from app.exporters.eco import eco_sheets
 from app.exporters.figures import (
@@ -418,7 +418,9 @@ class ExportService:
         """Ask the AI layer to write about this same run, or say why it can't."""
         try:
             explanation = AIService(self.db, user=self.user).explain(study_id, project_id)
-        except (ValidationError, AIUnavailableError) as exc:
+        except (ValidationError, AIUnavailableError, QuotaExceededError) as exc:
+            # Out of today's AI budget (D-179) the laudo still goes out, without
+            # the narrative and with the reason in its note.
             return None, None, f"Interpretação por IA não disponível: {exc}"
 
         paragraphs = [explanation.summary, *explanation.paragraphs]
