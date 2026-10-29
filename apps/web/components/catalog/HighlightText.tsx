@@ -73,7 +73,7 @@ export function HighlightText({ text, query, className }: HighlightTextProps) {
           return (
             <mark
               key={index}
-              className="rounded bg-amber-100 px-0.5 font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
+              className="rounded bg-warning-soft px-0.5 font-medium text-warning-fg"
             >
               {part}
             </mark>

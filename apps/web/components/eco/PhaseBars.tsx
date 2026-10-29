@@ -100,7 +100,7 @@ export function PhaseBars({
                   className={cn(
                     "inline-block h-3 w-3 rounded-xs",
                     s.tone === "secondary"
-                      ? "bg-amber-600 dark:bg-amber-500"
+                      ? "bg-warning"
                       : "bg-brand-600 dark:bg-brand-500",
                   )}
                   aria-hidden
@@ -147,7 +147,7 @@ export function PhaseBars({
                             item.value < 0
                               ? "bg-success"
                               : item.tone === "secondary"
-                                ? "bg-amber-600 dark:bg-amber-500"
+                                ? "bg-warning"
                                 : "bg-brand-600 dark:bg-brand-500",
                           )}
                           style={{
