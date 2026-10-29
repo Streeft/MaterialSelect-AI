@@ -115,6 +115,19 @@ def _knowledge_index_starts_empty() -> Generator[None, None, None]:
     reset_knowledge_index()
 
 
+@pytest.fixture(autouse=True)
+def _uploads_stay_in_tmp(tmp_path, monkeypatch) -> None:
+    """Import uploads land in the test's tmp dir, never in ``var/`` of the cwd.
+
+    Production keeps ``settings.upload_dir`` (``UPLOAD_DIR``); only tests
+    redirect it, so a test that uploads without its own fixture cannot leave
+    ``var/uploads/job-N.csv`` behind in the checkout.
+    """
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path / "uploads"))
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _create_and_seed_schema() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=_engine)

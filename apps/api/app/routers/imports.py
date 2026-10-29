@@ -128,14 +128,18 @@ def rollback(
     return ImportService(db, user).rollback(job_id)
 
 
-@router.get("", response_model=list[ImportJobOut])
+@router.get("", response_model=list[ImportJobOut], dependencies=[Depends(require_catalog_curator)])
 def list_jobs(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> list[ImportJobOut]:
     return ImportService(db, user).list_jobs()
 
 
-@router.get("/{job_id}/report", response_model=ValidationReport)
+@router.get(
+    "/{job_id}/report",
+    response_model=ValidationReport,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def get_report(
     job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> ValidationReport:
@@ -149,7 +153,12 @@ def list_templates(
     return ImportService(db, user).list_templates()
 
 
-@templates_router.post("", response_model=TemplateOut, status_code=201)
+@templates_router.post(
+    "",
+    response_model=TemplateOut,
+    status_code=201,
+    dependencies=[Depends(require_catalog_curator)],
+)
 def create_template(
     payload: TemplateIn,
     db: Session = Depends(get_db),
