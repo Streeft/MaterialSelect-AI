@@ -597,6 +597,9 @@ Soma ponderada normalizada. Cada critério tem uma direção (maior/menor é mel
 um peso e um método de normalização (**min-máx** ou **vetorial**), ambos mapeando
 para um escore "maior é melhor" em [0, 1]. Os pesos são renormalizados para somar
 1; soma zero é erro. Cada candidato mostra a **contribuição por critério**.
+A vetorial só fica em [0, 1] com valores não negativos: critério com valor
+negativo (um índice personalizado, por exemplo) é **recusado** com a frase que
+manda usar min-máx, nunca deslocado nem trocado de método em silêncio (D-178).
 
 - **Dados ausentes nunca são inventados:** um material sem valor para algum
   critério é **excluído do ranking e reportado** (com quais valores faltaram) —
