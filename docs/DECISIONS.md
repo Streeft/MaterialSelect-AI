@@ -11412,3 +11412,14 @@ Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
 **Descartado.** Uma coluna de % atômica cheia de "Ausente" quando não derivada (a tela não a desenha; o D-117 recusa coluna em branco). Copiar a dispersão e o limiar junto das colunas calculadas (é leitura da coluna, não a tabela; fica na tela). Um botão único para as duas tabelas da ficha.
 
 **Consequências.** Só frontend; sem migração.
+
+## D-180 — Correções do frontend da auditoria C: o que volta do servidor ou do endereço só vale se ainda for a pergunta (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** A auditoria C achou cinco defeitos no frontend: a conversão da caixa do Chart Stage gravava na pergunta mais nova (C1); `?estado=` do mapa não era validado (C2); duas exportações revogavam a URL do arquivo no mesmo tick (C3); `amber-*` cru fugia dos tokens (C4); `?sim_criterio=densidade:toString` herdava do protótipo (C5).
+
+**Decisão.** (C1) Cada conversão canônica leva um número de requisição e a chave dos eixos (universo, modo e propriedade ou expressão de X e Y) de quando saiu; a resposta é descartada se outra requisição saiu depois, se "Limpar caixa" foi usado ou se a chave mudou — o descarte é silencioso porque a caixa daquela pergunta já não existe. (C2) `decodeMapState` valida campo a campo (enum, `string[]`, inteiros positivos, números finitos, booleanos, eixo completo) e **descarta** o que não passa, para valer o padrão da página; nunca conserta nem lança. (C3) As duas `save` locais saem; o padrão de `saveFile` passa a ser `downloadBlob` de `lib/rasterize.ts`, que revoga depois de `DOWNLOAD_REVOKE_DELAY_MS`. (C4) `bg-warning` na série secundária de `PhaseBars` e `bg-warning-soft text-warning-fg` no destaque de `HighlightText`, ambos com valores de tema claro e escuro em `globals.css`; um teste de varredura reprova classe de paleta crua em `components/`, `app/` e `lib/`. (C5) `Map` em vez de objeto para o token de critério em `similarSettings`, e `Object.hasOwn` no `?etapa=` da Seleção (mesmo padrão).
+
+**Descartado.** Cancelar a requisição em voo (o servidor não ganha nada e a resposta já é descartável); reparar o estado do mapa campo a campo (um link adulterado não deve perguntar o que ninguém escreveu); um token novo para a série secundária (o `warning` já existe nos dois temas; a série é cor de apoio ao lado do azul da marca e não é lida como alerta pelo texto da legenda).
+
+**Consequências.** Só frontend; sem migração. A cor da série secundária de `PhaseBars` passa do âmbar para o laranja do `--warning` (e amarelo no tema escuro); o contraste das barras contra o fundo não foi medido de novo.
+
