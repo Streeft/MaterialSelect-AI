@@ -14,6 +14,8 @@ venv/
 
 # Uploaded files kept while an import job is open
 apps/api/var/
+# Uploads de importação gravados quando o cwd é a raiz (D-176).
+/var/
 
 # Environment / secrets
 .env
