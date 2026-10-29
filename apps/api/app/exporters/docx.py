@@ -23,6 +23,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 from app.exporters.cells import format_number
 from app.exporters.report import Report
+from app.exporters.xml_text import xml_legal_report
 
 _PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
 _SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
@@ -67,6 +68,8 @@ def _set_cant_split(row) -> None:
 
 def to_docx(report: Report) -> bytes:
     """Render the whole report as one standalone DOCX document."""
+    # python-docx raises on a character XML 1.0 forbids (D-177).
+    report = xml_legal_report(report)
     doc = Document()
 
     # Page setup: A4 with standard margins

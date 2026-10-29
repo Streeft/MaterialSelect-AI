@@ -20,6 +20,7 @@ from pptx.util import Inches, Pt
 
 from app.exporters.cells import format_number
 from app.exporters.report import Report
+from app.exporters.xml_text import xml_legal_report
 
 #: 16:9. Public because the Studio deck (``studio_pptx``) is drawn on the same
 #: page, and its closing slide is this module's notices slide.
@@ -57,6 +58,8 @@ def _text(value: object) -> str:
 def to_pptx(report: Report) -> bytes:
     """Render ``report`` as a .pptx presentation: title slide, table slides,
     narrative slide (when present), and closing notice slide."""
+    # python-pptx writes "_x0001_" for a character XML 1.0 forbids (D-177).
+    report = xml_legal_report(report)
     presentation = Presentation()
     presentation.slide_width = SLIDE_WIDTH
     presentation.slide_height = SLIDE_HEIGHT

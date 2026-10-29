@@ -26,6 +26,7 @@ from charset_normalizer import from_bytes
 from openpyxl import load_workbook
 
 from app.domain.errors import ValidationError
+from app.domain.zip_guard import check_zip_archive
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".json", ".sqlite", ".db"}
 
@@ -99,6 +100,8 @@ def read_xlsx(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
     Raises:
         ValidationError: corrupt file, unknown sheet, empty sheet or row limit.
     """
+    # Same decompression limits as a notebook DOCX (D-177), before openpyxl.
+    check_zip_archive(data, kind="XLSX")
     try:
         workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:  # openpyxl raises various types for corrupt files
