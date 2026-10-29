@@ -11385,6 +11385,16 @@ produziu); renderizador próprio (duplicaria o escape por formato); repartir tra
 
 Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
 
+## D-177 — Arquivo enviado tem limite de descompressão; exportação tira o que o XML não aceita (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Auditoria B, achados B1 e B3. (B1) O upload de DOCX ao Caderno só tinha o teto de 15 MB **comprimidos**: um DOCX de 209 KB inflou `word/document.xml` para 60 MB e o lxml subiu +547 MB em 27 s numa VM de 512 MB; o XLSX do importador tinha o mesmo formato de risco (5 MB comprimidos, nada depois). (B3) Um caractere de controle num nome (`"Aço\x0b1020"`) fazia o XLSX (`IllegalCharacterError`) e o DOCX (`ValueError` do lxml) darem 500; num material do catálogo compartilhado, `catalogo.xlsx` caía para todos. O PPTX não caía, mas escrevia `_x000B_` no slide.
+
+**Decisão.** (1) **Um helper só, `app/domain/zip_guard.check_zip_archive`**, chamado antes do parser no DOCX do Caderno (`knowledge/readers._read_docx`) e no XLSX do importador (`importers/readers.read_xlsx`): até 1.000 partes, 20 MB descomprimidos por parte, 50 MB no total, e razão de compressão de até 100 para parte de 1 MB ou mais (texto em prosa comprime 5–20×; foto, ~1×, e parte pequena não entra na regra). Confere primeiro os tamanhos declarados e depois **conta os bytes que saem**, em blocos de 64 KB, parando no teto — o cabeçalho não é acreditado. Recusa com `ValidationError` (422) em português. (2) **`app/exporters/xml_text.py`** remove os caracteres proibidos no XML 1.0 (C0 menos TAB/LF/CR, substitutos soltos, U+FFFE/U+FFFF) em todo renderizador do `Report`: dentro de `cells.safe_text` (CSV, XLSX e nome da aba), e na entrada de `to_docx`, `to_pptx` e `to_html` (`xml_legal_report`). Na planilha a limpeza vem **antes** do teste do apóstrofo, para que `"\x01=cmd"` não saia como `=cmd`; no HTML, `html.escape` segue em todo valor. O dado gravado não muda.
+
+**Descartado.** Limpar na entrada (`BeforeValidator` nos schemas): o dado já gravado e o que chega por outros caminhos continuariam derrubando a exportação, e o princípio é escapar na saída por formato; pode vir depois como higiene, sem substituir isto. Usar a mesma trava no `catalog/bundle.py`: o bundle do Granta é do operador, não de usuário. Unificar já as cópias da regex em `studio.py`, `studio_pptx.py` e `cae/matml.py` (fora do escopo; ficam como estão, corretas).
+
+**Consequências.** Só backend; sem migração nem seed. Pós-merge: **Deploy da API**. O teto de linhas do importador antes de materializar (B2) segue em aberto, noutro pacote.
+
 ## D-175 — O valor lido da curva vai no endereço: o link é a pergunta inteira (decidida pelo assistente por delegação do autor, revisável)
 
 **Contexto.** O D-157 entregou "Ler um valor da curva" na ficha. O resíduo (TM4-b-res) era o resultado não ir para a URL: a curva, as unidades e a escala já iam (D-70), mas quem abria o link via a figura sem o valor lido.

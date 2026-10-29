@@ -31,6 +31,7 @@ from html import escape
 
 from app.exporters.cells import format_number
 from app.exporters.report import Report, Sheet
+from app.exporters.xml_text import xml_legal_report
 
 # Kept inline: the report must render identically with no network access.
 _STYLES = """
@@ -192,6 +193,9 @@ def _render_narrative(report: Report, position: int) -> str:
 
 def to_html(report: Report) -> str:
     """Render the whole report as one standalone HTML document."""
+    # A C0 control is not markup, so html.escape leaves it; it is still not a
+    # character an HTML document may carry (D-177). Escaping stays as it was.
+    report = xml_legal_report(report)
     notices = [f'<p class="notice">{escape(notice)}</p>' for notice in report.notices]
 
     sections = [_render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]

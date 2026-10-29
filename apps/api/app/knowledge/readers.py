@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.domain.errors import ValidationError
+from app.domain.zip_guard import check_zip_archive
 
 _log = logging.getLogger(__name__)
 
@@ -995,6 +996,9 @@ def _read_docx(data: bytes) -> ExtractedText:
     """
     from docx import Document
 
+    # The upload ceiling bounds compressed bytes only; a 209 KB DOCX can ask
+    # the XML parser for gigabytes (D-177). Refused before python-docx opens it.
+    check_zip_archive(data, kind="DOCX")
     try:
         document = Document(io.BytesIO(data))
     except Exception as exc:  # python-docx raises several types for a bad zip
