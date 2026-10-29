@@ -12,6 +12,12 @@ raw cell values — so the rest of the pipeline is format-agnostic. Design notes
   of object keys (in first-seen order) and filling missing keys with None.
 * SQLite: extracts one table from a SQLite database; with no table name given,
   the first user table (excluding SQLite internal tables) is used.
+* Limits are enforced *while* reading (D-176): a reader stops at the first
+  data row past ``max_rows`` instead of materialising the whole file and
+  counting afterwards, so a 5 MB CSV of millions of tiny rows or a small,
+  highly compressed XLSX bomb is refused in milliseconds. Width is capped at
+  ``MAX_COLUMNS`` and an XLSX's declared uncompressed size at
+  ``MAX_XLSX_UNCOMPRESSED_BYTES`` before ``openpyxl`` ever opens it.
 * stdlib ``csv`` + ``openpyxl`` were chosen over pandas: every needed feature
   is covered without a heavyweight dependency (documented in docs/06-importacao.md).
 """
@@ -20,6 +26,8 @@ from __future__ import annotations
 
 import csv
 import io
+import zipfile
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
 from charset_normalizer import from_bytes
@@ -28,6 +36,60 @@ from openpyxl import load_workbook
 from app.domain.errors import ValidationError
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".json", ".sqlite", ".db"}
+
+# No material sheet needs more columns than this (properties + identity); a
+# wider table is a mistake or an attack, and every extra column multiplies the
+# work of every row downstream.
+MAX_COLUMNS = 300
+# An XLSX is a zip: 5 MB on the wire can declare gigabytes of XML. 5000 rows x
+# 300 columns of short values stays far below this.
+MAX_XLSX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+
+
+def _too_many_rows(what: str, max_rows: int) -> ValidationError:
+    return ValidationError(f"{what} tem mais de {max_rows} linhas de dados; o limite é {max_rows}.")
+
+
+def _check_width(width: int) -> None:
+    if width > MAX_COLUMNS:
+        raise ValidationError(
+            f"O arquivo tem {width} colunas; o limite é {MAX_COLUMNS}. "
+            "Remova as colunas que não serão importadas."
+        )
+
+
+def _used_width(row: Sequence[object]) -> int:
+    """Width up to the last non-empty cell (read-only sheets pad to the sheet width)."""
+    end = len(row)
+    while end and (row[end - 1] is None or not str(row[end - 1]).strip()):
+        end -= 1
+    return end
+
+
+def _collect_rows(
+    rows: Iterable[list[object]], max_rows: int, what: str
+) -> tuple[list[object], list[list[object]]]:
+    """Header + data rows from ``rows``, skipping blank ones, stopping past the limit.
+
+    The iterable is consumed lazily and abandoned as soon as data row
+    ``max_rows + 1`` appears, so the cost of an oversized file is bounded by
+    the limit, not by the file.
+    """
+    header: list[object] | None = None
+    data: list[list[object]] = []
+    for row in rows:
+        if not any(c is not None and str(c).strip() for c in row):
+            continue
+        _check_width(_used_width(row))
+        if header is None:
+            header = row
+            continue
+        if len(data) >= max_rows:
+            raise _too_many_rows(what, max_rows)
+        data.append(row)
+    if header is None:
+        return [], []
+    return header, data
 
 
 @dataclass
@@ -83,13 +145,10 @@ def read_csv(data: bytes, max_rows: int) -> TabularData:
     text = _decode_csv(data)
     delimiter = _sniff_delimiter(text)
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
-    all_rows = [row for row in reader if any(str(c).strip() for c in row)]
-    if not all_rows:
+    header, rows = _collect_rows((list(row) for row in reader), max_rows, "O arquivo")
+    if not header:
         raise ValidationError("O arquivo está vazio.")
-    headers = [str(h).strip() for h in all_rows[0]]
-    rows = all_rows[1:]
-    if len(rows) > max_rows:
-        raise ValidationError(f"O arquivo tem {len(rows)} linhas de dados; o limite é {max_rows}.")
+    headers = [str(h).strip() for h in header]
     return TabularData(headers=headers, rows=rows)
 
 
@@ -99,6 +158,7 @@ def read_xlsx(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
     Raises:
         ValidationError: corrupt file, unknown sheet, empty sheet or row limit.
     """
+    _check_xlsx_expansion(data)
     try:
         workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:  # openpyxl raises various types for corrupt files
@@ -110,21 +170,39 @@ def read_xlsx(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
             raise ValidationError(f"Aba não encontrada: {sheet_name}")
         sheet = workbook[sheet_name] if sheet_name else workbook[sheet_names[0]]
 
-        raw_rows = [
-            list(row)
-            for row in sheet.iter_rows(values_only=True)
-            if any(c is not None and str(c).strip() for c in row)
-        ]
+        # A read-only sheet pads every row to its *declared* width. Cap that
+        # at one column past the limit (enough to tell) so a crafted dimension
+        # cannot make each row huge; a sheet with no or a sane dimension is
+        # read exactly as before.
+        declared = sheet.max_column
+        max_col = MAX_COLUMNS + 1 if declared and declared > MAX_COLUMNS else None
+        header, rows = _collect_rows(
+            (list(row) for row in sheet.iter_rows(values_only=True, max_col=max_col)),
+            max_rows,
+            "A aba",
+        )
     finally:
         workbook.close()
 
-    if not raw_rows:
+    if not header:
         raise ValidationError("A aba selecionada está vazia.")
-    headers = [str(h).strip() if h is not None else "" for h in raw_rows[0]]
-    rows = raw_rows[1:]
-    if len(rows) > max_rows:
-        raise ValidationError(f"A aba tem {len(rows)} linhas de dados; o limite é {max_rows}.")
+    headers = [str(h).strip() if h is not None else "" for h in header]
     return TabularData(headers=headers, rows=rows, sheet_names=sheet_names, sheet_name=sheet.title)
+
+
+def _check_xlsx_expansion(data: bytes) -> None:
+    """Refuse an XLSX whose zip declares more XML than any real sheet needs."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            declared = sum(info.file_size for info in archive.infolist())
+    except zipfile.BadZipFile as exc:
+        raise ValidationError("Arquivo XLSX inválido ou corrompido.") from exc
+    if declared > MAX_XLSX_UNCOMPRESSED_BYTES:
+        limit_mb = MAX_XLSX_UNCOMPRESSED_BYTES // (1024 * 1024)
+        raise ValidationError(
+            f"O XLSX descompactado passa de {limit_mb} MB; reduza a planilha "
+            "ou exporte só a aba a importar como CSV."
+        )
 
 
 def read_json(data: bytes, max_rows: int, sheet_name: str | None = None) -> TabularData:
@@ -161,6 +239,7 @@ def read_json(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
         for key in item:
             if key not in headers:
                 headers.append(key)
+                _check_width(len(headers))
     rows = [[item.get(h) for h in headers] for item in payload]
     return TabularData(headers=headers, rows=rows)
 
@@ -211,8 +290,11 @@ def read_sqlite(data: bytes, max_rows: int, sheet_name: str | None = None) -> Ta
             # doubled before interpolation — the standard SQL-identifier
             # escaping — regardless of where `table` came from.
             safe_table = table.replace('"', '""')
-            cursor = conn.execute(f'SELECT * FROM "{safe_table}"')
+            # LIMIT max_rows + 1: one row past the limit proves the table is
+            # too big without ever fetching the rest of it.
+            cursor = conn.execute(f'SELECT * FROM "{safe_table}" LIMIT ?', (max_rows + 1,))
             headers = [col[0] for col in cursor.description]
+            _check_width(len(headers))
             raw_rows = [list(row) for row in cursor.fetchall()]
         except sqlite3.DatabaseError as exc:
             raise ValidationError("Arquivo SQLite inválido ou corrompido.") from exc
@@ -222,9 +304,7 @@ def read_sqlite(data: bytes, max_rows: int, sheet_name: str | None = None) -> Ta
     if not raw_rows:
         raise ValidationError("A tabela selecionada está vazia.")
     if len(raw_rows) > max_rows:
-        raise ValidationError(
-            f"A tabela tem {len(raw_rows)} linhas de dados; o limite é {max_rows}."
-        )
+        raise _too_many_rows("A tabela", max_rows)
     return TabularData(headers=headers, rows=raw_rows, sheet_names=table_names, sheet_name=table)
 
 

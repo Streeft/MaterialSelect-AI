@@ -492,6 +492,11 @@ class ImportService:
         # between validate and commit (new duplicates, deleted classes...).
         rows, counts = self._validate_rows(mapping, table)
 
+        # The status read at the top may be stale (double click, client retry, two
+        # workers): claim the job with a conditional UPDATE before writing a
+        # single material, so only one request ever imports it (D-176).
+        if not self.repo.claim_status(job.id, ImportStatus.VALIDADO, ImportStatus.IMPORTADO):
+            raise ConflictError("Esta importação já foi efetivada ou está sendo efetivada.")
         imported = 0
         try:
             for report, row in zip(rows, table.rows, strict=True):
