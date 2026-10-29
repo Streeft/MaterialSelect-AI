@@ -159,6 +159,14 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 135 — 29/10/26 — Upload com limite de descompressão e exportação sem caractere ilegal em XML (D-177)
+
+**O pedido.** Auditoria B, achados B1 (alto) e B3 (médio).
+
+**O que mudou.** `app/domain/zip_guard.py` (novo): entradas, tamanho por parte, total e razão de compressão conferidos antes do parser, pelos tamanhos declarados e pelos bytes contados; chamado em `knowledge/readers._read_docx` (DOCX do Caderno) e `importers/readers.read_xlsx` (XLSX do importador). `app/exporters/xml_text.py` (novo): `xml_legal`/`xml_legal_report`, usados em `cells.safe_text` (antes do apóstrofo), no nome da aba do XLSX e na entrada de `to_docx`, `to_pptx` e `to_html`. Docs: `09-camada-ia.md`, `06-importacao.md`, `10-relatorios.md`, `TODO.md` (resíduos).
+
+**Testes.** +17 de backend em `test_upload_export_hardening.py` (bomba DOCX de <200 KB recusada sem chegar ao python-docx, razão sozinha, XLSX-bomba sem chegar ao openpyxl, DOCX e XLSX legítimos aceitos, entradas/parte/total, cabeçalho mentiroso, não-zip; CSV/XLSX/DOCX/PPTX/HTML com controle, apóstrofo preservado, negativo numérico; as três rotas que davam 500). Na main, 11 dos 17 falham; na branch, todos passam. Suíte inteira medida na branch: 5140 testes de backend (5134 passam e 6 pulam sem `POSTGRES_TEST_URL`). Numeração: Sessão 135 e D-177 (134 e D-176 ficam para outro PR). Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
+
 ## Sessão 133 — 27/10/26 — O valor lido da curva vai no endereço (D-175)
 
 **O pedido.** Resíduo TM4-b-res do D-157: o valor lido no leitor da ficha não ia para a URL.

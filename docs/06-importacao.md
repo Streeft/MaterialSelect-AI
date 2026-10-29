@@ -74,7 +74,11 @@ planilhas futuras com o mesmo layout — casando pelas colunas presentes.
 - **Extensão e conteúdo:** `.csv`, `.xlsx`, `.json`, `.sqlite` e `.db`; o arquivo
   é interpretado no upload e rejeitado se malformado.
 - **Limites:** 5 MB por arquivo e 5.000 linhas por importação (configuráveis por
-  ambiente).
+  ambiente). Um XLSX é um zip, e os 5 MB contam só os bytes comprimidos: antes
+  do `openpyxl`, `app/domain/zip_guard.py` recusa (422, em português) mais de
+  1.000 partes, uma parte acima de 20 MB descomprimida, o total acima de 50 MB
+  ou uma parte de 1 MB ou mais que cresça mais de 100 vezes
+  ([D-177](DECISIONS.md)). É o mesmo limite do DOCX enviado ao Caderno.
 - **Nome de arquivo sanitizado** (apenas o basename, charset restrito) e bytes
   armazenados sob nome derivado do id do job — o nome original nunca vira path.
 - **Fórmulas:** XLSX é lido com `data_only=True` (nunca texto de fórmula);

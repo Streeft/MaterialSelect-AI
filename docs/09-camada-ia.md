@@ -410,6 +410,14 @@ As regras que pesam:
   processo e o índice), e nenhum fluxo é interrompido no meio
   ([D-101](DECISIONS.md), revisão do PR #100, duas rodadas). Vale também para
   um PDF que a busca na web traz.
+- **Um DOCX enviado é conferido antes do python-docx** ([D-177](DECISIONS.md)):
+  os 15 MB do upload contam bytes comprimidos, e um DOCX de 209 KB inflava o
+  `document.xml` para 60 MB (+547 MB de memória em 27 s). `app/domain/zip_guard.py`
+  recusa, em português, mais de 1.000 partes, uma parte acima de 20 MB
+  descomprimida, o total acima de 50 MB ou uma parte de 1 MB ou mais que cresça
+  mais de 100 vezes — primeiro pelos tamanhos declarados, depois contando os
+  bytes que de fato saem, em blocos, para que um cabeçalho mentiroso não passe.
+  O mesmo helper serve o XLSX do importador.
 - **O simulado responde citando**: copia o começo dos trechos mais relevantes,
   então passa na checagem de número por construção, como o `interpret`.
 - **Cota diária por aluno** (`NOTEBOOK_DAILY_REQUESTS`), **reservada** antes da

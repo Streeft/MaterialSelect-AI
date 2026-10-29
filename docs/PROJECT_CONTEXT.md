@@ -652,6 +652,8 @@ declarações do atributo, com o escopo indo a 4096.
 frontend (+7), medidos na branch com `pytest` e `vitest run`. O Eco Audit exporta em CSV, XLSX, HTML, DOCX e PPTX (`POST /api/eco/exportar.{fmt}`), por componente e por
 trecho, com a razão escrita de cada ausência e a fonte, a qualidade, a licença e o `is_demo` de cada dado lido; limite conhecido: o A × B (`/api/eco/comparar`) não exporta.
 
+**Contagem medida na Sessão 135 (upload e exportações, D-177):** 5140 testes de backend coletados (5134 passam e 6 pulam sem `POSTGRES_TEST_URL`; +17), medidos na branch com `pytest`; frontend inalterado. DOCX do Caderno e XLSX do importador passam por `app/domain/zip_guard.py` antes do parser; os renderizadores do `Report` tiram os caracteres proibidos em XML 1.0 (`app/exporters/xml_text.py`).
+
 **Saúde do código:** 5054 testes de backend (Python 3.11 e 3.12, nenhum skip
 na CI; sem `POSTGRES_TEST_URL`, 5048 passam e 6 pulam — os 4 das cotas e os 2
 da ingestão do Cérebro contra PostgreSQL) e 1360 de frontend, todos
