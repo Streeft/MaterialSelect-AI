@@ -135,6 +135,11 @@ class Settings(BaseSettings):
     # together). On the free Gemini plan the whole class shares one key's daily
     # limit; this is what keeps one curious student from spending everybody's.
     notebook_daily_requests: int = 60
+    # The other AI entry points — /ai/interpret, /ai/explain and the laudo's
+    # narrative (D-179) — spend the same key, so they count on the same
+    # per-user, per-day ``requests`` counter, stopping at this ceiling instead
+    # of the notebooks' one. The simulated provider (``mock``) is never counted.
+    ai_daily_requests: int = 100
     # Sources per notebook — NotebookLM's own free-plan number.
     notebook_max_sources: int = 50
     # One upload's bytes and pages. The API machine has 512 MB and the file is
