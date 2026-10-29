@@ -285,6 +285,9 @@ REVISION = "703bbf25ce90"
 
 def _config(url: str) -> Config:
     config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    # alembic.ini says script_location = alembic, which resolves against
+    # the working directory; anchor it to this file so pytest runs anywhere.
+    config.set_main_option("script_location", str(Path(__file__).resolve().parents[2] / "alembic"))
     config.set_main_option("sqlalchemy.url", url)
     return config
 

@@ -55,7 +55,9 @@ class BatteryChemistry(Base):
     __tablename__ = "battery_chemistry"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    # unique index (ix_battery_chemistry_slug), exactly what migration
+    # c3a71f0b45de created — not a UNIQUE constraint (D-178).
+    slug: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     #: Cathode/anode shorthand, e.g. ``LiFePO4``. Text, never parsed.
     formula: Mapped[str | None] = mapped_column(String(120), nullable=True)

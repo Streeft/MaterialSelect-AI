@@ -53,6 +53,9 @@ def migrated_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     url = f"sqlite:///{tmp_path / 'quantities.db'}"
     monkeypatch.setattr(settings, "database_url", url)
     config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    # alembic.ini says script_location = alembic, which resolves against
+    # the working directory; anchor it to this file so pytest runs anywhere.
+    config.set_main_option("script_location", str(Path(__file__).resolve().parents[2] / "alembic"))
     config.set_main_option("sqlalchemy.url", url)
     command.upgrade(config, "head")
     engine = sa.create_engine(url)

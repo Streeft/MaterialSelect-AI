@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 136 — 29/10/26 — Vetorial recusa valor negativo; models alinhados às migrações; testes de migração de qualquer diretório (D-178)
+
+**O pedido.** Achados A2 e B6 da auditoria, e um teste que só passava rodado de `apps/api`.
+
+**O que mudou.** `domain/ranking.normalize_column` em VECTOR levanta `ValidationError` (`VECTOR_NEGATIVE_VALUES`) se a coluna tem valor negativo (antes: escore 1,447 e normalizado 1,707). `models/subscription.py` declara `UNIQUE(user_id)` mais o índice não único `ix_subscription_user_id`; `models/battery_chemistry.py` declara `slug` com `unique=True, index=True`: `alembic check` após `upgrade head` não acusa diferença, sem migração. Os 15 testes que montam `Config` do Alembic fixam `script_location` a partir de `__file__`.
+
+**Testes.** +6 de backend (`test_ranking.py`: recusa em MIN e MAX, ranking com índice negativo recusado e min-max em [0, 1], ausente segue excluído; `test_models_match_migrations.py`: `upgrade head` + `alembic check`). Suíte inteira: 5128 (5122 passam, 6 pulam). Sem migração e sem seed. Pós-merge: **Deploy da API**.
+
 ## Sessão 123 — 21/10/26 — Nível de profundidade nos seletores de estágios, comparador e Find Similar (D-165)
 
 **O pedido.** Resíduo PD-a do D-127: só a ficha e os eixos do mapa respeitavam o nível.
