@@ -166,6 +166,13 @@ escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da
 **O que mudou.** `app/domain/zip_guard.py` (novo): entradas, tamanho por parte, total e razão de compressão conferidos antes do parser, pelos tamanhos declarados e pelos bytes contados; chamado em `knowledge/readers._read_docx` (DOCX do Caderno) e `importers/readers.read_xlsx` (XLSX do importador). `app/exporters/xml_text.py` (novo): `xml_legal`/`xml_legal_report`, usados em `cells.safe_text` (antes do apóstrofo), no nome da aba do XLSX e na entrada de `to_docx`, `to_pptx` e `to_html`. Docs: `09-camada-ia.md`, `06-importacao.md`, `10-relatorios.md`, `TODO.md` (resíduos).
 
 **Testes.** +17 de backend em `test_upload_export_hardening.py` (bomba DOCX de <200 KB recusada sem chegar ao python-docx, razão sozinha, XLSX-bomba sem chegar ao openpyxl, DOCX e XLSX legítimos aceitos, entradas/parte/total, cabeçalho mentiroso, não-zip; CSV/XLSX/DOCX/PPTX/HTML com controle, apóstrofo preservado, negativo numérico; as três rotas que davam 500). Na main, 11 dos 17 falham; na branch, todos passam. Suíte inteira medida na branch: 5140 testes de backend (5134 passam e 6 pulam sem `POSTGRES_TEST_URL`). Numeração: Sessão 135 e D-177 (134 e D-176 ficam para outro PR). Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
+## Sessão 137 — 29/10/26 — Cota diária de IA também fora dos Cadernos (D-179)
+
+**O pedido.** Achado B4 da auditoria: `/ai/interpret`, `/ai/explain` e a narrativa do laudo gastavam a chave gratuita do Gemini sem cota, e um usuário esgotava a cota de todos os Cadernos.
+
+**O que mudou.** `AIService._spending` reserva uma unidade no mesmo `AIUsage.requests` dos Cadernos (`NotebookRepository.reserve`, atômico) antes de chamar o provedor e a devolve se o provedor falhar; teto `AI_DAILY_REQUESTS` (padrão 100) em `config.py` e `apps/api/.env.example`. `mock` não conta. Esgotado: 429 em português simples; o laudo sai sem a narrativa, com a razão na nota (`export_service._narrative`). Nada muda na tela (D-138). `docs/09-camada-ia.md` atualizado.
+
+**Testes.** +7 de backend (`test_ai_quota.py`: dentro da cota passa e conta; no limite 429 sem chamar o provedor; `explain` no mesmo contador; laudo sem narrativa; contadores não vazam entre usuários; `mock` não conta; falha do provedor devolve a unidade). 5 deles falham na main. Contagem medida na branch: 5130 testes de backend coletados, suíte inteira verde (6 pulam sem `POSTGRES_TEST_URL`). Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
 
 ## Sessão 133 — 27/10/26 — O valor lido da curva vai no endereço (D-175)
 
