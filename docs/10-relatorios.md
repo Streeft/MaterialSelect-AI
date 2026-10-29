@@ -38,6 +38,19 @@ Números negativos são exceção deliberada: saem como célula **numérica**, q
 nenhuma planilha interpreta como fórmula. Escapá-los inviabilizaria aritmética
 na planilha exportada sem ganho de segurança.
 
+## Caracteres que o XML não aceita (D-177)
+
+XLSX, DOCX e PPTX são XML, e o XML 1.0 proíbe os caracteres de controle C0
+(menos TAB, LF e CR), os substitutos soltos e U+FFFE/U+FFFF. Um nome de material
+com um deles (`"Aço\x0b1020"`) fazia o XLSX e o DOCX darem 500 — e, num material
+do catálogo compartilhado, derrubava `catalogo.xlsx` para todo mundo. Todo
+renderizador do `Report` passa agora por `app/exporters/xml_text.py`: no
+`cells.safe_text` (CSV/XLSX, e também no nome da aba) e na entrada de
+`to_docx`, `to_pptx` e `to_html`. Isto **não** substitui o escape do formato: na
+planilha a limpeza vem **antes** do teste do apóstrofo (senão `"\x01=cmd"`
+viraria `=cmd` sem escape), e no HTML o `html.escape` continua em todo valor. O
+dado gravado não muda; só o que sai no arquivo.
+
 ## Injeção de marcação (o caso do HTML)
 
 O relatório imprimível corre um risco **diferente**, e por isso tem escape

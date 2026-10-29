@@ -21,6 +21,7 @@ from openpyxl.utils import get_column_letter
 
 from app.exporters.cells import safe_number, safe_text
 from app.exporters.report import Report, Sheet
+from app.exporters.xml_text import xml_legal
 
 # Excel rejects : \ / ? * [ ] in sheet names and caps them at 31 characters.
 _INVALID_SHEET_CHARS = str.maketrans({c: "-" for c in ":\\/?*[]"})
@@ -70,7 +71,7 @@ def to_csv(report: Report) -> str:
 
 def _unique_sheet_name(raw: str, taken: set[str]) -> str:
     """Excel-legal, unique worksheet name."""
-    name = raw.translate(_INVALID_SHEET_CHARS)[:_MAX_SHEET_NAME] or "Planilha"
+    name = xml_legal(raw).translate(_INVALID_SHEET_CHARS)[:_MAX_SHEET_NAME] or "Planilha"
     if name not in taken:
         return name
     for suffix in range(2, 100):

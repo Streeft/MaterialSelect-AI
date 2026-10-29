@@ -20,6 +20,8 @@ characters and gains a leading apostrophe, the spreadsheet convention for
 
 from __future__ import annotations
 
+from app.exporters.xml_text import xml_legal
+
 # Characters that make a spreadsheet cell executable.
 FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
@@ -44,10 +46,14 @@ def safe_text(value: object) -> str:
     Numbers are formatted by ``format_number`` and never need escaping — a
     negative number is written through :func:`safe_number`, which keeps it
     numeric rather than turning it into text.
+
+    Characters XML 1.0 forbids are dropped **first** (D-177): openpyxl refuses
+    them, and dropping them after the check would let ``"\\x01=cmd"`` reach
+    the sheet as an unescaped ``=cmd``.
     """
     if value is None:
         return ""
-    text = str(value)
+    text = xml_legal(str(value))
     return f"{TEXT_MARKER}{text}" if is_dangerous(text) else text
 
 
