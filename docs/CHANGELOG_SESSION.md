@@ -167,6 +167,14 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 138 — 29/10/26 — Frontend da auditoria C: respostas obsoletas, estado do mapa, download, tokens e protótipo (D-180)
+
+**O pedido.** Corrigir C1 a C5 da auditoria do frontend.
+
+**O que mudou.** `StageList` (caixa do Chart Stage) descarta a conversão que não é a última ou cujos eixos mudaram; `decodeMapState` valida e descarta campo inválido; `CaeExportDialog` e `EcoExportMenu` usam `downloadBlob` (revogação atrasada); `PhaseBars` e `HighlightText` usam tokens `warning`; `similarSettings` usa `Map` e a Seleção usa `Object.hasOwn` para `?etapa=`.
+
+**Testes.** 3 em `StageList.test.tsx` (promessas controladas: eixo trocado, respostas fora de ordem, limpar antes da resposta), 1 em `url-state.test.tsx`, 1 em cada teste de exportação, 1 de varredura de paleta crua, 1 em `similarSettings.test.ts`, 1 em `selecao.test.tsx`; todos falham sem a correção. Suíte do frontend: 1497 passam. Só frontend; sem migração. Pós-merge: nada a disparar.
+Numeração: Sessão 138 e D-180.
 ## Sessão 135 — 29/10/26 — Upload com limite de descompressão e exportação sem caractere ilegal em XML (D-177)
 
 **O pedido.** Auditoria B, achados B1 (alto) e B3 (médio).

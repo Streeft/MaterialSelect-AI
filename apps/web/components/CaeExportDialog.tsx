@@ -14,6 +14,7 @@ import {
   type CaeUnitSystem,
 } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { downloadBlob } from "@/lib/rasterize";
 import { ptBR } from "@/lib/i18n";
 import { caeText } from "@/lib/i18n-cae";
 import { flowText } from "@/lib/i18n-flow";
@@ -52,18 +53,6 @@ export interface CaeLoaders {
   curve: typeof getMaterialCurve;
 }
 
-/** Hands a blob to the browser's own save dialog, under the server's filename. */
-function save(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
 /**
  * The CAE material card (D-104): format and unit system, then the file.
  *
@@ -84,7 +73,7 @@ export function CaeExportDialog({
   open,
   onClose,
   download = downloadCaeCard,
-  saveFile = save,
+  saveFile = downloadBlob,
   loaders,
 }: {
   materialId: number;

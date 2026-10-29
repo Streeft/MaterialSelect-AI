@@ -149,6 +149,11 @@ const STEPS: StepItem<Step>[] = [
   { id: "results", label: t.stepResults, blockedReason: t.blockedResults },
 ];
 
+/** The step named by `?etapa=`; anything else (including `toString`) is none. */
+function stepFromSlug(slug: string | null): Step | undefined {
+  return slug !== null && Object.hasOwn(STEP_BY_SLUG, slug) ? STEP_BY_SLUG[slug] : undefined;
+}
+
 const SLUG_BY_STEP = Object.fromEntries(
   Object.entries(STEP_BY_SLUG).map(([slug, id]) => [id, slug]),
 ) as Record<Step, string>;
@@ -322,7 +327,7 @@ function SelectionWizard() {
   const focusStepTitle = useRef(false);
   const [step, setStep] = useState<Step>(() => {
     if (params.get("novo_estagio") === "chart") return "constraints";
-    return STEP_BY_SLUG[params.get("etapa") ?? ""] ?? "function";
+    return stepFromSlug(params.get("etapa")) ?? "function";
   });
 
   /**
@@ -357,7 +362,7 @@ function SelectionWizard() {
   useEffect(() => {
     const onPop = () => {
       const query = new URLSearchParams(window.location.search);
-      setStep(STEP_BY_SLUG[query.get("etapa") ?? ""] ?? "function");
+      setStep(stepFromSlug(query.get("etapa")) ?? "function");
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, within, fireEvent } from "@testing-library/react";
 // MWC controls (Button, Checkbox) live inside a shadow root, invisible to
 // plain @testing-library/react queries — same note as ConstraintEditor.test.tsx.
@@ -950,6 +950,133 @@ describe("StageList with a chart stage", () => {
         box: { x_min: 2, x_max: 3, y_min: null, y_max: 80 },
       }),
     );
+  });
+
+  describe("conversões da caixa em voo (C1)", () => {
+    type Resp = {
+      box: { x_min: number | null; x_max: number | null; y_min: number | null; y_max: number | null };
+      x_unit: string;
+      y_unit: string;
+    };
+    const resp = (xMin: number): Resp => ({
+      box: { x_min: xMin, x_max: xMin + 1, y_min: null, y_max: null },
+      x_unit: "kg/m**3",
+      y_unit: "kg/m**3",
+    });
+    afterEach(() => {
+      convertMapBox.mockReset();
+      convertMapBox.mockImplementation((async (payload: { to: "canonical" | "display" }) =>
+        payload.to === "display"
+          ? {
+              box: { x_min: 2, x_max: 8, y_min: null, y_max: null },
+              x_unit: "g/cm**3",
+              y_unit: "g/cm**3",
+            }
+          : {
+              box: { x_min: 2000, x_max: 3000, y_min: null, y_max: 80000 },
+              x_unit: "kg/m**3",
+              y_unit: "kg/m**3",
+            }) as never);
+    });
+    function deferred() {
+      let resolve!: (v: Resp) => void;
+      const promise = new Promise<Resp>((r) => (resolve = r));
+      return { promise, resolve };
+    }
+    function Switchable({ onStages }: { onStages: (s: StageState[]) => void }) {
+      const [stages, setStages] = useState<StageState[]>([chartStage()]);
+      const [qc] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+      return (
+        <QueryClientProvider client={qc}>
+          <button
+            type="button"
+            onClick={() =>
+              setStages((prev) =>
+                prev.map((st) =>
+                  st.kind === "chart" ? { ...st, x: { ...st.x, propertySlug: "modulo-young" } } : st,
+                ),
+              )
+            }
+          >
+            trocar eixo
+          </button>
+          <StageList
+            stages={stages}
+            properties={[density]}
+            classes={classes}
+            processes={processes}
+            processClasses={processClasses}
+            universe="material"
+            onChange={(next) => {
+              setStages(next);
+              onStages(next);
+            }}
+          />
+        </QueryClientProvider>
+      );
+    }
+    const canonicalOnly = (impl: () => Promise<Resp>) =>
+      convertMapBox.mockImplementation(((p: { to: string }) =>
+        p.to === "canonical" ? impl() : new Promise(() => {})) as never);
+
+    it("descarta a resposta quando o eixo mudou durante a conversão", async () => {
+      const user = userEvent.setup();
+      const d = deferred();
+      canonicalOnly(() => d.promise);
+      const seen: StageState[][] = [];
+      render(<Switchable onStages={(s) => seen.push(s)} />);
+      await user.click(screen.getByShadowText(t.stageChartShowMap));
+      await user.click(await screen.findByRole("button", { name: "desenhar caixa" }));
+      await user.click(screen.getByRole("button", { name: "trocar eixo" }));
+      d.resolve(resp(2000));
+      await d.promise;
+      await new Promise((r) => setTimeout(r, 0));
+      expect(seen).toHaveLength(0);
+    });
+
+    it("mantém a última caixa quando as respostas chegam fora de ordem", async () => {
+      const user = userEvent.setup();
+      const first = deferred();
+      const second = deferred();
+      const queue = [first, second];
+      canonicalOnly(() => queue.shift()!.promise);
+      let last: StageState[] = [];
+      render(<Switchable onStages={(s) => (last = s)} />);
+      await user.click(screen.getByShadowText(t.stageChartShowMap));
+      const draw = await screen.findByRole("button", { name: "desenhar caixa" });
+      await user.click(draw);
+      await user.click(draw);
+      second.resolve(resp(5000));
+      await second.promise;
+      first.resolve(resp(1000));
+      await first.promise;
+      await new Promise((r) => setTimeout(r, 0));
+      const st = last[0];
+      if (st?.kind !== "chart") throw new Error("unreachable");
+      expect(st.x.min).toBe("5000");
+    });
+
+    it("não ressuscita a caixa limpa antes da resposta", async () => {
+      const user = userEvent.setup();
+      const d = deferred();
+      canonicalOnly(() => d.promise);
+      let last: StageState[] = [];
+      render(
+        <Harness
+          initial={[chartStage({ x: { ...chartStage().x, min: "1", max: "2" } })]}
+          onStages={(s) => (last = s)}
+        />,
+      );
+      await user.click(screen.getByShadowText(t.stageChartShowMap));
+      await user.click(await screen.findByRole("button", { name: "desenhar caixa" }));
+      await user.click(screen.getByShadowText(t.stageChartClearBox));
+      d.resolve(resp(2000));
+      await d.promise;
+      await new Promise((r) => setTimeout(r, 0));
+      const st = last[0];
+      if (st?.kind !== "chart") throw new Error("unreachable");
+      expect(st.x.min).toBe("");
+    });
   });
 
   it("permite abrir o mapa interativo também no universo de processos", () => {

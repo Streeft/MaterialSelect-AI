@@ -1038,9 +1038,26 @@ function ChartStageFields({
     latestStage.current = stage;
   }, [stage]);
   const [boxError, setBoxError] = useState<string | null>(null);
+  // Each canonical conversion is tied to the request that started it and to the
+  // axes it was converted for: a response that is not the latest request, or that
+  // arrives after an axis (or the universe) changed, belongs to another unit.
+  const boxSeq = useRef(0);
+  const axesKey = (s: Extract<StageState, { kind: "chart" }>) =>
+    JSON.stringify([
+      universeRef.current,
+      s.x.mode,
+      s.x.mode === "property" ? s.x.propertySlug : s.x.expression,
+      s.y.mode,
+      s.y.mode === "property" ? s.y.propertySlug : s.y.expression,
+    ]);
+  const universeRef = useRef(universe);
+  useEffect(() => {
+    universeRef.current = universe;
+  }, [universe]);
 
   const handleSelectBox = (box: BoxSelection | null) => {
     setBoxError(null);
+    const seq = ++boxSeq.current;
     if (!box) {
       onChange({
         ...stage,
@@ -1049,9 +1066,11 @@ function ChartStageFields({
       });
       return;
     }
+    const capturedKey = axesKey(stage);
     convertMapBox({ ...boxAxes, box: toMapBox(box), to: "canonical" })
       .then(({ box: stored }) => {
         const current = latestStage.current;
+        if (seq !== boxSeq.current || axesKey(current) !== capturedKey) return;
         onChange({
           ...current,
           x: {
@@ -1068,11 +1087,13 @@ function ChartStageFields({
       })
       .catch((error: unknown) => {
         // Never fall back to writing the drawn numbers: they are in another unit.
+        if (seq !== boxSeq.current) return;
         setBoxError(error instanceof Error ? error.message : String(error));
       });
   };
 
   const handleClearBox = () => {
+    boxSeq.current += 1;
     onChange({
       ...stage,
       x: { ...stage.x, min: "", max: "" },

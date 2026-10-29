@@ -9,7 +9,33 @@ import { ptBR } from "@/lib/i18n";
 import { ecoExportText } from "@/lib/i18n-eco-export";
 import type { EcoAuditRequest } from "@/lib/types";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { DOWNLOAD_REVOKE_DELAY_MS } from "@/lib/rasterize";
 import { EcoExportMenu } from "./EcoExportMenu";
+
+/** C3: the default save keeps the object URL alive past the click (Safari/Firefox). */
+async function expectDelayedRevoke(run: () => Promise<void>) {
+  const create = vi.fn(() => "blob:fake");
+  const revoke = vi.fn();
+  Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  const delayed: Array<() => void> = [];
+  const realSetTimeout = window.setTimeout.bind(window);
+  vi.spyOn(window, "setTimeout").mockImplementation(((cb: () => void, ms?: number) => {
+    if (ms === DOWNLOAD_REVOKE_DELAY_MS) {
+      delayed.push(cb);
+      return 0;
+    }
+    return realSetTimeout(cb, ms);
+  }) as never);
+  await run();
+  await vi.waitFor(() => expect(create).toHaveBeenCalled());
+  expect(revoke).not.toHaveBeenCalled();
+  expect(delayed).toHaveLength(1);
+  delayed[0]!();
+  expect(revoke).toHaveBeenCalledWith("blob:fake");
+  vi.restoreAllMocks();
+}
+
 
 const brief = {
   components: [
@@ -90,6 +116,15 @@ describe("EcoExportMenu (D-91, D-172)", () => {
     await waitFor(() => expect(saveFile).toHaveBeenCalledWith(file.blob, file.filename));
     expect(download).toHaveBeenCalledWith(brief, "csv");
     expect(await screen.findByRole("status")).toHaveTextContent(file.filename);
+  });
+
+  it("revokes the object URL only after the download delay (C3)", async () => {
+    const user = userEvent.setup();
+    await expectDelayedRevoke(async () => {
+      wrap(<EcoExportMenu brief={brief} download={vi.fn().mockResolvedValue(file)} />);
+      await user.click(screen.getByRole("button", { name: ptBR.exports.title }));
+      await user.click(screen.getByRole("menuitem", { name: new RegExp(ptBR.exports.csv) }));
+    });
   });
 
   it("shows the loading state and blocks a second request while the file is made", async () => {

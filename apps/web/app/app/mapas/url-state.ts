@@ -49,11 +49,82 @@ export function decodeMapState(param: string): Partial<MapUrlState> | null {
     const base64 = param.replace(/-/g, "+").replace(/_/g, "/");
     const json = decodeURIComponent(escape(atob(base64)));
     const parsed = JSON.parse(json);
-    if (typeof parsed !== "object" || parsed === null) return null;
-    return parsed as Partial<MapUrlState>;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+    return sanitizeMapState(parsed as Record<string, unknown>);
   } catch {
     return null;
   }
+}
+
+const isString = (v: unknown): v is string => typeof v === "string";
+const isBool = (v: unknown): v is boolean => typeof v === "boolean";
+const oneOf =
+  <T extends string>(...allowed: T[]) =>
+  (v: unknown): v is T =>
+    typeof v === "string" && (allowed as string[]).includes(v);
+const isGoal = oneOf<Goal>("maximize", "minimize");
+
+function isAxisState(v: unknown): v is AxisState {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  const a = v as Record<string, unknown>;
+  return (
+    oneOf("property", "index")(a.mode) &&
+    isString(a.property) &&
+    isString(a.indexSlug) &&
+    isString(a.customExpression) &&
+    isGoal(a.goal)
+  );
+}
+
+/**
+ * A decoded link is untrusted input: it may be hand-edited or come from another
+ * version. Each field is kept only if it has the right shape and type, otherwise
+ * it is dropped (so the page default applies) — never repaired, never thrown on.
+ */
+function sanitizeMapState(raw: Record<string, unknown>): Partial<MapUrlState> {
+  const out: Partial<MapUrlState> = {};
+  const own = (key: string): unknown => (Object.hasOwn(raw, key) ? raw[key] : undefined);
+  const universe = own("universe");
+  if (oneOf<SelectionUniverse>("material", "process")(universe)) out.universe = universe;
+  const xAxis = own("xAxis");
+  if (isAxisState(xAxis)) out.xAxis = xAxis;
+  const yAxis = own("yAxis");
+  if (isAxisState(yAxis)) out.yAxis = yAxis;
+  const scale = own("scale");
+  if (oneOf<ChartScale>("linear", "log")(scale)) out.scale = scale;
+  const envelopeShape = own("envelopeShape");
+  if (oneOf<"hull" | "ellipse">("hull", "ellipse")(envelopeShape)) {
+    out.envelopeShape = envelopeShape;
+  }
+  const selectedClasses = own("selectedClasses");
+  if (Array.isArray(selectedClasses) && selectedClasses.every(isString)) {
+    out.selectedClasses = selectedClasses;
+  }
+  for (const key of ["showEnvelopes", "showIntervals", "showLabels"] as const) {
+    const value = own(key);
+    if (isBool(value)) out[key] = value;
+  }
+  const indexMode = own("indexMode");
+  if (isString(indexMode)) out.indexMode = indexMode;
+  const customExpression = own("customExpression");
+  if (isString(customExpression)) out.customExpression = customExpression;
+  const indexGoal = own("indexGoal");
+  if (isGoal(indexGoal)) out.indexGoal = indexGoal;
+  const levelMaterialIds = own("levelMaterialIds");
+  if (
+    Array.isArray(levelMaterialIds) &&
+    levelMaterialIds.every((n) => typeof n === "number" && Number.isInteger(n) && n > 0)
+  ) {
+    out.levelMaterialIds = levelMaterialIds;
+  }
+  const numericLevels = own("numericLevels");
+  if (
+    Array.isArray(numericLevels) &&
+    numericLevels.every((n) => typeof n === "number" && Number.isFinite(n))
+  ) {
+    out.numericLevels = numericLevels;
+  }
+  return out;
 }
 
 /** Apply a partial state to the page's current state; missing fields use defaults. */

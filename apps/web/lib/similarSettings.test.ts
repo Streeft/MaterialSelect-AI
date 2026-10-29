@@ -140,3 +140,12 @@ describe("tolerância por propriedade na URL (D-158)", () => {
     ).toEqual({ densidade: 5 });
   });
 });
+
+describe("parseSettings with prototype names (C5)", () => {
+  it("drops a criterion token that only exists on Object.prototype", () => {
+    const parsed = parseSettings(
+      new URLSearchParams("sim_criterio=densidade:toString,x:constructor,y:valueOf"),
+    );
+    expect(parsed.criteria).toEqual({});
+  });
+});
