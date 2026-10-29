@@ -166,6 +166,14 @@ escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da
 **O que mudou.** `commit` reivindica o job com UPDATE condicional `VALIDADO → IMPORTADO` (`ImportRepository.claim_status`); a segunda chamada recebe 409 e não cria material. Leitores de CSV/XLSX param na primeira linha além do limite (`_collect_rows`), SQLite usa `LIMIT`, teto de 300 colunas e de 100 MB descompactados no XLSX. `POST /import-templates`, `GET /imports` e `GET /imports/{id}/report` exigem curador. Fixture `autouse` põe os uploads dos testes no `tmp_path`; `/var/` no `.gitignore`.
 +11 testes de backend em `app/tests/test_import_hardening.py` (7 falham na main). Sem migração nem seed. Pós-merge: **Deploy da API**.
 Numeração: Sessão 134 e D-176.
+## Sessão 137 — 29/10/26 — Cota diária de IA também fora dos Cadernos (D-179)
+
+**O pedido.** Achado B4 da auditoria: `/ai/interpret`, `/ai/explain` e a narrativa do laudo gastavam a chave gratuita do Gemini sem cota, e um usuário esgotava a cota de todos os Cadernos.
+
+**O que mudou.** `AIService._spending` reserva uma unidade no mesmo `AIUsage.requests` dos Cadernos (`NotebookRepository.reserve`, atômico) antes de chamar o provedor e a devolve se o provedor falhar; teto `AI_DAILY_REQUESTS` (padrão 100) em `config.py` e `apps/api/.env.example`. `mock` não conta. Esgotado: 429 em português simples; o laudo sai sem a narrativa, com a razão na nota (`export_service._narrative`). Nada muda na tela (D-138). `docs/09-camada-ia.md` atualizado.
+
+**Testes.** +7 de backend (`test_ai_quota.py`: dentro da cota passa e conta; no limite 429 sem chamar o provedor; `explain` no mesmo contador; laudo sem narrativa; contadores não vazam entre usuários; `mock` não conta; falha do provedor devolve a unidade). 5 deles falham na main. Contagem medida na branch: 5130 testes de backend coletados, suíte inteira verde (6 pulam sem `POSTGRES_TEST_URL`). Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
+
 ## Sessão 133 — 27/10/26 — O valor lido da curva vai no endereço (D-175)
 
 **O pedido.** Resíduo TM4-b-res do D-157: o valor lido no leitor da ficha não ia para a URL.

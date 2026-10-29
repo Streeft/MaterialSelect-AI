@@ -15,6 +15,10 @@ deterministic pipeline, so the numbers in the prose are the pipeline's numbers.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import UTC, date, datetime
+
 from app.ai.factory import disclaimer_for, get_provider
 from app.ai.guardrails import (
     Catalogue,
@@ -38,10 +42,11 @@ from app.ai.provider import (
 )
 from app.config import Settings
 from app.config import settings as default_settings
-from app.domain.errors import NotFoundError, ValidationError
+from app.domain.errors import NotFoundError, QuotaExceededError, ValidationError
 from app.knowledge.retrieval import search as knowledge_search
 from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
+from app.repositories.notebook_repository import NotebookRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.ai import (
     AIStatusOut,
@@ -91,6 +96,41 @@ class AIService:
             # 400 rather than 500: the layer being off is a configuration state,
             # not a failure.
             raise ValidationError(str(exc)) from exc
+
+    # --- daily quota (D-179) ----------------------------------------------
+
+    @contextmanager
+    def _spending(self, provider: AIProvider) -> Iterator[None]:
+        """One unit of the caller's daily AI budget held around a model call.
+
+        The same ``AIUsage.requests`` counter the Cadernos spend — one key, one
+        budget per student per day — reserved atomically before the call and
+        handed back only if the provider itself fails. The simulated provider
+        calls no model and is never counted. Every route that reaches here is
+        behind ``get_current_user`` (even in open mode, D-83), so there is always
+        a person to count; a service built without one (no request) has no
+        key-spending caller to stop and is left alone.
+        """
+        if provider.simulated or self.user is None:
+            yield
+            return
+        repo = NotebookRepository(self.db, self.user.id)
+        day = _today()
+        limit = self.settings.ai_daily_requests
+        if not repo.reserve(day, "requests", limit):
+            self.db.rollback()
+            raise QuotaExceededError(
+                f"Você usou as {limit} consultas à IA de hoje. O limite volta amanhã; "
+                "o restante do app continua disponível."
+            )
+        self.db.commit()
+        try:
+            yield
+        except BaseException:
+            self.db.rollback()
+            repo.release(day, "requests")
+            self.db.commit()
+            raise
 
     # --- interpretation ---------------------------------------------------
 
@@ -149,7 +189,8 @@ class AIService:
 
         context = self._context(statement, provider)
         catalogue = context.catalogue()
-        raw = provider.interpret(context)
+        with self._spending(provider):
+            raw = provider.interpret(context)
         rejected: list[str] = []
 
         return InterpretationOut(
@@ -258,7 +299,8 @@ class AIService:
         retrieved = self._retrieve(study.function_text or study.name, provider)
         context = _result_context(study, result, retrieved)
 
-        raw = provider.explain(context)
+        with self._spending(provider):
+            raw = provider.explain(context)
         summary = str(raw.get("summary", ""))
         paragraphs = [str(p) for p in raw.get("paragraphs", [])]
         caveats = [str(c) for c in raw.get("caveats", [])]
@@ -418,6 +460,10 @@ def _result_context(study, result, retrieved: list) -> ResultContext:
         numbers=numbers,
         retrieved=tuple(retrieved),
     )
+
+
+def _today() -> date:
+    return datetime.now(UTC).date()
 
 
 def _text_or_none(value) -> str | None:

@@ -11421,3 +11421,20 @@ Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
 **Descartado.** `SELECT … FOR UPDATE` (o SQLite ignora, e o teste não provaria nada); restrição única em `materials.name` (nomes repetidos são legítimos entre fontes); contar linhas no texto antes de parsear (o CSV com aspas pode ter quebra de linha dentro da célula).
 
 **Consequências.** Sem migração e sem seed. Mensagem de excesso de linhas passa a dizer "mais de N" (o total já não é contado). No modo `open`, o histórico de importações da tela de importação responde 403 para quem não é curador (estado de erro da tela). Pós-merge: **Deploy da API**.
+
+## D-179 — Cota diária de IA também fora dos Cadernos: o mesmo contador, teto próprio (decidida pelo assistente por delegação do autor, revisável)
+
+**Contexto.** Achado B4 da auditoria: `/ai/interpret`, `/ai/explain` e a narrativa do laudo usam a mesma chave do Gemini gratuito que os Cadernos (D-93), mas só os Cadernos tinham cota (D-92/D-99). Um laço em `/ai/interpret` esgotava o limite diário da chave e todos os Cadernos da turma passavam a responder 503. Custo é restrição do autor: só caminhos gratuitos.
+
+**Decisão.**
+1. **Um mecanismo só.** As três entradas reservam no mesmo `AIUsage.requests` (por usuário, por dia UTC) com o `NotebookRepository.reserve` atômico do D-99, antes de chamar o provedor; a unidade volta só se o provedor falhar. Nada de tabela nova nem migração.
+2. **Teto próprio, contador comum.** `AI_DAILY_REQUESTS` (padrão 100) é o teto dessas rotas; o Caderno segue parando em `NOTEBOOK_DAILY_REQUESTS` (60) sobre o mesmo contador. A chave é uma, o orçamento do aluno também: interpretar gasta do mesmo dia que perguntar.
+3. **Identidade.** Toda rota passa por `get_current_user`, inclusive no modo `open` (D-83/D-46), então sempre há usuário a contar; não existe caminho anônimo que precise de contagem por origem. Um `AIService` construído sem usuário (uso interno, sem requisição) não conta.
+4. **`mock` não conta**: `provider.simulated` não chama modelo nenhum.
+5. **Esgotado:** `interpret`/`explain` respondem 429 (`QuotaExceededError`) com “Você usou as N consultas à IA de hoje. O limite volta amanhã; o restante do app continua disponível.”; o laudo sai **sem a narrativa**, com a razão na nota, como já fazia com a IA desligada. Nenhum texto novo na tela (D-138).
+6. A IA continua sem produzir número (princípio 2): os guardrails não mudaram.
+
+**Descartado.** Contador separado por rota (exigiria coluna nova e migração, e não protegeria a chave comum). Contagem por IP (não há rota de IA anônima).
+
+**Consequências.** Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
+

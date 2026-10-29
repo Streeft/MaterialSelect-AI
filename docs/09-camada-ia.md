@@ -416,6 +416,17 @@ As regras que pesam:
   chamada por um `UPDATE … WHERE requests < limite` atômico
   (`NotebookRepository.reserve`) e devolvida se a chamada falhar — uma pergunta
   que falha continua de graça, e uma rajada não passa do teto.
+- **A mesma cota vale fora dos Cadernos** ([D-179](DECISIONS.md)):
+  `/ai/interpret`, `/ai/explain` e a narrativa do laudo usam a mesma chave, então
+  reservam no **mesmo contador** `requests` do `AIUsage` (por usuário e por dia
+  UTC), com teto próprio `AI_DAILY_REQUESTS` (padrão 100). O Caderno continua
+  parando no seu teto (`NOTEBOOK_DAILY_REQUESTS`) sobre o mesmo contador: a
+  chave é uma só, o orçamento do aluno também. Toda rota é autenticada, até no
+  modo `open` (D-83), então sempre há um usuário a contar. Esgotado, `interpret`
+  e `explain` respondem **429** em português simples; o laudo sai **sem a
+  narrativa**, com a razão na nota. O provedor `mock` não chama modelo e
+  **não conta**. Falha do provedor devolve a unidade. Não há aviso de limite na
+  tela (D-138).
 
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 
