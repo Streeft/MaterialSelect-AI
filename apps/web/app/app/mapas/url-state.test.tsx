@@ -35,6 +35,33 @@ describe("encodeMapState / decodeMapState", () => {
     expect(encoded).not.toMatch(/[+/=]/);
   });
 
+  it("drops fields with the wrong shape or type instead of passing them on (C2)", () => {
+    const encode = (o: unknown) =>
+      btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const hostile = decodeMapState(
+      encode({
+        universe: "x",
+        selectedClasses: 1,
+        scale: "linear",
+        envelopeShape: "square",
+        numericLevels: "a",
+        levelMaterialIds: [1, -2, 1.5],
+        showLabels: "yes",
+        xAxis: { mode: "property", property: 7 },
+        yAxis: [],
+        indexGoal: "up",
+        indexMode: 3,
+        customExpression: {},
+        __proto__: { polluted: true },
+      }),
+    );
+    expect(hostile).toEqual({ scale: "linear" });
+    expect(customizationsInUse(hostile)).toEqual(["scale"]);
+    expect(decodeMapState(encode([1, 2]))).toBeNull();
+    expect(decodeMapState(encode(null))).toBeNull();
+    expect(decodeMapState(encode({ selectedClasses: [1] }))).toEqual({});
+  });
+
   it("returns null for garbage input instead of throwing", () => {
     expect(decodeMapState("not-valid-base64!!!")).toBeNull();
   });
