@@ -120,6 +120,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 143 — 30/10/26 — Catálogo em lista e detalhe (D-185)
+
+**O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
+fica compacta, e a barra dos marcados flutua no rodapé (barra de ferramentas M3). Estreito ou com modificador, o link navega como antes. +5 de
+frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste sem falha. No Chromium a 1440 px: ficha ao lado sem rolagem
+horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
+
 ## Sessão 142 — 30/10/26 — Catálogo demo ampliado do TCC: 593 materiais fictícios (D-184)
 
 **O pedido.** Integrar ao seed demo os nove lotes validados pelo QA (593 materiais, todos demonstrativos) para a apresentação do
@@ -204,13 +211,6 @@ por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem 
 base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
-
-## Sessão 142 — 30/10/26 — Catálogo em lista e detalhe (D-184)
-
-**O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
-fica compacta, e a barra dos marcados flutua no rodapé (barra de ferramentas M3). Estreito ou com modificador, o link navega como antes. +5 de
-frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste sem falha. No Chromium a 1440 px: ficha ao lado sem rolagem
-horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
 
 ## Sessão 141 — 30/10/26 — Molas expressivas e componentes do M3 Expressive (D-183)
 

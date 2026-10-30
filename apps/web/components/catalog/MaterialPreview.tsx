@@ -15,7 +15,7 @@ import { QualityBar } from "./MaterialRows";
 const t = ptBR.catalog.preview;
 
 /**
- * The detail pane of the catalogue's list-detail layout (D-184): the sheet of
+ * The detail pane of the catalogue's list-detail layout (D-185): the sheet of
  * the material picked in the list, beside it, so the reader compares without
  * losing their place. The values are the sheet's own (`PropertyGroupCard`:
  * quality badge, provenance popover, absence written out) — nothing is
@@ -37,7 +37,7 @@ export function MaterialPreview({
   });
   const href = `/app/materiais/${item.id}`;
 
-  // The pane itself is the origin: "Abrir ficha completa" grows the sheet out of it (D-148, D-184).
+  // The pane itself is the origin: "Abrir ficha completa" grows the sheet out of it (D-148, D-185).
   return (
     <div className="flex flex-col gap-4" {...{ [ORIGIN_ATTRIBUTE]: "" }}>
       <div className="flex items-start gap-3">

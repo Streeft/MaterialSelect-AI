@@ -12,7 +12,7 @@ test("uma ficha aberta com conexão aparece em /offline.html, com a data da leit
   const link = page.locator("a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible").first();
   await expect(link).toBeVisible({ timeout: 45_000 });
   const name = (await link.textContent())!.trim();
-  // D-184: a wide list opens the preview pane first; the sheet opens from it.
+  // D-185: a wide list opens the preview pane first; the sheet opens from it.
   await link.click();
   const openFull = page.getByRole("link", { name: "Abrir ficha completa" });
   await expect(openFull).toBeVisible({ timeout: 45_000 });

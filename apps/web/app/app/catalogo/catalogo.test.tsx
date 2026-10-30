@@ -232,7 +232,7 @@ describe("catálogo", () => {
   });
 });
 
-describe("lista e detalhe (D-184)", () => {
+describe("lista e detalhe (D-185)", () => {
   function widthOfBlocks(width: number) {
     return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
       width,

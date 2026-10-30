@@ -11607,7 +11607,7 @@ semear um ambiente de preview ou local.
 **Consequências.** A suíte ganha 27 testes (`test_demo_catalog_tcc.py`; dois semeiam os 593, ~13 s cada). O mapa de Ashby passa a
 678 pontos em 5 cores; legibilidade e desempenho do Plotly com esse volume ficam para conferir no navegador. Um lote novo entra como
 um JSON a mais no diretório e passa pelo mesmo validador.
-## D-184 — Catálogo em lista e detalhe, e a barra flutuante dos marcados
+## D-185 — Catálogo em lista e detalhe, e a barra flutuante dos marcados
 
 **Contexto.** Terceiro passo do plano de D-181 (print 2 do canvas de revisão). Antes, abrir um material tirava o leitor da lista; comparar dois
 pedia ir e voltar. O M3 resolve com o layout canônico *list-detail* (D-182) e, para ações sobre o que se marcou, com a barra de ferramentas

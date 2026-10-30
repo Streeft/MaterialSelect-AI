@@ -639,7 +639,7 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
-**Sessão 142 (D-184):** catálogo em lista e detalhe com a ficha ao lado e a barra flutuante dos marcados; frontend 1536 testes (+5); sem backend.
+**Sessão 143 (D-185):** catálogo em lista e detalhe com a ficha ao lado e a barra flutuante dos marcados; frontend 1536 testes (+5); sem backend.
 
 **Sessão 141 (D-183):** molas expressivas do M3 como token, grupo de botões conectado, `SplitButton`, `LoadingIndicator` e `FabMenu`; frontend 1531 testes (+15); sem backend.
 

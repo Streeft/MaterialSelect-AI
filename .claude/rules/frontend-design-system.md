@@ -147,7 +147,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   ou `--motion-effects[-fast]` (cor, opacidade), com o `-dur` correspondente; nunca curva solta. Botão dividido, menu do FAB e carregamento curto
   são `SplitButton`, `FabMenu` e `LoadingIndicator`; movimento reduzido desliga tudo.
 
-- **Catálogo é lista e detalhe** ([D-184](docs/DECISIONS.md)): clique simples no nome, com bloco ≥ 840 px, abre `MaterialPreview` ao lado (a ficha
+- **Catálogo é lista e detalhe** ([D-185](docs/DECISIONS.md)): clique simples no nome, com bloco ≥ 840 px, abre `MaterialPreview` ao lado (a ficha
   de verdade, mesmos `PropertyGroupCard`); estreito ou com modificador, navega. Ação sobre marcados é a barra flutuante `.m3-floating-toolbar`.
 
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam

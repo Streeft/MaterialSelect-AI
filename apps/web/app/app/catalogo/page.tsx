@@ -105,7 +105,7 @@ export default function CatalogPage() {
   const total = items?.length ?? 0;
   const filtered = Boolean(classSlug) || quality !== "any";
 
-  // D-184: list-detail. A plain click on a name shows the material beside the
+  // D-185: list-detail. A plain click on a name shows the material beside the
   // list when the list's own block is wide enough for two panes (the same 840 px
   // the scaffold's container query uses); otherwise the link navigates as before.
   // A preview whose material leaves the list (a filter) simply closes.
