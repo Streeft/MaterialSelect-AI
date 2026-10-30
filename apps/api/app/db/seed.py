@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import Base, SessionLocal, engine
+from app.db.property_catalog_extended import EXTENDED_PROPERTIES
 from app.db.seed_demo_cae import seed_demo_cae_values
 from app.domain.composition import build_composition_entry, validate_composition
 from app.domain.curves import PointInput, SeriesInput, build_curve
@@ -324,6 +325,11 @@ PROPERTIES = [
         "better_direction": BetterDirection.NEUTRAL,
     },
 ]
+
+#: As 15 de sempre (D-188): o núcleo que cada material dos lotes JSON do D-185
+#: traz completo. As 33 do catálogo ampliado vêm depois, de módulo próprio.
+CORE_SLUGS: frozenset[str] = frozenset(spec["slug"] for spec in PROPERTIES)
+PROPERTIES = [*PROPERTIES, *EXTENDED_PROPERTIES]  # D-188
 
 #: Rótulo da fonte fictícia de demonstração, nomeado para o seeder não repetir
 #: a string (o mesmo motivo de `BATTERY_SOURCE_LABEL` logo abaixo).

@@ -63,6 +63,42 @@ PROPERTY_MIN_LEVEL: Mapping[str, DepthLevel] = MappingProxyType(
         "pegada_co2": DepthLevel.L2,
         "energia_reciclagem": DepthLevel.L3,
         "co2_reciclagem": DepthLevel.L3,
+        # Catálogo ampliado (D-188). Ficam no Nível 1, por omissão, as quatro
+        # que se ensinam junto da resistência: tenacidade à fratura,
+        # alongamento, fadiga e temperatura de fusão. O Nível 2 traz os
+        # módulos e resistências derivados, as temperaturas de transição e de
+        # serviço mínimo, choque térmico, a leitura elétrica e ótica básica,
+        # absorção de água, custo por volume e o processamento primário. O
+        # Nível 3, as grandezas de especialista.
+        "resistencia_compressao": DepthLevel.L2,
+        "resistencia_flexao": DepthLevel.L2,
+        "modulo_cisalhamento": DepthLevel.L2,
+        "modulo_volumetrico": DepthLevel.L2,
+        "resistencia_impacto": DepthLevel.L2,
+        "temp_transicao_vitrea": DepthLevel.L2,
+        "temp_min_servico": DepthLevel.L2,
+        "resistencia_choque_termico": DepthLevel.L2,
+        "resistividade_eletrica": DepthLevel.L2,
+        "constante_dieletrica": DepthLevel.L2,
+        "rigidez_dieletrica": DepthLevel.L2,
+        "indice_refracao": DepthLevel.L2,
+        "absorcao_agua": DepthLevel.L2,
+        "custo_volume": DepthLevel.L2,
+        "fracao_reciclada": DepthLevel.L2,
+        "energia_processamento": DepthLevel.L2,
+        "co2_processamento": DepthLevel.L2,
+        "tenacidade_gc": DepthLevel.L3,
+        "resistencia_cisalhamento": DepthLevel.L3,
+        "modulo_flexao": DepthLevel.L3,
+        "coef_perda_mecanica": DepthLevel.L3,
+        "dureza_shore_a": DepthLevel.L3,
+        "dureza_shore_d": DepthLevel.L3,
+        "temp_deflexao_termica": DepthLevel.L3,
+        "difusividade_termica": DepthLevel.L3,
+        "condutividade_eletrica": DepthLevel.L3,
+        "fator_perda_dieletrica": DepthLevel.L3,
+        "indice_oxigenio_limite": DepthLevel.L3,
+        "pegada_hidrica": DepthLevel.L3,
     }
 )
 
