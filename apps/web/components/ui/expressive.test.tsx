@@ -55,6 +55,39 @@ describe("SplitButton (D-183)", () => {
     expect(other).toHaveBeenCalledTimes(1);
     expect(run).toHaveBeenCalledTimes(1);
   });
+
+  it("a seta mantém a cor do botão ao passar o mouse e aberta (D-186)", () => {
+    // The seat is a `.chart-icon-btn`, whose `:hover:not(:disabled)` and
+    // `[aria-expanded]` rules (figures.css) turned it into a pale icon button.
+    for (const variant of ["primary", "tonal"]) {
+      expect(globals).toContain(`.m3-split.m3-split-${variant} > .m3-split-trigger.chart-icon-btn {`);
+      expect(globals).toContain(
+        `.m3-split.m3-split-${variant} > .m3-split-trigger.chart-icon-btn:is(:hover:not(:disabled), [aria-expanded="true"])`,
+      );
+    }
+  });
+
+  it("a ação desligada diz o motivo e o menu pode seguir aberto (D-186)", () => {
+    render(
+      <>
+        <p id="motivo">Os pesos precisam fechar 1.</p>
+        <SplitButton
+          onClick={() => {}}
+          disabled
+          menuDisabled={false}
+          describedBy="motivo"
+          menuLabel="Mais opções de execução"
+          menu={<MenuItem onSelect={() => {}}>Executar só os limites</MenuItem>}
+        >
+          Executar seleção
+        </SplitButton>
+      </>,
+    );
+    const action = screen.getByRole("button", { name: "Executar seleção" });
+    expect(action).toBeDisabled();
+    expect(action).toHaveAccessibleDescription("Os pesos precisam fechar 1.");
+    expect(screen.getByRole("button", { name: "Mais opções de execução" })).toBeEnabled();
+  });
 });
 
 describe("LoadingIndicator (D-183)", () => {

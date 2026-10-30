@@ -150,6 +150,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Catálogo é lista e detalhe** ([D-184](docs/DECISIONS.md)): clique simples no nome, com bloco ≥ 840 px, abre `MaterialPreview` ao lado (a ficha
   de verdade, mesmos `PropertyGroupCard`); estreito ou com modificador, navega. Ação sobre marcados é a barra flutuante `.m3-floating-toolbar`.
 
+- **Seleção tem o funil ao lado** ([D-186](docs/DECISIONS.md)): etapas de entrada em `PaneScaffold` *supporting-pane* com `LiveFunnel`, que só lê a prévia
+  do servidor (nenhum número no cliente; `FunnelRow` é o mesmo dos resultados). Com objetivo, Executar é `SplitButton` com "Executar só os limites".
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

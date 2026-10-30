@@ -677,6 +677,21 @@ export const ptBR = {
       "TOPSIS e PROMETHEE II combinam os critérios de outro jeito e usam normalização própria — a escolha de normalização abaixo só vale para a soma ponderada.",
     run: "Executar seleção",
     running: "Executando…",
+    // D-186: o botão dividido. A seta abre o que mais dá para executar.
+    runMenu: "Mais opções de execução",
+    runLimitsOnly: "Executar só os limites",
+    runLimitsOnlyHint: "Mostra quem passa, sem índice nem classificação.",
+    // D-186: o funil ao lado do assistente, com a mesma contagem do servidor.
+    live: {
+      region: "Funil de candidatos",
+      title: "Funil de candidatos",
+      hint: "Calculado no servidor a cada mudança nos limites.",
+      remainOf: (total: number) => `de ${total} continuam`,
+      loading: "Contando os candidatos",
+      noLimits:
+        "Sem limites ainda: o catálogo inteiro continua. Cada limite que você puser aparece aqui, com quantos tira.",
+      main: "Etapas do estudo",
+    },
     resultsTitle: "Resultados",
     funnel: "Funil de eliminação",
     funnelHint:

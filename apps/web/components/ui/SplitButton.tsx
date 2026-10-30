@@ -22,7 +22,9 @@ export function SplitButton({
   menu,
   variant = "tonal",
   disabled = false,
+  menuDisabled = disabled,
   loading = false,
+  describedBy,
   className,
 }: {
   /** The action's visible label. */
@@ -34,18 +36,28 @@ export function SplitButton({
   menu: ReactNode;
   variant?: "primary" | "tonal";
   disabled?: boolean;
+  /** The menu can stay open to a related action the main one is waiting on. */
+  menuDisabled?: boolean;
   loading?: boolean;
+  /** Id of the text that says why the action is off, read with the label. */
+  describedBy?: string;
   className?: string;
 }) {
   return (
     <div className={cn("m3-split", `m3-split-${variant}`, className)}>
-      <Button variant={variant} onClick={onClick} disabled={disabled} loading={loading}>
+      <Button
+        variant={variant}
+        onClick={onClick}
+        disabled={disabled}
+        loading={loading}
+        aria-describedby={describedBy}
+      >
         {children}
       </Button>
       <MenuButton
         label={menuLabel}
         iconOnly
-        disabled={disabled}
+        disabled={menuDisabled}
         icon={<IconChevronDown className="h-4 w-4" />}
         className="m3-split-trigger"
       >

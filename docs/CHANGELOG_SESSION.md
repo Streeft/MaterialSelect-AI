@@ -120,6 +120,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
+
+**O que mudou.** As etapas de entrada da Seleção ganharam o painel de apoio M3 com o funil de candidatos ao vivo (`LiveFunnel`, mesma prévia do
+servidor que o contador já usava); com objetivo, o Executar vira botão dividido com "Executar só os limites". `FunnelRow` passa a ser
+compartilhado com `ResultsView`. Achado e corrigido: a seta do `SplitButton` perdia a cor no hover e aberta. Numeração: o #211 deu D-185/Sessão 143 ao
+catálogo demo do TCC, e a lista e detalhe fica com D-184/Sessão 142, o número com que entrou no #209. +5 de frontend (3 na Seleção, 2 no `SplitButton`); suíte: 1541
+passam; E2E `golden-path` e `larguras` passam. No Chromium a 1440 px o funil fica ao lado sem rolagem horizontal; a 390 px desce para baixo da
+etapa. Sem backend nem migração.
+
 ## Sessão 143 — 30/10/26 — Catálogo demo ampliado do TCC: 593 materiais fictícios (D-185)
 
 **O pedido.** Integrar ao seed demo os nove lotes validados pelo QA (593 materiais, todos demonstrativos) para a apresentação do
@@ -146,6 +155,13 @@ que falham na `main` (demo pulado; `MultipleResultsFound`). Suíte inteira: 5190
 necessário (a API não importa o seed), mas é inócuo pela regra do `deploy-pos-merge`.
 
 ---
+
+## Sessão 142 — 30/10/26 — Catálogo em lista e detalhe (D-184)
+
+**O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
+fica compacta, e a barra dos marcados flutua no rodapé (barra de ferramentas M3). Estreito ou com modificador, o link navega como antes. +5 de
+frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste sem falha. No Chromium a 1440 px: ficha ao lado sem rolagem
+horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
 
 ## Sessão 139 — 30/10/26 — Contagem de testes medida, em uma linha só
 
@@ -204,13 +220,6 @@ por propriedade igual ao D-155, propriedade sem faixa conta inteira, escala sem 
 base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`: resposta idêntica com mapa vazio, sobreposição, só por
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
-
-## Sessão 142 — 30/10/26 — Catálogo em lista e detalhe (D-184)
-
-**O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
-fica compacta, e a barra dos marcados flutua no rodapé (barra de ferramentas M3). Estreito ou com modificador, o link navega como antes. +5 de
-frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste sem falha. No Chromium a 1440 px: ficha ao lado sem rolagem
-horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
 
 ## Sessão 141 — 30/10/26 — Molas expressivas e componentes do M3 Expressive (D-183)
 

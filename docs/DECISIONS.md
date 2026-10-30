@@ -11528,6 +11528,27 @@ claro do grupo novo; corrigido com regras do trilho mais específicas. O par do 
 **Ainda não usados nas telas** (só em `/app/estilo`): entram com o catálogo em lista e detalhe, a seleção e o início (D-181, ordem).
 
 
+## D-184 — Catálogo em lista e detalhe, e a barra flutuante dos marcados
+
+**Contexto.** Terceiro passo do plano de D-181 (print 2 do canvas de revisão). Antes, abrir um material tirava o leitor da lista; comparar dois
+pedia ir e voltar. O M3 resolve com o layout canônico *list-detail* (D-182) e, para ações sobre o que se marcou, com a barra de ferramentas
+flutuante (*Components › Toolbars*, Expressive).
+
+**Decisão.**
+- **Clique simples no nome**, com o bloco da lista a 840 px ou mais (o mesmo limiar do `PaneScaffold`), abre a ficha ao lado (`MaterialPreview`)
+  sem sair da lista; a linha do material aberto leva `aria-current` e fundo. Bloco mais estreito, Ctrl/Cmd/Shift/Alt ou botão do meio: o link
+  navega para a página inteira como antes. Nenhum seletor novo de modo: o D-50 (sem alternância Tabela/Cartões) continua valendo.
+- **A ficha ao lado é a ficha**, não um resumo: os mesmos `PropertyGroupCard` (selo de qualidade, popover de proveniência, ausência escrita) da
+  página, pela mesma chave de consulta, então abrir a página inteira depois reaproveita a leitura. "Abrir ficha completa" e "Fechar" ficam no topo. O próprio painel leva `data-container-origin`, de modo que "Abrir ficha completa" faz a ficha nascer dele (D-148). `e2e/transicao.spec.ts` e `e2e/offline.spec.ts` passam por esse caminho no desktop.
+  Carregamento com o `LoadingIndicator` (D-183). Um material que sai da lista por um filtro fecha a ficha.
+- **Com a ficha aberta a tabela fica compacta**: sem as colunas de classe, palavras-chave e designações; a classe desce para baixo do nome e a
+  contagem de referências fica na ficha. Medido a 1440 px: sem isso a coluna de qualidade quebrava "12 estimado" em quatro linhas.
+- **Valor adimensional sem traço** (`valueUnit` em `lib/format.ts`): a ficha escrevia "0,3496 —" no coeficiente de Poisson e "200 —" na dureza,
+  com o traço de `prettyUnit` (resíduo de D-167, achado na ficha ao lado). Vale na página inteira, na ficha ao lado e na cópia offline (`describeValue`).
+- **A barra dos marcados (D-131) vira barra flutuante M3**: fixa, centralizada, acima da barra inferior no celular (`--bottom-nav-offset`), em
+  `inverse-surface`, entra na mola expressiva; mesmos botões e mesma explicação quando "Comparar" está desligado.
+- **Anúncio** (`useAnnounce`, D-146): "Ficha de X aberta ao lado da lista." O foco fica na lista, para continuar percorrendo.
+
 ## D-185 — Catálogo demo ampliado do TCC: 593 materiais fictícios em nove lotes JSON, numa lista separada
 
 **Status.** Decidida pelo assistente por delegação do autor, **revisável**. Nada roda em produção por este PR: semear o catálogo
@@ -11607,24 +11628,25 @@ semear um ambiente de preview ou local.
 **Consequências.** A suíte ganha 27 testes (`test_demo_catalog_tcc.py`; dois semeiam os 593, ~13 s cada). O mapa de Ashby passa a
 678 pontos em 5 cores; legibilidade e desempenho do Plotly com esse volume ficam para conferir no navegador. Um lote novo entra como
 um JSON a mais no diretório e passa pelo mesmo validador.
-## D-184 — Catálogo em lista e detalhe, e a barra flutuante dos marcados
+## D-186 — Seleção com o funil ao lado (painel de apoio) e "Executar seleção ▾"
 
-**Contexto.** Terceiro passo do plano de D-181 (print 2 do canvas de revisão). Antes, abrir um material tirava o leitor da lista; comparar dois
-pedia ir e voltar. O M3 resolve com o layout canônico *list-detail* (D-182) e, para ações sobre o que se marcou, com a barra de ferramentas
-flutuante (*Components › Toolbars*, Expressive).
+**Contexto.** Quarto passo do plano de D-181 (print 3 do canvas de revisão). O número que move o método (quantos candidatos sobram) já era
+recalculado no servidor a cada mudança de limite, mas só aparecia como um contador na barra de ações; *o que* cada limite tirava só se via
+depois de executar, no funil dos resultados. O M3 tem para isso o layout canônico *supporting pane* (D-182): o trabalho em cerca de dois
+terços, e ao lado o que ajuda a lê-lo.
 
 **Decisão.**
-- **Clique simples no nome**, com o bloco da lista a 840 px ou mais (o mesmo limiar do `PaneScaffold`), abre a ficha ao lado (`MaterialPreview`)
-  sem sair da lista; a linha do material aberto leva `aria-current` e fundo. Bloco mais estreito, Ctrl/Cmd/Shift/Alt ou botão do meio: o link
-  navega para a página inteira como antes. Nenhum seletor novo de modo: o D-50 (sem alternância Tabela/Cartões) continua valendo.
-- **A ficha ao lado é a ficha**, não um resumo: os mesmos `PropertyGroupCard` (selo de qualidade, popover de proveniência, ausência escrita) da
-  página, pela mesma chave de consulta, então abrir a página inteira depois reaproveita a leitura. "Abrir ficha completa" e "Fechar" ficam no topo. O próprio painel leva `data-container-origin`, de modo que "Abrir ficha completa" faz a ficha nascer dele (D-148). `e2e/transicao.spec.ts` e `e2e/offline.spec.ts` passam por esse caminho no desktop.
-  Carregamento com o `LoadingIndicator` (D-183). Um material que sai da lista por um filtro fecha a ficha.
-- **Com a ficha aberta a tabela fica compacta**: sem as colunas de classe, palavras-chave e designações; a classe desce para baixo do nome e a
-  contagem de referências fica na ficha. Medido a 1440 px: sem isso a coluna de qualidade quebrava "12 estimado" em quatro linhas.
-- **Valor adimensional sem traço** (`valueUnit` em `lib/format.ts`): a ficha escrevia "0,3496 —" no coeficiente de Poisson e "200 —" na dureza,
-  com o traço de `prettyUnit` (resíduo de D-167, achado na ficha ao lado). Vale na página inteira, na ficha ao lado e na cópia offline (`describeValue`).
-- **A barra dos marcados (D-131) vira barra flutuante M3**: fixa, centralizada, acima da barra inferior no celular (`--bottom-nav-offset`), em
-  `inverse-surface`, entra na mola expressiva; mesmos botões e mesma explicação quando "Comparar" está desligado.
-- **Anúncio** (`useAnnounce`, D-146): "Ficha de X aberta ao lado da lista." O foco fica na lista, para continuar percorrendo.
+- **As etapas de entrada (Função, Objetivo, Limites) ficam no `PaneScaffold` *supporting-pane***, com o `LiveFunnel` ao lado: o total, quantos
+  continuam e uma barra por critério, com o que cada um tirou e as notas de "sem dado"/"sem nível". Bloco estreito: o funil desce para baixo
+  da etapa. Em Resultados o painel some, porque o funil completo está lá (aba Eliminados) e a tabela precisa da largura.
+- **Nenhum número novo no cliente.** O funil lê a mesma consulta de prévia que já alimentava o contador (só limites, sem índice nem
+  classificação, com o *debounce* de D-85); a largura das barras é a razão que o backend mandou (ADR 0004). `FunnelRow` saiu de `ResultsView`
+  para ser a mesma linha nos dois lugares. O painel não é região viva: o contador da barra já anuncia, uma vez.
+- **Barras deslizam na mola expressiva** quando a contagem muda (`--motion-spatial`, D-183), em vez de saltar; movimento reduzido desliga.
+- **"Executar seleção ▾" é o `SplitButton` (D-183)** quando o estudo tem objetivo. O menu traz "Executar só os limites": quem passa, sem índice
+  nem classificação. Como essa execução não usa os pesos, a seta continua liberada enquanto a soma dos pesos bloqueia a ação principal, e o
+  motivo do bloqueio segue ligado ao botão (`describedBy`). Sem objetivo não há o que dividir, e o botão continua simples.
+- **Achado e corrigido:** a seta do `SplitButton` é um `.chart-icon-btn`, cujas regras de hover e de aberto (`figures.css`) a pintavam de botão
+  de ícone claro, perdendo a cor do botão. As regras da seta ganharam especificidade e um véu de estado M3 sobre a própria cor.
 
+**Fonte.** m3.material.io › *Foundations › Layout › Canonical layout examples* (supporting pane) e *Components › Split button*, lidas em 29 e 30/10/26.
