@@ -11466,3 +11466,39 @@ Textos em `lib/i18n-eco-export.ts`; rótulos dos formatos em `ptBR.exports`.
 
 **Consequências.** Só backend; sem migração nem seed. Pós-merge: **Deploy da API**.
 
+## D-181 — Rumo do M3 Expressive: barra escura fica, cor escolhida pela pessoa, movimento expressivo
+
+**Contexto.** Revisão de design de 29/10/26 (canvas "MaterialSelect AI no M3 Expressive"): comparação do app com o m3.material.io lido no mesmo dia
+(breakpoints, layouts canônicos, cor dinâmica, molas, forma e os componentes do M3 Expressive de maio de 2025). Três pontos eram escolha do autor.
+
+**Decisões do autor (30/10/26).**
+- **Barra lateral escura fica** (D-37 vale). O trilho expandido do M3 entra só como estrutura (item ativo em pílula, botão "Novo" no topo), sobre o fundo escuro.
+- **A pessoa pode trocar a cor do app.** Uma cor-fonte escolhida gera os papéis M3 (página *Dynamic color › User-generated source*). As cores de
+  qualidade do dado (D-49) e a paleta Okabe–Ito dos gráficos nunca mudam com ela; todo esquema gerado passa pelo verificador de contraste.
+- **Movimento expressivo**, o esquema que o Google usa por padrão (página *Motion physics system*: molas com rebote), e não o padrão. Movimento
+  reduzido continua desligando tudo, e o movimento segue sem framework (molas convertidas para `linear()` do CSS e para a Web Animations API).
+  Isto substitui a escolha "standard" registrada em D-133 e no plano M3.
+
+**Ordem.** Base dos layouts adaptativos (D-182) primeiro; depois componentes pequenos (grupo conectado, botão dividido, menu do FAB, indicador de
+carregamento), catálogo em lista e detalhe, seleção com painel de apoio, início, Aparência (cor, contraste, movimento) e celular.
+
+## D-182 — Base dos layouts adaptativos: breakpoints M3 e `PaneScaffold`
+
+**Contexto.** O app só tinha os pontos `sm`/`lg` do Tailwind e nenhuma tela em dois painéis. O M3 (*Foundations › Layout › Breakpoints* e
+*Canonical layout examples*, lidas em 29/10/26) define cinco faixas e três layouts canônicos.
+
+**Decisão.**
+- **`lib/design/breakpoints.ts`:** compacto 0, médio 600, expandido 840, grande 1200, extragrande 1600 (px no lugar de dp), `windowClassFor`,
+  `atLeast`, `mediaQueryFor`. **`useWindowClass`** lê a classe da janela por `matchMedia` (`useSyncExternalStore`); serve para comportamento
+  (um painel começa aberto ou não), nunca para desenhar o layout, que é CSS.
+- **`PaneScaffold`** (`components/layout/`): `list-detail` e `supporting-pane`. Os dois painéis ficam sempre montados (estado não se perde ao trocar).
+- **A largura que decide é a do bloco, não a da janela** (container queries `@container m3-scaffold`). Desvio consciente do M3, que fala em janela:
+  a barra lateral escura (D-181) ocupa a sua parte a partir de `lg`, e o que os painéis dividem é o resto. Limiares iguais aos breakpoints M3.
+  - Abaixo de 840 px: lista e detalhe mostram um painel por vez (`focus`); o painel de apoio desce para baixo do principal.
+  - A partir de 840: lista 360 px + detalhe; apoio em 2fr/1fr, fixo ao rolar. 1200: lista 412 px. 1600: lista 480 px, apoio 480 px.
+- **O CSS fica antes da região gerada `m3-roles`** de `globals.css`: os testes de contraste leem dessa região até o fim do arquivo.
+- **Nenhuma tela muda ainda.** Espécime em `/app/estilo`; as telas adotam o scaffold nos PRs seguintes (catálogo, seleção).
+
+**Achado no navegador.** A regra que mostra os dois painéis dentro do `@container` tinha especificidade menor que a que esconde um deles, e o detalhe
+ficava escondido mesmo com espaço. Corrigido com a mesma especificidade; `e2e/paineis.spec.ts` mede isso (jsdom não avalia container query).
+
