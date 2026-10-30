@@ -3,7 +3,7 @@ import type {
   PropertyValueOut,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, valueUnit } from "@/lib/format";
 import {
   Card,
   CardHeader,
@@ -26,7 +26,7 @@ function ValueText({ p }: { p: PropertyValueOut }) {
   //
   // A queda para o registro cobre o caso de um payload antigo em cache, e não
   // um estado normal: o backend sempre manda os dois conjuntos.
-  const unit = prettyUnit(p.display_unit ?? p.original_unit);
+  const unit = valueUnit(p.display_unit ?? p.original_unit);
   const min = p.display_min ?? p.value_min;
   const max = p.display_max ?? p.value_max;
   const typical = p.display_typical ?? p.value_typical;

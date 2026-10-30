@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { catalogueExportUrl, listClasses, searchMaterials } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/types";
@@ -9,6 +9,10 @@ import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
 import { MaterialList } from "@/components/catalog/MaterialList";
+import { MaterialPreview } from "@/components/catalog/MaterialPreview";
+import { PaneScaffold } from "@/components/layout/PaneScaffold";
+import { useAnnounce } from "@/components/ui/Announcer";
+import { BREAKPOINT_MIN } from "@/lib/design/breakpoints";
 import { CompositionReport } from "@/components/catalog/CompositionReport";
 import { SearchHelp } from "@/components/catalog/SearchHelp";
 import {
@@ -100,6 +104,23 @@ export default function CatalogPage() {
 
   const total = items?.length ?? 0;
   const filtered = Boolean(classSlug) || quality !== "any";
+
+  // D-184: list-detail. A plain click on a name shows the material beside the
+  // list when the list's own block is wide enough for two panes (the same 840 px
+  // the scaffold's container query uses); otherwise the link navigates as before.
+  // A preview whose material leaves the list (a filter) simply closes.
+  const listRef = useRef<HTMLDivElement>(null);
+  const announce = useAnnounce();
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const previewItem = shown.find((m) => m.id === previewId) ?? null;
+  const requestPreview = (id: number) => {
+    const width = listRef.current?.getBoundingClientRect().width ?? 0;
+    if (width < BREAKPOINT_MIN.expanded) return false;
+    setPreviewId(id);
+    const name = shown.find((m) => m.id === id)?.name;
+    if (name) announce(t.preview.opened(name));
+    return true;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -257,7 +278,38 @@ export default function CatalogPage() {
               }
             />
           ) : (
-            <MaterialList materials={shown} searchQuery={debouncedSearch} />
+            <div ref={listRef}>
+              {previewItem ? (
+                <PaneScaffold
+                  layout="list-detail"
+                  focus="secondary"
+                  primaryLabel={t.preview.list}
+                  secondaryLabel={t.preview.region}
+                  primary={
+                    <MaterialList
+                      materials={shown}
+                      searchQuery={debouncedSearch}
+                      onPreview={requestPreview}
+                      previewId={previewItem.id}
+                      compact
+                    />
+                  }
+                  secondary={
+                    <MaterialPreview
+                      key={previewItem.id}
+                      item={previewItem}
+                      onClose={() => setPreviewId(null)}
+                    />
+                  }
+                />
+              ) : (
+                <MaterialList
+                  materials={shown}
+                  searchQuery={debouncedSearch}
+                  onPreview={requestPreview}
+                />
+              )}
+            </div>
           ))}
 
         {/* The legend belongs on the screen that shows many values at once —

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countLabel, dimensionName, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
+import { countLabel, dimensionName, valueUnit, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
 
 describe("formatNumber", () => {
   it("renders zero plainly", () => {
@@ -105,3 +105,12 @@ describe("dimensionName", () => {
     expect(dimensionName(null)).toBe("");
   });
 });
+
+describe("valueUnit (D-184)", () => {
+  it("não escreve unidade depois de um valor adimensional", () => {
+    expect(valueUnit("dimensionless")).toBe("");
+    expect(valueUnit("g/cm**3")).toBe("g/cm³");
+    expect(valueUnit(null)).toBe("");
+  });
+});
+

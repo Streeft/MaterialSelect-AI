@@ -2039,6 +2039,19 @@ export const ptBR = {
     compareTooMany: (max: number) => `O comparador aceita até ${max} materiais por vez.`,
     clearSelection: "Limpar seleção",
     selectionBar: "Ações para os materiais selecionados",
+    // D-184: lista e detalhe. Em tela larga o nome abre a ficha resumida ao lado,
+    // sem sair da lista; Ctrl/Cmd+clique e telas estreitas abrem a página inteira.
+    preview: {
+      region: "Ficha resumida",
+      list: "Lista de materiais",
+      openFull: "Abrir ficha completa",
+      close: "Fechar a ficha resumida",
+      loading: "Carregando a ficha",
+      error: "Não foi possível carregar a ficha.",
+      noProperties: "Nenhuma propriedade cadastrada para este material.",
+      hint: "Escolha um material na lista para ver a ficha aqui.",
+      opened: (name: string) => `Ficha de ${name} aberta ao lado da lista.`,
+    },
     empty: "Nenhum material encontrado.",
     emptyHint:
       "Ajuste a busca ou os filtros — ou cadastre o primeiro material.",
