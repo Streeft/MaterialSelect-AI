@@ -1,0 +1,7924 @@
+{
+ "lote": "L09-naturais-construcao",
+ "versao": 1,
+ "materiais": [
+  {
+   "name": "Madeira de Balsa (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Balsa (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "balsa",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD01",
+    "COMERCIAL:Demolenho L09-01"
+   ],
+   "composition": "O=balance C=48.5-50.5 H=5.9-6.4 N=0.1-0.3 Ca<=0.3 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.25
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 3.6,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 11.2,
+     "max": 13,
+     "typical": 12.1,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.068,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1710,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Paulównia (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Paulównia (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "paulownia",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD02",
+    "COMERCIAL:Demolenho L09-02"
+   ],
+   "composition": "O=balance C=47.5-50.0 H=5.8-6.3 N=0.1-0.4 Ca<=0.4 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.22
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.28,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 5.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 20.1,
+     "max": 23.2,
+     "typical": 21.6,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.095,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1690,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Cedro-Rosa (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Cedro-Rosa (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "cedro",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD03",
+    "COMERCIAL:Demolenho L09-03"
+   ],
+   "composition": "O=balance C=48.0-50.5 H=5.9-6.4 N=0.1-0.3 Ca<=0.5 Mg=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 470,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 9.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 34.7,
+     "max": 39.7,
+     "typical": 37.2,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 62,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.155,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 10500,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.52,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.1e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1660,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Abeto-Vermelho (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Abeto-Vermelho (conífera) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "conifera",
+    "abeto",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD04",
+    "COMERCIAL:Demolenho L09-04"
+   ],
+   "composition": "O=balance C=49.0-51.5 H=6.0-6.4 N=0.05-0.2 Ca<=0.3 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.18
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.44,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 11.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 47.6,
+     "max": 54.1,
+     "typical": 50.9,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 82,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.14,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 8.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.42,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.62,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Pinus Elliottii (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Pinus Elliottii (conífera) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "conifera",
+    "pinus",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD05",
+    "COMERCIAL:Demolenho L09-05"
+   ],
+   "composition": "O=balance C=49.5-52.0 H=6.0-6.5 N=0.05-0.25 Ca<=0.3 Mn=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 510,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 10.4,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 40.3,
+     "max": 46.1,
+     "typical": 43.2,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 72,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.165,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 7.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1640,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Pinus Taeda (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Pinus Taeda (conífera) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "conifera",
+    "pinus",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD06",
+    "COMERCIAL:Demolenho L09-06"
+   ],
+   "composition": "O=balance C=49.5-52.0 H=5.9-6.5 N=0.05-0.25 Ca<=0.4 Mn=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.19
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.56,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.1,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 51.3,
+     "max": 58.5,
+     "typical": 54.9,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 8000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.41,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.7e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1630,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Pinho-do-Paraná (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Pinho-do-Paraná (conífera) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "conifera",
+    "araucaria",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD07",
+    "COMERCIAL:Demolenho L09-07"
+   ],
+   "composition": "O=balance C=49.0-51.5 H=6.0-6.4 N=0.1-0.3 Ca<=0.4 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.19
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 540,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 11.6,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 48.2,
+     "max": 55,
+     "typical": 51.6,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 86,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.175,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.44,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.39,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Eucalipto Grandis (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Eucalipto Grandis (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "eucalipto",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD08",
+    "COMERCIAL:Demolenho L09-08"
+   ],
+   "composition": "O=balance C=48.0-50.0 H=5.8-6.3 N=0.1-0.3 Ca<=0.6 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.17
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.8,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 51.8,
+     "max": 59.5,
+     "typical": 55.6,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 96,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 9.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.46,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.37,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.4e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Teca (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Teca (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "teca",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD09",
+    "COMERCIAL:Demolenho L09-09"
+   ],
+   "composition": "O=balance C=48.5-50.5 H=5.8-6.3 N=0.1-0.4 Si=0.2-1.2 Ca<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.17
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.4,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 54.9,
+     "max": 62.7,
+     "typical": 58.8,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1580,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Mogno (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Mogno (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "mogno",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD10",
+    "COMERCIAL:Demolenho L09-10"
+   ],
+   "composition": "O=balance C=48.0-50.5 H=5.8-6.3 N=0.1-0.4 Ca<=0.7 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.18
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.59,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 10.6,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 46.2,
+     "max": 52.9,
+     "typical": 49.5,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 84,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 11.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.3e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Freixo-Europeu (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Freixo-Europeu (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "freixo",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD11",
+    "COMERCIAL:Demolenho L09-11"
+   ],
+   "composition": "O=balance C=48.0-50.0 H=5.9-6.4 N=0.1-0.3 Ca<=0.6 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.16
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 690,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.9,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 66.1,
+     "max": 75.5,
+     "typical": 70.8,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1590,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Faia-Europeia (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Faia-Europeia (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "faia",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD12",
+    "COMERCIAL:Demolenho L09-12"
+   ],
+   "composition": "O=balance C=47.5-49.5 H=5.9-6.4 N=0.1-0.3 Ca<=0.7 Mg=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.16
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 14.1,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 69.1,
+     "max": 79.4,
+     "typical": 74.2,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 128,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 9800,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.49,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.39,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.57,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Carvalho-Branco (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Carvalho-Branco (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "carvalho",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD13",
+    "COMERCIAL:Demolenho L09-13"
+   ],
+   "composition": "O=balance C=48.5-50.5 H=5.8-6.3 N=0.1-0.4 Ca<=0.8 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.16
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.6,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 60.5,
+     "max": 69.1,
+     "typical": 64.8,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 108,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 10.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.53,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.37,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1580,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Bordo-Duro (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Bordo-Duro (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "bordo",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD14",
+    "COMERCIAL:Demolenho L09-14"
+   ],
+   "composition": "O=balance C=48.0-50.0 H=5.9-6.4 N=0.1-0.3 Ca<=0.6 Mn=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.16
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.705,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.7,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 65,
+     "max": 74.1,
+     "typical": 69.5,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 114,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.235,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 10.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1590,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Peroba-Rosa (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Peroba-Rosa (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "peroba",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD15",
+    "COMERCIAL:Demolenho L09-15"
+   ],
+   "composition": "O=balance C=48.5-51.0 H=5.8-6.3 N=0.2-0.5 Ca<=0.8 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 780,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 58.2,
+     "max": 66.6,
+     "typical": 62.4,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 104,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 11200,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.7e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Jatobá (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Jatobá (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "jatoba",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD16",
+    "COMERCIAL:Demolenho L09-16"
+   ],
+   "composition": "O=balance C=49.0-51.0 H=5.8-6.2 N=0.2-0.5 Ca<=0.9 Mg=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.14
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 16.4,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 85.8,
+     "max": 97.7,
+     "typical": 91.8,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 148,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.66,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.52,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Eucalipto Citriodora (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Eucalipto Citriodora (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "eucalipto",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD17",
+    "COMERCIAL:Demolenho L09-17"
+   ],
+   "composition": "O=balance C=48.5-50.5 H=5.8-6.3 N=0.1-0.4 Ca<=0.9 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.14
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 970,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 17.8,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 85.1,
+     "max": 97.3,
+     "typical": 91.2,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 152,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.34,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 9.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.48,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1530,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Maçaranduba (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Maçaranduba (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "macaranduba",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD18",
+    "COMERCIAL:Demolenho L09-18"
+   ],
+   "composition": "O=balance C=49.0-51.5 H=5.7-6.2 N=0.2-0.5 Si<=0.5 Ca<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.13
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.01,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 19.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 92.3,
+     "max": 105,
+     "typical": 98.7,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 162,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12800,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.4e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Ipê (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Ipê (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "ipe",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD19",
+    "COMERCIAL:Demolenho L09-19"
+   ],
+   "composition": "O=balance C=49.5-52.0 H=5.6-6.2 N=0.2-0.6 Ca<=1.0 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.12
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1050,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 19.8,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 99.8,
+     "max": 114,
+     "typical": 107,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 172,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.38,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.78,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.3e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1480,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira de Cumaru (∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Madeiras Maciças",
+   "description": "Madeira maciça de Cumaru (folhosa) fictícia, propriedades na direção paralela às fibras a ~12 % de umidade, para demonstração.",
+   "keywords": [
+    "compositos",
+    "madeiras_macicas",
+    "madeira",
+    "folhosa",
+    "cumaru",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-MAD20",
+    "COMERCIAL:Demolenho L09-20"
+   ],
+   "composition": "O=balance C=49.5-52.0 H=5.6-6.1 N=0.2-0.6 Ca<=1.0 Mg=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.12
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.075,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 21.2,
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 99.7,
+     "max": 114,
+     "typical": 107,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração paralela às fibras (não há patamar de escoamento).",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 178,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.39,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 13.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.76,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.47,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Compensado Estrutural de Eucalipto",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel de lâminas cruzadas de eucalipto coladas com resina fenólica; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "compensado",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER01",
+    "COMERCIAL:Demopainel L09-01"
+   ],
+   "composition": "O=balance C=48.0-51.0 H=5.8-6.4 N=0.2-0.8 Na<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 680,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 9.5,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 29.7,
+     "max": 33.3,
+     "typical": 31.5,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 14000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 7e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Compensado Fenólico de Pinus para Fôrmas",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel compensado de pinus com película fenólica para fôrmas de concreto; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "compensado",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER02",
+    "COMERCIAL:Demopainel L09-02"
+   ],
+   "composition": "O=balance C=49.0-52.0 H=5.9-6.4 N=0.2-0.8 Na<=0.4",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 8,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 24.3,
+     "max": 27.4,
+     "typical": 25.9,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.14,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Painel de Fibras de Média Densidade (MDF)",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel de fibras de madeira prensadas com resina ureia-formaldeído; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "mdf",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER03",
+    "COMERCIAL:Demopainel L09-03"
+   ],
+   "composition": "O=balance C=46.5-49.5 H=5.8-6.5 N=1.5-4.0 Cl<=0.1",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.24
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 720,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 3.2,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 11.2,
+     "max": 12.6,
+     "typical": 11.9,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Painel de Fibras de Alta Densidade (HDF)",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel fino de fibras de madeira de alta densidade com resina amínica; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "hdf",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER04",
+    "COMERCIAL:Demopainel L09-04"
+   ],
+   "composition": "O=balance C=46.5-49.5 H=5.8-6.4 N=1.8-4.5 Cl<=0.1",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.23
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 4.2,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 15.4,
+     "max": 17.3,
+     "typical": 16.4,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 18000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Painel de Partículas Orientadas (OSB)",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel de lascas orientadas de pinus coladas com resina MDI/fenólica; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "osb",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER05",
+    "COMERCIAL:Demopainel L09-05"
+   ],
+   "composition": "O=balance C=48.5-51.5 H=5.9-6.4 N=0.3-1.2 Na<=0.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.22
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 620,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 5,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.6,
+     "max": 7.48,
+     "typical": 7.04,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1400,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Painel Aglomerado de Média Densidade (MDP)",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Painel de partículas de madeira em camadas com resina ureia-formaldeído; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "aglomerado",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER06",
+    "COMERCIAL:Demopainel L09-06"
+   ],
+   "composition": "O=balance C=46.0-49.5 H=5.8-6.5 N=1.5-3.5 Cl<=0.1",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.25
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.64,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 2.8,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.93,
+     "max": 5.61,
+     "typical": 5.27,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.3e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1350,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira Microlaminada (LVL) de Pinus",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Lâminas finas de pinus coladas paralelamente (LVL), direção das lâminas; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "lvl",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER07",
+    "COMERCIAL:Demopainel L09-07"
+   ],
+   "composition": "O=balance C=49.0-52.0 H=5.9-6.4 N=0.2-0.6 Na<=0.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.17
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 560,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.8,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 34,
+     "max": 38,
+     "typical": 36,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 50,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.16,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 12000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Madeira Laminada Colada (MLC) de Pinus",
+   "class_slug": "compositos",
+   "subclass": "Derivados de Madeira",
+   "description": "Lamelas de pinus coladas com adesivo estrutural (glulam), direção das lamelas; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "derivados_de_madeira",
+    "madeira",
+    "painel",
+    "mlc",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L09-DER08",
+    "COMERCIAL:Demopainel L09-08"
+   ],
+   "composition": "O=balance C=49.0-52.0 H=5.9-6.5 N=0.1-0.5 Na<=0.1",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.18
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.52,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 11.5,
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 22.4,
+     "max": 25.2,
+     "typical": 23.8,
+     "unit": "MPa",
+     "notes": "Limite de proporcionalidade estimado em tração no plano do painel.",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MPa",
+     "measurement_condition": "No plano do painel, umidade de equilíbrio ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a madeira (usa-se Janka/Brinell em ensaio próprio)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.14,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Bambu Mossô (colmo, ∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Colmo de bambu mossô fictício, propriedades paralelas às fibras; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "bambu",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT01",
+    "COMERCIAL:Demonatura L09-01"
+   ],
+   "composition": "O=balance C=46.0-49.0 H=5.8-6.3 N=0.2-0.6 Si=0.3-1.5 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 17,
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 101,
+     "max": 120,
+     "typical": 110,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido.",
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 190,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Bambu Guadua (colmo, ∥ às fibras)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Colmo de bambu guadua fictício, propriedades paralelas às fibras; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "bambu",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT02",
+    "COMERCIAL:Demonatura L09-02"
+   ],
+   "composition": "O=balance C=46.5-49.5 H=5.8-6.3 N=0.2-0.6 Si=0.5-2.0 K=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.16
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.68,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 15,
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 76.5,
+     "max": 91.5,
+     "typical": 84,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido.",
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "MPa",
+     "measurement_condition": "Paralelo às fibras, umidade ~12 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 6500,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Bambu Laminado Colado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Ripas de bambu prensadas e coladas com resina, direção das ripas; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "bambu",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT03",
+    "COMERCIAL:Demonatura L09-03"
+   ],
+   "composition": "O=balance C=47.0-50.0 H=5.8-6.4 N=0.4-1.5 Si=0.3-1.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.18
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 820,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12.5,
+     "measurement_condition": "Direção das ripas, umidade ~10 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 54.1,
+     "max": 63.7,
+     "typical": 58.9,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido.",
+     "measurement_condition": "Direção das ripas, umidade ~10 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "MPa",
+     "measurement_condition": "Direção das ripas, umidade ~10 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Cortiça Natural em Prancha",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Cortiça natural fictícia (casca de sobreiro) em prancha, sem ligante; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "cortica",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT04",
+    "COMERCIAL:Demonatura L09-04"
+   ],
+   "composition": "C=balance H=7.5-8.5 O=26.0-32.0 N=0.2-0.6 Ca=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.3
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "MPa",
+     "value": 25
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 0.6,
+     "max": 0.72,
+     "typical": 0.66,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.04,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.05,
+     "unit": "dimensionless",
+     "notes": "Cortiça tem ν próximo de zero (as paredes celulares dobram sem expansão lateral)."
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.95,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Cortiça Aglomerada com Ligante",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Grânulos de cortiça aglomerados com ligante polimérico; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "cortica",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT05",
+    "COMERCIAL:Demonatura L09-05"
+   ],
+   "composition": "C=balance H=7.4-8.6 O=24.0-31.0 N=0.5-2.0 Ca=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.28
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 240,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "MPa",
+     "value": 35
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 0.45,
+     "max": 0.54,
+     "typical": 0.495,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.045,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 14000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00014,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1850,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Couro Bovino Curtido ao Vegetal",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Naturais",
+   "description": "Couro bovino fictício curtido com taninos vegetais, ensaiado ao longo do dorso; material fictício para demonstração.",
+   "keywords": [
+    "compositos",
+    "compositos_naturais",
+    "couro",
+    "natural",
+    "renovavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L09-NAT06",
+    "COMERCIAL:Demonatura L09-06"
+   ],
+   "composition": "C=balance H=6.2-7.2 N=13.0-16.5 O=22.0-27.0 S<=0.8 Na=missing",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.84,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "MPa",
+     "value": 120,
+     "measurement_condition": "Ao longo do dorso, umidade ~14 %"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 10,
+     "max": 12.5,
+     "typical": 11.2,
+     "unit": "MPa",
+     "notes": "Limite elástico convencional estimado; material natural sem patamar de escoamento definido.",
+     "measurement_condition": "Ao longo do dorso, umidade ~14 %"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MPa",
+     "measurement_condition": "Ao longo do dorso, umidade ~14 %"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material natural macio/celular."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem material não estabelecida no dataset demo; fim de vida usual é reuso ou valorização energética."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.5e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C20",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto convencional de resistência característica baixa (classe C20); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c20",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON01",
+    "COMERCIAL:Democoncreto L09-01"
+   ],
+   "composition": "O=balance Ca=6.0-10.0 Si=20.0-29.0 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.4 H=0.4-0.8 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2340,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 25
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.98,
+     "max": 2.16,
+     "typical": 2.07,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.058,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.098,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.011,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 880,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C25",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto convencional estrutural (classe C25); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c25",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON02",
+    "COMERCIAL:Democoncreto L09-02"
+   ],
+   "composition": "O=balance Ca=6.5-10.5 Si=19.5-28.5 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.4 H=0.4-0.8 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.36,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 28
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.34,
+     "max": 2.55,
+     "typical": 2.44,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.062,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.108,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.012,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.02e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.89,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C30",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto convencional estrutural (classe C30); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c30",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON03",
+    "COMERCIAL:Democoncreto L09-03"
+   ],
+   "composition": "O=balance Ca=7.0-11.0 Si=19.0-28.0 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.5 H=0.4-0.9 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2380,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 30.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.61,
+     "max": 2.84,
+     "typical": 2.72,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.066,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.87,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.118,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.013,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.03e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C35",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto convencional estrutural (classe C35); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c35",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON04",
+    "COMERCIAL:Democoncreto L09-04"
+   ],
+   "composition": "O=balance Ca=7.5-11.5 Si=18.5-27.5 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.5 H=0.4-0.9 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.395,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 32.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.88,
+     "max": 3.14,
+     "typical": 3.01,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.071,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.94,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.014,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.04e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 905,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C40",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto estrutural de resistência média-alta (classe C40); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c40",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON05",
+    "COMERCIAL:Democoncreto L09-05"
+   ],
+   "composition": "O=balance Ca=8.0-12.0 Si=18.0-27.0 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.5 H=0.5-0.9 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2410,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 34.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.15,
+     "max": 3.43,
+     "typical": 3.29,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.076,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1010,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.142,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.16,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.015,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 910,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Estrutural Classe C50",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto estrutural de alta resistência usual (classe C50); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "c50",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON06",
+    "COMERCIAL:Democoncreto L09-06"
+   ],
+   "composition": "O=balance Ca=8.5-13.0 Si=17.5-26.5 Al=1.5-4.0 Fe=1.0-3.0 Mg<=1.5 S<=0.6 H=0.5-1.0 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.03
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.43,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 37.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.69,
+     "max": 4.02,
+     "typical": 3.85,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4.1,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.085,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1.14,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.162,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 170,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.016,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.06e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Autoadensável Classe C40",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto autoadensável com aditivo superplastificante e fíler calcário (classe C40); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "autoadensavel",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON07",
+    "COMERCIAL:Democoncreto L09-07"
+   ],
+   "composition": "O=balance Ca=10.0-15.0 Si=15.0-24.0 Al=1.5-3.5 Fe=1.0-2.5 Mg<=1.5 S<=0.6 H=0.5-1.0 C=0.5-2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2370,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 33.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.06,
+     "max": 3.33,
+     "typical": 3.2,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.09,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1.08,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.152,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.16,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.015,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.08e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 915,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto de Alto Desempenho Classe C70",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto de alto desempenho com sílica ativa (classe C70); material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "cad",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON08",
+    "COMERCIAL:Democoncreto L09-08"
+   ],
+   "composition": "O=balance Ca=9.0-14.0 Si=18.0-27.0 Al=1.0-3.5 Fe=1.0-3.0 Mg<=1.5 S<=0.6 H=0.4-0.9 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.03
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.47,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 42
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.5,
+     "max": 4.9,
+     "typical": 4.7,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.11,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1360,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.195,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.018,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.02e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 930,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto de Ultra-Alto Desempenho com Fibras de Aço (UHPC)",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto de ultra-alto desempenho com microfibras de aço e pó de quartzo; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "uhpc",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON09",
+    "COMERCIAL:Democoncreto L09-09"
+   ],
+   "composition": "O=balance Ca=14.0-20.0 Si=18.0-25.0 Fe=4.0-9.0 Al=0.5-2.0 Mg<=1.0 S<=0.8 H=0.4-0.9",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2500,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 48
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 8.55,
+     "max": 9.31,
+     "typical": 8.93,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.148,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1.76,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.245,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.03,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.15e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Leve Estrutural com Argila Expandida",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto leve estrutural com agregado de argila expandida; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "leve",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON10",
+    "COMERCIAL:Democoncreto L09-10"
+   ],
+   "composition": "O=balance Si=18.0-26.0 Ca=7.0-12.0 Al=4.0-8.0 Fe=2.0-5.0 Mg<=2.0 K<=2.0 H=0.4-1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 17
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.89,
+     "max": 2.06,
+     "typical": 1.98,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2.1,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.095,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1.28,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.158,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.017,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.96,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Concreto Celular Autoclavado",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Concreto celular autoclavado (silicato de cálcio aerado) para alvenaria leve; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "celular",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON11",
+    "COMERCIAL:Democoncreto L09-11"
+   ],
+   "composition": "O=balance Si=20.0-28.0 Ca=14.0-20.0 Al=0.5-2.5 S<=1.5 H=0.8-1.6 Fe<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.06
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 2.1
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 0.495,
+     "max": 0.539,
+     "typical": 0.517,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.022,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Argamassa de Cimento e Areia Traço 1:3",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Argamassa de cimento Portland e areia média, traço 1:3 em volume; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "argamassa",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON12",
+    "COMERCIAL:Democoncreto L09-12"
+   ],
+   "composition": "O=balance Si=24.0-32.0 Ca=8.0-13.0 Al=0.5-2.0 Fe=0.5-1.5 S<=0.6 H=0.5-1.1 Mg=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.05,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 20
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.8,
+     "max": 1.96,
+     "typical": 1.88,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.08,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.172,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.013,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Argamassa Mista de Cimento, Cal e Areia",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Argamassa mista de assentamento e revestimento com cal hidratada; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "argamassa",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON13",
+    "COMERCIAL:Democoncreto L09-13"
+   ],
+   "composition": "O=balance Si=22.0-30.0 Ca=10.0-16.0 C=0.5-2.5 Mg<=2.0 Al<=2.0 H=0.6-1.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.07
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1850,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 10.5
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 0.855,
+     "max": 0.931,
+     "typical": 0.893,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.072,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.98,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.158,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.012,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 9.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 920,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Graute Cimentício Estrutural",
+   "class_slug": "compositos",
+   "subclass": "Concretos e Argamassas",
+   "description": "Graute cimentício fluido de retração compensada para preenchimento estrutural; material fictício para demonstração (valores de tração aos 28 dias).",
+   "keywords": [
+    "compositos",
+    "concretos_e_argamassas",
+    "cimenticio",
+    "graute",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CON14",
+    "COMERCIAL:Democoncreto L09-14"
+   ],
+   "composition": "O=balance Ca=11.0-17.0 Si=17.0-25.0 Al=1.0-3.5 Fe=0.8-2.5 S=0.5-1.5 H=0.5-1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 30
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.78,
+     "max": 4.12,
+     "typical": 3.95,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "MPa",
+     "measurement_condition": "Tração por compressão diametral, 28 dias"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a material heterogêneo com agregado."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1420,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.212,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.016,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.08e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.91,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Granito Cinza Polido",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha ígnea granítica de granulação média, em chapa polida; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "granito",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED01",
+    "COMERCIAL:Demopedra L09-01"
+   ],
+   "composition": "O=balance Si=30.0-34.0 Al=6.5-8.0 K=2.5-4.5 Na=2.0-3.0 Fe=1.0-3.0 Ca=0.5-2.0 Mg<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.03
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2650,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 55
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 10.8,
+     "max": 11.8,
+     "typical": 11.3,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.04,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 790,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Gabro Preto Polido",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha ígnea básica escura (comercialmente chamada de granito preto), em chapa polida; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "gabro",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED02",
+    "COMERCIAL:Demopedra L09-02"
+   ],
+   "composition": "O=balance Si=21.0-24.0 Ca=7.0-9.5 Fe=6.0-9.0 Al=7.5-9.5 Mg=4.0-6.5 Na=1.0-2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.95,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 85
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 16.2,
+     "max": 17.6,
+     "typical": 16.9,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 550,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Basalto Maciço",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha vulcânica basáltica densa, em blocos aparelhados; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "basalto",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED03",
+    "COMERCIAL:Demopedra L09-03"
+   ],
+   "composition": "O=balance Si=22.0-24.5 Al=7.0-8.5 Fe=7.0-10.0 Ca=6.0-8.0 Mg=3.0-5.0 Na=1.5-2.5 Ti=0.6-1.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 75
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 14.4,
+     "max": 15.7,
+     "typical": 15.1,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 680,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 550,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.03,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 840,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Mármore Branco Calcítico",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha metamórfica calcítica branca, em chapa polida; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "marmore",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED04",
+    "COMERCIAL:Demopedra L09-04"
+   ],
+   "composition": "O=balance Ca=37.5-40.0 C=11.5-12.0 Mg<=1.5 Si<=0.5 Fe<=0.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.71,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 60
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 9.9,
+     "max": 10.8,
+     "typical": 10.4,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 180,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.035,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.88,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Calcário Compacto",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha sedimentar calcária compacta, em placas serradas; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "calcario",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED05",
+    "COMERCIAL:Demopedra L09-05"
+   ],
+   "composition": "O=balance Ca=35.0-39.5 C=11.0-12.0 Mg=0.3-2.0 Si=0.5-3.0 Fe<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2550,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 40
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.75,
+     "max": 7.35,
+     "typical": 7.05,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 7.5,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 170,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.02,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Travertino Apicoado",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Calcário de origem termal (travertino) com poros, acabamento apicoado; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "travertino",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED06",
+    "COMERCIAL:Demopedra L09-06"
+   ],
+   "composition": "O=balance Ca=36.0-39.5 C=11.0-12.0 Mg<=1.0 Si<=1.5 Fe<=0.4 Sr=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 30
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.4,
+     "max": 5.88,
+     "typical": 5.64,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 6,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 155,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 380,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.08,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.025,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 7e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Arenito Quartzoso",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha sedimentar de grãos de quartzo cimentados, em placas; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "arenito",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED07",
+    "COMERCIAL:Demopedra L09-07"
+   ],
+   "composition": "O=balance Si=40.0-45.0 Al=0.5-3.0 Fe=0.3-1.5 Ca<=2.0 K<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.06
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2300,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 20
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.05,
+     "max": 4.41,
+     "typical": 4.23,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.06,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.02,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 760,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Ardósia Cinza",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha metamórfica de baixo grau, clivada em placas finas; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "ardosia",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED08",
+    "COMERCIAL:Demopedra L09-08"
+   ],
+   "composition": "O=balance Si=27.0-30.0 Al=8.5-11.0 Fe=3.0-5.0 K=2.0-3.5 Mg=1.0-2.0 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.78,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 70
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 21.6,
+     "max": 23.5,
+     "typical": 22.6,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.06,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.025,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 9.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.76,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Quartzito Maciço",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha metamórfica de quartzo recristalizado, em chapa; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "quartzito",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED09",
+    "COMERCIAL:Demopedra L09-09"
+   ],
+   "composition": "O=balance Si=44.0-46.5 Al<=1.5 Fe<=0.5 K<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2640,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 70
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 18,
+     "max": 19.6,
+     "typical": 18.8,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 550,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 2500,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.04,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.15e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 760,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Gnaisse Bandado",
+   "class_slug": "ceramicas",
+   "subclass": "Pedras Naturais",
+   "description": "Rocha metamórfica bandada de composição granítica, em chapa; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "pedras_naturais",
+    "rocha",
+    "gnaisse",
+    "construcao",
+    "revestimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L09-PED10",
+    "COMERCIAL:Demopedra L09-10"
+   ],
+   "composition": "O=balance Si=29.0-33.0 Al=7.0-8.5 K=2.0-4.0 Na=1.5-3.0 Fe=1.5-3.5 Ca=1.0-2.5 Mg<=1.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.03
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 50
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 11.7,
+     "max": 12.7,
+     "typical": 12.2,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 13,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão, rocha seca"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.035,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Tijolo Cerâmico Maciço",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Tijolo de argila vermelha queimado, maciço; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "tijolo",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST01",
+    "COMERCIAL:Demoobra L09-01"
+   ],
+   "composition": "O=balance Si=25.0-30.0 Al=8.0-11.0 Fe=3.0-6.0 Ca=0.5-3.0 K=1.0-2.5 Mg<=1.5 Ti=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.7,
+     "max": 2.94,
+     "typical": 2.82,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.75,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.015,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 840,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Bloco Cerâmico Vazado de Vedação",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Bloco de argila queimada com furos, propriedades do material da parede do bloco; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "bloco",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST02",
+    "COMERCIAL:Demoobra L09-02"
+   ],
+   "composition": "O=balance Si=26.0-31.0 Al=7.5-10.5 Fe=3.0-6.5 Ca=0.5-2.5 K=1.0-2.5 Mg<=1.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 9
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.98,
+     "max": 2.16,
+     "typical": 2.07,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 2600,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.014,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.86,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Telha Cerâmica Prensada",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Telha de argila prensada e queimada em temperatura mais alta; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "telha",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST03",
+    "COMERCIAL:Demoobra L09-03"
+   ],
+   "composition": "O=balance Si=25.0-30.0 Al=9.0-12.0 Fe=3.5-6.5 Ca=0.3-2.0 K=1.5-3.0 Mg<=1.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 14
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.05,
+     "max": 4.41,
+     "typical": 4.23,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 950,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.016,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Bloco de Concreto Estrutural para Alvenaria",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Bloco vazado de concreto vibroprensado, propriedades do material da parede; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "bloco",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST04",
+    "COMERCIAL:Demoobra L09-04"
+   ],
+   "composition": "O=balance Si=20.0-28.0 Ca=7.0-12.0 Al=1.5-3.5 Fe=1.0-3.0 Mg<=1.5 H=0.4-0.9",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.1,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 18
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.8,
+     "max": 1.96,
+     "typical": 1.88,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.07,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.012,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Gesso de Construção (pasta endurecida)",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Pasta endurecida de gesso de fundição/revestimento (sulfato de cálcio di-hidratado); material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "gesso",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST05",
+    "COMERCIAL:Demoobra L09-05"
+   ],
+   "composition": "O=balance Ca=22.0-23.5 S=17.5-18.8 H=2.1-2.4 Si<=1.0 Mg<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.06
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 6
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.62,
+     "max": 1.76,
+     "typical": 1.69,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "measurement_condition": "Integridade estrutural; desidratação parcial acima de ~100 °C"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.02,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.15e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1090,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Gesso Alfa de Alta Resistência (pasta endurecida)",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Pasta endurecida de gesso alfa (hemidrato autoclavado) de baixa relação água/gesso; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "gesso",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST06",
+    "COMERCIAL:Demoobra L09-06"
+   ],
+   "composition": "O=balance Ca=22.5-23.5 S=18.0-18.8 H=2.1-2.4 Si<=0.5 Fe<=0.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 15
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.05,
+     "max": 4.41,
+     "typical": 4.23,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "measurement_condition": "Integridade estrutural; desidratação parcial acima de ~100 °C"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.025,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Cimento Portland Composto (pasta endurecida)",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Pasta endurecida de cimento Portland composto com fíler, 28 dias; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "cimento",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST07",
+    "COMERCIAL:Demoobra L09-07"
+   ],
+   "composition": "O=balance Ca=30.0-38.0 Si=7.0-10.0 Al=1.5-3.0 Fe=1.0-2.5 S=0.8-2.0 H=1.5-2.5 Mg<=2.5 C=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.03
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2000,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 22
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.6,
+     "max": 3.92,
+     "typical": 3.76,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.03,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.15e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 950,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Fibrocimento sem Amianto",
+   "class_slug": "ceramicas",
+   "subclass": "Cerâmicas de Construção",
+   "description": "Placa de cimento reforçada com fibras de PVA e celulose, sem amianto; material fictício para demonstração.",
+   "keywords": [
+    "ceramicas",
+    "ceramicas_de_construcao",
+    "fibrocimento",
+    "construcao",
+    "alvenaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L09-CST08",
+    "COMERCIAL:Demoobra L09-08"
+   ],
+   "composition": "O=balance Ca=25.0-32.0 Si=8.0-14.0 C=3.0-6.0 H=1.5-3.0 Al=1.0-3.0 Fe<=2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "unit": "GPa",
+     "value": 12
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.3,
+     "max": 6.86,
+     "typical": 6.58,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "MPa",
+     "measurement_condition": "Resistência à tração na flexão"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa para material poroso de construção."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.45,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 6000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 0.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.04,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  }
+ ]
+}

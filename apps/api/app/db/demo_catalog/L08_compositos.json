@@ -1,0 +1,7622 @@
+{
+ "lote": "L08-compositos",
+ "versao": 1,
+ "materiais": [
+  {
+   "name": "CFRP UD Módulo Padrão / Epóxi 120 °C",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado unidirecional fictício de fibra de carbono de módulo padrão em epóxi de cura a 120 °C. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "epoxi",
+    "esportivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-MP120",
+    "COMERCIAL:Democarbo CF-UD-MP120"
+   ],
+   "composition": "C=balance O=4.0-7.5 H=1.5-2.8 N=0.6-2.0 S=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 135,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1269,
+     "max": 1418,
+     "typical": 1350,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 290,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 950,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Módulo Padrão / Epóxi 180 °C",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado unidirecional fictício de fibra de carbono de módulo padrão em epóxi de cura a 180 °C. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "epoxi",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-MP180",
+    "COMERCIAL:Democarbo CF-UD-MP180"
+   ],
+   "composition": "C=balance O=4.5-8.0 H=1.4-2.6 N=1.0-2.5 S<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.57,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1396,
+     "max": 1559,
+     "typical": 1485,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 175,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 42,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 310,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 22.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.94,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Módulo Intermediário / Epóxi Tenacificado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Pré-impregnado unidirecional fictício de fibra de carbono de módulo intermediário, matriz epóxi tenacificada. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "pre_impregnado",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-MI",
+    "COMERCIAL:Democarbo CF-UD-MI"
+   ],
+   "composition": "C=balance O=3.5-7.0 H=1.2-2.4 N=0.8-2.2 S<=0.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1580,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 165,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1903,
+     "max": 2125,
+     "typical": 2024,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2300,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 7.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 380,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 935,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Alta Deformação / Epóxi Tenacificado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado unidirecional fictício de fibra de carbono de alta deformação na ruptura, matriz epóxi tenacificada. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "alta_resistencia",
+    "vaso_de_pressao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-AD",
+    "COMERCIAL:Democarbo CF-UD-AD"
+   ],
+   "composition": "C=balance O=3.5-6.5 H=1.2-2.2 N=0.8-2.0 S<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.59,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 170,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2051,
+     "max": 2291,
+     "typical": 2182,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2480,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 8.0,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.93,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Alto Módulo / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado unidirecional fictício de fibra de carbono de alto módulo em epóxi, para estruturas rígidas. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "alto_modulo",
+    "satelite",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-AM",
+    "COMERCIAL:Democarbo CF-UD-AM"
+   ],
+   "composition": "C=balance O=3.0-6.0 H=1.0-2.0 N<=1.0 S=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.64,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 235,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1081,
+     "max": 1208,
+     "typical": 1150,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1250,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 9.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 80,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Fibra de alto módulo: α real na direção da fibra ≈ −1·10⁻⁶/K; gravado valor pequeno positivo (o modelo exige α > 0)."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 910,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Módulo Padrão / Viniléster Pultrudado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Perfil pultrudado fictício de fibra de carbono de módulo padrão em viniléster. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "pultrusao",
+    "reforco_estrutural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-VE-PUL",
+    "COMERCIAL:Democarbo CF-UD-VE-PUL"
+   ],
+   "composition": "C=balance O=5.0-9.0 H=2.0-3.5 Co<=0.05",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1560,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1142,
+     "max": 1276,
+     "typical": 1215,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1350,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 270,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP UD Módulo Padrão / PEEK (Fita Termoplástica)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Fita unidirecional fictícia de fibra de carbono em matriz termoplástica PEEK, consolidada por fusão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "unidirecional",
+    "termoplastico",
+    "peek",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-UD-PEEK",
+    "COMERCIAL:Democarbo CF-UD-PEEK"
+   ],
+   "composition": "C=balance O=5.5-7.5 H=1.4-2.0 N<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 138,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1692,
+     "max": 1890,
+     "typical": 1800,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2000,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 6.0,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 78,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 7.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Na direção da fibra o α real é ≈ 0 ou levemente negativo; o modelo exige α > 0 (escala log), então foi gravado um valor pequeno positivo."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 990,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Tecido Sarja Módulo Padrão / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado fictício de tecido sarja de fibra de carbono de módulo padrão em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "tecido",
+    "epoxi",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-TEC-SARJA",
+    "COMERCIAL:Democarbo CF-TEC-SARJA"
+   ],
+   "composition": "C=balance O=5.0-8.5 H=1.6-3.0 N=0.8-2.4 S=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.53,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 62,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 525,
+     "max": 586,
+     "typical": 558,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 620,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 21.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.05,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.98,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Tecido Tela Módulo Padrão / Epóxi 180 °C",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Pré-impregnado fictício de tecido tela de fibra de carbono em epóxi de cura a 180 °C. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "tecido",
+    "pre_impregnado",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-TEC-TELA180",
+    "COMERCIAL:Democarbo CF-TEC-TELA180"
+   ],
+   "composition": "C=balance O=5.0-8.0 H=1.5-2.8 N=1.2-2.8 S<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 66,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 592,
+     "max": 662,
+     "typical": 630,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 175,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 320,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 23,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.05,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.4e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 960,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Tecido Cetim Módulo Intermediário / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado fictício de tecido cetim de fibra de carbono de módulo intermediário em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "tecido",
+    "epoxi",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-TEC-CETIM-MI",
+    "COMERCIAL:Democarbo CF-TEC-CETIM-MI"
+   ],
+   "composition": "C=balance O=4.0-7.5 H=1.3-2.5 N=0.9-2.3 S<=0.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.56,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 72,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 719,
+     "max": 803,
+     "typical": 765,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 860,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 360,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.06,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Tecido / Poliamida 6 (Chapa Termoplástica)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Chapa termoplástica consolidada fictícia de tecido de fibra de carbono em poliamida 6, estampável. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "tecido",
+    "termoplastico",
+    "poliamida",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-TEC-PA6",
+    "COMERCIAL:Democarbo CF-TEC-PA6"
+   ],
+   "composition": "C=balance O=6.0-8.0 N=5.0-7.0 H=4.0-5.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.505,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 463,
+     "max": 518,
+     "typical": 493,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 560,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 270,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 20.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.08,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Tecido / PPS (Chapa Termoplástica)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Chapa termoplástica consolidada fictícia de tecido de fibra de carbono em poli(sulfeto de fenileno). Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "tecido",
+    "termoplastico",
+    "pps",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-TEC-PPS",
+    "COMERCIAL:Democarbo CF-TEC-PPS"
+   ],
+   "composition": "C=balance S=11.5-14.5 H=1.4-2.2 O<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1560,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 58,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 571,
+     "max": 637,
+     "typical": 607,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 690,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 190,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 330,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.06,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Quase-Isotrópico Módulo Padrão / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado quase-isotrópico [0/±45/90] fictício de fibra de carbono de módulo padrão em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "quase_isotropico",
+    "epoxi",
+    "estrutural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-QI-MP",
+    "COMERCIAL:Democarbo CF-QI-MP"
+   ],
+   "composition": "C=balance O=4.5-8.0 H=1.5-2.8 N=0.7-2.1 S=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.56,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "GPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 550,
+     "max": 614,
+     "typical": 585,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "MPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 21.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 960,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Quase-Isotrópico Módulo Intermediário / Epóxi Tenacificado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado quase-isotrópico fictício de fibra de carbono de módulo intermediário em epóxi tenacificado. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "quase_isotropico",
+    "pre_impregnado",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-QI-MI",
+    "COMERCIAL:Democarbo CF-QI-MI"
+   ],
+   "composition": "C=balance O=3.8-7.2 H=1.2-2.4 N=0.8-2.2 S<=0.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.58,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "GPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 753,
+     "max": 841,
+     "typical": 801,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "MPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 68,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 390,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.945,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Quase-Isotrópico Alto Módulo / Éster de Cianato",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Laminado quase-isotrópico fictício de fibra de carbono de alto módulo em éster de cianato, estável dimensionalmente. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "quase_isotropico",
+    "alto_modulo",
+    "espacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-QI-AM-CE",
+    "COMERCIAL:Democarbo CF-QI-AM-CE"
+   ],
+   "composition": "C=balance O=3.5-6.0 N=2.0-4.0 H=1.0-2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1630,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "GPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 462,
+     "max": 516,
+     "typical": 491,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 540,
+     "unit": "MPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 180,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 79,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.5e-07,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 920,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CFRP Enrolado Filamentar ±15° / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Carbono",
+   "description": "Tubo fictício de fibra de carbono enrolada a ±15° em epóxi, para eixos e mastros. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cfrp",
+    "enrolamento_filamentar",
+    "tubo",
+    "epoxi",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CF-ENR-15",
+    "COMERCIAL:Democarbo CF-ENR-15"
+   ],
+   "composition": "C=balance O=4.0-7.5 H=1.4-2.7 N=0.6-2.0 S<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.04
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.555,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "GPa",
+     "measurement_condition": "Direção axial do tubo enrolado, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 973,
+     "max": 1087,
+     "typical": 1035,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1150,
+     "unit": "MPa",
+     "measurement_condition": "Direção axial do tubo enrolado, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 5.0,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 310,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 22.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3e-07,
+     "unit": "1/K",
+     "notes": "Enrolamento a ±15°: α axial real ≈ 0 ou negativo; gravado valor pequeno positivo (o modelo exige α > 0)."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.97,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP UD Vidro-E / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado unidirecional fictício de fibra de vidro-E em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "unidirecional",
+    "epoxi",
+    "vidro_e",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-UD-EP",
+    "COMERCIAL:Demovitro GF-UD-EP"
+   ],
+   "composition": "O=balance Si=17.0-20.0 Ca=10.0-13.0 Al=4.5-6.5 C=15.0-20.0 H=1.4-2.4 B=1.0-2.2 Mg<=0.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.05,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 43,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 888,
+     "max": 992,
+     "typical": 945,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1050,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.58,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.2e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 920,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP UD Vidro de Alta Resistência / Epóxi 180 °C",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado unidirecional fictício de fibra de vidro de alta resistência (magnésio-alumino-silicato) em epóxi de cura a 180 °C. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "unidirecional",
+    "alta_resistencia",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-UD-AR180",
+    "COMERCIAL:Demovitro GF-UD-AR180"
+   ],
+   "composition": "O=balance Si=21.0-24.5 Al=8.5-11.0 Mg=3.8-5.2 C=14.0-19.0 H=1.3-2.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2000,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1007,
+     "max": 1125,
+     "typical": 1071,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1190,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 175,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.59,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 145,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 9.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.1e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.905,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP UD Vidro-E / Viniléster Pultrudado (Vergalhão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Vergalhão pultrudado fictício de fibra de vidro-E em viniléster, para concreto em ambiente agressivo. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "unidirecional",
+    "pultrusao",
+    "vergalhao",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-UD-VE-VERG",
+    "COMERCIAL:Demovitro GF-UD-VE-VERG"
+   ],
+   "composition": "O=balance Si=18.0-21.0 Ca=11.0-14.0 Al=5.0-7.0 C=12.0-17.0 H=1.2-2.2 B=1.0-2.4",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.08,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 44.5,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 761,
+     "max": 850,
+     "typical": 810,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8.8e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 950,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Perfil Pultrudado Vidro-E / Poliéster",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Perfil estrutural pultrudado fictício de roving e manta de vidro-E em poliéster insaturado. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "pultrusao",
+    "perfil",
+    "construcao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-PERFIL-UP",
+    "COMERCIAL:Demovitro GF-PERFIL-UP"
+   ],
+   "composition": "O=balance Si=14.0-17.5 Ca=8.0-11.0 Al=3.5-5.5 C=20.0-26.0 H=2.0-3.2 B<=2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 355,
+     "max": 397,
+     "typical": 378,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.42,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 9.5e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Tecido Vidro-E / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado fictício de tecido tela de fibra de vidro-E em epóxi, para placas e isolação elétrica. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "tecido",
+    "epoxi",
+    "isolante_eletrico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-TEC-EP",
+    "COMERCIAL:Demovitro GF-TEC-EP"
+   ],
+   "composition": "O=balance Si=14.5-17.5 Ca=8.5-11.5 Al=3.5-5.5 C=20.0-25.0 H=1.8-2.8 B<=2.0 Br=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 321,
+     "max": 359,
+     "typical": 342,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 380,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.36,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.3e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Tecido Vidro-E / Fenólica (Baixa Emissão de Fumaça)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado fictício de tecido de vidro-E em resina fenólica, para interiores de aeronaves e trens. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "tecido",
+    "fenolica",
+    "fogo_fumaca_toxicidade",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-TEC-PF",
+    "COMERCIAL:Demovitro GF-TEC-PF"
+   ],
+   "composition": "O=balance Si=14.0-17.0 Ca=8.0-11.0 Al=3.5-5.0 C=22.0-28.0 H=1.5-2.5 B<=2.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 254,
+     "max": 284,
+     "typical": 270,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 8.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.13,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Tecido Vidro-E / Poliamida 66 (Chapa Termoplástica)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Chapa termoplástica consolidada fictícia de tecido de vidro-E em poliamida 66, estampável a quente. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "tecido",
+    "termoplastico",
+    "poliamida",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-TEC-PA66",
+    "COMERCIAL:Demovitro GF-TEC-PA66"
+   ],
+   "composition": "O=balance Si=13.0-16.0 Ca=7.5-10.5 C=22.0-28.0 N=4.0-6.0 Al=3.0-5.0 H=3.0-4.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 348,
+     "max": 388,
+     "typical": 370,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.14,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.35e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Quase-Isotrópico Vidro-E / Epóxi (Infusão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado quase-isotrópico fictício de tecidos não frisados de vidro-E em epóxi, moldado por infusão a vácuo. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "quase_isotropico",
+    "infusao",
+    "eolica",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-QI-INF",
+    "COMERCIAL:Demovitro GF-QI-INF"
+   ],
+   "composition": "O=balance Si=16.0-19.0 Ca=9.5-12.5 Al=4.0-6.0 C=16.0-22.0 H=1.5-2.5 B<=2.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1920,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 20.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 296,
+     "max": 331,
+     "typical": 315,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "MPa",
+     "measurement_condition": "No plano do laminado quase-isotrópico, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 112,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.45e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.99,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Enrolado Filamentar Vidro-E / Epóxi (Tubos)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Tubo fictício de vidro-E enrolado em epóxi, para tubulações e vasos de pressão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "enrolamento_filamentar",
+    "tubo",
+    "vaso_de_pressao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-ENR-EP",
+    "COMERCIAL:Demovitro GF-ENR-EP"
+   ],
+   "composition": "O=balance Si=17.0-20.0 Ca=10.0-13.0 Al=4.5-6.5 C=14.0-19.0 H=1.4-2.4 B=1.0-2.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.98,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "GPa",
+     "measurement_condition": "Direção axial do tubo enrolado, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 508,
+     "max": 567,
+     "typical": 540,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "MPa",
+     "measurement_condition": "Direção axial do tubo enrolado, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.48,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 960,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Laminação Manual Tecido Vidro-E / Poliéster (Náutico)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado manual fictício de tecido de roving e manta de vidro-E em poliéster insaturado, para cascos. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "laminacao_manual",
+    "nautico",
+    "poliester",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-LAM-UP",
+    "COMERCIAL:Demovitro GF-LAM-UP"
+   ],
+   "composition": "O=balance C=26.0-33.0 Si=11.0-14.0 Ca=6.0-9.0 Al=2.5-4.0 H=3.0-4.2 B<=1.6 Co<=0.05",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.65,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 195,
+     "max": 217,
+     "typical": 207,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 94,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "GFRP Manta Vidro-E / Poliéster (Laminação por Aspersão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Laminado fictício de fibra de vidro-E picada em poliéster insaturado, moldado por aspersão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "aspersao",
+    "fibra_picada",
+    "poliester",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-ASP-UP",
+    "COMERCIAL:Demovitro GF-ASP-UP"
+   ],
+   "composition": "O=balance C=30.0-36.0 Si=8.0-11.0 Ca=4.5-7.0 Al=2.0-3.5 H=3.5-5.0 B<=1.2 Co<=0.05",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 7.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 80.4,
+     "max": 89.8,
+     "typical": 85.5,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1180,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SMC Vidro-E / Poliéster (30 % de Fibra)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Composto para moldagem em chapa (SMC) fictício com 30 % de vidro-E picado e carga mineral, para painéis de carroceria. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "smc",
+    "moldagem_por_compressao",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-SMC-30",
+    "COMERCIAL:Demovitro GF-SMC-30"
+   ],
+   "composition": "O=balance Ca=17.0-23.0 C=17.0-24.0 Si=6.0-9.0 Al=1.5-3.0 H=2.0-3.2 Zn<=1.0 Mg<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 71.9,
+     "max": 80.3,
+     "typical": 76.5,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.44,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SMC Estrutural Vidro-E / Viniléster (50 % de Fibra)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Composto para moldagem em chapa fictício de alto teor de vidro-E em viniléster, para peças estruturais. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "smc",
+    "estrutural",
+    "moldagem_por_compressao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-SMC-50VE",
+    "COMERCIAL:Demovitro GF-SMC-50VE"
+   ],
+   "composition": "O=balance C=18.0-24.0 Si=11.0-14.0 Ca=9.0-12.0 Al=2.5-4.0 H=2.0-3.0 Zn<=0.8",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.88,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 15.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 169,
+     "max": 189,
+     "typical": 180,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.4,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.4e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1020,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "BMC Vidro-E / Poliéster (Moldagem em Massa)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Fibra de Vidro",
+   "description": "Composto para moldagem em massa (BMC) fictício com vidro-E curto e alta carga mineral, para carcaças elétricas. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "gfrp",
+    "bmc",
+    "moldagem_por_injecao",
+    "eletrico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-GF-BMC",
+    "COMERCIAL:Demovitro GF-BMC"
+   ],
+   "composition": "O=balance Ca=19.0-25.0 C=15.0-21.0 Al=3.0-8.0 Si=4.0-6.5 H=2.0-3.0 Zn<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.08
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 10.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 33.8,
+     "max": 37.8,
+     "typical": 36,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 40,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.55,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 92,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "AFRP UD Aramida Alto Módulo / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado unidirecional fictício de fibra de aramida de alto módulo em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "unidirecional",
+    "aramida",
+    "epoxi",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-UD-AM",
+    "COMERCIAL:Demofibra AR-UD-AM"
+   ],
+   "composition": "C=balance O=12.0-16.0 N=8.0-11.0 H=4.0-5.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.38,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 76,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1117,
+     "max": 1247,
+     "typical": 1188,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1350,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 280,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2e-07,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)",
+     "notes": "Aramida: α real na direção da fibra ≈ −2·10⁻⁶/K; gravado valor pequeno positivo (o modelo exige α > 0)."
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1150,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "AFRP Tecido Aramida / Epóxi (Proteção Balística)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado fictício de tecido de aramida em epóxi, para painéis de proteção balística. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "tecido",
+    "aramida",
+    "balistico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-TEC-BAL",
+    "COMERCIAL:Demofibra AR-TEC-BAL"
+   ],
+   "composition": "C=balance O=13.0-17.0 N=7.0-10.0 H=4.2-5.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 431,
+     "max": 481,
+     "typical": 458,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.1,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "AFRP Tecido Aramida / Fenólica (Painéis Internos)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado fictício de tecido de aramida em resina fenólica, para revestimentos internos de aeronaves. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "tecido",
+    "aramida",
+    "fenolica",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-TEC-PF",
+    "COMERCIAL:Demofibra AR-TEC-PF"
+   ],
+   "composition": "C=balance O=12.0-15.5 N=6.5-9.5 H=4.0-5.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1330,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 348,
+     "max": 388,
+     "typical": 370,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.1,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "BFRP UD Fibra de Basalto / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado unidirecional fictício de fibra de basalto contínua em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "unidirecional",
+    "basalto",
+    "epoxi",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-BAS-UD-EP",
+    "COMERCIAL:Demofibra AR-BAS-UD-EP"
+   ],
+   "composition": "O=balance Si=17.0-21.0 C=12.0-17.0 Al=6.0-8.5 Fe=4.0-7.0 Ca=4.0-6.5 Mg=1.8-3.2 H=1.2-2.0 Na<=2.5 Ti<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.99,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 50,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 973,
+     "max": 1087,
+     "typical": 1035,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1150,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6.5e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.01,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "BFRP Basalto / Viniléster Pultrudado (Vergalhão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Vergalhão pultrudado fictício de fibra de basalto em viniléster, para reforço de concreto. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "pultrusao",
+    "basalto",
+    "vergalhao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-BAS-VE-VERG",
+    "COMERCIAL:Demofibra AR-BAS-VE-VERG"
+   ],
+   "composition": "O=balance Si=16.5-20.5 C=13.0-18.0 Al=5.5-8.0 Fe=3.8-6.5 Ca=3.8-6.0 Mg=1.6-3.0 H=1.3-2.2 Na<=2.4",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.96,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 46,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 846,
+     "max": 945,
+     "typical": 900,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.65,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 20.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 155,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 10.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 7.5e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1020,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Híbrido Carbono-Aramida Tecido / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado fictício de tecido híbrido de fibras de carbono e aramida em epóxi, resistente a impacto. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "tecido",
+    "hibrido",
+    "impacto",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-HIB-CA",
+    "COMERCIAL:Demofibra AR-HIB-CA"
+   ],
+   "composition": "C=balance O=7.0-11.0 N=3.5-6.0 H=2.2-3.6",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 48,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 569,
+     "max": 635,
+     "typical": 605,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 680,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 50,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 340,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.08,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.08,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Híbrido Carbono-Vidro UD / Epóxi (Longarina Eólica)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado unidirecional fictício híbrido de fibras de carbono e vidro-E em epóxi, para longarinas de pás eólicas. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "unidirecional",
+    "hibrido",
+    "eolica",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-HIB-CV-UD",
+    "COMERCIAL:Demofibra AR-HIB-CV-UD"
+   ],
+   "composition": "C=balance O=20.0-27.0 Si=8.0-11.0 Ca=5.0-7.5 Al=2.0-3.5 H=1.5-2.5 B<=1.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 78,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1100,
+     "max": 1228,
+     "typical": 1170,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.5e-06,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Híbrido Aramida-Vidro Tecido / Viniléster (Casco Náutico)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Aramida, Basalto e Híbridos",
+   "description": "Laminado fictício de tecido híbrido de aramida e vidro-E em viniléster, para cascos leves. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "aramida_basalto_hibridos",
+    "tecido",
+    "hibrido",
+    "nautico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-AR-HIB-AV-VE",
+    "COMERCIAL:Demofibra AR-HIB-AV-VE"
+   ],
+   "composition": "O=balance C=28.0-36.0 Si=8.0-11.0 Ca=4.5-7.0 N=2.0-3.5 Al=2.0-3.5 H=2.8-4.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.1
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 376,
+     "max": 420,
+     "typical": 400,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.35,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 170,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP UD Linho / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Laminado unidirecional fictício de fibra de linho em epóxi. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "unidirecional",
+    "linho",
+    "fibra_natural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-LINHO-UD",
+    "COMERCIAL:Demoverde NF-LINHO-UD"
+   ],
+   "composition": "O=balance C=48.0-56.0 H=6.0-7.2 N=0.3-1.2",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "GPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 231,
+     "max": 258,
+     "typical": 246,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 280,
+     "unit": "MPa",
+     "measurement_condition": "Direção 0° (paralela às fibras), temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K",
+     "measurement_condition": "Direção 0° (paralela às fibras)"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP Tecido Linho / Epóxi",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Laminado fictício de tecido de linho em epóxi, para painéis e artigos esportivos. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "tecido",
+    "linho",
+    "fibra_natural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-LINHO-TEC",
+    "COMERCIAL:Demoverde NF-LINHO-TEC"
+   ],
+   "composition": "O=balance C=47.0-55.0 H=6.0-7.3 N=0.3-1.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.28,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 13,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 116,
+     "max": 129,
+     "typical": 123,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 72,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.12,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP Linho / Poliamida 11 de Base Biológica",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Compósito fictício de fibra de linho em poliamida 11 de origem vegetal, moldado por compressão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "linho",
+    "termoplastico",
+    "base_biologica",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-LINHO-PA11",
+    "COMERCIAL:Demoverde NF-LINHO-PA11"
+   ],
+   "composition": "C=balance O=18.0-26.0 H=8.0-10.5 N=4.0-6.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.18,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 7.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 69.6,
+     "max": 77.7,
+     "typical": 74,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP Juta / Poliéster Insaturado",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Compósito fictício de manta de juta em poliéster insaturado, para painéis de baixo custo. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "juta",
+    "poliester",
+    "fibra_natural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-JUTA-UP",
+    "COMERCIAL:Demoverde NF-JUTA-UP"
+   ],
+   "composition": "C=balance O=34.0-42.0 H=5.5-7.0 N<=0.5",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1250,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 8.0,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 53.1,
+     "max": 59.3,
+     "typical": 56.5,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 65,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 58,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz termofixa."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP Cânhamo / Polipropileno (Painel Automotivo)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Compósito fictício de fibra de cânhamo em polipropileno, para painéis internos de veículos. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "canhamo",
+    "termoplastico",
+    "automotivo",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-CANHAMO-PP",
+    "COMERCIAL:Demoverde NF-CANHAMO-PP"
+   ],
+   "composition": "C=balance H=10.0-12.5 O=13.0-19.0 Ca<=1.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.15,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 49.1,
+     "max": 54.8,
+     "typical": 52.2,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.33,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.5e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "NFRP Sisal / Polipropileno (Moldado por Compressão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Verdes",
+   "description": "Compósito fictício de fibra de sisal em polipropileno, moldado por compressão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "fibras_naturais",
+    "sisal",
+    "termoplastico",
+    "automotivo",
+    "reciclavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-NF-SISAL-PP",
+    "COMERCIAL:Demoverde NF-SISAL-PP"
+   ],
+   "composition": "C=balance H=10.5-12.8 O=11.0-17.0 Si=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.15
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.11,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 42.5,
+     "max": 47.5,
+     "typical": 45.2,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a laminado de fibra: a indentação mede só a matriz."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 3.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio 6061 + 20 % Al2O3 Particulado (T6)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de alumínio 6061 com 20 % de partículas de alumina, extrudado e envelhecido. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "alumina",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-6061-AL2O3",
+    "COMERCIAL:Demommc MM-6061-AL2O3"
+   ],
+   "composition": "Al=balance O=8.5-10.5 Mg=0.6-1.0 Si=0.3-0.7 Cu=0.1-0.35 Cr<=0.3 Fe<=0.6",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2950,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 310,
+     "max": 346,
+     "typical": 330,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 370,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 14,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.85e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio A356 + 20 % SiC Particulado (Fundido)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de fundição de alumínio-silício com 20 % de partículas de carbeto de silício. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "fundicao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-A356-SIC20",
+    "COMERCIAL:Demommc MM-A356-SIC20"
+   ],
+   "composition": "Al=balance Si=18.0-21.5 C=5.5-6.5 Mg=0.25-0.45 Fe<=0.2 Ti<=0.2",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.77,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 282,
+     "max": 315,
+     "typical": 300,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 330,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 165,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.75e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.84,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio A359 + 30 % SiC Particulado (Discos de Freio)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de fundição de alumínio com 30 % de carbeto de silício, para discos e tambores de freio. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "freio",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-A359-SIC30",
+    "COMERCIAL:Demommc MM-A359-SIC30"
+   ],
+   "composition": "Al=balance Si=25.5-29.0 C=8.5-9.5 Mg=0.35-0.55 Fe<=0.2",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.88,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 315,
+     "max": 352,
+     "typical": 335,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 360,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 245,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 14.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.55e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 830,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio 2124 + 25 % SiC Particulado (Metalurgia do Pó)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de alumínio-cobre com 25 % de carbeto de silício, por metalurgia do pó e extrusão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "metalurgia_do_po",
+    "aeroespacial",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-2124-SIC25",
+    "COMERCIAL:Demommc MM-2124-SIC25"
+   ],
+   "composition": "Al=balance Si=16.5-18.5 C=7.0-8.0 Cu=2.8-3.7 Mg=0.9-1.35 Mn=0.2-0.7 Fe<=0.25",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2890,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 451,
+     "max": 504,
+     "typical": 480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 190,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 18.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 40,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.65e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.83,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio 6092 + 17,5 % SiC Particulado (Forjado)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de alumínio 6092 com 17,5 % de carbeto de silício, forjado. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "forjado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-6092-SIC17",
+    "COMERCIAL:Demommc MM-6092-SIC17"
+   ],
+   "composition": "Al=balance Si=12.0-13.5 C=5.0-5.6 Mg=0.7-1.0 Cu=0.6-0.85 Fe<=0.25",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 103,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 385,
+     "max": 430,
+     "typical": 410,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 155,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 280,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 17,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.8e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 840,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio 7075 + 15 % SiC Particulado (Metalurgia do Pó)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de alumínio-zinco de alta resistência com 15 % de carbeto de silício. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "alta_resistencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-7075-SIC15",
+    "COMERCIAL:Demommc MM-7075-SIC15"
+   ],
+   "composition": "Al=balance Si=10.0-11.0 C=4.2-4.8 Zn=4.3-5.2 Mg=1.8-2.5 Cu=1.0-1.7 Cr<=0.25",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 526,
+     "max": 588,
+     "typical": 560,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 640,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 310,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 19.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 42,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.95e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio + 60 % SiC Infiltrado (Encapsulamento Eletrônico)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de alumínio infiltrado em pré-forma com 60 % de carbeto de silício, de baixa expansão térmica. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "eletronica",
+    "dissipador",
+    "baixa_expansao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-ALSIC60",
+    "COMERCIAL:Demommc MM-ALSIC60"
+   ],
+   "composition": "Al=balance Si=42.0-46.0 C=17.0-19.0 Mg<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.05
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 3010,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 190,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 244,
+     "max": 273,
+     "typical": 260,
+     "unit": "MPa",
+     "notes": "Baixa ductilidade: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 310,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 180,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 42,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 330,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 48,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 760,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "MMC Alumínio + 15 % B4C (Absorvedor de Nêutrons)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Metálica",
+   "description": "Compósito fictício de liga de alumínio com 15 % de carbeto de boro, para cestos de combustível nuclear. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_metalica",
+    "aluminio",
+    "particulado",
+    "nuclear",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-MM-AL-B4C15",
+    "COMERCIAL:Demommc MM-AL-B4C15"
+   ],
+   "composition": "Al=balance B=11.0-12.5 C=3.0-3.6 Mg=0.7-1.0 Si=0.35-0.65 Cu<=0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.71,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 92,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 235,
+     "max": 262,
+     "typical": 250,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 305,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 190,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 270,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 17.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 40,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 2.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.95e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.88,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC SiC/SiC por Infiltração de Fundido (MI)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de fibra de carbeto de silício em matriz SiC densificada por infiltração de silício fundido. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "sic",
+    "turbina",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-SICSIC-MI",
+    "COMERCIAL:Democmc CM-SICSIC-MI"
+   ],
+   "composition": "Si=balance C=24.0-28.0 B<=2.0 O<=1.0 N=missing",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.75,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 280,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 207,
+     "max": 231,
+     "typical": 220,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1250,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.2e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 720,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC SiC/SiC por Infiltração Química em Vapor (CVI)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de tecido 2D de fibra de carbeto de silício em matriz SiC depositada por CVI. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "sic",
+    "turbina",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-SICSIC-CVI",
+    "COMERCIAL:Democmc CM-SICSIC-CVI"
+   ],
+   "composition": "Si=balance C=29.0-32.5 O<=1.5 B<=1.0",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2500,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 169,
+     "max": 189,
+     "typical": 180,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC C/SiC por Infiltração Química em Vapor (CVI)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de fibra de carbono em matriz de carbeto de silício depositada por CVI, para proteção térmica. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "carbono",
+    "sic",
+    "protecao_termica",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-CSIC-CVI",
+    "COMERCIAL:Democmc CM-CSIC-CVI"
+   ],
+   "composition": "C=balance Si=22.0-30.0 O<=1.0 H<=0.1",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.15,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 189,
+     "max": 211,
+     "typical": 201,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 330,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1400,
+     "unit": "degC",
+     "measurement_condition": "Em atmosfera inerte ou com revestimento antioxidante"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.3e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 760,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC C/SiC por Infiltração de Silício Líquido (Discos de Freio)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de fibra de carbono curta em matriz SiC obtida por infiltração de silício líquido, para discos de freio. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "carbono",
+    "sic",
+    "freio",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-CSIC-LSI",
+    "COMERCIAL:Democmc CM-CSIC-LSI"
+   ],
+   "composition": "C=balance Si=28.0-38.0 O<=1.0 Fe<=0.2",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.05,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "GPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 99.6,
+     "max": 111,
+     "typical": 106,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "MPa",
+     "measurement_condition": "No plano, fibra picada de orientação aleatória, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1350,
+     "unit": "degC",
+     "measurement_condition": "Em atmosfera inerte ou com revestimento antioxidante"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 2.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC Óxido/Óxido Alumina-Mulita",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de fibra de alumina-mulita em matriz de alumina porosa, resistente à oxidação. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "oxido",
+    "alumina",
+    "combustor",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-OX-ALMUL",
+    "COMERCIAL:Democmc CM-OX-ALMUL"
+   ],
+   "composition": "O=balance Al=42.0-47.0 Si=3.0-7.0 B=missing Fe<=0.2",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2800,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 78,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 108,
+     "max": 121,
+     "typical": 115,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 180,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "CMC Óxido/Óxido Alumino-Silicato (Exaustão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos de Matriz Cerâmica",
+   "description": "Compósito fictício de fibra alumino-silicato em matriz óxida, para bocais e coberturas de exaustão. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "matriz_ceramica",
+    "oxido",
+    "aluminossilicato",
+    "exaustao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-CM-OX-ALSI",
+    "COMERCIAL:Democmc CM-OX-ALSI"
+   ],
+   "composition": "O=balance Al=30.0-38.0 Si=10.0-16.0 B<=2.0",
+   "curve_hint": {
+    "shape": "cmc"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 72,
+     "unit": "GPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 82.9,
+     "max": 92.6,
+     "typical": 88.2,
+     "unit": "MPa",
+     "notes": "Pseudo-dúctil: limite tomado no início da fissuração da matriz (fim do trecho linear)."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "MPa",
+     "measurement_condition": "No plano, direção da urdidura, temperatura ambiente"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não representativa em compósito de matriz cerâmica fibroso e poroso."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 380,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "missing",
+     "notes": "Rota de reciclagem não estabelecida para compósito de matriz cerâmica."
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless",
+     "measurement_condition": "No plano do laminado (ν12, tecido 0/90)"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Metal Duro WC-6Co Grão Fino",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Metal duro fictício de carbeto de tungstênio de grão fino com 6 % de cobalto, para ferramentas de corte. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "metal_duro",
+    "ferramenta",
+    "desgaste",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-WC6CO",
+    "COMERCIAL:Demoduro KM-WC6CO"
+   ],
+   "composition": "W=balance Co=5.5-6.5~6.0 C=5.5-5.9 Cr<=0.4 V<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 14.95,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 630,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1915,
+     "max": 2055,
+     "typical": 1995,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2100,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 480,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 4.6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Metal Duro WC-10Co Submicrométrico",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Metal duro fictício de carbeto de tungstênio submicrométrico com 10 % de cobalto, para brocas e fresas inteiriças. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "metal_duro",
+    "ferramenta",
+    "usinagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-WC10CO",
+    "COMERCIAL:Demoduro KM-WC10CO"
+   ],
+   "composition": "W=balance Co=9.5-10.5~10.0 C=5.2-5.6 Cr=0.3-0.7 V<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 14450,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 580,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2098,
+     "max": 2251,
+     "typical": 2185,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2300,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 470,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 6.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.3e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.225,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Metal Duro WC-15Co Tenaz (Mineração)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Metal duro fictício de carbeto de tungstênio com 15 % de cobalto, tenaz, para ferramentas de mineração. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "metal_duro",
+    "mineracao",
+    "impacto",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-WC15CO",
+    "COMERCIAL:Demoduro KM-WC15CO"
+   ],
+   "composition": "W=balance Co=14.5-15.5~15.0 C=4.9-5.3 Fe<=0.3 Ni<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 14.0,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 530,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1778,
+     "max": 1908,
+     "typical": 1852,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1950,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1250,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 440,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 6.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 5.8e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 240,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Metal Duro WC-TiC-TaC-Co (Usinagem de Aço)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Metal duro fictício multicarbeto com carbetos de titânio e tântalo, para torneamento de aço. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "metal_duro",
+    "usinagem",
+    "aco",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-WCTITA",
+    "COMERCIAL:Demoduro KM-WCTITA"
+   ],
+   "composition": "W=balance Ti=4.0-7.0 Ta=5.0-9.0 Co=8.0-10.0 C=6.0-7.5 Nb=1.0-3.0",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 11.5,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1550,
+     "max": 1663,
+     "typical": 1615,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 40,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 80,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 7.0,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 6e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Cermet TiCN-Ni-Mo (Acabamento)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Cermet fictício de carbonitreto de titânio ligado por níquel e molibdênio, para usinagem de acabamento. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "cermet",
+    "usinagem",
+    "acabamento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-TICN",
+    "COMERCIAL:Demoduro KM-TICN"
+   ],
+   "composition": "Ti=balance Ni=10.0-16.0 C=6.0-9.0 Mo=6.0-10.0 W=5.0-12.0 N=4.0-7.0 Co=missing",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 6900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1368,
+     "max": 1468,
+     "typical": 1425,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 7.5e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 340,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Cermet Cr3C2-NiCr (Desgaste e Corrosão)",
+   "class_slug": "compositos",
+   "subclass": "Compósitos Metal-Cerâmica",
+   "description": "Cermet fictício de carbeto de cromo ligado por níquel-cromo, para peças de desgaste em meio corrosivo. Valores estimados, só para demonstração.",
+   "keywords": [
+    "compositos",
+    "cermets_metal_duro",
+    "cermet",
+    "desgaste",
+    "corrosao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L08-KM-CR3C2",
+    "COMERCIAL:Demoduro KM-CR3C2"
+   ],
+   "composition": "Cr=balance Ni=18.0-22.0 C=9.0-11.0 Fe<=0.5 Si<=0.3",
+   "curve_hint": {
+    "shape": "brittle",
+    "softening": 0.02
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.0,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 360,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 821,
+     "max": 881,
+     "typical": 855,
+     "unit": "MPa",
+     "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 900,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 7.9e-06,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.38,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  }
+ ]
+}

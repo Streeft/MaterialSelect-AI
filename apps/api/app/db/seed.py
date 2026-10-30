@@ -2361,7 +2361,11 @@ def _seed_demo_identity(
     materials = {
         m.name: m
         for m in db.execute(
-            select(Material).where(Material.name.in_(names), Material.is_demo.is_(True))
+            select(Material).where(
+                Material.name.in_(names),
+                Material.is_demo.is_(True),
+                Material.owner_id.is_(None),
+            )
         ).scalars()
     }
     for name, specs in designation_table.items():
@@ -2610,7 +2614,11 @@ def _seed_demo_curves(db: Session, source: Source, specs: list[dict] | None = No
     materials = {
         m.name: m
         for m in db.execute(
-            select(Material).where(Material.name.in_(names), Material.is_demo.is_(True))
+            select(Material).where(
+                Material.name.in_(names),
+                Material.is_demo.is_(True),
+                Material.owner_id.is_(None),
+            )
         ).scalars()
     }
     created = 0
@@ -2724,13 +2732,16 @@ def seed(db: Session) -> dict[str, int]:
 
     created_materials = 0
     material_repo = MaterialRepository(db)
+    # Idempotence key: the name among catalogue demo materials only (D-184). A
+    # real or user-owned material with the same name neither hides the demo one
+    # nor, matching twice, makes the lookup raise MultipleResultsFound.
+    existing_demo_names = set(
+        db.execute(
+            select(Material.name).where(Material.is_demo.is_(True), Material.owner_id.is_(None))
+        ).scalars()
+    )
     for mat_spec in DEMO_MATERIALS:
-        existing = (
-            db.execute(select(Material).where(Material.name == mat_spec["name"]))
-            .scalars()
-            .one_or_none()
-        )
-        if existing:
+        if mat_spec["name"] in existing_demo_names:
             continue
         material_class = _get_or_create_class(
             db, mat_spec["class_slug"].title(), mat_spec["class_slug"]

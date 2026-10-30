@@ -1,0 +1,7335 @@
+{
+  "lote": "L02-fundidos-cobre-niquel",
+  "versao": 1,
+  "materiais": [
+    {
+      "name": "Ferro Fundido Cinzento FC150",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido cinzento fictício de baixa resistência, matriz ferrítico-perlítica, para peças pouco solicitadas.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "cinzento",
+        "fundicao",
+        "amortecimento",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FC150",
+        "EN:DEMO-L02-GJL150@Europa",
+        "COMERCIAL:Demofundido L02 C150"
+      ],
+      "composition": "Fe=balance C=3.40-3.80 Si=2.20-2.70 Mn=0.40-0.80 P<=0.25 S<=0.15",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.2
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7050,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 88,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "missing",
+          "notes": "Sem patamar de escoamento definido."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 165,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 165,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 623,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 51,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.42,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 16.4,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.12,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7200,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.52,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.06e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.54,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Cinzento Alto Carbono para Discos de Freio",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido cinzento fictício com carbono elevado, alta condutividade térmica, para discos e tambores de freio.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "cinzento",
+        "freio",
+        "dissipacao_termica",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "EN:DEMO-L02-GJL-HC@Europa",
+        "COMERCIAL:Demofundido L02 Freio"
+      ],
+      "composition": "Fe=balance C=3.70-3.95 Si=1.70-2.10 Mn=0.55-0.85 Cr<=0.30 P<=0.10 S<=0.12",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.18
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.08,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 92,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "missing",
+          "notes": "Sem patamar de escoamento definido."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 185,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 172,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 54.5,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.47,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 16.9,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.08e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 530,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Cinzento FC200",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido cinzento fictício de uso geral, matriz perlítica, para carcaças e bases de máquinas.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "cinzento",
+        "fundicao",
+        "carcacas",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FC200",
+        "EN:DEMO-L02-GJL200@Europa",
+        "COMERCIAL:Demofundido L02 C200"
+      ],
+      "composition": "Fe=balance C=3.25-3.55 Si=1.95-2.40 Mn=0.50-0.85 P<=0.20 S<=0.12",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.15
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.12,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "missing",
+          "notes": "Sem patamar de escoamento definido."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 215,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 185,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 380,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 49,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.52,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 17.2,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.58,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.1e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 510,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Cinzento FC300",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido cinzento fictício de alta resistência, perlítico fino, para blocos de motor e engrenagens lentas.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "cinzento",
+        "bloco_motor",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FC300",
+        "EN:DEMO-L02-GJL300@Europa",
+        "COMERCIAL:Demofundido L02 C300"
+      ],
+      "composition": "Fe=balance C=3.05-3.35 Si=1.70-2.10 Mn=0.60-0.95 Cu<=0.60 P<=0.15 S<=0.12",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.1
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7200,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "missing",
+          "notes": "Sem patamar de escoamento definido."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 305,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 46,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.66,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 18.3,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 8.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.65,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.14e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 490,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Cinzento FC350 Ligado ao Cr-Mo",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido cinzento fictício ligado ao cromo e molibdênio, para camisas de cilindro e ferramentas de estampagem.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "cinzento",
+        "ligado",
+        "desgaste",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FC350CM",
+        "EN:DEMO-L02-GJL350CM@Europa"
+      ],
+      "composition": "Fe=balance C=2.95-3.25 Si=1.65-2.05 Mn=0.65-0.95 Cr=0.25-0.45 Mo=0.25-0.45 P<=0.10 S<=0.10",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.06
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 132,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "missing",
+          "notes": "Sem patamar de escoamento definido."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 365,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 42,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 19.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.52,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 9.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.18e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.47,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Nodular Ferrítico FE40018",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido nodular fictício de matriz ferrítica, alta ductilidade, para peças de segurança e conexões.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "nodular",
+        "ductil",
+        "automotivo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FE40018",
+        "EN:DEMO-L02-GJS400-18@Europa",
+        "COMERCIAL:Demonodular L02 400"
+      ],
+      "composition": "Fe=balance C=3.45-3.85 Si=2.30-2.80 Mn<=0.25 Mg=0.030-0.060 P<=0.04 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.1,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 169,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 254,
+          "max": 286,
+          "typical": 270,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 673,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.58,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 17.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7.4,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.275,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.23e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 500,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Nodular Ferrítico FE45012",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido nodular fictício ferrítico de resistência intermediária, para suportes e componentes de suspensão.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "nodular",
+        "ductil",
+        "suspensao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FE45012",
+        "EN:DEMO-L02-GJS450-10@Europa"
+      ],
+      "composition": "Fe=balance C=3.40-3.80 Si=2.40-2.90 Mn<=0.30 Mg=0.030-0.055 P<=0.05 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7110,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 291,
+          "max": 329,
+          "typical": 310,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 470,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 165,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.62,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 18.2,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.29,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7600,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.56,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.275,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.22e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 495,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Nodular Ferrítico-Perlítico FE60003",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido nodular fictício de matriz mista, para virabrequins leves e cubos de roda.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "nodular",
+        "virabrequim",
+        "automotivo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FE60003",
+        "EN:DEMO-L02-GJS600-3@Europa",
+        "COMERCIAL:Demonodular L02 600"
+      ],
+      "composition": "Fe=balance C=3.40-3.75 Si=2.20-2.65 Mn=0.20-0.45 Cu<=0.40 Mg=0.030-0.055 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.15,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 172,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 357,
+          "max": 403,
+          "typical": 380,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 620,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 19.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 8.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.18e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 490,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Nodular Perlítico FE70002",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido nodular fictício perlítico, de alta resistência, para engrenagens e eixos fundidos.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "nodular",
+        "perlitico",
+        "engrenagens",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ABNT:DEMO-L02-FE70002",
+        "EN:DEMO-L02-GJS700-2@Europa"
+      ],
+      "composition": "Fe=balance C=3.35-3.70 Si=2.10-2.55 Mn=0.30-0.55 Cu=0.40-0.80 Mg=0.030-0.055 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.18,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 174,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 414,
+          "max": 466,
+          "typical": 440,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 720,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 245,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 430,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.76,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 19.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.42,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 8.4,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.62,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.15e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.485,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Nodular Austemperado ADI 900",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido nodular fictício austemperado (matriz ausferrítica), para engrenagens e peças de alta solicitação.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "nodular",
+        "austemperado",
+        "alta_resistencia",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L02-ADI900",
+        "COMERCIAL:Demonodular L02 ADI"
+      ],
+      "composition": "Fe=balance C=3.45-3.75 Si=2.35-2.75 Mn<=0.35 Cu=0.50-0.85 Ni<=0.80 Mo<=0.25 Mg=0.035-0.060",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7120,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 164,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 531,
+          "max": 599,
+          "typical": 565,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 880,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 290,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 350,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 25.5,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 1.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 21.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.65,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 9.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.78,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.21e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 480,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Vermicular GJV-400",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido de grafita compacta fictício, para cabeçotes e blocos de motor diesel.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "vermicular",
+        "grafita_compacta",
+        "bloco_motor",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "EN:DEMO-L02-GJV400@Europa",
+        "COMERCIAL:Demovermicular L02 400"
+      ],
+      "composition": "Fe=balance C=3.50-3.85 Si=2.00-2.50 Mn=0.20-0.40 Mg=0.008-0.018 Ti<=0.10 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.1,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 145,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 273,
+          "max": 307,
+          "typical": 290,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 190,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 693,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 37,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.68,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 18.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7.9,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.58,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.12e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 490,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Vermicular GJV-450",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido de grafita compacta fictício, perlítico, para blocos de motor de alta pressão de combustão.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "vermicular",
+        "grafita_compacta",
+        "perlitico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "EN:DEMO-L02-GJV450@Europa",
+        "COMERCIAL:Demovermicular L02 450"
+      ],
+      "composition": "Fe=balance C=3.45-3.80 Si=2.05-2.50 Mn=0.25-0.45 Cu=0.50-0.90 Mg=0.008-0.020 S<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.12,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 310,
+          "max": 350,
+          "typical": 330,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 470,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 430,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.74,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 19.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 8.1,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.14e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 485,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Maleável de Núcleo Branco W450-07",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido maleável fictício de núcleo branco (descarbonetado), para conexões de tubulação e peças finas.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "maleavel",
+        "nucleo_branco",
+        "conexoes",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "EN:DEMO-L02-GJMW450@Europa",
+        "COMERCIAL:Demomaleavel L02 W450"
+      ],
+      "composition": "Fe=balance C=2.85-3.25 Si=0.45-0.85 Mn=0.20-0.45 P<=0.08 S=0.12-0.24",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7280,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 244,
+          "max": 276,
+          "typical": 260,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.82,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 20.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 8800,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.68,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.275,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.48,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ferro Fundido Maleável Perlítico P550-04",
+      "class_slug": "metais",
+      "subclass": "Ferros Fundidos",
+      "description": "Ferro fundido maleável fictício de matriz perlítica, para elos de corrente e peças de transmissão.",
+      "keywords": [
+        "metais",
+        "ferros_fundidos",
+        "ferro_fundido",
+        "maleavel",
+        "perlitico",
+        "transmissao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "EN:DEMO-L02-GJMB550@Europa",
+        "COMERCIAL:Demomaleavel L02 P550"
+      ],
+      "composition": "Fe=balance C=2.25-2.65 Si=1.10-1.50 Mn=0.40-0.95 Cu<=0.50 P<=0.08 S=0.06-0.16",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.3,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 175,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 320,
+          "max": 360,
+          "typical": 340,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 560,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 215,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 0.88,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 21.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 1.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 9.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.16e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 475,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cobre Isento de Oxigênio (OF) Recozido",
+      "class_slug": "metais",
+      "subclass": "Metais Puros",
+      "description": "Cobre fictício de altíssima pureza, isento de oxigênio, recozido, para condutores e componentes de vácuo.",
+      "keywords": [
+        "metais",
+        "metais_puros",
+        "cobre",
+        "condutor_eletrico",
+        "alta_condutividade",
+        "vacuo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C10200",
+        "EN:DEMO-L02-CuOF@Europa",
+        "COMERCIAL:Democobre L02 OF"
+      ],
+      "composition": "Cu>=99.95 O<=10ppm Pb<=0.005 Ag=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.94,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 117,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 64.9,
+          "max": 73.1,
+          "typical": 69,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 225,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 48,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 391,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 62,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 14,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.343,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 385,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cobre Desoxidado com Fósforo (DHP) Meio-Duro",
+      "class_slug": "metais",
+      "subclass": "Metais Puros",
+      "description": "Cobre fictício desoxidado com fósforo, meio-duro, para tubos de água, gás e refrigeração.",
+      "keywords": [
+        "metais",
+        "metais_puros",
+        "cobre",
+        "tubos",
+        "refrigeracao",
+        "soldavel",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C12200",
+        "EN:DEMO-L02-CuDHP@Europa"
+      ],
+      "composition": "Cu>=99.90 P=0.015-0.040 O=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8940,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 235,
+          "max": 265,
+          "typical": 250,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 290,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 453,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 340,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 13,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.69e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 386,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cobre-Prata CuAg0,1 Encruado",
+      "class_slug": "metais",
+      "subclass": "Metais Puros",
+      "description": "Cobre fictício com pequena adição de prata, encruado, com maior resistência ao amolecimento, para comutadores.",
+      "keywords": [
+        "metais",
+        "metais_puros",
+        "cobre",
+        "comutadores",
+        "condutor_eletrico",
+        "encruado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C10700",
+        "EN:DEMO-L02-CuAg0.1@Europa",
+        "COMERCIAL:Democobre L02 Ag"
+      ],
+      "composition": "Cu=balance Ag=0.08-0.12 O<=0.04 P=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.93,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 125,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 291,
+          "max": 329,
+          "typical": 310,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 360,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 385,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 8.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 66,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 15,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.338,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.72e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.384,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão CuZn37 (63/37) Recozido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício de duas fases em proporção 63/37, recozido, para estampagem e conformação a frio.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "estampagem",
+        "conformacao",
+        "decorativo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C27200",
+        "EN:DEMO-L02-CuZn37@Europa"
+      ],
+      "composition": "Cu=62.0-64.5 Zn=balance Pb<=0.10 Fe<=0.10 Sn<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.44,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 103,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 113,
+          "max": 127,
+          "typical": 120,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 330,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 12.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.82,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.02e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 377,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão Almirantado CuZn28Sn1As Recozido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício com estanho e arsênio, recozido, para tubos de condensadores e trocadores de calor.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "trocador_de_calor",
+        "condensador",
+        "corrosao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C44300",
+        "EN:DEMO-L02-CuZn28Sn1As@Europa"
+      ],
+      "composition": "Cu=70.0-73.0 Zn=balance Sn=0.9-1.2 As=0.02-0.06 Pb<=0.07 Fe<=0.06",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8530,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 141,
+          "max": 159,
+          "typical": 150,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 360,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 61,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 13400,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.88,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 376,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão Resistente à Dezincificação CuZn36Pb2As",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício com arsênio, resistente à dezincificação, para conexões e válvulas de água potável.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "valvulas",
+        "agua_potavel",
+        "dezincificacao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C35330",
+        "EN:DEMO-L02-CuZn36Pb2As@Europa",
+        "COMERCIAL:Demolatao L02 DZR"
+      ],
+      "composition": "Cu=61.0-63.5 Zn=balance Pb=1.6-2.4 As=0.02-0.15 Al<=0.05 Fe<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.45,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 98,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 188,
+          "max": 212,
+          "typical": 200,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 113,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 59,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 12.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.84,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.345,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.06e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 378,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão Naval CuZn38Sn1 Laminado",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício com estanho, laminado, para ferragens navais e eixos expostos à água do mar.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "naval",
+        "agua_do_mar",
+        "laminado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C46400",
+        "EN:DEMO-L02-CuZn38Sn1@Europa"
+      ],
+      "composition": "Cu=59.0-62.0 Zn=balance Sn=0.5-1.0 Pb<=0.20 Fe<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.41,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 179,
+          "max": 201,
+          "typical": 190,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 410,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 493,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 116,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 13.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.86,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.1e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão Alumínio CuZn22Al2 para Tubos",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício com alumínio, para tubos de condensadores com água salobra em alta velocidade.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "tubos",
+        "condensador",
+        "erosao_corrosao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C68700",
+        "EN:DEMO-L02-CuZn20Al2As@Europa"
+      ],
+      "composition": "Cu=76.0-79.0 Zn=balance Al=1.8-2.5 As=0.02-0.06 Fe<=0.07 Pb<=0.07",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8330,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 179,
+          "max": 201,
+          "typical": 190,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 118,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 62,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 13.8,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.85e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 377,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão de Corte Livre CuZn39Pb3 Meio-Duro",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício com chumbo para usinagem em alta velocidade, meio-duro, para peças torneadas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "usinagem",
+        "corte_livre",
+        "torneadas",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C38500",
+        "EN:DEMO-L02-CuZn39Pb3@Europa",
+        "COMERCIAL:Demolatao L02 CL"
+      ],
+      "composition": "Cu=57.0-59.5 Zn=balance Pb=2.5-3.5 Fe<=0.35 Sn<=0.30 Ni=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.47,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 97,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 291,
+          "max": 329,
+          "typical": 310,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 135,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 57,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 12.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.05e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 380,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Latão de Alta Resistência CuZn25Al5Mn4Fe3 Fundido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Latão fictício de alta resistência ligado ao alumínio, manganês e ferro, fundido, para buchas e porcas de fuso pesadas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "latao",
+        "alta_resistencia",
+        "buchas",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C86300",
+        "EN:DEMO-L02-CuZn25Al5Mn4Fe3@Europa"
+      ],
+      "composition": "Cu=60.0-66.0 Zn=balance Al=5.0-7.5 Mn=2.5-5.0 Fe=2.0-4.0 Pb<=0.20 Ni=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.83,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 432,
+          "max": 488,
+          "typical": 460,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 790,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 225,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 64,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 14.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.98e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 378,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze ao Chumbo CuSn7Pb7Zn3 para Mancais",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício ao estanho-chumbo, fundido, para buchas e mancais de deslizamento com lubrificação limitada.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "mancais",
+        "deslizamento",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C93200",
+        "EN:DEMO-L02-CuSn7Zn4Pb7@Europa"
+      ],
+      "composition": "Cu=balance Sn=6.3-7.5 Pb=6.0-8.0 Zn=2.0-4.0 Ni<=1.0 Fe<=0.20",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8930,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 118,
+          "max": 132,
+          "typical": 125,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 65,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 63,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 14500,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.376,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze de Canhão CuSn5Zn5Pb5 Fundido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício com estanho, zinco e chumbo em partes iguais, fundido, para corpos de válvula e bombas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "valvulas",
+        "bombas",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C83600",
+        "EN:DEMO-L02-CuSn5Zn5Pb5@Europa",
+        "COMERCIAL:Demobronze L02 555"
+      ],
+      "composition": "Cu=balance Sn=4.0-6.0 Zn=4.0-6.0 Pb=4.0-6.0 Ni<=1.0 Fe<=0.30",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.83,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 92,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 110,
+          "max": 124,
+          "typical": 117,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 255,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 503,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 61,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 14.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.97,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.81e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 377,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze ao Estanho CuSn10 Fundido para Engrenagens",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício com 10 % de estanho, fundido, para coroas de parafuso sem-fim e engrenagens.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "engrenagens",
+        "sem_fim",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C90700",
+        "EN:DEMO-L02-CuSn10P@Europa"
+      ],
+      "composition": "Cu=balance Sn=9.5-11.0 P<=0.20 Pb<=0.40 Zn<=0.40 Ni=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.78,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 150,
+          "max": 170,
+          "typical": 160,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 320,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 8.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 68,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 15.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.08,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.82e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 377,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze Silício CuSi3Mn1 Meio-Duro",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício ao silício, meio-duro, para fixadores, tanques e peças soldadas resistentes à corrosão.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "silicio",
+        "fixadores",
+        "soldavel",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C65500",
+        "EN:DEMO-L02-CuSi3Mn1@Europa"
+      ],
+      "composition": "Cu=balance Si=2.8-3.6 Mn=0.6-1.3 Fe<=0.70 Zn<=1.4 Pb<=0.05",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8530,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 103,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 263,
+          "max": 297,
+          "typical": 280,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 140,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 64,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 14.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 380,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze Alumínio CuAl10Fe3 Fundido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício ao alumínio-ferro, fundido, para engrenagens, guias e peças resistentes ao desgaste.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "aluminio",
+        "desgaste",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C95400",
+        "EN:DEMO-L02-CuAl10Fe3@Europa"
+      ],
+      "composition": "Cu=balance Al=9.0-11.0 Fe=2.5-4.0 Mn<=0.50 Ni<=1.0",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.45,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 226,
+          "max": 254,
+          "typical": 240,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 590,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 300,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 59,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 8.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 66,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 15.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.05,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.62e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.418,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze Fosforoso CuSn8P Encruado",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício ao estanho com fósforo, encruado, para molas, contatos elétricos e diafragmas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "molas",
+        "contatos",
+        "encruado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C52100",
+        "EN:DEMO-L02-CuSn8@Europa",
+        "COMERCIAL:Demobronze L02 S8"
+      ],
+      "composition": "Cu=balance Sn=7.5-8.6 P=0.02-0.30 Zn<=0.20 Pb<=0.04 Fe<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.8,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 489,
+          "max": 551,
+          "typical": 520,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 620,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 190,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 62,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 9.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 16.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.12,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.75e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 377,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bronze Alumínio-Níquel CuAl10Ni5Fe4 Forjado",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Bronze fictício ao alumínio-níquel, forjado, para hélices, eixos de bomba e peças marítimas de alta resistência.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "bronze",
+        "aluminio",
+        "naval",
+        "alta_resistencia",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C63000",
+        "EN:DEMO-L02-CuAl10Ni5Fe4@Europa",
+        "COMERCIAL:Demobronze L02 AN"
+      ],
+      "composition": "Cu=balance Al=9.0-11.0 Ni=4.0-5.5 Fe=3.0-5.0 Mn<=1.5 Si=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7580,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 395,
+          "max": 445,
+          "typical": 420,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 760,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 215,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 593,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 10.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 16500,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.62e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 415,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cupro-Níquel CuNi10Fe1Mn Recozido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Cupro-níquel fictício 90/10, recozido, para tubulações de água do mar e trocadores de calor navais.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "cupro_niquel",
+        "agua_do_mar",
+        "tubos",
+        "naval",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C70600",
+        "EN:DEMO-L02-CuNi10Fe1Mn@Europa"
+      ],
+      "composition": "Cu=balance Ni=9.0-11.0 Fe=1.0-1.8 Mn=0.5-1.0 Pb<=0.02 Zn<=0.50",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.94,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 135,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 113,
+          "max": 127,
+          "typical": 120,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 310,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 260,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 9.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 16.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 380,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cupro-Níquel CuNi30Mn1Fe Recozido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Cupro-níquel fictício 70/30, recozido, para condensadores e tubulações sujeitas a erosão-corrosão.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "cupro_niquel",
+        "condensador",
+        "erosao_corrosao",
+        "naval",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C71500",
+        "EN:DEMO-L02-CuNi30Mn1Fe@Europa",
+        "COMERCIAL:Democupro L02 70-30"
+      ],
+      "composition": "Cu=balance Ni=29.0-32.0 Fe=0.4-1.0 Mn=0.5-1.5 Pb<=0.02 Zn<=0.50",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.93,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 148,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 141,
+          "max": 159,
+          "typical": 150,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 380,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 300,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 29,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 11.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 74,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 17.2,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.335,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.62e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.377,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Alpaca CuNi18Zn20 Meio-Dura",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Liga cobre-níquel-zinco (alpaca) fictícia, meio-dura, para talheres, chaves e peças decorativas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "cupro_niquel",
+        "alpaca",
+        "decorativo",
+        "molas",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C75200",
+        "EN:DEMO-L02-CuNi18Zn20@Europa"
+      ],
+      "composition": "Cu=60.0-64.0 Ni=16.5-19.5 Zn=balance Mn<=0.50 Fe<=0.25 Pb<=0.05",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8730,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 125,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 357,
+          "max": 403,
+          "typical": 380,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 520,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 10.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 16.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.16,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.64e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 385,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cobre-Berílio CuBe1,7 Envelhecido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Cobre-berílio fictício endurecido por precipitação, para molas, contatos e ferramentas antifaísca.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "cobre_berilio",
+        "molas",
+        "antifaisca",
+        "endurecivel",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C17000",
+        "EN:DEMO-L02-CuBe1.7@Europa"
+      ],
+      "composition": "Cu=balance Be=1.60-1.80 Co=0.20-0.60 Fe<=0.20 Al<=0.20",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.26,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 128,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 846,
+          "max": 954,
+          "typical": 900,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1130,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 340,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 118,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 18.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Cobre-Berílio CuBe2 Encruado e Envelhecido",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobre",
+      "description": "Cobre-berílio fictício de máxima resistência, encruado antes do envelhecimento, para molas de alto desempenho e moldes.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobre",
+        "cobre_berilio",
+        "molas",
+        "moldes",
+        "alta_resistencia",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-C17200",
+        "EN:DEMO-L02-CuBe2@Europa",
+        "COMERCIAL:Demoberilio L02 B2"
+      ],
+      "composition": "Cu=balance Be=1.80-2.00 Co=0.20-0.60 Fe<=0.20 Pb<=0.02",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 131,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 1050,
+          "max": 1190,
+          "typical": 1120,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1350,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 395,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 543,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 128,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 19.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.31,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.74e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 418,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Níquel Comercialmente Puro 201 Meio-Duro",
+      "class_slug": "metais",
+      "subclass": "Metais Puros",
+      "description": "Níquel fictício de baixo carbono, meio-duro, para equipamentos de soda cáustica e componentes eletrônicos.",
+      "keywords": [
+        "metais",
+        "metais_puros",
+        "niquel",
+        "corrosao",
+        "alcalis",
+        "eletronica",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N02201",
+        "EN:DEMO-L02-Ni99.0LC@Europa"
+      ],
+      "composition": "Ni>=99.0 C<=0.02 Cu<=0.25 Fe<=0.40 Mn<=0.35 Si<=0.35",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8890,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 204,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 282,
+          "max": 318,
+          "typical": 300,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 520,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 600,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 79,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 145,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 9.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 24000,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.31,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.33e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.456,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Cobre 400 Recozida",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-cobre fictícia, recozida, para equipamentos marítimos e de processamento químico.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "niquel_cobre",
+        "agua_do_mar",
+        "quimico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N04400",
+        "EN:DEMO-L02-NiCu30Fe@Europa",
+        "COMERCIAL:Demoniquel L02 400"
+      ],
+      "composition": "Ni>=63.0 Cu=28.0-34.0 Fe<=2.5 Mn<=2.0 C<=0.30 Si<=0.50",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.8,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 226,
+          "max": 254,
+          "typical": 240,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 550,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 480,
+          "unit": "degC",
+          "notes": "Limite usual de projeto em vasos de pressão (cerca de 480 °C)."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 21.8,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 9.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 25,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.39e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 427,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Cobre-Alumínio K-500 Envelhecida",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-cobre fictícia endurecida por precipitação, para eixos de bomba e fixadores marítimos.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "niquel_cobre",
+        "endurecivel",
+        "eixos",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N05500",
+        "EN:DEMO-L02-NiCu30Al@Europa"
+      ],
+      "composition": "Ni>=63.0 Cu=27.0-33.0 Al=2.30-3.15 Ti=0.35-0.85 Fe<=2.0 Mn<=1.5",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.44,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 182,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 743,
+          "max": 837,
+          "typical": 790,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1100,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 300,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 500,
+          "unit": "degC",
+          "notes": "Acima de cerca de 500 °C a liga superenvelhece e perde resistência."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 17.5,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 165,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 10.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 27,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.37e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Cromo-Ferro 600 Recozida",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-cromo-ferro fictícia, recozida, para fornos, mufas e componentes resistentes à oxidação.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "alta_temperatura",
+        "oxidacao",
+        "fornos",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N06600",
+        "EN:DEMO-L02-NiCr15Fe@Europa"
+      ],
+      "composition": "Ni>=72.0 Cr=14.0-17.0 Fe=6.0-10.0 C<=0.15 Mn<=1.0 Cu<=0.50",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8470,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 214,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 263,
+          "max": 297,
+          "typical": 280,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 650,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 175,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 980,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 14.9,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 24,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 10.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 26,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.34e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 444,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Cromo-Molibdênio 625 Recozida",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-cromo-molibdênio-nióbio fictícia, recozida, para dutos de exaustão e equipamentos químicos.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "alta_temperatura",
+        "corrosao",
+        "exaustao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N06625",
+        "EN:DEMO-L02-NiCr22Mo9Nb@Europa",
+        "COMERCIAL:Demoniquel L02 625"
+      ],
+      "composition": "Ni>=58.0 Cr=20.0-23.0 Mo=8.0-10.0 Nb=3.15-4.15 Fe<=5.0 Ti<=0.40",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.44,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 206,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 451,
+          "max": 509,
+          "typical": 480,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 900,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 240,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1223,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 9.8,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 185,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 11.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.31,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.28e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.425,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Molibdênio-Cromo C-276",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-molibdênio-cromo fictícia, para meios ácidos agressivos e lavadores de gases.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "corrosao",
+        "acidos",
+        "quimico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N10276",
+        "EN:DEMO-L02-NiMo16Cr15W@Europa"
+      ],
+      "composition": "Ni=balance Mo=15.0-17.0 Cr=14.5-16.5 Fe=4.0-7.0 W=3.0-4.5 Co<=2.5 C<=0.010",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.89,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 205,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 338,
+          "max": 382,
+          "typical": 360,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 790,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1000,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 10.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 195,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.307,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.12e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 427,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Ferro-Níquel-Cromo 800H",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga ferro-níquel-cromo fictícia de grão grosso, para tubos de fornos petroquímicos e trocadores em alta temperatura.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "alta_temperatura",
+        "fluencia",
+        "petroquimico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N08810",
+        "EN:DEMO-L02-X5NiCrAlTi31-20@Europa"
+      ],
+      "composition": "Fe=balance Ni=30.0-35.0 Cr=19.0-23.0 C=0.05-0.10 Al=0.15-0.60 Ti=0.15-0.60",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7940,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 196,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 164,
+          "max": 186,
+          "typical": 175,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 530,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1000,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 11.5,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 16,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 130,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 22000,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.44e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 460,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga Níquel-Cromo 80/20 para Resistências Elétricas",
+      "class_slug": "metais",
+      "subclass": "Ligas de Níquel",
+      "description": "Liga níquel-cromo fictícia de alta resistividade, para fios e fitas de aquecimento elétrico.",
+      "keywords": [
+        "metais",
+        "ligas_de_niquel",
+        "niquel",
+        "resistencia_eletrica",
+        "aquecimento",
+        "oxidacao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N06003",
+        "EN:DEMO-L02-NiCr80-20@Europa",
+        "COMERCIAL:Demoresist L02 80"
+      ],
+      "composition": "Ni=balance Cr=19.0-21.0 Fe<=1.0 Si=0.75-1.60 Mn<=0.60 C<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.31,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 376,
+          "max": 424,
+          "typical": 400,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 760,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1100,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 13.4,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 26,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 10.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 27,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.4e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Superliga Ni-Co-Cr-Mo 263 em Chapa",
+      "class_slug": "metais",
+      "subclass": "Superligas",
+      "description": "Superliga de níquel fictícia endurecida por precipitação, em chapa, para câmaras de combustão de turbinas.",
+      "keywords": [
+        "metais",
+        "superligas",
+        "superliga",
+        "turbina",
+        "combustor",
+        "chapa",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N07263",
+        "EN:DEMO-L02-NiCo20Cr20MoTi@Europa"
+      ],
+      "composition": "Ni=balance Co=19.0-21.0 Cr=19.0-21.0 Mo=5.6-6.1 Ti=1.9-2.4 Al=0.3-0.6 Fe<=0.70",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.36,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 221,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 545,
+          "max": 615,
+          "typical": 580,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1000,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 280,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 850,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 11.7,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 13.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.14e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.458,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Superliga Ni-Cr-Co-Al-Ti Fundida Equiaxial",
+      "class_slug": "metais",
+      "subclass": "Superligas",
+      "description": "Superliga de níquel fictícia fundida sob vácuo com grãos equiaxiais, para palhetas de turbina.",
+      "keywords": [
+        "metais",
+        "superligas",
+        "superliga",
+        "turbina",
+        "palhetas",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N07738",
+        "COMERCIAL:Demosuper L02 F738"
+      ],
+      "composition": "Ni=balance Cr=15.7-16.3 Co=8.0-9.0 Al=3.2-3.7 Ti=3.2-3.7 W=2.4-2.8 Mo=1.5-2.0 Ta=1.5-2.0 Nb=0.6-1.1 C=0.09-0.13",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8110,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 846,
+          "max": 954,
+          "typical": 900,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1060,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 310,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1253,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 11.9,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.16e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Superliga Ni-Cr-Fe-Ti-Al X-750 Envelhecida",
+      "class_slug": "metais",
+      "subclass": "Superligas",
+      "description": "Superliga de níquel fictícia endurecida por precipitação, para molas e fixadores em alta temperatura.",
+      "keywords": [
+        "metais",
+        "superligas",
+        "superliga",
+        "molas",
+        "fixadores",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N07750",
+        "EN:DEMO-L02-NiCr15Fe7TiAl@Europa"
+      ],
+      "composition": "Ni>=70.0 Cr=14.0-17.0 Fe=5.0-9.0 Ti=2.25-2.75 Al=0.40-1.00 Nb=0.70-1.20",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.28,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 214,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 743,
+          "max": 837,
+          "typical": 790,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1200,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 330,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 700,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 12.0,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.29,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.26e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 431,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Superliga Ni-Cr-Ti-Al 80A Envelhecida",
+      "class_slug": "metais",
+      "subclass": "Superligas",
+      "description": "Superliga de níquel fictícia endurecida por precipitação, para válvulas de motor e parafusos de turbina.",
+      "keywords": [
+        "metais",
+        "superligas",
+        "superliga",
+        "valvulas_motor",
+        "turbina",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N07080",
+        "EN:DEMO-L02-NiCr20TiAl@Europa",
+        "COMERCIAL:Demosuper L02 80A"
+      ],
+      "composition": "Ni=balance Cr=18.0-21.0 Ti=1.8-2.7 Al=1.0-1.8 Fe<=3.0 Co<=2.0 C<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.19,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 222,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 733,
+          "max": 827,
+          "typical": 780,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1240,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 345,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 815,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 11.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 195,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.27e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 448,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Superliga Ni-Cr-Co-Mo-Ti-Al Forjada",
+      "class_slug": "metais",
+      "subclass": "Superligas",
+      "description": "Superliga de níquel fictícia forjada e envelhecida, para discos e anéis de turbinas a gás.",
+      "keywords": [
+        "metais",
+        "superligas",
+        "superliga",
+        "turbina",
+        "discos",
+        "forjado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-N07001",
+        "COMERCIAL:Demosuper L02 Disco"
+      ],
+      "composition": "Ni=balance Cr=18.0-21.0 Co=12.0-15.0 Mo=3.5-5.0 Ti=2.75-3.25 Al=1.2-1.6 C=0.02-0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8200,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 213,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 752,
+          "max": 848,
+          "typical": 800,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1280,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 360,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 870,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 10.7,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 13.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 35000,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.22e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.435,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Cobalto Co-Cr-Mo Fundida para Implantes",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobalto",
+      "description": "Liga de cobalto-cromo-molibdênio fictícia, fundida, para próteses ortopédicas e estruturas odontológicas.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobalto",
+        "cobalto",
+        "biomedico",
+        "implantes",
+        "fundicao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-F75",
+        "UNS:DEMO-L02-R30075"
+      ],
+      "composition": "Co=balance Cr=27.0-30.0 Mo=5.0-7.0 Ni<=0.50 Fe<=0.75 C<=0.35 Mn<=1.0",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.3,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 489,
+          "max": 551,
+          "typical": 520,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 860,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 300,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 650,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 13.0,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 235,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 37,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.38e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 450,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Cobalto Co-Cr-W-C de Revestimento Duro (Grau 6)",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobalto",
+      "description": "Liga de cobalto fictícia com carbonetos de cromo e tungstênio, para revestimento duro de sedes de válvula.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobalto",
+        "cobalto",
+        "desgaste",
+        "revestimento_duro",
+        "valvulas",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-R30006",
+        "COMERCIAL:Democobalto L02 G6"
+      ],
+      "composition": "Co=balance Cr=27.0-32.0 W=4.0-6.0 C=0.9-1.4 Ni<=3.0 Fe<=3.0 Si<=2.0",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.44,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 209,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 611,
+          "max": 689,
+          "typical": 650,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 900,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 1073,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 14.8,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 245,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 39,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.4e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 423,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Cobalto Co-Cr-W-Ni L-605 Laminada",
+      "class_slug": "metais",
+      "subclass": "Ligas de Cobalto",
+      "description": "Liga de cobalto fictícia endurecida por solução sólida, laminada, para câmaras de combustão e anéis de turbina.",
+      "keywords": [
+        "metais",
+        "ligas_de_cobalto",
+        "cobalto",
+        "alta_temperatura",
+        "turbina",
+        "chapa",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "UNS:DEMO-L02-R30605",
+        "EN:DEMO-L02-CoCr20W15Ni@Europa",
+        "COMERCIAL:Democobalto L02 605"
+      ],
+      "composition": "Co=balance Cr=19.0-21.0 W=14.0-16.0 Ni=9.0-11.0 Fe<=3.0 Mn=1.0-2.0 C=0.05-0.15",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 9130,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 225,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 432,
+          "max": 488,
+          "typical": 460,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1000,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 280,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 980,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 9.4,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 42,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 240,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.29,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 1.23e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 422,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnAl8Cu1 (ZA-8) Injetada",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco de alto alumínio fictícia, injetada em câmara quente, para peças mais resistentes que as Zn-Al4.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "injecao_sob_pressao",
+        "alto_aluminio",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-ZA8",
+        "EN:DEMO-L02-ZnAl8Cu1@Europa"
+      ],
+      "composition": "Zn=balance Al=8.0-8.8 Cu=0.8-1.3 Mg=0.015-0.030 Fe<=0.075 Pb<=0.006",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 6.3,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 86,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 273,
+          "max": 307,
+          "typical": 290,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 374,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 54,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 11.4,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.74,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.29,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.32e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.435,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnAl27Cu2 (ZA-27) Fundida em Areia",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco de alto alumínio fictícia, fundida em areia, leve para a família e usada em mancais e engrenagens.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "fundicao",
+        "alto_aluminio",
+        "mancais",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-ZA27",
+        "EN:DEMO-L02-ZnAl27Cu2@Europa"
+      ],
+      "composition": "Zn=balance Al=25.0-28.0 Cu=2.0-2.5 Mg=0.010-0.020 Fe<=0.07 Pb<=0.006",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 5.0,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 343,
+          "max": 387,
+          "typical": 365,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 420,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 122,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 13,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 525,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnAl4 Alta Pureza Injetada",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco-alumínio fictícia de alta pureza, injetada sob pressão, para peças de parede fina com boa fluidez.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "injecao_sob_pressao",
+        "parede_fina",
+        "fluidez",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-AG40B",
+        "EN:DEMO-L02-ZP3HP@Europa",
+        "COMERCIAL:Demozinco L02 HP"
+      ],
+      "composition": "Zn=balance Al=3.5-4.3 Mg=0.005-0.020 Ni=0.005-0.020 Cu<=0.25 Fe<=0.075",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 6600,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 202,
+          "max": 228,
+          "typical": 215,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 285,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 113,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 52,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 11000,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.74e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 419,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnAl4Cu1 Injetada",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco-alumínio-cobre fictícia injetada sob pressão, para maçanetas, carcaças e componentes automotivos.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "injecao_sob_pressao",
+        "automotivo",
+        "ferragens",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-AC41A",
+        "EN:DEMO-L02-ZP5@Europa",
+        "COMERCIAL:Demozinco L02 Cu1"
+      ],
+      "composition": "Zn=balance Al=3.7-4.3 Cu=0.7-1.2 Mg=0.02-0.06 Fe<=0.05 Pb<=0.005",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 6.7,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 216,
+          "max": 244,
+          "typical": 230,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 330,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 92,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 363,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 109,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.65,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 54.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 11.6,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.73e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 416,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnAl4Cu3 Injetada",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco-alumínio fictícia com 3 % de cobre, injetada, de maior dureza, para buchas e peças de desgaste leve.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "injecao_sob_pressao",
+        "desgaste",
+        "buchas",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-AC43A",
+        "EN:DEMO-L02-ZP2@Europa"
+      ],
+      "composition": "Zn=balance Al=3.7-4.3 Cu=2.6-3.4 Mg=0.02-0.06 Fe<=0.05 Cd<=0.004",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 6.8,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 92,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 263,
+          "max": 297,
+          "typical": 280,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 360,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 12.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.78,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.78e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.415,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Liga de Zinco ZnCu5Al3 Resistente à Fluência",
+      "class_slug": "metais",
+      "subclass": "Ligas de Zinco",
+      "description": "Liga de zinco-cobre-alumínio fictícia, injetada, com melhor resistência à fluência, para fixações sob carga contínua.",
+      "keywords": [
+        "metais",
+        "ligas_de_zinco",
+        "zinco",
+        "injecao_sob_pressao",
+        "fluencia",
+        "fixacoes",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ASTM:DEMO-L02-ZCA53",
+        "COMERCIAL:Demozinco L02 CuF"
+      ],
+      "composition": "Zn=balance Cu=4.8-6.0 Al=2.7-3.3 Mg=0.025-0.050 Fe<=0.075",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 6850,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 291,
+          "max": 329,
+          "typical": 310,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 400,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 112,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 104,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.0,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 57,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 12.5,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.82,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.55e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 410,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Chumbo Antimonial PbSb6 Laminado",
+      "class_slug": "metais",
+      "subclass": "Ligas de Chumbo e Estanho",
+      "description": "Chumbo endurecido com antimônio fictício, laminado, para blindagem contra radiação e revestimento de tanques.",
+      "keywords": [
+        "metais",
+        "ligas_de_chumbo_e_estanho",
+        "chumbo",
+        "blindagem",
+        "radiacao",
+        "laminado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L02-PbSb6",
+        "ASTM:DEMO-L02-L53530"
+      ],
+      "composition": "Pb=balance Sb=5.5-6.5 Sn<=0.50 As<=0.15 Cu<=0.05",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 10.88,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 17,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 13.2,
+          "max": 14.8,
+          "typical": 14,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 24,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 7.0,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 0.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.43,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.75e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 136,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Solda Estanho-Chumbo Sn63Pb37 Eutética",
+      "class_slug": "metais",
+      "subclass": "Ligas de Chumbo e Estanho",
+      "description": "Liga de solda branda fictícia, eutética estanho-chumbo, para soldagem eletrônica de manutenção.",
+      "keywords": [
+        "metais",
+        "ligas_de_chumbo_e_estanho",
+        "solda",
+        "estanho",
+        "eletronica",
+        "soldagem_branda",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L02-Sn63Pb37",
+        "ASTM:DEMO-L02-Sn63",
+        "COMERCIAL:Demosolda L02 63"
+      ],
+      "composition": "Sn=62.5-63.5 Pb=balance Sb<=0.12 Cu<=0.08 Bi<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 8.4,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 28.2,
+          "max": 31.8,
+          "typical": 30,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 48,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 14,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 16,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 7.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.47e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 176,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Solda sem Chumbo SnAg3Cu0,5",
+      "class_slug": "metais",
+      "subclass": "Ligas de Chumbo e Estanho",
+      "description": "Liga de solda branda fictícia sem chumbo, estanho-prata-cobre, para montagem eletrônica por refusão.",
+      "keywords": [
+        "metais",
+        "ligas_de_chumbo_e_estanho",
+        "solda",
+        "estanho",
+        "sem_chumbo",
+        "eletronica",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L02-Sn96.5Ag3Cu0.5",
+        "COMERCIAL:Demosolda L02 SAC"
+      ],
+      "composition": "Sn=balance Ag=2.8-3.2 Cu=0.4-0.6 Pb<=0.07 Bi<=0.10",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7380,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 49,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 30.1,
+          "max": 33.9,
+          "typical": 32,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 398,
+          "unit": "kelvin"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 205,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 26000,
+          "unit": "kJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.17e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 0.225,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Metal Patente à Base de Estanho SnSb8Cu4",
+      "class_slug": "metais",
+      "subclass": "Ligas de Chumbo e Estanho",
+      "description": "Metal patente (babbitt) fictício à base de estanho, para revestimento de mancais de deslizamento.",
+      "keywords": [
+        "metais",
+        "ligas_de_chumbo_e_estanho",
+        "metal_patente",
+        "estanho",
+        "mancais",
+        "deslizamento",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L02-SnSb8Cu4",
+        "ASTM:DEMO-L02-B23-G2"
+      ],
+      "composition": "Sn=balance Sb=7.0-8.5 Cu=3.5-4.5 Pb<=0.35 Fe<=0.08",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 7.4,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 39.5,
+          "max": 44.5,
+          "typical": 42,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 19,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 130,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 56,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 24,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 25,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.3e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    }
+  ]
+}

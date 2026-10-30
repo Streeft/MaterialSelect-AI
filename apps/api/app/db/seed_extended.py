@@ -21,6 +21,14 @@ e escreve os três valores fictícios do cartão CAE — ν, α e cp — em cada
 material demo (``app.db.seed_demo_cae``, D-124; log ``cae_values_created``).
 ``python -m app.db.demo_coverage`` lista o que cada material
 tem e o que falta.
+
+Catálogo demo ampliado do TCC (D-184): o mesmo comando escreve também os 593
+materiais fictícios dos nove lotes JSON de ``app/db/demo_catalog/`` (lista
+separada ``TCC_DEMO_MATERIALS``, função :func:`seed_demo_catalog_expansion`),
+pelo mesmo escritor dos 70 — com designação, composição, curvas e processos —
+sem mexer nas contagens fixas que a suíte tem dos 75. Log:
+``tcc_materials_created`` e companhia. ``clear_demo`` apaga tudo por
+``is_demo``, como o resto do demo.
 """
 
 from __future__ import annotations
@@ -31,11 +39,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base, SessionLocal, engine
+from app.db.demo_catalog import load_lots
+from app.db.demo_identity_data import designation_table, parse_composition, parse_designation
+from app.db.link_demo_processes import link_demo_processes
+from app.db.seed import (
+    DEMO_DESIGNATIONS,
+    DEMO_MATERIALS,
+    _seed_demo_curves,
+    _seed_demo_identity,
+)
 from app.db.seed_demo_cae import seed_demo_cae_values
 from app.db.seed_demo_equivalences import seed_demo_equivalences
 from app.db.seed_demo_ordinal import seed_demo_ordinals
-from app.db.seed_demo_releases import seed_demo_releases
-from app.db.seed_extended_identity import seed_extended_identity
+from app.db.seed_demo_releases import DEMO_RELEASES, seed_demo_releases
+from app.db.seed_extended_identity import build_curve_specs, seed_extended_identity
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -328,6 +345,32 @@ EXTENDED_DEMO_MATERIALS: list[dict] = _generate_materials()
 DEMO_SOURCE_LABEL = "Dataset Demo MaterialSelect"
 
 
+def _reserved_demo_names() -> list[str]:
+    """Names the enlarged catalogue may not reuse: the 5, the 70 and the releases."""
+    releases = [record.name for release in DEMO_RELEASES for record in release.records]
+    return [
+        *(m["name"] for m in DEMO_MATERIALS),
+        *(m["name"] for m in EXTENDED_DEMO_MATERIALS),
+        *releases,
+    ]
+
+
+def _reserved_demo_codes() -> list[str]:
+    """Designation codes the 75 already carry (one code, one demo material)."""
+    tables = [*designation_table().values(), *DEMO_DESIGNATIONS.values()]
+    return [spec["code"] for specs in tables for spec in specs]
+
+
+#: The enlarged demo catalogue of the TCC (D-184): 593 fictitious materials in
+#: nine JSON lots, validated on load — a lot that breaks a rule stops the import
+#: with the list of violations instead of seeding part of it in silence. A list
+#: of its own, not appended to ``EXTENDED_DEMO_MATERIALS``: the suite holds fixed
+#: counts of the 75 (D-71, D-107) that this catalogue must not move.
+TCC_DEMO_MATERIALS: list[dict] = load_lots(
+    reserved_names=_reserved_demo_names(), reserved_codes=_reserved_demo_codes()
+)
+
+
 def _get_or_create_class(
     db: Session,
     name: str,
@@ -387,29 +430,41 @@ def _build_value_row(
     )
 
 
-def seed_extended_materials(db: Session, source: Source) -> int:
-    """Semeia os 70 materiais estendidos. Idempotente.
+def _existing_demo_names(db: Session) -> set[str]:
+    """Names already taken by a catalogue demo material (``is_demo``, no owner).
+
+    The idempotence key of every demo writer. A real or user-owned material
+    that happens to share a name is not a demo one: it neither blocks the demo
+    row nor, by matching twice, makes the lookup raise ``MultipleResultsFound``
+    (D-184 — the old ``Material.name == name … one_or_none()``).
+    """
+    return set(
+        db.execute(
+            select(Material.name).where(Material.is_demo.is_(True), Material.owner_id.is_(None))
+        ).scalars()
+    )
+
+
+def seed_extended_materials(db: Session, source: Source, specs: list[dict] | None = None) -> int:
+    """Semeia os materiais demo de ``specs`` (os 70 estendidos por padrão). Idempotente.
 
     Retorna o número de materiais criados nesta execução."""
     prop_by_slug = {p.slug: p for p in db.execute(select(PropertyDefinition)).scalars().all()}
     material_repo = MaterialRepository(db)
+    existing_names = _existing_demo_names(db)
+    classes: dict[str, MaterialClass] = {}
 
     created = 0
-    for mat_spec in EXTENDED_DEMO_MATERIALS:
-        existing = (
-            db.execute(select(Material).where(Material.name == mat_spec["name"]))
-            .scalars()
-            .one_or_none()
-        )
-        if existing:
+    for mat_spec in EXTENDED_DEMO_MATERIALS if specs is None else specs:
+        if mat_spec["name"] in existing_names:
             continue
 
-        material_class = _get_or_create_class(
-            db, mat_spec["class_slug"].title(), mat_spec["class_slug"]
-        )
+        class_slug = mat_spec["class_slug"]
+        if class_slug not in classes:
+            classes[class_slug] = _get_or_create_class(db, class_slug.title(), class_slug)
         material = Material(
             name=mat_spec["name"],
-            class_id=material_class.id,
+            class_id=classes[class_slug].id,
             subclass=mat_spec.get("subclass"),
             description=mat_spec.get("description"),
             keywords=mat_spec.get("keywords", []),
@@ -425,10 +480,71 @@ def seed_extended_materials(db: Session, source: Source) -> int:
             db.add(row)
 
         material_repo.sync_keywords(material.id, mat_spec.get("keywords", []))
+        existing_names.add(material.name)
         created += 1
 
     db.flush()
     return created
+
+
+def tcc_demo_material_ids(db: Session, specs: list[dict] | None = None) -> list[int]:
+    """Ids of the catalogue demo materials named by ``specs`` (the TCC lots by default)."""
+    names = [m["name"] for m in (TCC_DEMO_MATERIALS if specs is None else specs)]
+    ids: list[int] = []
+    for start in range(0, len(names), 500):  # bounded IN list, any backend
+        ids.extend(
+            db.execute(
+                select(Material.id).where(
+                    Material.name.in_(names[start : start + 500]),
+                    Material.is_demo.is_(True),
+                    Material.owner_id.is_(None),
+                )
+            ).scalars()
+        )
+    return sorted(ids)
+
+
+def seed_demo_catalog_expansion(
+    db: Session, source: Source, specs: list[dict] | None = None
+) -> dict[str, int]:
+    """O catálogo demo ampliado do TCC (D-184): materiais, identidade, curvas e processos.
+
+    Idempotente: uma segunda execução cria zero de tudo. ``specs`` existe para o
+    teste semear um recorte; o ``main()`` passa os 593 (``TCC_DEMO_MATERIALS``).
+    Retorna as contagens que o log de ``semear_demo`` imprime.
+
+    * Materiais pelo mesmo escritor dos 70 (``seed_extended_materials``).
+    * Designação e composição pelo escritor único ``_seed_demo_identity``.
+    * Curvas derivadas das propriedades de cada um, com a forma do
+      ``curve_hint`` do lote (``build_curve_specs`` com ``names``/``hints``).
+    * Processos por classe **só** para os ids destes materiais: sem
+      ``material_ids``, ``link_demo_processes`` tocaria material real também.
+    * Os três valores do cartão CAE vêm escritos nos lotes, então
+      ``seed_demo_cae_values`` (que só preenche par ausente) não entra aqui.
+    """
+    if not source.is_demo:  # pragma: no cover - guarded by main()
+        raise ValueError("O catálogo demo ampliado só pode citar a fonte demo.")
+    chosen = TCC_DEMO_MATERIALS if specs is None else specs
+    created = seed_extended_materials(db, source, specs=chosen)
+    identity = _seed_demo_identity(
+        db,
+        source,
+        designations_by_material={
+            m["name"]: [parse_designation(raw) for raw in m["designations"]] for m in chosen
+        },
+        compositions_by_material={m["name"]: parse_composition(m["composition"]) for m in chosen},
+    )
+    names = [m["name"] for m in chosen]
+    hints = {m["name"]: m["curve_hint"] for m in chosen if m.get("curve_hint")}
+    curves = _seed_demo_curves(db, source, build_curve_specs(db, names=names, hints=hints))
+    links = link_demo_processes(db, material_ids=tcc_demo_material_ids(db, chosen))
+    return {
+        "tcc_materials_created": created,
+        "tcc_designations_created": identity["designations_created"],
+        "tcc_composition_entries_created": identity["composition_entries_created"],
+        "tcc_curves_created": curves,
+        "tcc_process_links_created": links["links_created"],
+    }
 
 
 def main() -> None:
@@ -453,6 +569,7 @@ def main() -> None:
             return
 
         created = seed_extended_materials(db, demo_source)
+        expansion = seed_demo_catalog_expansion(db, demo_source)  # D-184: 593 do TCC
         releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         identity = seed_extended_identity(db, demo_source)
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
@@ -461,6 +578,7 @@ def main() -> None:
         db.commit()
 
     print(f"[seed_extended] Concluído: {created} materiais criados.")
+    print(f"[seed_extended] Catálogo demo ampliado (D-184): {expansion}")
     print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
     print(f"[seed_extended] Equivalências demo: {equivalences}")

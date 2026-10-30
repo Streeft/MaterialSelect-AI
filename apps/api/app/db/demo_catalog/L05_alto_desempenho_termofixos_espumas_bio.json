@@ -1,0 +1,7730 @@
+{
+  "lote": "L05-alto_desempenho_termofixos_espumas_bio",
+  "versao": 1,
+  "materiais": [
+    {
+      "name": "PEEK Grau Injeção Baixa Viscosidade",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poli-éter-éter-cetona semicristalino fictício, grau de injeção de baixa viscosidade, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "semicristalino",
+        "injecao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PEEK-INJ",
+        "COMERCIAL:Demopol L05-PEEK-INJ"
+      ],
+      "composition": "C=balance O=15.8-17.5 H=3.8-4.6",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.7,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 92,
+          "max": 104,
+          "typical": 98,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 25.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 300,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 17.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 5.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.39,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.34,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PEEK Grau Extrusão Alta Viscosidade",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poli-éter-éter-cetona fictício de alta viscosidade para semiacabados extrudados, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "semicristalino",
+        "extrusao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PEEK-EXT",
+        "COMERCIAL:Demopol L05-PEEK-EXT"
+      ],
+      "composition": "C=balance O=15.8-17.5 H=3.8-4.6",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.32,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 88,
+          "max": 100,
+          "typical": 95,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 102,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 25,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 245,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 92,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 305,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 17.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 96,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 5.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4.9e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1320,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli-éter-cetona-cetona (PEKK)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poliariletercetona fictícia de cristalização lenta, apta a manufatura aditiva, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "paek",
+        "manufatura_aditiva",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PEKK",
+        "COMERCIAL:Demopol L05-PEKK"
+      ],
+      "composition": "C=balance O=15.2-16.8 H=3.6-4.4",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.29,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 85,
+          "max": 98,
+          "typical": 92,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 24,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 260,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.24,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 320,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 18.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 98,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 5.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.39,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.15,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polieterimida Grau Extrusão em Chapa",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Polieterimida amorfa fictícia em chapa extrudada, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "amorfo",
+        "retardante_chama",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PEI-EXT",
+        "COMERCIAL:Demopol L05-PEI-EXT"
+      ],
+      "composition": "C=balance O=15.4-17.0 N=4.3-5.2 H=3.7-4.5",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.27,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 98,
+          "max": 110,
+          "typical": 105,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 112,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 27,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 78,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.4e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1120,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polissulfona Grau Médico Esterilizável",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Polissulfona amorfa fictícia, transparente e esterilizável a vapor, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "amorfo",
+        "transparente",
+        "medico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PSU-MED",
+        "COMERCIAL:Demopol L05-PSU-MED"
+      ],
+      "composition": "C=balance O=13.7-15.2 S=6.9-7.6 H=4.8-5.3",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 66,
+          "max": 74,
+          "typical": 70,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 155,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 175,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 9.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.08,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polietersulfona (PES)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Polietersulfona amorfa fictícia de alta temperatura de transição vítrea, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "amorfo",
+        "sulfona",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PES",
+        "COMERCIAL:Demopol L05-PES"
+      ],
+      "composition": "C=balance O=20.0-20.9 S=13.1-14.5 H=3.1-3.8",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.37,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.65,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 78,
+          "max": 88,
+          "typical": 84,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 24,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 190,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 10.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1090,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polifenilsulfona (PPSU)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Polifenilsulfona amorfa fictícia de alta tenacidade, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "amorfo",
+        "sulfona",
+        "tenaz",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PPSU",
+        "COMERCIAL:Demopol L05-PPSU"
+      ],
+      "composition": "C=balance O=15.2-16.8 S=7.6-8.4 H=3.6-4.4",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.29,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.35,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 64,
+          "max": 73,
+          "typical": 69,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 76,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 185,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 210,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 11.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 66,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.17,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli(sulfeto de fenileno) Linear (PPS)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poli(sulfeto de fenileno) linear fictício, sem carga, resistente a químicos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "semicristalino",
+        "quimicamente_resistente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PPS-LIN",
+        "COMERCIAL:Demopol L05-PPS-LIN"
+      ],
+      "composition": "C=balance S=28.8-29.9 H=3.4-4.1",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.35,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 72,
+          "max": 82,
+          "typical": 78,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 20.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.29,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 15.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1060,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliamida-imida (PAI) Moldada",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poliamida-imida fictícia moldada e pós-curada, de altíssima resistência, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "amorfo",
+        "alta_resistencia",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PAI",
+        "COMERCIAL:Demopol L05-PAI"
+      ],
+      "composition": "C=balance O=17.1-18.9 N=7.5-8.3 H=3.1-3.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.42,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 125,
+          "max": 140,
+          "typical": 132,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 250,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.26,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 140,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 330,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 19,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 99,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 5.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.01,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliimida Sinterizada (PI)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poliimida aromática fictícia conformada por sinterização direta, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "poliimida",
+        "sinterizado",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PI-SINT",
+        "COMERCIAL:Demopol L05-PI-SINT"
+      ],
+      "composition": "C=balance O=20.3-21.1 N=7.0-7.7 H=2.4-2.9",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.43,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 70,
+          "max": 80,
+          "typical": 75,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 20.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 290,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 145,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 340,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 19.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 98,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 5.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1130,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polímero Líquido-Cristalino (LCP) Sem Carga",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Copoliéster aromático líquido-cristalino fictício, valores mecânicos na direção transversal ao fluxo, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "cristal_liquido",
+        "anisotropico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-LCP",
+        "COMERCIAL:Demopol L05-LCP"
+      ],
+      "composition": "C=balance O=23.8-24.8 H=3.1-3.8",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.05
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.4,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "GPa",
+          "measurement_condition": "Direção transversal ao fluxo de injeção"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 50,
+          "max": 58,
+          "typical": 55,
+          "unit": "MPa",
+          "measurement_condition": "Direção transversal ao fluxo de injeção"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MPa",
+          "measurement_condition": "Direção transversal ao fluxo de injeção"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 14,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 240,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.03,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PTFE Virgem Moldado por Compressão",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Politetrafluoretileno virgem fictício, moldado por compressão e sinterizado, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "baixo_atrito",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PTFE-VIR",
+        "COMERCIAL:Demopol L05-PTFE-VIR"
+      ],
+      "composition": "C=balance F=73.7-76.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 2.17,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 0.55,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 10,
+          "max": 12.5,
+          "typical": 11.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 28,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 260,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 12.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.46,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00012,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1015,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Etileno-Propileno Fluorado (FEP)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Copolímero de tetrafluoretileno e hexafluorpropileno fictício, processável por fusão, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "isolamento_eletrico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-FEP",
+        "COMERCIAL:Demopol L05-FEP"
+      ],
+      "composition": "C=balance F=73.7-76.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 2.15,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 0.48,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 11,
+          "max": 13.5,
+          "typical": 12,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 23,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 240,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 14.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.000132,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.17,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Perfluoroalcóxi (PFA)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Copolímero perfluoroalcóxi fictício para revestimento e tubulação química, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "quimicamente_resistente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PFA",
+        "COMERCIAL:Demopol L05-PFA"
+      ],
+      "composition": "C=balance F=73.5-76.6 O=0.19-0.29",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 2.15,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 0.58,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 13,
+          "max": 15.5,
+          "typical": 14.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 27,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 260,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 260,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 15.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.000125,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1050,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Etileno-Tetrafluoretileno (ETFE)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Copolímero alternado de etileno e tetrafluoretileno fictício, para filmes e cabos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "filme",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-ETFE",
+        "COMERCIAL:Demopol L05-ETFE"
+      ],
+      "composition": "C=balance F=57.6-59.9 H=2.8-3.5",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 22,
+          "max": 27,
+          "typical": 24,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 10.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.24,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 13.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.42,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 9.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli(fluoreto de vinilideno) (PVDF)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Poli(fluoreto de vinilideno) semicristalino fictício, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "piezoeletrico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PVDF",
+        "COMERCIAL:Demopol L05-PVDF"
+      ],
+      "composition": "C=balance F=57.6-59.9 H=2.8-3.5",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.78,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 44,
+          "max": 52,
+          "typical": 48,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 13,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 25,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 190,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 11.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 3.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.000128,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1230,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Policlorotrifluoretileno (PCTFE)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Policlorotrifluoretileno fictício de baixa permeabilidade, para uso criogênico, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "criogenico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PCTFE",
+        "COMERCIAL:Demopol L05-PCTFE"
+      ],
+      "composition": "C=balance F=47.5-49.4 Cl=29.5-30.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 2.12,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 36,
+          "max": 42,
+          "typical": 39,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 43,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 10,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 175,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 270,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 16,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.43,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.005,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Etileno-Clorotrifluoretileno (ECTFE)",
+      "class_slug": "polimeros",
+      "subclass": "Termoplásticos de Alta Performance",
+      "description": "Copolímero de etileno e clorotrifluoretileno fictício para revestimento anticorrosivo, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "alto_desempenho",
+        "alta_temperatura",
+        "fluoropolimero",
+        "revestimento",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-ECTFE",
+        "COMERCIAL:Demopol L05-ECTFE"
+      ],
+      "composition": "C=balance F=38.3-39.8 Cl=23.8-24.8 H=2.5-3.1",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.68,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 28,
+          "max": 33,
+          "typical": 31,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 12,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 235,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 13.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 4.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.41,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 8.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1180,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi DGEBA Curada com Amina Alifática",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina epóxi de bisfenol A fictícia curada à temperatura ambiente com amina alifática, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "cura_ambiente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-ALI",
+        "COMERCIAL:Demopol L05-EP-ALI"
+      ],
+      "composition": "C=balance O=15.7-17.4 H=7.4-8.1 N=4.1-5.1",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.05
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.16,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.9,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 55.2,
+          "max": 63,
+          "typical": 59.8,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 65,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 26.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "degC",
+          "notes": "Cura à temperatura ambiente: Tg de cerca de 60–80 °C limita o serviço."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 135,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 6.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.15,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi DGEBA Curada com Anidrido",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina epóxi de bisfenol A fictícia curada a quente com anidrido, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "cura_quente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-ANI",
+        "COMERCIAL:Demopol L05-EP-ANI"
+      ],
+      "composition": "C=balance O=22.6-23.6 H=6.3-7.0",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 68,
+          "max": 77.6,
+          "typical": 73.6,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 140,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 138,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1120,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi Novolac Curada com Amina Aromática",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina epóxi novolac fictícia curada com diamina aromática, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "novolac",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-NOV",
+        "COMERCIAL:Demopol L05-EP-NOV"
+      ],
+      "composition": "C=balance O=14.1-15.5 H=6.1-6.8 N=3.2-3.9",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.22,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 63.8,
+          "max": 72.8,
+          "typical": 69,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 32.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 145,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 7.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi Tetrafuncional TGDDM/DDS Grau Aeroespacial",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Sistema epóxi tetrafuncional fictício curado com diaminodifenilsulfona, para matriz de laminados, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "aeroespacial",
+        "matriz",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-TGD",
+        "COMERCIAL:Demopol L05-EP-TGD"
+      ],
+      "composition": "C=balance O=13.7-15.2 N=7.6-8.4 H=6.1-6.8 S=3.5-4.3",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.27,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 72.2,
+          "max": 82.5,
+          "typical": 78.2,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 39,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 165,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1080,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi Tenacificada com Borracha CTBN",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina epóxi fictícia tenacificada com borracha líquida butadieno-acrilonitrila, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "tenacificado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-CTB",
+        "COMERCIAL:Demopol L05-EP-CTB"
+      ],
+      "composition": "C=balance O=13.9-15.4 H=7.6-8.4 N=4.2-5.1",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.1
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.15,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 51,
+          "max": 58.2,
+          "typical": 55.2,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 23.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 122,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.19,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 9.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 140,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 7.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Epóxi com Carga de Sílica para Encapsulamento",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto epóxi fictício com alto teor de sílica fundida para encapsulamento eletrônico, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "epoxi",
+        "eletronica",
+        "carga_mineral",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EP-SIL",
+        "COMERCIAL:Demopol L05-EP-SIL"
+      ],
+      "composition": "C=balance O=42.6-44.4 Si=31.7-33.0 H=1.8-2.2 Br=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.02
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.9,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 11,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 80.8,
+          "max": 92.1,
+          "typical": 87.4,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 170,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.58,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 88,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1000,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Fenólica Resol Moldada Sem Carga",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina fenol-formaldeído do tipo resol fictícia, curada sem carga, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "fenolica",
+        "resol",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PF-RES",
+        "COMERCIAL:Demopol L05-PF-RES"
+      ],
+      "composition": "C=balance O=22.8-23.7 H=5.6-6.2",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.26,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4.2,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 42.5,
+          "max": 48.5,
+          "typical": 46,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 17,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.4,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Fenólica Novolac Moldável com Farinha de Madeira",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto fenólico novolac fictício com farinha de madeira para moldagem por compressão, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "fenolica",
+        "novolac",
+        "moldagem_compressao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PF-MAD",
+        "COMERCIAL:Demopol L05-PF-MAD"
+      ],
+      "composition": "C=balance O=28.8-30.0 H=5.8-6.4 N=1.8-2.2",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.05
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.38,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 7.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 40.8,
+          "max": 46.6,
+          "typical": 44.2,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 48,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 16,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1450,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Fenólica com Carga Mineral Resistente ao Calor",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto fenólico fictício com cargas minerais, para peças próximas a fontes de calor, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "fenolica",
+        "carga_mineral",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PF-MIN",
+        "COMERCIAL:Demopol L05-PF-MIN"
+      ],
+      "composition": "C=balance O=34.6-36.0 Si=13.3-14.7 Ca=11.4-12.6 H=2.2-2.7 N=1.8-2.2 Mg=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.8,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 11.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 46.8,
+          "max": 53.4,
+          "typical": 50.6,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 20.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.5,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 84,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliéster Insaturado Ortoftálico Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina de poliéster insaturado ortoftálica fictícia diluída em estireno e curada, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "poliester_insaturado",
+        "uso_geral",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-UP-ORT",
+        "COMERCIAL:Demopol L05-UP-ORT"
+      ],
+      "composition": "C=balance O=19.6-20.4 H=5.6-6.2 Co=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 46.8,
+          "max": 53.4,
+          "typical": 50.6,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 20.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "degC",
+          "notes": "Limitada pela temperatura de deflexão térmica (HDT) da resina curada."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.17,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1300,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliéster Insaturado Isoftálico Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina de poliéster insaturado isoftálica fictícia curada, de melhor resistência química, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "poliester_insaturado",
+        "quimicamente_resistente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-UP-ISO",
+        "COMERCIAL:Demopol L05-UP-ISO"
+      ],
+      "composition": "C=balance O=17.7-19.6 H=5.7-6.3 Co=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.21,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 59.5,
+          "max": 67.9,
+          "typical": 64.4,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 29.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "degC",
+          "notes": "Limitada pela temperatura de deflexão térmica (HDT) da resina curada."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.18,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.28,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliéster Insaturado Tereftálico Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina de poliéster insaturado tereftálica fictícia curada, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "poliester_insaturado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-UP-TER",
+        "COMERCIAL:Demopol L05-UP-TER"
+      ],
+      "composition": "C=balance O=19.0-21.0 H=5.3-5.9 Co=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.22,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 55.2,
+          "max": 63,
+          "typical": 59.8,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 65,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 26.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "degC",
+          "notes": "Limitada pela temperatura de deflexão térmica (HDT) da resina curada."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.18,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 108,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1290,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Vinil Éster de Bisfenol A Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina vinil éster de bisfenol A fictícia diluída em estireno e curada, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "vinil_ester",
+        "anticorrosivo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-VE-BPA",
+        "COMERCIAL:Demopol L05-VE-BPA"
+      ],
+      "composition": "C=balance O=13.0-14.4 H=7.0-7.7",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.06
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.14,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.3,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 69.7,
+          "max": 79.5,
+          "typical": 75.4,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "degC",
+          "notes": "Limitada pela temperatura de deflexão térmica (HDT) da resina curada."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Vinil Éster Novolac Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina vinil éster novolac fictícia de maior temperatura de serviço, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "vinil_ester",
+        "novolac",
+        "anticorrosivo",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-VE-NOV",
+        "COMERCIAL:Demopol L05-VE-NOV"
+      ],
+      "composition": "C=balance O=11.9-13.1 H=6.4-7.1",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.05
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.16,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 66.3,
+          "max": 75.7,
+          "typical": 71.8,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 78,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 34.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 125,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1230,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Melamina-Formaldeído com Carga Celulósica",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto melamina-formaldeído fictício com carga de celulose para peças de superfície dura, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "aminoplasto",
+        "melamina",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-MF-CEL",
+        "COMERCIAL:Demopol L05-MF-CEL"
+      ],
+      "composition": "C=balance N=29.1-30.3 O=24.7-25.7 H=5.1-5.6",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 9,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 49.3,
+          "max": 56.3,
+          "typical": 53.4,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 130,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 115,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ureia-Formaldeído com Carga Celulósica",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto ureia-formaldeído fictício com carga celulósica para componentes elétricos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "aminoplasto",
+        "ureia",
+        "eletrico",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-UF-CEL",
+        "COMERCIAL:Demopol L05-UF-CEL"
+      ],
+      "composition": "C=balance O=30.7-32.0 N=24.5-25.5 H=5.5-6.1",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.52,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 8.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 42.5,
+          "max": 48.5,
+          "typical": 46,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 17,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC",
+          "notes": "Aminoplasto de ureia: serviço contínuo limitado a cerca de 80 °C."
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 98,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1350,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Bismaleimida Curada (BMI)",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina bismaleimida fictícia modificada com alil-bisfenol, para matrizes de alta temperatura, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "bismaleimida",
+        "aeroespacial",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-BMI",
+        "COMERCIAL:Demopol L05-BMI"
+      ],
+      "composition": "C=balance O=14.1-15.6 H=5.2-5.8 N=4.2-5.2",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 74.8,
+          "max": 85.4,
+          "typical": 81,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 88,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 41,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 175,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 4.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Éster de Cianato de Bisfenol A Curado",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina de éster de cianato fictícia curada em rede de triazina, de baixa perda dielétrica, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "ester_cianato",
+        "radome",
+        "baixa_perda_dieletrica",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-CE-BPA",
+        "COMERCIAL:Demopol L05-CE-BPA"
+      ],
+      "composition": "C=balance O=10.9-12.1 N=9.6-10.6 H=4.8-5.3",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.04
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.1,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 68,
+          "max": 77.6,
+          "typical": 73.6,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 220,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 178,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 8.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1150,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polibenzoxazina Curada",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Resina polibenzoxazina fictícia de bisfenol A e anilina, curada sem voláteis, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "benzoxazina",
+        "baixa_contracao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PBZ",
+        "COMERCIAL:Demopol L05-PBZ"
+      ],
+      "composition": "C=balance O=6.6-7.3 H=6.2-6.9 N=5.8-6.4",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.19,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 51,
+          "max": 58.2,
+          "typical": 55.2,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 23.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 7.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Ftalato de Dialila com Carga de Vidro (DAP)",
+      "class_slug": "polimeros",
+      "subclass": "Termofixos",
+      "description": "Composto de ftalato de dialila fictício reforçado com fibra de vidro curta para conectores, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "termofixos",
+        "resina",
+        "dialil_ftalato",
+        "eletrico",
+        "carga_vidro",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-DAP-GF",
+        "COMERCIAL:Demopol L05-DAP-GF"
+      ],
+      "composition": "C=balance O=37.2-38.7 Si=13.3-14.7 Ca=8.1-9.0 Al=3.8-4.7 H=2.3-2.8 B=1.4-1.7",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.03
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.82,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 10,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 52.7,
+          "max": 60.1,
+          "typical": 57,
+          "unit": "MPa",
+          "notes": "Material frágil: limite elástico tomado próximo da ruptura."
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 62,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 24.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.55,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 12,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 6.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "missing",
+          "notes": "Rota de reciclagem não estabelecida para termofixo reticulado."
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.34,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 2.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1050,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliestireno Expandido (EPS) 15 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poliestireno expandido fictícia de baixa densidade para isolamento e embalagem, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "embalagem",
+        "celula_fechada",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EPS-15",
+        "COMERCIAL:Demopol L05-EPS-15"
+      ],
+      "composition": "C=balance H=7.4-8.1 Br=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 15,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.06,
+          "max": 0.075,
+          "typical": 0.07,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.16,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.038,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.11,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliestireno Expandido (EPS) 25 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poliestireno expandido fictícia de densidade média para isolamento de piso, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "construcao",
+        "celula_fechada",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EPS-25",
+        "COMERCIAL:Demopol L05-EPS-25"
+      ],
+      "composition": "C=balance H=7.4-8.1 Br=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 25,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 6.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.1,
+          "max": 0.125,
+          "typical": 0.115,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 78,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.034,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 2.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 91,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.65,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.12,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1320,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliestireno Expandido com Grafite (EPS-G) 30 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poliestireno expandido fictícia aditivada com grafite para menor condutividade, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "construcao",
+        "grafite",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EPS-G30",
+        "COMERCIAL:Demopol L05-EPS-G30"
+      ],
+      "composition": "C=balance H=7.0-7.7 Br=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 8.2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.14,
+          "max": 0.17,
+          "typical": 0.155,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.031,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.13,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.28,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliestireno Extrudado (XPS) 33 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poliestireno extrudado fictícia de célula fechada para isolamento, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "construcao",
+        "celula_fechada",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-XPS-33",
+        "COMERCIAL:Demopol L05-XPS-33"
+      ],
+      "composition": "C=balance H=7.4-8.1 Br=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 12,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.25,
+          "max": 0.31,
+          "typical": 0.28,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.45,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.033,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1450,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poliestireno Extrudado (XPS) 45 kg/m³ Alta Compressão",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poliestireno extrudado fictícia de alta resistência à compressão para pisos e coberturas, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "construcao",
+        "alta_compressao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-XPS-45",
+        "COMERCIAL:Demopol L05-XPS-45"
+      ],
+      "composition": "C=balance H=7.4-8.1 Br=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.45,
+          "max": 0.55,
+          "typical": 0.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.65,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 76,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.035,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 102,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 37,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.21,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.44,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma Rígida de Poliuretano (PUR) 32 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma rígida de poliuretano fictícia expandida a pentano para isolamento de refrigeração, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "refrigeracao",
+        "poliuretano",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PUR-32",
+        "COMERCIAL:Demopol L05-PUR-32"
+      ],
+      "composition": "C=balance O=20.8-21.6 N=5.8-6.5 H=5.5-6.1",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 5.8,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.15,
+          "max": 0.19,
+          "typical": 0.17,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.024,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 105,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1400,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de Poli-isocianurato (PIR) 40 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma rígida de poli-isocianurato fictícia para painéis isolantes de maior temperatura, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "isolamento_termico",
+        "painel",
+        "poliuretano",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PIR-40",
+        "COMERCIAL:Demopol L05-PIR-40"
+      ],
+      "composition": "C=balance O=20.7-21.6 N=6.9-7.6 H=4.4-5.4 P=missing",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 7.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.19,
+          "max": 0.24,
+          "typical": 0.21,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.32,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 140,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.023,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 108,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.42,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma Rígida de Poliuretano Estrutural 100 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma rígida de poliuretano fictícia de alta densidade para núcleos e gabaritos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "poliuretano",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PUR-100",
+        "COMERCIAL:Demopol L05-PUR-100"
+      ],
+      "composition": "C=balance O=21.3-22.2 H=5.7-6.3 N=5.5-6.1",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.8,
+          "max": 0.95,
+          "typical": 0.88,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.03,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 102,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 39,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.02,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1380,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de Poliuretano Semirrígida Moldada 150 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma semirrígida de poliuretano fictícia moldada para acabamento interno de veículos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "automotivo",
+        "absorcao_impacto",
+        "poliuretano",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PU-SR150",
+        "COMERCIAL:Demopol L05-PU-SR150"
+      ],
+      "composition": "C=balance O=21.0-21.9 H=7.5-8.3 N=4.0-4.9",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 150,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.35,
+          "max": 0.42,
+          "typical": 0.38,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.95,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.04,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 100,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.95,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00012,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polietileno Expandido em Pérolas (EPE) 30 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de polietileno expandido em pérolas fictícia para embalagem protetora, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "embalagem",
+        "absorcao_impacto",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EPE-30",
+        "COMERCIAL:Demopol L05-EPE-30"
+      ],
+      "composition": "C=balance H=13.7-15.1",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 4.2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.06,
+          "max": 0.075,
+          "typical": 0.068,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.25,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.04,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00014,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1650,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Polipropileno Expandido em Pérolas (EPP) 45 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de polipropileno expandido em pérolas fictícia para absorção de energia em veículos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "automotivo",
+        "absorcao_impacto",
+        "embalagem",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-EPP-45",
+        "COMERCIAL:Demopol L05-EPP-45"
+      ],
+      "composition": "C=balance H=13.7-15.1",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 11,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.24,
+          "max": 0.29,
+          "typical": 0.27,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 0.6,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.04,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.55,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00012,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.6,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de PVC Reticulado 80 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de PVC reticulado fictícia de célula fechada para núcleo de painel sanduíche, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "naval",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PVC-80",
+        "COMERCIAL:Demopol L05-PVC-80"
+      ],
+      "composition": "C=balance Cl=38.5-40.1 O=7.1-7.8 H=4.0-4.8 N=2.0-2.5",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 75,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 1.25,
+          "max": 1.5,
+          "typical": 1.4,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.033,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 15,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 95,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 42,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.32,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1250,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de PVC Reticulado 200 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de PVC reticulado fictícia de alta densidade para núcleo de sanduíche muito carregado, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "naval",
+        "alta_densidade",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PVC-200",
+        "COMERCIAL:Demopol L05-PVC-200"
+      ],
+      "composition": "C=balance Cl=37.4-39.0 O=7.3-8.1 H=3.9-4.8 N=2.2-2.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 200,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 230,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 4,
+          "max": 4.7,
+          "typical": 4.4,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 6.2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 82,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.045,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 12.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 96,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 4.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 43,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.33,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.26,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de PET Extrudada 110 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma de poli(tereftalato de etileno) extrudada fictícia para núcleo de pás e painéis, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "eolica",
+        "reciclavel",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PET-110",
+        "COMERCIAL:Demopol L05-PET-110"
+      ],
+      "composition": "C=balance O=32.3-33.6 H=3.8-4.6",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 1.3,
+          "max": 1.6,
+          "typical": 1.45,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 2,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 120,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.035,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 88,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.75,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1150,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de Polimetacrilimida (PMI) 52 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma rígida de polimetacrilimida fictícia para núcleo de sanduíche curado em autoclave, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "aeroespacial",
+        "alta_temperatura",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PMI-52",
+        "COMERCIAL:Demopol L05-PMI-52"
+      ],
+      "composition": "C=balance O=20.3-21.1 N=8.7-9.6 H=6.9-7.6",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 52,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 0.8,
+          "max": 0.95,
+          "typical": 0.9,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 1.9,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 180,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.031,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 19.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 118,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 48,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3.7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Espuma de Polimetacrilimida (PMI) 110 kg/m³",
+      "class_slug": "polimeros",
+      "subclass": "Espumas Poliméricas",
+      "description": "Espuma rígida de polimetacrilimida fictícia de alta densidade para estruturas aeronáuticas, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "espumas",
+        "baixa_densidade",
+        "nucleo_sanduiche",
+        "aeroespacial",
+        "alta_densidade",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PMI-110",
+        "COMERCIAL:Demopol L05-PMI-110"
+      ],
+      "composition": "C=balance O=20.3-21.1 N=8.7-9.6 H=6.9-7.6",
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 110,
+          "unit": "kg/m**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 160,
+          "unit": "MPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 2.8,
+          "max": 3.3,
+          "typical": 3,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "missing",
+          "notes": "Dureza Vickers não se aplica a espuma celular."
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 185,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.033,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 18,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 116,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 5.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 47,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 2.85,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 3.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1310,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PLA Amorfo Grau Extrusão",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Poli(ácido lático) amorfo fictício para termoformagem de embalagens, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pla",
+        "compostavel_industrial",
+        "embalagem",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PLA-AMO",
+        "COMERCIAL:Demopol L05-PLA-AMO"
+      ],
+      "composition": "C=balance O=43.1-44.8 H=5.3-5.9 Sn=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.06
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.24,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.3,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 52,
+          "max": 60,
+          "typical": 56,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 61,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 15.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.13,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 52,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 28,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.59,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PLA Semicristalino Recozido Grau Injeção",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Poli(ácido lático) semicristalino fictício, nucleado e recozido para maior temperatura de serviço, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pla",
+        "injecao",
+        "semicristalino",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PLA-REC",
+        "COMERCIAL:Demopol L05-PLA-REC"
+      ],
+      "composition": "C=balance O=43.1-44.8 H=5.3-5.9 Sn=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.05
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.7,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 58,
+          "max": 66,
+          "typical": 62,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 68,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 17,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.15,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 56,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1520,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PLA Biorientado para Filme",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Filme de poli(ácido lático) biorientado fictício para embalagem flexível, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pla",
+        "filme",
+        "embalagem",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PLA-BO",
+        "COMERCIAL:Demopol L05-PLA-BO"
+      ],
+      "composition": "C=balance O=43.1-44.8 H=5.3-5.9 Sn=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.245,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 62,
+          "max": 70,
+          "typical": 66,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 74,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 18.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.14,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.37,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.2e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.56,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PLA Grau Filamento para Impressão 3D",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Poli(ácido lático) fictício em filamento para fabricação por filamento fundido, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pla",
+        "manufatura_aditiva",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PLA-3D",
+        "COMERCIAL:Demopol L05-PLA-3D"
+      ],
+      "composition": "C=balance O=43.1-44.8 H=5.3-5.9 Sn=missing",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.08
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.24,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.1,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 50,
+          "max": 57,
+          "typical": 53,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 14.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 52,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.13,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 58,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 30,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.28,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.36,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 6.8e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1610,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "PLA Tenacificado com Modificador de Impacto",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Blenda de poli(ácido lático) fictícia com modificador acrílico de impacto, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pla",
+        "tenacificado",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PLA-TEN",
+        "COMERCIAL:Demopol L05-PLA-TEN"
+      ],
+      "composition": "C=balance O=39.7-41.3 H=5.8-6.4 Sn=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.22,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 38,
+          "max": 44,
+          "typical": 41,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 11.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 55,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.15,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 4.8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 62,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.35,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 8.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.65,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli-hidroxibutirato (PHB)",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Poli(3-hidroxibutirato) fictício obtido por fermentação bacteriana, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pha",
+        "biodegradavel",
+        "fermentacao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PHB",
+        "COMERCIAL:Demopol L05-PHB"
+      ],
+      "composition": "C=balance O=36.1-37.5 H=6.7-7.4",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.08
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.25,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 3.4,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 34,
+          "max": 39,
+          "typical": 36.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 10.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 85,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.19,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 65,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.45,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 7.5e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1400,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli(hidroxibutirato-co-valerato) (PHBV)",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Copolímero PHBV fictício com cerca de 8 % de valerato, menos frágil que o PHB, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pha",
+        "biodegradavel",
+        "copolimero",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PHBV",
+        "COMERCIAL:Demopol L05-PHBV"
+      ],
+      "composition": "C=balance O=35.6-37.1 H=6.8-7.5",
+      "curve_hint": {
+        "shape": "brittle",
+        "softening": 0.12
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.23,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 2.5,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 29,
+          "max": 34,
+          "typical": 31.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 80,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.18,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 68,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.39,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 9e-05,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.45,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli(3-hidroxibutirato-co-4-hidroxibutirato) (P3HB4HB)",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Copolímero de poli-hidroxialcanoato fictício de maior flexibilidade, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pha",
+        "biodegradavel",
+        "flexivel",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-P34HB",
+        "COMERCIAL:Demopol L05-P34HB"
+      ],
+      "composition": "C=balance O=36.1-37.5 H=6.7-7.4 N=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.2,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.1,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 25,
+          "max": 29,
+          "typical": 27,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 32,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 8.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 60,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.17,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.9,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.1,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 35,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.52,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.41,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00012,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1700,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Poli(succinato de butileno) (PBS) Grau Injeção",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Poli(succinato de butileno) fictício de base parcialmente biológica para peças injetadas, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "pbs",
+        "biodegradavel",
+        "injecao",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-PBS",
+        "COMERCIAL:Demopol L05-PBS"
+      ],
+      "composition": "C=balance O=36.1-37.5 H=6.7-7.4 Ti=missing",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.26,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 0.6,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 30,
+          "max": 35,
+          "typical": 32.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 9.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 90,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 5.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 76,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 36,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00013,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Acetato de Celulose Plastificado",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Acetato de celulose fictício plastificado com ftalato de dietila, para armações e cabos, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "celulosico",
+        "transparente",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-CA-PL",
+        "COMERCIAL:Demopol L05-CA-PL"
+      ],
+      "composition": "C=balance O=40.5-42.1 H=5.5-6.1",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.28,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.9,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 33,
+          "max": 38,
+          "typical": 35.5,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 40,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 10.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 65,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.2,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 6,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 72,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 34,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.39,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00011,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1500,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Acetato Butirato de Celulose (CAB)",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Éster misto de celulose fictício com grupos acetato e butirato, tenaz e transparente, para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "celulosico",
+        "transparente",
+        "tenaz",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-CAB",
+        "COMERCIAL:Demopol L05-CAB"
+      ],
+      "composition": "C=balance O=37.0-38.5 H=6.6-7.3",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.19,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 26,
+          "max": 30,
+          "typical": 28,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 33,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 8.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 70,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.19,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 7.2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 78,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 3.5,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 38,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.7,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.4,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00013,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1.55,
+          "unit": "kJ/(kg*K)"
+        }
+      ]
+    },
+    {
+      "name": "Blenda de Amido Termoplástico com PLA",
+      "class_slug": "polimeros",
+      "subclass": "Biopolímeros",
+      "description": "Blenda fictícia de amido termoplástico plastificado com glicerol e poli(ácido lático), para demonstração.",
+      "keywords": [
+        "polimeros",
+        "biopolimeros",
+        "base_biologica",
+        "amido",
+        "compostavel_industrial",
+        "embalagem",
+        "demo",
+        "simulado"
+      ],
+      "designations": [
+        "ISO:DEMO-L05-TPS-PLA",
+        "COMERCIAL:Demopol L05-TPS-PLA"
+      ],
+      "composition": "C=balance O=46.3-48.3 H=6.0-6.7",
+      "curve_hint": {
+        "shape": "ductile"
+      },
+      "values": [
+        {
+          "slug": "densidade",
+          "kind": "scalar",
+          "value": 1.3,
+          "unit": "g/cm**3"
+        },
+        {
+          "slug": "modulo_young",
+          "kind": "scalar",
+          "value": 1.8,
+          "unit": "GPa"
+        },
+        {
+          "slug": "limite_escoamento",
+          "kind": "interval",
+          "min": 25,
+          "max": 29,
+          "typical": 27,
+          "unit": "MPa"
+        },
+        {
+          "slug": "resistencia_tracao",
+          "kind": "scalar",
+          "value": 31,
+          "unit": "MPa"
+        },
+        {
+          "slug": "dureza",
+          "kind": "scalar",
+          "value": 8,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "temp_max_servico",
+          "kind": "scalar",
+          "value": 50,
+          "unit": "degC"
+        },
+        {
+          "slug": "condutividade_termica",
+          "kind": "scalar",
+          "value": 0.22,
+          "unit": "W/(m*K)"
+        },
+        {
+          "slug": "custo_massa",
+          "kind": "scalar",
+          "value": 3,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_incorporada",
+          "kind": "scalar",
+          "value": 45,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "pegada_co2",
+          "kind": "scalar",
+          "value": 2,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "energia_reciclagem",
+          "kind": "scalar",
+          "value": 22,
+          "unit": "MJ/kg"
+        },
+        {
+          "slug": "co2_reciclagem",
+          "kind": "scalar",
+          "value": 1.05,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_poisson",
+          "kind": "scalar",
+          "value": 0.38,
+          "unit": "dimensionless"
+        },
+        {
+          "slug": "coef_expansao_termica",
+          "kind": "scalar",
+          "value": 0.00012,
+          "unit": "1/K"
+        },
+        {
+          "slug": "calor_especifico",
+          "kind": "scalar",
+          "value": 1650,
+          "unit": "J/(kg*K)"
+        }
+      ]
+    }
+  ]
+}
