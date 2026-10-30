@@ -199,11 +199,13 @@ describe("assistente de seleção", () => {
 
     // The count is the one number the whole method turns on. It used to exist
     // only next to the constraint editor and vanish the moment anyone moved on.
-    await waitFor(() => expect(screen.getByText("5")).toBeInTheDocument());
+    // D-186: the funnel pane repeats the number, so the counter is read in its bar.
+    const bar = () => within(screen.getByShadowRole("group", { name: t.actionBar }));
+    await waitFor(() => expect(bar().getByText("5")).toBeInTheDocument());
 
     await user.click(stepButton(t.stepObjective));
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText(`${t.of} 12`)).toBeInTheDocument();
+    expect(bar().getByText("5")).toBeInTheDocument();
+    expect(bar().getByText(`${t.of} 12`)).toBeInTheDocument();
   });
 
   it("refuses the results step, in words, until a selection has been run", async () => {
@@ -851,5 +853,65 @@ describe("rascunho salvo (D-139)", () => {
 
     await waitFor(() => expect(createStudy).toHaveBeenCalled());
     await waitFor(() => expect(window.localStorage.getItem(draftKey(7))).toBeNull());
+  });
+});
+
+describe("funil ao lado e botão dividido (D-186)", () => {
+  it("keeps the server's funnel beside every input step, and gives the results the whole width", async () => {
+    const user = userEvent.setup();
+    runSelection.mockResolvedValue(
+      result({
+        funnel: [{ label: "Densidade ≤ 3", operator: "<=", passed: 5, remaining: 5 }],
+      }),
+    );
+    render(wrap(<SelectionPage />));
+
+    const pane = await screen.findByShadowRole("complementary", { name: t.live.region });
+    await waitFor(() => expect(within(pane).getByText("Densidade ≤ 3")).toBeInTheDocument());
+    // What the step removed, from the backend's own counts: 12 → 5.
+    expect(within(pane).getByText(`−7 ${t.eliminated}`)).toBeInTheDocument();
+    expect(within(pane).getByText(t.live.remainOf(12))).toBeInTheDocument();
+
+    await user.click(stepButton(t.stepObjective));
+    expect(screen.getByShadowRole("complementary", { name: t.live.region })).toBeInTheDocument();
+
+    await clickRun(user);
+    await waitFor(() =>
+      expect(screen.queryByShadowRole("complementary", { name: t.live.region })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("says in words that no limit has cut the catalogue yet", async () => {
+    render(wrap(<SelectionPage />));
+    const pane = await screen.findByShadowRole("complementary", { name: t.live.region });
+    await waitFor(() => expect(within(pane).getByText(t.live.noLimits)).toBeInTheDocument());
+  });
+
+  it("splits Run once there is an objective, and the menu runs the limits alone", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+
+    // Without an objective there is nothing else to run: a plain button.
+    await user.click(stepButton(t.stepConstraints));
+    expect(screen.queryByShadowRole("button", { name: t.runMenu })).not.toBeInTheDocument();
+
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getByRole("combobox", { name: t.criterion }), density.name);
+    await user.keyboard("{Enter}");
+    await user.click(stepButton(t.stepConstraints));
+
+    // The live count sends the same constraints-only request, so the run is
+    // told apart by what it does: it opens the results.
+    runSelection.mockResolvedValue(result({ final_count: 3 }));
+    await user.click(screen.getByShadowRole("button", { name: t.runMenu }));
+    await user.click(await screen.findByShadowRole("menuitem", { name: new RegExp(t.runLimitsOnly) }));
+
+    await waitFor(() =>
+      expect(screen.queryByShadowRole("complementary", { name: t.live.region })).not.toBeInTheDocument(),
+    );
+    const calls = runSelection.mock.calls.map((c) => c[0] as { ranking: unknown; index: unknown });
+    expect(calls.every((c) => c.ranking === null && c.index === null)).toBe(true);
   });
 });

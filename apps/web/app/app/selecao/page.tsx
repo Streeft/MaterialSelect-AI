@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDebounced } from "@/lib/useDebounced";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
@@ -68,10 +68,12 @@ import {
   GuidedBlock,
   Input,
   LoadingState,
+  MenuItem,
   PageHeader,
   Section,
   Select,
   SelectOption,
+  SplitButton,
   Stepper,
   Textarea,
   type Step as StepItem,
@@ -110,6 +112,8 @@ import {
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
 import { ResultsView } from "@/components/selection/ResultsView";
+import { LiveFunnel } from "@/components/selection/LiveFunnel";
+import { PaneScaffold } from "@/components/layout/PaneScaffold";
 import { SavedStudiesPanel } from "@/components/selection/SavedStudiesPanel";
 import { BIKE_BEAM_EXAMPLE, missingForExample } from "@/lib/selection/examples";
 import {
@@ -302,6 +306,32 @@ function CandidateCounter({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * D-186: the input steps sit in the M3 supporting-pane layout, the funnel beside
+ * them (under them on a narrow block). Results have their own funnel, so they
+ * take the whole width.
+ */
+function StepPanes({
+  withFunnel,
+  funnel,
+  children,
+}: {
+  withFunnel: boolean;
+  funnel: ReactNode;
+  children: ReactNode;
+}) {
+  if (!withFunnel) return <div className="space-y-4">{children}</div>;
+  return (
+    <PaneScaffold
+      layout="supporting-pane"
+      primary={<div className="space-y-4">{children}</div>}
+      secondary={funnel}
+      primaryLabel={t.live.main}
+      secondaryLabel={t.live.region}
+    />
   );
 }
 
@@ -684,8 +714,10 @@ function SelectionWizard() {
     return criterionOptions.find((p) => p.slug === key)?.name ?? key;
   };
 
+  // D-186: `false` is the split button's "Executar só os limites" — who passes,
+  // without the index or the ranking.
   const run = useMutation({
-    mutationFn: () => runSelection(buildRequest(true)),
+    mutationFn: (withObjective: boolean) => runSelection(buildRequest(withObjective)),
     onSuccess: (data) => {
       setResult(data);
       goToStep("results");
@@ -1202,15 +1234,36 @@ function SelectionWizard() {
             ) : gate.note ? (
               <p className="basis-full text-right text-support text-ink-muted sm:basis-auto">{gate.note}</p>
             ) : null}
-            <Button
-              variant="primary"
-              loading={run.isPending}
-              disabled={!gate.canRun}
-              aria-describedby={gate.reason ? "executar-motivo" : undefined}
-              onClick={() => run.mutate()}
-            >
-              {run.isPending ? t.running : t.run}
-            </Button>
+            {hasObjective ? (
+              // D-186: the M3 split button. The constraints-only run ignores the
+              // weights, so its seat stays open while the weights block the main one.
+              <SplitButton
+                variant="primary"
+                loading={run.isPending}
+                disabled={!gate.canRun}
+                menuDisabled={run.isPending}
+                describedBy={gate.reason ? "executar-motivo" : undefined}
+                onClick={() => run.mutate(true)}
+                menuLabel={t.runMenu}
+                menu={
+                  <MenuItem onSelect={() => run.mutate(false)} hint={t.runLimitsOnlyHint}>
+                    {t.runLimitsOnly}
+                  </MenuItem>
+                }
+              >
+                {run.isPending ? t.running : t.run}
+              </SplitButton>
+            ) : (
+              <Button
+                variant="primary"
+                loading={run.isPending}
+                disabled={!gate.canRun}
+                aria-describedby={gate.reason ? "executar-motivo" : undefined}
+                onClick={() => run.mutate(true)}
+              >
+                {run.isPending ? t.running : t.run}
+              </Button>
+            )}
           </>
         ) : (
           <>
@@ -1292,6 +1345,16 @@ function SelectionWizard() {
           onSelect={(next) => goToStep(next)}
         />
 
+        <StepPanes
+          withFunnel={step !== "results"}
+          funnel={
+            <LiveFunnel
+              result={preview.data}
+              pending={preview.isFetching}
+              failed={preview.isError}
+            />
+          }
+        >
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -1779,6 +1842,7 @@ function SelectionWizard() {
         {step === "results" && !result && (
           <EmptyState title={t.blockedResults} description={t.emptyResults} />
         )}
+        </StepPanes>
 
         {saveMessage && (
           <Alert tone="success" role="status">

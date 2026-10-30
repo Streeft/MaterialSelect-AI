@@ -120,6 +120,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
+
+**O que mudou.** As etapas de entrada da Seleção ganharam o painel de apoio M3 com o funil de candidatos ao vivo (`LiveFunnel`, mesma prévia do
+servidor que o contador já usava); com objetivo, o Executar vira botão dividido com "Executar só os limites". `FunnelRow` passa a ser
+compartilhado com `ResultsView`. Achado e corrigido: a seta do `SplitButton` perdia a cor no hover e aberta. Também renumerado o catálogo em
+lista e detalhe para D-185/Sessão 143 (o #210 entrou com o mesmo D-184). +5 de frontend (3 na Seleção, 2 no `SplitButton`); suíte: 1541
+passam; E2E `golden-path` e `larguras` passam. No Chromium a 1440 px o funil fica ao lado sem rolagem horizontal; a 390 px desce para baixo da
+etapa. Sem backend nem migração.
+
 ## Sessão 143 — 30/10/26 — Catálogo em lista e detalhe (D-185)
 
 **O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
