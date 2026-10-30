@@ -11527,3 +11527,83 @@ claro do grupo novo; corrigido com regras do trilho mais específicas. O par do 
 
 **Ainda não usados nas telas** (só em `/app/estilo`): entram com o catálogo em lista e detalhe, a seleção e o início (D-181, ordem).
 
+
+## D-184 — Catálogo demo ampliado do TCC: 593 materiais fictícios em nove lotes JSON, numa lista separada
+
+**Status.** Decidida pelo assistente por delegação do autor, **revisável**. Nada roda em produção por este PR: semear o catálogo
+ampliado em produção é decisão exclusiva do autor (ver "Produção", abaixo).
+
+**Contexto.** Para a apresentação do TCC o catálogo demo (75 materiais + 10 de release) é pequeno para mostrar mapas de Ashby,
+funil de seleção, Eco Audit e cartão CAE com famílias reconhecíveis. Uma especificação (formato, ponto de carga, faixas por família,
+riscos) guiou nove lotes gerados em paralelo, e um QA lote a lote e global os revisou: **593 materiais, 0 erros bloqueantes**, com 111
+valores corrigidos, 2 materiais substituídos (Zamak por gravidade → ZA-8 e ZA-27) e 8 subclasses renomeadas para o Title Case do catálogo.
+
+**Decisão.**
+1. **Lista separada no mesmo arquivo.** Os 593 vivem em `TCC_DEMO_MATERIALS` e entram por `seed_demo_catalog_expansion(db, source)`,
+   chamada no `main()` de `app.db.seed_extended` logo depois dos 70 e **antes** de `seed_demo_ordinals` (que cobre todo `is_demo`, e
+   pega os novos). Contraria a letra do docs/15 ("acrescente à lista existente"): `EXTENDED_DEMO_MATERIALS` é a base de ~25 testes com
+   contagem fixa (75 materiais, 222 curvas, `full_demo`) e anexar 593 os quebraria e multiplicaria o tempo da suíte. O objetivo da
+   regra (D-71) se mantém: mesmo arquivo, mesmo escritor (`seed_extended_materials`, que ganhou `specs`), mesmo `main()` que
+   `semear_demo` e `scripts/seed.ps1` já executam — nenhum dos dois mudou. Nenhuma contagem fixa da suíte se moveu.
+2. **Dados em JSON, validador puro.** Os lotes ficam em `apps/api/app/db/demo_catalog/L0*.json` (no `package-data` do
+   `pyproject.toml`, como o glossário do D-130). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
+   `__main__`. As regras portadas do QA (`qa_global.py` e os nove validadores): estrutura e 15 propriedades por material; unidade
+   aceita pela propriedade e conversão pela trilha de `app.calculations.units` (via `app.domain.data_quality`); nenhum zero ou
+   negativo (ausência é `missing` com nota, e só em dureza e reciclagem — o escoamento do ferro fundido cinzento é a única exceção
+   essencial); ≤ 4 algarismos; intervalo só no escoamento; escoamento ≤ tração; ν em (0; 0,5); reciclagem menor que produção;
+   **faixas por família** (E/ρ por subclasse — aços 23–28 MN·m/kg, Cu 10–17, Zn 11–16, Pb/Sn 1–8, Ni/Co 19–28, Ti 20–28,
+   cerâmicas técnicas 30–220, CFRP 30–150, elastômeros < 0,1; Poisson, expansão e CO₂/energia por classe; σy/σu dos frágeis 0,9–1,0,
+   dos laminados 0,8–1,0, do CMC 0,5–0,8, das madeiras 0,3–0,7; teto de Tmax para Al e Mg 250 °C e termoplásticos commodity 120 °C;
+   E de elastômero < 0,2 GPa); forma de curva compatível com a classe; gramática de designação e composição do D-107; nome e código
+   únicos no demo inteiro (sem caixa e sem acento), contra os 75, as releases e os outros lotes; e as coerências entre famílias
+   (ρ Mg < Al < Ti < aço, E de polímero < E de metal maciço, k de inox < k de cobre puro). `load_lots` **falha alto** com a lista dos
+   erros: um lote quebrado para o `semear_demo` em vez de semear parte.
+3. **Marcação e fonte.** Tudo `is_demo=True`, fonte única `Dataset Demo MaterialSelect` (sem `Source` nova, sem licença diferente),
+   todo valor `ESTIMADO`, designações `DEMO-…`/`Demo…` sem equivalência afirmada.
+4. **Subclasses convivem.** As 30 subclasses novas (15 em metais, 3 em polímeros, 6 em cerâmicas, 6 em compósitos) coexistem com as
+   do demo antigo (`Aços`, `Ligas Leves`, `Compósitos Poliméricos`…): `subclass` é texto livre. **Nenhuma `MaterialClass` nova**
+   (`clear_demo` não apaga taxonomia, e `seed_demo_cae`, o gerador de curvas e a paleta só conhecem as cinco). Consequência visível: o
+   filtro por subclasse separa "Madeira Compensada (Pinho)" dos compensados novos.
+5. **Valores do QA são finais.** Prevalece o valor real da literatura aberta sobre a faixa didática da especificação; cada desvio está
+   documentado no relatório de QA. A integração não mudou número nenhum.
+6. **Curvas, CAE e processos.** `build_curve_specs` ganhou `names` e `hints`: o `curve_hint` do lote (frágil com amolecimento,
+   elastômero com deformação de ruptura, CMC, dúctil) substitui os dicionários por nome — um ferro fundido cinzento é metal e rompe
+   frágil; um MMC dúctil ganha a família por temperatura. As leituras das propriedades que ancoram a curva viraram uma consulta por
+   500 ids. ν, α e cp vêm escritos nos lotes, então `seed_demo_cae_values` (que só preenche par ausente) não é chamado para eles.
+   `link_demo_processes(material_ids=…)` recebe **só** os ids dos 593 — sem ids ele vincularia todo material ativo, real inclusive.
+7. **Busca por nome endurecida.** `seed()` e `seed_extended_materials` procuravam o material por `Material.name == nome …
+   one_or_none()` sem filtrar `is_demo`/dono: um material real ou próprio com o mesmo nome fazia o demo ser **pulado em silêncio**, e
+   dois levantavam `MultipleResultsFound`. Agora a chave de idempotência é o conjunto de nomes de material `is_demo` sem dono, lido uma
+   vez; `_seed_demo_identity`, `_seed_demo_curves` e `build_curve_specs` também filtram `owner_id IS NULL`.
+8. **Exclusão.** `clear_demo` já apaga por `is_demo`, com cascata explícita; não precisou mudar. Testado: os 593 saem com valores,
+   designações, composição, curvas (séries e pontos), ordinais e vínculos de processo, sem órfão.
+
+**Medido.** Primeira execução: `tcc_materials_created` 593, `tcc_designations_created` 1249, `tcc_composition_entries_created` 3276,
+`tcc_curves_created` 1779, `tcc_process_links_created` 3032; segunda, tudo 0. Catálogo demo: 678 `is_demo` (668 com designação,
+composição e curva; as 10 de release seguem como antes). `seed_extended` inteiro num banco limpo depois de `alembic upgrade head` +
+`app.db.seed`: ~11 s em SQLite local, ~21 s em PostgreSQL 16 local, ~5.400 comandos SQL; `clear_demo` ~1,5 s. Contra o Neon, a partir
+do runner do GitHub, a latência por ida e volta domina: estimativa de alguns minutos.
+
+**Revisão humana pendente** (do relatório de QA; nenhum é erro de regra):
+- **Diamante CVD** (graus térmico e mecânico): custo, energia e CO₂ (200 000 / 500 000 MJ/kg / 70 000 kg/kg e 120 000 / 300 000 /
+  40 000) são estimativa de ordem de grandeza pelo consumo do reator, sem ficha aberta; nota gravada no próprio valor.
+- **Pd puro e Pd60Ag40**: energia e CO₂ (36 000 / 2 400 e 22 000 / 1 450) **não** foram alterados por falta de referência firme e
+  podem estar subestimados como estavam os de Au e Pt.
+- **k do Ouro Amarelo 14K (60) e da Pt-10Rh (38 W/(m·K))**, derivados por Wiedemann–Franz; a Pt-Rh também tem Tmax 1400 °C e CO₂ 15 000.
+- **33 nomes de grau/condição de material que já existe no demo** (não são duplicatas): os mais próximos são `Aço Carbono SAE 1045
+  Temperado e Revenido` × `Aço Carbono 1045`, `Poliacetal Copolímero (POM-C)` × `Poliacetal (POM)`, `Liga de Titânio Ti-6Al-4V ELI
+  (Grau 23)` × `Ti-6Al-4V`, `Bronze Fosforoso CuSn8P` × `Bronze Fosforoso` e `Compensado Fenólico de Pinus para Fôrmas` × `Madeira
+  Compensada (Pinho)`.
+- **Ausência acima dos ~10 % da especificação** em L08 (14,2 %) e L09 (12,5 %), só em dureza e reciclagem, com nota.
+- Valores guardados positivos por limitação do modelo (escala log): α de CFRP/AFRP unidirecional e ν da cortiça, com o sinal real na
+  nota; razão CO₂/energia fora de 0,04–0,1 por motivo físico (poliolefinas/PVC, cimento, diamante CVD).
+
+**Produção.** `CLAUDE.md` e `.claude/rules/deploy-pos-merge.md` proíbem `semear_demo` no banco de produção depois do cutover oficial,
+e o `CLAUDE.md` curto diz "nunca" sem condição. Este PR não executa nada em produção. Se o autor decidir semear os 593 no Neon para a
+apresentação, isso grava ~600 materiais marcados `is_demo` com todos os filhos, em alguns minutos; o importador oficial recusa
+enquanto houver demo, e voltar exige `excluir_demo` — irreversível, apaga **todo** o demo (não só os 593). A alternativa sem risco é
+semear um ambiente de preview ou local.
+
+**Consequências.** A suíte ganha 27 testes (`test_demo_catalog_tcc.py`; dois semeiam os 593, ~13 s cada). O mapa de Ashby passa a
+678 pontos em 5 cores; legibilidade e desempenho do Plotly com esse volume ficam para conferir no navegador. Um lote novo entra como
+um JSON a mais no diretório e passa pelo mesmo validador.

@@ -120,6 +120,33 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 142 — 30/10/26 — Catálogo demo ampliado do TCC: 593 materiais fictícios (D-184)
+
+**O pedido.** Integrar ao seed demo os nove lotes validados pelo QA (593 materiais, todos demonstrativos) para a apresentação do
+TCC, com as decisões do coordenador: lista separada, fonte e qualidade do demo, subclasses novas convivendo, valores do QA finais.
+
+**O que mudou.** Lotes em `apps/api/app/db/demo_catalog/L0*.json` (no `package-data`); o pacote tem `validate_lot`/`validate_lots`
+(regras do QA, puras) e `load_lots` (falha alto). `seed_extended` carrega `TCC_DEMO_MATERIALS` e chama
+`seed_demo_catalog_expansion()` no `main()`: materiais pelo escritor dos 70 (que ganhou `specs`), designação e composição pelo escritor
+único, curvas com o `curve_hint` do lote (`build_curve_specs(names=…, hints=…)`, leitura das âncoras em lote) e processos só nos ids
+novos. A busca do seed por nome (em `seed()` e `seed_extended_materials`) passou a considerar só material `is_demo` sem dono: antes, um
+material real com o mesmo nome fazia o demo ser pulado em silêncio, e dois davam `MultipleResultsFound`. `clear_demo` não mudou: já
+apaga os 593 por `is_demo`.
+
+**Medido.** Log da primeira execução: 593 materiais, 1249 designações, 3276 linhas de composição, 1779 curvas, 3032 vínculos de
+processo; segunda execução, tudo 0. `alembic upgrade head` + `app.db.seed` + `app.db.seed_extended` num banco limpo fora do repo:
+`seed_extended` em ~11 s (SQLite) e ~21 s (PostgreSQL 16 local), ~5.400 comandos SQL; `clear_demo` apaga os 678 `is_demo` em ~1,5 s.
+
+**Testes.** +27 de backend (`test_demo_catalog_tcc.py`): os nove lotes passam no validador e cada regra recusa uma cópia mutada;
+unicidade de nome e de designação entre lotes e contra o demo atual; carga completa (593 `is_demo`, unidade canônica e conversão
+conferidas por `app/calculations/units.py`, ausente com numéricos nulos e nunca 0, escoamento ≤ tração, 3 curvas cada, processos);
+idempotência; `clear_demo` sem órfão; forma da curva pelo `curve_hint`; processos só nos novos; e os dois defeitos da busca por nome,
+que falham na `main` (demo pulado; `MultipleResultsFound`). Suíte inteira: 5190 coletados (5184 passam, 6 pulam). Sem migração.
+**Nada roda em produção**; semear o catálogo ampliado lá é decisão do autor (D-184, "Produção"). Pós-merge: Deploy da API não é
+necessário (a API não importa o seed), mas é inócuo pela regra do `deploy-pos-merge`.
+
+---
+
 ## Sessão 139 — 30/10/26 — Contagem de testes medida, em uma linha só
 
 Sem decisão nova. `docs/PROJECT_CONTEXT.md` tinha 13 linhas "**Testes: ...**"
