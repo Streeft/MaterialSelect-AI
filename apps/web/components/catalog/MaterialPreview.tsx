@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getMaterial } from "@/lib/api";
-import { markContainerOrigin } from "@/lib/containerTransition";
+import { markContainerOrigin, ORIGIN_ATTRIBUTE } from "@/lib/containerTransition";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import type { MaterialListItem } from "@/lib/types";
@@ -37,8 +37,9 @@ export function MaterialPreview({
   });
   const href = `/app/materiais/${item.id}`;
 
+  // The pane itself is the origin: "Abrir ficha completa" grows the sheet out of it (D-148, D-184).
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" {...{ [ORIGIN_ATTRIBUTE]: "" }}>
       <div className="flex items-start gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-2">

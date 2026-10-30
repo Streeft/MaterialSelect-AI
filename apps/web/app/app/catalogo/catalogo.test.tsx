@@ -258,6 +258,10 @@ describe("lista e detalhe (D-184)", () => {
       "href",
       "/app/materiais/1",
     );
+    // "Abrir ficha completa" grows the sheet out of the pane (D-148).
+    expect(
+      within(pane).getByShadowRole("link", { name: t.preview.openFull }).closest("[data-container-origin]"),
+    ).not.toBeNull();
     // The row of the material on display says so.
     const compactTable = screen.getByShadowRole("table");
     expect(within(compactTable).getByShadowRole("link", { name: /Aço 1020/ })).toHaveAttribute(

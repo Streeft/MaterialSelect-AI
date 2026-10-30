@@ -11538,7 +11538,7 @@ flutuante (*Components › Toolbars*, Expressive).
   sem sair da lista; a linha do material aberto leva `aria-current` e fundo. Bloco mais estreito, Ctrl/Cmd/Shift/Alt ou botão do meio: o link
   navega para a página inteira como antes. Nenhum seletor novo de modo: o D-50 (sem alternância Tabela/Cartões) continua valendo.
 - **A ficha ao lado é a ficha**, não um resumo: os mesmos `PropertyGroupCard` (selo de qualidade, popover de proveniência, ausência escrita) da
-  página, pela mesma chave de consulta, então abrir a página inteira depois reaproveita a leitura. "Abrir ficha completa" e "Fechar" ficam no topo.
+  página, pela mesma chave de consulta, então abrir a página inteira depois reaproveita a leitura. "Abrir ficha completa" e "Fechar" ficam no topo. O próprio painel leva `data-container-origin`, de modo que "Abrir ficha completa" faz a ficha nascer dele (D-148). `e2e/transicao.spec.ts` e `e2e/offline.spec.ts` passam por esse caminho no desktop.
   Carregamento com o `LoadingIndicator` (D-183). Um material que sai da lista por um filtro fecha a ficha.
 - **Com a ficha aberta a tabela fica compacta**: sem as colunas de classe, palavras-chave e designações; a classe desce para baixo do nome e a
   contagem de referências fica na ficha. Medido a 1440 px: sem isso a coluna de qualidade quebrava "12 estimado" em quatro linhas.

@@ -4,6 +4,8 @@ import { test, expect } from "./session";
  * D-148: opening a material from its row (desktop) or card (phone) grows a surface out of the card (the
  * container transform), and does not under `prefers-reduced-motion`. The surface
  * is an empty `<div data-container-transform>` on `<body>` for ~350 ms.
+ * D-184: on a wide list the row opens the preview pane first; the sheet is opened
+ * from its "Abrir ficha completa" link, which marks the same origin.
  */
 
 const SURFACE = "[data-container-transform]";
@@ -23,6 +25,13 @@ async function openFirstCard(page: import("@playwright/test").Page) {
   return link;
 }
 
+async function openSheet(page: import("@playwright/test").Page, link: import("@playwright/test").Locator) {
+  await link.click();
+  const openFull = page.getByRole("link", { name: "Abrir ficha completa" });
+  await expect(openFull).toBeVisible({ timeout: 45_000 });
+  await openFull.click();
+}
+
 test("abrir um material pelo cartão faz a superfície nascer do cartão e sumir", async ({ page }) => {
   // The surface lives ~350 ms: watch for it from inside the page, or the check races it.
   await page.addInitScript(() => {
@@ -38,7 +47,7 @@ test("abrir um material pelo cartão faz a superfície nascer do cartão e sumir
     }).observe(document, { childList: true, subtree: true });
   });
   const link = await openFirstCard(page);
-  await link.click();
+  await openSheet(page, link);
   await page.waitForURL(/\/app\/materiais\/\d+/, { timeout: 45_000 });
   await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
   expect(await page.evaluate(() => (window as unknown as { __surfaceSeen: boolean }).__surfaceSeen)).toBe(true);
@@ -60,7 +69,7 @@ test("com redução de movimento nenhuma superfície aparece", async ({ page }) 
     }).observe(document, { childList: true, subtree: true });
   });
   const link = await openFirstCard(page);
-  await link.click();
+  await openSheet(page, link);
   await page.waitForURL(/\/app\/materiais\/\d+/, { timeout: 45_000 });
   await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
   expect(await page.evaluate(() => (window as unknown as { __surfaceSeen: boolean }).__surfaceSeen)).toBe(false);
