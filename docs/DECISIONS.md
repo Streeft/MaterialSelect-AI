@@ -11528,7 +11528,7 @@ claro do grupo novo; corrigido com regras do trilho mais específicas. O par do 
 **Ainda não usados nas telas** (só em `/app/estilo`): entram com o catálogo em lista e detalhe, a seleção e o início (D-181, ordem).
 
 
-## D-184 — Catálogo demo ampliado do TCC: 593 materiais fictícios em nove lotes JSON, numa lista separada
+## D-185 — Catálogo demo ampliado do TCC: 593 materiais fictícios em nove lotes JSON, numa lista separada
 
 **Status.** Decidida pelo assistente por delegação do autor, **revisável**. Nada roda em produção por este PR: semear o catálogo
 ampliado em produção é decisão exclusiva do autor (ver "Produção", abaixo).
