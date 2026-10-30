@@ -1,103 +1,29 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import type { ClassSymbol } from "@/lib/design/palette";
 import { ptBR } from "@/lib/i18n";
 import { formatScore } from "@/lib/format";
 import { SPRING, useSpring } from "@/lib/msds";
-import { ChartLegend, MarkerSymbol, type LegendItem } from "./ChartLegend";
-import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
+import { ChartLegend, MarkerSymbol } from "./ChartLegend";
+import { ChartTooltip } from "./ChartTooltip";
 import { makeScale, tok, truncate, useChartWidth, useRovingFocus } from "./figureKit";
+import {
+  NORMALISED_TICKS,
+  absent,
+  legendItems,
+  polar,
+  scoreTip,
+  scoreWords,
+  useHiddenSeries,
+  type FigureProps,
+} from "./comparisonShared";
+import { DENSE_FROM, FIGURE_MAX_HEIGHT, barMetrics } from "./comparisonDensity";
+import { DenseBarsFigure, DenseParallelFigure, DenseRadarFigure, ScrollFrame } from "./DenseFigures";
 
 const t = ptBR.compare;
 const tc = ptBR.chart;
 
-/** One compared material, as every comparison figure draws it. */
-export interface CompareSeries {
-  id: number;
-  name: string;
-  className: string;
-  color: string;
-  symbol: ClassSymbol;
-  complete: boolean;
-}
-
-/** One compared property: a short label for a crowded axis, the full name for words. */
-export interface CompareAxisView {
-  slug: string;
-  label: string;
-  name: string;
-  /** How many compared materials have no value here — counted by the API. */
-  missing: number;
-}
-
-/**
- * The backend's normalised score (0–1, 1 = best among the compared), or `null`
- * when the material has no value — a gap, never a zero (D-24).
- */
-export type ScoreOf = (seriesId: number, slug: string) => number | null;
-
-interface FigureProps {
-  figureLabel: string;
-  series: CompareSeries[];
-  axes: CompareAxisView[];
-  score: ScoreOf;
-}
-
-const absent = ptBR.quality.AUSENTE;
-
-function legendItems(series: CompareSeries[]): LegendItem[] {
-  return series.map((s) => ({ key: String(s.id), label: s.name, color: s.color, symbol: s.symbol }));
-}
-
-/** The legend's show/hide state, shared by every comparison figure. */
-function useHiddenSeries() {
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
-  const toggle = (key: string) =>
-    setHidden((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  return { hidden, toggle };
-}
-
-function scoreWords(series: CompareSeries, axis: CompareAxisView, value: number | null) {
-  const shown = value === null ? absent : formatScore(value);
-  return { aria: `${series.name} (${series.className}) — ${axis.name}: ${shown}` };
-}
-
-/**
- * The shared readout of one property (D-95, the AI Studio tooltip): the
- * property on top, then every drawn material's normalised score on it, the
- * one under the pointer emphasised. A material with no value says so in words
- * (D-24) — never a zero.
- */
-function scoreTip(
-  axis: CompareAxisView,
-  drawn: CompareSeries[],
-  activeId: number,
-  score: ScoreOf,
-): TooltipContent {
-  return {
-    title: axis.name,
-    rows: drawn.map((s) => {
-      const value = score(s.id, axis.slug);
-      return {
-        key: String(s.id),
-        label: s.name,
-        value: value === null ? absent : formatScore(value),
-        color: s.color,
-        symbol: s.symbol,
-        emphasis: s.id === activeId,
-      };
-    }),
-    note: tc.normalizedNote,
-  };
-}
-
-const NORMALISED_TICKS = [0, 0.25, 0.5, 0.75, 1];
+export type { CompareSeries, CompareAxisView, ScoreOf } from "./comparisonShared";
 
 // ---------------------------------------------------------------------------
 // Grouped bars
@@ -112,9 +38,14 @@ const NORMALISED_TICKS = [0, 0.25, 0.5, 0.75, 1];
  * be read as a short one (D-24). A score of exactly 0 is a real value (worst
  * among the compared) and keeps a visible stub.
  */
-export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigureProps) {
+export function GroupedBarsFigure(props: FigureProps) {
+  // D-187: past DENSE_FROM the bars are drawn as one lean SVG with no mark per bar.
+  return props.series.length > DENSE_FROM ? <DenseBarsFigure {...props} /> : <GroupedBars {...props} />;
+}
+
+function GroupedBars({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle } = useHiddenSeries();
+  const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{ series: number; slug: string; focus: boolean } | null>(null);
 
@@ -126,8 +57,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
   const roving = useRovingFocus(marks.length);
 
   const n = Math.max(1, visible.length);
-  const bar = n <= 4 ? 14 : n <= 8 ? 11 : 9;
-  const gap = 3;
+  const { bar, gap } = barMetrics(n);
   const groupGap = 16;
   const groupHeight = n * bar + (n - 1) * gap;
   const W = width ?? 0;
@@ -147,6 +77,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
   return (
     <div ref={measure} className="relative min-w-0">
       {width !== null && visible.length > 0 ? (
+        <ScrollFrame tall={height > FIGURE_MAX_HEIGHT}>
         <svg
           data-chart-figure
           role="figure"
@@ -224,15 +155,17 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
                               strokeDasharray: "3 2",
                             }}
                           />
-                          <text
-                            className="chart-missing-text"
-                            x={trackX + 7}
-                            y={y + bar / 2 + 0.5}
-                            dominantBaseline="central"
-                            style={{ fontSize: Math.min(10, bar - 3) }}
-                          >
-                            {absent}
-                          </text>
+                          {bar >= 9 ? (
+                            <text
+                              className="chart-missing-text"
+                              x={trackX + 7}
+                              y={y + bar / 2 + 0.5}
+                              dominantBaseline="central"
+                              style={{ fontSize: Math.min(10, bar - 3) }}
+                            >
+                              {absent}
+                            </text>
+                          ) : null}
                         </g>
                       ) : (
                         <rect
@@ -243,7 +176,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
                           width={Math.max(2, x(value) - trackX)}
                           height={bar}
                           rx={4}
-                          style={{ fill: s.color, animationDelay: `${ai * 70 + si * 40}ms` }}
+                          style={{ fill: s.color, animationDelay: `${Math.min(ai * 70 + si * 40, 600)}ms` }}
                         />
                       )}
                       {isActive && active?.focus ? (
@@ -263,6 +196,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
             );
           })}
         </svg>
+        </ScrollFrame>
       ) : (
         <div style={{ height: Math.max(80, height) }} />
       )}
@@ -273,6 +207,7 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
       />
     </div>
@@ -282,10 +217,6 @@ export function GroupedBarsFigure({ figureLabel, series, axes, score }: FigurePr
 // ---------------------------------------------------------------------------
 // Radar
 // ---------------------------------------------------------------------------
-
-function polar(cx: number, cy: number, r: number, angle: number): [number, number] {
-  return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
-}
 
 /**
  * One radar series with its own spring (MSDS `RadarSeriesPolygon`): a new
@@ -339,9 +270,18 @@ function RadarSeries({
  * legend that hides and restores a series. Only materials with a value on
  * every axis are drawn — the rest are listed above the figure by the caller.
  */
-export function RadarFigure({ figureLabel, series, axes, score }: FigureProps) {
+export function RadarFigure(props: FigureProps) {
+  // D-187: past DENSE_FROM the polygons are thin, translucent and highlighted on demand.
+  return props.series.filter((s) => s.complete).length > DENSE_FROM ? (
+    <DenseRadarFigure {...props} />
+  ) : (
+    <Radar {...props} />
+  );
+}
+
+function Radar({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle } = useHiddenSeries();
+  const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{ series: number; slug: string } | null>(null);
 
@@ -473,7 +413,7 @@ export function RadarFigure({ figureLabel, series, axes, score }: FigureProps) {
           <ChartTooltip
             content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
           />
-          <ChartLegend items={legendItems(drawn)} hidden={hidden} onToggle={toggle} onHover={(key) => setHoverSeries(key === null ? null : Number(key))} />
+          <ChartLegend items={legendItems(drawn)} hidden={hidden} onToggle={toggle} onSetAll={(hide) => setAll(hide, drawn)} onHover={(key) => setHoverSeries(key === null ? null : Number(key))} />
         </>
       ) : null}
     </div>
@@ -493,9 +433,14 @@ export function RadarFigure({ figureLabel, series, axes, score }: FigureProps) {
  * compared materials have no value there (the API's own count), so the break is
  * explained where it happens instead of only in a note below the page.
  */
-export function ParallelFigure({ figureLabel, series, axes, score }: FigureProps) {
+export function ParallelFigure(props: FigureProps) {
+  // D-187: past DENSE_FROM the lines are hairlines, fading with the count, on a taller plot.
+  return props.series.length > DENSE_FROM ? <DenseParallelFigure {...props} /> : <Parallel {...props} />;
+}
+
+function Parallel({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle } = useHiddenSeries();
+  const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{ series: number; slug: string } | null>(null);
 
@@ -667,6 +612,7 @@ export function ParallelFigure({ figureLabel, series, axes, score }: FigureProps
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
       />
     </div>
@@ -713,6 +659,7 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
   const [measure, width] = useChartWidth();
   const [active, setActive] = useState<{ series: number; slug: string; focus: boolean } | null>(null);
   const hatchId = `${useId().replace(/:/g, "")}-hatch`;
+  const dense = series.length > DENSE_FROM;
   const roving = useRovingFocus(series.length * axes.length, axes.length);
 
   const W = width ?? 0;
@@ -816,7 +763,7 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
                   key={`${s.id}-${axis.slug}`}
                   ref={roving.register(markIndex)}
                   className="chart-mark chart-fade-in"
-                  style={{ animationDelay: `${(ri + ci) * 25}ms` }}
+                  style={dense ? { animation: "none" } : { animationDelay: `${Math.min((ri + ci) * 25, 600)}ms` }}
                   role="img"
                   aria-label={words.aria}
                   tabIndex={roving.tabIndexFor(markIndex)}
