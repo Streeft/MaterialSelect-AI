@@ -131,3 +131,13 @@ export function prettyUnit(unit: string | null): string {
 export function dimensionName(unit: string | null): string {
   return unit === "dimensionless" ? ptBR.units.dimensionless : prettyUnit(unit);
 }
+
+/**
+ * The unit written after a value. A dimensionless quantity has none to write:
+ * `prettyUnit` gives it a dash, and a dash beside a number reads as "missing"
+ * in this app (D-24), as "0,35 —" did on the sheet (D-184).
+ */
+export function valueUnit(unit: string | null): string {
+  return unit === "dimensionless" ? "" : prettyUnit(unit);
+}
+

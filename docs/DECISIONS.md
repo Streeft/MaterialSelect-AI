@@ -11527,3 +11527,24 @@ claro do grupo novo; corrigido com regras do trilho mais específicas. O par do 
 
 **Ainda não usados nas telas** (só em `/app/estilo`): entram com o catálogo em lista e detalhe, a seleção e o início (D-181, ordem).
 
+## D-184 — Catálogo em lista e detalhe, e a barra flutuante dos marcados
+
+**Contexto.** Terceiro passo do plano de D-181 (print 2 do canvas de revisão). Antes, abrir um material tirava o leitor da lista; comparar dois
+pedia ir e voltar. O M3 resolve com o layout canônico *list-detail* (D-182) e, para ações sobre o que se marcou, com a barra de ferramentas
+flutuante (*Components › Toolbars*, Expressive).
+
+**Decisão.**
+- **Clique simples no nome**, com o bloco da lista a 840 px ou mais (o mesmo limiar do `PaneScaffold`), abre a ficha ao lado (`MaterialPreview`)
+  sem sair da lista; a linha do material aberto leva `aria-current` e fundo. Bloco mais estreito, Ctrl/Cmd/Shift/Alt ou botão do meio: o link
+  navega para a página inteira como antes. Nenhum seletor novo de modo: o D-50 (sem alternância Tabela/Cartões) continua valendo.
+- **A ficha ao lado é a ficha**, não um resumo: os mesmos `PropertyGroupCard` (selo de qualidade, popover de proveniência, ausência escrita) da
+  página, pela mesma chave de consulta, então abrir a página inteira depois reaproveita a leitura. "Abrir ficha completa" e "Fechar" ficam no topo. O próprio painel leva `data-container-origin`, de modo que "Abrir ficha completa" faz a ficha nascer dele (D-148). `e2e/transicao.spec.ts` e `e2e/offline.spec.ts` passam por esse caminho no desktop.
+  Carregamento com o `LoadingIndicator` (D-183). Um material que sai da lista por um filtro fecha a ficha.
+- **Com a ficha aberta a tabela fica compacta**: sem as colunas de classe, palavras-chave e designações; a classe desce para baixo do nome e a
+  contagem de referências fica na ficha. Medido a 1440 px: sem isso a coluna de qualidade quebrava "12 estimado" em quatro linhas.
+- **Valor adimensional sem traço** (`valueUnit` em `lib/format.ts`): a ficha escrevia "0,3496 —" no coeficiente de Poisson e "200 —" na dureza,
+  com o traço de `prettyUnit` (resíduo de D-167, achado na ficha ao lado). Vale na página inteira, na ficha ao lado e na cópia offline (`describeValue`).
+- **A barra dos marcados (D-131) vira barra flutuante M3**: fixa, centralizada, acima da barra inferior no celular (`--bottom-nav-offset`), em
+  `inverse-surface`, entra na mola expressiva; mesmos botões e mesma explicação quando "Comparar" está desligado.
+- **Anúncio** (`useAnnounce`, D-146): "Ficha de X aberta ao lado da lista." O foco fica na lista, para continuar percorrendo.
+

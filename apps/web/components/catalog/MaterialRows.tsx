@@ -83,18 +83,39 @@ export function QualityBar({
   );
 }
 
+/**
+ * Asked on a plain click of a material's name (D-184). It answers whether the
+ * catalogue showed the material beside the list; when it did not (a narrow
+ * screen), the link navigates to the full sheet as before. Ctrl/Cmd, Shift and
+ * the middle button always keep the browser's own behaviour.
+ */
+export type PreviewRequest = (id: number) => boolean;
+
 function MaterialName({
   material,
   searchQuery,
+  onPreview,
+  previewed,
 }: {
   material: MaterialListItem;
   searchQuery?: string;
+  onPreview?: PreviewRequest;
+  previewed?: boolean;
 }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
       <Link
         href={`/app/materiais/${material.id}`}
-        onClick={markContainerOrigin}
+        aria-current={previewed ? "true" : undefined}
+        onClick={(event) => {
+          const plain =
+            event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+          if (plain && onPreview?.(material.id)) {
+            event.preventDefault();
+            return;
+          }
+          markContainerOrigin(event);
+        }}
         className="font-medium text-brand hover:underline"
       >
         <HighlightText text={material.name} query={searchQuery} />
@@ -121,9 +142,18 @@ type SortKey = "name" | "class";
 export function MaterialTable({
   materials,
   searchQuery,
+  onPreview,
+  previewId,
+  compact = false,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
+  /** D-184: open the material beside the list instead of leaving it. */
+  onPreview?: PreviewRequest;
+  /** The material shown in the detail pane, marked in its row. */
+  previewId?: number;
+  /** Beside the detail pane: designations and keywords stay on the sheet. */
+  compact?: boolean;
 }) {
   const [sort, setSort] = useState<SortState<SortKey> | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<number>>(new Set());
@@ -162,29 +192,37 @@ export function MaterialTable({
   return (
     <div className="flex flex-col gap-2">
       {selected.length > 0 ? (
+        // D-184: the M3 floating toolbar. Pinned above the bottom bar on a
+        // phone (`--bottom-nav-offset`, D-91), centred, on inverse-surface, so
+        // it stays in reach while the reader scrolls the rows they are marking.
         <div
           role="region"
           aria-label={t.selectionBar}
-          className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-well px-4 py-2"
+          className="m3-floating-toolbar"
         >
-          <span role="status" className="text-sm font-medium text-ink">
+          <span role="status" className="m3-floating-toolbar-count">
             {t.selectedCount(selected.length)}
           </span>
           {tooFew || tooMany ? (
             <>
-              <Button size="sm" variant="secondary" disabled>
+              <Button size="sm" variant="tonal" disabled>
                 {t.compareSelected}
               </Button>
-              <span className="text-support text-ink-muted">
+              <span className="m3-floating-toolbar-note">
                 {tooMany ? t.compareTooMany(MAX_COMPARE_MATERIALS) : t.compareNeedsTwo}
               </span>
             </>
           ) : (
-            <ButtonLink size="sm" variant="secondary" href={compareHref}>
+            <ButtonLink size="sm" variant="tonal" href={compareHref}>
               {t.compareSelected}
             </ButtonLink>
           )}
-          <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="m3-floating-toolbar-ghost"
+            onClick={() => setPicked(new Set())}
+          >
             {t.clearSelection}
           </Button>
         </div>
@@ -213,20 +251,22 @@ export function MaterialTable({
                 sort={ariaSort(sort, "name")}
                 onSort={() => setSort(nextSort(sort, "name"))}
               />
-              <SortTh
-                label={t.columnClass}
-                sort={ariaSort(sort, "class")}
-                onSort={() => setSort(nextSort(sort, "class"))}
-              />
+              {compact ? null : (
+                <SortTh
+                  label={t.columnClass}
+                  sort={ariaSort(sort, "class")}
+                  onSort={() => setSort(nextSort(sort, "class"))}
+                />
+              )}
               <Th>{t.columnQuality}</Th>
-              <Th>{t.columnKeywords}</Th>
+              {compact ? null : <Th>{t.columnKeywords}</Th>}
             </Tr>
           </THead>
           <TBody>
             {rows.map((m) => (
               <Tr
                 key={m.id}
-                className={picked.has(m.id) ? "bg-brand-50" : undefined}
+                className={picked.has(m.id) || previewId === m.id ? "bg-brand-50" : undefined}
                 {...{ [ORIGIN_ATTRIBUTE]: "" }}
               >
                 <Td>
@@ -238,29 +278,48 @@ export function MaterialTable({
                   />
                 </Td>
                 <RowHeader>
-                  <MaterialName material={m} searchQuery={searchQuery} />
+                  <MaterialName
+                    material={m}
+                    searchQuery={searchQuery}
+                    onPreview={onPreview}
+                    previewed={previewId === m.id}
+                  />
                   {m.subclass && (
                     <span className="block text-xs text-ink-subtle">
                       <HighlightText text={m.subclass} query={searchQuery} />
                     </span>
                   )}
-                  <DesignationCodes designations={m.designations} searchQuery={searchQuery} />
+                  {compact ? (
+                    <span className="mt-1 block">
+                      <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
+                    </span>
+                  ) : (
+                    <DesignationCodes designations={m.designations} searchQuery={searchQuery} />
+                  )}
                 </RowHeader>
+                {compact ? null : (
+                  <Td>
+                    <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
+                  </Td>
+                )}
                 <Td>
-                  <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
+                  {/* Beside the sheet the reference count is on the sheet itself. */}
+                  <QualityBar
+                    quality={m.quality}
+                    referenceCount={compact ? undefined : m.reference_count}
+                  />
                 </Td>
-                <Td>
-                  <QualityBar quality={m.quality} referenceCount={m.reference_count} />
-                </Td>
-                <Td>
-                  <span className="flex flex-wrap gap-1">
-                    {m.keywords.map((kw) => (
-                      <Badge key={kw}>
-                        <HighlightText text={kw} query={searchQuery} />
-                      </Badge>
-                    ))}
-                  </span>
-                </Td>
+                {compact ? null : (
+                  <Td>
+                    <span className="flex flex-wrap gap-1">
+                      {m.keywords.map((kw) => (
+                        <Badge key={kw}>
+                          <HighlightText text={kw} query={searchQuery} />
+                        </Badge>
+                      ))}
+                    </span>
+                  </Td>
+                )}
               </Tr>
             ))}
           </TBody>

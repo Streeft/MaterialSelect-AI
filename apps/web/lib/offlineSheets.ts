@@ -1,6 +1,6 @@
 import type { MaterialDetail, PropertyValueOut } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, valueUnit } from "@/lib/format";
 
 /**
  * Material sheets kept for reading without a connection (D-152).
@@ -12,7 +12,7 @@ import { formatNumber, prettyUnit } from "@/lib/format";
  * a fixed notice with the day it was read beside every value.
  *
  * What is kept is text, not numbers: the value is written here, once, by the
- * same `formatNumber`/`prettyUnit` the sheet uses, so the offline page does no
+ * same `formatNumber`/`valueUnit` the sheet uses, so the offline page does no
  * arithmetic and no unit conversion (principle 2) and cannot drift from the
  * sheet. Absence stays a stated state, never a dash or a 0 (principle 3).
  *
@@ -58,7 +58,7 @@ interface Stored {
 /** The value text of a row, or `null` for absence. Mirrors `ValueText` in `PropertyGroup.tsx`. */
 export function describeValue(p: PropertyValueOut): string | null {
   if (p.is_missing) return null;
-  const unit = prettyUnit(p.display_unit ?? p.original_unit);
+  const unit = valueUnit(p.display_unit ?? p.original_unit);
   const min = p.display_min ?? p.value_min;
   const max = p.display_max ?? p.value_max;
   const typical = p.display_typical ?? p.value_typical;

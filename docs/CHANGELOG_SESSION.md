@@ -178,6 +178,13 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 142 — 30/10/26 — Catálogo em lista e detalhe (D-184)
+
+**O que mudou.** Em bloco largo o nome do material abre a ficha ao lado (`MaterialPreview`, os mesmos cartões de propriedade da página), a tabela
+fica compacta, e a barra dos marcados flutua no rodapé (barra de ferramentas M3). Estreito ou com modificador, o link navega como antes. +5 de
+frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste sem falha. No Chromium a 1440 px: ficha ao lado sem rolagem
+horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
+
 ## Sessão 141 — 30/10/26 — Molas expressivas e componentes do M3 Expressive (D-183)
 
 **O que mudou.** Tokens das 12 molas do M3 (conversão oficial para web) e o esquema expressivo nos semânticos `--motion-*`; grupo de botões conectado
