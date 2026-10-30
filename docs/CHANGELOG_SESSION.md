@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 139 — 30/10/26 — Contagem de testes medida, em uma linha só
+
+Sem decisão nova. `docs/PROJECT_CONTEXT.md` tinha 13 linhas "**Testes: ...**"
+empilhadas (cada PR paralelo acrescentou a sua), com números divergentes,
+vindas de somas de changelogs. Ficou uma só, com a medição sobre a `main`
+(`c1b5f95`): backend 5163 coletados, 5157 passam e 6 pulam; frontend 1497
+testes em 136 arquivos. O `README.md` citava 4079 e 797; corrigido. Só
+documentação: nenhum código, migração ou seed.
+
+---
+
 ## Sessão 136 — 29/10/26 — Vetorial recusa valor negativo; models alinhados às migrações; testes de migração de qualquer diretório (D-178)
 
 **O pedido.** Achados A2 e B6 da auditoria, e um teste que só passava rodado de `apps/api`.
