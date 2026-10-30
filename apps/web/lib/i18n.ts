@@ -2873,6 +2873,9 @@ export const ptBR = {
         : null,
     denseFigure: (n: number) =>
       `${n} materiais, todos desenhados: as linhas ficam finas e translúcidas, a figura e a legenda rolam, e o material sob o mouse ou o foco aparece em destaque.`,
+    rowsShown: (shown: number, total: number) => `Mostrando ${shown} de ${total} materiais na tabela.`,
+    showMoreRows: (n: number) => `Mostrar mais ${n}`,
+    showAllRows: "Mostrar todos",
     scrollRegion: "Figura com muitos materiais; role para ver todos",
     legendRegion: "Legenda dos materiais, rolável",
     tableRegion: (n: number, p: number) => `Tabela de comparação, ${n} materiais por ${p} propriedades`,

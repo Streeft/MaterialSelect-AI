@@ -6,7 +6,13 @@ import { formatScore } from "@/lib/format";
 import { SPRING, useSpring } from "@/lib/msds";
 import { ChartLegend, MarkerSymbol } from "./ChartLegend";
 import { ChartTooltip } from "./ChartTooltip";
-import { makeScale, tok, truncate, useChartWidth, useRovingFocus } from "./figureKit";
+import {
+  makeScale,
+  tok,
+  truncate,
+  useChartWidth,
+  useRovingFocus,
+} from "./figureKit";
 import {
   NORMALISED_TICKS,
   absent,
@@ -18,12 +24,21 @@ import {
   type FigureProps,
 } from "./comparisonShared";
 import { DENSE_FROM, FIGURE_MAX_HEIGHT, barMetrics } from "./comparisonDensity";
-import { DenseBarsFigure, DenseParallelFigure, DenseRadarFigure, ScrollFrame } from "./DenseFigures";
+import {
+  DenseBarsFigure,
+  DenseParallelFigure,
+  DenseRadarFigure,
+  ScrollFrame,
+} from "./DenseFigures";
 
 const t = ptBR.compare;
 const tc = ptBR.chart;
 
-export type { CompareSeries, CompareAxisView, ScoreOf } from "./comparisonShared";
+export type {
+  CompareSeries,
+  CompareAxisView,
+  ScoreOf,
+} from "./comparisonShared";
 
 // ---------------------------------------------------------------------------
 // Grouped bars
@@ -40,16 +55,27 @@ export type { CompareSeries, CompareAxisView, ScoreOf } from "./comparisonShared
  */
 export function GroupedBarsFigure(props: FigureProps) {
   // D-187: past DENSE_FROM the bars are drawn as one lean SVG with no mark per bar.
-  return props.series.length > DENSE_FROM ? <DenseBarsFigure {...props} /> : <GroupedBars {...props} />;
+  return props.series.length > DENSE_FROM ? (
+    <DenseBarsFigure {...props} />
+  ) : (
+    <GroupedBars {...props} />
+  );
 }
 
 function GroupedBars({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
   const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
-  const [active, setActive] = useState<{ series: number; slug: string; focus: boolean } | null>(null);
+  const [active, setActive] = useState<{
+    series: number;
+    slug: string;
+    focus: boolean;
+  } | null>(null);
 
-  const visible = useMemo(() => series.filter((s) => !hidden.has(String(s.id))), [series, hidden]);
+  const visible = useMemo(
+    () => series.filter((s) => !hidden.has(String(s.id))),
+    [series, hidden],
+  );
   const marks = useMemo(
     () => axes.flatMap((axis) => visible.map((s) => ({ axis, series: s }))),
     [axes, visible],
@@ -71,137 +97,187 @@ function GroupedBars({ figureLabel, series, axes, score }: FigureProps) {
   const x = makeScale([0, 1], [trackX, trackX + trackWidth]);
   const labelChars = Math.floor(labelWidth / 6.6);
   const activeMark = active
-    ? marks.find((m) => m.series.id === active.series && m.axis.slug === active.slug)
+    ? marks.find(
+        (m) => m.series.id === active.series && m.axis.slug === active.slug,
+      )
     : undefined;
 
   return (
     <div ref={measure} className="relative min-w-0">
       {width !== null && visible.length > 0 ? (
         <ScrollFrame tall={height > FIGURE_MAX_HEIGHT}>
-        <svg
-          data-chart-figure
-          role="figure"
-          aria-label={figureLabel}
-          className="chart-svg"
-          width={W}
-          height={height}
-          viewBox={`0 0 ${W} ${height}`}
-          onKeyDown={roving.onKeyDown}
-        >
-          <g aria-hidden>
-            {NORMALISED_TICKS.map((tick) => (
-              <g key={tick}>
-                <line className="chart-grid" x1={x(tick)} x2={x(tick)} y1={top} y2={axisY} />
-                <text className="chart-tick" x={x(tick)} y={axisY + 16} textAnchor="middle">
-                  {tick.toLocaleString("pt-BR")}
-                </text>
-              </g>
-            ))}
-            <line className="chart-axis" x1={trackX} x2={trackX + trackWidth} y1={axisY} y2={axisY} />
-          </g>
+          <svg
+            data-chart-figure
+            role="figure"
+            aria-label={figureLabel}
+            className="chart-svg"
+            width={W}
+            height={height}
+            viewBox={`0 0 ${W} ${height}`}
+            onKeyDown={roving.onKeyDown}
+          >
+            <g aria-hidden>
+              {NORMALISED_TICKS.map((tick) => (
+                <g key={tick}>
+                  <line
+                    className="chart-grid"
+                    x1={x(tick)}
+                    x2={x(tick)}
+                    y1={top}
+                    y2={axisY}
+                  />
+                  <text
+                    className="chart-tick"
+                    x={x(tick)}
+                    y={axisY + 16}
+                    textAnchor="middle"
+                  >
+                    {tick.toLocaleString("pt-BR")}
+                  </text>
+                </g>
+              ))}
+              <line
+                className="chart-axis"
+                x1={trackX}
+                x2={trackX + trackWidth}
+                y1={axisY}
+                y2={axisY}
+              />
+            </g>
 
-          {axes.map((axis, ai) => {
-            const groupTop = top + ai * (groupHeight + groupGap);
-            const groupActive = active?.slug === axis.slug;
-            return (
-              <g key={axis.slug}>
-                <text
-                  className="chart-label"
-                  data-active={groupActive ? "true" : "false"}
-                  x={labelWidth}
-                  y={groupTop + groupHeight / 2}
-                  dominantBaseline="central"
-                  textAnchor="end"
-                  aria-hidden
-                >
-                  {truncate(axis.name, labelChars)}
-                  {axis.name.length > labelChars ? <title>{axis.name}</title> : null}
-                </text>
-                {visible.map((s, si) => {
-                  const markIndex = ai * visible.length + si;
-                  const y = groupTop + si * (bar + gap);
-                  const value = score(s.id, axis.slug);
-                  const isActive = groupActive && active?.series === s.id;
-                  const words = scoreWords(s, axis, value);
-                  return (
-                    <g
-                      key={s.id}
-                      ref={roving.register(markIndex)}
-                      className="chart-mark"
-                      style={{ opacity: hoverSeries !== null && hoverSeries !== s.id ? 0.3 : 1 }}
-                      role="img"
-                      aria-label={words.aria}
-                      tabIndex={roving.tabIndexFor(markIndex)}
-                      onMouseEnter={() => setActive({ series: s.id, slug: axis.slug, focus: false })}
-                      onMouseLeave={() => setActive(null)}
-                      onFocus={() => {
-                        roving.setActive(markIndex);
-                        setActive({ series: s.id, slug: axis.slug, focus: true });
-                      }}
-                      onBlur={() => setActive(null)}
-                    >
-                      <rect className="chart-track" x={trackX} y={y} width={trackWidth} height={bar} rx={4} />
-                      {value === null ? (
-                        <g>
-                          <rect
-                            x={trackX + 0.5}
-                            y={y + 0.5}
-                            width={Math.min(62, trackWidth - 1)}
-                            height={bar - 1}
-                            rx={4}
-                            style={{
-                              fill: "rgb(var(--quality-ausente-soft))",
-                              stroke: "rgb(var(--quality-ausente))",
-                              strokeDasharray: "3 2",
-                            }}
-                          />
-                          {bar >= 9 ? (
-                            <text
-                              className="chart-missing-text"
-                              x={trackX + 7}
-                              y={y + bar / 2 + 0.5}
-                              dominantBaseline="central"
-                              style={{ fontSize: Math.min(10, bar - 3) }}
-                            >
-                              {absent}
-                            </text>
-                          ) : null}
-                        </g>
-                      ) : (
+            {axes.map((axis, ai) => {
+              const groupTop = top + ai * (groupHeight + groupGap);
+              const groupActive = active?.slug === axis.slug;
+              return (
+                <g key={axis.slug}>
+                  <text
+                    className="chart-label"
+                    data-active={groupActive ? "true" : "false"}
+                    x={labelWidth}
+                    y={groupTop + groupHeight / 2}
+                    dominantBaseline="central"
+                    textAnchor="end"
+                    aria-hidden
+                  >
+                    {truncate(axis.name, labelChars)}
+                    {axis.name.length > labelChars ? (
+                      <title>{axis.name}</title>
+                    ) : null}
+                  </text>
+                  {visible.map((s, si) => {
+                    const markIndex = ai * visible.length + si;
+                    const y = groupTop + si * (bar + gap);
+                    const value = score(s.id, axis.slug);
+                    const isActive = groupActive && active?.series === s.id;
+                    const words = scoreWords(s, axis, value);
+                    return (
+                      <g
+                        key={s.id}
+                        ref={roving.register(markIndex)}
+                        className="chart-mark"
+                        style={{
+                          opacity:
+                            hoverSeries !== null && hoverSeries !== s.id
+                              ? 0.3
+                              : 1,
+                        }}
+                        role="img"
+                        aria-label={words.aria}
+                        tabIndex={roving.tabIndexFor(markIndex)}
+                        onMouseEnter={() =>
+                          setActive({
+                            series: s.id,
+                            slug: axis.slug,
+                            focus: false,
+                          })
+                        }
+                        onMouseLeave={() => setActive(null)}
+                        onFocus={() => {
+                          roving.setActive(markIndex);
+                          setActive({
+                            series: s.id,
+                            slug: axis.slug,
+                            focus: true,
+                          });
+                        }}
+                        onBlur={() => setActive(null)}
+                      >
                         <rect
-                          className="chart-bar-seg"
-                          data-active={isActive ? "true" : "false"}
+                          className="chart-track"
                           x={trackX}
                           y={y}
-                          width={Math.max(2, x(value) - trackX)}
+                          width={trackWidth}
                           height={bar}
                           rx={4}
-                          style={{ fill: s.color, animationDelay: `${Math.min(ai * 70 + si * 40, 600)}ms` }}
                         />
-                      )}
-                      {isActive && active?.focus ? (
-                        <rect
-                          className="chart-focus-ring"
-                          x={trackX - 2}
-                          y={y - 2}
-                          width={trackWidth + 4}
-                          height={bar + 4}
-                          rx={6}
-                        />
-                      ) : null}
-                    </g>
-                  );
-                })}
-              </g>
-            );
-          })}
-        </svg>
+                        {value === null ? (
+                          <g>
+                            <rect
+                              x={trackX + 0.5}
+                              y={y + 0.5}
+                              width={Math.min(62, trackWidth - 1)}
+                              height={bar - 1}
+                              rx={4}
+                              style={{
+                                fill: "rgb(var(--quality-ausente-soft))",
+                                stroke: "rgb(var(--quality-ausente))",
+                                strokeDasharray: "3 2",
+                              }}
+                            />
+                            {bar >= 9 ? (
+                              <text
+                                className="chart-missing-text"
+                                x={trackX + 7}
+                                y={y + bar / 2 + 0.5}
+                                dominantBaseline="central"
+                                style={{ fontSize: Math.min(10, bar - 3) }}
+                              >
+                                {absent}
+                              </text>
+                            ) : null}
+                          </g>
+                        ) : (
+                          <rect
+                            className="chart-bar-seg"
+                            data-active={isActive ? "true" : "false"}
+                            x={trackX}
+                            y={y}
+                            width={Math.max(2, x(value) - trackX)}
+                            height={bar}
+                            rx={4}
+                            style={{
+                              fill: s.color,
+                              animationDelay: `${Math.min(ai * 70 + si * 40, 600)}ms`,
+                            }}
+                          />
+                        )}
+                        {isActive && active?.focus ? (
+                          <rect
+                            className="chart-focus-ring"
+                            x={trackX - 2}
+                            y={y - 2}
+                            width={trackWidth + 4}
+                            height={bar + 4}
+                            rx={6}
+                          />
+                        ) : null}
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </svg>
         </ScrollFrame>
       ) : (
         <div style={{ height: Math.max(80, height) }} />
       )}
       <ChartTooltip
-        content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+        content={
+          activeMark
+            ? scoreTip(activeMark.axis, visible, activeMark.series.id, score)
+            : null
+        }
       />
       <ChartLegend
         items={legendItems(series)}
@@ -242,15 +318,15 @@ function RadarSeries({
   cx: number;
   cy: number;
 }) {
-  const presence = (useSpring as (target: number, preset: unknown, from?: number) => number)(
-    off ? 0 : 1,
-    SPRING.spatialDefault,
-    0,
-  );
+  const presence = (
+    useSpring as (target: number, preset: unknown, from?: number) => number
+  )(off ? 0 : 1, SPRING.spatialDefault, 0);
   return (
     <polygon
       className="chart-radar-series"
-      points={points.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")}
+      points={points
+        .map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`)
+        .join(" ")}
       style={{
         fill: color,
         stroke: color,
@@ -283,10 +359,15 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
   const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
-  const [active, setActive] = useState<{ series: number; slug: string } | null>(null);
+  const [active, setActive] = useState<{ series: number; slug: string } | null>(
+    null,
+  );
 
   const drawn = useMemo(() => series.filter((s) => s.complete), [series]);
-  const visible = useMemo(() => drawn.filter((s) => !hidden.has(String(s.id))), [drawn, hidden]);
+  const visible = useMemo(
+    () => drawn.filter((s) => !hidden.has(String(s.id))),
+    [drawn, hidden],
+  );
   const marks = useMemo(
     () => visible.flatMap((s) => axes.map((axis) => ({ series: s, axis }))),
     [visible, axes],
@@ -302,7 +383,9 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
   const angleFor = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
   const highlighted = active?.series ?? hoverSeries;
   const activeMark = active
-    ? marks.find((m) => m.series.id === active.series && m.axis.slug === active.slug)
+    ? marks.find(
+        (m) => m.series.id === active.series && m.axis.slug === active.slug,
+      )
     : undefined;
 
   return (
@@ -330,20 +413,36 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
               />
             ))}
             {[0.5, 1].map((f) => (
-              <text key={f} className="chart-tick" x={cx + 4} y={cy - R * f - 3}>
+              <text
+                key={f}
+                className="chart-tick"
+                x={cx + 4}
+                y={cy - R * f - 3}
+              >
                 {f.toLocaleString("pt-BR")}
               </text>
             ))}
             {axes.map((axis, i) => {
               const [px, py] = polar(cx, cy, R, angleFor(i));
               const [lx, ly] = polar(cx, cy, R + 18, angleFor(i));
-              const anchor = Math.abs(lx - cx) < 4 ? "middle" : lx > cx ? "start" : "end";
+              const anchor =
+                Math.abs(lx - cx) < 4 ? "middle" : lx > cx ? "start" : "end";
               // What fits between the label's anchor and the edge of the figure.
-              const room = anchor === "middle" ? W : anchor === "start" ? W - lx : lx;
-              const chars = Math.max(5, Math.min(22, Math.floor((room - 4) / 6.4)));
+              const room =
+                anchor === "middle" ? W : anchor === "start" ? W - lx : lx;
+              const chars = Math.max(
+                5,
+                Math.min(22, Math.floor((room - 4) / 6.4)),
+              );
               return (
                 <g key={axis.slug}>
-                  <line className="chart-grid" x1={cx} y1={cy} x2={px} y2={py} />
+                  <line
+                    className="chart-grid"
+                    x1={cx}
+                    y1={cy}
+                    x2={px}
+                    y2={py}
+                  />
                   <text
                     className="chart-label"
                     data-active={active?.slug === axis.slug ? "true" : "false"}
@@ -353,7 +452,9 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
                     dominantBaseline="middle"
                   >
                     {truncate(axis.label, chars)}
-                    {axis.label.length > chars ? <title>{axis.label}</title> : null}
+                    {axis.label.length > chars ? (
+                      <title>{axis.label}</title>
+                    ) : null}
                   </text>
                 </g>
               );
@@ -369,7 +470,9 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
                 dim={highlighted !== null && highlighted !== s.id}
                 cx={cx}
                 cy={cy}
-                points={axes.map((axis, i) => polar(cx, cy, R * (score(s.id, axis.slug) ?? 0), angleFor(i)))}
+                points={axes.map((axis, i) =>
+                  polar(cx, cy, R * (score(s.id, axis.slug) ?? 0), angleFor(i)),
+                )}
               />
             ))}
           </g>
@@ -380,7 +483,8 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
               const value = score(s.id, axis.slug);
               if (value === null) return null; // unreachable: only complete series are drawn
               const [px, py] = polar(cx, cy, R * value, angleFor(i));
-              const isActive = active?.series === s.id && active.slug === axis.slug;
+              const isActive =
+                active?.series === s.id && active.slug === axis.slug;
               const words = scoreWords(s, axis, value);
               return (
                 <g
@@ -390,8 +494,13 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
                   role="img"
                   aria-label={words.aria}
                   tabIndex={roving.tabIndexFor(markIndex)}
-                  style={{ opacity: highlighted !== null && highlighted !== s.id ? 0.3 : 1 }}
-                  onMouseEnter={() => setActive({ series: s.id, slug: axis.slug })}
+                  style={{
+                    opacity:
+                      highlighted !== null && highlighted !== s.id ? 0.3 : 1,
+                  }}
+                  onMouseEnter={() =>
+                    setActive({ series: s.id, slug: axis.slug })
+                  }
                   onMouseLeave={() => setActive(null)}
                   onFocus={() => {
                     roving.setActive(markIndex);
@@ -399,9 +508,27 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
                   }}
                   onBlur={() => setActive(null)}
                 >
-                  <circle cx={px} cy={py} r={9} style={{ fill: "transparent" }} />
-                  <MarkerSymbol symbol={s.symbol} x={px} y={py} r={isActive ? 5.5 : 3.8} color={s.color} />
-                  {isActive ? <circle className="chart-focus-ring" cx={px} cy={py} r={9} /> : null}
+                  <circle
+                    cx={px}
+                    cy={py}
+                    r={9}
+                    style={{ fill: "transparent" }}
+                  />
+                  <MarkerSymbol
+                    symbol={s.symbol}
+                    x={px}
+                    y={py}
+                    r={isActive ? 5.5 : 3.8}
+                    color={s.color}
+                  />
+                  {isActive ? (
+                    <circle
+                      className="chart-focus-ring"
+                      cx={px}
+                      cy={py}
+                      r={9}
+                    />
+                  ) : null}
                 </g>
               );
             }),
@@ -411,9 +538,24 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
       {drawn.length > 0 ? (
         <>
           <ChartTooltip
-            content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+            content={
+              activeMark
+                ? scoreTip(
+                    activeMark.axis,
+                    visible,
+                    activeMark.series.id,
+                    score,
+                  )
+                : null
+            }
           />
-          <ChartLegend items={legendItems(drawn)} hidden={hidden} onToggle={toggle} onSetAll={(hide) => setAll(hide, drawn)} onHover={(key) => setHoverSeries(key === null ? null : Number(key))} />
+          <ChartLegend
+            items={legendItems(drawn)}
+            hidden={hidden}
+            onToggle={toggle}
+            onSetAll={(hide) => setAll(hide, drawn)}
+            onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
+          />
         </>
       ) : null}
     </div>
@@ -435,26 +577,40 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
  */
 export function ParallelFigure(props: FigureProps) {
   // D-187: past DENSE_FROM the lines are hairlines, fading with the count, on a taller plot.
-  return props.series.length > DENSE_FROM ? <DenseParallelFigure {...props} /> : <Parallel {...props} />;
+  return props.series.length > DENSE_FROM ? (
+    <DenseParallelFigure {...props} />
+  ) : (
+    <Parallel {...props} />
+  );
 }
 
 function Parallel({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
   const { hidden, toggle, setAll } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
-  const [active, setActive] = useState<{ series: number; slug: string } | null>(null);
+  const [active, setActive] = useState<{ series: number; slug: string } | null>(
+    null,
+  );
 
-  const visible = useMemo(() => series.filter((s) => !hidden.has(String(s.id))), [series, hidden]);
+  const visible = useMemo(
+    () => series.filter((s) => !hidden.has(String(s.id))),
+    [series, hidden],
+  );
   const marks = useMemo(
     () =>
       visible.flatMap((s) =>
-        axes.filter((axis) => score(s.id, axis.slug) !== null).map((axis) => ({ series: s, axis })),
+        axes
+          .filter((axis) => score(s.id, axis.slug) !== null)
+          .map((axis) => ({ series: s, axis })),
       ),
     [visible, axes, score],
   );
   const roving = useRovingFocus(marks.length);
   const markIndexOf = useMemo(
-    () => new Map(marks.map((mark, i) => [`${mark.series.id}|${mark.axis.slug}`, i])),
+    () =>
+      new Map(
+        marks.map((mark, i) => [`${mark.series.id}|${mark.axis.slug}`, i]),
+      ),
     [marks],
   );
 
@@ -466,10 +622,15 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
   const spacing = axes.length > 1 ? (W - padX * 2) / (axes.length - 1) : 0;
   const xFor = (i: number) => (axes.length > 1 ? padX + i * spacing : W / 2);
   const y = makeScale([0, 1], [bottom, top]);
-  const labelChars = Math.max(6, Math.floor((axes.length > 1 ? spacing : W) / 6.8));
+  const labelChars = Math.max(
+    6,
+    Math.floor((axes.length > 1 ? spacing : W) / 6.8),
+  );
   const highlighted = active?.series ?? hoverSeries;
   const activeMark = active
-    ? marks.find((m) => m.series.id === active.series && m.axis.slug === active.slug)
+    ? marks.find(
+        (m) => m.series.id === active.series && m.axis.slug === active.slug,
+      )
     : undefined;
 
   return (
@@ -495,7 +656,13 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                   y1={y(tick)}
                   y2={y(tick)}
                 />
-                <text className="chart-tick" x={xFor(0) - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle">
+                <text
+                  className="chart-tick"
+                  x={xFor(0) - 8}
+                  y={y(tick)}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                >
                   {tick.toLocaleString("pt-BR")}
                 </text>
               </g>
@@ -518,10 +685,17 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                   textAnchor="middle"
                 >
                   {truncate(axis.label, labelChars)}
-                  {axis.label.length > labelChars ? <title>{axis.label}</title> : null}
+                  {axis.label.length > labelChars ? (
+                    <title>{axis.label}</title>
+                  ) : null}
                 </text>
                 {axis.missing > 0 ? (
-                  <text className="chart-missing-text" x={xFor(i)} y={bottom + 34} textAnchor="middle">
+                  <text
+                    className="chart-missing-text"
+                    x={xFor(i)}
+                    y={bottom + 34}
+                    textAnchor="middle"
+                  >
                     {tc.missingOnAxis(axis.missing)}
                   </text>
                 ) : null}
@@ -549,7 +723,9 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                 <polyline
                   key={`${s.id}-${ri}`}
                   className="chart-fade-in"
-                  points={points.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")}
+                  points={points
+                    .map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`)
+                    .join(" ")}
                   style={{
                     fill: "none",
                     stroke: s.color,
@@ -568,7 +744,8 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
               const value = score(s.id, axis.slug);
               if (value === null) return null;
               const markIndex = markIndexOf.get(`${s.id}|${axis.slug}`) ?? 0;
-              const isActive = active?.series === s.id && active.slug === axis.slug;
+              const isActive =
+                active?.series === s.id && active.slug === axis.slug;
               const dim = highlighted !== null && highlighted !== s.id;
               const words = scoreWords(s, axis, value);
               return (
@@ -580,7 +757,9 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                   aria-label={words.aria}
                   tabIndex={roving.tabIndexFor(markIndex)}
                   style={{ opacity: dim ? 0.2 : 1 }}
-                  onMouseEnter={() => setActive({ series: s.id, slug: axis.slug })}
+                  onMouseEnter={() =>
+                    setActive({ series: s.id, slug: axis.slug })
+                  }
                   onMouseLeave={() => setActive(null)}
                   onFocus={() => {
                     roving.setActive(markIndex);
@@ -588,7 +767,12 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                   }}
                   onBlur={() => setActive(null)}
                 >
-                  <circle cx={xFor(i)} cy={y(value)} r={9} style={{ fill: "transparent" }} />
+                  <circle
+                    cx={xFor(i)}
+                    cy={y(value)}
+                    r={9}
+                    style={{ fill: "transparent" }}
+                  />
                   <MarkerSymbol
                     symbol={s.symbol}
                     x={xFor(i)}
@@ -596,7 +780,14 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
                     r={highlighted === s.id ? 5 : 3.8}
                     color={s.color}
                   />
-                  {isActive ? <circle className="chart-focus-ring" cx={xFor(i)} cy={y(value)} r={9} /> : null}
+                  {isActive ? (
+                    <circle
+                      className="chart-focus-ring"
+                      cx={xFor(i)}
+                      cy={y(value)}
+                      r={9}
+                    />
+                  ) : null}
                 </g>
               );
             }),
@@ -606,7 +797,11 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
         <div style={{ height }} />
       )}
       <ChartTooltip
-        content={activeMark ? scoreTip(activeMark.axis, visible, activeMark.series.id, score) : null}
+        content={
+          activeMark
+            ? scoreTip(activeMark.axis, visible, activeMark.series.id, score)
+            : null
+        }
       />
       <ChartLegend
         items={legendItems(series)}
@@ -643,7 +838,9 @@ const HEAT_STEPS = [
 ] as const;
 
 function heatStep(value: number): string {
-  const i = Math.round(Math.max(0, Math.min(1, value)) * (HEAT_STEPS.length - 1));
+  const i = Math.round(
+    Math.max(0, Math.min(1, value)) * (HEAT_STEPS.length - 1),
+  );
   return tok(HEAT_STEPS[i] ?? HEAT_STEPS[0]);
 }
 
@@ -655,9 +852,18 @@ function heatStep(value: number): string {
  * under the figure names it "Ausente" beside the ramp — never an empty square,
  * never the lightest step of the ramp (D-24).
  */
-export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps) {
+export function HeatmapFigure({
+  figureLabel,
+  series,
+  axes,
+  score,
+}: FigureProps) {
   const [measure, width] = useChartWidth();
-  const [active, setActive] = useState<{ series: number; slug: string; focus: boolean } | null>(null);
+  const [active, setActive] = useState<{
+    series: number;
+    slug: string;
+    focus: boolean;
+  } | null>(null);
   const hatchId = `${useId().replace(/:/g, "")}-hatch`;
   const dense = series.length > DENSE_FROM;
   const roving = useRovingFocus(series.length * axes.length, axes.length);
@@ -666,8 +872,14 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
   const labelWidth = Math.min(180, Math.max(90, W * 0.28));
   const gap = 3;
   const cols = Math.max(1, axes.length);
-  const cell = Math.max(22, Math.min(48, Math.floor((W - labelWidth - 12) / cols) - gap));
-  const longest = axes.reduce((max, axis) => Math.max(max, Math.min(axis.label.length, 22)), 0);
+  const cell = Math.max(
+    22,
+    Math.min(48, Math.floor((W - labelWidth - 12) / cols) - gap),
+  );
+  const longest = axes.reduce(
+    (max, axis) => Math.max(max, Math.min(axis.label.length, 22)),
+    0,
+  );
   const rotate = longest * 6.4 > cell + gap;
   const header = rotate ? Math.min(120, longest * 6.4 * 0.72 + 14) : 22;
   const gridX = labelWidth + 10;
@@ -675,8 +887,12 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
   const gridBottom = gridTop + series.length * (cell + gap);
   const scaleY = gridBottom + 18;
   const labelChars = Math.floor(labelWidth / 6.6);
-  const activeSeries = active ? series.find((s) => s.id === active.series) : undefined;
-  const activeAxis = active ? axes.find((a) => a.slug === active.slug) : undefined;
+  const activeSeries = active
+    ? series.find((s) => s.id === active.series)
+    : undefined;
+  const activeAxis = active
+    ? axes.find((a) => a.slug === active.slug)
+    : undefined;
 
   // The scale under the grid: "0 (pior)" [ramp] "1 (melhor)" [hatch] "Ausente".
   // On a narrow card the absence entry takes a second line rather than
@@ -690,6 +906,128 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
   const absentX = inline ? rampEnd + highText.length * 6.2 + 28 : 0;
   const absentY = inline ? scaleY : scaleY + 20;
   const height = absentY + 22;
+
+  // D-187: the grid is built once per geometry (hundreds of rows are thousands of
+  // cells); the pointer moving over it re-renders only the overlay below.
+  const cellsLayer = useMemo(
+    () => (
+      <>
+        {series.map((s, ri) =>
+          axes.map((axis, ci) => {
+            const markIndex = ri * axes.length + ci;
+            const value = score(s.id, axis.slug);
+            const x = gridX + ci * (cell + gap);
+            const y = gridTop + ri * (cell + gap);
+            const words = scoreWords(s, axis, value);
+            return (
+              <g
+                key={`${s.id}-${axis.slug}`}
+                ref={roving.register(markIndex)}
+                className="chart-mark chart-fade-in"
+                style={
+                  dense
+                    ? { animation: "none" }
+                    : { animationDelay: `${Math.min((ri + ci) * 25, 600)}ms` }
+                }
+                role="img"
+                aria-label={words.aria}
+                tabIndex={roving.tabIndexFor(markIndex)}
+                onMouseEnter={() =>
+                  setActive({ series: s.id, slug: axis.slug, focus: false })
+                }
+                onMouseLeave={() => setActive(null)}
+                onFocus={() => {
+                  roving.setActive(markIndex);
+                  setActive({ series: s.id, slug: axis.slug, focus: true });
+                }}
+                onBlur={() => setActive(null)}
+              >
+                <rect
+                  x={x}
+                  y={y}
+                  width={cell}
+                  height={cell}
+                  rx={4}
+                  style={
+                    value === null
+                      ? {
+                          fill: `url(#${hatchId})`,
+                          stroke: "rgb(var(--quality-ausente))",
+                          strokeDasharray: "3 2",
+                          strokeWidth: 1,
+                        }
+                      : {
+                          fill: heatStep(value),
+                          stroke: "rgb(var(--edge))",
+                          strokeWidth: 1,
+                        }
+                  }
+                />
+              </g>
+            );
+          }),
+        )}
+      </>
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      series,
+      axes,
+      score,
+      gridX,
+      gridTop,
+      cell,
+      gap,
+      hatchId,
+      dense,
+      roving.current,
+    ],
+  );
+  const activeCell = (() => {
+    if (!active) return null;
+    const ci = axes.findIndex((a) => a.slug === active.slug);
+    const ri = series.findIndex((s) => s.id === active.series);
+    if (ci < 0 || ri < 0) return null;
+    const value = score(active.series, active.slug);
+    const x = gridX + ci * (cell + gap);
+    const y = gridTop + ri * (cell + gap);
+    const valueText = value === null ? absent : formatScore(value);
+    const pillWidth = valueText.length * 6.4 + 8;
+    return (
+      <g pointerEvents="none" aria-hidden>
+        <>
+          <rect
+            className="chart-focus-ring"
+            x={x - 1}
+            y={y - 1}
+            width={cell + 2}
+            height={cell + 2}
+            rx={5}
+          />
+          {/* MSDS .msds-heat-value: the number on a surface pill,
+                          legible over every step of the ramp. */}
+          <rect
+            x={x + cell / 2 - pillWidth / 2}
+            y={y + cell / 2 - 8}
+            width={pillWidth}
+            height={16}
+            rx={3}
+            style={{ fill: "var(--surface-200)" }}
+          />
+          <text
+            className="chart-value"
+            x={x + cell / 2}
+            y={y + cell / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            style={{ fontSize: 10, fontWeight: 600 }}
+          >
+            {valueText}
+          </text>
+        </>
+      </g>
+    );
+  })();
 
   return (
     <div ref={measure} className="relative min-w-0">
@@ -705,9 +1043,28 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
           onKeyDown={roving.onKeyDown}
         >
           <defs>
-            <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width={6} height={6} style={{ fill: "var(--surface-300)" }} />
-              <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: "rgb(var(--quality-ausente) / 0.55)", strokeWidth: 2 }} />
+            <pattern
+              id={hatchId}
+              width={6}
+              height={6}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <rect
+                width={6}
+                height={6}
+                style={{ fill: "var(--surface-300)" }}
+              />
+              <line
+                x1={0}
+                y1={0}
+                x2={0}
+                y2={6}
+                style={{
+                  stroke: "rgb(var(--quality-ausente) / 0.55)",
+                  strokeWidth: 2,
+                }}
+              />
             </pattern>
           </defs>
 
@@ -727,7 +1084,13 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
                   {axis.label.length > 22 ? <title>{axis.label}</title> : null}
                 </text>
               ) : (
-                <text key={axis.slug} className="chart-tick" x={cx} y={header - 4} textAnchor="middle">
+                <text
+                  key={axis.slug}
+                  className="chart-tick"
+                  x={cx}
+                  y={header - 4}
+                  textAnchor="middle"
+                >
                   {text}
                 </text>
               );
@@ -748,82 +1111,16 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
             ))}
           </g>
 
-          {series.map((s, ri) =>
-            axes.map((axis, ci) => {
-              const markIndex = ri * axes.length + ci;
-              const value = score(s.id, axis.slug);
-              const x = gridX + ci * (cell + gap);
-              const y = gridTop + ri * (cell + gap);
-              const isActive = active?.series === s.id && active.slug === axis.slug;
-              const words = scoreWords(s, axis, value);
-              const valueText = value === null ? absent : formatScore(value);
-              const pillWidth = valueText.length * 6.4 + 8;
-              return (
-                <g
-                  key={`${s.id}-${axis.slug}`}
-                  ref={roving.register(markIndex)}
-                  className="chart-mark chart-fade-in"
-                  style={dense ? { animation: "none" } : { animationDelay: `${Math.min((ri + ci) * 25, 600)}ms` }}
-                  role="img"
-                  aria-label={words.aria}
-                  tabIndex={roving.tabIndexFor(markIndex)}
-                  onMouseEnter={() => setActive({ series: s.id, slug: axis.slug, focus: false })}
-                  onMouseLeave={() => setActive(null)}
-                  onFocus={() => {
-                    roving.setActive(markIndex);
-                    setActive({ series: s.id, slug: axis.slug, focus: true });
-                  }}
-                  onBlur={() => setActive(null)}
-                >
-                  <rect
-                    x={x}
-                    y={y}
-                    width={cell}
-                    height={cell}
-                    rx={4}
-                    style={
-                      value === null
-                        ? {
-                            fill: `url(#${hatchId})`,
-                            stroke: "rgb(var(--quality-ausente))",
-                            strokeDasharray: "3 2",
-                            strokeWidth: 1,
-                          }
-                        : { fill: heatStep(value), stroke: "rgb(var(--edge))", strokeWidth: 1 }
-                    }
-                  />
-                  {isActive ? (
-                    <>
-                      <rect className="chart-focus-ring" x={x - 1} y={y - 1} width={cell + 2} height={cell + 2} rx={5} />
-                      {/* MSDS .msds-heat-value: the number on a surface pill,
-                          legible over every step of the ramp. */}
-                      <rect
-                        x={x + cell / 2 - pillWidth / 2}
-                        y={y + cell / 2 - 8}
-                        width={pillWidth}
-                        height={16}
-                        rx={3}
-                        style={{ fill: "var(--surface-200)" }}
-                      />
-                      <text
-                        className="chart-value"
-                        x={x + cell / 2}
-                        y={y + cell / 2}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        style={{ fontSize: 10, fontWeight: 600 }}
-                      >
-                        {valueText}
-                      </text>
-                    </>
-                  ) : null}
-                </g>
-              );
-            }),
-          )}
+          {cellsLayer}
+          {activeCell}
 
           <g aria-hidden>
-            <text className="chart-tick" x={0} y={scaleY + 8} dominantBaseline="central">
+            <text
+              className="chart-tick"
+              x={0}
+              y={scaleY + 8}
+              dominantBaseline="central"
+            >
               {lowText}
             </text>
             {HEAT_STEPS.map((step, i) => (
@@ -834,10 +1131,19 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
                 width={swatch}
                 height={10}
                 rx={2}
-                style={{ fill: tok(step), stroke: "rgb(var(--edge))", strokeWidth: 1 }}
+                style={{
+                  fill: tok(step),
+                  stroke: "rgb(var(--edge))",
+                  strokeWidth: 1,
+                }}
               />
             ))}
-            <text className="chart-tick" x={rampEnd + 6} y={scaleY + 8} dominantBaseline="central">
+            <text
+              className="chart-tick"
+              x={rampEnd + 6}
+              y={scaleY + 8}
+              dominantBaseline="central"
+            >
               {highText}
             </text>
             <rect
@@ -853,7 +1159,12 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
                 strokeWidth: 1,
               }}
             />
-            <text className="chart-tick" x={absentX + swatch + 6} y={absentY + 8} dominantBaseline="central">
+            <text
+              className="chart-tick"
+              x={absentX + swatch + 6}
+              y={absentY + 8}
+              dominantBaseline="central"
+            >
               {absent}
             </text>
           </g>
@@ -862,7 +1173,11 @@ export function HeatmapFigure({ figureLabel, series, axes, score }: FigureProps)
         <div style={{ height: 200 }} />
       )}
       <ChartTooltip
-        content={activeSeries && activeAxis ? scoreTip(activeAxis, series, activeSeries.id, score) : null}
+        content={
+          activeSeries && activeAxis
+            ? scoreTip(activeAxis, series, activeSeries.id, score)
+            : null
+        }
       />
     </div>
   );

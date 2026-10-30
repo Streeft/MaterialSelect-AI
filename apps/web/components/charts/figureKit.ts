@@ -214,6 +214,8 @@ export function useRovingFocus(count: number, columns?: number) {
   );
 
   return {
+    /** Index of the mark that holds the tab stop (`-1` with no marks). */
+    current,
     /** `0` for the one mark that holds the figure's tab stop, `-1` for the rest. */
     tabIndexFor: (index: number) => (index === current ? 0 : -1),
     register,

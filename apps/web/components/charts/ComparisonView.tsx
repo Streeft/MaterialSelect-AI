@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
@@ -45,6 +45,9 @@ const t = ptBR.compare;
 
 /** Past this many materials, members of one class are told apart by tone and marker (D-187). */
 const CLASS_VARIANTS_FROM = 12;
+
+/** Table rows drawn at first; the rest come with "Mostrar mais" (a 600-row table is 160 thousand nodes, D-187). */
+const TABLE_CHUNK = 100;
 
 export type ComparisonMode =
   | "table"
@@ -180,6 +183,7 @@ export function ComparisonView({
     [lookup],
   );
 
+  const [rowsShown, setRowsShown] = useState(TABLE_CHUNK);
   const incomplete = materials.filter((m) => !m.complete);
 
   // What every figure draws: one series per material (class colour and marker
@@ -321,7 +325,7 @@ export function ComparisonView({
               </Tr>
             </THead>
             <TBody>
-              {materials.map((material) => (
+              {materials.slice(0, rowsShown).map((material) => (
                 <Tr key={material.material_id}>
                   <RowHeader className="sticky left-0 z-[1] bg-panel">
                     {material.name}
@@ -424,6 +428,19 @@ export function ComparisonView({
             </TBody>
           </Table>
         </TableScroll>
+        {materials.length > rowsShown && (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-support text-ink-subtle">
+              {t.rowsShown(rowsShown, materials.length)}
+            </span>
+            <Button size="sm" variant="secondary" onClick={() => setRowsShown((n) => n + TABLE_CHUNK)}>
+              {t.showMoreRows(TABLE_CHUNK)}
+            </Button>
+            <Button size="sm" variant="link" onClick={() => setRowsShown(materials.length)}>
+              {t.showAllRows}
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -441,7 +458,7 @@ export function ComparisonView({
         (mode === "radar" && (properties.length < 3 || incomplete.length > 0)) ||
         (mode !== "heatmap" && materials.length > DENSE_FROM) ? (
           <div className="mb-3 flex flex-col gap-2">
-            {mode !== "heatmap" && materials.length > DENSE_FROM && (
+            {materials.length > DENSE_FROM && (
               <p className="text-support text-ink-subtle">{t.denseFigure(materials.length)}</p>
             )}
             {mode === "radar" && properties.length < 3 && (

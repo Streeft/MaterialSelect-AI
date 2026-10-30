@@ -215,4 +215,13 @@ describe("the dense figures keep the project's promises", () => {
     // Five classes, three tones each: more than five looks, so same-class lines differ.
     expect(colors.size).toBeGreaterThan(5);
   });
+
+  it("draws the table in chunks of a hundred rows, and the button brings the rest", () => {
+    const { container } = render(<ComparisonView comparison={comparison} mode="table" />);
+    expect(container.querySelectorAll("tbody tr").length).toBe(100);
+    act(() => {
+      fireEvent.click(screen.getByShadowRole("button", { name: ptBR.compare.showAllRows }));
+    });
+    expect(container.querySelectorAll("tbody tr").length).toBe(200);
+  });
 });
