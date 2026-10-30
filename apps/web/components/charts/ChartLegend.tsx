@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { ClassSymbol } from "@/lib/design/palette";
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -135,6 +135,9 @@ function Swatch({ item }: { item: LegendItem }) {
   );
 }
 
+/** Past this many items the legend scrolls, offers "hide/show all" and keeps one tab stop. */
+export const LEGEND_LONG = 24;
+
 /**
  * The MSDS legend: one button per series, and clicking one shows or hides it.
  *
@@ -144,20 +147,31 @@ function Swatch({ item }: { item: LegendItem }) {
  * `onHover` lets a figure highlight the series under the pointer, which is how
  * two materials of the same class — same hue, same shape — are told apart on
  * the radar and the parallel coordinates.
+ *
+ * D-187: with hundreds of series a legend is a list, not a row of chips. Past
+ * `LEGEND_LONG` it scrolls inside a box, has "Ocultar todos / Mostrar todos"
+ * (to isolate a few materials), and keeps one tab stop with the arrows walking
+ * its items, so it is not hundreds of Tab presses between the reader and the
+ * next control.
  */
 export function ChartLegend({
   items,
   hidden,
   onToggle,
   onHover,
+  onSetAll,
   className,
 }: {
   items: LegendItem[];
   hidden?: ReadonlySet<string>;
   onToggle?: (key: string) => void;
   onHover?: (key: string | null) => void;
+  /** Hide (`true`) or show (`false`) every series at once; offered on a long legend. */
+  onSetAll?: (hide: boolean) => void;
   className?: string;
 }) {
+  const [rover, setRover] = useState(0);
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   if (items.length === 0) return null;
   if (!onToggle) {
     return (
@@ -171,21 +185,66 @@ export function ChartLegend({
       </ul>
     );
   }
-  return (
-    <div role="group" aria-label={t.legendToggle} className={cn("msds-legend", className)}>
-      {items.map((item) => {
+
+  const long = items.length > LEGEND_LONG;
+  const current = Math.min(rover, items.length - 1);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!long) return;
+    let next: number | null = null;
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = current + 1;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = current - 1;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = items.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const clamped = Math.max(0, Math.min(items.length - 1, next));
+    setRover(clamped);
+    const node = buttons.current[clamped];
+    node?.focus();
+    node?.scrollIntoView?.({ block: "nearest" });
+  }
+
+  const group = (
+    <div
+      role="group"
+      aria-label={t.legendToggle}
+      className={cn("msds-legend", long && "chart-legend-long", className)}
+      onKeyDown={onKeyDown}
+    >
+      {items.map((item, index) => {
         const off = hidden?.has(item.key) ?? false;
         return (
           <button
             key={item.key}
+            ref={(node) => {
+              buttons.current[index] = node;
+            }}
             type="button"
             className="msds-legend-item"
             data-off={off ? "true" : "false"}
             aria-pressed={!off}
+            tabIndex={long && index !== current ? -1 : undefined}
             onClick={() => onToggle(item.key)}
             onMouseEnter={onHover ? () => onHover(item.key) : undefined}
             onMouseLeave={onHover ? () => onHover(null) : undefined}
-            onFocus={onHover ? () => onHover(item.key) : undefined}
+            onFocus={() => {
+              if (long) setRover(index);
+              onHover?.(item.key);
+            }}
             onBlur={onHover ? () => onHover(null) : undefined}
           >
             <Swatch item={item} />
@@ -193,6 +252,23 @@ export function ChartLegend({
           </button>
         );
       })}
+    </div>
+  );
+
+  if (!long) return group;
+  return (
+    <div className="chart-legend-box">
+      {onSetAll ? (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="chart-legend-all" onClick={() => onSetAll(true)}>
+            {t.legendHideAll}
+          </button>
+          <button type="button" className="chart-legend-all" onClick={() => onSetAll(false)}>
+            {t.legendShowAll}
+          </button>
+        </div>
+      ) : null}
+      {group}
     </div>
   );
 }

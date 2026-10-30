@@ -7,6 +7,7 @@ import type { DataQualitySummary, MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { MAX_COMPARE_MATERIALS, MIN_COMPARE_MATERIALS } from "@/lib/compareLimits";
+import { encodeIdList } from "@/lib/idList";
 import { ariaSort, nextSort, sortRows, type SortState } from "@/lib/tableSort";
 import {
   Badge,
@@ -185,7 +186,7 @@ export function MaterialTable({
     });
   }
 
-  const compareHref = `/app/comparar?materiais=${selected.map((m) => m.id).join(",")}`;
+  const compareHref = `/app/comparar?materiais=${encodeIdList(selected.map((m) => m.id))}`;
   const tooFew = selected.length < MIN_COMPARE_MATERIALS;
   const tooMany = selected.length > MAX_COMPARE_MATERIALS;
 

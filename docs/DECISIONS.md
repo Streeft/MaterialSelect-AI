@@ -11650,3 +11650,26 @@ terços, e ao lado o que ajuda a lê-lo.
   de ícone claro, perdendo a cor do botão. As regras da seta ganharam especificidade e um véu de estado M3 sobre a própria cor.
 
 **Fonte.** m3.material.io › *Foundations › Layout › Canonical layout examples* (supporting pane) e *Components › Split button*, lidas em 29 e 30/10/26.
+
+## D-187 — Barras, Radar e Paralelas desenham a seleção inteira
+
+**Contexto.** O usuário pediu que os três gráficos mostrem toda a seleção, como o mapa de calor, e que o teto de 60 do comparador saia também. Os tetos de
+D-113 (barras 12, radar 8, paralelas 30) recusavam a figura por escrito; a API recusava mais de 60 ids.
+
+**Decisão.**
+- **Nenhuma figura recusa a seleção.** `COMPARISON_FIGURE_LIMITS` e `figureRefusal` foram removidos. Até 30 materiais, as figuras ficam como eram. Acima disso
+  (`DENSE_FROM`) mudam de forma, sem tocar em escore algum (ADR 0004): `comparisonDensity.ts` só tem aritmética de desenho.
+- **Barras:** espessura mínima de 4 px (3 px acima de 60), gráfico alto na proporção de N dentro de uma caixa com rolagem; escala fixa no topo. Uma barra por
+  material e propriedade, sem nó interativo por barra: o ponteiro acha a barra por conta (`barAt`), o teclado percorre com as setas e o item em foco é escrito
+  sob a figura. **Radar e Paralelas:** linhas finas cuja opacidade cai com a raiz de N (`lineOpacity`), o material sob o mouse ou o foco redesenhado por cima,
+  grosso; o resto escurece por um único atributo na raiz. Paralelas ganham altura com N (até 760 px). Ausência segue sendo vão hachurado ou quebra da linha, nunca zero
+  (D-24); o radar segue desenhando só materiais completos e lista os demais (até 12 nomes e a contagem).
+- **Legibilidade:** dentro de uma classe, o k-ésimo material usa um de três tons da cor da classe e, a cada três, o marcador seguinte (`classVariant`); legenda
+  rolável, com um só ponto de tabulação, setas e "Ocultar todos / Mostrar todos"; tooltip de 1 linha (barras) ou do material inteiro (linhas) em vez de N linhas.
+- **Teto da API: 60 para 5000**, só como válvula de segurança (cerca de 7 vezes o catálogo); id desconhecido já dá 404. O front espelha o valor.
+- **URL:** `?materiais=` aceita faixas (`1-679`, `encodeIdList`/`parseIdList`), então a seleção inteira cabe em poucos caracteres; lista dispersa de 679 ids tem cerca de
+  3 KB. O pedido ao servidor é POST. Se o catálogo passar de uns 2000 ids dispersos, a URL deixa de caber e será preciso entregar os ids por estado; não feito.
+- **Tabela** em blocos de 100 linhas ("Mostrar mais / todos"): 600 linhas eram 160 mil nós e 3,4 s. A cópia TSV continua com tudo. **Mapa de calor:** grade memorizada
+  e sem animação acima de 30 materiais.
+
+**Consequência.** Substitui os tetos de D-113 (TM3) para as figuras. Exportação SVG/PNG leva a figura inteira (nada é recortado por janela).

@@ -370,18 +370,66 @@ def test_trocar_a_unidade_de_leitura_nao_move_a_diferenca_percentual(
     assert modulo_lido["display_unit"] == "MPa"
 
 
-def test_the_ceiling_admits_dozens_and_refuses_beyond() -> None:
-    """TM3 (D-113): the table is the wide view, so the request takes dozens of
-    materials; past the ceiling it is refused at the schema, not truncated."""
+def test_the_ceiling_is_a_safety_valve_far_above_the_catalogue() -> None:
+    """D-187: the figures draw the whole selection, so the request ceiling is no
+    longer the old "dozens" (60). It only refuses, at the schema and never by
+    truncating, a list no catalogue could fill."""
     import pytest
     from pydantic import ValidationError
 
     from app.schemas.charts import MAX_COMPARE_MATERIALS, CompareRequest
 
-    assert MAX_COMPARE_MATERIALS >= 40
+    assert MAX_COMPARE_MATERIALS >= 3000
     ok = CompareRequest(
         material_ids=list(range(1, MAX_COMPARE_MATERIALS + 1)), property_slugs=["a"]
     )
     assert len(ok.material_ids) == MAX_COMPARE_MATERIALS
     with pytest.raises(ValidationError):
         CompareRequest(material_ids=list(range(1, MAX_COMPARE_MATERIALS + 2)), property_slugs=["a"])
+
+
+def test_a_comparison_of_hundreds_is_computed_whole(
+    client: TestClient, db_session: Session
+) -> None:
+    """D-187: 200 materials (well past the old 60) come back with one row each,
+    in the requested order, every score normalised on the same scale (0 to 1)."""
+    klass = (
+        db_session.execute(select(MaterialClass).where(MaterialClass.slug == "metais"))
+        .scalars()
+        .one()
+    )
+    density = (
+        db_session.execute(select(PropertyDefinition).where(PropertyDefinition.slug == "densidade"))
+        .scalars()
+        .one()
+    )
+    made = []
+    for i in range(200):
+        material = Material(name=f"Lote {i:03d}", class_id=klass.id, keywords=[])
+        db_session.add(material)
+        db_session.flush()
+        if i % 10 != 0:  # every tenth has no value: a gap, never a zero
+            db_session.add(
+                MaterialPropertyValue(
+                    material_id=material.id,
+                    property_id=density.id,
+                    value_scalar=1000.0 + i,
+                    normalized_value=1000.0 + i,
+                    canonical_unit="kg/m**3",
+                    original_unit="kg/m**3",
+                    is_missing=False,
+                )
+            )
+        made.append(material.id)
+    db_session.flush()
+
+    response = _compare(client, material_ids=made)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [m["material_id"] for m in body["materials"]] == made
+    scores = [_cell(body, mid)["normalized"] for mid in made]
+    assert scores[0] is None  # no value stays null
+    present = [v for v in scores if v is not None]
+    assert len(present) == 180
+    assert min(present) == 0.0 and max(present) == 1.0
