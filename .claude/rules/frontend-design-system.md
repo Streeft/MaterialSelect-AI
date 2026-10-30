@@ -139,6 +139,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   (`lib/design/sections.ts`). Tela fora do mapa de seções entra em `ROUTE_LABELS` ou ganha seção; senão o cabeçalho escreve
   "início". Um estado vazio que já traz o botão da tela não repete o do cabeçalho.
 
+- **Dois painéis são `PaneScaffold`** ([D-182](docs/DECISIONS.md)): lista e detalhe ou painel de apoio, decididos pela largura do bloco
+  (container query, limiares M3 de `lib/design/breakpoints.ts`), nunca por `matchMedia` no render. `useWindowClass` é só para comportamento.
+  Rumo do Expressive ([D-181](docs/DECISIONS.md)): barra escura fica, cor do app escolhível (qualidade e Okabe–Ito fixas), movimento expressivo.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

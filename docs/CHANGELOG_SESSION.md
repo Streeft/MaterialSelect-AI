@@ -178,6 +178,14 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 140 — 30/10/26 — Rumo do M3 Expressive e base dos layouts adaptativos (D-181, D-182)
+
+**O pedido.** Depois da revisão de design contra o m3.material.io, o autor decidiu: barra escura fica, a pessoa escolhe a cor do app, movimento
+expressivo. E pediu para começar pela base dos layouts adaptativos.
+**O que mudou.** Breakpoints M3 (`lib/design/breakpoints.ts`), `useWindowClass`, `PaneScaffold` (lista e detalhe, painel de apoio) com container
+queries, espécime em `/app/estilo`. Nenhuma tela de uso mudou. +19 de frontend (breakpoints, hook, scaffold com axe) e +2 E2E (`e2e/paineis.spec.ts`).
+Suíte de frontend: 1516 passam. Verificador de contraste: 16 rotas, nenhuma abaixo de 4,5:1. Sem backend nem migração.
+
 ## Sessão 138 — 29/10/26 — Frontend da auditoria C: respostas obsoletas, estado do mapa, download, tokens e protótipo (D-180)
 
 **O pedido.** Corrigir C1 a C5 da auditoria do frontend.

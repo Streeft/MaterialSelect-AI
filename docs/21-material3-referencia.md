@@ -127,3 +127,4 @@ utilitário e usa o esquema **standard** com o `useSpring` do MSDS; as molas do 
 | Tipografia 15 papéis | 6 papéis (display, title, heading, body, support, caption) | 15 nomes M3, tamanhos compactos. |
 | Movimento | `--msds-ease*`, `--msds-dur*` | Variáveis M3 ao lado das atuais. |
 | Cor: papéis completos | `--md-sys-color-*` (parcial no `container`) | Derivar do matiz de cada rota. |
+| Breakpoints (compacto 0, médio 600, expandido 840, grande 1200, extragrande 1600) e layouts canônicos | `sm`/`lg` do Tailwind, nenhum layout de dois painéis | `lib/design/breakpoints.ts` e `PaneScaffold` (D-182), medidos no bloco. Fonte: *Foundations › Layout › Breakpoints* e *Canonical layout examples*, lidas em 29/10/26. |

@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneScaffold } from "@/components/layout/PaneScaffold";
 import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { M3Foundations } from "./M3Foundations";
@@ -849,6 +850,31 @@ export default function StyleGuidePage() {
               teste de acessibilidade desta rota pega isso. Uma página real tem
               uma trilha só e fica com o nome padrão. */}
           <Breadcrumb items={[{ label: "Processos" }]} label="Trilha de exemplo, com um passo" />
+        </div>
+      </Section>
+
+      <Section title="Layouts de dois painéis (M3)" headingLevel={2}>
+        <div className="flex flex-col gap-4">
+          <p className="max-w-prose text-sm text-ink-muted">
+            Lista e detalhe, e painel de apoio. Os painéis ficam lado a lado a partir de 840 px de
+            largura do próprio bloco (não da janela, porque a barra lateral já ocupa a sua parte);
+            abaixo disso, a lista e o detalhe aparecem um de cada vez e o apoio desce para baixo.
+            Estreite a janela para ver.
+          </p>
+          <PaneScaffold
+            layout="list-detail"
+            primaryLabel="Exemplo: lista"
+            secondaryLabel="Exemplo: detalhe"
+            primary={<div className="well p-4 text-sm">Lista de itens</div>}
+            secondary={<div className="well p-4 text-sm">O item aberto</div>}
+          />
+          <PaneScaffold
+            layout="supporting-pane"
+            primaryLabel="Exemplo: conteúdo principal"
+            secondaryLabel="Exemplo: painel de apoio"
+            primary={<div className="well p-4 text-sm">O trabalho (cerca de dois terços)</div>}
+            secondary={<div className="well p-4 text-sm">O que ajuda a ler o trabalho</div>}
+          />
         </div>
       </Section>
 
