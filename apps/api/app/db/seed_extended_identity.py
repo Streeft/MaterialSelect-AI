@@ -29,7 +29,7 @@ either states the premise or adopts a deterministic fallback.
 The demo catalogue has zero known gaps (:data:`DEMO_KNOWN_GAPS`); the coverage
 report (``python -m app.db.demo_coverage``) prints 100% complete across all 75 materials.
 
-The enlarged TCC catalogue (D-184, ``app.db.demo_catalog``) reuses these shapes:
+The enlarged TCC catalogue (D-185, ``app.db.demo_catalog``) reuses these shapes:
 ``build_curve_specs`` takes its material ``names`` and the ``curve_hint`` of
 each lot (``hints``), which replaces the by-name dictionaries below for those
 materials — a grey cast iron is a metal and still breaks brittle.
@@ -236,7 +236,7 @@ def _points(shape: list) -> list[tuple[float, float]]:
 
 
 def _inputs_many(db: Session, material_ids: list[int]) -> dict[int, Inputs]:
-    """``_inputs`` for many materials in one query per 500 ids (the 593 of D-184)."""
+    """``_inputs`` for many materials in one query per 500 ids (the 593 of D-185)."""
     wanted = {
         "modulo_young": "youngs",
         "limite_escoamento": "yield",
@@ -282,7 +282,7 @@ def _stress_strain_spec(
 ) -> dict | None:
     """The tensile curve (or family) for one material, or ``None`` if it cannot exist.
 
-    ``hint`` is the lot's ``curve_hint`` (D-184): ``{"shape": "brittle",
+    ``hint`` is the lot's ``curve_hint`` (D-185): ``{"shape": "brittle",
     "softening": c}``, ``{"shape": "elastomer", "break_strain": e}``,
     ``{"shape": "cmc"}`` or ``{"shape": "ductile"}``. Without one, the shape
     comes from the class and the by-name dictionaries, as for the 75.
@@ -605,7 +605,7 @@ def build_curve_specs(
     one of that kind, so the baseline curves stay the baseline's.
 
     ``names`` defaults to the 75 named by the identity tables; the enlarged
-    catalogue (D-184) passes its own, with the ``curve_hint`` of each material in
+    catalogue (D-185) passes its own, with the ``curve_hint`` of each material in
     ``hints``. Only ``is_demo`` materials without an owner are read.
     """
     catalog_names = (

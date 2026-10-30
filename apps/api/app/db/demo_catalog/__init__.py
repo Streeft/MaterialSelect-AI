@@ -1,4 +1,4 @@
-"""The enlarged demo catalogue: nine JSON lots, 593 fictitious materials (D-184).
+"""The enlarged demo catalogue: nine JSON lots, 593 fictitious materials (D-185).
 
 Data, not a seed of its own. ``app.db.seed_extended`` — the module the
 ``semear_demo`` action of ``admin-banco.yml`` runs after ``app.db.seed`` —
@@ -11,7 +11,7 @@ Every material the lots describe is written ``is_demo=True`` against the single
 demo source (``Dataset Demo MaterialSelect``), every value ``ESTIMADO``, and
 ``clear_demo`` removes all of it by that mark. The numbers are orders of
 magnitude from open textbook/LCA literature, reviewed lot by lot (the QA report
-the D-184 summarises); nothing is copied from a commercial database, and the
+the D-185 summarises); nothing is copied from a commercial database, and the
 designations are all ``DEMO-…``/``Demo…`` so no row claims to *be* a real grade.
 
 What lives here is pure (no session, no SQL):

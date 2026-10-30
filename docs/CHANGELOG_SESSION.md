@@ -137,6 +137,7 @@ frontend (4 no catálogo, 1 em `format.test.ts`); suíte: 1536 passam; contraste
 horizontal, barra flutuante centralizada; a 390 px o nome navega. Achado e corrigido: o traço depois de valor adimensional na ficha. Sem backend nem migração.
 
 ## Sessão 142 — 30/10/26 — Catálogo demo ampliado do TCC: 593 materiais fictícios (D-184)
+## Sessão 143 — 30/10/26 — Catálogo demo ampliado do TCC: 593 materiais fictícios (D-185)
 
 **O pedido.** Integrar ao seed demo os nove lotes validados pelo QA (593 materiais, todos demonstrativos) para a apresentação do
 TCC, com as decisões do coordenador: lista separada, fonte e qualidade do demo, subclasses novas convivendo, valores do QA finais.
@@ -158,7 +159,7 @@ unicidade de nome e de designação entre lotes e contra o demo atual; carga com
 conferidas por `app/calculations/units.py`, ausente com numéricos nulos e nunca 0, escoamento ≤ tração, 3 curvas cada, processos);
 idempotência; `clear_demo` sem órfão; forma da curva pelo `curve_hint`; processos só nos novos; e os dois defeitos da busca por nome,
 que falham na `main` (demo pulado; `MultipleResultsFound`). Suíte inteira: 5190 coletados (5184 passam, 6 pulam). Sem migração.
-**Nada roda em produção**; semear o catálogo ampliado lá é decisão do autor (D-184, "Produção"). Pós-merge: Deploy da API não é
+**Nada roda em produção**; semear o catálogo ampliado lá é decisão do autor (D-185, "Produção"). Pós-merge: Deploy da API não é
 necessário (a API não importa o seed), mas é inócuo pela regra do `deploy-pos-merge`.
 
 ---

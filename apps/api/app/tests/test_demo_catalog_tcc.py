@@ -1,4 +1,4 @@
-"""The enlarged demo catalogue of the TCC: 593 fictitious materials in nine lots (D-184).
+"""The enlarged demo catalogue of the TCC: 593 fictitious materials in nine lots (D-185).
 
 Two halves. The pure half reads the JSON lots and runs ``validate_lots`` — the
 QA rules of the lots, no database — including proof that each rule bites on a
@@ -446,7 +446,7 @@ def _real_twin(db: Session, name: str) -> Material:
 
 
 def test_a_real_material_with_a_demo_name_does_not_hide_the_demo_one(db_session: Session) -> None:
-    """Before D-184 the name lookup ignored ``is_demo``: the demo was skipped in silence."""
+    """Before D-185 the name lookup ignored ``is_demo``: the demo was skipped in silence."""
     name = EXTENDED_DEMO_MATERIALS[1]["name"]
     _real_twin(db_session, name)
 
@@ -459,7 +459,7 @@ def test_a_real_material_with_a_demo_name_does_not_hide_the_demo_one(db_session:
 
 
 def test_two_real_materials_with_a_demo_name_do_not_break_the_seed(db_session: Session) -> None:
-    """Before D-184 two rows with the name raised ``MultipleResultsFound``."""
+    """Before D-185 two rows with the name raised ``MultipleResultsFound``."""
     name = EXTENDED_DEMO_MATERIALS[2]["name"]
     _real_twin(db_session, name)
     _real_twin(db_session, name)

@@ -87,11 +87,11 @@ quitados".
 
 ## Média prioridade
 
-- **Catálogo demo ampliado do TCC ([D-184](DECISIONS.md), Sessão 142) — pendências do autor.** Os 593
+- **Catálogo demo ampliado do TCC ([D-185](DECISIONS.md), Sessão 143) — pendências do autor.** Os 593
   materiais estão no código e no `semear_demo`; falta: (1) decidir **onde** semear para a
   apresentação — preview/local sem risco, ou produção, que o `CLAUDE.md` proíbe depois do cutover e
   que só se desfaz com `excluir_demo` (irreversível, apaga todo o demo); (2) revisão humana dos
-  valores marcados no D-184 (diamante CVD, energia/CO₂ de Pd e Pd-Ag, k do Au 14K e da Pt-Rh, os 33
+  valores marcados no D-185 (diamante CVD, energia/CO₂ de Pd e Pd-Ag, k do Au 14K e da Pt-Rh, os 33
   nomes de grau próximos ao demo antigo, ausência de 14,2 %/12,5 % em L08/L09); (3) conferir no
   navegador o mapa de Ashby com 678 pontos (legibilidade e desempenho do Plotly); (4) decidir se as
   subclasses antigas (`Aços`, `Ligas Leves`, `Compósitos Poliméricos`…) são reclassificadas para as

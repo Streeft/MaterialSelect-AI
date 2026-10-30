@@ -198,7 +198,7 @@ pip install -e ".[dev]"            # extras: postgres, billing, ai, knowledge
 copy .env.example .env
 python -m alembic upgrade head
 python -m app.db.seed              # base de demonstração
-python -m app.db.seed_extended     # opcional: +70 de exercício e +593 do catálogo demo ampliado (D-184), com designação, composição e curva; 668 no total
+python -m app.db.seed_extended     # opcional: +70 de exercício e +593 do catálogo demo ampliado (D-185), com designação, composição e curva; 668 no total
 python -m app.db.demo_coverage     # quem tem (e quem não tem) designação, composição e curva
 uvicorn app.main:app --reload      # http://localhost:8000/docs
 ```
