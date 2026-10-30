@@ -127,7 +127,7 @@ function AxisControl({
   const selectedProperty = properties.find((p) => p.slug === axis.property);
 
   return (
-    <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
+    <div className="flex min-w-[min(16rem,100%)] flex-1 flex-col gap-2">
       {allowIndex && (
         <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
           <ButtonGroupItem
@@ -194,7 +194,7 @@ function AxisControl({
             <div className="flex flex-wrap items-end gap-2">
               <Input
                 label={t.expression}
-                className="min-w-[12rem] flex-1"
+                className="min-w-[min(12rem,100%)] flex-1"
                 value={axis.customExpression}
                 onChange={(e) => onChange({ ...axis, customExpression: e.target.value })}
                 placeholder="modulo_young / densidade"
@@ -1124,7 +1124,7 @@ function MapsPageContent() {
                                 <div className="flex flex-wrap items-end gap-3">
                                   <Input
                                     label={t.expression}
-                                    className="min-w-[16rem] flex-1"
+                                    className="min-w-[min(16rem,100%)] flex-1"
                                     value={customExpression}
                                     onChange={(e) => setCustomExpression(e.target.value)}
                                     placeholder="modulo_young / densidade"
@@ -1166,7 +1166,7 @@ function MapsPageContent() {
                                   <Select
                                     label={t.levelThrough}
                                     hint={t.levelsHint}
-                                    className="min-w-[14rem]"
+                                    className="min-w-[min(14rem,100%)]"
                                     value=""
                                     onChange={(e) => {
                                       const id = Number(e.target.value);

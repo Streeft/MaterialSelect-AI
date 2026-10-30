@@ -34,7 +34,7 @@ export function FunnelRow({
   tone?: "brand" | "neutral";
 }) {
   return (
-    <li className="grid grid-cols-[minmax(5rem,9rem)_1fr_auto] items-center gap-3">
+    <li className="grid grid-cols-[minmax(5rem,9rem)_minmax(0,1fr)_auto] items-center gap-3">
       <span className="truncate text-xs text-ink-muted" title={label}>
         {label}
       </span>
