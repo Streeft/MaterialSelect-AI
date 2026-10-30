@@ -1701,6 +1701,26 @@ aside[data-surface="rail"] .msds-rail-item {
   background-color: rgb(var(--rail-edge) / 0.14); color: rgb(var(--rail-accent));
 }
 
+/* D-184: M3 floating toolbar, for acting on the rows a reader marked. Fixed and
+   centred, above the bottom bar on a phone (--bottom-nav-offset, D-91); on
+   inverse-surface like the snackbar (D-136). It enters on the expressive spring. */
+.m3-floating-toolbar {
+  position: fixed; left: 50%; bottom: calc(var(--bottom-nav-offset, 0px) + 20px); z-index: 30;
+  translate: -50% 0; max-width: calc(100vw - 32px);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 8px 8px 20px;
+  border-radius: 9999px; background: rgb(var(--m3-inverse-surface)); color: rgb(var(--m3-inverse-on-surface));
+  box-shadow: var(--elevation-3);
+  animation: m3-toolbar-in var(--motion-spatial-dur) var(--motion-spatial) both;
+}
+.m3-floating-toolbar-count { font-size: 14px; font-weight: 600; padding-right: 4px; }
+.m3-floating-toolbar-note { font-size: 13px; color: rgb(var(--m3-inverse-on-surface)); }
+.m3-floating-toolbar .m3-floating-toolbar-ghost { color: rgb(var(--m3-inverse-on-surface)); }
+@keyframes m3-toolbar-in {
+  from { opacity: 0; translate: -50% 16px; scale: 0.94; }
+  to { opacity: 1; translate: -50% 0; scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .m3-floating-toolbar { animation: none; } }
+
 /* Split button: the action and a menu seat, joined; the chevron turns on open. */
 .m3-split { display: inline-flex; gap: 2px; align-items: stretch; }
 .m3-split > .msds-btn { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }

@@ -80,6 +80,24 @@ vi.mock("@/lib/api", () => ({
         material_count: 1,
       },
     ]),
+  getMaterial: (id: number) =>
+    Promise.resolve({
+      id,
+      name: materials.find((m) => m.id === id)!.name,
+      class_id: 1,
+      class_name: "Metais",
+      class_slug: "metais",
+      subclass: null,
+      description: null,
+      is_demo: true,
+      is_active: true,
+      is_own_record: false,
+      keywords: [],
+      property_groups: [],
+      processes: [],
+      designations: [],
+      composition: [],
+    }),
   catalogueExportUrl: (format: string) => `#${format}`,
   opensInBrowser: (format: string) => format === "html",
 }));
@@ -213,3 +231,73 @@ describe("catálogo", () => {
     expect(screen.getAllByText(t.noValues).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("lista e detalhe (D-184)", () => {
+  function widthOfBlocks(width: number) {
+    return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      width,
+      height: 600,
+      top: 0,
+      left: 0,
+      right: width,
+      bottom: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+  }
+
+  it("em bloco largo, o nome abre a ficha ao lado, sem sair da lista", async () => {
+    const spy = widthOfBlocks(1100);
+    const { user, table } = await renderCatalog();
+
+    await user.click(within(table).getByShadowRole("link", { name: /Aço 1020/ }));
+    const pane = await screen.findByShadowRole("region", { name: t.preview.region });
+    expect(within(pane).getByShadowRole("heading", { name: "Aço 1020" })).toBeInTheDocument();
+    expect(within(pane).getByShadowRole("link", { name: t.preview.openFull })).toHaveAttribute(
+      "href",
+      "/app/materiais/1",
+    );
+    // The row of the material on display says so.
+    const compactTable = screen.getByShadowRole("table");
+    expect(within(compactTable).getByShadowRole("link", { name: /Aço 1020/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    // Beside the pane the table drops the keywords column; the sheet has them.
+    expect(within(compactTable).queryByShadowRole("columnheader", { name: t.columnKeywords })).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("fechar a ficha devolve a tabela inteira", async () => {
+    const spy = widthOfBlocks(1100);
+    const { user, table } = await renderCatalog();
+    await user.click(within(table).getByShadowRole("link", { name: /Alumina/ }));
+    await user.click(await screen.findByShadowRole("button", { name: t.preview.close }));
+
+    expect(screen.queryByShadowRole("region", { name: t.preview.region })).toBeNull();
+    expect(screen.getByShadowRole("columnheader", { name: t.columnKeywords })).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
+  it("em bloco estreito o nome continua sendo só um link para a página inteira", async () => {
+    const spy = widthOfBlocks(500);
+    const { user, table } = await renderCatalog();
+    const link = within(table).getByShadowRole("link", { name: /Aço 1020/ });
+    expect(link).toHaveAttribute("href", "/app/materiais/1");
+
+    await user.click(link);
+    expect(screen.queryByShadowRole("region", { name: t.preview.region })).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("a barra de ação dos marcados flutua e diz quantos são", async () => {
+    const { user, table } = await renderCatalog();
+    await user.click(within(table).getByShadowRole("checkbox", { name: t.selectRow("Aço 1020") }));
+
+    const bar = screen.getByShadowRole("region", { name: t.selectionBar });
+    expect(bar).toHaveClass("m3-floating-toolbar");
+    expect(within(bar).getByShadowRole("status")).toHaveTextContent(t.selectedCount(1));
+  });
+});
+
