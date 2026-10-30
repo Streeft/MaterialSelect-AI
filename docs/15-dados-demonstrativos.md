@@ -81,6 +81,50 @@ O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designaçõ
 principal não ganhou linha de dado, de propósito: o `conftest` o reexecuta e a
 suíte tem contagens fixas.
 
+### Catálogo demo ampliado do TCC (D-184)
+
+Para a apresentação do TCC o mesmo comando semeia **mais 593 materiais
+fictícios** — 207 metais, 134 polímeros, 56 elastômeros, 84 cerâmicas e 112
+compósitos, em 30 subclasses novas (texto livre; nenhuma `MaterialClass` nova)
+que convivem com as do demo antigo. Os números estão na ordem de grandeza da
+literatura aberta (livro-texto e ACV pública), conferidos lote a lote; nada vem
+de base comercial, e as designações são todas `DEMO-…`/`Demo…`.
+
+- **Onde vive.** Nove lotes JSON em `apps/api/app/db/demo_catalog/`
+  (`L01_acos.json` … `L09_naturais_construcao.json`, no `package-data` do
+  `pyproject.toml`), lidos por `load_lots()` do próprio pacote, sem `__main__`.
+- **Lista separada, de propósito.** `seed_extended.py` os guarda em
+  `TCC_DEMO_MATERIALS`, não em `EXTENDED_DEMO_MATERIALS`: a suíte tem contagens
+  fixas dos 75 (75 materiais, 222 curvas, o fixture `full_demo`), e anexar 593
+  as quebraria. É a exceção à letra "acrescente à lista existente" do passo 2
+  abaixo, registrada no D-184; o objetivo da regra se mantém — mesmo arquivo,
+  mesmo escritor (`seed_extended_materials`), mesmo `main()` que `semear_demo`
+  e `scripts/seed.ps1` já executam (conferidos: nenhum dos dois precisou mudar).
+- **O que cada um ganha.** 15 propriedades (`ESTIMADO`, fonte
+  `Dataset Demo MaterialSelect`; ausência escrita com nota só em dureza e
+  reciclagem), designação, composição, as três curvas (forma pelo `curve_hint`
+  do lote) e os processos da classe — **só** nos ids novos, por
+  `link_demo_processes(material_ids=…)`.
+- **Validado na carga.** `validate_lot()`/`validate_lots()` (puros) aplicam as
+  regras do QA: estrutura, unidade aceita e conversão pela trilha de
+  `app/calculations/units.py`, nenhum zero, escoamento ≤ tração, faixas por
+  família (E/ρ, Poisson, expansão, CO₂/energia, σy/σu dos frágeis, tetos de
+  temperatura), gramática de designação e composição, nome e código únicos no
+  demo inteiro. Um lote que quebre uma regra **para** o `semear_demo` com a
+  lista dos erros; nada é semeado pela metade.
+- **Log.** `[seed_extended] Catálogo demo ampliado (D-184): {...}` — na primeira
+  execução `tcc_materials_created: 593`, `tcc_designations_created: 1249`,
+  `tcc_composition_entries_created: 3276`, `tcc_curves_created: 1779` e
+  `tcc_process_links_created: 3032`; na segunda, tudo 0. Os ordinais demo
+  passam a cobrir 678 materiais (`ordinal_values_created: 1356`).
+- **Tempo.** O `seed_extended` inteiro levou ~11 s num SQLite local e ~21 s num
+  PostgreSQL local (~5.400 comandos SQL); contra o Neon, a partir do runner do
+  GitHub, conte alguns minutos (a latência de cada ida e volta domina).
+- **Como apagar.** Do mesmo jeito que o resto do demo: `excluir_demo` (abaixo).
+  `clear_demo` apaga por `is_demo`, então os 593 saem com valores, designações,
+  composição, curvas, ordinais e vínculos de processo — testado em
+  `app/tests/test_demo_catalog_tcc.py`. Não há comando para apagar só os 593.
+
 **Conferir a cobertura** (de qualquer material, demo ou não):
 
 ```bash
@@ -226,6 +270,8 @@ esta regra é uma extensão dele.
   para os 75 materiais.
 - [D-72](DECISIONS.md#d-72) — a decisão de consolidar a exclusão por
   `is_demo`, com `clear_demo.py` como único caminho.
+- [D-184](DECISIONS.md) — o catálogo demo ampliado do TCC (593 materiais em
+  `apps/api/app/db/demo_catalog/`, lista separada e validador).
 - [`docs/13-deploy.md` §5-ter](13-deploy.md) — quando disparar cada workflow
   depois de um merge.
 - `apps/api/app/db/seed.py`, `apps/api/app/db/seed_extended.py`,

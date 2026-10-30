@@ -844,6 +844,15 @@ As curvas são derivadas das propriedades do próprio material, e a premissa tom
 onde elas faltam ou se contradizem fica na descrição da curva.
 `python -m app.db.demo_coverage` lista a cobertura e a razão de cada ausência.
 
+**Catálogo demo ampliado (D-184)**: mais 593 materiais fictícios em nove lotes
+JSON (`app/db/demo_catalog/`), numa lista **separada** (`TCC_DEMO_MATERIALS`,
+`seed_demo_catalog_expansion()` no `main()` de `seed_extended`) para não mover as
+contagens fixas dos 75. Validados na carga por `validate_lots()` (puro; falha
+alto, nunca semeia pela metade). Lote novo ou valor novo passa por ele. Nenhuma
+`MaterialClass` nova: família nova vai em `subclass`. Processos demo só por
+`link_demo_processes(material_ids=…)` com os ids do lote, nunca sem ids. A busca
+do seed por nome considera só `is_demo` sem dono.
+
 ## Composição e busca (D-105)
 
 **Composição química e designações entraram no catálogo e na busca**

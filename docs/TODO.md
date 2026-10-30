@@ -87,6 +87,17 @@ quitados".
 
 ## Média prioridade
 
+- **Catálogo demo ampliado do TCC ([D-184](DECISIONS.md), Sessão 142) — pendências do autor.** Os 593
+  materiais estão no código e no `semear_demo`; falta: (1) decidir **onde** semear para a
+  apresentação — preview/local sem risco, ou produção, que o `CLAUDE.md` proíbe depois do cutover e
+  que só se desfaz com `excluir_demo` (irreversível, apaga todo o demo); (2) revisão humana dos
+  valores marcados no D-184 (diamante CVD, energia/CO₂ de Pd e Pd-Ag, k do Au 14K e da Pt-Rh, os 33
+  nomes de grau próximos ao demo antigo, ausência de 14,2 %/12,5 % em L08/L09); (3) conferir no
+  navegador o mapa de Ashby com 678 pontos (legibilidade e desempenho do Plotly); (4) decidir se as
+  subclasses antigas (`Aços`, `Ligas Leves`, `Compósitos Poliméricos`…) são reclassificadas para as
+  novas ou continuam convivendo. Observado ao medir: num banco limpo os 70 do `seed_extended` não
+  ganham processo (o vínculo deles veio da migração `b7d219fa82de`, que roda antes de existirem);
+  os 593 ganham, por `link_demo_processes(material_ids=…)`.
 - ~~**Varredura de família do Synthesizer ([D-144](DECISIONS.md), Sessão 99)**~~ — feita
   nas duas pontas. Backend: `POST /api/sintetizar/varredura` varre a razão c/t do painel ou a fração
   do compósito numa grade por índice (até 50 passos, linear ou log), avalia o índice em cada passo e

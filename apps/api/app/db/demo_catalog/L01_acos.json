@@ -1,0 +1,8772 @@
+{
+ "lote": "L01-acos",
+ "versao": 1,
+ "materiais": [
+  {
+   "name": "Aço Carbono SAE 1008 Laminado a Frio",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixíssimo carbono fictício, laminado a frio e recozido, típico de chapas para estampagem. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "chapa",
+    "estampagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1008-LF",
+    "ABNT:DEMO-L01-BR1008-LF",
+    "COMERCIAL:Demoaço L01 Chapa 1008"
+   ],
+   "composition": "Fe=balance C<=0.10 Mn=0.25-0.50 P<=0.035 S<=0.040 Al=0.02-0.07",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7872,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 215.3,
+     "max": 234.7,
+     "typical": 225,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 365,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 59.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.82,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 26.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.84,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.14,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.68,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.26e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 481,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1010 Laminado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixo carbono fictício, laminado a quente, para peças conformadas e soldadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "chapa",
+    "conformacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1010-LQ",
+    "UNS:DEMO-L01-G10100-LQ"
+   ],
+   "composition": "Fe=balance C=0.08-0.13 Mn=0.30-0.60 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.87,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 224.5,
+     "max": 245.5,
+     "typical": 235,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 375,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 375,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 58,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.66,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.04,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.67,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.24e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.487,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1015 Laminado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixo carbono fictício, laminado a quente, para parafusos e pequenos forjados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "parafusos",
+    "forjamento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1015-LQ",
+    "ABNT:DEMO-L01-BR1015"
+   ],
+   "composition": "Fe=balance C=0.13-0.18 Mn=0.30-0.60 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.868,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 236.8,
+     "max": 263.2,
+     "typical": 250,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 128,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 375,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 56.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.67,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8980,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.68,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 477,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1018 Trefilado a Frio",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixo carbono fictício, trefilado a frio, para eixos leves e peças usinadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "eixos",
+    "usinagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1018-TF",
+    "UNS:DEMO-L01-G10180-TF",
+    "COMERCIAL:Demoaço L01 Barra 1018"
+   ],
+   "composition": "Fe=balance C=0.15-0.21 Mn=0.60-0.90 Si<=0.25 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7865,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 356.1,
+     "max": 383.9,
+     "typical": 370,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 440,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 135,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 51,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.88,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 28.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.96,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.54,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.71,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 487,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1020 Normalizado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixo carbono fictício, normalizado, de uso estrutural geral e para cementação. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "estrutural",
+    "cementacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1020-N",
+    "ABNT:DEMO-L01-BR1020-N"
+   ],
+   "composition": "Fe=balance C=0.17-0.24 Mn=0.30-0.62 P<=0.035 S<=0.045",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 204,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 278.1,
+     "max": 301.9,
+     "typical": 290,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 445,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 138,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 52,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.88,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.14,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.68,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.19e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 477,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1025 Laminado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de baixo-médio carbono fictício, laminado a quente, para forjados e estruturas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "forjados",
+    "estrutural",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1025-LQ",
+    "UNS:DEMO-L01-G10250-LQ"
+   ],
+   "composition": "Fe=balance C=0.21-0.29 Mn=0.30-0.60 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.858,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 293.7,
+     "max": 326.3,
+     "typical": 310,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 470,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 144,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 51.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.91,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.46,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.291,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.19e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.479,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1030 Normalizado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de médio carbono fictício, normalizado, para eixos e peças forjadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "eixos",
+    "forjados",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1030-N",
+    "ABNT:DEMO-L01-BR1030"
+   ],
+   "composition": "Fe=balance C=0.27-0.35 Mn=0.60-0.90 Si<=0.30 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7855,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 328.7,
+     "max": 361.3,
+     "typical": 345,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 167,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 50.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.87,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.61,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.61,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.18e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 479,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1035 Trefilado a Frio",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de médio carbono fictício, trefilado a frio, para pinos e peças usinadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "pinos",
+    "usinagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1035-TF",
+    "UNS:DEMO-L01-G10350-TF"
+   ],
+   "composition": "Fe=balance C=0.31-0.39 Mn=0.58-0.92 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.853,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 442.7,
+     "max": 477.3,
+     "typical": 460,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 585,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 187,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 50.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.86,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9490,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.17e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 485,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1040 Normalizado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de médio carbono fictício, normalizado, para engrenagens e eixos pouco solicitados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "engrenagens",
+    "eixos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1040-N",
+    "ABNT:DEMO-L01-BR1040-N",
+    "COMERCIAL:Demoaço L01 Barra 1040"
+   ],
+   "composition": "Fe=balance C=0.36-0.45 Mn=0.58-0.92 Si<=0.30 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 360.9,
+     "max": 389.1,
+     "typical": 375,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 590,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 184,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 50.7,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.76,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.84,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.71,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.288,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.16e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1045 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de médio carbono fictício, temperado e revenido, para eixos e peças beneficiadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "eixos",
+    "beneficiado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1045-TR",
+    "ABNT:DEMO-L01-BR1045-TR"
+   ],
+   "composition": "Fe=balance C=0.43-0.50 Mn=0.60-0.90 Si=0.15-0.35 P<=0.030 S<=0.035",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7845,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 617.7,
+     "max": 682.3,
+     "typical": 650,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 820,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 375,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 47.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.88,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.68,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.288,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.15e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.478,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1050 Normalizado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de médio carbono fictício, normalizado, para engrenagens e molas de baixa solicitação. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "engrenagens",
+    "molas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1050-N",
+    "UNS:DEMO-L01-G10500-N"
+   ],
+   "composition": "Fe=balance C=0.47-0.55 Mn=0.60-0.90 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.848,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 405.9,
+     "max": 444.1,
+     "typical": 425,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 48.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.89,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.92,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.64,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.14e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 488,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1060 Laminado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de alto carbono fictício, laminado a quente, para molas e lâminas agrícolas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "molas",
+    "laminas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1060-LQ",
+    "ABNT:DEMO-L01-BR1060"
+   ],
+   "composition": "Fe=balance C=0.55-0.66 Mn=0.60-0.90 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.845,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 208,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 458.9,
+     "max": 511.1,
+     "typical": 485,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 815,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 260,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 47.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.82,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.21,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.13e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 487,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1080 Laminado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço eutetoide fictício, laminado a quente, para trilhos leves e arames de alta resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "trilhos",
+    "arames",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1080-LQ",
+    "UNS:DEMO-L01-G10800-LQ"
+   ],
+   "composition": "Fe=balance C=0.75-0.88 Mn=0.60-0.90 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7842,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 565.8,
+     "max": 614.2,
+     "typical": 590,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 980,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 305,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 47,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.86,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.87,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9470,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.11e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono SAE 1095 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço de alto carbono fictício, temperado e revenido, para molas planas e cutelaria. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "molas",
+    "cutelaria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1095-TR",
+    "ABNT:DEMO-L01-BR1095-TR",
+    "COMERCIAL:Demoaço L01 Mola 1095"
+   ],
+   "composition": "Fe=balance C=0.90-1.03 Mn=0.30-0.50 P<=0.040 S<=0.050",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.838,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 209,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 787.2,
+     "max": 852.8,
+     "typical": 820,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1150,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 346,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 44.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 28.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.24,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.68,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.487,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço de Corte Fácil SAE 1117 Trefilado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço ressulfurado fictício, trefilado, para peças usinadas em série. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "usinagem",
+    "corte_facil",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1117-TF",
+    "UNS:DEMO-L01-G11170-TF"
+   ],
+   "composition": "Fe=balance C=0.14-0.20 Mn=1.00-1.30 S=0.08-0.13 P<=0.040",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 203,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 339.6,
+     "max": 380.4,
+     "typical": 360,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 485,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 156,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 51.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.87,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.41,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço de Corte Fácil SAE 12L14 Trefilado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço ressulfurado e com chumbo fictício, trefilado, para tornos automáticos. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "usinagem",
+    "corte_facil",
+    "torno_automatico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-12L14-TF",
+    "ABNT:DEMO-L01-BR12L14"
+   ],
+   "composition": "Fe=balance C<=0.15 Mn=0.85-1.15 S=0.26-0.35 P=0.04-0.09 Pb=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7870,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 202,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 390.7,
+     "max": 439.3,
+     "typical": 415,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 540,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 167,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 51.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 27.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.93,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.29,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.71,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.23e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 481,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço de Corte Fácil SAE 1144 Trefilado",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço ressulfurado de médio carbono fictício, trefilado, para eixos usinados de maior resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "usinagem",
+    "corte_facil",
+    "eixos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-1144-TF",
+    "UNS:DEMO-L01-G11440-TF"
+   ],
+   "composition": "Fe=balance C=0.40-0.48 Mn=1.35-1.65 S=0.24-0.33 P<=0.040",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.845,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 575.1,
+     "max": 624.9,
+     "typical": 600,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 720,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 227,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 49,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.02,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 28.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.66,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.289,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.16e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 489,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Estrutural ASTM A283 Grau C",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço estrutural carbono fictício para chapas de uso geral em estruturas e tanques. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "estrutural",
+    "chapas",
+    "tanques",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A283-C",
+    "UNS:DEMO-L01-K02401-C"
+   ],
+   "composition": "Fe=balance C<=0.24 Mn<=0.90 Si<=0.40 P<=0.035 S<=0.040 Cu>=0.20",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 202,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 219.6,
+     "max": 240.4,
+     "typical": 230,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 415,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 126,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 53,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.64,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.81,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8860,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.64,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.291,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.19e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.479,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Estrutural EN S235JR",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço estrutural não ligado fictício, laminado a quente, para perfis e chapas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "estrutural",
+    "perfis",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-S235JR@Europa",
+    "EN:DEMO-L01-1.0038@Europa",
+    "COMERCIAL:Demoaço L01 Perfil 235"
+   ],
+   "composition": "Fe=balance C<=0.19 Mn<=1.40 P<=0.040 S<=0.040 N<=0.012 Cu<=0.55",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7865,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 234.6,
+     "max": 265.4,
+     "typical": 250,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 128,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 54,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.76,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.02,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.67,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.295,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 475,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Estrutural EN S275JR",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço estrutural não ligado fictício, laminado a quente, para perfis e estruturas soldadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "estrutural",
+    "perfis",
+    "soldavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-S275JR@Europa",
+    "EN:DEMO-L01-1.0044@Europa"
+   ],
+   "composition": "Fe=balance C<=0.21 Mn<=1.50 P<=0.035 S<=0.035 N<=0.012 Cu<=0.55",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 209,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 275.4,
+     "max": 304.6,
+     "typical": 290,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 465,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 141,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 52.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.63,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.49,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.63,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 485,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Estrutural EN S355J2",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço estrutural carbono-manganês fictício, com tenacidade garantida a baixa temperatura. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "estrutural",
+    "pontes",
+    "soldavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-S355J2@Europa",
+    "EN:DEMO-L01-1.0577@Europa",
+    "COMERCIAL:Demoaço L01 Perfil 355"
+   ],
+   "composition": "Fe=balance C<=0.22 Mn<=1.60 Si<=0.55 P<=0.030 S<=0.030 Cu<=0.55",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.855,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 208,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 352.2,
+     "max": 387.8,
+     "typical": 370,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 540,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 169,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 49.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 26.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.78,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.93,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.69,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço para Vasos de Pressão ASTM A516 Grau 70",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço carbono fictício para chapas de vasos de pressão e caldeiras em temperatura moderada. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "vasos_de_pressao",
+    "caldeiraria",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A516-70",
+    "UNS:DEMO-L01-K02700-70"
+   ],
+   "composition": "Fe=balance C<=0.28 Mn=0.85-1.20 Si=0.15-0.40 P<=0.025 S<=0.025",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7855,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 203,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 277.4,
+     "max": 312.6,
+     "typical": 295,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 168,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 50.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 26.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.37,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.67,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.284,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.475,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Carbono Fundido ASTM A216 WCB",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Aço carbono fundido fictício para corpos de válvulas e peças de pressão. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "fundicao",
+    "valvulas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A216-WCB",
+    "UNS:DEMO-L01-J03002-WCB"
+   ],
+   "composition": "Fe=balance C<=0.30 Mn<=1.00 Si<=0.60 P<=0.035 S<=0.035 Cr<=0.50 Ni<=0.50",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.83,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 201,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 258.1,
+     "max": 291.9,
+     "typical": 275,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 152,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 425,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 51,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 28.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.93,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9790,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço para Concreto CA-50 (Vergalhão)",
+   "class_slug": "metais",
+   "subclass": "Aços Carbono",
+   "description": "Barra nervurada fictícia de aço carbono-manganês para concreto armado. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_carbono",
+    "construcao_civil",
+    "concreto_armado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L01-BRCA50",
+    "COMERCIAL:Demoaço L01 Vergalhão 50"
+   ],
+   "composition": "Fe=balance C=0.25-0.33 Mn=0.80-1.30 Si<=0.40 P<=0.045 S<=0.045",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 523.6,
+     "max": 566.4,
+     "typical": 545,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 350,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 48,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 0.61,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 25.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 1.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 8.51,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.61,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.18e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 489,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço ARBL ASTM A572 Grau 50",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço de alta resistência e baixa liga fictício, microligado ao nióbio e vanádio, para estruturas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "estrutural",
+    "pontes",
+    "microligado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A572-50",
+    "UNS:DEMO-L01-K02303-50"
+   ],
+   "composition": "Fe=balance C<=0.23 Mn<=1.35 Si<=0.40 Nb=0.005-0.05 V=0.01-0.15 P<=0.04 S<=0.05",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7855,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 353.3,
+     "max": 396.7,
+     "typical": 375,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 510,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 165,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 48,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.02,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 31.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.11,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.65,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.72,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 475,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Patinável ASTM A588 Grau A",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço de baixa liga fictício resistente à corrosão atmosférica, para pontes e fachadas sem pintura. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "patinavel",
+    "corrosao_atmosferica",
+    "pontes",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A588-A",
+    "COMERCIAL:Demoaço L01 Patinável 588"
+   ],
+   "composition": "Fe=balance C<=0.19 Mn=0.80-1.25 Si=0.30-0.65 Cr=0.40-0.65 Cu=0.25-0.40 Ni<=0.40 V=0.02-0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 204,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 352.7,
+     "max": 387.3,
+     "typical": 370,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 525,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 168,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 44,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 30.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.04,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9.64,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.293,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.477,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço ARBL Termomecânico EN S460M",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço microligado fictício de laminação termomecânica, para estruturas soldadas de alta resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "estrutural",
+    "microligado",
+    "soldavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-S460M@Europa",
+    "EN:DEMO-L01-1.8827@Europa"
+   ],
+   "composition": "Fe=balance C<=0.16 Mn<=1.70 Si<=0.60 Nb<=0.05 V<=0.12 Ti<=0.05 N<=0.025",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 457.7,
+     "max": 502.3,
+     "typical": 480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 184,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 43.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 32.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.79,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 482,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Microligado LNE 500 para Chassi",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço microligado fictício laminado a quente, para longarinas e chassis de veículos pesados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "automotivo",
+    "chassi",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ABNT:DEMO-L01-BRLNE500",
+    "COMERCIAL:Demoaço L01 Chassi 500"
+   ],
+   "composition": "Fe=balance C<=0.12 Mn<=1.65 Si<=0.50 Nb=0.02-0.07 Ti<=0.15 P<=0.025 S<=0.010",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7852,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 488.4,
+     "max": 551.6,
+     "typical": 520,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 615,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 188,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 31.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.09,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 9820,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.73,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 480,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Bifásico DP600",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço bifásico ferrita-martensita fictício para peças estruturais automotivas estampadas a frio. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "automotivo",
+    "ahss",
+    "estampagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-DP600@Europa",
+    "COMERCIAL:Demoaço L01 Bifásico 600"
+   ],
+   "composition": "Fe=balance C=0.06-0.12 Mn=1.40-1.90 Si=0.15-0.45 Cr<=0.60 Al<=0.08 Mo=missing",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.84,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 361,
+     "max": 399,
+     "typical": 380,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 640,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 209,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 41,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 32.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.291,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.23e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 475,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Bifásico DP980",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço bifásico de ultra-alta resistência fictício para reforços de carroceria. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "automotivo",
+    "ahss",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-DP980@Europa",
+    "COMERCIAL:Demoaço L01 Bifásico 980"
+   ],
+   "composition": "Fe=balance C=0.10-0.17 Mn=1.80-2.40 Si=0.20-0.60 Cr<=0.80 Mo<=0.30 B<=0.005",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.835,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 637.9,
+     "max": 722.1,
+     "typical": 680,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1010,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 313,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 37,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 33.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.478,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço ao Boro 22MnB5 Estampado a Quente",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço ao boro fictício temperado na própria ferramenta de estampagem, para colunas e travessas de carroceria. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "automotivo",
+    "estampagem_a_quente",
+    "ultra_alta_resistencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "EN:DEMO-L01-22MnB5@Europa",
+    "EN:DEMO-L01-1.5528@Europa"
+   ],
+   "composition": "Fe=balance C=0.20-0.25 Mn=1.10-1.40 Si=0.15-0.35 Cr=0.10-0.30 B=0.002-0.005 Ti=0.02-0.05",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7830,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1096,
+     "max": 1204,
+     "typical": 1150,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 470,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 33,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 34.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.81,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.296,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.24e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 469,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Cromo-Molibdênio SAE 4130 Normalizado",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr-Mo fictício normalizado, soldável, para tubos estruturais e quadros. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "tubos",
+    "aeronautico",
+    "soldavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-4130-N",
+    "UNS:DEMO-L01-G41300-N"
+   ],
+   "composition": "Fe=balance C=0.28-0.33 Mn=0.40-0.60 Cr=0.80-1.10 Mo=0.15-0.25 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 418,
+     "max": 452,
+     "typical": 435,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 670,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 211,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 42.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 34.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.82,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.291,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 468,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Cromo-Molibdênio SAE 4140 Recozido",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr-Mo fictício recozido, em estado de fornecimento para usinagem antes do beneficiamento. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "usinagem",
+    "eixos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-4140-R",
+    "ABNT:DEMO-L01-BR4140-R"
+   ],
+   "composition": "Fe=balance C=0.38-0.43 Mn=0.75-1.00 Cr=0.80-1.10 Mo=0.15-0.25 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 403.7,
+     "max": 436.3,
+     "typical": 420,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 655,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 204,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 42.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 33.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10300,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.74,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.23e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 476,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Cromo-Molibdênio SAE 4140 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr-Mo fictício beneficiado, para eixos, engrenagens e parafusos de alta resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "eixos",
+    "engrenagens",
+    "beneficiado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-4140-TR",
+    "ABNT:DEMO-L01-BR4140-TR",
+    "COMERCIAL:Demoaço L01 Beneficiado 4140"
+   ],
+   "composition": "Fe=balance C=0.37-0.44 Mn=0.70-1.00 Cr=0.85-1.15 Mo=0.15-0.28 Si=0.15-0.35 P<=0.030",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7845,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 817.7,
+     "max": 882.3,
+     "typical": 850,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 311,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 41.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 34.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.34,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.82,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.22e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.476,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ni-Cr-Mo SAE 4340 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Ni-Cr-Mo fictício beneficiado, de alta temperabilidade, para eixos e componentes pesados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "eixos",
+    "aeronautico",
+    "beneficiado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-4340-TR",
+    "UNS:DEMO-L01-G43400-TR"
+   ],
+   "composition": "Fe=balance C=0.38-0.43 Mn=0.60-0.80 Ni=1.65-2.00 Cr=0.70-0.90 Mo=0.20-0.30 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1176,
+     "max": 1324,
+     "typical": 1250,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1400,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 430,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 38.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.54,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 11.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.83,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.295,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.23e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 469,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ni-Cr-Mo SAE 4340 Revenido a Baixa Temperatura",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Ni-Cr-Mo fictício revenido a baixa temperatura, condição de ultra-alta resistência para trens de pouso. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "aeronautico",
+    "ultra_alta_resistencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-4340-RB",
+    "ABNT:DEMO-L01-BR4340-RB"
+   ],
+   "composition": "Fe=balance C=0.39-0.44 Mn=0.62-0.85 Ni=1.70-2.00 Cr=0.72-0.92 Mo=0.22-0.30 Si=0.15-0.30 S<=0.010",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.845,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1421,
+     "max": 1539,
+     "typical": 1480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1860,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 570,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 37.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 38.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 11.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 466,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço para Cementação SAE 8620 Beneficiado",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Ni-Cr-Mo de cementação fictício; valores referem-se ao núcleo após cementação e têmpera. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "engrenagens",
+    "cementacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-8620-C",
+    "ABNT:DEMO-L01-BR8620-C"
+   ],
+   "composition": "Fe=balance C=0.18-0.23 Mn=0.70-0.90 Ni=0.40-0.70 Cr=0.40-0.60 Mo=0.15-0.25 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7850,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 657,
+     "max": 743,
+     "typical": 700,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 950,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 290,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 46,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 32.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.73,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 479,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço para Molas SAE 5160 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr fictício para feixes de molas e barras estabilizadoras, temperado e revenido. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "molas",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-5160-TR",
+    "UNS:DEMO-L01-G51600-TR"
+   ],
+   "composition": "Fe=balance C=0.56-0.64 Mn=0.75-1.00 Cr=0.70-0.90 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1325,
+     "max": 1435,
+     "typical": 1380,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1590,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 475,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 44.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 33,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10400,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.77,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.289,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.24e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.467,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Cromo-Vanádio SAE 6150 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr-V fictício temperado e revenido, para molas helicoidais e ferramentas manuais. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "molas",
+    "ferramentas_manuais",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-6150-TR",
+    "ABNT:DEMO-L01-BR6150-TR"
+   ],
+   "composition": "Fe=balance C=0.48-0.53 Mn=0.70-0.90 Cr=0.80-1.10 V>=0.15 Si=0.15-0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1095,
+     "max": 1205,
+     "typical": 1150,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 395,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 425,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 46.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 34.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.78,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.25e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 479,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço para Rolamentos SAE 52100 Revenido a Alta Temperatura",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço alto carbono-cromo fictício para rolamentos, em condição revenida de dureza moderada. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "rolamentos",
+    "desgaste",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-52100-R",
+    "UNS:DEMO-L01-G52986-R",
+    "COMERCIAL:Demoaço L01 Rolamento 52100"
+   ],
+   "composition": "Fe=balance C=0.95-1.10 Cr=1.30-1.60 Mn=0.25-0.45 Si=0.15-0.35 Ni<=0.25",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7810,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 208,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1455,
+     "max": 1545,
+     "typical": 1500,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1880,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 585,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 44,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 36.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.51,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.79,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.19e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 473,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço 2,25Cr-1Mo ASTM A387 Grau 22",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Cr-Mo fictício para chapas de vasos de pressão em temperatura elevada (refino, caldeiras). Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "vasos_de_pressao",
+    "alta_temperatura",
+    "fluencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A387-22",
+    "UNS:DEMO-L01-K21590-22"
+   ],
+   "composition": "Fe=balance C=0.05-0.15 Mn=0.30-0.60 Cr=2.00-2.50 Mo=0.90-1.10 Si<=0.50 P<=0.025",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 208,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 356.4,
+     "max": 403.6,
+     "typical": 380,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 560,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 172,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 550,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 36.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.42,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 11.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.86,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.284,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.2e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 474,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Mn-Mo ASTM A533 Tipo B para Vasos de Reator",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço Mn-Mo-Ni fictício temperado e revenido, para vasos de pressão de paredes espessas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "vasos_de_pressao",
+    "nuclear",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A533-B",
+    "UNS:DEMO-L01-K12539-B"
+   ],
+   "composition": "Fe=balance C<=0.25 Mn=1.15-1.50 Mo=0.45-0.60 Ni=0.40-0.70 Si=0.15-0.40 Cu<=0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.855,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 455.6,
+     "max": 514.4,
+     "typical": 485,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 212,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 41,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.49,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.78,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.295,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.25e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.481,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço 9% Níquel ASTM A553 para Criogenia",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço ao níquel fictício, temperado e revenido, para tanques de gases liquefeitos em baixa temperatura. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "criogenia",
+    "gnl",
+    "tanques",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ASTM:DEMO-L01-A553-I",
+    "UNS:DEMO-L01-K81340-I"
+   ],
+   "composition": "Fe=balance Ni=8.50-9.50 C<=0.13 Mn<=0.90 Si=0.15-0.40 P<=0.015 S<=0.015",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7880,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 595.2,
+     "max": 644.8,
+     "typical": 620,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 720,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 226,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC",
+     "notes": "Aço projetado para serviço criogênico (até −196 °C); o limite superior vem do revenimento."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 30.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 39.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.66,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.99,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.296,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.13e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 476,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço ao Boro SAE 15B30 para Parafusos Classe 10.9",
+   "class_slug": "metais",
+   "subclass": "Aços Baixa Liga",
+   "description": "Aço C-Mn ao boro fictício, temperado e revenido, para parafusos de alta resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_baixa_liga",
+    "parafusos",
+    "fixadores",
+    "beneficiado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-15B30-TR",
+    "COMERCIAL:Demoaço L01 Fixador 10.9"
+   ],
+   "composition": "Fe=balance C=0.27-0.34 Mn=1.00-1.35 B>=0.0008 Si=0.15-0.30 Cr<=0.30",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 206,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 882.2,
+     "max": 997.8,
+     "typical": 940,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1040,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 325,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 44,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 33.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 10.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.81,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.286,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 476,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 304 Recozido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico 18Cr-8Ni fictício, recozido, de uso geral em equipamentos e utensílios. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "corrosao",
+    "alimenticio",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-304-R",
+    "UNS:DEMO-L01-S30400-R",
+    "COMERCIAL:Demoaço L01 Inox 304"
+   ],
+   "composition": "Fe=balance Cr=18.0-20.0 Ni=8.0-10.5 C<=0.08 Mn<=2.0 Si<=0.75 P<=0.045 S<=0.030 N<=0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.93,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 195,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 217.9,
+     "max": 242.1,
+     "typical": 230,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 580,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 179,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 16.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 61.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.19,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.72e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 505,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 304L Recozido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico fictício de baixo carbono, recozido, para estruturas soldadas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "corrosao",
+    "soldavel",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-304L-R",
+    "UNS:DEMO-L01-S30403-R"
+   ],
+   "composition": "Fe=balance Cr=18.0-20.0 Ni=8.0-12.0 C<=0.03 Mn<=2.0 Si<=0.75 P<=0.045 S<=0.030 N<=0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7920,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 194,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 202,
+     "max": 218,
+     "typical": 210,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 560,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 173,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 62,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.73e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.507,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 316 Recozido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico ao molibdênio fictício, recozido, para ambientes com cloretos. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "corrosao",
+    "quimico",
+    "naval",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-316-R",
+    "UNS:DEMO-L01-S31600-R",
+    "EN:DEMO-L01-1.4401-R@Europa"
+   ],
+   "composition": "Fe=balance Cr=16.0-18.0 Ni=10.0-14.0 Mo=2.0-3.0 C<=0.08 Mn<=2.0 Si<=0.75 P<=0.045 S<=0.030",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.98,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 193,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 228.8,
+     "max": 251.2,
+     "typical": 240,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 590,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 183,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 820,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 15.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 65.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.58,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.6e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 321 Estabilizado ao Titânio",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico fictício estabilizado ao titânio, para serviço entre 400 e 800 °C. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "corrosao",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-321-R",
+    "UNS:DEMO-L01-S32100-R"
+   ],
+   "composition": "Fe=balance Cr=17.0-19.0 Ni=9.0-12.0 Ti=0.30-0.70 C<=0.08 Mn<=2.0 Si<=0.75",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.92,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 196,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 233.3,
+     "max": 256.7,
+     "typical": 245,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 610,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 181,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 850,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 16.1,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 64.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13900,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.66e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 507,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 310S Refratário",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico 25Cr-20Ni fictício, para peças de fornos e serviço em alta temperatura. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "refratario",
+    "fornos",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-310S-R",
+    "UNS:DEMO-L01-S31008-R",
+    "COMERCIAL:Demoaço L01 Refratário 310"
+   ],
+   "composition": "Fe=balance Cr=24.0-26.0 Ni=19.0-22.0 C<=0.08 Mn<=2.0 Si<=1.5 P<=0.045 S<=0.030",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7900,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 241.7,
+     "max": 268.3,
+     "typical": 255,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 620,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 182,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 880,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 14.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 70.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.81,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 17.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.59e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 498,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 301 Meio Duro",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico fictício encruado por laminação a frio (meio duro), para molas e peças estruturais leves. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "molas",
+    "encruado",
+    "ferroviario",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-301-MD",
+    "UNS:DEMO-L01-S30100-MD"
+   ],
+   "composition": "Fe=balance Cr=16.0-18.0 Ni=6.0-8.0 C<=0.15 Mn<=2.0 Si<=1.0 N<=0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.88,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 192,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 724.4,
+     "max": 795.6,
+     "typical": 760,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1035,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 325,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 400,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 16.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 63.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.296,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.69e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.5,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Austenítico AISI 303 de Corte Fácil",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável austenítico ressulfurado fictício, para peças usinadas em série. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "usinagem",
+    "corte_facil",
+    "corrosao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-303-R",
+    "UNS:DEMO-L01-S30300-R"
+   ],
+   "composition": "Fe=balance Cr=17.0-19.0 Ni=8.0-10.0 S>=0.15 C<=0.15 Mn<=2.0 Si<=1.0 P<=0.20",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.95,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 194,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 232.9,
+     "max": 257.1,
+     "typical": 245,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 615,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 183,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 15.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 62.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.71e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 504,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Superaustenítico 6Mo (20Cr-18Ni-6Mo-N)",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Austeníticos",
+   "description": "Aço inoxidável superaustenítico fictício com 6 % de molibdênio, para água do mar e meios clorados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_austenitico",
+    "corrosao",
+    "agua_do_mar",
+    "quimico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "UNS:DEMO-L01-S31254-R",
+    "EN:DEMO-L01-1.4547-R@Europa",
+    "COMERCIAL:Demoaço L01 Super 6Mo"
+   ],
+   "composition": "Fe=balance Cr=19.5-20.5 Ni=17.5-18.5 Mo=6.0-6.5 N=0.18-0.22 Cu=0.5-1.0 C<=0.02 Mn<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 8000,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 199,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 305.4,
+     "max": 334.6,
+     "typical": 320,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 690,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 74.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.06,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 17.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.64e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 502,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Ferrítico AISI 409 para Escapamentos",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Ferríticos",
+   "description": "Aço inoxidável ferrítico 11Cr fictício estabilizado ao titânio, para sistemas de escapamento. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ferritico",
+    "escapamento",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-409-R",
+    "UNS:DEMO-L01-S40900-R"
+   ],
+   "composition": "Fe=balance Cr=10.5-11.7 Ti=0.15-0.50 C<=0.03 Mn<=1.0 Si<=1.0 Ni<=0.5",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.76,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 205,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 236.3,
+     "max": 263.7,
+     "typical": 250,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 152,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 25.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 61.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.04,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12600,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.97,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.279,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 458,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Ferrítico AISI 439 Estabilizado",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Ferríticos",
+   "description": "Aço inoxidável ferrítico 18Cr fictício estabilizado ao titânio, para trocadores de calor e eletrodomésticos. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ferritico",
+    "trocadores_de_calor",
+    "eletrodomesticos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-439-R",
+    "UNS:DEMO-L01-S43035-R"
+   ],
+   "composition": "Fe=balance Cr=17.0-19.0 Ti=0.20-1.10 C<=0.03 Mn<=1.0 Si<=1.0 N<=0.03",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 265,
+     "max": 295,
+     "typical": 280,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 470,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 158,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 24.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 60.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.18,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.276,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.04e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.458,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Ferrítico AISI 430 Recozido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Ferríticos",
+   "description": "Aço inoxidável ferrítico 17Cr fictício, recozido, para acabamentos, cubas e utensílios. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ferritico",
+    "eletrodomesticos",
+    "decorativo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-430-R",
+    "UNS:DEMO-L01-S43000-R",
+    "COMERCIAL:Demoaço L01 Inox 430"
+   ],
+   "composition": "Fe=balance Cr=16.0-18.0 C<=0.12 Mn<=1.0 Si<=1.0 P<=0.04 S<=0.03 Ni<=0.75",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7720,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 201,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 282.7,
+     "max": 317.3,
+     "typical": 300,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 495,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 168,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 800,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 26.1,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 61.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.07,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.277,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 459,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Ferrítico AISI 444 (18Cr-2Mo)",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Ferríticos",
+   "description": "Aço inoxidável ferrítico ao molibdênio fictício, para aquecedores de água e tubulações com cloretos. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ferritico",
+    "corrosao",
+    "aquecedores",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-444-R",
+    "UNS:DEMO-L01-S44400-R"
+   ],
+   "composition": "Fe=balance Cr=17.5-19.5 Mo=1.75-2.50 Ti<=0.80 Nb<=0.80 C<=0.025 N<=0.035 Ni<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.75,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 303.6,
+     "max": 336.4,
+     "typical": 320,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 175,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 750,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 64,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.24,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.285,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 454,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Martensítico AISI 410 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Martensíticos",
+   "description": "Aço inoxidável martensítico 12Cr fictício, temperado e revenido, para válvulas e peças de bombas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_martensitico",
+    "valvulas",
+    "bombas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-410-TR",
+    "UNS:DEMO-L01-S41000-TR"
+   ],
+   "composition": "Fe=balance Cr=11.5-13.5 C=0.08-0.15 Mn<=1.0 Si<=1.0 Ni<=0.75 P<=0.04 S<=0.03",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.74,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 557.3,
+     "max": 612.7,
+     "typical": 585,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 760,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 240,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 24.9,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 60.7,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.13,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.97,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.283,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 467,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Martensítico AISI 416 de Corte Fácil",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Martensíticos",
+   "description": "Aço inoxidável martensítico ressulfurado fictício, beneficiado, para eixos e parafusos usinados. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_martensitico",
+    "usinagem",
+    "corte_facil",
+    "eixos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-416-TR",
+    "UNS:DEMO-L01-S41600-TR"
+   ],
+   "composition": "Fe=balance Cr=12.0-14.0 C<=0.15 S>=0.15 Mn<=1.25 Si<=1.0 P<=0.06",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7730,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 199,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 594.8,
+     "max": 645.2,
+     "typical": 620,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 830,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 261,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 650,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 24.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 62.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13100,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.99,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.282,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.01e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.462,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Martensítico AISI 431 Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Martensíticos",
+   "description": "Aço inoxidável martensítico Cr-Ni fictício, beneficiado, para eixos de bombas e hélices. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_martensitico",
+    "eixos",
+    "bombas",
+    "naval",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-431-TR",
+    "UNS:DEMO-L01-S43100-TR"
+   ],
+   "composition": "Fe=balance Cr=15.0-17.0 Ni=1.25-2.50 C<=0.20 Mn<=1.0 Si<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 827.3,
+     "max": 892.7,
+     "typical": 860,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1030,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 318,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 550,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 20.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 63.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.282,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.02e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 464,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Martensítico AISI 440A Temperado e Revenido",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Martensíticos",
+   "description": "Aço inoxidável martensítico de alto carbono fictício, beneficiado, para lâminas e instrumentos de corte. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_martensitico",
+    "cutelaria",
+    "desgaste",
+    "instrumentos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-440A-TR",
+    "UNS:DEMO-L01-S44002-TR"
+   ],
+   "composition": "Fe=balance Cr=16.0-18.0 C=0.60-0.75 Mo<=0.75 Mn<=1.0 Si<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.71,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 201,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1171,
+     "max": 1269,
+     "typical": 1220,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 425,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 23.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 66.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 14.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.278,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.04e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 459,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Lean Duplex 2304 (23Cr-4Ni)",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Duplex",
+   "description": "Aço inoxidável duplex de baixo molibdênio fictício, para tanques e estruturas sujeitas à corrosão. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_duplex",
+    "duplex",
+    "tanques",
+    "corrosao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "UNS:DEMO-L01-S32304-R",
+    "EN:DEMO-L01-1.4362-R@Europa"
+   ],
+   "composition": "Fe=balance Cr=21.5-24.5 Ni=3.0-5.5 Mo=0.05-0.60 N=0.05-0.20 Mn<=2.5 C<=0.03",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7800,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 431.7,
+     "max": 468.3,
+     "typical": 450,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 670,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "notes": "Duplex: fragilização a 475 °C limita o serviço contínuo a cerca de 300 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 64,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.37,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 14.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.3e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 478,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Duplex 2205 (22Cr-5Ni-3Mo)",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Duplex",
+   "description": "Aço inoxidável duplex ferrita-austenita fictício, para tubulações de óleo e gás e indústria química. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_duplex",
+    "duplex",
+    "oleo_e_gas",
+    "quimico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "UNS:DEMO-L01-S32205-R",
+    "EN:DEMO-L01-1.4462-R@Europa",
+    "COMERCIAL:Demoaço L01 Duplex 2205"
+   ],
+   "composition": "Fe=balance Cr=21.0-23.0 Ni=4.5-6.5 Mo=2.5-3.5 N=0.14-0.20 Mn<=2.0 Si<=1.0 C<=0.03",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.82,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 198,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 456,
+     "max": 504,
+     "typical": 480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 230,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "notes": "Duplex: fragilização a 475 °C limita o serviço contínuo a cerca de 300 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 67.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.67,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 15.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.284,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.34e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.485,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável Superduplex 2507 (25Cr-7Ni-4Mo)",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Duplex",
+   "description": "Aço inoxidável superduplex fictício de alta resistência à corrosão por pites, para plataformas offshore. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_duplex",
+    "duplex",
+    "offshore",
+    "agua_do_mar",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "UNS:DEMO-L01-S32750-R",
+    "EN:DEMO-L01-1.4410-R@Europa"
+   ],
+   "composition": "Fe=balance Cr=24.0-26.0 Ni=6.0-8.0 Mo=3.0-5.0 N=0.24-0.32 Mn<=1.2 Cu<=0.5 C<=0.03",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.81,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 199,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 534.7,
+     "max": 605.3,
+     "typical": 570,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 830,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 268,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "notes": "Duplex: fragilização a 475 °C limita o serviço contínuo a cerca de 300 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 14.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 74.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 17700,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.36e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 480,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável PH 17-4 Condição H1150",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Endurecíveis por Precipitação",
+   "description": "Aço inoxidável endurecível por precipitação fictício, envelhecido em condição de maior tenacidade. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ph",
+    "ph",
+    "valvulas",
+    "eixos",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-630-H1150",
+    "UNS:DEMO-L01-S17400-H1150"
+   ],
+   "composition": "Fe=balance Cr=15.0-17.5 Ni=3.0-5.0 Cu=3.0-5.0 Nb=0.15-0.45 C<=0.07 Mn<=1.0 Si<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7800,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 196,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 726.3,
+     "max": 793.7,
+     "typical": 760,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 960,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 305,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 315,
+     "unit": "degC",
+     "notes": "Endurecível por precipitação: fragiliza em serviço prolongado acima de cerca de 315 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 18.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 69,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.59,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 15.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.278,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.12e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 468,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável PH 15-5 Condição H1025",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Endurecíveis por Precipitação",
+   "description": "Aço inoxidável endurecível por precipitação fictício, de melhor tenacidade transversal, para peças aeronáuticas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ph",
+    "ph",
+    "aeronautico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "UNS:DEMO-L01-S15500-H1025",
+    "COMERCIAL:Demoaço L01 PH 15-5"
+   ],
+   "composition": "Fe=balance Cr=14.0-15.5 Ni=3.5-5.5 Cu=2.5-4.5 Nb=0.15-0.45 C<=0.07 Mn<=1.0 Si<=1.0",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.79,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 197,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 960,
+     "max": 1040,
+     "typical": 1000,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1080,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 345,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 315,
+     "unit": "degC",
+     "notes": "Endurecível por precipitação: fragiliza em serviço prolongado acima de cerca de 315 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 17.8,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 71.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 16.1,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.09e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 465,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Inoxidável PH 17-4 Condição H900",
+   "class_slug": "metais",
+   "subclass": "Aços Inoxidáveis Endurecíveis por Precipitação",
+   "description": "Aço inoxidável endurecível por precipitação fictício, envelhecido na condição de máxima resistência. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "inox_ph",
+    "ph",
+    "aeronautico",
+    "alta_resistencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-630-H900",
+    "UNS:DEMO-L01-S17400-H900",
+    "COMERCIAL:Demoaço L01 PH 17-4 H900"
+   ],
+   "composition": "Fe=balance Cr=15.5-17.5 Ni=3.0-5.0 Cu=3.0-5.0 Nb=0.15-0.45 C<=0.07 Mn<=1.0 Si<=1.0 P<=0.04",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.78,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 195,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1123,
+     "max": 1217,
+     "typical": 1170,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1330,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 420,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 300,
+     "unit": "degC",
+     "notes": "Endurecível por precipitação: fragiliza em serviço prolongado acima de cerca de 315 °C."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 17.9,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 71.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 16.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.277,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.08e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.454,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta para Trabalho a Quente AISI H13 (50 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta Cr-Mo-V fictício para trabalho a quente, para matrizes de forjamento e moldes de injeção de alumínio. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "matrizes",
+    "trabalho_a_quente",
+    "fundicao_sob_pressao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-H13-50",
+    "DIN:DEMO-L01-X40CrMoV5-1-50@Alemanha"
+   ],
+   "composition": "Fe=balance C=0.32-0.45 Cr=4.75-5.50 Mo=1.10-1.75 V=0.80-1.20 Si=0.80-1.20 Mn=0.20-0.50",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7800,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1456,
+     "max": 1584,
+     "typical": 1520,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 520,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 590,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 24.6,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 53.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.86,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.29,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 463,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta para Trabalho a Quente AISI H11 (52 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta Cr-Mo-V fictício para trabalho a quente, de alta tenacidade, para matrizes e componentes estruturais. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "matrizes",
+    "trabalho_a_quente",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-H11-52",
+    "DIN:DEMO-L01-X37CrMoV5-1-52@Alemanha"
+   ],
+   "composition": "Fe=balance C=0.33-0.43 Cr=4.75-5.50 Mo=1.10-1.60 V=0.30-0.60 Si=0.80-1.20 Mn=0.20-0.50",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.79,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 211,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1528,
+     "max": 1672,
+     "typical": 1600,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 545,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 560,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 26.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 53.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.47,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12400,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.89,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.12e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 453,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta Resistente ao Choque AISI S7 (56 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta fictício resistente ao impacto, para punções, talhadeiras e lâminas de cisalhamento. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "puncoes",
+    "impacto",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-S7-56",
+    "UNS:DEMO-L01-T41907-56"
+   ],
+   "composition": "Fe=balance C=0.45-0.55 Cr=3.00-3.50 Mo=1.30-1.80 Mn=0.20-0.90 Si=0.20-1.00 V<=0.35",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.83,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1586,
+     "max": 1714,
+     "typical": 1650,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 1950,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 610,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 29,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 52.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.41,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.84,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.289,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.21e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta para Trabalho a Frio AISI O1 (58 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta fictício temperável em óleo, para gabaritos, facas e pequenas matrizes de corte. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "trabalho_a_frio",
+    "facas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-O1-58",
+    "UNS:DEMO-L01-T31501-58"
+   ],
+   "composition": "Fe=balance C=0.85-1.00 Mn=1.00-1.40 Cr=0.40-0.60 W=0.40-0.60 V<=0.30 Si<=0.50",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7810,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 214,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1595,
+     "max": 1805,
+     "typical": 1700,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2000,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 640,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 175,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 31,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 50.2,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 11.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.81,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.295,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.12e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.456,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta Temperado ao Ar AISI A2 (59 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta fictício temperável ao ar, de baixa distorção, para matrizes de corte e conformação a frio. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "trabalho_a_frio",
+    "matrizes",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-A2-59",
+    "UNS:DEMO-L01-T30102-59"
+   ],
+   "composition": "Fe=balance C=0.95-1.05 Cr=4.75-5.50 Mo=0.90-1.40 V=0.15-0.50 Mn<=1.0 Si<=0.50",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.86,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 203,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1690,
+     "max": 1870,
+     "typical": 1780,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2080,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 665,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 250,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 56,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.93,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.296,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.07e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 458,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta para Trabalho a Frio AISI D3 (60 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta fictício de alto carbono e alto cromo, para matrizes de corte com elevada resistência ao desgaste. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "trabalho_a_frio",
+    "desgaste",
+    "matrizes",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-D3-60",
+    "DIN:DEMO-L01-X210Cr12-60@Alemanha"
+   ],
+   "composition": "Fe=balance C=2.00-2.35 Cr=11.0-13.5 Mn<=0.60 Si<=0.60 W<=1.0 V<=1.0 Ni<=0.30",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.7,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 215,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1779,
+     "max": 1981,
+     "typical": 1880,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2180,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 700,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 57.3,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.87,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 12.9,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.294,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.05e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 453,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Ferramenta Temperado em Água AISI W1 (62 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço ferramenta carbono fictício temperável em água, para ferramentas manuais e punções simples. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "ferramentas_manuais",
+    "puncoes",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-W1-62",
+    "UNS:DEMO-L01-T72301-62"
+   ],
+   "composition": "Fe=balance C=0.95-1.10 Mn=0.10-0.40 Si=0.10-0.40 Cr<=0.15 V<=0.10",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7840,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 207,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1869,
+     "max": 2031,
+     "typical": 1950,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2280,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 745,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC",
+     "notes": "Limitada pelo revenimento: acima desta temperatura a martensita revenida perde dureza e resistência."
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 47.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 11400,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.76,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.292,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.1e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 452,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Rápido AISI M2 (64 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço rápido ao molibdênio-tungstênio fictício, para brocas, machos e fresas. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "aco_rapido",
+    "usinagem",
+    "brocas",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-M2-64",
+    "DIN:DEMO-L01-HS6-5-2-64@Alemanha",
+    "COMERCIAL:Demoaço L01 Rápido M2"
+   ],
+   "composition": "Fe=balance W=5.50-6.75 Mo=4.50-5.50 Cr=3.75-4.50 V=1.75-2.20 C=0.78-1.05 Mn<=0.40 Si<=0.45",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 8.16,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1997,
+     "max": 2163,
+     "typical": 2080,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2480,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 820,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 67.6,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.58,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 14.8,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.287,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.12e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 0.432,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Aço Rápido ao Cobalto AISI M42 (67 HRC)",
+   "class_slug": "metais",
+   "subclass": "Aços Ferramenta e Rápidos",
+   "description": "Aço rápido ao cobalto fictício de dureza muito alta, para ferramentas de corte em ligas difíceis. Dado fictício para demonstração.",
+   "keywords": [
+    "metais",
+    "acos_ferramenta",
+    "aco_rapido",
+    "usinagem",
+    "cobalto",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "AISI_SAE:DEMO-L01-M42-67",
+    "DIN:DEMO-L01-HS2-10-1-8-67@Alemanha"
+   ],
+   "composition": "Fe=balance Co=7.75-8.75 Mo=9.00-10.0 W=1.15-1.85 Cr=3.50-4.25 V=0.95-1.35 C=1.05-1.15",
+   "curve_hint": {
+    "shape": "ductile"
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 7.98,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 220,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2046,
+     "max": 2194,
+     "typical": 2120,
+     "unit": "MPa"
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 2560,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "scalar",
+     "value": 880,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 600,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 19.5,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 18.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 83.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.46,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 18.4,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.291,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 1.08e-05,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 426,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  }
+ ]
+}

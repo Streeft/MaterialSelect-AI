@@ -28,6 +28,11 @@ either states the premise or adopts a deterministic fallback.
 
 The demo catalogue has zero known gaps (:data:`DEMO_KNOWN_GAPS`); the coverage
 report (``python -m app.db.demo_coverage``) prints 100% complete across all 75 materials.
+
+The enlarged TCC catalogue (D-184, ``app.db.demo_catalog``) reuses these shapes:
+``build_curve_specs`` takes its material ``names`` and the ``curve_hint`` of
+each lot (``hints``), which replaces the by-name dictionaries below for those
+materials — a grey cast iron is a metal and still breaks brittle.
 """
 
 from __future__ import annotations
@@ -230,27 +235,38 @@ def _points(shape: list) -> list[tuple[float, float]]:
 # --- reading the material --------------------------------------------------------
 
 
-def _inputs(db: Session, material_id: int) -> Inputs:
+def _inputs_many(db: Session, material_ids: list[int]) -> dict[int, Inputs]:
+    """``_inputs`` for many materials in one query per 500 ids (the 593 of D-184)."""
     wanted = {
         "modulo_young": "youngs",
         "limite_escoamento": "yield",
         "resistencia_tracao": "tensile",
         "temp_max_servico": "tmax",
     }
-    found: dict[str, float | None] = {key: None for key in wanted.values()}
-    rows = db.execute(
-        select(PropertyDefinition.slug, MaterialPropertyValue.normalized_value)
-        .join(MaterialPropertyValue, MaterialPropertyValue.property_id == PropertyDefinition.id)
-        .where(
-            MaterialPropertyValue.material_id == material_id,
-            PropertyDefinition.slug.in_(list(wanted)),
-            MaterialPropertyValue.is_missing.is_(False),
-            MaterialPropertyValue.normalized_value.is_not(None),
+    found: dict[int, dict[str, float | None]] = {
+        material_id: {key: None for key in wanted.values()} for material_id in material_ids
+    }
+    for start in range(0, len(material_ids), 500):
+        rows = db.execute(
+            select(
+                MaterialPropertyValue.material_id,
+                PropertyDefinition.slug,
+                MaterialPropertyValue.normalized_value,
+            )
+            .join(PropertyDefinition, PropertyDefinition.id == MaterialPropertyValue.property_id)
+            .where(
+                MaterialPropertyValue.material_id.in_(material_ids[start : start + 500]),
+                PropertyDefinition.slug.in_(list(wanted)),
+                MaterialPropertyValue.is_missing.is_(False),
+                MaterialPropertyValue.normalized_value.is_not(None),
+            )
         )
-    )
-    for slug, value in rows:
-        found[wanted[slug]] = float(value)
-    return Inputs(found["youngs"], found["yield"], found["tensile"], found["tmax"])
+        for material_id, slug, value in rows:
+            found[material_id][wanted[slug]] = float(value)
+    return {
+        material_id: Inputs(v["youngs"], v["yield"], v["tensile"], v["tmax"])
+        for material_id, v in found.items()
+    }
 
 
 def _round_to_5(value: float) -> float:
@@ -261,8 +277,17 @@ def _description(base: str, notes: list[str]) -> str:
     return " ".join([base, *notes, _CITATION_NOTE])
 
 
-def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
-    """The tensile curve (or family) for one material, or ``None`` if it cannot exist."""
+def _stress_strain_spec(
+    name: str, class_slug: str, inp: Inputs, hint: dict | None = None
+) -> dict | None:
+    """The tensile curve (or family) for one material, or ``None`` if it cannot exist.
+
+    ``hint`` is the lot's ``curve_hint`` (D-184): ``{"shape": "brittle",
+    "softening": c}``, ``{"shape": "elastomer", "break_strain": e}``,
+    ``{"shape": "cmc"}`` or ``{"shape": "ductile"}``. Without one, the shape
+    comes from the class and the by-name dictionaries, as for the 75.
+    """
+    shape = (hint or {}).get("shape")
     youngs = inp.youngs_pa if inp.youngs_pa is not None else 10e9
     anchor = (
         f"Ancorada no módulo ({_fmt(_gpa(youngs))} GPa)"
@@ -275,7 +300,14 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
     series: list[dict]
     parameter = None
 
-    if class_slug == "elastomeros":
+    if shape == "brittle":
+        softening = (hint or {}).get(
+            "softening", _BRITTLE_C.get(name, _BRITTLE_DEFAULT_C.get(class_slug, 0.03))
+        )
+        return _brittle_spec(name, inp, anchor, softening)
+    ductile_hint = shape == "ductile" and class_slug not in ("polimeros", "elastomeros")
+
+    if class_slug == "elastomeros" or shape == "elastomer":
         tensile = inp.tensile_pa
         if tensile is None:
             tensile = 25e6
@@ -283,7 +315,9 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
                 "A resistência à tração está ausente no cadastro; a resistência "
                 "(25 MPa) é premissa da própria curva."
             )
-        break_strain = _ELASTOMER_BREAK.get(name, _ELASTOMER_BREAK_DEFAULT)
+        break_strain = (hint or {}).get(
+            "break_strain", _ELASTOMER_BREAK.get(name, _ELASTOMER_BREAK_DEFAULT)
+        )
         notes.append(
             "O escoamento cadastrado não entra: elastômero não tem patamar de escoamento; "
             "o módulo é a inclinação inicial e a resistência, o pico na ruptura."
@@ -294,8 +328,8 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
                 "points": _points(_elastomer_shape(youngs, tensile, break_strain)),
             }
         ]
-    elif class_slug == "metais" or name == _DUCTILE_COMPOSITE:
-        if name in _BRITTLE_C:
+    elif class_slug == "metais" or name == _DUCTILE_COMPOSITE or ductile_hint:
+        if shape is None and name in _BRITTLE_C:
             return _brittle_spec(name, inp, anchor, _BRITTLE_C[name])
         yield_eff = inp.yield_pa
         if yield_eff is None:
@@ -367,7 +401,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
                     }
                 )
     elif class_slug == "polimeros":
-        if name in _BRITTLE_C:
+        if shape is None and name in _BRITTLE_C:
             return _brittle_spec(name, inp, anchor, _BRITTLE_C[name])
         yield_val = inp.yield_pa
         if yield_val is None:
@@ -394,7 +428,7 @@ def _stress_strain_spec(name: str, class_slug: str, inp: Inputs) -> dict | None:
                 "points": _points(_polymer_ductile_shape(youngs, yield_val, break_stress)),
             }
         ]
-    elif name == _CMC:
+    elif name == _CMC or shape == "cmc":
         tensile = inp.tensile_pa
         if tensile is None:
             tensile = 300e6
@@ -559,34 +593,56 @@ def _fatigue_spec(name: str, inp: Inputs) -> dict | None:
     }
 
 
-def build_curve_specs(db: Session) -> list[dict]:
+def build_curve_specs(
+    db: Session,
+    names: list[str] | None = None,
+    hints: dict[str, dict] | None = None,
+) -> list[dict]:
     """Every curve the demo catalogue should have and does not yet, as seed specs.
 
     Reads each demo material's own fictitious properties. A material that already
     has a curve of a kind (the baseline ones from ``app.db.seed``) gets no second
     one of that kind, so the baseline curves stay the baseline's.
+
+    ``names`` defaults to the 75 named by the identity tables; the enlarged
+    catalogue (D-184) passes its own, with the ``curve_hint`` of each material in
+    ``hints``. Only ``is_demo`` materials without an owner are read.
     """
-    catalog_names = set(designation_table()) | set(DEMO_DESIGNATIONS)
+    catalog_names = (
+        set(designation_table()) | set(DEMO_DESIGNATIONS) if names is None else set(names)
+    )
+    shape_hints = hints or {}
+    ordered = sorted(catalog_names)
+    materials: list[Material] = []
+    for start in range(0, len(ordered), 500):  # bounded IN list, any backend
+        materials.extend(
+            db.execute(
+                select(Material).where(
+                    Material.name.in_(ordered[start : start + 500]),
+                    Material.is_demo.is_(True),
+                    Material.owner_id.is_(None),
+                )
+            ).scalars()
+        )
+    materials.sort(key=lambda m: m.id)
+    ids = [m.id for m in materials]
     existing: dict[int, set[CurveKind]] = {}
-    for material_id, kind in db.execute(select(MaterialCurve.material_id, MaterialCurve.kind)):
-        existing.setdefault(material_id, set()).add(kind)
+    for start in range(0, len(ids), 500):
+        for material_id, kind in db.execute(
+            select(MaterialCurve.material_id, MaterialCurve.kind).where(
+                MaterialCurve.material_id.in_(ids[start : start + 500])
+            )
+        ):
+            existing.setdefault(material_id, set()).add(kind)
+    inputs = _inputs_many(db, ids)
 
     specs: list[dict] = []
-    materials = (
-        db.execute(
-            select(Material)
-            .where(Material.name.in_(catalog_names), Material.is_demo.is_(True))
-            .order_by(Material.id)
-        )
-        .scalars()
-        .all()
-    )
     for material in materials:
         have = existing.get(material.id, set())
-        inp = _inputs(db, material.id)
+        inp = inputs[material.id]
         class_slug = material.material_class.slug
         candidates = [
-            _stress_strain_spec(material.name, class_slug, inp),
+            _stress_strain_spec(material.name, class_slug, inp, shape_hints.get(material.name)),
             _modulus_temperature_spec(material.name, inp),
             _fatigue_spec(material.name, inp),
         ]

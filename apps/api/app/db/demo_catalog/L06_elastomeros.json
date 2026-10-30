@@ -1,0 +1,6633 @@
+{
+ "lote": "L06-elastomeros",
+ "versao": 1,
+ "materiais": [
+  {
+   "name": "Borracha Natural Goma Pura 40 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Naturais",
+   "description": "Borracha natural fictícia sem carga, vulcanizada a enxofre, de alta resiliência, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_natural",
+    "dieno",
+    "goma_pura",
+    "alta_resiliencia",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-01-NR-G40",
+    "COMERCIAL:Demoelast L06-01 NR-G40"
+   ],
+   "composition": "C=balance H=11.4-12.0 S=1.5-2.5 Zn<=2.5 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 6.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.93,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.86,
+     "max": 5.7,
+     "typical": 5.28,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.14,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 64,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.499,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00022,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.88,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Natural com Negro de Fumo 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Naturais",
+   "description": "Borracha natural fictícia reforçada com negro de fumo, uso geral em peças técnicas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_natural",
+    "dieno",
+    "negro_de_fumo",
+    "uso_geral",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-02-NR-N60",
+    "COMERCIAL:Demoelast L06-02 NR-N60"
+   ],
+   "composition": "C=balance H=9.6-10.8 S=1.2-2.2 Zn<=3.0 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.7,
+     "max": 7.86,
+     "typical": 7.28,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 68,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 19,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4986,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Natural Antivibração 50 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Naturais",
+   "description": "Borracha natural fictícia de baixa histerese para coxins e amortecedores, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_natural",
+    "dieno",
+    "antivibracao",
+    "coxim",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-03-NR-AV50",
+    "COMERCIAL:Demoelast L06-03 NR-AV50",
+    "ASTM:DEMO-L06-03-NR-AV50-D"
+   ],
+   "composition": "C=balance H=10.2-11.2 S=1.0-2.0 Zn<=3.0 Si=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1050,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.29,
+     "max": 6.21,
+     "typical": 5.75,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 23,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 66,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 18.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4989,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000195,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Natural Epoxidada Carregada 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Naturais",
+   "description": "Borracha natural epoxidada fictícia, com carga, de maior resistência a óleo que a NR comum, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_natural",
+    "dieno",
+    "epoxidada",
+    "resistencia_oleo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-04-ENR-65",
+    "COMERCIAL:Demoelast L06-04 ENR-65"
+   ],
+   "composition": "C=balance H=8.8-9.8 O=8.0-11.0 S<=2.0 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.18,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.07,
+     "max": 7.13,
+     "typical": 6.6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 80,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 74000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.498,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Natural Desproteinizada 45 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Naturais",
+   "description": "Borracha natural fictícia de baixo teor de proteína, para artefatos de contato com a pele, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_natural",
+    "dieno",
+    "desproteinizada",
+    "baixa_alergenicidade",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-05-DPNR-45",
+    "COMERCIAL:Demoelast L06-05 DPNR-45"
+   ],
+   "composition": "C=balance H=11.5-12.1 S=1.2-2.0 N<=0.05 Zn<=2.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.9
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.002,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.29,
+     "max": 6.21,
+     "typical": 5.75,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 70,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 19,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 0.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4988,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000215,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1850,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poli-isopreno Sintético Carregado 55 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Poli-isopreno sintético fictício com carga, de pureza controlada, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "poli_isopreno",
+    "uso_geral",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-06-IR-55",
+    "COMERCIAL:Demoelast L06-06 IR-55",
+    "ASTM:DEMO-L06-06-IR-55-D"
+   ],
+   "composition": "C=balance H=10.4-11.4 S=1.0-2.0 Zn<=3.0 Ti=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1080,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.22,
+     "max": 6.12,
+     "typical": 5.67,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 21,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 75,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4987,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha SBR Emulsão Carregada 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Copolímero estireno-butadieno fictício polimerizado em emulsão, com negro de fumo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "sbr",
+    "pneus",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-07-ESBR-65",
+    "COMERCIAL:Demoelast L06-07 ESBR-65"
+   ],
+   "composition": "C=balance H=7.8-8.8 S=1.2-2.2 Zn<=3.0 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.16,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 4.8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.3,
+     "max": 6.22,
+     "typical": 5.76,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha SBR Solução com Sílica 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "SBR fictícia polimerizada em solução, reforçada com sílica, para bandas de rodagem de baixa resistência ao rolamento, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "sbr",
+    "silica",
+    "banda_rodagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-08-SSBR-60",
+    "COMERCIAL:Demoelast L06-08 SSBR-60"
+   ],
+   "composition": "C=balance H=7.6-8.6 Si=4.0-8.0 O=5.0-10.0 S<=2.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.69,
+     "max": 5.51,
+     "typical": 5.1,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 17,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 104000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4988,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000165,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha SBR Levemente Carregada 50 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "SBR fictícia com pouca carga, para artefatos de baixo custo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "sbr",
+    "baixo_custo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-09-SBR-L50",
+    "COMERCIAL:Demoelast L06-09 SBR-L50",
+    "ASTM:DEMO-L06-09-SBR-L50-D"
+   ],
+   "composition": "C=balance H=8.6-9.4 S=1.0-2.0 Zn<=2.5 Ca<=6.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1020,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.39,
+     "max": 2.81,
+     "typical": 2.6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 96,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 24,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4989,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.0002,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Polibutadieno Alto-cis Carregado 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Polibutadieno fictício de alto teor cis, com carga, de alta resistência à abrasão, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "polibutadieno",
+    "abrasao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-10-BR-60",
+    "COMERCIAL:Demoelast L06-10 BR-60"
+   ],
+   "composition": "C=balance H=9.4-10.6 S=1.0-2.0 Zn<=3.0 Ni=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0036,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.86,
+     "max": 4.54,
+     "typical": 4.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 14,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 102,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.499,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000185,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.62,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Blenda NR/BR para Banda de Rodagem 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Blenda fictícia de borracha natural e polibutadieno, com negro de fumo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "blenda",
+    "banda_rodagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-11-NRBR-65",
+    "COMERCIAL:Demoelast L06-11 NRBR-65"
+   ],
+   "composition": "C=balance H=9.6-10.6 S=1.2-2.2 Zn<=3.0 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.13,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 4.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.52,
+     "max": 6.48,
+     "typical": 6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 20,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 82,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4987,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000178,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1580,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Blenda SBR/BR Resistente à Abrasão 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Blenda fictícia de SBR e polibutadieno com alta carga de negro de fumo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "dieno",
+    "blenda",
+    "abrasao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-12-SBRBR-70",
+    "COMERCIAL:Demoelast L06-12 SBRBR-70",
+    "ASTM:DEMO-L06-12-SBRBR-70-D"
+   ],
+   "composition": "C=balance H=7.6-8.6 S=1.2-2.2 Zn<=3.0 Si=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1170,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5,
+     "max": 5.88,
+     "typical": 5.44,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 101000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 25.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4982,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000165,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1520,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Nitrílica Baixa Acrilonitrila 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "NBR fictícia com cerca de 28 % de acrilonitrila, flexível a frio, para vedações, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "nitrilica",
+    "vedacao",
+    "resistencia_oleo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-13-NBR28-60",
+    "COMERCIAL:Demoelast L06-13 NBR28-60"
+   ],
+   "composition": "C=balance H=8.4-9.2 N=6.8-7.8 S<=2.0 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.86,
+     "max": 4.54,
+     "typical": 4.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 14,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 104,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.499,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Nitrílica Média Acrilonitrila 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "NBR fictícia com cerca de 34 % de acrilonitrila, uso geral em anéis de vedação, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "nitrilica",
+    "o_ring",
+    "resistencia_oleo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-14-NBR34-70",
+    "COMERCIAL:Demoelast L06-14 NBR34-70"
+   ],
+   "composition": "C=balance H=7.8-8.6 N=8.4-9.4 S<=2.0 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.18,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5,
+     "max": 5.88,
+     "typical": 5.44,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 106,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 26.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Nitrílica Alta Acrilonitrila 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "NBR fictícia com cerca de 45 % de acrilonitrila, máxima resistência a combustíveis, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "nitrilica",
+    "combustivel",
+    "resistencia_oleo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-15-NBR45-80",
+    "COMERCIAL:Demoelast L06-15 NBR45-80",
+    "ASTM:DEMO-L06-15-NBR45-80-D"
+   ],
+   "composition": "C=balance H=7.0-7.8 N=11.2-12.4 S<=2.0 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1240,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.009,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 6.29,
+     "max": 7.39,
+     "typical": 6.84,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 108,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.498,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Nitrílica Hidrogenada Peróxido 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "HNBR fictícia curada com peróxido, para correias e vedações automotivas quentes, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "hnbr",
+    "correia",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-16-HNBR-70",
+    "COMERCIAL:Demoelast L06-16 HNBR-70"
+   ],
+   "composition": "C=balance H=9.6-10.6 N=8.4-9.4 O=missing Zn<=2.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.17,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 7.36,
+     "max": 8.64,
+     "typical": 8,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 29,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Nitrílica Hidrogenada Alta Saturação 85 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "HNBR fictícia de alta saturação e dureza elevada, para vedações dinâmicas em óleo quente, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "hnbr",
+    "vedacao_dinamica",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-17-HNBR-85",
+    "COMERCIAL:Demoelast L06-17 HNBR-85"
+   ],
+   "composition": "C=balance H=9.8-10.8 N=8.8-9.8 O=missing Zn<=2.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.2
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.22,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 10.3,
+     "max": 12.1,
+     "typical": 11.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4975,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000155,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Policloropreno Uso Geral 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Policloropreno fictício de uso geral, resistente a intempéries e chama, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "policloropreno",
+    "intemperie",
+    "mangueira",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-18-CR-60",
+    "COMERCIAL:Demoelast L06-18 CR-60",
+    "ASTM:DEMO-L06-18-CR-60-D"
+   ],
+   "composition": "C=balance H=5.0-6.0 Cl=36.0-40.0 Mg<=3.0 Zn<=5.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1320,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.7,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.8,
+     "max": 5.64,
+     "typical": 5.22,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.499,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1400,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Policloropreno Alta Carga 75 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Policloropreno fictício com alta carga mineral, para perfis e coxins, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "policloropreno",
+    "perfil",
+    "coxim",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-19-CR-75",
+    "COMERCIAL:Demoelast L06-19 CR-75"
+   ],
+   "composition": "C=balance H=4.4-5.4 Cl=31.0-35.0 Mg<=3.0 Zn<=5.0 Si=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.45,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.97,
+     "max": 5.83,
+     "typical": 5.4,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 108,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 26.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.45,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.498,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "EPDM Curado com Peróxido 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "EPDM fictício curado com peróxido, resistente a vapor e água quente, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "epdm",
+    "vapor",
+    "vedacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-20-EPDMP-70",
+    "COMERCIAL:Demoelast L06-20 EPDMP-70"
+   ],
+   "composition": "C=balance H=12.6-13.6 O<=1.5 Zn=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0055,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.95,
+     "max": 4.63,
+     "typical": 4.29,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 13,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 150,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.27,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 95000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 23,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.15,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "EPDM Vulcanizado a Enxofre para Perfis 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "EPDM fictício vulcanizado a enxofre, extrudado em perfis de vedação automotiva, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "epdm",
+    "perfil",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-21-EPDMS-60",
+    "COMERCIAL:Demoelast L06-21 EPDMS-60",
+    "ASTM:DEMO-L06-21-EPDMS-60-D"
+   ],
+   "composition": "C=balance H=12.0-13.2 S=0.8-1.6 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1180,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.04,
+     "max": 3.56,
+     "typical": 3.3,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.26,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 92,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 22.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.499,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000185,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1600,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "EPDM Alta Carga 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "EPDM fictício com alta carga de negro de fumo e mineral, de baixo custo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "epdm",
+    "alta_carga",
+    "baixo_custo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-22-EPDMC-80",
+    "COMERCIAL:Demoelast L06-22 EPDMC-80"
+   ],
+   "composition": "C=balance H=10.4-11.8 S=0.6-1.4 Ca<=8.0 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.5,
+     "max": 4.1,
+     "typical": 3.8,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 135,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.3,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 2.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 88,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.08,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4975,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.45,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Butílica 50 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Borracha butílica fictícia de baixíssima permeabilidade a gases, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "butilica",
+    "impermeavel",
+    "amortecimento",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-23-IIR-50",
+    "COMERCIAL:Demoelast L06-23 IIR-50"
+   ],
+   "composition": "C=balance H=13.0-14.0 S<=1.5 Zn<=3.0 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 2.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.99,
+     "max": 3.51,
+     "typical": 3.25,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 13,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.15,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 106,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4988,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Borracha Bromobutílica para Revestimento Interno 55 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Bromobutil fictício para revestimento interno de pneus sem câmara, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "bromobutil",
+    "impermeavel",
+    "pneus",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-24-BIIR-55",
+    "COMERCIAL:Demoelast L06-24 BIIR-55",
+    "ASTM:DEMO-L06-24-BIIR-55-D"
+   ],
+   "composition": "C=balance H=12.4-13.6 Br=1.6-2.2 Zn<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1120,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.98,
+     "max": 3.5,
+     "typical": 3.24,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.35,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4987,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Polietileno Clorossulfonado 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Borrachas Sintéticas",
+   "description": "Polietileno clorossulfonado fictício, resistente a ozônio e ácidos, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "borracha_sintetica",
+    "clorossulfonado",
+    "ozonio",
+    "quimico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-25-CSM-65",
+    "COMERCIAL:Demoelast L06-25 CSM-65"
+   ],
+   "composition": "C=balance H=5.6-6.6 Cl=29.0-35.0 S=0.9-1.4 Mg<=4.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.28,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0048,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.46,
+     "max": 6.42,
+     "typical": 5.94,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 18,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.45,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Elastômero Poliacrílico 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Elastômero acrílico fictício para vedações em óleo quente de transmissão, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "poliacrilico",
+    "oleo_quente",
+    "vedacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-26-ACM-70",
+    "COMERCIAL:Demoelast L06-26 ACM-70"
+   ],
+   "composition": "C=balance H=6.6-7.6 O=22.0-28.0 Cl=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.31,
+     "max": 3.89,
+     "typical": 3.6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 160,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 29,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Elastômero Etileno-Acrílico 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Elastômero etileno-acrílico fictício para mangueiras e juntas automotivas quentes, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "etileno_acrilico",
+    "mangueira",
+    "alta_temperatura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-27-AEM-70",
+    "COMERCIAL:Demoelast L06-27 AEM-70",
+    "ASTM:DEMO-L06-27-AEM-70-D"
+   ],
+   "composition": "C=balance H=8.0-9.0 O=18.0-24.0 N=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.38,
+     "max": 5.14,
+     "typical": 4.76,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 14,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 165,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 12.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 29.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4985,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1500,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Elastômero de Epicloridrina 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Copolímero de epicloridrina fictício, de baixa permeabilidade a combustível, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "epicloridrina",
+    "combustivel",
+    "mangueira",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-28-ECO-65",
+    "COMERCIAL:Demoelast L06-28 ECO-65"
+   ],
+   "composition": "C=balance H=5.0-6.0 Cl=24.0-28.0 O=16.0-19.0 Pb=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.36,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 4.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.64,
+     "max": 4.28,
+     "typical": 3.96,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 135,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 115000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4988,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Fluorelastômero Bipolímero 75 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Fluorelastômero bipolímero fictício com cerca de 66 % de flúor, curado com bisfenol, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "fluorelastomero",
+    "o_ring",
+    "quimico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-29-FKM66-75",
+    "COMERCIAL:Demoelast L06-29 FKM66-75"
+   ],
+   "composition": "C=balance F=65.0-67.0 H=1.6-2.2 Ca<=3.0 Mg<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.31,
+     "max": 5.05,
+     "typical": 4.68,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 13,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 31,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.498,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000165,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1250,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Fluorelastômero Terpolímero Curado com Peróxido 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Fluorelastômero terpolímero fictício com cerca de 70 % de flúor, curado com peróxido, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "fluorelastomero",
+    "vapor",
+    "quimico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-30-FKM70-80",
+    "COMERCIAL:Demoelast L06-30 FKM70-80",
+    "ASTM:DEMO-L06-30-FKM70-80-D"
+   ],
+   "composition": "C=balance F=69.0-71.0 H=0.8-1.4 Br<=1.0 Zn=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.3
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1920,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0085,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.52,
+     "max": 6.48,
+     "typical": 6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 15,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 128,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4975,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Fluorelastômero para Baixa Temperatura 75 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Fluorelastômero fictício com monômero éter para flexibilidade a frio, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "fluorelastomero",
+    "baixa_temperatura",
+    "aeronautico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-31-FKMLT-75",
+    "COMERCIAL:Demoelast L06-31 FKMLT-75"
+   ],
+   "composition": "C=balance F=63.0-66.0 H=1.0-1.8 O=2.0-4.0 Ca<=3.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.82,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 6.2,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.86,
+     "max": 4.54,
+     "typical": 4.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 48,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 129,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 32.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.498,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.26,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Perfluorelastômero 75 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Perfluorelastômero fictício para vedações em meios químicos agressivos e alta temperatura, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "perfluorelastomero",
+    "quimico",
+    "semicondutor",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-32-FFKM-75",
+    "COMERCIAL:Demoelast L06-32 FFKM-75"
+   ],
+   "composition": "C=balance F=70.0-73.0 O=3.0-5.0 N=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 2.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.99,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.89,
+     "max": 6.91,
+     "typical": 6.4,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 16,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 315,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.24,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 450,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 130000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.4975,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.0002,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Silicone Vulcanizado a Quente Uso Geral 50 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Borracha de silicone fictícia vulcanizada a quente, com sílica, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "silicone",
+    "alta_temperatura",
+    "atoxico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-33-VMQ-50",
+    "COMERCIAL:Demoelast L06-33 VMQ-50",
+    "ASTM:DEMO-L06-33-VMQ-50-D"
+   ],
+   "composition": "O=balance Si=35.0-38.0 C=30.0-33.0 H=7.4-8.4",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1150,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 2.2,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.35,
+     "max": 2.75,
+     "typical": 2.55,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 29,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.49,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00028,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1300,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Silicone de Alta Resistência ao Rasgo 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Silicone fictício de alta resistência ao rasgamento, para moldes e membranas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "silicone",
+    "rasgo",
+    "membrana",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-34-VMQ-HT60",
+    "COMERCIAL:Demoelast L06-34 VMQ-HT60"
+   ],
+   "composition": "O=balance Si=35.5-38.5 C=29.0-32.0 H=7.2-8.2 Pt<=20ppm",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.17,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.94,
+     "max": 3.46,
+     "typical": 3.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 200,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 120,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 29.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.491,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00027,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.28,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Silicone Líquido Injetável 40 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Silicone líquido fictício de cura por platina, injetado em peças pequenas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "silicone",
+    "injecao",
+    "grau_medico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-35-LSR-40",
+    "COMERCIAL:Demoelast L06-35 LSR-40"
+   ],
+   "composition": "O=balance Si=35.0-37.5 C=30.5-33.5 H=7.6-8.6 Pt<=15ppm",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0015,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.07,
+     "max": 2.43,
+     "typical": 2.25,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 210,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 12.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 122,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.493,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000295,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1320,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Fluorsilicone 60 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Fluorsilicone fictício resistente a combustíveis em ampla faixa de temperatura, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "fluorsilicone",
+    "combustivel",
+    "aeronautico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-36-FVMQ-60",
+    "COMERCIAL:Demoelast L06-36 FVMQ-60",
+    "ASTM:DEMO-L06-36-FVMQ-60-D"
+   ],
+   "composition": "O=balance Si=17.0-19.5 F=34.0-37.0 C=29.0-32.0 H=4.0-5.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1450,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 3.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.59,
+     "max": 3.03,
+     "typical": 2.81,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 180,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.23,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 127000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 6.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 31.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.492,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00025,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poliuretano Fundido Base Poliéster 90 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Poliuretano fictício fundido de base poliéster, de alta resistência à abrasão, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "poliuretano",
+    "abrasao",
+    "rolete",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-37-AU-90",
+    "COMERCIAL:Demoelast L06-37 AU-90"
+   ],
+   "composition": "C=balance H=7.0-8.2 N=3.6-4.8 O=22.0-27.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.24,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 14.7,
+     "max": 17.3,
+     "typical": 16,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 85,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.25,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 112,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.48,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poliuretano Fundido Base Poliéter 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Especiais",
+   "description": "Poliuretano fictício fundido de base poliéter, resistente à hidrólise, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_especial",
+    "poliuretano",
+    "hidrolise",
+    "amortecedor",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-38-EU-80",
+    "COMERCIAL:Demoelast L06-38 EU-80"
+   ],
+   "composition": "C=balance H=8.6-9.8 N=3.0-4.2 O=18.0-23.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.1,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 10.5,
+     "max": 12.3,
+     "typical": 11.4,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 13.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 27.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.485,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "TPU Base Poliéster 85 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Poliuretano termoplástico fictício de base poliéster, injetável, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpu",
+    "abrasao",
+    "injecao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-39-TPUES-85",
+    "COMERCIAL:Demoelast L06-39 TPUES-85",
+    "ASTM:DEMO-L06-39-TPUES-85-D"
+   ],
+   "composition": "C=balance H=6.8-7.8 N=3.8-5.0 O=22.0-27.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1200,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 22,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 14.4,
+     "max": 17,
+     "typical": 15.7,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 45,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 108,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.48,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00016,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1750,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "TPU Base Poliéter 90 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Poliuretano termoplástico fictício de base poliéter, resistente à hidrólise e a micro-organismos, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpu",
+    "hidrolise",
+    "mangueira",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-40-TPUET-90",
+    "COMERCIAL:Demoelast L06-40 TPUET-90"
+   ],
+   "composition": "C=balance H=8.4-9.6 N=3.6-4.8 O=17.0-22.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.13,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.032,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 14,
+     "max": 16.4,
+     "typical": 15.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 40,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.21,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 112000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 37,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.65,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.475,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000165,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "TPU Base Policaprolactona 95 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Poliuretano termoplástico fictício de base policaprolactona, de alta tenacidade, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpu",
+    "tenacidade",
+    "engrenagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-41-TPUPCL-95",
+    "COMERCIAL:Demoelast L06-41 TPUPCL-95"
+   ],
+   "composition": "C=balance H=7.2-8.2 N=4.4-5.6 O=21.0-26.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.19,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 55,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 20.7,
+     "max": 24.3,
+     "typical": 22.5,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 50,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.22,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.7,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.47,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000145,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1700,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "TPU Base Poliéter Macio 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Poliuretano termoplástico fictício macio de base poliéter, para empunhaduras, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpu",
+    "macio",
+    "empunhadura",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-42-TPUET-70",
+    "COMERCIAL:Demoelast L06-42 TPUET-70",
+    "ASTM:DEMO-L06-42-TPUET-70-D"
+   ],
+   "composition": "C=balance H=8.8-10.0 N=2.4-3.6 O=18.0-23.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 6.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1100,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 8.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 7.73,
+     "max": 9.07,
+     "typical": 8.4,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 90,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 36.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.62,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.487,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1850,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "TPU Alifático Transparente 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Poliuretano termoplástico alifático fictício, transparente e estável à luz, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpu",
+    "transparente",
+    "estavel_uv",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-43-TPUAL-80",
+    "COMERCIAL:Demoelast L06-43 TPUAL-80"
+   ],
+   "composition": "C=balance H=8.6-9.8 N=3.4-4.6 O=19.0-24.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 14,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 10.3,
+     "max": 12.1,
+     "typical": 11.2,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 95,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 39,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.75,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.484,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.8,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SBS Linear Puro 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Copolímero em bloco estireno-butadieno-estireno fictício, linear, sem óleo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tps",
+    "sbs",
+    "modificador",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-44-SBS-70",
+    "COMERCIAL:Demoelast L06-44 SBS-70"
+   ],
+   "composition": "C=balance H=8.8-9.6 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.8
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.94,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 7.18,
+     "max": 8.42,
+     "typical": 7.8,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 26,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 65,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.16,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 92000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.489,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00021,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SBS Composto para Solados 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Composto fictício de SBS com óleo e carga, para solados de calçado, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tps",
+    "sbs",
+    "calcado",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-45-SBS-S65",
+    "COMERCIAL:Demoelast L06-45 SBS-S65",
+    "ASTM:DEMO-L06-45-SBS-S65-D"
+   ],
+   "composition": "C=balance H=9.0-10.2 Ca<=10.0 Si=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1040,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.0052,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.45,
+     "max": 2.87,
+     "typical": 2.66,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 60,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 88,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 28.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.12,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.488,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.0002,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1750,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SEBS Composto Uso Geral 65 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Composto fictício de SEBS com óleo e polipropileno, para peças sobreinjetadas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tps",
+    "sebs",
+    "uso_geral",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-46-SEBS-65",
+    "COMERCIAL:Demoelast L06-46 SEBS-65"
+   ],
+   "composition": "C=balance H=12.4-13.6 Ca<=8.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.06,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 1.99,
+     "max": 2.33,
+     "typical": 2.16,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 96,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 31,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.3,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.489,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.85,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SEBS Grau Médico 70 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Composto fictício de SEBS sem carga, de alta pureza, para tubos e tampas médicas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tps",
+    "sebs",
+    "grau_medico",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-47-SEBSM-70",
+    "COMERCIAL:Demoelast L06-47 SEBSM-70"
+   ],
+   "composition": "C=balance H=12.8-13.8 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 6.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.92,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 6.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.09,
+     "max": 3.63,
+     "typical": 3.36,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.16,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 6.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 99,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.32,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.488,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000205,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1950,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "SEBS para Sobremoldagem 75 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Composto fictício de SEBS com adesão a substratos rígidos, para sobremoldagem, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tps",
+    "sebs",
+    "sobremoldagem",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-48-SEBSO-75",
+    "COMERCIAL:Demoelast L06-48 SEBSO-75",
+    "ASTM:DEMO-L06-48-SEBSO-75-D"
+   ],
+   "composition": "C=balance H=11.8-13.0 Ca<=12.0 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1120,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 8,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.7,
+     "max": 3.18,
+     "typical": 2.94,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.6,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 97000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.95,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 31.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.31,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.486,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000175,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Vulcanizado Termoplástico EPDM/PP 64 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Vulcanizado termoplástico fictício de EPDM reticulado em polipropileno, macio, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpv",
+    "vedacao",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-49-TPV-64",
+    "COMERCIAL:Demoelast L06-49 TPV-64"
+   ],
+   "composition": "C=balance H=13.4-14.2 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.6
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.97,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 2.09,
+     "max": 2.45,
+     "typical": 2.27,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 6.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.17,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 98,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 31,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.25,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.488,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00017,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.95,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Vulcanizado Termoplástico EPDM/PP 87 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Vulcanizado termoplástico fictício de EPDM/PP mais rígido, para foles e coifas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpv",
+    "coifa",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-50-TPV-87",
+    "COMERCIAL:Demoelast L06-50 TPV-87"
+   ],
+   "composition": "C=balance H=13.6-14.4 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.96,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.014,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 4.05,
+     "max": 4.75,
+     "typical": 4.4,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 11,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.18,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 5.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 100,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 32,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.28,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.482,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00015,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1900,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Vulcanizado Termoplástico NBR/PP 80 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Vulcanizado termoplástico fictício de NBR em polipropileno, resistente a óleo, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpv",
+    "resistencia_oleo",
+    "vedacao",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-51-TPVN-80",
+    "COMERCIAL:Demoelast L06-51 TPVN-80",
+    "ASTM:DEMO-L06-51-TPVN-80-D"
+   ],
+   "composition": "C=balance H=10.6-12.0 N=3.0-5.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 3.4
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1000,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 10.5,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 3.15,
+     "max": 3.69,
+     "typical": 3.42,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 9,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 125,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 7.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 104,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.2,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 33,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.484,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000155,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1800,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Copoliéster Termoplástico 40 Shore D",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Elastômero copoliéster fictício com segmentos rígidos de PBT, para foles e diafragmas, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpc",
+    "fole",
+    "diafragma",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-52-TPC-40D",
+    "COMERCIAL:Demoelast L06-52 TPC-40D"
+   ],
+   "composition": "C=balance H=7.8-9.0 O=25.0-30.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.17,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 62,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 11.6,
+     "max": 13.6,
+     "typical": 12.6,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 28,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 130,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 110000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 36,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.55,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.47,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Copoliéster Termoplástico 47 Shore D",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Elastômero copoliéster fictício mais rígido, para coifas e engates de alta fadiga, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpc",
+    "fadiga",
+    "coifa",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-53-TPC-47D",
+    "COMERCIAL:Demoelast L06-53 TPC-47D"
+   ],
+   "composition": "C=balance H=7.2-8.4 O=26.0-31.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 4.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.2,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 108,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 15.6,
+     "max": 18.4,
+     "typical": 17,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 140,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 8.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 112,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5.1,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 36.5,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.58,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.46,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.000165,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1550,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poliéter-bloco-amida 35 Shore D",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Elastômero poliamida em bloco fictício, leve e de alto retorno elástico, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpa",
+    "esportivo",
+    "leve",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-54-TPA-35D",
+    "COMERCIAL:Demoelast L06-54 TPA-35D",
+    "ASTM:DEMO-L06-54-TPA-35D-D"
+   ],
+   "composition": "C=balance H=10.2-11.4 N=3.8-5.2 O=10.0-14.0",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.5
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1010,
+     "unit": "kg/m**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 25,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 13.2,
+     "max": 15.4,
+     "typical": 14.3,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 34,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 110,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.19,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 9.8,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 116,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 4.9,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.47,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00019,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1650,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poliéter-bloco-amida 40 Shore D",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Elastômero poliamida em bloco fictício um pouco mais rígido, para cateteres e solados técnicos, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpa",
+    "cateter",
+    "esportivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-55-TPA-40D",
+    "COMERCIAL:Demoelast L06-55 TPA-40D"
+   ],
+   "composition": "C=balance H=10.4-11.6 N=4.6-6.0 O=8.5-12.5",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 1.02,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 0.078,
+     "unit": "GPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 16.1,
+     "max": 18.9,
+     "typical": 17.5,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 38,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 115,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 10,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 118,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 5,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 39,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.52,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.465,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.00018,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1.6,
+     "unit": "kJ/(kg*K)"
+    }
+   ]
+  },
+  {
+   "name": "Poliolefina Termoplástica de Reator 85 Shore A",
+   "class_slug": "elastomeros",
+   "subclass": "Elastômeros Termoplásticos",
+   "description": "Elastômero poliolefínico termoplástico fictício obtido em reator, para membranas e para-choques, para demonstração.",
+   "keywords": [
+    "elastomeros",
+    "elastomero_termoplastico",
+    "tpo",
+    "membrana",
+    "automotivo",
+    "demo",
+    "simulado"
+   ],
+   "designations": [
+    "ISO:DEMO-L06-56-TPO-85",
+    "COMERCIAL:Demoelast L06-56 TPO-85"
+   ],
+   "composition": "C=balance H=14.0-14.5 O=missing",
+   "curve_hint": {
+    "shape": "elastomer",
+    "break_strain": 5.0
+   },
+   "values": [
+    {
+     "slug": "densidade",
+     "kind": "scalar",
+     "value": 0.9,
+     "unit": "g/cm**3"
+    },
+    {
+     "slug": "modulo_young",
+     "kind": "scalar",
+     "value": 30,
+     "unit": "MPa"
+    },
+    {
+     "slug": "limite_escoamento",
+     "kind": "interval",
+     "min": 5.3,
+     "max": 6.22,
+     "typical": 5.76,
+     "unit": "MPa",
+     "notes": "Elastômero sem patamar de escoamento: limite convencional estimado como fração da resistência à tração."
+    },
+    {
+     "slug": "resistencia_tracao",
+     "kind": "scalar",
+     "value": 12,
+     "unit": "MPa"
+    },
+    {
+     "slug": "dureza",
+     "kind": "missing",
+     "notes": "Dureza Vickers não se aplica a elastômeros (a medida usual é Shore A/D)."
+    },
+    {
+     "slug": "temp_max_servico",
+     "kind": "scalar",
+     "value": 105,
+     "unit": "degC"
+    },
+    {
+     "slug": "condutividade_termica",
+     "kind": "scalar",
+     "value": 0.2,
+     "unit": "W/(m*K)"
+    },
+    {
+     "slug": "custo_massa",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_incorporada",
+     "kind": "scalar",
+     "value": 85000,
+     "unit": "kJ/kg"
+    },
+    {
+     "slug": "pegada_co2",
+     "kind": "scalar",
+     "value": 3.4,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "energia_reciclagem",
+     "kind": "scalar",
+     "value": 27,
+     "unit": "MJ/kg"
+    },
+    {
+     "slug": "co2_reciclagem",
+     "kind": "scalar",
+     "value": 1.05,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_poisson",
+     "kind": "scalar",
+     "value": 0.475,
+     "unit": "dimensionless"
+    },
+    {
+     "slug": "coef_expansao_termica",
+     "kind": "scalar",
+     "value": 0.0002,
+     "unit": "1/K"
+    },
+    {
+     "slug": "calor_especifico",
+     "kind": "scalar",
+     "value": 1950,
+     "unit": "J/(kg*K)"
+    }
+   ]
+  }
+ ]
+}
