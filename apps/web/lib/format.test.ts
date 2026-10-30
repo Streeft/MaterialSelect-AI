@@ -106,7 +106,7 @@ describe("dimensionName", () => {
   });
 });
 
-describe("valueUnit (D-185)", () => {
+describe("valueUnit (D-184)", () => {
   it("não escreve unidade depois de um valor adimensional", () => {
     expect(valueUnit("dimensionless")).toBe("");
     expect(valueUnit("g/cm**3")).toBe("g/cm³");

@@ -84,7 +84,7 @@ export function QualityBar({
 }
 
 /**
- * Asked on a plain click of a material's name (D-185). It answers whether the
+ * Asked on a plain click of a material's name (D-184). It answers whether the
  * catalogue showed the material beside the list; when it did not (a narrow
  * screen), the link navigates to the full sheet as before. Ctrl/Cmd, Shift and
  * the middle button always keep the browser's own behaviour.
@@ -148,7 +148,7 @@ export function MaterialTable({
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
-  /** D-185: open the material beside the list instead of leaving it. */
+  /** D-184: open the material beside the list instead of leaving it. */
   onPreview?: PreviewRequest;
   /** The material shown in the detail pane, marked in its row. */
   previewId?: number;
@@ -192,7 +192,7 @@ export function MaterialTable({
   return (
     <div className="flex flex-col gap-2">
       {selected.length > 0 ? (
-        // D-185: the M3 floating toolbar. Pinned above the bottom bar on a
+        // D-184: the M3 floating toolbar. Pinned above the bottom bar on a
         // phone (`--bottom-nav-offset`, D-91), centred, on inverse-surface, so
         // it stays in reach while the reader scrolls the rows they are marking.
         <div

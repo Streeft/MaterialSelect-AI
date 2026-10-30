@@ -2054,7 +2054,7 @@ export const ptBR = {
     compareTooMany: (max: number) => `O comparador aceita até ${max} materiais por vez.`,
     clearSelection: "Limpar seleção",
     selectionBar: "Ações para os materiais selecionados",
-    // D-185: lista e detalhe. Em tela larga o nome abre a ficha resumida ao lado,
+    // D-184: lista e detalhe. Em tela larga o nome abre a ficha resumida ao lado,
     // sem sair da lista; Ctrl/Cmd+clique e telas estreitas abrem a página inteira.
     preview: {
       region: "Ficha resumida",

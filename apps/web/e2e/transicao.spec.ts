@@ -4,7 +4,7 @@ import { test, expect } from "./session";
  * D-148: opening a material from its row (desktop) or card (phone) grows a surface out of the card (the
  * container transform), and does not under `prefers-reduced-motion`. The surface
  * is an empty `<div data-container-transform>` on `<body>` for ~350 ms.
- * D-185: on a wide list the row opens the preview pane first; the sheet is opened
+ * D-184: on a wide list the row opens the preview pane first; the sheet is opened
  * from its "Abrir ficha completa" link, which marks the same origin.
  */
 
