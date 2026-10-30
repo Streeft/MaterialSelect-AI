@@ -143,6 +143,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   (container query, limiares M3 de `lib/design/breakpoints.ts`), nunca por `matchMedia` no render. `useWindowClass` é só para comportamento.
   Rumo do Expressive ([D-181](docs/DECISIONS.md)): barra escura fica, cor do app escolhível (qualidade e Okabe–Ito fixas), movimento expressivo.
 
+- **Movimento é mola expressiva** ([D-183](docs/DECISIONS.md)): transição nova usa `--motion-spatial[-fast|-slow]` (posição, tamanho, forma)
+  ou `--motion-effects[-fast]` (cor, opacidade), com o `-dur` correspondente; nunca curva solta. Botão dividido, menu do FAB e carregamento curto
+  são `SplitButton`, `FabMenu` e `LoadingIndicator`; movimento reduzido desliga tudo.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

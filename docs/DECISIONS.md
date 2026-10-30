@@ -11502,3 +11502,28 @@ carregamento), catálogo em lista e detalhe, seleção com painel de apoio, iní
 **Achado no navegador.** A regra que mostra os dois painéis dentro do `@container` tinha especificidade menor que a que esconde um deles, e o detalhe
 ficava escondido mesmo com espaço. Corrigido com a mesma especificidade; `e2e/paineis.spec.ts` mede isso (jsdom não avalia container query).
 
+## D-183 — Molas expressivas como token, e quatro componentes do M3 Expressive
+
+**Contexto.** Segundo passo do plano de D-181. O M3 trocou curva e duração por molas, e publicou para web a conversão de cada mola numa curva
+`cubic-bezier` com duração (*Styles › Motion › Specs*, "Web: Convert springs to curves", lida em 30/10/26). Os componentes do Expressive aparecem
+como "Web: Unavailable" no site; o MSDS tinha versões portadas sem tipos (`@ts-nocheck`), que nenhuma tela usava.
+
+**Decisão.**
+- **Tokens de mola** em `globals.css`: os 12 da página (`--m3-spring-{expressive,standard}-{fast,default,slow}-{spatial,effects}` e `-dur`), com os
+  valores exatos da tabela. Os componentes leem só os semânticos `--motion-spatial[-fast|-slow]` e `--motion-effects[-fast]`, que apontam para o
+  esquema **expressivo** (D-181); trocar de esquema é um bloco. *Spatial* (posição, tamanho, forma) tem rebote; *effects* (cor, opacidade) não.
+- **Grupo de botões conectado** no lugar do segmentado: o `ButtonGroup`/`ButtonGroupItem` de sempre ganha assentos a 2 px, cantos internos pequenos,
+  o escolhido inteiro arredondado em `--m3-primary` e o pressionado mais quadrado (a "troca de forma" do M3, uma transição de `border-radius`).
+  Na barra escura (D-37) o grupo mantém as cores do trilho; só a forma muda.
+- **Componentes novos, tipados, em `components/ui`:** `SplitButton` (ação + assento do menu, que é o `MenuButton` com teclado; um nunca dispara o
+  outro), `LoadingIndicator` (forma que muda enquanto gira, para esperas curtas; indeterminado, como no M3) e `FabMenu` (2 a 6 ações que saem do FAB,
+  escalonadas a 40 ms; foco na primeira ação, setas/Home/End, Esc devolve o foco, clique fora fecha; FAB tonal, que não conta como primário).
+- **Movimento reduzido** desliga transições e animações novas; o indicador fica parado como círculo, com o nome dizendo o que carrega.
+- **Sem framework de animação:** CSS e as próprias curvas do M3.
+
+**Verificado no navegador** (`getAnimations()`, D-149): FAB arredonda em `cubic-bezier(0.42, 1.67, 0.21, 0.9)`/350 ms, a seta gira em
+`cubic-bezier(0.38, 1.21, 0.22, 1)`/500 ms, as ações entram com 0/40/80 ms de atraso. **Achado:** o seletor de tema da barra escura herdou o fundo
+claro do grupo novo; corrigido com regras do trilho mais específicas. O par do assento não escolhido do catálogo mede ~4,6:1 (papel M3 já testado).
+
+**Ainda não usados nas telas** (só em `/app/estilo`): entram com o catálogo em lista e detalhe, a seleção e o início (D-181, ordem).
+

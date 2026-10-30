@@ -282,6 +282,41 @@
   --m3-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
   --m3-ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
 
+  /* D-183: the M3 springs as web curves, exactly as the M3 page converts them
+   * (m3.material.io › Styles › Motion › Specs, "Web: Convert springs to curves",
+   * read 30/10/26). Spatial = position, size, shape (expressive overshoots);
+   * effects = colour and opacity (never overshoots). */
+  --m3-spring-expressive-fast-spatial: cubic-bezier(0.42, 1.67, 0.21, 0.9);
+  --m3-spring-expressive-fast-spatial-dur: 350ms;
+  --m3-spring-expressive-default-spatial: cubic-bezier(0.38, 1.21, 0.22, 1);
+  --m3-spring-expressive-default-spatial-dur: 500ms;
+  --m3-spring-expressive-slow-spatial: cubic-bezier(0.39, 1.29, 0.35, 0.98);
+  --m3-spring-expressive-slow-spatial-dur: 650ms;
+  --m3-spring-expressive-fast-effects: cubic-bezier(0.31, 0.94, 0.34, 1);
+  --m3-spring-expressive-fast-effects-dur: 150ms;
+  --m3-spring-expressive-default-effects: cubic-bezier(0.34, 0.8, 0.34, 1);
+  --m3-spring-expressive-default-effects-dur: 200ms;
+  --m3-spring-expressive-slow-effects: cubic-bezier(0.34, 0.88, 0.34, 1);
+  --m3-spring-expressive-slow-effects-dur: 300ms;
+  --m3-spring-standard-fast-spatial: cubic-bezier(0.27, 1.06, 0.18, 1);
+  --m3-spring-standard-fast-spatial-dur: 350ms;
+  --m3-spring-standard-default-spatial: cubic-bezier(0.27, 1.06, 0.18, 1);
+  --m3-spring-standard-default-spatial-dur: 500ms;
+  --m3-spring-standard-slow-spatial: cubic-bezier(0.27, 1.06, 0.18, 1);
+  --m3-spring-standard-slow-spatial-dur: 750ms;
+  /* The app's scheme is expressive (D-181). Components name these, never a
+   * scheme directly, so switching scheme is one block. */
+  --motion-spatial-fast: var(--m3-spring-expressive-fast-spatial);
+  --motion-spatial-fast-dur: var(--m3-spring-expressive-fast-spatial-dur);
+  --motion-spatial: var(--m3-spring-expressive-default-spatial);
+  --motion-spatial-dur: var(--m3-spring-expressive-default-spatial-dur);
+  --motion-spatial-slow: var(--m3-spring-expressive-slow-spatial);
+  --motion-spatial-slow-dur: var(--m3-spring-expressive-slow-spatial-dur);
+  --motion-effects-fast: var(--m3-spring-expressive-fast-effects);
+  --motion-effects-fast-dur: var(--m3-spring-expressive-fast-effects-dur);
+  --motion-effects: var(--m3-spring-expressive-default-effects);
+  --motion-effects-dur: var(--m3-spring-expressive-default-effects-dur);
+
   /* The semantic layer (D-91). Components name the *role* — the page, a
    * panel, a well, the border of something operable, the main action — and
    * this block says which palette token plays it. A change like D-90's
@@ -1625,6 +1660,110 @@ aside[data-surface="rail"] .msds-rail-item {
 @container m3-scaffold (min-width: 1600px) {
   .m3-scaffold-grid[data-layout="list-detail"] { grid-template-columns: minmax(0, 480px) minmax(0, 1fr); }
   .m3-scaffold-grid[data-layout="supporting-pane"] { grid-template-columns: minmax(0, 1fr) minmax(0, 480px); }
+}
+
+/* D-183: M3 Expressive components. Motion reads the --motion-* springs above;
+   `prefers-reduced-motion` turns transitions and animations off at the end. */
+
+/* Connected button group (replaces the segmented button): seats 2 px apart,
+   inner corners small, the chosen seat fully round. The corner change is the
+   "shape morph" of the M3 page, a transition on border-radius. */
+.msds-segmented { padding: 0; gap: 2px; background: transparent; border: 0; border-radius: 0; }
+.msds-segmented-item {
+  min-height: 36px; padding: 6px 14px; border-radius: 6px;
+  background-color: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container));
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    background-color var(--motion-effects-fast-dur) var(--motion-effects-fast),
+    color var(--motion-effects-fast-dur) var(--motion-effects-fast);
+}
+.msds-segmented-item:first-child { border-radius: 18px 6px 6px 18px; }
+.msds-segmented-item:last-child { border-radius: 6px 18px 18px 6px; }
+.msds-segmented-item:only-child { border-radius: 18px; }
+.msds-segmented-item:hover:not(:disabled) {
+  color: rgb(var(--m3-on-secondary-container));
+  background-color: color-mix(in srgb, rgb(var(--m3-secondary-container)) 92%, rgb(var(--m3-on-secondary-container)));
+}
+.msds-segmented-item:active:not(:disabled) { border-radius: 4px; }
+.msds-segmented-item[data-active="true"],
+.msds-segmented-item[data-active="true"]:hover {
+  border-radius: 18px; box-shadow: none;
+  background-color: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary));
+}
+
+/* On the dark rail (D-37) the group keeps the rail's own tokens; only the shape
+   morph comes from the connected group. More specific than the rules above. */
+[data-surface="rail"] .msds-segmented .msds-segmented-item { background-color: transparent; color: rgb(var(--rail-ink-muted)); }
+[data-surface="rail"] .msds-segmented .msds-segmented-item:hover:not(:disabled) {
+  background-color: rgb(var(--rail-edge) / 0.08); color: rgb(var(--rail-ink));
+}
+[data-surface="rail"] .msds-segmented .msds-segmented-item[data-active="true"],
+[data-surface="rail"] .msds-segmented .msds-segmented-item[data-active="true"]:hover {
+  background-color: rgb(var(--rail-edge) / 0.14); color: rgb(var(--rail-accent));
+}
+
+/* Split button: the action and a menu seat, joined; the chevron turns on open. */
+.m3-split { display: inline-flex; gap: 2px; align-items: stretch; }
+.m3-split > .msds-btn { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+.m3-split > .m3-split-trigger {
+  width: 44px; height: auto; min-height: 36px; padding: 0; border: 0;
+  border-radius: 6px 9999px 9999px 6px; display: inline-flex; align-items: center; justify-content: center;
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast);
+}
+.m3-split > .m3-split-trigger[aria-expanded="true"] { border-radius: 9999px; }
+.m3-split > .m3-split-trigger svg { transition: transform var(--motion-spatial-dur) var(--motion-spatial); }
+.m3-split > .m3-split-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.m3-split-primary > .m3-split-trigger { background: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary)); }
+.m3-split-tonal > .m3-split-trigger { background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container)); }
+
+/* Loading indicator: a shape that keeps morphing while it turns (< 5 s waits). */
+.m3-loading { display: inline-flex; align-items: center; justify-content: center; color: rgb(var(--m3-primary)); }
+.m3-loading-contained { border-radius: 9999px; background: rgb(var(--m3-primary-container)); color: rgb(var(--m3-on-primary-container)); }
+.m3-loading-shape {
+  width: 62%; height: 62%; background: currentColor;
+  animation: m3-loading-morph 1.3s var(--motion-spatial-slow) infinite;
+}
+@keyframes m3-loading-morph {
+  0% { border-radius: 50%; transform: rotate(0deg) scale(1); }
+  25% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: rotate(90deg) scale(0.92); }
+  50% { border-radius: 22%; transform: rotate(180deg) scale(1); }
+  75% { border-radius: 70% 30% 30% 70% / 60% 40% 60% 40%; transform: rotate(270deg) scale(0.92); }
+  100% { border-radius: 50%; transform: rotate(360deg) scale(1); }
+}
+
+/* FAB menu: 2 to 6 large items open from the FAB; the FAB turns into the close
+   button. Items arrive one after another on the expressive spring. */
+.m3-fabmenu { position: relative; display: inline-flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+.m3-fabmenu-fab {
+  display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px 0 16px; border: 0; cursor: pointer;
+  border-radius: var(--shape-large); font: 600 15px var(--font-sans);
+  background: rgb(var(--m3-primary-container)); color: rgb(var(--m3-on-primary-container)); box-shadow: var(--elevation-3);
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    background-color var(--motion-effects-dur) var(--motion-effects);
+}
+.m3-fabmenu-fab svg { transition: transform var(--motion-spatial-dur) var(--motion-spatial); }
+.m3-fabmenu-fab[aria-expanded="true"] { border-radius: 9999px; background: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary)); }
+.m3-fabmenu-fab[aria-expanded="true"] svg { transform: rotate(45deg); }
+.m3-fabmenu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.m3-fabmenu-item {
+  display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 22px; border: 0; cursor: pointer;
+  border-radius: 9999px; font: 600 15px var(--font-sans); white-space: nowrap;
+  background: rgb(var(--m3-primary-container)); color: rgb(var(--m3-on-primary-container)); box-shadow: var(--elevation-2);
+  animation: m3-fabmenu-in var(--motion-spatial-dur) var(--motion-spatial) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.m3-fabmenu-item:hover,
+.m3-fabmenu-item:focus-visible {
+  background: color-mix(in srgb, rgb(var(--m3-primary-container)) 90%, rgb(var(--m3-on-primary-container)));
+}
+@keyframes m3-fabmenu-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msds-segmented-item, .m3-split > .m3-split-trigger, .m3-split > .m3-split-trigger svg,
+  .m3-fabmenu-fab, .m3-fabmenu-fab svg { transition: none; }
+  .m3-loading-shape, .m3-fabmenu-item { animation: none; }
 }
 
 /* m3-roles:begin (generated by lib/design/m3Roles.test.ts, npm run tokens:m3; do not edit) */
