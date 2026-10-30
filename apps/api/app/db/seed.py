@@ -2732,7 +2732,7 @@ def seed(db: Session) -> dict[str, int]:
 
     created_materials = 0
     material_repo = MaterialRepository(db)
-    # Idempotence key: the name among catalogue demo materials only (D-184). A
+    # Idempotence key: the name among catalogue demo materials only (D-185). A
     # real or user-owned material with the same name neither hides the demo one
     # nor, matching twice, makes the lookup raise MultipleResultsFound.
     existing_demo_names = set(

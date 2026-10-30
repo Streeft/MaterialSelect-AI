@@ -844,7 +844,7 @@ As curvas são derivadas das propriedades do próprio material, e a premissa tom
 onde elas faltam ou se contradizem fica na descrição da curva.
 `python -m app.db.demo_coverage` lista a cobertura e a razão de cada ausência.
 
-**Catálogo demo ampliado (D-184)**: mais 593 materiais fictícios em nove lotes
+**Catálogo demo ampliado (D-185)**: mais 593 materiais fictícios em nove lotes
 JSON (`app/db/demo_catalog/`), numa lista **separada** (`TCC_DEMO_MATERIALS`,
 `seed_demo_catalog_expansion()` no `main()` de `seed_extended`) para não mover as
 contagens fixas dos 75. Validados na carga por `validate_lots()` (puro; falha

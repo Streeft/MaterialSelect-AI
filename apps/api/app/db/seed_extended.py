@@ -22,7 +22,7 @@ material demo (``app.db.seed_demo_cae``, D-124; log ``cae_values_created``).
 ``python -m app.db.demo_coverage`` lista o que cada material
 tem e o que falta.
 
-Catálogo demo ampliado do TCC (D-184): o mesmo comando escreve também os 593
+Catálogo demo ampliado do TCC (D-185): o mesmo comando escreve também os 593
 materiais fictícios dos nove lotes JSON de ``app/db/demo_catalog/`` (lista
 separada ``TCC_DEMO_MATERIALS``, função :func:`seed_demo_catalog_expansion`),
 pelo mesmo escritor dos 70 — com designação, composição, curvas e processos —
@@ -361,7 +361,7 @@ def _reserved_demo_codes() -> list[str]:
     return [spec["code"] for specs in tables for spec in specs]
 
 
-#: The enlarged demo catalogue of the TCC (D-184): 593 fictitious materials in
+#: The enlarged demo catalogue of the TCC (D-185): 593 fictitious materials in
 #: nine JSON lots, validated on load — a lot that breaks a rule stops the import
 #: with the list of violations instead of seeding part of it in silence. A list
 #: of its own, not appended to ``EXTENDED_DEMO_MATERIALS``: the suite holds fixed
@@ -436,7 +436,7 @@ def _existing_demo_names(db: Session) -> set[str]:
     The idempotence key of every demo writer. A real or user-owned material
     that happens to share a name is not a demo one: it neither blocks the demo
     row nor, by matching twice, makes the lookup raise ``MultipleResultsFound``
-    (D-184 — the old ``Material.name == name … one_or_none()``).
+    (D-185 — the old ``Material.name == name … one_or_none()``).
     """
     return set(
         db.execute(
@@ -507,7 +507,7 @@ def tcc_demo_material_ids(db: Session, specs: list[dict] | None = None) -> list[
 def seed_demo_catalog_expansion(
     db: Session, source: Source, specs: list[dict] | None = None
 ) -> dict[str, int]:
-    """O catálogo demo ampliado do TCC (D-184): materiais, identidade, curvas e processos.
+    """O catálogo demo ampliado do TCC (D-185): materiais, identidade, curvas e processos.
 
     Idempotente: uma segunda execução cria zero de tudo. ``specs`` existe para o
     teste semear um recorte; o ``main()`` passa os 593 (``TCC_DEMO_MATERIALS``).
@@ -569,7 +569,7 @@ def main() -> None:
             return
 
         created = seed_extended_materials(db, demo_source)
-        expansion = seed_demo_catalog_expansion(db, demo_source)  # D-184: 593 do TCC
+        expansion = seed_demo_catalog_expansion(db, demo_source)  # D-185: 593 do TCC
         releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
         identity = seed_extended_identity(db, demo_source)
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
@@ -578,7 +578,7 @@ def main() -> None:
         db.commit()
 
     print(f"[seed_extended] Concluído: {created} materiais criados.")
-    print(f"[seed_extended] Catálogo demo ampliado (D-184): {expansion}")
+    print(f"[seed_extended] Catálogo demo ampliado (D-185): {expansion}")
     print(f"[seed_extended] Releases demo: {releases}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
     print(f"[seed_extended] Equivalências demo: {equivalences}")
