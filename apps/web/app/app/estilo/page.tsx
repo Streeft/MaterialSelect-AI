@@ -8,6 +8,9 @@ import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
 import {
   Alert,
+  FabMenu,
+  LoadingIndicator,
+  SplitButton,
   Badge,
   Bar,
   Breadcrumb,
@@ -875,6 +878,40 @@ export default function StyleGuidePage() {
             primary={<div className="well p-4 text-sm">O trabalho (cerca de dois terços)</div>}
             secondary={<div className="well p-4 text-sm">O que ajuda a ler o trabalho</div>}
           />
+        </div>
+      </Section>
+
+      <Section title="M3 Expressive: botão dividido, menu do FAB e carregamento" headingLevel={2}>
+        <div className="flex flex-col gap-5">
+          <p className="max-w-prose text-sm text-ink-muted">
+            Tudo aqui se move nas molas expressivas do M3 (curva e duração da página de movimento),
+            e para quando o sistema pede movimento reduzido. O grupo de botões acima, nos formulários,
+            já é o grupo conectado: o escolhido arredonda inteiro.
+          </p>
+          <div className="flex flex-wrap items-center gap-6">
+            <SplitButton
+              onClick={() => {}}
+              menuLabel="Mais opções de exportação"
+              menu={
+                <>
+                  <MenuItem onSelect={() => {}}>XLSX</MenuItem>
+                  <MenuItem onSelect={() => {}}>JSON</MenuItem>
+                </>
+              }
+            >
+              Exportar CSV
+            </SplitButton>
+            <LoadingIndicator label="Exemplo de carregamento" />
+            <LoadingIndicator label="Exemplo de carregamento sobre conteúdo" contained />
+            <FabMenu
+              label="Novo"
+              actions={[
+                { label: "Estudo de seleção", onSelect: () => {} },
+                { label: "Material próprio", onSelect: () => {} },
+                { label: "Caderno", onSelect: () => {} },
+              ]}
+            />
+          </div>
         </div>
       </Section>
 

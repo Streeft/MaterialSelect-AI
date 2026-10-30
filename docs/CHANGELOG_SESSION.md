@@ -178,6 +178,13 @@ base, chave fora da busca, valor inválido; `test_similarity_tolerances_api.py`:
 propriedade, unidade de leitura, 422 em pt-BR para chave, valor e tipo) e +7 de frontend (requisição só com a base, vírgula na URL, erro
 escrito sem buscar, faixas com percentual e tabela com axe; leitura e escrita da URL). Sem migração. Pós-merge: **Deploy da API**.
 
+## Sessão 141 — 30/10/26 — Molas expressivas e componentes do M3 Expressive (D-183)
+
+**O que mudou.** Tokens das 12 molas do M3 (conversão oficial para web) e o esquema expressivo nos semânticos `--motion-*`; grupo de botões conectado
+(vale para todo `ButtonGroup`); `SplitButton`, `LoadingIndicator` e `FabMenu` em `components/ui`, com espécime em `/app/estilo`. +15 de frontend
+(`components/ui/expressive.test.tsx`, com axe no menu aberto); suíte: 1531 passam; verificador de contraste sem falha. Conferido no Chromium com
+`getAnimations()`; achado e corrigido o seletor de tema da barra escura. Sem backend nem migração.
+
 ## Sessão 140 — 30/10/26 — Rumo do M3 Expressive e base dos layouts adaptativos (D-181, D-182)
 
 **O pedido.** Depois da revisão de design contra o m3.material.io, o autor decidiu: barra escura fica, a pessoa escolhe a cor do app, movimento

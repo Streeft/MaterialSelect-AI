@@ -92,3 +92,6 @@ export {
 export { Tabs, type TabItem } from "./Tabs";
 export { ThemeToggle, useResolvedTheme } from "./ThemeToggle";
 export { ToolTile, type ToolTone } from "./ToolTile";
+export { SplitButton } from "./SplitButton";
+export { LoadingIndicator } from "./LoadingIndicator";
+export { FabMenu, type FabMenuAction } from "./FabMenu";

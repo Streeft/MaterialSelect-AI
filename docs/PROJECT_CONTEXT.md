@@ -639,6 +639,8 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
+**Sessão 141 (D-183):** molas expressivas do M3 como token, grupo de botões conectado, `SplitButton`, `LoadingIndicator` e `FabMenu`; frontend 1531 testes (+15); sem backend.
+
 **Sessão 140 (D-181, D-182):** rumo do M3 Expressive decidido pelo autor e base dos layouts adaptativos (`PaneScaffold`, breakpoints M3); frontend 1516 testes (+19) e +2 E2E; sem backend.
 
 **Contagem medida na Sessão 137 (cota de IA fora dos Cadernos, D-179):** 5130 testes de backend coletados (5124 passam e 6 pulam sem `POSTGRES_TEST_URL`; +7 em `test_ai_quota.py`); frontend sem mudança. `/ai/interpret`, `/ai/explain` e a narrativa do laudo contam no mesmo contador diário dos Cadernos, com teto `AI_DAILY_REQUESTS`; `mock` não conta.
