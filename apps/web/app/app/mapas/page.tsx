@@ -280,11 +280,13 @@ function MapsPageContent() {
   const [handoffError, setHandoffError] = useState<string | null>(null);
 
   // Records carried over from a selection run, so a study can be read on the map.
-  const restrictedIds = useMemo(
-    () => parseIds(params.get(universe === "process" ? "processos" : "materiais")),
-    [params, universe],
-  );
-  const highlightIds = useMemo(() => parseIds(params.get("destaque")), [params]);
+  // Memoised on the strings, not on `params` (D-190): every URL change (a
+  // level, a unit) gives `params` a new identity, and a new array here redraws
+  // the whole map for nothing.
+  const restrictedRaw = params.get(universe === "process" ? "processos" : "materiais");
+  const highlightRaw = params.get("destaque");
+  const restrictedIds = useMemo(() => parseIds(restrictedRaw), [restrictedRaw]);
+  const highlightIds = useMemo(() => parseIds(highlightRaw), [highlightRaw]);
 
   const properties = useQuery({
     queryKey: ["properties"],
@@ -865,6 +867,7 @@ function MapsPageContent() {
                 map={map.data}
                 displayScale={displayScale}
                 isFetching={map.isFetching}
+                fillHeight
                 highlightIds={highlightIds}
                 showEnvelopes={showEnvelopes}
                 showIntervals={showIntervals}
@@ -927,7 +930,9 @@ function MapsPageContent() {
         <aside
           id="controles"
           aria-labelledby="controles-titulo"
-          className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+          // Below the sticky search bar (72 px, as the supporting pane of D-182),
+          // not under it (D-190).
+          className="lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
         >
           <Card>
             <CardHeader

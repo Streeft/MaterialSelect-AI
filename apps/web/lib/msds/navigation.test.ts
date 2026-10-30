@@ -13,6 +13,14 @@ describe("navigation and data on the M3 roles (D-137)", () => {
     expect(css).not.toMatch(/\.msds-tab \{[^}]*border-bottom: 2px/);
   });
 
+  it("the indicator is anchored to its own tab, not to the page (D-190)", () => {
+    // `.msds-tab::after` is `position: absolute; left: 8px; right: 8px`. Without a
+    // positioned tab it measures against the nearest positioned ancestor and a
+    // primary line crosses the whole screen under every tab strip.
+    expect(css).toMatch(/\.msds-tab \{[^}]*position: relative;/);
+    expect(css).toMatch(/\.msds-tab::after \{[^}]*position: absolute;/);
+  });
+
   it("the tab divider is outline-variant and the active label is primary", () => {
     expect(css).toMatch(/\.msds-tablist \{[^}]*--m3-outline-variant/);
     expect(css).toContain('.msds-tab[data-active="true"] { color: rgb(var(--m3-primary)); }');
