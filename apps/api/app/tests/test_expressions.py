@@ -53,7 +53,12 @@ def test_safe_variable_maps_hyphens():
         "lambda: 1",
         "E if rho else 1",
         "E; rho",
-        "min(E, rho)",  # non-whitelisted function
+        "round(E)",  # non-whitelisted function
+        "min(E, *rho)",  # unpacked argument
+        "max(E, key=rho)",  # keyword argument
+        "sqrt(E, rho)",  # wrong arity
+        "pi(E)",  # a constant is not a function
+        "ln.__class__",  # attribute on a function name
         "E & rho",  # bitwise operator
         "E[0]",  # subscript
         "'string'",  # string constant
@@ -172,5 +177,7 @@ def test_syntax_error_message_is_portuguese() -> None:
 
     from app.calculations.expressions import ExpressionError, parse
 
-    with pytest.raises(ExpressionError, match="Sintaxe inválida: confira"):
+    with pytest.raises(ExpressionError, match="Sintaxe inválida: a expressão termina incompleta"):
         parse("a +")
+    with pytest.raises(ExpressionError, match="Sintaxe inválida: confira"):
+        parse("a / / b")
