@@ -277,7 +277,7 @@ workflows de disparo manual na aba *Actions*:
 | Workflow | Quando |
 |---|---|
 | **Deploy da API** (`deploy-api.yml`) | Depois de todo merge que toque `apps/api/**`. |
-| **Administração do banco** (`admin-banco.yml`) | `semear_referencia` para referência real; `semear_demo` somente para ambiente fictício; também `migrar`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, `conceder` e `revogar`. |
+| **Administração do banco** (`admin-banco.yml`) | `semear_referencia` para referência real; `semear_demo` para o catálogo fictício, aditivo e idempotente (D-189: só acrescenta o que falta); também `migrar`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, `conceder` e `revogar`. |
 | **Provedor de IA** (`provedor-ia.yml`) | Trocar a IA (`gemini`, `groq`, `mock`); confere em `/api/health`. |
 | **Modo de acesso** (`modo-acesso.yml`) | `abrir` para uma turma, `restaurar_assinatura` depois. |
 | **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto — baixa do LFS só o que o banco ainda não tem (com `arquivos: Links.md`, só ele, sem baixar nada); `embeddings` para gerar vetores já; `status` para o retrato. Uma execução **noturna agendada** gera os vetores sozinha, com a sobra da cota gratuita (até 1000 pedidos), e nunca envia trecho de documento da lista de remoção. |

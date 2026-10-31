@@ -131,8 +131,8 @@ LOI). O seed demo ficou **aditivo e idempotente** (D-189, decisão do autor de r
 duas vezes num banco limpo com `alembic upgrade head` — a segunda rodada cria zero. O validador dos lotes do D-185 confere só as 15
 de sempre (`CORE_SLUGS`), então os JSON não mudaram. Achado e corrigido: o mock de IA mandava "temperatura de serviço" para a
 primeira propriedade com "temperatura" no nome (com 48, a fusão ou a mínima de serviço); agora desempata pela especificidade.
-Testes que fixavam 15 propriedades passam a 48 com a contagem à mão explicada. +43 testes de backend
-(`test_seed_demo_extended_props.py`). Sem migração; frontend sem mudança. Rules, `docs/13`, `docs/15`, workflow e `CLAUDE.md` curto
+Testes que fixavam 15 propriedades passam a 48 com a contagem à mão explicada. +49 testes de backend
+(`test_seed_demo_extended_props.py`); suíte 5239 (5233 passam, 6 pulam). Sem migração; frontend sem mudança. Rules, `docs/13`, `docs/15`, workflow e `CLAUDE.md` curto
 atualizados para o `semear_demo` aditivo.
 
 ## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
