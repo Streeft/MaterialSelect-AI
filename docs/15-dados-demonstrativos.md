@@ -74,6 +74,24 @@ própria linha (`OrdinalPropertyDefinition.is_demo`,
 `MaterialOrdinalValue.is_demo`), citam a fonte demo, e `clear_demo` os apaga
 (chaves `ordinal_values` e `ordinal_definitions`).
 
+Desde o [D-188](DECISIONS.md) o mesmo comando termina com o **catálogo
+ampliado**: as 33 propriedades numéricas novas (definição de referência em
+`app/db/property_catalog_extended.py`) e 12 ordinais demo (durabilidade em nove
+agentes, inflamabilidade, transparência, biocompatibilidade) ganham valor em
+**todo** material demo — os 5, os 70, os 593 e os 10 das versões —, por
+`app/db/seed_demo_extended_props.py` com as faixas de
+`app/db/demo_extended_data.py`. O valor sai da faixa da família por hash
+estável e as grandezas que a física liga são derivadas (G de E e ν, Gc de KIc
+e E, difusividade de k, ρ e cp, condutividade de resistividade…); onde a
+grandeza não se aplica, a linha é **ausente com a razão na nota**. O seed é
+**aditivo e idempotente** ([D-189](DECISIONS.md)): só escreve o par material ×
+propriedade que não existe, nunca altera valor gravado e nunca toca material
+real. Log `[seed_extended] Catálogo ampliado (D-188)`: num banco limpo
+`extended_values_created: 17741`, `extended_missing_declared: 4633`,
+`extended_ordinal_definitions_created: 12`, `extended_ordinal_values_created:
+8136`; na segunda execução, tudo 0. `app.db.seed` sozinho **não** escreve esses
+valores nos 5 do baseline (as contagens fixas do painel continuam valendo).
+
 O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designações
 `DEMO-…` e composição numa gramática de uma linha por material) e
 `apps/api/app/db/seed_extended_identity.py` (curvas), chamados por

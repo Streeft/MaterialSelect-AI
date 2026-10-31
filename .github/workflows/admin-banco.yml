@@ -124,8 +124,9 @@ jobs:
               python -m app.db.seed_reference
               ;;
             semear_demo)
-              # Exclusivo para desenvolvimento/demonstração. Esta ação recria
-              # deliberadamente o catálogo fictício e NÃO deve ser usada depois
+              # Catálogo fictício de demonstração. Aditivo e idempotente
+              # (D-189): acrescenta só o que falta em materiais demo, sem
+              # duplicar nem alterar valor gravado. NÃO deve ser usada depois
               # do cutover da base oficial.
               python -m alembic upgrade head
               python -m app.db.seed

@@ -87,6 +87,17 @@ quitados".
 
 ## Média prioridade
 
+- **Catálogo ampliado ([D-188](DECISIONS.md), [D-189](DECISIONS.md), Sessão 146) — pendências.**
+  (1) **Autor:** depois do merge, **Deploy da API** e `semear_demo` em produção (aditivo; conferir no log
+  `extended_values_created` e companhia); (2) revisão humana de uma amostra dos valores estimados por
+  família (sobretudo durabilidade, biocompatibilidade e pegada hídrica, as mais grosseiras); (3) as duas
+  ordinais antigas "Durabilidade em água doce (demo)" e "… radiação UV (demo)" (D-126, nível sorteado)
+  convivem com "Resistência à água doce" e "… à radiação UV" (nível por família): decidir se saem — exige
+  apagar linhas gravadas, fora do seed aditivo; (4) cartão CAE e Sintetizador continuam lendo só as
+  propriedades de antes (ν, α, cp; E, ρ, σ) — avaliar se o CAE leva G, K e Tm e se o Sintetizador estima
+  as novas; (5) as curvas tensão-deformação demo (D-107) são ilustrativas e não foram reancoradas no
+  alongamento novo; (6) dureza Rockwell ficou de fora (uma escala por família).
+
 - **Catálogo demo ampliado do TCC ([D-185](DECISIONS.md), Sessão 143) — pendências do autor.** Os 593
   materiais estão no código e no `semear_demo`; falta: (1) decidir **onde** semear para a
   apresentação — preview/local sem risco, ou produção, que o `CLAUDE.md` proíbe depois do cutover e

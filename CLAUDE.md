@@ -58,7 +58,7 @@ Detalhe por área, carregado só ao tocar nos arquivos (`.claude/rules/`):
 provedores), `frontend-design-system.md` (tokens, MSDS, Plotly, proibições),
 `catalogo-oficial.md` (D-102), `deploy-pos-merge.md` (workflows a disparar após merge
 de `apps/api/**`: **Deploy da API** sempre; **Administração do banco** conforme o caso;
-nunca `semear_demo` em produção).
+`semear_demo` é aditivo e só roda em produção por decisão do autor, D-189; nunca depois do cutover oficial).
 
 ## Convenções
 

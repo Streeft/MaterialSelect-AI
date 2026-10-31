@@ -120,6 +120,21 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 146 — 31/10/26 — Catálogo ampliado: 45 propriedades novas em todo material demo; `semear_demo` aditivo (D-188, D-189)
+
+**O que mudou.** 33 definições numéricas novas (total 48) em `app/db/property_catalog_extended.py`, com nível (4 no L1, 17 no L2, 12
+no L3) e verbete no glossário; 12 ordinais demo (nove agentes de durabilidade, inflamabilidade, transparência, biocompatibilidade).
+`app/db/seed_demo_extended_props.py` dá valor a todo material demo (678 × 33 pares: 17 741 valores e 4 633 ausências declaradas com
+a razão; 8 136 níveis) a partir de 358 perfis de família por nome (`app/db/demo_extended_data.py`), com as grandezas que a física
+liga derivadas (G, K, Gc, difusividade, condutividade, choque térmico, custo por litro, CO₂ de processamento, inflamabilidade pelo
+LOI). O seed demo ficou **aditivo e idempotente** (D-189, decisão do autor de rodar `semear_demo` em produção): seed + seed_extended
+duas vezes num banco limpo com `alembic upgrade head` — a segunda rodada cria zero. O validador dos lotes do D-185 confere só as 15
+de sempre (`CORE_SLUGS`), então os JSON não mudaram. Achado e corrigido: o mock de IA mandava "temperatura de serviço" para a
+primeira propriedade com "temperatura" no nome (com 48, a fusão ou a mínima de serviço); agora desempata pela especificidade.
+Testes que fixavam 15 propriedades passam a 48 com a contagem à mão explicada. +43 testes de backend
+(`test_seed_demo_extended_props.py`). Sem migração; frontend sem mudança. Rules, `docs/13`, `docs/15`, workflow e `CLAUDE.md` curto
+atualizados para o `semear_demo` aditivo.
+
 ## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
 
 **O que mudou.** As etapas de entrada da Seleção ganharam o painel de apoio M3 com o funil de candidatos ao vivo (`LiveFunnel`, mesma prévia do
