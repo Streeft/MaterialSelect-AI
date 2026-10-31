@@ -29,6 +29,7 @@ import type {
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
 import { optionsAtLevel } from "@/lib/depth";
+import { encodeIdList } from "@/lib/idList";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { PropertyHint } from "@/components/glossary/PropertyHint";
@@ -914,7 +915,7 @@ function MapsPageContent() {
               {universe === "material" && map.data.points.length > 0 && (
                 <div>
                   <ButtonLink
-                    href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
+                    href={`/app/comparar?materiais=${encodeIdList(map.data.points.map((p) => p.material_id))}`}
                     size="sm"
                   >
                     {t.compareSelected} →
