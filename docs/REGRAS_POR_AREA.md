@@ -439,6 +439,14 @@ sentidos, e **pela mesma regra que desenha o mapa** (`ChartService._map_reading`
 eixo de índice, unidade com offset e universo de processos não se movem num
 nem noutro. O cliente nunca aplica fator.
 
+**D-190: a altura de uma figura Plotly é do wrapper, não do layout**
+([D-190](DECISIONS.md)): `Plotly.Plots.resize` apaga `layout.height` do objeto
+memorizado, e o redesenho seguinte colapsa o gráfico a 0 px. Use
+`usePlotlyResize` + `PLOTLY_HEIGHT` (ou `fillHeight`), deixe `layout.height`
+indefinido e `style.height: 100%`. Trilhas de grade sempre `minmax(0, …)`;
+`min-w-[Nrem]` em item que quebra linha leva teto (`min-w-[min(Nrem,100%)]`);
+`.msds-card` corta o que passa, e `e2e/larguras.spec.ts` reprova isso.
+
 ## Acesso, portão e registros próprios (D-42, D-43, D-46, D-62, D-83)
 
 **Portão de assinatura concluído** — em cima do login de A5, todo usuário

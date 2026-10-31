@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 147 — 31/10/26 — Telas que se adaptam: aba, mapa no Nível 2 e ficha sem corte (D-190)
+
+**O que mudou.** Três defeitos de tela reproduzidos no Chromium e corrigidos. A linha primária que atravessava a página era o indicador de aba
+sem âncora (`.msds-tab` ganhou `position: relative`). O mapa "distorcido" ao trocar para o Nível 2 era o `.svg-container` do Plotly com 0 px:
+`Plots.resize` apaga `layout.height` do objeto memorizado e o redesenho seguinte punha `height: 100%` num wrapper sem altura; a altura passou
+para o CSS do wrapper (`usePlotlyResize`, também em Ragone e na ficha), com `ResizeObserver`, `fillHeight` no mapa, memo pelas strings da URL e
+o painel de controles abaixo da barra de busca. A ficha cortada era "Materiais semelhantes" com trilhas fixas num cartão `overflow: hidden`:
+consulta de contêiner e `minmax(0, …)`, e a mesma varredura em mais dez arquivos; a tabela de propriedades foi para `TableScroll`.
+`e2e/larguras.spec.ts` mede corte por `overflow: hidden`, indicador de aba e a troca de nível do mapa, e visita ficha, resultados e Nível 2:
+3 testes novos falham na `main` e passam aqui; a suíte `larguras` inteira passa (24). +1 de frontend (vitest do indicador): 1542 passam (140
+arquivos). Numeração: D-186/Sessão 144 já eram do #212 e D-187 a D-189/Sessões 145 e 146 estão com os PRs paralelos. Sem backend nem migração.
+
 ## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
 
 **O que mudou.** As etapas de entrada da Seleção ganharam o painel de apoio M3 com o funil de candidatos ao vivo (`LiveFunnel`, mesma prévia do

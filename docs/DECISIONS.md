@@ -11650,3 +11650,41 @@ terços, e ao lado o que ajuda a lê-lo.
   de ícone claro, perdendo a cor do botão. As regras da seta ganharam especificidade e um véu de estado M3 sobre a própria cor.
 
 **Fonte.** m3.material.io › *Foundations › Layout › Canonical layout examples* (supporting pane) e *Components › Split button*, lidas em 29 e 30/10/26.
+
+## D-190 — Telas que se adaptam: aba ancorada, mapa sem colapso e nada cortado por `overflow: hidden`
+
+**Contexto.** Itens 1 a 3 do pedido do autor depois de testar a produção: (1) o mapa "distorce" no Nível 2; (2) uma linha fixa na cor
+primária atravessa a tela; (3) a ficha do material sai cortada a 1920 px, e todas as telas têm de se adaptar. A suíte `larguras` (D-147)
+só media o `scrollWidth` do documento em rotas sem estado, e não via nenhum dos três.
+
+**Causas, reproduzidas no Chromium** (seed demo em SQLite, 678 materiais, `next dev`):
+- **Mapa.** Direto em `?nivel=2` o mapa sai certo; o defeito aparece ao **trocar** de nível (ou mexer em qualquer coisa da URL). O
+  `react-plotly.js` chama `Plotly.Plots.resize` ao montar e a cada `resize` da janela, e essa função faz `delete gd.layout.height` — e
+  `gd.layout` é o objeto que a tela memorizou com `height: 540`. Na troca de URL, `highlightIds` ganhava identidade nova (memo sobre
+  `params`), os traços eram redesenhados com o layout já sem altura, e com `responsive: true` o Plotly escrevia `height: 100%` no
+  `.svg-container`, dentro de um wrapper sem altura: 0 px. O `<svg>` de 540 px transbordava por cima de "Materiais fora do mapa". O Nível 3
+  "consertava" por acaso. Medido: `.svg-container` 566×0 a 1280 px, `#excluidos` começando 48 px abaixo do topo do gráfico.
+- **Linha.** `.msds-tab` não tinha `position`, e o `::after` (indicador, `position: absolute; left/right: 8px`) se ancorava no ancestral
+  posicionado mais próximo: uma linha da largura da página sob cada faixa de abas (Seleção/Resultados, Baterias, Comparar, Estilo, Cadernos).
+- **Ficha.** As linhas de peso/critério/tolerância de "Materiais semelhantes" tinham trilhas fixas (`lg:grid-cols-[1fr_8rem_14rem_11rem]`,
+  ~40rem) numa coluna de meia largura; o `fieldset` (que por padrão não encolhe abaixo do conteúdo) crescia e o `.msds-card { overflow: hidden }`
+  cortava o resto (686 px de conteúdo em 466 px a 1280). A 375 px, a linha de ações do cabeçalho (`shrink-0`) também passava do cartão.
+
+**Decisão.**
+- **A altura de uma figura Plotly mora no CSS do wrapper, nunca em `layout.height`** (`components/charts/usePlotlyResize.ts`:
+  `PLOTLY_HEIGHT` para mapa 540, Ragone 480, posição na ficha 380; o mapa de `/app/mapas` usa `fillHeight`, o *clamp* pela altura da janela).
+  O mesmo hook põe um `ResizeObserver` no wrapper que chama `Plotly.Plots.resize`: o Plotly só escuta a janela, e um painel que abre ou uma
+  grade que reflui muda a caixa sem mudar a janela. Vale para `AshbyMap`, `RagoneChart` e `PropertyChart`.
+- `restrictedIds`/`highlightIds` do mapa são memorizados sobre as **strings** da URL, não sobre `params`.
+- O painel de controles do mapa fica abaixo da barra de busca fixa (`lg:top-[72px]`, o mesmo valor do painel de apoio de D-182).
+- `.msds-tab { position: relative }`.
+- **Trilhas de grade com `minmax(0, …)` e larguras mínimas com teto** (`min-w-[min(14rem,100%)]`): "Materiais semelhantes" decide as colunas
+  pela própria largura (consulta de contêiner `similar-weights`, 1 → 2 → 4 colunas), e a varredura trocou as trilhas fixas de `ReleaseChanges`,
+  catálogo, `IndexCard`, `FunnelRow`, `FamilyNote`, glossário, `SearchHelp`, Estilo e os `min-w-[14–18rem]` de `StageList`, mapas e
+  `CustomIndexForm`. A tabela de propriedades da ficha (`PropertyGroup`) rola dentro de `TableScroll` em vez de ser cortada.
+- **`e2e/larguras.spec.ts` passa a ver o que o `scrollWidth` não vê**, nas quatro larguras: nenhum elemento visível com `overflow: hidden`
+  e conteúdo mais largo que ele (reticências e rótulos `sr-only` ficam de fora), nenhum indicador de aba mais largo que a faixa, a ficha de
+  um material, `/app/selecao?etapa=resultados` e `/app/mapas?nivel=2`, e a troca Nível 1 → 2 no mapa com o `<svg>` dentro do próprio
+  contêiner e acima de `#excluidos`. Os três testes novos falham na `main` e passam com a correção.
+
+**Fora.** Nenhum número novo no cliente: as figuras continuam desenhando o que o backend mandou (ADR 0004). Sem backend nem migração.
