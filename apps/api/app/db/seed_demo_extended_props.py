@@ -122,9 +122,7 @@ ORDINAL_SPECS: tuple[OrdinalSpec, ...] = (
     _durability("resistencia-acidos-fortes", "a ácidos fortes", "acidos_fortes"),
     _durability("resistencia-alcalis-fracos", "a álcalis fracos", "alcalis_fracos"),
     _durability("resistencia-alcalis-fortes", "a álcalis fortes", "alcalis_fortes"),
-    _durability(
-        "resistencia-solventes-organicos", "a solventes orgânicos", "solventes"
-    ),
+    _durability("resistencia-solventes-organicos", "a solventes orgânicos", "solventes"),
     _durability("resistencia-radiacao-uv", "à radiação UV", "uv"),
     _durability("resistencia-oxidacao-500c", "à oxidação a 500 °C", "oxidacao_500c"),
     OrdinalSpec(
@@ -163,8 +161,7 @@ ORDINAL_SLUGS: tuple[str, ...] = tuple(spec.slug for spec in ORDINAL_SPECS)
 # --- quantities: slug -> (key in the profile, reading unit) ------------------------
 
 _READING_UNIT: dict[str, str] = {
-    spec["slug"]: spec.get("display_unit") or spec["canonical_unit"]
-    for spec in EXTENDED_PROPERTIES
+    spec["slug"]: spec.get("display_unit") or spec["canonical_unit"] for spec in EXTENDED_PROPERTIES
 }
 _READING_UNIT["resistividade_eletrica"] = "ohm*m"
 _READING_UNIT["condutividade_eletrica"] = "S/m"
@@ -174,8 +171,7 @@ NOT_APPLICABLE: dict[str, str] = {
     "temp_fusao": "Não se aplica: sem ponto de fusão definido (amorfo, termofixo, "
     "multifásico ou decompõe antes de fundir).",
     "temp_transicao_vitrea": "Não se aplica: material sem transição vítrea.",
-    "temp_deflexao_termica": "Não se aplica: ensaio de deflexão térmica é de "
-    "plásticos rígidos.",
+    "temp_deflexao_termica": "Não se aplica: ensaio de deflexão térmica é de " "plásticos rígidos.",
     "dureza_shore_a": "Não se aplica: fora da escala Shore A.",
     "dureza_shore_d": "Não se aplica: fora da escala Shore D.",
     "constante_dieletrica": "Não se aplica: material condutor.",
@@ -211,6 +207,7 @@ def normalize(text: str | None) -> str:
 
 #: (class slug, name pattern, profile). First match wins, in order. The
 #: pattern is searched in "subclass | name", normalized.
+# fmt: off
 _RULES: tuple[tuple[str, str, str], ...] = (
     # metals
     ("metais", r"espuma de", "metal_foam"),
@@ -588,6 +585,8 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("compositos", r"vidro", "gfrp_ud"),
 )
 
+# fmt: on
+
 _COMPILED = tuple((cls, re.compile(pattern), key) for cls, pattern, key in _RULES)
 
 #: The few families the name does not say and the subclass does; read first.
@@ -634,6 +633,7 @@ def resolve_profile(key: str) -> dict:
 # material is a real, well-known grade. Values are typical figures taught in
 # open sources (textbook tables, standards); bands, so the hash still applies.
 
+# fmt: off
 OVERRIDES: dict[str, dict] = {
     "Liga de Alumínio 6061-T6": {"A": (12, 17), "KIC": (29, 29), "FAT_ABS": (96, 97),
                                  "TM": (582, 652), "RES": (3.99e-8, 3.99e-8)},
@@ -715,12 +715,18 @@ _AL_SERIES: tuple[tuple[str, dict], ...] = (
                    "DUR": (4, 2, 3, 1, 2, 0, 4, 4, 4)}),
 )
 
+# fmt: on
+
 _SHORE = re.compile(r"(\d{2,3})\s*shore\s*([ad])\b")
 _CONCRETE_CLASS = re.compile(r"\bc(\d{2,3})\b")
 
 #: Shore A ↔ Shore D, the usual conversion points of the two durometers.
 _SHORE_A_TO_D: tuple[tuple[float, float], ...] = (
-    (80, 27), (85, 32), (90, 39), (95, 47), (100, 58),
+    (80, 27),
+    (85, 32),
+    (90, 39),
+    (95, 47),
+    (100, 58),
 )
 
 
@@ -1195,9 +1201,7 @@ def seed_demo_extended_properties(
 
     wanted = None if names is None else set(names)
     materials = [
-        (m, cls)
-        for m, cls in demo_catalogue_materials(db)
-        if wanted is None or m.name in wanted
+        (m, cls) for m, cls in demo_catalogue_materials(db) if wanted is None or m.name in wanted
     ]
     ids = [m.id for m, _ in materials]
     own = _own_values(db, ids)
@@ -1208,8 +1212,7 @@ def seed_demo_extended_properties(
     for start in range(0, len(ids), 500):
         present.update(
             db.execute(
-                select(MaterialPropertyValue.material_id, MaterialPropertyValue.property_id)
-                .where(
+                select(MaterialPropertyValue.material_id, MaterialPropertyValue.property_id).where(
                     MaterialPropertyValue.material_id.in_(ids[start : start + 500]),
                     MaterialPropertyValue.property_id.in_(prop_ids),
                 )
@@ -1231,8 +1234,7 @@ def seed_demo_extended_properties(
     for start in range(0, len(ids), 500):
         ordinal_present.update(
             db.execute(
-                select(MaterialOrdinalValue.material_id, MaterialOrdinalValue.definition_id)
-                .where(
+                select(MaterialOrdinalValue.material_id, MaterialOrdinalValue.definition_id).where(
                     MaterialOrdinalValue.material_id.in_(ids[start : start + 500]),
                     MaterialOrdinalValue.definition_id.in_([d.id for _, d in ordinals]),
                 )
@@ -1242,9 +1244,7 @@ def seed_demo_extended_properties(
     rows: list = []
     for material, class_slug in materials:
         profile = profile_for(class_slug, material.subclass, material.name)
-        basis = build_basis(
-            profile, own.get(material.id, {}), trusted=material.name in trusted
-        )
+        basis = build_basis(profile, own.get(material.id, {}), trusted=material.name in trusted)
         result = compute(material.name, profile, basis)
         for slug in EXTENDED_SLUGS:
             prop = definitions[slug]

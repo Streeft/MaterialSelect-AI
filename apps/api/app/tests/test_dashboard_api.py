@@ -1,7 +1,8 @@
 """End-to-end tests for the catalogue panel.
 
 The seeded demo set (see app/db/seed.py) is the fixture: 5 materials across 5
-classes (one class, elastômeros, with no material at all), **15 properties** (12 plus the three of the CAE card, D-124),
+classes (one class, elastômeros, with no material at all), **48 properties** (12, plus the three of the CAE card,
+D-124, plus the 33 of the extended catalogue, D-188),
 five declared-missing values, and every other (material, property) pair either
 filled or never recorded. That mix is exactly what exercises the panel's
 three-valued vocabulary — filled, declared missing, not recorded — instead of
@@ -46,6 +47,12 @@ Since D-124 every demo material also carries the three fictitious CAE values
 Totals: 53 filled, 5 declared missing, 75 slots (5 materials × 15 properties),
 17 not recorded. The not-recorded total did **not** move: every one of the 20
 new slots is either filled or explicitly missing.
+
+Since D-188 the catalogue defines 33 more properties (48 in all). ``app.db.seed``
+does not write them on these five — ``seed_extended`` (the rest of
+``semear_demo``) does, on every demo material — so in this fixture they are the
+third state, never recorded: +5 × 33 = 165 slots, all not recorded. Totals:
+53 filled, 5 declared missing, 182 not recorded, 240 slots.
 """
 
 from __future__ import annotations
@@ -73,18 +80,18 @@ class TestOverviewTotals:
         data = _overview(client)
         assert data["materials"] == 5
         assert data["classes"] == 5
-        assert data["properties"] == 15
+        assert data["properties"] == 48
         # All five seeded materials are demonstration data; a real import would
         # bring this below the total without the total itself changing.
         assert data["demo_materials"] == 5
 
     def test_the_coverage_total_matches_the_hand_count(self, client: TestClient) -> None:
         coverage = _overview(client)["coverage"]
-        assert coverage["slots"] == 75
+        assert coverage["slots"] == 240
         assert coverage["filled"] == 53
         assert coverage["declared_missing"] == 5
-        assert coverage["not_recorded"] == 17
-        assert coverage["filled_pct"] == 70.7  # 53 / 75
+        assert coverage["not_recorded"] == 182
+        assert coverage["filled_pct"] == 22.1  # 53 / 240
 
     def test_the_three_states_always_add_up_to_the_slots(self, client: TestClient) -> None:
         # Not a fact about this fixture — a fact that has to hold for any
@@ -104,18 +111,18 @@ class TestProvenanceMix:
     def test_the_slices_are_shares_of_every_slot_not_of_stored_rows(
         self, client: TestClient
     ) -> None:
-        # The denominator has to be all 75 slots, not the 58 rows that exist.
+        # The denominator has to be all 240 slots, not the 58 rows that exist.
         # Sharing out only what was stored would let a mostly-empty catalogue
         # read as "100% estimado".
         data = _overview(client)
         buckets = {slice_["bucket"]: slice_ for slice_ in data["by_quality"]}
         assert set(buckets) == {"MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE", "NAO_REGISTRADO"}
-        assert sum(b["count"] for b in buckets.values()) == 75
+        assert sum(b["count"] for b in buckets.values()) == 240
         # Every seeded value was written with quality=ESTIMADO.
         assert buckets["ESTIMADO"]["count"] == 53
         assert buckets["MEDIDO"]["count"] == 0
         assert buckets["AUSENTE"]["count"] == 5
-        assert buckets["NAO_REGISTRADO"]["count"] == 17
+        assert buckets["NAO_REGISTRADO"]["count"] == 182
 
     def test_declared_missing_is_never_folded_into_not_recorded(self, client: TestClient) -> None:
         # The one distinction this screen exists to draw. If a future edit
@@ -124,7 +131,7 @@ class TestProvenanceMix:
         buckets = {s["bucket"]: s["count"] for s in data["by_quality"]}
         assert buckets["AUSENTE"] != buckets["NAO_REGISTRADO"]
         assert buckets["AUSENTE"] == 5
-        assert buckets["NAO_REGISTRADO"] == 17
+        assert buckets["NAO_REGISTRADO"] == 182
 
 
 class TestPerClassCoverage:
@@ -151,16 +158,16 @@ class TestPerClassCoverage:
         data = _overview(client)
         ceramicas = next(row for row in data["by_class"] if row["slug"] == "ceramicas")
         assert ceramicas["materials"] == 1
-        assert ceramicas["coverage"]["slots"] == 15
+        assert ceramicas["coverage"]["slots"] == 48
         assert ceramicas["coverage"]["filled"] == 9
         assert ceramicas["coverage"]["declared_missing"] == 3
-        assert ceramicas["coverage"]["not_recorded"] == 3
+        assert ceramicas["coverage"]["not_recorded"] == 36
 
     def test_metais_sums_its_two_materials(self, client: TestClient) -> None:
         data = _overview(client)
         metais = next(row for row in data["by_class"] if row["slug"] == "metais")
         assert metais["materials"] == 2
-        assert metais["coverage"]["slots"] == 30
+        assert metais["coverage"]["slots"] == 96
         assert metais["coverage"]["filled"] == 24
 
 
@@ -168,7 +175,7 @@ class TestPerPropertyCoverage:
     def test_every_property_appears(self, client: TestClient) -> None:
         data = _overview(client)
         slugs = {row["slug"] for row in data["by_property"]}
-        assert len(slugs) == 15
+        assert len(slugs) == 48
         assert "densidade" in slugs
 
     def test_a_property_every_material_carries_is_fully_covered(self, client: TestClient) -> None:
@@ -213,7 +220,9 @@ class TestGaps:
         data = _overview(client)
         assert data["gaps"], "gaps não deveria vir vazio com um catálogo parcialmente preenchido"
         worst = data["gaps"][0]
-        assert worst["slug"] == "condutividade_termica"
+        # Since D-188 the 33 extended definitions tie with condutividade_termica
+        # at zero filled in this fixture (module docstring); the worst still
+        # leads, whichever of the zero-filled ones it is.
         assert worst["coverage"]["filled"] == 0
 
     def test_never_lists_more_than_five(self, client: TestClient) -> None:

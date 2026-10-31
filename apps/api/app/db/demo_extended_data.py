@@ -44,6 +44,8 @@ _INERT = (4, 4, 4, 4, 4, 4, 4, 4, 4)
 #
 # A profile inherits its group's keys and overrides what it names.
 
+# fmt: off
+# The tables below are data: one profile per block, keys packed by theme.
 GROUP_DEFAULTS: dict[str, dict] = {
     "metal": {
         "FAT": (0.40, 0.50),
@@ -1786,6 +1788,8 @@ PROFILES: dict[str, dict] = {
                 "LOI": (25, 30), "WAT": (1.5e4, 2e4), "REC": (1, 5), "PROC": (10, 30),
                 "DUR": (1, 1, 2, 0, 0, 0, 2, 2, 0)},
 }
+
+# fmt: on
 
 #: The class-level fallback of each class, for a material no rule recognises.
 CLASS_FALLBACK: dict[str, str] = {
