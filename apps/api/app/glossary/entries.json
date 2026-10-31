@@ -148,5 +148,455 @@
     "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
     "review_status": "rascunho",
     "lang": "pt-BR"
+  },
+  {
+    "slug": "tenacidade_fratura",
+    "summary": "Resistência do material à propagação de uma trinca já existente. Diz que tamanho de defeito uma peça tolera sob tensão antes de romper de forma instável.",
+    "definition": "A tenacidade à fratura em modo I, KIc, é o valor crítico do fator de intensidade de tensão na ponta de uma trinca: acima dele, a trinca avança sem precisar de mais carga. Combina a tensão aplicada e a raiz do comprimento do defeito, e por isso sua unidade mistura tensão e raiz de comprimento. Metais dúcteis têm valores altos porque escoam na ponta da trinca e a cegam; cerâmicas e vidros, valores baixos, porque não têm esse mecanismo. Em seleção, ela entra nos critérios de tolerância a dano e de projeto 'vazar antes de romper', e se combina com a resistência para dar o tamanho crítico de defeito.",
+    "how_measured": "Ensaio em corpo de prova pré-trincado por fadiga (compacto ou flexão em três pontos), carregado até a instabilidade, com validade verificada pelas condições de deformação plana.",
+    "reference": "ASTM E399 (tenacidade à fratura em deformação plana de metais); ASTM C1421 (cerâmicas avançadas)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "tenacidade_gc",
+    "summary": "Energia absorvida por unidade de área de trinca criada. É a forma energética da tenacidade e vale para materiais que não se descrevem bem por KIc, como polímeros e elastômeros.",
+    "definition": "A tenacidade Gc, ou taxa crítica de liberação de energia, é a energia que o material consome para criar uma unidade de área nova de trinca. Para um sólido elástico linear ela se relaciona com a tenacidade à fratura por Gc igual a KIc ao quadrado dividido pelo módulo, e é assim que esta base a calcula quando o KIc está cadastrado. Para elastômeros e couros, em que a ruptura se mede como energia de rasgamento, é o Gc que se cadastra e o KIc que se deriva. Em seleção, ela separa materiais que absorvem energia (metais dúcteis, polímeros tenazes) dos que trincam com pouca energia (vidros, cerâmicas).",
+    "how_measured": "Derivada de KIc e do módulo de Young, ou medida diretamente pela energia sob a curva carga-deslocamento de um corpo de prova pré-trincado; em elastômeros, por ensaio de rasgamento.",
+    "reference": "ASTM D624 (resistência ao rasgamento de elastômeros)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "alongamento",
+    "summary": "Deformação permanente na ruptura num ensaio de tração, em porcentagem do comprimento inicial. Mede a ductilidade: quanto o material se deixa conformar antes de romper.",
+    "definition": "O alongamento na ruptura compara o comprimento útil depois da fratura com o inicial. Metais recozidos e termoplásticos que estiram atingem valores altos; metais encruados ou temperados, valores menores; cerâmicas, vidros e compósitos frágeis rompem quase sem deformação plástica, e para eles o valor é a própria deformação elástica na fratura, a razão entre a resistência e o módulo. Elastômeros ficam muito acima de todos, porque a deformação é elástica e recuperável. Em seleção ele indica conformabilidade, tolerância a sobrecarga e aviso antes da falha. Depende do comprimento útil e da seção do corpo de prova, então só se comparam valores do mesmo tipo de ensaio.",
+    "how_measured": "Ensaio de tração uniaxial até a ruptura, medindo a distância entre marcas antes e depois, ou por extensômetro.",
+    "reference": "ISO 6892-1 (metais); ISO 527 (plásticos); ISO 37 (borrachas)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_fadiga",
+    "summary": "Amplitude de tensão que o material suporta sob carga cíclica por um número muito grande de ciclos sem romper. Governa peças que vibram, giram ou são carregadas e descarregadas.",
+    "definition": "A resistência à fadiga é a tensão alternada máxima que um corpo de prova liso suporta até um número de ciclos de referência, aqui dez milhões. Em aços existe um patamar, o limite de fadiga, abaixo do qual a vida é praticamente infinita; em ligas de alumínio e na maioria dos não ferrosos a curva continua caindo, e o valor vale para aquele número de ciclos. Costuma ser uma fração da resistência à tração, que varia por família. Acabamento superficial, entalhes, tensão média, corrosão e temperatura reduzem o valor útil, e o projeto aplica fatores próprios para isso.",
+    "how_measured": "Ensaio de fadiga com tensão alternada (flexão rotativa ou tração-compressão axial) em vários níveis, construindo a curva tensão-número de ciclos.",
+    "reference": "ISO 1143 (flexão rotativa); ASTM E466 (fadiga axial com amplitude constante)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_compressao",
+    "summary": "Tensão de compressão que o material suporta antes de escoar, esmagar ou romper. Em cerâmicas, concretos e pedras é muito maior que a resistência à tração.",
+    "definition": "A resistência à compressão é a tensão máxima de compressão uniaxial. Em metais dúcteis ela praticamente coincide com o limite de escoamento, porque o material escoa em vez de romper. Em materiais frágeis, como cerâmicas, vidros, pedras e concretos, as trincas se fecham sob compressão e a resistência fica muitas vezes acima da de tração — razão pela qual se projetam para trabalhar comprimidos. Em compósitos de fibra, a compressão é limitada pela microflambagem das fibras e fica abaixo da tração, especialmente com aramida. Em espumas, é a tensão do patamar de esmagamento das células.",
+    "how_measured": "Ensaio de compressão uniaxial em corpo de prova cilíndrico ou prismático, com controle de alinhamento para evitar flambagem.",
+    "reference": "ASTM E9 (metais); ISO 604 (plásticos); NBR 5739 (concreto)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_flexao",
+    "summary": "Tensão máxima na fibra mais solicitada de uma barra fletida no momento da ruptura ou do escoamento, também chamada módulo de ruptura.",
+    "definition": "A resistência à flexão calcula, pela teoria de vigas, a tensão na superfície tracionada de uma barra carregada em três ou quatro pontos. Em cerâmicas e vidros é o ensaio de resistência mais usado, porque a tração direta exige garras difíceis de alinhar, e o valor costuma superar o de tração direta por haver menos volume sob a tensão máxima. Em polímeros, compósitos, madeiras e concretos é também um valor de catálogo usual. Não se aplica a materiais flexíveis como elastômeros, que dobram sem romper.",
+    "how_measured": "Ensaio de flexão em três ou quatro pontos até a ruptura (ou até uma deformação convencionada em plásticos), com a tensão calculada pela fórmula de vigas.",
+    "reference": "ISO 178 (plásticos); ASTM C1161 (cerâmicas avançadas); ISO 14125 (compósitos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_cisalhamento",
+    "summary": "Tensão de cisalhamento que o material suporta antes de romper. Governa juntas aparafusadas, rebites, pinos, chavetas e a separação entre camadas de laminados.",
+    "definition": "A resistência ao cisalhamento é a tensão tangencial máxima. Em metais dúcteis ela é uma fração da resistência à tração; em ferros fundidos cinzentos, que rompem frágeis em tração, fica próxima ou acima dela. Em compósitos laminados o valor de interesse é o cisalhamento interlaminar, limitado pela matriz, muito menor que a resistência no plano; em madeiras, o cisalhamento paralelo às fibras, também baixo. Em seleção, é o que dimensiona elementos de fixação e o que limita a flexão de vigas curtas de compósito.",
+    "how_measured": "Ensaio de cisalhamento por punção, duplo cisalhamento ou torção; em compósitos, viga curta para o cisalhamento interlaminar.",
+    "reference": "ASTM B769 (cisalhamento de ligas de alumínio); ASTM D2344 (cisalhamento interlaminar em viga curta)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "modulo_cisalhamento",
+    "summary": "Rigidez do material sob cisalhamento: a razão entre tensão e distorção angular no regime elástico. Governa torção de eixos e molas e a deflexão por cortante.",
+    "definition": "O módulo de cisalhamento, G, mede quanto o material resiste a ser distorcido sem mudar de volume. Num sólido isotrópico ele se liga ao módulo de Young e ao coeficiente de Poisson por G igual a E dividido por duas vezes um mais ni, e é assim que esta base o calcula para metais, cerâmicas, polímeros e espumas. Em compósitos de fibra e madeiras, que são anisotrópicos, o módulo de cisalhamento no plano é dominado pela matriz ou pela lignina e fica muito abaixo do que a fórmula daria; nesses casos o valor é o típico da família. Elastômeros têm G muito baixo e quase incompressibilidade.",
+    "how_measured": "Ensaio de torção em barra ou tubo, ensaio de cisalhamento no plano em compósitos, ou métodos dinâmicos de ressonância.",
+    "reference": "ASTM E143 (módulo de cisalhamento por torção); ASTM D5379 (cisalhamento no plano de compósitos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "modulo_volumetrico",
+    "summary": "Resistência do material à compressão de volume sob pressão uniforme. Diz quanto o volume diminui quando a pressão em todas as direções aumenta.",
+    "definition": "O módulo volumétrico, K, é a razão entre a pressão hidrostática e a variação relativa de volume. Num sólido isotrópico ele se liga ao módulo de Young e ao Poisson por K igual a E dividido por três vezes um menos duas vezes ni. Elastômeros são o caso extremo: muito macios em cisalhamento e quase incompressíveis, com K da mesma ordem dos líquidos — por isso vedam e amortecem confinados. Em materiais fortemente anisotrópicos, como laminados e madeiras, um único valor isotrópico não descreve o material, e a base registra a ausência por escrito. Entra no projeto de vedações, de peças sob pressão e na propagação de ondas.",
+    "how_measured": "Calculado de E e do coeficiente de Poisson, ou medido por compressão hidrostática ou pela velocidade de propagação de ondas longitudinais e transversais.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "modulo_flexao",
+    "summary": "Rigidez medida num ensaio de flexão: a inclinação inicial da curva tensão-deformação da fibra mais solicitada. É o módulo que catálogos de plásticos e compósitos costumam publicar.",
+    "definition": "O módulo de flexão é o módulo elástico obtido de uma barra fletida. Em materiais isotrópicos e homogêneos ele coincide com o módulo de Young; em plásticos difere um pouco por viscoelasticidade e pela distribuição de tensão, e em compósitos laminados depende da sequência de camadas, porque as externas pesam mais. Em seleção, é o número que se usa para dimensionar a rigidez de painéis, carcaças e vigas de plástico e compósito. Não se aplica a elastômeros e materiais flexíveis em lâmina.",
+    "how_measured": "Ensaio de flexão em três ou quatro pontos, com a inclinação do trecho linear inicial convertida em módulo pela teoria de vigas.",
+    "reference": "ISO 178 (plásticos); ISO 14125 (compósitos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_impacto",
+    "summary": "Energia absorvida por um corpo de prova entalhado rompido por um pêndulo, por unidade de área da seção. Separa materiais que rompem frágeis sob golpe dos que absorvem o choque.",
+    "definition": "A resistência ao impacto Charpy mede a energia que o pêndulo perde ao romper uma barra com entalhe padronizado, dividida pela área resistente. É um ensaio comparativo, sensível à geometria do entalhe, à espessura e sobretudo à temperatura: aços ferríticos têm uma transição dúctil-frágil abaixo da qual a energia cai bruscamente, o que não acontece em aços austeníticos e ligas de alumínio. Em plásticos, separa os quebradiços dos tenacificados com borracha. Não substitui a tenacidade à fratura no projeto, mas é o controle de qualidade mais usado. Não se aplica a elastômeros, espumas e materiais de construção, ensaiados de outra forma.",
+    "how_measured": "Ensaio de pêndulo Charpy em barra entalhada apoiada nas extremidades, com a energia absorvida dividida pela área sob o entalhe.",
+    "reference": "ISO 148-1 (metais); ISO 179-1 (plásticos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "coef_perda_mecanica",
+    "summary": "Fração da energia de vibração que o material dissipa em calor a cada ciclo. Alto em elastômeros e ferros fundidos cinzentos, baixíssimo em vidros e cerâmicas.",
+    "definition": "O coeficiente de perda, eta, mede o amortecimento interno: a razão entre a energia dissipada por ciclo e a energia elástica armazenada, dividida por dois pi. Materiais com mecanismos de dissipação — movimento de cadeias em polímeros e elastômeros, atrito nas lamelas de grafita do ferro fundido cinzento, deslizamento em interfaces de compósitos — amortecem vibração e ruído; materiais muito rígidos e perfeitos, como vidros e cerâmicas técnicas, soam como sino. Em seleção, entra em peças que devem calar vibração (bases de máquina, suportes) ou, ao contrário, ressoar (instrumentos, ressonadores).",
+    "how_measured": "Ensaio dinâmico: decaimento livre das oscilações, largura de banda da ressonância ou análise dinâmico-mecânica, que mede a tangente do ângulo de perda.",
+    "reference": "ASTM E756 (propriedades de amortecimento de materiais)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "dureza_shore_a",
+    "summary": "Dureza de materiais macios — elastômeros e plásticos flexíveis — medida pela penetração de um indentador de ponta truncada sob mola, numa escala adimensional de zero a cem.",
+    "definition": "A dureza Shore A indica a resistência à penetração de um durômetro cuja ponta é um tronco de cone pressionado por mola. Quanto mais a ponta penetra, menor a leitura. É a escala usual para borrachas, elastômeros termoplásticos e PVC flexível, e se correlaciona de forma aproximada com o módulo do elastômero. Perto do topo da escala ela perde resolução, e a leitura passa a ser feita na escala Shore D. Não se aplica a plásticos rígidos, metais, cerâmicas e compósitos, que ficam fora da escala.",
+    "how_measured": "Durômetro tipo A pressionado contra uma amostra de espessura mínima, com leitura instantânea ou após tempo especificado.",
+    "reference": "ISO 48-4 (dureza por durômetro); ASTM D2240",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "dureza_shore_d",
+    "summary": "Dureza de plásticos rígidos e elastômeros duros pela penetração de um indentador pontiagudo sob mola, numa escala adimensional de zero a cem.",
+    "definition": "A dureza Shore D usa uma ponta cônica aguda e uma mola mais forte que a da escala A, e por isso mede materiais mais duros: termoplásticos, termofixos e elastômeros termoplásticos de alta dureza. As escalas A e D se sobrepõem na faixa dos elastômeros duros, e a conversão entre elas é apenas aproximada. Não se aplica a metais, cerâmicas e compósitos estruturais, que se medem por Vickers ou Brinell, nem a borrachas macias, abaixo da faixa útil da escala.",
+    "how_measured": "Durômetro tipo D pressionado contra uma amostra de espessura mínima, com leitura instantânea ou após tempo especificado.",
+    "reference": "ISO 868 (plásticos e ebonite); ASTM D2240",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "temp_fusao",
+    "summary": "Temperatura em que a fase cristalina do material passa a líquido. Para ligas e polímeros semicristalinos é uma faixa; materiais amorfos e termofixos não têm ponto de fusão.",
+    "definition": "A temperatura de fusão marca o fim da coesão cristalina. Metais puros fundem numa temperatura única; ligas fundem numa faixa entre solidus e liquidus, cujo meio esta base registra. Polímeros semicristalinos fundem a fase cristalina e conservam a forma até perto dela se reforçados; polímeros amorfos não têm fusão, só amolecem acima da transição vítrea, e termofixos e elastômeros vulcanizados se decompõem antes de fundir. Cerâmicas têm pontos de fusão altos, às vezes substituídos por decomposição ou sublimação. Em seleção ela limita processos de fundição e solda e dá uma escala para a temperatura de serviço.",
+    "how_measured": "Calorimetria diferencial de varredura, análise térmica diferencial ou observação direta da fusão em forno com termopar calibrado.",
+    "reference": "ISO 11357-3 (fusão e cristalização de plásticos por calorimetria)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "temp_transicao_vitrea",
+    "summary": "Temperatura em que um material amorfo, ou a fase amorfa de um polímero, passa de vítreo e rígido a borrachoso. Abaixo dela o polímero é duro; acima, amolece.",
+    "definition": "A transição vítrea, Tg, é a faixa de temperatura em que segmentos das cadeias de um polímero, ou a rede de um vidro inorgânico, ganham mobilidade. O módulo cai de forma acentuada ao atravessá-la. Polímeros amorfos rígidos trabalham abaixo da Tg; elastômeros trabalham acima, e por isso sua Tg é muito baixa e marca o limite de uso no frio. Em termofixos e compósitos de matriz polimérica ela limita a temperatura de serviço; em vidros, separa o sólido do líquido super-resfriado. Metais e cerâmicas cristalinas não têm transição vítrea, e a base registra a ausência.",
+    "how_measured": "Calorimetria diferencial de varredura (degrau no calor específico) ou análise dinâmico-mecânica (pico da tangente de perda); em vidros, dilatometria.",
+    "reference": "ISO 11357-2 (transição vítrea por calorimetria); ASTM E1640 (por análise dinâmico-mecânica)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "temp_min_servico",
+    "summary": "Temperatura mais baixa em que o material ainda pode ser usado sem fragilização inaceitável. Importa em criogenia, refrigeração, aplicações externas e aeronáutica.",
+    "definition": "A temperatura mínima de serviço indica onde o material deixa de ser confiável no frio. Aços ferríticos fragilizam abaixo da transição dúctil-frágil, ao passo que metais de estrutura cúbica de faces centradas, como alumínio, cobre, níquel e aços austeníticos, mantêm tenacidade até temperaturas criogênicas. Polímeros ficam frágeis quando se aproximam de uma transição secundária e elastômeros endurecem perto da transição vítrea. Cerâmicas e vidros não mudam de comportamento no frio. É um valor de uso, não uma propriedade termodinâmica, e depende da tenacidade exigida pela aplicação.",
+    "how_measured": "Ensaios de impacto ou tração em temperaturas decrescentes, ou de fragilidade a baixa temperatura em polímeros e borrachas.",
+    "reference": "ISO 812 (fragilidade a baixa temperatura de borrachas); ISO 148-1 (impacto em temperaturas variadas)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "temp_deflexao_termica",
+    "summary": "Temperatura em que uma barra de plástico sob carga de flexão padronizada atinge uma deflexão especificada ao ser aquecida. Indica até onde o plástico rígido sustenta carga.",
+    "definition": "A temperatura de deflexão térmica, HDT, é um ensaio comparativo de plásticos rígidos e compósitos de matriz polimérica: a barra, carregada com tensão baixa e aquecida em banho a taxa constante, é monitorada até deformar o valor convencionado. Em polímeros amorfos ela fica pouco abaixo da transição vítrea; em semicristalinos reforçados com fibra, pode chegar perto da fusão. Não é temperatura de serviço contínuo, que depende do tempo e da carga reais, mas ordena materiais de forma útil. Não se aplica a metais, cerâmicas e elastômeros.",
+    "how_measured": "Barra em flexão de três pontos sob tensão padronizada, aquecida em fluido a taxa constante até a deflexão especificada.",
+    "reference": "ISO 75-2 (método B, tensão baixa); ASTM D648",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "difusividade_termica",
+    "summary": "Rapidez com que uma variação de temperatura se espalha pelo material. É a condutividade dividida pela capacidade térmica por volume, e governa o aquecimento e o resfriamento transitórios.",
+    "definition": "A difusividade térmica, a, é igual à condutividade térmica dividida pelo produto da densidade e do calor específico, e é assim que esta base a calcula. Ela diz quanto tempo uma peça leva para equilibrar a temperatura: metais com alta condutividade a espalham rápido, polímeros e espumas devagar. Em seleção, entra em moldes e trocadores (alta difusividade), em isolamento de curta duração e em proteção contra choque térmico, e na escala de tempo do aquecimento por solda ou por laser.",
+    "how_measured": "Calculada de condutividade, densidade e calor específico, ou medida diretamente pelo método flash a laser.",
+    "reference": "ASTM E1461 (difusividade térmica pelo método flash)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia_choque_termico",
+    "summary": "Maior variação brusca de temperatura que o material suporta sem trincar. É crítica em cerâmicas, vidros e refratários, que rompem por tensão térmica.",
+    "definition": "A resistência ao choque térmico estima a diferença de temperatura que, aplicada de repente à superfície, gera uma tensão térmica igual à resistência do material. Pelo critério clássico ela é a resistência vezes um menos o Poisson, dividida pelo produto do módulo e da dilatação térmica, e é assim que esta base a calcula. Baixa dilatação e alta resistência dão materiais que suportam choque, como a sílica fundida e as vitrocerâmicas; vidro comum e cerâmicas densas de alta dilatação trincam com variações menores. O critério supõe ruptura frágil de material isotrópico, e por isso a base não o aplica a elastômeros, espumas, laminados e madeiras.",
+    "how_measured": "Calculada das propriedades cadastradas, ou medida por têmpera em água de corpos de prova aquecidos a temperaturas crescentes, observando a queda da resistência residual.",
+    "reference": "ASTM C1525 (resistência ao choque térmico de cerâmicas por têmpera em água)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistividade_eletrica",
+    "summary": "Oposição do material à passagem de corrente elétrica, por unidade de comprimento e de seção. Vai de metais condutores a polímeros e cerâmicas isolantes, num intervalo de muitas ordens de grandeza.",
+    "definition": "A resistividade elétrica é o inverso da condutividade elétrica e é intrínseca ao material, independente da geometria da peça. Metais puros têm os menores valores; elementos de liga e encruamento os aumentam, razão pela qual ligas de níquel-cromo servem para resistências de aquecimento. Semicondutores ficam no meio, e polímeros, vidros e cerâmicas óxidas no extremo isolante, onde a umidade e as impurezas superficiais dominam a medida. O intervalo é tão grande que só se lê em escala logarítmica. Em seleção, separa condutores de isolantes e escolhe ligas para fios, contatos e resistores.",
+    "how_measured": "Método de quatro pontas em condutores; em isolantes, eletrodo de guarda com tensão aplicada e corrente medida.",
+    "reference": "ASTM B193 (resistividade de condutores); IEC 62631-3-1 (resistividade volumétrica de isolantes)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "condutividade_eletrica",
+    "summary": "Facilidade com que o material conduz corrente elétrica. É o inverso exato da resistividade, cadastrada junto para que a seleção possa pedir o máximo de uma ou o mínimo da outra.",
+    "definition": "A condutividade elétrica é a razão entre a densidade de corrente e o campo elétrico. Nesta base ela é sempre o inverso da resistividade cadastrada do mesmo material, e as duas nunca divergem. Em metais ela decresce com a temperatura e com a adição de elementos de liga; em semicondutores e isolantes iônicos cresce com a temperatura. Na prática industrial do cobre e do alumínio ela também se expressa em porcentagem do cobre recozido padrão. Entra em barramentos, condutores, dissipação eletrostática e blindagem.",
+    "how_measured": "Medida como a resistividade e invertida, ou por correntes parasitas em metais não magnéticos.",
+    "reference": "ASTM E1004 (condutividade por correntes parasitas)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "constante_dieletrica",
+    "summary": "Quanto o material concentra campo elétrico em relação ao vácuo. Governa capacitores, isolamento de cabos e a velocidade de sinais em placas de circuito e radomes.",
+    "definition": "A constante dielétrica, ou permissividade relativa, é a razão entre a capacitância de um capacitor com o material entre as placas e a do mesmo capacitor no vácuo. Polímeros apolares têm valores baixos e estáveis, bons para alta frequência; polímeros polares, vidros e cerâmicas têm valores intermediários; cerâmicas ferroelétricas, como o titanato de bário e o PZT, chegam a valores muito altos e servem a capacitores compactos. Varia com a frequência, a temperatura e a umidade. Não se aplica a materiais condutores, e em espumas e materiais porosos cai em direção à do ar, conforme a fração de vazios.",
+    "how_measured": "Medida de capacitância de amostra entre eletrodos em frequência especificada, comparada com a do vácuo ou do ar.",
+    "reference": "IEC 62631-2-1 (permissividade e fator de dissipação de isolantes); ASTM D150",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "rigidez_dieletrica",
+    "summary": "Campo elétrico máximo que o material isolante suporta antes da ruptura dielétrica, quando passa a conduzir de forma destrutiva.",
+    "definition": "A rigidez dielétrica é a tensão de ruptura dividida pela espessura da amostra. Depende muito da espessura (amostras finas dão valores maiores), da forma dos eletrodos, da taxa de subida da tensão, da temperatura e de defeitos internos como poros e inclusões, e por isso só se comparam valores do mesmo ensaio. Filmes poliméricos e cerâmicas densas são os melhores isolantes; materiais porosos e úmidos, os piores. Em seleção, dimensiona a espessura de isolamento de cabos, transformadores, buchas e substratos. Não se aplica a materiais condutores.",
+    "how_measured": "Tensão crescente aplicada entre eletrodos sobre amostra de espessura conhecida até a perfuração.",
+    "reference": "IEC 60243-1 (rigidez dielétrica de isolantes sólidos); ASTM D149",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "fator_perda_dieletrica",
+    "summary": "Fração da energia do campo elétrico alternado que o isolante converte em calor a cada ciclo, expressa como tangente do ângulo de perda.",
+    "definition": "O fator de perda dielétrica, tangente de delta, mede quanto um isolante se aquece e atenua sinais sob campo alternado. Polímeros apolares e cerâmicas puras têm perdas muito baixas e servem a circuitos de alta frequência, radomes e micro-ondas; polímeros polares e materiais úmidos têm perdas altas, que se aproveitam na soldagem por alta frequência e no aquecimento dielétrico. Varia com a frequência e a temperatura. Não se aplica a materiais condutores.",
+    "how_measured": "Medida com ponte de capacitância ou analisador de impedância, na mesma montagem da permissividade.",
+    "reference": "IEC 62631-2-1; ASTM D150",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "indice_refracao",
+    "summary": "Razão entre a velocidade da luz no vácuo e no material. Determina o desvio da luz em lentes, prismas e fibras e o brilho das superfícies.",
+    "definition": "O índice de refração diz quanto a luz é desacelerada e desviada ao entrar no material. Vidros comuns e a maioria dos polímeros transparentes ficam numa faixa estreita; vidros com chumbo e polímeros aromáticos ficam acima, fluoropolímeros abaixo; diamante e cerâmicas como zircônia e dióxido de titânio estão entre os maiores. Varia com o comprimento de onda (dispersão), e os valores de catálogo se referem à luz amarela do sódio. Só tem sentido para materiais homogêneos não condutores; em metais, compósitos e materiais porosos ou carregados a base registra a ausência.",
+    "how_measured": "Refratômetro de Abbe ou goniômetro de prisma com luz monocromática padronizada.",
+    "reference": "ISO 489 (determinação do índice de refração de plásticos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "absorcao_agua",
+    "summary": "Ganho de massa do material imerso em água por um dia, em porcentagem da massa seca. Indica sensibilidade à umidade, inchamento e perda de propriedades.",
+    "definition": "A absorção de água mede quanta água o material incorpora quando imerso. Polímeros polares como poliamidas e acetatos de celulose absorvem bastante e mudam de dimensão e de módulo; poliolefinas e fluoropolímeros quase nada. Em materiais porosos — tijolos, concretos, madeiras, espumas — a água entra pelos poros, e o valor em massa cresce muito quando a densidade é baixa. Metais, vidros e cerâmicas densas não absorvem água, e para eles o valor registrado é zero de fato, não ausência de dado. Em seleção, entra em peças de precisão, em aplicações externas e em isolantes elétricos.",
+    "how_measured": "Pesagem de corpos de prova secos, imersão em água à temperatura ambiente por tempo padronizado e nova pesagem.",
+    "reference": "ISO 62 (absorção de água de plásticos); NBR 15270 (blocos cerâmicos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "indice_oxigenio_limite",
+    "summary": "Menor concentração de oxigênio numa mistura com nitrogênio que ainda sustenta a chama do material. Quanto maior, mais difícil o material queimar no ar.",
+    "definition": "O índice de oxigênio limite, LOI, ordena materiais combustíveis pela facilidade de queima. O ar tem cerca de um quinto de oxigênio: materiais com índice abaixo disso queimam sozinhos depois de acesos; acima, tendem a se apagar ao retirar a chama. Poliolefinas e poliestireno ficam baixos; PVC, policarbonato, polímeros aromáticos de alto desempenho e fluoropolímeros, altos. Nesta base a inflamabilidade ordinal de cada material segue o seu índice. Não se aplica a metais, cerâmicas, vidros e concretos, que não são combustíveis.",
+    "how_measured": "Corpo de prova vertical aceso pelo topo dentro de uma chaminé com mistura controlada de oxigênio e nitrogênio, reduzindo o oxigênio até a chama não se sustentar.",
+    "reference": "ISO 4589-2 (comportamento na queima pelo índice de oxigênio); ASTM D2863",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "custo_volume",
+    "summary": "Preço aproximado do material bruto por litro, na mesma moeda do custo por massa. Compara materiais quando o que se compra é volume, como em carcaças e enchimentos.",
+    "definition": "O custo por volume é o custo por massa multiplicado pela densidade, e é assim que esta base o calcula. Ele muda a ordem dos materiais em relação ao custo por massa: um polímero caro por quilograma pode ser barato por litro por ser leve, e um metal barato por quilograma pode pesar no orçamento por ser denso. Herda do custo por massa a volatilidade de mercado, a dependência de forma e de lote e a ausência do custo de fabricação, e deve ser lido como ordem de grandeza.",
+    "how_measured": "Calculado do custo por massa e da densidade cadastrados; não é medido em laboratório.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "pegada_hidrica",
+    "summary": "Volume de água doce consumido para produzir uma unidade de massa do material a partir de matéria-prima virgem, até o produto bruto.",
+    "definition": "A pegada hídrica da produção primária soma a água retirada e não devolvida nas etapas de extração, beneficiamento e transformação. Materiais de origem agrícola, como borracha natural, couro e fibras vegetais, e metais preciosos de minério pobre ficam no topo; vidros, cerâmicas de construção e pedras, embaixo. Como toda grandeza de ciclo de vida, depende das fronteiras do inventário e da região, e deve ser lida como ordem de grandeza. Em seleção ecológica, complementa a energia incorporada e a pegada de carbono quando a água é o recurso escasso.",
+    "how_measured": "Estimada por inventário de ciclo de vida, somando os volumes de água consumidos em cada etapa da produção primária.",
+    "reference": "ISO 14046 (pegada hídrica)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "fracao_reciclada",
+    "summary": "Parcela do material ofertado hoje no mercado que vem de reciclagem. Indica quanto a cadeia já fecha o ciclo e quanto depende de matéria-prima virgem.",
+    "definition": "A fração reciclada na oferta atual mede o conteúdo reciclado médio do material disponível para compra. Metais como aço, alumínio, cobre e chumbo têm cadeias de reciclagem maduras e frações altas; vidro de embalagem e papel também; termoplásticos ficam baixos, com exceção de alguns como o PET de garrafa; termofixos, elastômeros vulcanizados e compósitos quase não são reciclados. Não é o mesmo que a reciclabilidade, que diz se o material pode ser reciclado, nem que o conteúdo reciclado de um produto específico.",
+    "how_measured": "Estimada por estatísticas de produção primária e secundária do setor; não é medida em laboratório.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "energia_processamento",
+    "summary": "Energia gasta para dar ao material a forma do semiacabado ou da peça pelo processo primário típico da família — fundir, laminar, moldar, sinterizar, curar.",
+    "definition": "A energia de processamento primário estima a energia por quilograma consumida no processo que transforma o material bruto em forma útil: fundição e laminação em metais, injeção e extrusão em polímeros, queima e sinterização em cerâmicas, laminação e cura em compósitos, serragem e secagem em madeiras. Soma-se à energia incorporada da produção primária no inventário de ciclo de vida da fase de fabricação. Depende do processo efetivamente usado e da eficiência da planta, e deve ser lida como ordem de grandeza.",
+    "how_measured": "Estimada por inventário de ciclo de vida do processo típico, dividindo a energia consumida pela massa processada.",
+    "reference": "ISO 14040 e ISO 14044 (avaliação do ciclo de vida)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "co2_processamento",
+    "summary": "Massa de dióxido de carbono emitida por quilograma de material no processamento primário. Acompanha a energia de processamento pela matriz energética que a supre.",
+    "definition": "A pegada de CO₂ do processamento primário converte a energia de processamento em emissões, pelo fator de emissão da eletricidade e dos combustíveis usados. Nesta base ela é sempre a energia de processamento vezes um fator de emissão típico, e as duas nunca divergem. Soma-se à pegada da produção primária na fase de fabricação de uma análise ecológica. Como a energia, depende do processo e da matriz energética local.",
+    "how_measured": "Estimada por inventário de ciclo de vida do processo típico, com fatores de emissão por fonte de energia.",
+    "reference": "ISO 14067 (pegada de carbono de produtos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-agua-doce",
+    "summary": "Nível de resistência do material à água doce, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família à água doce — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Metais ferrosos comuns enferrujam, poliamidas e madeiras absorvem água e incham, e o vidro e a maioria das cerâmicas não se alteram. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-agua-salgada",
+    "summary": "Nível de resistência do material à água salgada, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família à água salgada — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Os cloretos aceleram a corrosão por pites e frestas em aços inoxidáveis comuns e ligas de alumínio de alta resistência; ligas de cobre-níquel, titânio e polímeros resistem bem. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-acidos-fracos",
+    "summary": "Nível de resistência do material a ácidos fracos, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família a ácidos fracos — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Ácidos diluídos atacam metais ativos, como zinco e magnésio, e materiais calcários, como mármore e concreto. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-acidos-fortes",
+    "summary": "Nível de resistência do material a ácidos fortes, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família a ácidos fortes — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Ácidos concentrados atacam a maioria dos metais comuns, dos materiais cimentícios e dos polímeros com grupos hidrolisáveis; fluoropolímeros, vidros e cerâmicas óxidas resistem. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-alcalis-fracos",
+    "summary": "Nível de resistência do material a álcalis fracos, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família a álcalis fracos — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Soluções alcalinas diluídas atacam alumínio, zinco e alguns poliésteres; aços e materiais cimentícios resistem. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-alcalis-fortes",
+    "summary": "Nível de resistência do material a álcalis fortes, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família a álcalis fortes — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Álcalis concentrados dissolvem alumínio e zinco, hidrolisam policarbonato, poliésteres e PLA e atacam o vidro e as fibras de vidro. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-solventes-organicos",
+    "summary": "Nível de resistência do material a solventes orgânicos, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família a solventes orgânicos — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Solventes e óleos dissolvem ou incham polímeros amorfos como poliestireno e policarbonato e borrachas apolares como a natural; metais, cerâmicas e fluoropolímeros não são afetados. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-radiacao-uv",
+    "summary": "Nível de resistência do material à radiação ultravioleta, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família à radiação ultravioleta — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. A luz solar degrada poliolefinas, poliamidas e borrachas insaturadas sem estabilizante, que amarelam, perdem tenacidade e fissuram; PMMA, fluoropolímeros e EPDM resistem. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "resistencia-oxidacao-500c",
+    "summary": "Nível de resistência do material à oxidação em ar quente, na faixa de quinhentos graus Celsius, numa escala ordenada de cinco níveis, de muito pobre a excelente.",
+    "definition": "Propriedade ordinal: o material recebe um nível numa escala ordenada, não um número. O nível resume o comportamento usual da família à oxidação em ar quente, na faixa de quinhentos graus Celsius — perda de massa, corrosão, inchamento, perda de propriedades ou fissuração — numa exposição prolongada à temperatura ambiente. Polímeros e madeiras queimam ou se decompõem; grafite e metais refratários como molibdênio oxidam; aços inoxidáveis, superligas e cerâmicas óxidas resistem. A seleção filtra por 'nível mínimo aceito', e material sem nível registrado nunca passa no filtro. É uma classificação qualitativa para triagem: não substitui ensaio de exposição no meio e na condição reais.",
+    "how_measured": "Classificação a partir de ensaios de imersão ou exposição, com avaliação de massa, dimensão, aparência e propriedades mecânicas antes e depois.",
+    "reference": null,
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "inflamabilidade",
+    "summary": "Comportamento do material na chama, numa escala ordenada do pior ao melhor: altamente inflamável, inflamável, lentamente inflamável, autoextinguível e não inflamável.",
+    "definition": "Propriedade ordinal que resume como o material reage ao fogo. Metais (exceto o magnésio, que queima em pó ou fundido), cerâmicas, vidros e concretos não são inflamáveis. Para materiais orgânicos, nesta base o nível segue o índice de oxigênio limite do mesmo material: quanto mais oxigênio a chama exige, melhor o nível, e os dois nunca divergem. A seleção filtra por nível mínimo aceito. É uma classificação de triagem; o comportamento num produto depende da espessura, da forma e de aditivos, e se qualifica por ensaios normativos do produto.",
+    "how_measured": "Classificação a partir do índice de oxigênio limite e de ensaios de queima em corpo de prova, como os de propagação vertical e horizontal da chama.",
+    "reference": "UL 94 (inflamabilidade de plásticos); ISO 4589-2",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "transparencia",
+    "summary": "Quanto da luz visível atravessa uma peça do material em espessura usual, numa escala ordenada: opaco, translúcido, transparente e de qualidade ótica.",
+    "definition": "Propriedade ordinal da aparência ótica. Materiais de qualidade ótica, como PMMA, sílica fundida e vidros óticos, servem a lentes e janelas; transparentes deixam ver através mas com defeitos ou cor; translúcidos espalham a luz, como polímeros semicristalinos e silicones; opacos bloqueiam, como metais, a maioria das cerâmicas e os compósitos. A transparência depende da espessura, de cargas e pigmentos e do acabamento superficial.",
+    "how_measured": "Classificação a partir da transmitância luminosa total e da turbidez medidas em espectrofotômetro com esfera integradora.",
+    "reference": "ASTM D1003 (turbidez e transmitância luminosa de plásticos transparentes)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "biocompatibilidade",
+    "summary": "Uso em contato com o corpo que a família do material costuma admitir, numa escala ordenada: não indicado, contato superficial, dispositivo de curta duração e implantável.",
+    "definition": "Propriedade ordinal que indica o nível de contato biológico em que materiais da família já são usados. Titânio, ligas de cobalto-cromo para implante, alumina e zircônia de alta pureza, PEEK, polietileno de ultra-alto peso molecular e hidroxiapatita aparecem como implantáveis; aços inoxidáveis cirúrgicos, polissulfonas e silicones em dispositivos de curta duração. Materiais com chumbo, berílio ou níquel livre ficam como não indicados. É um nível de exemplo para triagem, não uma qualificação regulatória: todo dispositivo médico exige avaliação biológica própria do produto acabado.",
+    "how_measured": "Avaliação biológica do dispositivo por uma bateria de ensaios de citotoxicidade, sensibilização, irritação e implantação, conforme a natureza e a duração do contato.",
+    "reference": "ISO 10993-1 (avaliação biológica de dispositivos médicos)",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
   }
 ]
