@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ptBR } from "@/lib/i18n";
+import { expressionText } from "@/lib/i18n-expression";
 import type { Comparison, ComparisonRequest } from "@/lib/types";
 
 vi.mock("react-plotly.js", () => ({ default: () => null }));
@@ -53,6 +54,24 @@ vi.mock("@/lib/api", () => ({
     }
   },
   evaluateIndex: evaluate,
+  // D-191: the calculator's palette and the friendly reading of an index.
+  getExpressionPalette: () =>
+    Promise.resolve({ universe: "material", variables: [], functions: [], constants: [] }),
+  describeExpression: (expression: string) =>
+    Promise.resolve({
+      expression,
+      valid: true,
+      normalized: expression,
+      latex: expression,
+      latex_symbols: expression,
+      label: expression.replace("modulo_young", "Módulo de Young").replace("densidade", "Densidade"),
+      dimension: "dimensionless",
+      unit: "dimensionless",
+      is_multiplicative: true,
+      variables: [],
+      errors: [],
+      tree: null,
+    }),
   getComparison: (request: ComparisonRequest) => {
     requests.push(request);
     return Promise.resolve(result);
@@ -178,7 +197,8 @@ describe("comparador: limiar e computadas (D-128)", () => {
     const user = userEvent.setup();
     mount();
 
-    await user.type(await screen.findByLabelText(ptBR.compare.computed.custom.label), "modulo_young / densidade");
+    await user.click(await screen.findByRole("button", { name: expressionText.modeType }));
+    await user.type(screen.getByLabelText(ptBR.compare.computed.custom.label), "modulo_young / densidade");
     await user.click(screen.getByRole("button", { name: ptBR.compare.computed.custom.add }));
 
     await waitFor(() =>
@@ -187,7 +207,7 @@ describe("comparador: limiar e computadas (D-128)", () => {
     expect(evaluate).toHaveBeenCalledWith("modulo_young / densidade", "maximize");
     expect(
       screen.getByRole("button", {
-        name: `${ptBR.compare.computed.custom.remove}: modulo_young / densidade`,
+        name: `${ptBR.compare.computed.custom.remove}: Módulo de Young / Densidade`,
       }),
     ).toBeInTheDocument();
   });
@@ -200,7 +220,8 @@ describe("comparador: limiar e computadas (D-128)", () => {
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(0));
     const before = requests.length;
-    await user.type(await screen.findByLabelText(ptBR.compare.computed.custom.label), "xyz / densidade");
+    await user.click(await screen.findByRole("button", { name: expressionText.modeType }));
+    await user.type(screen.getByLabelText(ptBR.compare.computed.custom.label), "xyz / densidade");
     await user.click(screen.getByRole("button", { name: ptBR.compare.computed.custom.add }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
@@ -214,6 +235,7 @@ describe("comparador: limiar e computadas (D-128)", () => {
     mount();
 
     await user.click(await screen.findByRole("button", { name: "Rigidez específica" }));
+    await user.click(screen.getByRole("button", { name: expressionText.modeType }));
     await user.type(
       screen.getByLabelText(ptBR.compare.computed.custom.label),
       "modulo_young/densidade",

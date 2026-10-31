@@ -540,7 +540,6 @@ function ComparePageContent() {
                       !computedSlugs.includes(index.slug) && requestedTotal >= MAX_COMPUTED
                     }
                     onClick={() => toggleComputed(index.slug)}
-                    title={index.expression}
                   >
                     {index.name}
                   </ToggleChip>
@@ -565,8 +564,6 @@ function ComparePageContent() {
               expressions={shownExpressions}
               takenKeys={takenKeys}
               total={requestedTotal}
-              slugs={properties.data?.map((p) => p.slug)}
-              slugsLoading={properties.isLoading}
               onAdd={(expression) => {
                 // The server has just accepted it: seed the verdict so the page
                 // does not ask the same question again.

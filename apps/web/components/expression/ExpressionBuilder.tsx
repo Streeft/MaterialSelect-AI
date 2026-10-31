@@ -88,6 +88,10 @@ export interface ExpressionBuilderProps {
   universe?: ExpressionUniverse;
   /** Visible title of the calculator (the field's label). */
   label?: string;
+  /** Label of the text field in "Digitar" mode. */
+  typedLabel?: string;
+  /** Start in "Digitar" (a screen whose reader is known to prefer the syntax). */
+  defaultMode?: "build" | "type";
   /** A message from the screen that owns the field (e.g. the server refused it). */
   error?: string;
   className?: string;
@@ -110,6 +114,8 @@ export function ExpressionBuilder({
   onChange,
   universe = "material",
   label = t.title,
+  typedLabel = t.typeLabel,
+  defaultMode = "build",
   error,
   className,
 }: ExpressionBuilderProps) {
@@ -133,7 +139,7 @@ export function ExpressionBuilder({
     return map;
   }, [palette.data]);
 
-  const [mode, setMode] = useState<"build" | "type">("build");
+  const [mode, setMode] = useState<"build" | "type">(defaultMode);
   const [notation, setNotation] = useState<"names" | "symbols">("names");
   const vocabularyReady = palette.data !== undefined;
   const [tape, setTape] = useState<Tape>(() => tapeFromText(value, vocabulary));
@@ -432,7 +438,13 @@ export function ExpressionBuilder({
           </p>
         </div>
       ) : (
-        <TypedField value={value} onChange={onChange} description={description} stale={stale} />
+        <TypedField
+          label={typedLabel}
+          value={value}
+          onChange={onChange}
+          description={description}
+          stale={stale}
+        />
       )}
 
       {error && (
@@ -675,7 +687,7 @@ function TapePiece({
         }}
         onDragOver={onDragOverPiece}
         onDrop={onDropPiece}
-        aria-label={piece.spoken}
+        aria-label={t.tokenPiece(piece.spoken, index + 1)}
         title={t.tokenRemoveHint}
         data-flagged={flagged ? "true" : undefined}
         className={cn(
@@ -700,11 +712,13 @@ function TapePiece({
 // --- typed mode --------------------------------------------------------------
 
 function TypedField({
+  label,
   value,
   onChange,
   description,
   stale,
 }: {
+  label: string;
   value: string;
   onChange: (v: string) => void;
   description: ExpressionDescription | undefined;
@@ -715,7 +729,7 @@ function TypedField({
   return (
     <div className="flex flex-col gap-1">
       <Input
-        label={t.typeLabel}
+        label={label}
         hint={t.typeHint}
         value={value}
         onChange={(e) => onChange(e.target.value)}

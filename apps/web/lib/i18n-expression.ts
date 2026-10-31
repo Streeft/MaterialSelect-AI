@@ -41,6 +41,8 @@ export const expressionText = {
   tokenFunction: (label: string) => `${label}, função`,
   tokenNumber: (text: string) => `número ${text}`,
   tokenUnknown: (text: string) => `${text}, não reconhecido`,
+  /** Nome de uma peça da fita: distinto da tecla ou do cartão que a criou. */
+  tokenPiece: (spoken: string, position: number) => `${spoken}, peça ${position} da fita`,
   tokenRemoveHint: "Clique para pôr o cursor depois; arraste para mudar de lugar.",
   inserted: (what: string) => `${what} inserido.`,
   removed: "Peça apagada.",

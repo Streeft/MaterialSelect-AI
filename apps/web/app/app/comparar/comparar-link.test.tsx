@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ptBR } from "@/lib/i18n";
+import { expressionText } from "@/lib/i18n-expression";
 import { compareLinkText } from "@/lib/i18n-compare-link";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type { Comparison, ComparisonRequest } from "@/lib/types";
@@ -38,6 +39,24 @@ vi.mock("@/lib/api", () => ({
     }
   },
   evaluateIndex: evaluate,
+  // D-191: the calculator's palette and the friendly reading of an index.
+  getExpressionPalette: () =>
+    Promise.resolve({ universe: "material", variables: [], functions: [], constants: [] }),
+  describeExpression: (expression: string) =>
+    Promise.resolve({
+      expression,
+      valid: true,
+      normalized: expression,
+      latex: expression,
+      latex_symbols: expression,
+      label: expression.replace("modulo_young", "Módulo de Young").replace("densidade", "Densidade"),
+      dimension: "dimensionless",
+      unit: "dimensionless",
+      is_multiplicative: true,
+      variables: [],
+      errors: [],
+      tree: null,
+    }),
   getComparison: (request: ComparisonRequest) => {
     requests.push(request);
     return Promise.resolve(result);
@@ -121,8 +140,8 @@ describe("comparador: o link leva limiar e índices (D-163)", () => {
     // without the index and then again with it.
     expect(requests.every((r) => (r.computed ?? []).length === 1)).toBe(true);
     expect(
-      screen.getByRole("button", {
-        name: `${ptBR.compare.computed.custom.remove}: modulo_young / densidade`,
+      await screen.findByRole("button", {
+        name: `${ptBR.compare.computed.custom.remove}: Módulo de Young / Densidade`,
       }),
     ).toBeInTheDocument();
   });
@@ -173,6 +192,7 @@ describe("comparador: o link leva limiar e índices (D-163)", () => {
     mount();
 
     await user.click(await screen.findByRole("button", { name: "Rigidez específica" }));
+    await user.click(screen.getByRole("button", { name: expressionText.modeType }));
     await user.type(
       screen.getByLabelText(ptBR.compare.computed.custom.label),
       "sqrt(modulo_young) / densidade",
