@@ -194,7 +194,7 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   dito e sai do pedido e do endereço. Resíduo: (b) guardar a comparação com nome,
   para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
   navegador, de propósito).
-- **TM3 — comparação de muitos materiais.** ▃ Ampliar o comparador para dezenas
+- **TM3 — comparação de muitos materiais.** ✔ Figuras sem teto (D-187); a tabela vem em blocos. Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).
 - **TM4 — curvas dependentes de temperatura e taxa.** ✔ Entregue (D-106,

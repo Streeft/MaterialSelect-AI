@@ -264,7 +264,7 @@ slug ou nada.
   de erro/intervalos, rótulos, linha de índice com nível por material e
   exportação. Aceita `?materiais=1,2,3&destaque=1` para receber os candidatos de
   uma seleção.
-- **`/comparar`** — seleção de até 12 materiais e 12 propriedades, alternância
+- **`/comparar`** — seleção de materiais sem teto prático (D-187) e até 20 propriedades, alternância
   entre as cinco visualizações e escolha da normalização. Aceita
   `?materiais=1,2,3`.
 - A tela de **Resultados** da seleção leva para as duas, preservando os

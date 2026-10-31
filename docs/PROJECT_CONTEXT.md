@@ -640,6 +640,7 @@ declarações do atributo, com o escopo indo a 4096.
 
 **Concorrência das cotas em PostgreSQL exercitada na CI** (D-97/D-99): quatro testes multithread contra PostgreSQL 16 (`test_notebook_quota_postgres.py`) validando o `UPDATE ... WHERE counter < limit` sob concorrência real (20 threads simultâneas em disputa na criação a partir do zero e na fronteira do limite, reserva e liberação concorrentes, e reserva com folga), sem estourar limites nem cair em race condition, executados na CI via contêiner de serviço PostgreSQL.
 
+**Sessão 145 (D-187):** Barras, Radar e Paralelas desenham a seleção inteira (sem teto de materiais; API 60 para 5000); frontend 1562 testes (+21), backend +1.
 **Sessão 144 (D-186):** Seleção com o funil de candidatos ao lado (painel de apoio M3) e "Executar seleção ▾"; frontend 1541 testes (+5); sem backend.
 **Sessão 142 (D-184):** catálogo em lista e detalhe com a ficha ao lado e a barra flutuante dos marcados; frontend 1536 testes (+5); sem backend.
 

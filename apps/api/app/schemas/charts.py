@@ -18,11 +18,12 @@ from app.schemas.selection import IndexIn, NormalizationLiteral
 ScaleLiteral = Literal["linear", "log"]
 AxisLiteral = Literal["x", "y"]
 
-# Guard rails. The request ceiling is what the server will compute (TM3, D-113:
-# dozens of records, side by side in the table); how many series a *figure* can
-# carry legibly is the screen's concern, and the screen says in writing when it
-# stops drawing one (`COMPARISON_FIGURE_LIMITS` in ComparisonView.tsx).
-MAX_COMPARE_MATERIALS = 60
+# Guard rails. The request ceiling is a safety valve, not a product limit: the
+# comparator and its Barras/Radar/Paralelas figures take the whole selection
+# (D-187), so the cap sits far above any catalogue (about seven times the one
+# in production) and only stops a request that could not be a selection. Unknown
+# ids are already refused (404), so the ceiling never truncates a real list.
+MAX_COMPARE_MATERIALS = 5000
 MAX_COMPARE_PROPERTIES = 20
 MAX_INDEX_LEVELS = 10
 MAX_COMPARE_COMPUTED = 10

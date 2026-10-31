@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 145 — 30/10/26 — Barras, Radar e Paralelas sem limite de materiais (D-187)
+
+**O que mudou.** Saíram os tetos de legibilidade (barras 12, radar 8, paralelas 30) e o teto de 60 do comparador: as três figuras desenham a seleção inteira,
+como o mapa de calor. Acima de 30 materiais mudam de forma (SVG enxuto, linhas finas e translúcidas, rolagem, destaque ao passar o mouse ou focar, legenda
+rolável com "Ocultar/Mostrar todos"). O teto da API passou de 60 para 5000 (válvula de segurança). Links com ids usam faixas (`1-679`). Tabela em blocos de 100 linhas.
+Medido em Chromium headless (200 / 600 materiais x 15 propriedades): barras 174 / 428 ms, radar 191 / 289 ms, paralelas 175 / 350 ms; mapa de calor com
+arrasto do mouse de 367 para 18 ms por movimento (grade memorizada). Testes: frontend 1562 (+21), backend +1; a suíte inteira de `app/tests` não foi rodada aqui.
+
 ## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
 
 **O que mudou.** As etapas de entrada da Seleção ganharam o painel de apoio M3 com o funil de candidatos ao vivo (`LiveFunnel`, mesma prévia do
