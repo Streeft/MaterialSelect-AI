@@ -137,7 +137,7 @@ GROUP_DEFAULTS: dict[str, dict] = {
         "SHA": None,
         "SHD": None,
         "HDT": None,
-        "SHOCK": "su",
+        "SHOCK": None,
         "RIG": (1, 3),
         "N": None,
         "INFL": None,

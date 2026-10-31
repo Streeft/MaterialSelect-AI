@@ -213,7 +213,7 @@ def normalize(text: str | None) -> str:
 #: pattern is searched in "subclass | name", normalized.
 _RULES: tuple[tuple[str, str, str], ...] = (
     # metals
-    ("metais", r"espumas metalicas|espuma de", "metal_foam"),
+    ("metais", r"espuma de", "metal_foam"),
     ("metais", r"9% niquel", "steel_low_alloy"),
     ("metais", r"inoxidavel.*(duplex|2205|2304|2507)", "ss_duplex"),
     ("metais", r"inoxidavel.*(ph |17-4|15-5|precipit)", "ss_ph"),
@@ -229,8 +229,6 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("metais", r"aco carbono fundido", "steel_cast"),
     ("metais", r"baixa liga", "steel_low_alloy"),
     ("metais", r"\baco", "steel_carbon"),
-    ("metais", r"aluminio de fundicao|fundicao sob pressao 380", "al_cast"),
-    ("metais", r"alumin", "al_wrought"),
     ("metais", r"magnesio", "mg"),
     ("metais", r"titanio comercialmente puro", "ti_cp"),
     ("metais", r"titanio", "ti_alloy"),
@@ -240,7 +238,11 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("metais", r"bronze aluminio", "al_bronze"),
     ("metais", r"latao", "brass"),
     ("metais", r"bronze", "bronze"),
+    ("metais", r"niquel-(cobre|cromo|molibdenio)|ferro-niquel|niquel comercialmente", "nickel"),
+    ("metais", r"superliga|inconel", "superalloy"),
     ("metais", r"cobre", "cu_pure"),
+    ("metais", r"aluminio de fundicao|fundicao sob pressao 380", "al_cast"),
+    ("metais", r"alumin", "al_wrought"),
     ("metais", r"zinco|zamak", "zinc"),
     ("metais", r"estanho|chumbo|solda|metal patente", "lead_tin"),
     ("metais", r"superliga|inconel", "superalloy"),
@@ -520,8 +522,8 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("compositos", r"cr3c2", "cermet_cr3c2"),
     ("compositos", r"metal duro|cermet", "cermet_wc"),
     ("compositos", r"oxido/oxido", "cmc_oxide"),
-    ("compositos", r"c/sic .*silicio liquido", "cmc_csic_lsi"),
-    ("compositos", r"c/sic", "cmc_csic"),
+    ("compositos", r"\bc/sic .*silicio liquido", "cmc_csic_lsi"),
+    ("compositos", r"\bc/sic", "cmc_csic"),
     ("compositos", r"infiltracao de fundido", "cmc_sic_mi"),
     ("compositos", r"sic/sic", "cmc_sic"),
     ("compositos", r"boro / aluminio", "mmc_b_al"),
@@ -532,6 +534,7 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("compositos", r"bambu laminado", "bamboo_laminated"),
     ("compositos", r"bambu", "bamboo"),
     ("compositos", r"compensado fenolico", "plywood_phenolic"),
+    ("compositos", r"madeira compensada", "plywood"),
     ("compositos", r"compensado", "plywood"),
     ("compositos", r"\(lvl\)", "lvl"),
     ("compositos", r"\(mlc\)", "glulam"),
@@ -555,8 +558,8 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("compositos", r"aramida", "afrp"),
     ("compositos", r"basalto.*vinilester", "bfrp_ve"),
     ("compositos", r"basalto", "bfrp"),
-    ("compositos", r"carbono.*peek", "cfrp_ud_peek"),
-    ("compositos", r"carbono.*pps", "cfrp_pps"),
+    ("compositos", r"(carbono|cfrp).*peek", "cfrp_ud_peek"),
+    ("compositos", r"(carbono|cfrp).*pps", "cfrp_pps"),
     ("compositos", r"cfrp tecido / poliamida", "cfrp_pa6"),
     ("compositos", r"cianato", "cfrp_qi_cyanate"),
     ("compositos", r"quase-isotropico modulo intermediario", "cfrp_qi_tough"),
@@ -587,10 +590,24 @@ _RULES: tuple[tuple[str, str, str], ...] = (
 
 _COMPILED = tuple((cls, re.compile(pattern), key) for cls, pattern, key in _RULES)
 
+#: The few families the name does not say and the subclass does; read first.
+_SUBCLASS_RULES: tuple[tuple[str, re.Pattern[str], str], ...] = (
+    ("metais", re.compile(r"^acos baixa liga$"), "steel_low_alloy"),
+    ("metais", re.compile(r"^espumas metalicas$"), "metal_foam"),
+)
+
 
 def classify(class_slug: str, subclass: str | None, name: str) -> str:
-    """The profile a demo material reads its bands from."""
-    text = f"{normalize(subclass)} | {normalize(name)}"
+    """The profile a demo material reads its bands from.
+
+    The rules read the **name**: a subclass such as "Concretos e Argamassas" or
+    "Compósitos de Aramida, Basalto e Híbridos" names several families at once.
+    """
+    sub = normalize(subclass)
+    for cls, pattern, key in _SUBCLASS_RULES:
+        if cls == class_slug and pattern.search(sub):
+            return key
+    text = normalize(name)
     for cls, pattern, key in _COMPILED:
         if cls == class_slug and pattern.search(text):
             return key
@@ -776,8 +793,8 @@ _GATES = {
     "rho": (0.75, 1.33),
     "E": (0.7, 1.43),
     "nu": (0.8, 1.25),
-    "su": (0.4, 2.5),
-    "sy": (0.4, 2.5),
+    "su": (0.5, 2.0),
+    "sy": (0.5, 2.0),
     "k": (0.4, 2.5),
     "cp": (0.7, 1.43),
     "a": (0.5, 2.0),
@@ -1005,8 +1022,6 @@ def compute(name: str, profile: Mapping, basis: Basis) -> Result:  # noqa: C901
         eps = profile["solid_eps"] ** density_ratio  # Lichtenecker: solid and air
     else:
         eps = None
-    if eps is None and profile.get("solid_eps") and density_ratio and "EPS" not in profile:
-        eps = profile["solid_eps"] ** density_ratio
     v["constante_dieletrica"] = eps
     dielectric = eps is not None
     v["rigidez_dieletrica"] = (
