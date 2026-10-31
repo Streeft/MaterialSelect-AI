@@ -3563,3 +3563,87 @@ export interface FamilyNoteEntry {
   review_status: "rascunho" | "revisado";
   lang: string;
 }
+
+// --- Calculadora de expressões (D-191) ---------------------------------------
+
+/** Universo de uma expressão: propriedades de material ou atributos de processo. */
+export type ExpressionUniverse = "material" | "process";
+
+/** Uma recusa, em português, com o trecho (0-based, em caracteres) a que se refere. */
+export interface ExpressionIssue {
+  message: string;
+  start: number | null;
+  end: number | null;
+}
+
+/**
+ * Uma propriedade como a calculadora a mostra. `variable` é o nome da gramática
+ * e fica nos bastidores; a tela mostra `name`, `symbol_latex` e a unidade.
+ */
+export interface ExpressionVariable {
+  variable: string;
+  slug: string;
+  name: string;
+  symbol: string | null;
+  symbol_latex: string;
+  unit: string | null;
+  display_unit: string | null;
+  /** Categoria da propriedade (`FISICA`, `MECANICA`…) ou `PROCESSO`. */
+  category: string;
+  description: string | null;
+}
+
+export interface ExpressionFunction {
+  name: string;
+  min_args: number;
+  max_args: number;
+  /** Rótulo da tecla ("√x", "ln"…). */
+  label: string;
+  latex: string;
+  description: string;
+}
+
+export interface ExpressionConstant {
+  name: string;
+  latex: string;
+  label: string;
+  description: string;
+}
+
+export interface ExpressionPalette {
+  universe: ExpressionUniverse;
+  variables: ExpressionVariable[];
+  functions: ExpressionFunction[];
+  constants: ExpressionConstant[];
+}
+
+/** Árvore da expressão, já validada pelo backend. */
+export type ExpressionTree =
+  | { kind: "number"; value: number }
+  | { kind: "constant"; name: string }
+  | { kind: "variable"; name: string }
+  | { kind: "unary"; op: string; operand: ExpressionTree }
+  | { kind: "binary"; op: string; left: ExpressionTree; right: ExpressionTree }
+  | { kind: "call"; function: string; args: ExpressionTree[] };
+
+/**
+ * O que uma expressão é, sem avaliá-la em material nenhum. Responde 200 mesmo
+ * quando recusada (`valid` falso, `errors` preenchido).
+ */
+export interface ExpressionDescription {
+  expression: string;
+  valid: boolean;
+  normalized: string | null;
+  /** LaTeX com o nome amigável de cada propriedade. */
+  latex: string | null;
+  /** O mesmo LaTeX com os símbolos (E, ρ, σy). */
+  latex_symbols: string | null;
+  /** A leitura em texto simples: "√(Módulo de Young) / Densidade". */
+  label: string | null;
+  dimension: string | null;
+  unit: string | null;
+  is_multiplicative: boolean | null;
+  variables: ExpressionVariable[];
+  errors: ExpressionIssue[];
+  tree: ExpressionTree | null;
+}

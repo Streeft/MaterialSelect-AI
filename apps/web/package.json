@@ -18,6 +18,7 @@
     "@materialselect/shared-types": "*",
     "@tanstack/react-query": "^5.51.0",
     "clsx": "^2.1.1",
+    "katex": "0.16.47",
     "next": "^16.3.4",
     "plotly.js": "^3.7.0",
     "react": "^18.3.1",
