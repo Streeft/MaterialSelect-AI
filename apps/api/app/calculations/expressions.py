@@ -13,11 +13,18 @@ The same tree walker runs over two numeric domains:
   dimensional analysis, so the index's physical dimension is derived rather than
   assumed.
 
-Whitelist: numeric constants, the property variables, ``+ - * / **`` and unary
-``+/-``, parentheses, and the functions ``sqrt``, ``cbrt`` and ``abs`` (each is
-defined via ``**`` / builtin ``abs`` so it works on floats and Quantities
-alike). Names, attributes, subscripts, comprehensions, lambdas, calls to
-anything else — all rejected.
+Whitelist: numeric constants, the property variables, the named constants
+``pi`` and ``e``, ``+ - * / **`` and unary ``+/-``, parentheses, and the
+functions in :data:`FUNCTIONS` (D-191): ``sqrt``, ``cbrt``, ``abs``, ``sq``,
+``inv``, ``pow``, ``min``, ``max``, ``ln``, ``log10`` and ``exp``. Each is
+written so it works on floats and Quantities alike; the three transcendental
+ones refuse a dimensional argument, because ``ln(1 Pa)`` has no meaning.
+Names, attributes, subscripts, comprehensions, lambdas, calls to anything
+else — all rejected.
+
+Every refusal carries the character span it is about (:class:`ExpressionError`
+``start``/``end``), so the calculator can underline the offending piece instead
+of only describing it.
 """
 
 from __future__ import annotations
@@ -25,6 +32,9 @@ from __future__ import annotations
 import ast
 import math
 import re
+from collections.abc import Callable
+from dataclasses import dataclass
+from fractions import Fraction
 from functools import lru_cache
 
 from pint.errors import DimensionalityError, OffsetUnitCalculusError
@@ -39,7 +49,17 @@ _UNARY_OPS = (ast.UAdd, ast.USub)
 
 
 class ExpressionError(ValueError):
-    """An expression is empty, malformed, unsafe, or dimensionally invalid."""
+    """An expression is empty, malformed, unsafe, or dimensionally invalid.
+
+    ``start``/``end`` are the 0-based character span the message is about, when
+    one is known (a syntax error, a refused node). They are additive: ``str()``
+    of the error is the same Portuguese sentence every caller already shows.
+    """
+
+    def __init__(self, message: str, *, start: int | None = None, end: int | None = None):
+        super().__init__(message)
+        self.start = start
+        self.end = end
 
 
 def _sqrt(x):  # works on float and pint.Quantity
@@ -50,7 +70,113 @@ def _cbrt(x):
     return x ** (1.0 / 3.0)
 
 
-_FUNCTIONS = {"sqrt": _sqrt, "cbrt": _cbrt, "abs": abs}
+def _sq(x):
+    return x**2
+
+
+def _inv(x):
+    return 1.0 / x
+
+
+def _pow(base, exponent):
+    return base**exponent
+
+
+def _transcendental(x, name: str, function: Callable[[float], float], positive: bool):
+    """Apply ``function`` to a dimensionless argument, in either numeric domain.
+
+    Over a Pint Quantity (dimensional analysis) only the dimension is checked:
+    the magnitudes there are the artificial ``1 * unit`` of each property, so a
+    sign test on them would refuse ``ln(a - b)`` for a reason that is not true of
+    any material. Over a float (evaluation for one material) the domain is real
+    and is enforced.
+    """
+    dimensionless = getattr(x, "dimensionless", None)
+    if dimensionless is False:
+        raise ExpressionError(
+            f"{name}() só aceita argumento adimensional: divida a propriedade por outra "
+            "de mesma dimensão antes (por exemplo, uma razão)."
+        )
+    if dimensionless is True:
+        value = float(x.to("dimensionless").magnitude)
+        if positive and value <= 0:
+            return 1.0  # any dimensionless number: only the dimension matters here
+        return function(value)
+    value = float(x)
+    if positive and value <= 0:
+        raise ExpressionError(f"{name}() só existe para valores positivos.")
+    return function(value)
+
+
+def _ln(x):
+    return _transcendental(x, "ln", math.log, positive=True)
+
+
+def _log10(x):
+    return _transcendental(x, "log10", math.log10, positive=True)
+
+
+def _exp(x):
+    return _transcendental(x, "exp", math.exp, positive=False)
+
+
+def _min(*args):
+    return min(args)
+
+
+def _max(*args):
+    return max(args)
+
+
+@dataclass(frozen=True)
+class FunctionSpec:
+    """One whitelisted function: how many arguments it takes and what it does."""
+
+    implementation: Callable
+    min_args: int
+    max_args: int
+
+
+#: The whole function whitelist (D-191). ``pow`` is ``**`` written as a call;
+#: ``sq``/``inv`` are the calculator's ``x²`` and ``1/x`` keys. ``min``/``max``
+#: take two or more arguments of the same dimension.
+FUNCTIONS: dict[str, FunctionSpec] = {
+    "sqrt": FunctionSpec(_sqrt, 1, 1),
+    "cbrt": FunctionSpec(_cbrt, 1, 1),
+    "abs": FunctionSpec(abs, 1, 1),
+    "sq": FunctionSpec(_sq, 1, 1),
+    "inv": FunctionSpec(_inv, 1, 1),
+    "pow": FunctionSpec(_pow, 2, 2),
+    "min": FunctionSpec(_min, 2, 8),
+    "max": FunctionSpec(_max, 2, 8),
+    "ln": FunctionSpec(_ln, 1, 1),
+    "log10": FunctionSpec(_log10, 1, 1),
+    "exp": FunctionSpec(_exp, 1, 1),
+}
+
+#: Named constants. They are names in the grammar, so a property whose variable
+#: would be ``pi`` or ``e`` is shadowed — no catalogue slug is either.
+CONSTANTS: dict[str, float] = {"pi": math.pi, "e": math.e}
+
+_FUNCTION_LIST = ", ".join(FUNCTIONS)
+
+
+def node_span(expression: str, node: ast.AST) -> tuple[int | None, int | None]:
+    """The 0-based character span of ``node`` in ``expression``.
+
+    ``ast`` reports UTF-8 *byte* offsets; an expression is short, so turning them
+    into character offsets by decoding the prefix is cheap and exact.
+    """
+    start = getattr(node, "col_offset", None)
+    end = getattr(node, "end_col_offset", None)
+    raw = expression.encode("utf-8")
+
+    def chars(offset: int | None) -> int | None:
+        if offset is None:
+            return None
+        return len(raw[:offset].decode("utf-8", errors="ignore"))
+
+    return chars(start), chars(end)
 
 
 def safe_variable(slug: str) -> str:
@@ -100,56 +226,107 @@ def parse(expression: str) -> ast.Expression:
         tree = ast.parse(expression, mode="eval")
     except SyntaxError as exc:
         # Python's own wording is English and says nothing a reader can act on.
-        raise ExpressionError(
-            "Sintaxe inválida: confira operadores, parênteses e se cada variável "
-            "está escrita como na lista de variáveis disponíveis."
-        ) from exc
-    _check(tree)
+        raise _syntax_error(expression, exc) from exc
+    _check(tree, expression)
     return tree
 
 
-def _check(node: ast.AST) -> None:
+def _syntax_error(expression: str, exc: SyntaxError) -> ExpressionError:
+    """A Portuguese syntax error, pointing at where Python stopped reading."""
+    size = len(expression)
+    detail = exc.msg or ""
+    offset = exc.offset or 0
+    if "never closed" in detail:
+        what = "um parêntese foi aberto e não foi fechado (falta um ')')."
+        start = max(0, min(size - 1, offset - 1))
+    elif "unmatched" in detail:
+        what = "há um ')' sem o '(' correspondente."
+        start = max(0, min(size - 1, offset - 1))
+    elif offset <= 0 or offset > size:
+        what = "a expressão termina incompleta; falta um número ou uma propriedade no fim."
+        start = size
+    else:
+        what = (
+            "confira operadores, parênteses e se cada variável está escrita como na "
+            "lista de variáveis disponíveis."
+        )
+        start = offset - 1
+    hint = " A potência se escreve ** (por exemplo, E ** 0.5), não ^." if "^" in expression else ""
+    return ExpressionError(f"Sintaxe inválida: {what}{hint}", start=start, end=min(size, start + 1))
+
+
+def _refuse(message: str, expression: str, node: ast.AST) -> ExpressionError:
+    start, end = node_span(expression, node)
+    return ExpressionError(message, start=start, end=end)
+
+
+def _check(node: ast.AST, expression: str = "") -> None:
     """Recursively reject any node that is not explicitly whitelisted."""
     if isinstance(node, ast.Expression):
-        _check(node.body)
+        _check(node.body, expression)
     elif isinstance(node, ast.BinOp):
+        if isinstance(node.op, ast.BitXor):
+            raise _refuse(
+                "Operador ^ não é potência aqui: use ** (por exemplo, E ** 0.5).",
+                expression,
+                node,
+            )
         if not isinstance(node.op, _BINARY_OPS):
-            raise ExpressionError("Operador não permitido.")
-        _check(node.left)
-        _check(node.right)
+            raise _refuse("Operador não permitido.", expression, node)
+        _check(node.left, expression)
+        _check(node.right, expression)
     elif isinstance(node, ast.UnaryOp):
         if not isinstance(node.op, _UNARY_OPS):
-            raise ExpressionError("Operador unário não permitido.")
-        _check(node.operand)
+            raise _refuse("Operador unário não permitido.", expression, node)
+        _check(node.operand, expression)
     elif isinstance(node, ast.Constant):
         if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
-            raise ExpressionError("Apenas números são permitidos como constantes.")
+            raise _refuse("Apenas números são permitidos como constantes.", expression, node)
     elif isinstance(node, ast.Name):
         if not isinstance(node.ctx, ast.Load):
-            raise ExpressionError("Atribuição não é permitida.")
+            raise _refuse("Atribuição não é permitida.", expression, node)
     elif isinstance(node, ast.Call):
-        if not isinstance(node.func, ast.Name) or node.func.id not in _FUNCTIONS:
-            raise ExpressionError("Função não permitida (use sqrt, cbrt ou abs).")
+        if not isinstance(node.func, ast.Name) or node.func.id not in FUNCTIONS:
+            raise _refuse(f"Função não permitida (use {_FUNCTION_LIST}).", expression, node)
         if node.keywords:
-            raise ExpressionError("Argumentos nomeados não são permitidos.")
-        if len(node.args) != 1:
-            raise ExpressionError("As funções aceitam exatamente um argumento.")
-        _check(node.args[0])
+            raise _refuse("Argumentos nomeados não são permitidos.", expression, node)
+        spec = FUNCTIONS[node.func.id]
+        count = len(node.args)
+        if count < spec.min_args or count > spec.max_args:
+            raise _refuse(_arity_message(node.func.id, spec), expression, node)
+        for arg in node.args:
+            if isinstance(arg, ast.Starred):
+                raise _refuse("Argumento desempacotado não é permitido.", expression, arg)
+            _check(arg, expression)
     else:
-        raise ExpressionError(
+        raise _refuse(
             "Construção não permitida: use só números, variáveis, + - * / ** e as funções "
-            "sqrt, cbrt e abs."
+            f"{_FUNCTION_LIST}.",
+            expression,
+            node,
         )
 
 
+def _arity_message(name: str, spec: FunctionSpec) -> str:
+    if spec.min_args == spec.max_args == 1:
+        return f"{name}() aceita exatamente um argumento."
+    if spec.min_args == spec.max_args:
+        return f"{name}() aceita exatamente {spec.min_args} argumentos, separados por vírgula."
+    return (
+        f"{name}() aceita de {spec.min_args} a {spec.max_args} argumentos, "
+        "separados por vírgula."
+    )
+
+
 def _collect_names(node: ast.AST, names: set[str]) -> None:
-    """Collect variable names, skipping function-name positions in calls."""
+    """Collect variable names, skipping function-name positions and constants."""
     if isinstance(node, ast.Call):
         for arg in node.args:  # node.func is a function name, not a variable
             _collect_names(arg, names)
         return
     if isinstance(node, ast.Name):
-        names.add(node.id)
+        if node.id not in CONSTANTS:
+            names.add(node.id)
         return
     for child in ast.iter_child_nodes(node):
         _collect_names(child, names)
@@ -186,8 +363,24 @@ def validate_names(expression: str, allowed: set[str]) -> set[str]:
     used = variables_in(expression)
     unknown = used - allowed
     if unknown:
-        raise ExpressionError(f"Variáveis desconhecidas: {', '.join(sorted(unknown))}")
+        start, end = name_span(expression, unknown)
+        raise ExpressionError(
+            f"Variáveis desconhecidas: {', '.join(sorted(unknown))}", start=start, end=end
+        )
     return used
+
+
+def name_span(expression: str, names: set[str]) -> tuple[int | None, int | None]:
+    """The span of the first occurrence of any of ``names`` used as a variable."""
+    found = [
+        node
+        for node in ast.walk(parse(expression))
+        if isinstance(node, ast.Name) and node.id in names
+    ]
+    if not found:
+        return None, None
+    first = min(found, key=lambda node: node.col_offset)
+    return node_span(expression, first)
 
 
 def _walk(node: ast.AST, variables: dict):
@@ -197,6 +390,8 @@ def _walk(node: ast.AST, variables: dict):
     if isinstance(node, ast.Constant):
         return float(node.value)
     if isinstance(node, ast.Name):
+        if node.id in CONSTANTS:
+            return CONSTANTS[node.id]
         if node.id not in variables:
             raise ExpressionError(f"Variável sem valor: {node.id}")
         return variables[node.id]
@@ -216,7 +411,8 @@ def _walk(node: ast.AST, variables: dict):
             return left / right
         return left**right  # Pow (only remaining whitelisted op)
     if isinstance(node, ast.Call):  # pragma: no branch - validated by _check
-        return _FUNCTIONS[node.func.id](_walk(node.args[0], variables))
+        args = [_walk(arg, variables) for arg in node.args]
+        return FUNCTIONS[node.func.id].implementation(*args)
     raise ExpressionError("Construção não permitida.")  # pragma: no cover
 
 
@@ -235,6 +431,12 @@ def evaluate(expression: str, variables: dict[str, float]) -> float:
         raise ExpressionError("Divisão por zero.") from exc
     except OverflowError as exc:
         raise ExpressionError("Resultado excede o limite numérico.") from exc
+    except (ValueError, TypeError) as exc:
+        # ``ExpressionError`` is a ValueError and is re-raised as itself; the rest
+        # is a math domain error (e.g. ``min`` of a complex intermediate).
+        if isinstance(exc, ExpressionError):
+            raise
+        raise ExpressionError("Operação fora do domínio da função.") from exc
     if isinstance(result, complex):
         raise ExpressionError("Resultado complexo (base negativa com expoente fracionário).")
     result = float(result)
@@ -270,6 +472,49 @@ def result_dimension(expression: str, canonical_units: dict[str, str]) -> str:
     if dimensionality is None or str(dimensionality) == "dimensionless":
         return "dimensionless"
     return str(_without_numerical_residue(dimensionality))
+
+
+def result_unit(expression: str, canonical_units: dict[str, str]) -> str:
+    """The unit the index comes out in, from the canonical units of its inputs.
+
+    ``E / rho`` over Pa and kg/m**3 gives ``"Pa * m ** 3 / kg"`` — the same
+    spelling as a property's ``canonical_unit``, so the screen formats it with
+    the formatter it already has. ``"dimensionless"`` for a pure number. Run
+    :func:`result_dimension` first: this assumes the expression is consistent.
+    """
+    tree = parse(expression)
+    quantities = {name: ureg.Quantity(1.0, unit) for name, unit in canonical_units.items()}
+    try:
+        result = _walk(tree, quantities)
+    except Exception as exc:  # consistency was already checked; be defensive
+        raise ExpressionError(f"Análise dimensional falhou: {exc}") from exc
+    if not hasattr(result, "units") or result.dimensionless:
+        return "dimensionless"
+    reduced = result.to_reduced_units()
+    terms = [
+        (ureg.get_symbol(name), exponent)
+        for name, exponent in dict(reduced.units._units).items()
+        if abs(exponent) > _DIMENSION_EPSILON
+    ]
+    if not terms:
+        return "dimensionless"
+
+    def term(symbol: str, exponent: float) -> str:
+        power = Fraction(abs(exponent)).limit_denominator(12)
+        if power == 1:
+            return symbol
+        if power.denominator == 1:
+            return f"{symbol}**{power.numerator}"
+        return f"{symbol}**({power.numerator}/{power.denominator})"
+
+    numerator = [term(symbol, e) for symbol, e in terms if e > 0]
+    denominator = [term(symbol, e) for symbol, e in terms if e < 0]
+    text = "*".join(numerator) or "1"
+    if len(denominator) == 1:
+        text += f"/{denominator[0]}"
+    elif denominator:
+        text += f"/({'*'.join(denominator)})"
+    return text
 
 
 #: Below this, an exponent is binary-arithmetic residue and not a dimension.

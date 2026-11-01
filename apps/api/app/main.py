@@ -48,6 +48,7 @@ from app.routers import (
     eco,
     equivalences,
     exports,
+    expressions,
     family_notes,
     glossary,
     health,
@@ -236,6 +237,9 @@ app.include_router(
 )
 app.include_router(
     properties.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    expressions.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     glossary.router, prefix="/api", dependencies=[Depends(require_active_subscription)]

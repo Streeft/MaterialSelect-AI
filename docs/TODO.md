@@ -205,6 +205,10 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   dito e sai do pedido e do endereço. Resíduo: (b) guardar a comparação com nome,
   para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
   navegador, de propósito).
+- ~~Calculadora visual de índice~~ ✔ entregue (D-191, Sessão 148): cartões, fita, teclado científico, KaTeX e leitura amigável em
+  Seleção, Mapas, Estágio de gráfico, Comparar, Resultados e colunas calculadas. Resíduo: a planilha do índice (`_index_sheet` nas
+  exportações) e o arquivo de estudo guardam a expressão na gramática de propósito (reprodutibilidade); os casos de carga do
+  Dimensionar mostram `index_expression` do catálogo de casos, cujas variáveis não são slugs de propriedade.
 - **TM3 — comparação de muitos materiais.** ✔ Figuras sem teto (D-187); a tabela vem em blocos. Ampliar o comparador para dezenas
   de registros, com composição e propriedades lado a lado, mantendo a tabela
   como alternativa textual de toda figura (D-31).

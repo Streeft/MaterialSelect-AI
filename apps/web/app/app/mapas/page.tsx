@@ -55,6 +55,7 @@ import {
   SelectOption,
   ToggleChip,
 } from "@/components/ui";
+import { ExpressionBuilder } from "@/components/expression/ExpressionBuilder";
 import {
   IndexCard,
   IndexPicker,
@@ -192,13 +193,11 @@ function AxisControl({
           </Select>
 
           {axis.indexSlug === "custom" && (
-            <div className="flex flex-wrap items-end gap-2">
-              <Input
+            <div className="flex flex-col gap-2">
+              <ExpressionBuilder
                 label={t.expression}
-                className="min-w-[min(12rem,100%)] flex-1"
                 value={axis.customExpression}
-                onChange={(e) => onChange({ ...axis, customExpression: e.target.value })}
-                placeholder="modulo_young / densidade"
+                onChange={(next) => onChange({ ...axis, customExpression: next })}
               />
               <Select
                 label={t.goal}
@@ -1122,13 +1121,11 @@ function MapsPageContent() {
                               value={indexMode}
                               onChange={setIndexMode}
                               customSlot={
-                                <div className="flex flex-wrap items-end gap-3">
-                                  <Input
+                                <div className="flex flex-col gap-3">
+                                  <ExpressionBuilder
                                     label={t.expression}
-                                    className="min-w-[min(16rem,100%)] flex-1"
                                     value={customExpression}
-                                    onChange={(e) => setCustomExpression(e.target.value)}
-                                    placeholder="modulo_young / densidade"
+                                    onChange={setCustomExpression}
                                   />
                                   <Select
                                     label={t.goal}

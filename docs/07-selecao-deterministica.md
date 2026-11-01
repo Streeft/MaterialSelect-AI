@@ -240,10 +240,28 @@ Um índice é uma expressão sobre os slugs das propriedades (ex.:
 `modulo_young / densidade`). O avaliador é **seguro, sem `eval`**:
 
 1. a expressão é convertida em AST (`ast.parse`);
-2. um whitelist recursivo aceita apenas números, variáveis, `+ - * / **`, unário
-   `+/-`, parênteses e as funções `sqrt`, `cbrt`, `abs` — qualquer outro nó
-   (atributos, índices, chamadas, lambdas, comprehensions, strings) é rejeitado;
+2. um whitelist recursivo aceita apenas números, variáveis, as constantes `pi`
+   e `e`, `+ - * / **`, unário `+/-`, parênteses e as funções de `FUNCTIONS`:
+   `sqrt`, `cbrt`, `abs`, `sq`, `inv`, `pow`, `min`, `max`, `ln`, `log10`, `exp`
+   (D-191) — qualquer outro nó (atributos, índices, outras chamadas, lambdas,
+   comprehensions, strings) é rejeitado, com a posição do trecho recusado;
 3. um interpretador manual percorre a árvore.
+
+`ln`, `log10` e `exp` só aceitam argumento adimensional (uma razão): no domínio
+do Pint a dimensão é conferida, e só no `float` o sinal (ln de valor não
+positivo deixa o índice indefinido para aquele material, nunca zero). `min` e
+`max` exigem a mesma dimensão. `sq`, `inv` e `pow` são potências e mantêm a lei
+de potência (linha de índice reta); as outras funções sobre propriedades não.
+
+**Leitura amigável (D-191).** `app/calculations/expression_render.py` gera do
+mesmo AST o LaTeX com o nome de cada propriedade (`\frac{\text{Módulo de
+Young}}{\text{Densidade}}`), a versão com símbolos (`\frac{E^{1/2}}{\rho}`) e o
+texto simples (`√(Módulo de Young) / Densidade`). `POST /api/expressions/describe`
+devolve isso, mais dimensão, unidade (`Pa**(1/2)*m**3/kg`), variáveis e erros com
+posição, sempre com 200; `GET /api/expressions/palette` lista propriedades (ou
+atributos numéricos de processo), funções e constantes. Eixo de índice sem nome,
+coluna calculada, sobreposição do mapa, prosa do estágio de gráfico e o motivo
+"Dados ausentes" usam o nome da propriedade, não o da gramática.
 
 O **mesmo interpretador** roda em dois domínios numéricos: `float` (valor do
 índice por material) e `Quantity` do Pint (análise dimensional — a dimensão do

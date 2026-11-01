@@ -366,6 +366,12 @@ class TestIndexOverlay:
         assert undefined  # only two demo materials have Vickers hardness
         assert all("Dados ausentes" in p["index_undefined_reason"] for p in undefined)
         assert data["index"]["undefined_count"] == len(undefined)
+        # D-191: the reason names the property, never the grammar's variable.
+        assert all(
+            p["index_undefined_reason"] == "Dados ausentes: Dureza (Vickers)" for p in undefined
+        )
+        # An unnamed overlay is titled by its reading, too.
+        assert data["index"]["name"] == "Dureza (Vickers) / Densidade"
 
     def test_unsafe_expression_is_rejected(self, client: TestClient) -> None:
         response = client.post(
@@ -499,11 +505,14 @@ class TestIndexAxis:
             assert point["x_min"] is None and point["x_max"] is None
             assert point["x_is_interval"] is False
 
-    def test_unnamed_index_axis_falls_back_to_its_expression(self, client: TestClient) -> None:
+    def test_unnamed_index_axis_is_titled_by_its_reading(self, client: TestClient) -> None:
+        # D-191: the grammar form is backend information. An unnamed index axis
+        # is titled by the property names, never by the slugs.
         data = _map(
-            client, x=None, x_index={"expression": "modulo_young / densidade"}, y="densidade"
+            client, x=None, x_index={"expression": "sqrt(modulo_young) / densidade"}, y="densidade"
         )
-        assert data["x_axis"]["property_name"] == "modulo_young / densidade"
+        assert data["x_axis"]["property_name"] == "√(Módulo de Young) / Densidade"
+        assert data["x_axis"]["expression"] == "sqrt(modulo_young) / densidade"
 
     def test_index_axis_direction_follows_its_own_goal(self, client: TestClient) -> None:
         data = _map(

@@ -4,9 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import { MAX_COMPUTED, expressionKey, expressionVariable, usableExamples } from "@/lib/compare-expression";
+import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
+import { expressionText } from "@/lib/i18n-expression";
 
 const evaluate = vi.hoisted(() => vi.fn());
+const describeExpression = vi.hoisted(() => vi.fn());
+const getExpressionPalette = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api", () => {
   class ApiError extends Error {
     constructor(
@@ -16,7 +19,7 @@ vi.mock("@/lib/api", () => {
       super(message);
     }
   }
-  return { ApiError, evaluateIndex: evaluate };
+  return { ApiError, evaluateIndex: evaluate, describeExpression, getExpressionPalette };
 });
 
 const { CustomIndexForm } = await import("./CustomIndexForm");
@@ -34,8 +37,6 @@ function mount(overrides: Partial<Parameters<typeof CustomIndexForm>[0]> = {}) {
         expressions={[]}
         takenKeys={new Set()}
         total={0}
-        slugs={["modulo_young", "densidade", "limite-escoamento"]}
-        slugsLoading={false}
         onAdd={onAdd}
         onRemove={onRemove}
         {...overrides}
@@ -45,9 +46,37 @@ function mount(overrides: Partial<Parameters<typeof CustomIndexForm>[0]> = {}) {
   return { ...view, onAdd, onRemove };
 }
 
+/** The calculator opens in "Montar"; these tests type the syntax in "Digitar". */
+async function typeExpression(user: ReturnType<typeof userEvent.setup>, text: string) {
+  await user.click(screen.getByRole("button", { name: expressionText.modeType }));
+  await user.type(screen.getByLabelText(t.label), text);
+}
+
 describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
   beforeEach(() => {
     evaluate.mockReset();
+    describeExpression.mockReset();
+    getExpressionPalette.mockReset();
+    getExpressionPalette.mockResolvedValue({
+      universe: "material",
+      variables: [],
+      functions: [],
+      constants: [],
+    });
+    describeExpression.mockImplementation(async (expression: string) => ({
+      expression,
+      valid: true,
+      normalized: expression,
+      latex: "x",
+      latex_symbols: "x",
+      label: expression === "densidade * 2" ? "Densidade × 2" : expression,
+      dimension: "dimensionless",
+      unit: "dimensionless",
+      is_multiplicative: true,
+      variables: [],
+      errors: [],
+      tree: null,
+    }));
   });
 
   it("manda a expressão ao validador do servidor e só então a adiciona", async () => {
@@ -55,7 +84,7 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
     const user = userEvent.setup();
     const { onAdd } = mount();
 
-    await user.type(screen.getByLabelText(t.label), "  modulo_young / densidade ");
+    await typeExpression(user, "  modulo_young / densidade ");
     await user.click(screen.getByRole("button", { name: t.add }));
 
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith("modulo_young / densidade"));
@@ -68,7 +97,7 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
     const user = userEvent.setup();
     const { onAdd } = mount();
 
-    await user.type(screen.getByLabelText(t.label), "xyz / densidade");
+    await typeExpression(user, "xyz / densidade");
     await user.click(screen.getByRole("button", { name: t.add }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Variáveis desconhecidas: xyz");
@@ -81,7 +110,7 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
     const user = userEvent.setup();
     mount();
 
-    await user.type(screen.getByLabelText(t.label), "densidade * 2");
+    await typeExpression(user, "densidade * 2");
     await user.click(screen.getByRole("button", { name: t.add }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.genericError);
@@ -94,7 +123,7 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
     await user.click(screen.getByRole("button", { name: t.add }));
     expect(await screen.findByRole("alert")).toHaveTextContent(t.empty);
 
-    await user.type(screen.getByLabelText(t.label), "a / b");
+    await typeExpression(user, "a / b");
     await user.click(screen.getByRole("button", { name: t.add }));
     expect(await screen.findByRole("alert")).toHaveTextContent(t.duplicate);
 
@@ -106,54 +135,27 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
     const user = userEvent.setup();
     mount({ total: MAX_COMPUTED });
 
-    await user.type(screen.getByLabelText(t.label), "densidade * 2");
+    await typeExpression(user, "densidade * 2");
     await user.click(screen.getByRole("button", { name: t.add }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.limit(MAX_COMPUTED));
     expect(evaluate).not.toHaveBeenCalled();
   });
 
-  it("exemplos preenchem o campo, e só os que usam variáveis existentes aparecem", async () => {
-    const user = userEvent.setup();
-    mount();
-
-    // `limite_escoamento` não está no catálogo da fixture (só `limite-escoamento`
-    // com hífen, que vira `limite_escoamento`): este exemplo aparece.
-    await user.click(
-      screen.getByRole("button", { name: t.useExample("modulo_young / densidade") }),
-    );
-    expect(screen.getByLabelText(t.label)).toHaveValue("modulo_young / densidade");
-    expect(
-      screen.getByRole("button", { name: t.useExample("limite_escoamento / densidade") }),
-    ).toBeInTheDocument();
-  });
-
-  it("sem as variáveis no catálogo, o exemplo não é oferecido", () => {
-    mount({ slugs: ["densidade"] });
-    expect(screen.queryByRole("group", { name: t.examples })).not.toBeInTheDocument();
-  });
-
-  it("lista as expressões digitadas com remoção nomeada pela expressão", async () => {
+  it("lista as expressões adicionadas pela leitura amigável, nunca pela gramática (D-191)", async () => {
     const user = userEvent.setup();
     const { onRemove } = mount({ expressions: ["densidade * 2"] });
 
-    await user.click(screen.getByRole("button", { name: `${t.remove}: densidade * 2` }));
+    await user.click(await screen.findByRole("button", { name: `${t.remove}: Densidade × 2` }));
     expect(onRemove).toHaveBeenCalledWith("densidade * 2");
-  });
-
-  it("estados de variáveis: carregando e vazio, escritos", () => {
-    const { unmount } = mount({ slugs: undefined, slugsLoading: true });
-    expect(screen.getByText(t.variablesLoading)).toBeInTheDocument();
-    unmount();
-    mount({ slugs: [] });
-    expect(screen.getByText(t.variablesNone)).toBeInTheDocument();
+    expect(screen.queryByText("densidade * 2")).not.toBeInTheDocument();
   });
 
   it("passa no axe, com erro e com expressões listadas", async () => {
     evaluate.mockRejectedValue(new ApiError("Expressão vazia.", 400));
     const user = userEvent.setup();
     const { container } = mount({ expressions: ["densidade * 2"] });
-    await user.type(screen.getByLabelText(t.label), "x");
+    await typeExpression(user, "x");
     await user.click(screen.getByRole("button", { name: t.add }));
     await screen.findByRole("alert");
 
@@ -163,17 +165,7 @@ describe("CustomIndexForm: índice digitado no comparador (D-153)", () => {
 });
 
 describe("compare-expression", () => {
-  it("o nome da variável segue o safe_variable do backend", () => {
-    expect(expressionVariable("modulo_young")).toBe("modulo_young");
-    expect(expressionVariable("limite-escoamento")).toBe("limite_escoamento");
-    expect(expressionVariable("2d")).toBe("_2d");
-  });
-
-  it("exemplos só com variáveis disponíveis; chave ignora espaços", () => {
-    expect(usableExamples(new Set(["densidade"]))).toEqual([]);
-    expect(usableExamples(new Set(["modulo_young", "densidade"]))).toContain(
-      "modulo_young / densidade",
-    );
+  it("a chave ignora espaços", () => {
     expect(expressionKey("a / b")).toBe(expressionKey("a/b"));
   });
 });

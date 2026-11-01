@@ -34,7 +34,7 @@ import math
 from dataclasses import dataclass
 from typing import Literal
 
-from app.calculations.expressions import ExpressionError, parse
+from app.calculations.expressions import CONSTANTS, FUNCTIONS, ExpressionError, parse
 
 # Exponents below this magnitude are treated as exactly zero, so that
 # ``E / E`` or ``E**1 * E**-1`` do not leave a phantom variable behind.
@@ -217,6 +217,8 @@ def _walk(node: ast.AST) -> Monomial:
         return _constant(float(node.value))
 
     if isinstance(node, ast.Name):
+        if node.id in CONSTANTS:
+            return _constant(CONSTANTS[node.id])
         return Monomial(coefficient=1.0, exponents={node.id: 1.0})
 
     if isinstance(node, ast.UnaryOp):
@@ -243,15 +245,28 @@ def _walk(node: ast.AST) -> Monomial:
 
     if isinstance(node, ast.Call):
         name = node.func.id  # type: ignore[union-attr]  # validated by expressions._check
-        argument = _walk(node.args[0])
+        arguments = [_walk(arg) for arg in node.args]
         if name == "sqrt":
-            return _power(argument, _constant(0.5))
+            return _power(arguments[0], _constant(0.5))
         if name == "cbrt":
-            return _power(argument, _constant(1.0 / 3.0))
-        # abs
-        if argument.exponents:
-            raise ExpressionError("abs() sobre propriedades impede a análise de lei de potência.")
-        return _constant(abs(argument.coefficient))
+            return _power(arguments[0], _constant(1.0 / 3.0))
+        if name == "sq":
+            return _power(arguments[0], _constant(2.0))
+        if name == "inv":
+            return _power(arguments[0], _constant(-1.0))
+        if name == "pow":
+            return _power(arguments[0], arguments[1])
+        # abs, min, max, ln, log10, exp: a power law only while no property is
+        # inside — over constants they fold to a number like any other.
+        if any(argument.exponents for argument in arguments):
+            raise ExpressionError(
+                f"{name}() sobre propriedades impede a análise de lei de potência."
+            )
+        try:
+            value = FUNCTIONS[name].implementation(*(a.coefficient for a in arguments))
+        except (ValueError, OverflowError, ZeroDivisionError) as exc:
+            raise ExpressionError(f"{name}() fora do domínio: {exc}") from exc
+        return _constant(float(value))
 
     raise ExpressionError(  # pragma: no cover - parse() already whitelists nodes
         f"Construção não suportada na análise de lei de potência: {type(node).__name__}."

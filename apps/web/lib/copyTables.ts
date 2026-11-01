@@ -164,7 +164,8 @@ export function stagesTsv(stages: readonly StageResult[]): string {
 /**
  * The calculated columns of the comparison as TSV (D-173). Each header says
  * "Calculada" first, so a derived number never pastes as a measured one
- * (D-153), then the index name, expression and unit. A material with no value
+ * (D-153), then the index name and unit — the name of a typed index is its
+ * reading since D-191, never the grammar form. A material with no value
  * gets the written "Indefinido" with the evaluator's reason, never a blank or
  * a 0 (D-24). The numbers are the ones the backend evaluated.
  */
@@ -175,8 +176,7 @@ export function computedTsv(comparison: Comparison): string {
     c.computed.material,
     c.computed.className,
     ...columns.map((column) => {
-      const name =
-        column.name !== column.expression ? `${column.name} (${column.expression})` : column.expression;
+      const name = column.name;
       const unit =
         column.dimension !== "dimensionless" ? ` [${prettyUnit(column.dimension)}]` : "";
       return `${k.badge}: ${name}${unit}`;

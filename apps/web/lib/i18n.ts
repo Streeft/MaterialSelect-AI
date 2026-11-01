@@ -593,7 +593,7 @@ export const ptBR = {
     customIndex: "Expressão personalizada",
     expression: "Expressão",
     expressionHint:
-      "Use os slugs das propriedades, números, + - * / ** e sqrt/cbrt/abs.",
+      "Monte o índice na calculadora; o servidor confere a fórmula, a dimensão e a unidade. Validar calcula o índice sobre o catálogo.",
     goal: "Objetivo",
     maximize: "Maximizar",
     minimize: "Minimizar",

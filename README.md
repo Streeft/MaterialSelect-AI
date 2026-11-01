@@ -47,8 +47,16 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   **materiais semelhantes** a uma referência, com peso e critério por
   propriedade e uma tolerância de ±x% ("dentro da faixa" conta como igual),
   geral ou própria de cada propriedade, e
-  **índices calculados** (os do catálogo ou uma expressão digitada, validada e
-  calculada no servidor, com a coluna marcada como "Calculada").
+  **índices calculados** (os do catálogo ou uma expressão montada na
+  calculadora, validada e calculada no servidor, com a coluna marcada como
+  "Calculada").
+- **Calculadora de índice** — em Seleção, Mapas, Estágio de gráfico e Comparar:
+  cartões das propriedades (lidos da API, por categoria, com busca sem acento)
+  que se arrastam ou se clicam para a fita, teclado científico (√, ∛, xʸ, x²,
+  1/x, |x|, ln, log, eˣ, mín, máx, π, e) e um visor em KaTeX que mostra
+  "Módulo de Young / Densidade" como fração, com validade, dimensão e unidade
+  vindas do servidor. O nome interno da propriedade nunca aparece; o modo
+  "Digitar" guarda a sintaxe para quem prefere escrever.
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição

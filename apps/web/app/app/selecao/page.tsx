@@ -111,6 +111,7 @@ import {
   describeIndex,
   type IndexDescriptor,
 } from "@/components/selection/IndexCard";
+import { ExpressionBuilder } from "@/components/expression/ExpressionBuilder";
 import { ResultsView } from "@/components/selection/ResultsView";
 import { LiveFunnel } from "@/components/selection/LiveFunnel";
 import { PaneScaffold } from "@/components/layout/PaneScaffold";
@@ -1569,18 +1570,19 @@ function SelectionWizard() {
                     hint={t.objectiveHint}
                     customSlot={
                       <>
-                        <div className="flex flex-wrap items-end gap-3">
-                          <Input
-                            label={t.expression}
-                            className="w-72"
-                            value={customExpression}
-                            onChange={(e) => setCustomExpression(e.target.value)}
-                            placeholder={
-                              isProcessStudy
-                                ? (criterionOptions[0]?.variable ?? "")
-                                : "modulo_young / densidade"
-                            }
-                          />
+                        {/* D-191: the visual calculator; the grammar text stays
+                            behind the scenes and reaches the reader only in
+                            "Digitar". */}
+                        <ExpressionBuilder
+                          label={t.expression}
+                          universe={isProcessStudy ? "process" : "material"}
+                          value={customExpression}
+                          onChange={(next) => {
+                            setCustomExpression(next);
+                            setValidation(null);
+                          }}
+                        />
+                        <div className="mt-3 flex flex-wrap items-end gap-3">
                           <Select
                             label={t.goal}
                             className="w-40"
@@ -1602,13 +1604,7 @@ function SelectionWizard() {
                           )}
                         </div>
                         <p className="mt-2 text-xs text-ink-muted">
-                          {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}{" "}
-                          {criterionOptions.length > 0 && (
-                            <span className="text-ink-subtle">
-                              ({t.variablesAvailable}:{" "}
-                              {criterionOptions.map((p) => p.variable).join(", ")})
-                            </span>
-                          )}
+                          {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}
                         </p>
                       </>
                     }
