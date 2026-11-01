@@ -629,7 +629,7 @@ export default function StyleGuidePage() {
       >
         <dl className="flex flex-col divide-y divide-line-divider">
           {TYPE_ROLES.map(([cls, metrics, sample]) => (
-            <div key={cls} className="grid gap-1 py-2 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+            <div key={cls} className="grid gap-1 py-2 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:items-baseline">
               <dt className="flex flex-col">
                 <code className="font-mono text-caption text-ink-muted">{cls}</code>
                 <span className="text-caption text-ink-subtle">{metrics}</span>

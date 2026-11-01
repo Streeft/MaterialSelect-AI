@@ -132,7 +132,7 @@ function Expression({ children }: { children: string }) {
 /** Label/value pair, used for both assumptions and derived facts. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-0.5 sm:grid-cols-[8.5rem_1fr]">
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-0.5 sm:grid-cols-[8.5rem_minmax(0,1fr)]">
       {/* `ink-subtle` clears AA on plain `surface` but not on the brand tint
           this card sits on — measured 4.46:1. The term is small (12 px), so no
           large-text exemption applies. */}

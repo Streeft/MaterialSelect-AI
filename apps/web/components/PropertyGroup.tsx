@@ -12,6 +12,7 @@ import {
   ProvenancePopover,
   provenanceOfProperty,
   qualityState,
+  TableScroll,
 } from "@/components/ui";
 import { GlossaryHint } from "@/components/glossary/GlossaryHint";
 
@@ -104,36 +105,44 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
   return (
     <Card>
       <CardHeader title={ptBR.categories[group.category]} />
-      <table className="min-w-full divide-y divide-edge-subtle text-sm">
-        <tbody>
-          {group.properties.map((p) => (
-            <tr key={p.property_slug} className="align-top">
-              <th
-                scope="row"
-                className="w-1/3 px-4 py-2 text-left font-normal text-ink-muted"
-              >
-                {p.property_name}
-                {p.symbol && (
-                  <span className="ml-1 text-ink-subtle">({p.symbol})</span>
-                )}
-                <GlossaryHint
-                  slug={p.property_slug}
-                  name={p.property_name}
-                  className="ml-1.5 align-middle"
-                />
-              </th>
-              <td className="px-4 py-2 text-ink">
-                <ValueCell p={p} />
-                {p.notes && (
-                  <div className="mt-1 text-xs italic text-ink-subtle">
-                    {p.notes}
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* D-190: a long name or value scrolls inside its own box instead of
+          being cut by the card's `overflow: hidden`. The card already draws
+          the frame, so the box draws none. */}
+      <TableScroll
+        label={ptBR.categories[group.category]}
+        className="rounded-none border-0 bg-transparent"
+      >
+        <table className="min-w-full divide-y divide-edge-subtle text-sm">
+          <tbody>
+            {group.properties.map((p) => (
+              <tr key={p.property_slug} className="align-top">
+                <th
+                  scope="row"
+                  className="w-1/3 px-4 py-2 text-left font-normal text-ink-muted"
+                >
+                  {p.property_name}
+                  {p.symbol && (
+                    <span className="ml-1 text-ink-subtle">({p.symbol})</span>
+                  )}
+                  <GlossaryHint
+                    slug={p.property_slug}
+                    name={p.property_name}
+                    className="ml-1.5 align-middle"
+                  />
+                </th>
+                <td className="px-4 py-2 text-ink">
+                  <ValueCell p={p} />
+                  {p.notes && (
+                    <div className="mt-1 text-xs italic text-ink-subtle">
+                      {p.notes}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableScroll>
     </Card>
   );
 }

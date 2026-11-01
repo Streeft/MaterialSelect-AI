@@ -238,7 +238,7 @@ export default function MaterialDetailPage() {
                   </div>
                 )}
               </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">
                 <FavoriteButton universe="material" recordId={data.id} />
                 {/* D-104 e D-124: menu "Exportar ▾" com ficha técnica em PDF/HTML e CAE card. */}
                 <MaterialExportMenu materialId={data.id} unitChoices={unitChoices} />
