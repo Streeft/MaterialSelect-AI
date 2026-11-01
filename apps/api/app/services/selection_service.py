@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from app.calculations.expression_render import friendly_label
 from app.calculations.expressions import (
     ExpressionError,
     result_dimension,
@@ -1018,14 +1019,15 @@ class SelectionService:
     def _chart_quantity(self, slug: str | None, expression: str | None) -> tuple[str, str]:
         """Resolve one plotted quantity to (snapshot key, reader-facing label).
 
-        An expression is filed under its own text, which is also what the reader
-        sees — there is no name to give it, because a chart stage names an
-        expression and not a catalogued index (D-35 is about the *model* not
-        choosing an expression; a reader typing one is not that).
+        An expression is filed under its own text; the reader sees its reading,
+        "Módulo de Young / Densidade" (D-191) — there is no catalogued name to
+        give it, because a chart stage names an expression and not an index
+        (D-35 is about the *model* not choosing an expression; a reader typing
+        one is not that).
         """
         if expression is not None:
             self._validate_expression(expression)
-            return expression, expression
+            return expression, friendly_label(expression, self._props.values())
 
         definition = self._props.get(slug or "")
         if definition is None:

@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from app.ai.provider import AIUnavailableError
+from app.calculations.expression_render import friendly_label
 from app.calculations.expressions import variables_in
 from app.calculations.units import pretty_unit
 from app.domain.composition import RULE_TEXT
@@ -343,8 +344,7 @@ class ExportService:
             return f"Índice de {level.material_name}"
         return f"M = {level.value:.3g}"
 
-    @staticmethod
-    def _map_caption(chart, highlighted_count: int, plane: ChartStageIn | None = None) -> str:
+    def _map_caption(self, chart, highlighted_count: int, plane: ChartStageIn | None = None) -> str:
         partes = [
             f"{chart.plotted_count} de {chart.considered_count} materiais têm os dois "
             f"valores cadastrados e aparecem no mapa"
@@ -368,14 +368,16 @@ class ExportService:
                     "até a borda do gráfico e não é um limite"
                 )
             if plane.index_expression is not None and plane.index_level is not None:
+                # The reading, not the grammar form (D-191).
+                reading = friendly_label(plane.index_expression, self.chart_repo.list_properties())
                 if plane.x.expression is None and plane.y.expression is None:
                     partes.append(
                         f"a linha está no nível {format_number(plane.index_level)} de "
-                        f"{plane.index_expression}, como o estágio a guardou"
+                        f"{reading}, como o estágio a guardou"
                     )
                 else:
                     partes.append(
-                        f"a linha de {plane.index_expression} não foi traçada porque um "
+                        f"a linha de {reading} não foi traçada porque um "
                         f"dos eixos já é um índice; o nível está na tabela 'Estágios'"
                     )
         if chart.envelopes:
