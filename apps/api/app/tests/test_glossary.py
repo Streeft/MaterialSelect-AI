@@ -129,7 +129,7 @@ def test_every_seed_property_has_an_entry() -> None:
     # Canário: o próximo slug criado em seed.PROPERTIES falha aqui até ganhar
     # verbete — ou até alguém decidir, por escrito, que ele fica sem.
     slugs = {p["slug"] for p in PROPERTIES}
-    assert len(slugs) == 15
+    assert len(slugs) == 48  # 15 do núcleo + 33 do catálogo ampliado (D-188)
     missing = slugs - set(load_entries())
     assert not missing, f"propriedades sem verbete no glossário: {sorted(missing)}"
 

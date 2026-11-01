@@ -188,6 +188,20 @@ def _tokens_for(property_facts: PropertyFacts) -> set[str]:
     return {token for token in tokens if token}
 
 
+def _match_score(property_facts: PropertyFacts, folded: str) -> tuple[int, int]:
+    """How strongly a clause names this property (D-188).
+
+    With the extended catalogue several properties share a word: "temperatura"
+    names the maximum and the minimum service temperature, the melting point
+    and the glass transition alike, and "temp" sits inside all of them. The
+    clause goes to the property that matches the most distinct tokens, and on
+    a tie to one with curated vocabulary — the property a designer means when
+    the clause does not say which of the family it is.
+    """
+    matched = sum(1 for token in _tokens_for(property_facts) if token in folded)
+    return matched, int(property_facts.slug in _PROPERTY_SYNONYMS)
+
+
 def _read_unit(raw: str | None, accepted: list[str], canonical: str) -> str | None:
     """Map a written unit token to a Pint unit the property accepts."""
     if not raw:
@@ -316,13 +330,13 @@ class MockAIProvider(AIProvider):
 
         for clause in _split_clauses(statement):
             folded_clause = fold(clause)
-            match = next(
-                (
-                    facts
-                    for facts, _ in self._mentioned_properties(context, folded_clause)
-                    if facts.slug in by_slug
-                ),
-                None,
+            candidates = [
+                facts
+                for facts, _ in self._mentioned_properties(context, folded_clause)
+                if facts.slug in by_slug
+            ]
+            match = max(
+                candidates, key=lambda facts: _match_score(facts, folded_clause), default=None
             )
             if match is None:
                 continue

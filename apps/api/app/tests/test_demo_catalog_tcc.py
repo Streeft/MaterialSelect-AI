@@ -31,7 +31,13 @@ from app.db.demo_catalog import (
     validate_lots,
 )
 from app.db.demo_identity_data import designation_table
-from app.db.seed import DEMO_DESIGNATIONS, DEMO_MATERIALS, DEMO_SOURCE_LABEL, PROPERTIES
+from app.db.seed import (
+    CORE_SLUGS,
+    DEMO_DESIGNATIONS,
+    DEMO_MATERIALS,
+    DEMO_SOURCE_LABEL,
+    PROPERTIES,
+)
 from app.db.seed_demo_releases import DEMO_RELEASES
 from app.db.seed_extended import (
     EXTENDED_DEMO_MATERIALS,
@@ -51,7 +57,11 @@ from app.models.process import MaterialProcess
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 
-CANONICAL = {spec["slug"]: spec["canonical_unit"] for spec in PROPERTIES}
+#: The core 15 each lot carries (D-188: the extended catalogue is filled later,
+#: by ``seed_demo_extended_props``, never written in the JSON lots).
+CANONICAL = {
+    spec["slug"]: spec["canonical_unit"] for spec in PROPERTIES if spec["slug"] in CORE_SLUGS
+}
 EXISTING_NAMES = [
     *(m["name"] for m in DEMO_MATERIALS),
     *(m["name"] for m in EXTENDED_DEMO_MATERIALS),

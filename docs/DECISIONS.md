@@ -11650,6 +11650,64 @@ terços, e ao lado o que ajuda a lê-lo.
   de ícone claro, perdendo a cor do botão. As regras da seta ganharam especificidade e um véu de estado M3 sobre a própria cor.
 
 **Fonte.** m3.material.io › *Foundations › Layout › Canonical layout examples* (supporting pane) e *Components › Split button*, lidas em 29 e 30/10/26.
+## D-188 — Catálogo ampliado: 33 propriedades numéricas e 12 ordinais, com valor em todo material demo
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 146)
+
+**Contexto.** O autor pediu "o máximo de propriedades, mais de 25", com valor em todos os materiais da lista e "tudo amarrado para a
+seleção correta". O catálogo tinha 15 definições numéricas e duas ordinais fictícias ("(demo)", nível sorteado por hash, D-126).
+
+**Decisão.**
+- **33 definições numéricas novas** (total 48), em módulo próprio (`app/db/property_catalog_extended.py`), somadas a
+  `seed.PROPERTIES` por uma linha; `CORE_SLUGS` guarda as 15 de antes. Mecânica: tenacidade à fratura (MPa·m^0,5) e energia de fratura
+  Gc, alongamento, fadiga a 10⁷ ciclos, compressão, flexão, cisalhamento, módulos de cisalhamento, volumétrico e de flexão, impacto
+  Charpy entalhado, coeficiente de perda, Shore A e D. Térmica: fusão, transição vítrea, mínima de serviço, HDT a 0,45 MPa,
+  difusividade, choque térmico (ΔT em kelvin, nunca lido em °C). Elétrica: resistividade, condutividade, constante e rigidez
+  dielétricas, tan δ. Física e ótica: índice de refração, absorção de água em 24 h, LOI. Econômica e eco: custo por litro, pegada
+  hídrica, fração reciclada, energia e CO₂ do processamento primário. Unidades Pint; porcentagens canônicas em `percent`, lidas em `%`.
+- **12 ordinais demo (D-126)**: resistência a água doce, água salgada, ácidos e álcalis fracos e fortes, solventes, UV, oxidação a 500 °C
+  (escala de cinco níveis), inflamabilidade (cinco níveis), transparência (quatro) e biocompatibilidade (quatro, "nível de exemplo, não
+  qualificação regulatória"). Definições `is_demo`, como as de D-126: o importador oficial já recusa enquanto houver ordinal demo.
+- **Níveis (D-127)**: no Nível 1 entram só tenacidade à fratura, alongamento, fadiga e fusão; 17 no Nível 2; 12 no Nível 3.
+- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130).
+- **Valores** (`app/db/seed_demo_extended_props.py` + faixas em `app/db/demo_extended_data.py`, no padrão de `seed_demo_cae`): cada
+  material demo cai num de 358 perfis por uma de 365 regras sobre o **nome** (a subclasse "Concretos e Argamassas" ou "Aramida, Basalto e
+  Híbridos" nomeia várias famílias), com sobreposição por nome para 51 graus conhecidos (6061-T6, 304, Ti-6Al-4V, cobre OF, Inconel 718…).
+  O ponto na faixa sai de hash estável; dentro da família, mais resistente → menos dúctil e menos tenaz. Faixas da literatura aberta de
+  ensino, nunca de MatWeb, Total Materia, ASM, MMPDS ou CAMPUS.
+- **A física amarra os números**: G = E/2(1+ν) e K = E/3(1−2ν) nos isotrópicos; Gc = K²/E; difusividade = k/ρcp; condutividade =
+  1/resistividade; ΔT = σ(1−ν)/Eα; alongamento de frágil = σ/E; custo por litro = custo por kg × ρ; CO₂ de processamento = energia ×
+  fator; Tg < Tfus, HDT abaixo da fusão, Tmin < Tmax; o nível de inflamabilidade segue o LOI. A base é o valor do próprio material; nos
+  70 do `seed_extended` (números de RNG, alguns fora da física) um núcleo implausível é trocado, **só para derivar**, pelo típico da
+  família — o valor gravado não muda.
+- **Ausência só onde não se aplica** (Tg de metal, fusão de termofixo, dielétrica de condutor, LOI de incombustível, índice de refração
+  de opaco heterogêneo, K de laminado anisotrópico, Charpy de espuma), gravada como ausente com a razão na nota, nunca zero. Metal, vidro e
+  cerâmica densa absorvem **zero de fato** (valor, não ausência).
+
+**Descartado.** Nova categoria "Ótica"/"Química" no enum (exigiria tela e tradução novas; ótica entra em Física, química nas ordinais);
+Rockwell (várias escalas, uma por família); reaproveitar as duas ordinais "(demo)" sorteadas (o valor gravado não muda, D-189 — ficam e
+vão ao TODO); desenhar as curvas de novo a partir do alongamento.
+
+**Consequências.** 678 × 33 pares numéricos (17 741 valores, 4 633 ausências declaradas) e 678 × 12 níveis num banco limpo. Sem migração.
+Cartão CAE e Sintetizador continuam com as propriedades de antes (TODO). O mock de IA passou a desempatar a propriedade de uma frase pela
+especificidade: com o catálogo maior, "temperatura de serviço" casava também com fusão e mínima de serviço.
+## D-189 — `semear_demo` aditivo e idempotente, para rodar de novo em produção
+
+*Decidida pelo autor.* (Sessão 146)
+
+**Contexto.** O `CLAUDE.md` curto e `.claude/rules/deploy-pos-merge.md` diziam "nunca `semear_demo` em produção". O autor decidiu rodá-lo de
+novo depois do merge do D-188, para que os 678 materiais demo do Neon ganhem as propriedades novas.
+
+**Decisão.** O seed demo é **aditivo e idempotente**: acrescenta definições, valores e níveis que faltam em materiais demo **já
+existentes**, sem duplicar e sem alterar valor gravado (a chave é o par material × propriedade; um valor que já existe, demo ou editado, fica
+como está). `seed_extended.main()` chama `seed_demo_extended_properties` por último, e o log imprime `extended_values_created`,
+`extended_missing_declared`, `extended_ordinal_definitions_created` e `extended_ordinal_values_created`. Prova: teste com o seed rodado
+duas vezes (segunda rodada cria zero, contagens iguais) e `alembic upgrade head` + `seed` + `seed_extended` duas vezes num banco limpo.
+Só escreve em material `is_demo`, sem dono e não sintetizado; material real com nome de demo não é tocado. Depois do *cutover* da base
+oficial (docs/18) continua valendo não semear demo.
+
+**Consequências.** `.claude/rules/deploy-pos-merge.md`, `docs/13-deploy.md`, o comentário de `admin-banco.yml` e o `CLAUDE.md` curto
+passam a dizer que `semear_demo` é aditivo e pode rodar no banco atual por decisão do autor; o `excluir_demo` continua irreversível.
 
 ## D-190 — Telas que se adaptam: aba ancorada, mapa sem colapso e nada cortado por `overflow: hidden`
 
