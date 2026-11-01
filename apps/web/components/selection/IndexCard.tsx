@@ -6,6 +6,7 @@ import { ptBR } from "@/lib/i18n";
 import { formatScore, prettyUnit } from "@/lib/format";
 import { Alert, Badge, RadioCard } from "@/components/ui";
 import { IconBook } from "@/components/ui/icons";
+import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import type { PerformanceIndex } from "@/lib/types";
 
 const t = ptBR.indexCard;
@@ -121,12 +122,12 @@ function dimensionLabel(dimension: string | null): string | null {
   return prettyUnit(dimension);
 }
 
+/**
+ * The expression as its reading (D-191): "Módulo de Young / Densidade" typeset,
+ * never the grammar's `modulo_young / densidade`, which is backend information.
+ */
 function Expression({ children }: { children: string }) {
-  return (
-    <code className="rounded bg-surface-sunken px-1.5 py-0.5 font-mono text-2xs text-ink">
-      {children}
-    </code>
-  );
+  return <ExpressionLabel expression={children} className="text-sm text-ink" />;
 }
 
 /** Label/value pair, used for both assumptions and derived facts. */

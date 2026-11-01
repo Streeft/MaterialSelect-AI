@@ -366,6 +366,12 @@ class TestIndexOverlay:
         assert undefined  # only two demo materials have Vickers hardness
         assert all("Dados ausentes" in p["index_undefined_reason"] for p in undefined)
         assert data["index"]["undefined_count"] == len(undefined)
+        # D-191: the reason names the property, never the grammar's variable.
+        assert all(
+            p["index_undefined_reason"] == "Dados ausentes: Dureza (Vickers)" for p in undefined
+        )
+        # An unnamed overlay is titled by its reading, too.
+        assert data["index"]["name"] == "Dureza (Vickers) / Densidade"
 
     def test_unsafe_expression_is_rejected(self, client: TestClient) -> None:
         response = client.post(

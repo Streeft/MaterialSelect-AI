@@ -805,10 +805,12 @@ class ChartService:
 
         expression = request.index.expression
         used, dimension = self._validate_expression(expression)
+        properties = self.repo.list_properties()
+        names = {safe_variable(p.slug): p.name for p in properties}
 
         evaluations: dict[int, IndexEvaluation] = {
             point.material_id: evaluate_index(
-                expression, used, variables.get(point.material_id, {})
+                expression, used, variables.get(point.material_id, {}), names
             )
             for point in points
         }
@@ -819,7 +821,7 @@ class ChartService:
 
         defined = {mid: e.value for mid, e in evaluations.items() if e.value is not None}
         overlay = IndexOverlayOut(
-            name=request.index.name,
+            name=request.index.name or friendly_label(expression, properties),
             expression=expression,
             goal=request.index.goal,
             dimension=dimension,
@@ -1150,12 +1152,15 @@ class ChartService:
         variables = self._material_variables(materials)
         properties = self.repo.list_properties()
         units = {safe_variable(p.slug): p.canonical_unit for p in properties}
+        names = {safe_variable(p.slug): p.name for p in properties}
         columns: list[ComputedColumnOut] = []
         for index in indices:
             used, dimension = self._validate_expression(index.expression)
             values: list[ComputedValueOut] = []
             for material in materials:
-                evaluation = evaluate_index(index.expression, used, variables.get(material.id, {}))
+                evaluation = evaluate_index(
+                    index.expression, used, variables.get(material.id, {}), names
+                )
                 values.append(
                     ComputedValueOut(
                         material_id=material.id,

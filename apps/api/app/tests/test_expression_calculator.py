@@ -416,3 +416,20 @@ def test_comparison_column_of_a_typed_index_is_named_by_its_reading(
     column = body["computed"][0]
     assert column["name"] == "Módulo de Young / Densidade"
     assert column["expression"] == "modulo_young / densidade"
+
+
+def test_index_endpoint_names_the_missing_property(client: TestClient) -> None:
+    body = client.post(
+        "/api/selection/index", json={"expression": "dureza / densidade", "goal": "maximize"}
+    ).json()
+    reasons = {v["undefined_reason"] for v in body["values"] if v["value"] is None}
+    assert reasons == {"Dados ausentes: Dureza (Vickers)"}
+
+
+def test_evaluator_without_labels_keeps_the_variable_names() -> None:
+    from app.calculations.performance import evaluate_index
+
+    evaluation = evaluate_index("a / b", {"a", "b"}, {"a": 1.0})
+    assert evaluation.undefined_reason == "Dados ausentes: b"
+    labelled = evaluate_index("a / b", {"a", "b"}, {"a": 1.0}, {"b": "Densidade"})
+    assert labelled.undefined_reason == "Dados ausentes: Densidade"

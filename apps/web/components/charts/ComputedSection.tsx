@@ -19,6 +19,7 @@ import {
   RowHeader,
 } from "@/components/ui";
 import { IconCalculated } from "@/components/ui/icons";
+import { ExpressionInputs, ExpressionLabel } from "@/components/expression/ExpressionLabel";
 
 const t = ptBR.compare.computed;
 const tt = ptBR.compare.threshold;
@@ -97,19 +98,21 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
                   {t.badge}
                 </Badge>
                 <span className="mt-1 block">
-                  {/* A typed index has no name but its expression: said once. */}
-                  {column.name !== column.expression ? column.name : null}
+                  {/* A typed index is named by its reading since D-191; the
+                      grammar form never reaches the reader. */}
+                  {column.name}
                   {column.dimension !== "dimensionless" && (
                     <span className="ml-1 font-normal normal-case text-ink-subtle">
                       [{prettyUnit(column.dimension)}]
                     </span>
                   )}
                 </span>
-                <span className="block font-mono text-xs font-normal normal-case text-ink-subtle">
-                  {column.expression}
+                <span className="block text-sm font-normal normal-case text-ink">
+                  <ExpressionLabel expression={column.expression} />
                 </span>
                 <span className="block text-xs font-normal normal-case text-ink-subtle">
-                  {t.inputs(column.variables.join(", "))} ·{" "}
+                  {t.inputs("")}
+                  <ExpressionInputs expression={column.expression} variables={column.variables} /> ·{" "}
                   {t.summary(column.defined_count, column.undefined_count)}
                 </span>
                 <SpreadLine column={column} thresholdSet={thresholdSet} />

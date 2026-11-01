@@ -31,6 +31,7 @@ import { funnelTsv, stagesTsv } from "@/lib/copyTables";
 import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { CopyTableButton } from "./CopyTableButton";
 import { FunnelRow, percent } from "./FunnelRow";
+import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 
 const t = ptBR.selection;
 
@@ -654,7 +655,11 @@ export function ResultsView({
           </ProvenanceItem>
           <ProvenanceItem term={t.provIndexExpression}>
             {index ? (
-              <code className="text-xs">{index.expression}</code>
+              <ExpressionLabel
+                expression={index.expression}
+                universe={result.universe}
+                className="text-sm"
+              />
             ) : (
               <span className="text-ink-muted">{t.provNone}</span>
             )}

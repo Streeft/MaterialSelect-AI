@@ -1738,12 +1738,14 @@ class SelectionService:
     def _index_result(
         self, expression: str, goal: str, name: str | None, snapshots: list[MaterialSnapshot]
     ) -> IndexResultOut:
-        used, _, dimension = self._validate_expression(expression)
+        used, var_to_slug, dimension = self._validate_expression(expression)
+        # The reason a reader sees names the property, not the grammar (D-191).
+        names = {var: self._props[slug].name for var, slug in var_to_slug.items()}
         values: list[IndexValueOut] = []
         defined = 0
         for m in snapshots:
             variables = {safe_variable(slug): val for slug, val in m.values.items()}
-            evaluation = evaluate_index(expression, used, variables)
+            evaluation = evaluate_index(expression, used, variables, names)
             values.append(
                 IndexValueOut(
                     record_id=m.id,
