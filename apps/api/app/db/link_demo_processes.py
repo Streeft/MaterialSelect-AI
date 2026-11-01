@@ -69,7 +69,7 @@ def link_demo_processes(
     materials_with_class = db.execute(stmt).all()
 
     existing = set(
-        db.execute(select(MaterialProcess.material_id, MaterialProcess.process_id)).tuples()
+        db.execute(select(MaterialProcess.material_id, MaterialProcess.process_id)).all()
     )
 
     created = 0
@@ -143,7 +143,7 @@ def sync_demo_process_links(
         select(MaterialProcess.material_id, MaterialProcess.process_id).where(
             MaterialProcess.material_id.in_([m.id for m in materials])
         )
-    ).tuples():
+    ).all():
         current.setdefault(material_id, set()).add(process_id)
 
     created = 0

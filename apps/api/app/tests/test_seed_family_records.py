@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
+from app.db.seed import PROCESS_CLASSES
 from app.models.material_class import MaterialClass
 from app.models.process import ProcessClass
 
@@ -83,11 +84,14 @@ def test_the_process_family_record_reaches_the_endpoint_with_its_processes(clien
 
 
 def test_a_branch_reports_what_is_below_it(client) -> None:
-    """`conformacao` holds nothing directly — its four subfolders do. Without the
-    subtree total the tree would show a zero and give the reader no reason to
-    open the branch that holds most of the catalogue."""
+    """`conformacao` holds nothing directly — its subfolders do (four until D-192,
+    ten with Ashby's whole range). Without the subtree total the tree would show
+    a zero and give the reader no reason to open the branch that holds most of
+    the catalogue."""
     body = client.get("/api/processes/classes/conformacao").json()
 
     assert body["process_count"] == 0
     assert body["descendant_process_count"] > 0
-    assert len(body["children"]) == 4
+    expected = [c["slug"] for c in PROCESS_CLASSES if c["parent"] == "conformacao"]
+    assert sorted(c["slug"] for c in body["children"]) == sorted(expected)
+    assert len(expected) == 10
