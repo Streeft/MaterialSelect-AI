@@ -1662,6 +1662,20 @@ aside[data-surface="rail"] .msds-rail-item {
   .m3-scaffold-grid[data-layout="supporting-pane"] { grid-template-columns: minmax(0, 1fr) minmax(0, 480px); }
 }
 
+/* D-190: the weight/criterion/tolerance rows of "Materiais semelhantes". The
+   panel sits in half of the material sheet, so the four columns are decided by
+   the rows' own width, not the window's: fixed tracks (`lg:grid-cols-[1fr_8rem_14rem_11rem]`)
+   asked for ~40rem inside a ~29rem column and `.msds-card { overflow: hidden }`
+   cut the excess off. Every track is `minmax(0, …)`, so nothing can force it wider. */
+.similar-weights { container-type: inline-size; container-name: similar-weights; min-width: 0; }
+.similar-weight-row { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+@container similar-weights (min-width: 30rem) {
+  .similar-weight-row { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
+}
+@container similar-weights (min-width: 46rem) {
+  .similar-weight-row { grid-template-columns: minmax(0, 1fr) minmax(0, 8rem) minmax(0, 14rem) minmax(0, 11rem); }
+}
+
 /* D-183: M3 Expressive components. Motion reads the --motion-* springs above;
    `prefers-reduced-motion` turns transitions and animations off at the end. */
 

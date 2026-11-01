@@ -676,7 +676,7 @@ export function StageList({
             <div className="flex flex-wrap items-end gap-4">
               <Input
                 label={t.stageLabel}
-                className="min-w-[14rem] flex-1"
+                className="min-w-[min(14rem,100%)] flex-1"
                 value={stage.label}
                 placeholder={t.stageLabelPlaceholder}
                 onChange={(e) => replace(index, { ...stage, label: e.target.value })}
@@ -902,7 +902,7 @@ function ProcessStageFields({
       <p className="text-sm text-ink-muted">{t.stageProcessesHint}</p>
 
       <div className="flex flex-wrap gap-4">
-        <div className="min-w-[14rem] flex-1">
+        <div className="min-w-[min(14rem,100%)] flex-1">
           <SlugMultiSelect
             label={t.stageProcessClasses}
             hint={t.stageClassesHint}
@@ -911,7 +911,7 @@ function ProcessStageFields({
             onChange={(processClassSlugs) => onChange({ ...stage, processClassSlugs })}
           />
         </div>
-        <div className="min-w-[14rem] flex-1">
+        <div className="min-w-[min(14rem,100%)] flex-1">
           <SlugMultiSelect
             label={t.stageProcesses}
             hint={t.stageClassesHint}
@@ -1167,7 +1167,7 @@ function ChartStageFields({
         <div className="flex flex-wrap items-end gap-3">
           <Input
             label={t.stageChartExpression}
-            className="min-w-[14rem] flex-1"
+            className="min-w-[min(14rem,100%)] flex-1"
             value={stage.indexExpression}
             placeholder={t.stageChartExpressionPlaceholder}
             onChange={(e) => onChange({ ...stage, indexExpression: e.target.value })}
@@ -1246,7 +1246,7 @@ function ChartAxisFields({
       : t.stageChartBoundsHintPlain;
 
   return (
-    <div className="well flex min-w-[18rem] flex-1 flex-col gap-3">
+    <div className="well flex min-w-[min(18rem,100%)] flex-1 flex-col gap-3">
       <p className="text-sm font-medium text-ink">{label}</p>
 
       <Select

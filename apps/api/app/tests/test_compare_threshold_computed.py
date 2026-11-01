@@ -293,4 +293,4 @@ def test_computed_is_capped() -> None:
 def test_ceiling_is_unchanged() -> None:
     from app.schemas.charts import MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES
 
-    assert (MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES) == (60, 20)
+    assert (MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES) == (5000, 20)

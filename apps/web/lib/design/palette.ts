@@ -92,6 +92,48 @@ export function classVisual(slug: string): ClassVisual {
   };
 }
 
+/** How far each tone step moves a class colour: as is, toward white, toward black. */
+const TONE_STEPS = [0, 0.34, -0.3] as const;
+
+/** Mix `#rrggbb` toward white (`amount` > 0) or black (`amount` < 0). */
+function shade(hex: string, amount: number): string {
+  if (amount === 0 || !/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
+  const target = amount > 0 ? 255 : 0;
+  const weight = Math.abs(amount);
+  const channel = (offset: number) => {
+    const value = Number.parseInt(hex.slice(offset, offset + 2), 16);
+    return Math.round(value + (target - value) * weight)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
+/**
+ * The look of the `index`-th material of one class among many (D-187).
+ *
+ * With a few materials a class is one colour and one shape. With hundreds,
+ * thirty of them share it and a line cannot be told from its neighbour. The
+ * k-th of a class takes one of three tones of the class colour and, every three,
+ * the next marker shape: 21 looks per class before one repeats. The first
+ * material keeps the class look unchanged, and the hue never leaves the class's
+ * own seat, so "which class" still reads at a glance. Identity beyond that is the
+ * legend, the hover and the table, never colour alone.
+ */
+export function classVariant(
+  visual: ClassVisual,
+  index: number,
+): { color: string; symbol: ClassSymbol } {
+  if (index <= 0) return { color: visual.color, symbol: visual.symbol };
+  const tone = TONE_STEPS[index % TONE_STEPS.length] ?? 0;
+  const base = SYMBOLS.indexOf(visual.symbol);
+  const shift = Math.floor(index / TONE_STEPS.length);
+  return {
+    color: shade(visual.color, tone),
+    symbol: SYMBOLS[(Math.max(0, base) + shift) % SYMBOLS.length] ?? visual.symbol,
+  };
+}
+
 /** Every seat, in order — for legends and for the style showcase. */
 export function paletteSeats(): ClassVisual[] {
   return OKABE_ITO.map((_, i) => ({

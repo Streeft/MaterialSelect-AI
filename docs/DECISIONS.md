@@ -11650,3 +11650,63 @@ terços, e ao lado o que ajuda a lê-lo.
   de ícone claro, perdendo a cor do botão. As regras da seta ganharam especificidade e um véu de estado M3 sobre a própria cor.
 
 **Fonte.** m3.material.io › *Foundations › Layout › Canonical layout examples* (supporting pane) e *Components › Split button*, lidas em 29 e 30/10/26.
+
+## D-190 — Telas que se adaptam: aba ancorada, mapa sem colapso e nada cortado por `overflow: hidden`
+
+**Contexto.** Itens 1 a 3 do pedido do autor depois de testar a produção: (1) o mapa "distorce" no Nível 2; (2) uma linha fixa na cor
+primária atravessa a tela; (3) a ficha do material sai cortada a 1920 px, e todas as telas têm de se adaptar. A suíte `larguras` (D-147)
+só media o `scrollWidth` do documento em rotas sem estado, e não via nenhum dos três.
+
+**Causas, reproduzidas no Chromium** (seed demo em SQLite, 678 materiais, `next dev`):
+- **Mapa.** Direto em `?nivel=2` o mapa sai certo; o defeito aparece ao **trocar** de nível (ou mexer em qualquer coisa da URL). O
+  `react-plotly.js` chama `Plotly.Plots.resize` ao montar e a cada `resize` da janela, e essa função faz `delete gd.layout.height` — e
+  `gd.layout` é o objeto que a tela memorizou com `height: 540`. Na troca de URL, `highlightIds` ganhava identidade nova (memo sobre
+  `params`), os traços eram redesenhados com o layout já sem altura, e com `responsive: true` o Plotly escrevia `height: 100%` no
+  `.svg-container`, dentro de um wrapper sem altura: 0 px. O `<svg>` de 540 px transbordava por cima de "Materiais fora do mapa". O Nível 3
+  "consertava" por acaso. Medido: `.svg-container` 566×0 a 1280 px, `#excluidos` começando 48 px abaixo do topo do gráfico.
+- **Linha.** `.msds-tab` não tinha `position`, e o `::after` (indicador, `position: absolute; left/right: 8px`) se ancorava no ancestral
+  posicionado mais próximo: uma linha da largura da página sob cada faixa de abas (Seleção/Resultados, Baterias, Comparar, Estilo, Cadernos).
+- **Ficha.** As linhas de peso/critério/tolerância de "Materiais semelhantes" tinham trilhas fixas (`lg:grid-cols-[1fr_8rem_14rem_11rem]`,
+  ~40rem) numa coluna de meia largura; o `fieldset` (que por padrão não encolhe abaixo do conteúdo) crescia e o `.msds-card { overflow: hidden }`
+  cortava o resto (686 px de conteúdo em 466 px a 1280). A 375 px, a linha de ações do cabeçalho (`shrink-0`) também passava do cartão.
+
+**Decisão.**
+- **A altura de uma figura Plotly mora no CSS do wrapper, nunca em `layout.height`** (`components/charts/usePlotlyResize.ts`:
+  `PLOTLY_HEIGHT` para mapa 540, Ragone 480, posição na ficha 380; o mapa de `/app/mapas` usa `fillHeight`, o *clamp* pela altura da janela).
+  O mesmo hook põe um `ResizeObserver` no wrapper que chama `Plotly.Plots.resize`: o Plotly só escuta a janela, e um painel que abre ou uma
+  grade que reflui muda a caixa sem mudar a janela. Vale para `AshbyMap`, `RagoneChart` e `PropertyChart`.
+- `restrictedIds`/`highlightIds` do mapa são memorizados sobre as **strings** da URL, não sobre `params`.
+- O painel de controles do mapa fica abaixo da barra de busca fixa (`lg:top-[72px]`, o mesmo valor do painel de apoio de D-182).
+- `.msds-tab { position: relative }`.
+- **Trilhas de grade com `minmax(0, …)` e larguras mínimas com teto** (`min-w-[min(14rem,100%)]`): "Materiais semelhantes" decide as colunas
+  pela própria largura (consulta de contêiner `similar-weights`, 1 → 2 → 4 colunas), e a varredura trocou as trilhas fixas de `ReleaseChanges`,
+  catálogo, `IndexCard`, `FunnelRow`, `FamilyNote`, glossário, `SearchHelp`, Estilo e os `min-w-[14–18rem]` de `StageList`, mapas e
+  `CustomIndexForm`. A tabela de propriedades da ficha (`PropertyGroup`) rola dentro de `TableScroll` em vez de ser cortada.
+- **`e2e/larguras.spec.ts` passa a ver o que o `scrollWidth` não vê**, nas quatro larguras: nenhum elemento visível com `overflow: hidden`
+  e conteúdo mais largo que ele (reticências e rótulos `sr-only` ficam de fora), nenhum indicador de aba mais largo que a faixa, a ficha de
+  um material, `/app/selecao?etapa=resultados` e `/app/mapas?nivel=2`, e a troca Nível 1 → 2 no mapa com o `<svg>` dentro do próprio
+  contêiner e acima de `#excluidos`. Os três testes novos falham na `main` e passam com a correção.
+
+**Fora.** Nenhum número novo no cliente: as figuras continuam desenhando o que o backend mandou (ADR 0004). Sem backend nem migração.
+## D-187 — Barras, Radar e Paralelas desenham a seleção inteira
+
+**Contexto.** O usuário pediu que os três gráficos mostrem toda a seleção, como o mapa de calor, e que o teto de 60 do comparador saia também. Os tetos de
+D-113 (barras 12, radar 8, paralelas 30) recusavam a figura por escrito; a API recusava mais de 60 ids.
+
+**Decisão.**
+- **Nenhuma figura recusa a seleção.** `COMPARISON_FIGURE_LIMITS` e `figureRefusal` foram removidos. Até 30 materiais, as figuras ficam como eram. Acima disso
+  (`DENSE_FROM`) mudam de forma, sem tocar em escore algum (ADR 0004): `comparisonDensity.ts` só tem aritmética de desenho.
+- **Barras:** espessura mínima de 4 px (3 px acima de 60), gráfico alto na proporção de N dentro de uma caixa com rolagem; escala fixa no topo. Uma barra por
+  material e propriedade, sem nó interativo por barra: o ponteiro acha a barra por conta (`barAt`), o teclado percorre com as setas e o item em foco é escrito
+  sob a figura. **Radar e Paralelas:** linhas finas cuja opacidade cai com a raiz de N (`lineOpacity`), o material sob o mouse ou o foco redesenhado por cima,
+  grosso; o resto escurece por um único atributo na raiz. Paralelas ganham altura com N (até 760 px). Ausência segue sendo vão hachurado ou quebra da linha, nunca zero
+  (D-24); o radar segue desenhando só materiais completos e lista os demais (até 12 nomes e a contagem).
+- **Legibilidade:** dentro de uma classe, o k-ésimo material usa um de três tons da cor da classe e, a cada três, o marcador seguinte (`classVariant`); legenda
+  rolável, com um só ponto de tabulação, setas e "Ocultar todos / Mostrar todos"; tooltip de 1 linha (barras) ou do material inteiro (linhas) em vez de N linhas.
+- **Teto da API: 60 para 5000**, só como válvula de segurança (cerca de 7 vezes o catálogo); id desconhecido já dá 404. O front espelha o valor.
+- **URL:** `?materiais=` aceita faixas (`1-679`, `encodeIdList`/`parseIdList`), então a seleção inteira cabe em poucos caracteres; lista dispersa de 679 ids tem cerca de
+  3 KB. O pedido ao servidor é POST. Se o catálogo passar de uns 2000 ids dispersos, a URL deixa de caber e será preciso entregar os ids por estado; não feito.
+- **Tabela** em blocos de 100 linhas ("Mostrar mais / todos"): 600 linhas eram 160 mil nós e 3,4 s. A cópia TSV continua com tudo. **Mapa de calor:** grade memorizada
+  e sem animação acima de 30 materiais.
+
+**Consequência.** Substitui os tetos de D-113 (TM3) para as figuras. Exportação SVG/PNG leva a figura inteira (nada é recortado por janela).

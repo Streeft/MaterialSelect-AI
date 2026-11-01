@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatScore, prettyUnit } from "@/lib/format";
 import { axisLabels as buildAxisLabels, chartFileName } from "@/lib/charts";
-import { classVisual } from "@/lib/design/palette";
+import { classVariant, classVisual } from "@/lib/design/palette";
 import {
   Alert,
   Badge,
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui";
 import { PropertyHint } from "@/components/glossary/PropertyHint";
 import { ChartFrame } from "./ChartFrame";
+import { DENSE_FROM } from "./comparisonDensity";
 import { FigureData, type FigureColumn } from "./FigureData";
 import { CopyTableButton } from "@/components/selection/CopyTableButton";
 import { comparisonTsv } from "@/lib/copyTables";
@@ -42,6 +43,12 @@ import {
 
 const t = ptBR.compare;
 
+/** Past this many materials, members of one class are told apart by tone and marker (D-187). */
+const CLASS_VARIANTS_FROM = 12;
+
+/** Table rows drawn at first; the rest come with "Mostrar mais" (a 600-row table is 160 thousand nodes, D-187). */
+const TABLE_CHUNK = 100;
+
 export type ComparisonMode =
   | "table"
   | "bars"
@@ -56,30 +63,6 @@ export const COMPARISON_MODES: { key: ComparisonMode; label: string }[] = [
   { key: "parallel", label: t.viewParallel },
   { key: "heatmap", label: t.viewHeatmap },
 ];
-
-/**
- * How many series each figure can carry before it stops being legible (TM3).
- * Past the limit the figure is not drawn and the screen says so in writing,
- * showing the table instead (D-31); the heatmap and the table have no limit.
- * Geometry and scores stay in the backend — this only decides whether to draw.
- */
-export const COMPARISON_FIGURE_LIMITS: Partial<Record<ComparisonMode, number>> =
-  {
-    bars: 12,
-    radar: 8,
-    parallel: 30,
-  };
-
-/** The written reason a figure is not drawn for `count` materials, or null. */
-export function figureRefusal(
-  mode: ComparisonMode,
-  count: number,
-): string | null {
-  const max = COMPARISON_FIGURE_LIMITS[mode];
-  if (max === undefined || count <= max) return null;
-  const view = COMPARISON_MODES.find((m) => m.key === mode)?.label ?? mode;
-  return t.figureTooMany(view, max, count);
-}
 
 interface ComparisonViewProps {
   comparison: Comparison;
@@ -163,6 +146,13 @@ export function ThresholdSummary({ comparison }: { comparison: Comparison }) {
   );
 }
 
+/** The names of `materials`, all of them for a few and the first dozen plus a count for many (D-187). */
+function listNames(materials: CompareMaterial[]): string {
+  const NAMED = 12;
+  const names = materials.slice(0, NAMED).map((m) => m.name).join(", ");
+  return materials.length > NAMED ? `${names} e mais ${materials.length - NAMED}` : names;
+}
+
 /** Index a material's cells by property slug — the API guarantees one per property. */
 function cellsBySlug(material: CompareMaterial): Map<string, CompareCell> {
   return new Map(material.cells.map((cell) => [cell.property_slug, cell]));
@@ -193,26 +183,34 @@ export function ComparisonView({
     [lookup],
   );
 
+  const [rowsShown, setRowsShown] = useState(TABLE_CHUNK);
   const incomplete = materials.filter((m) => !m.complete);
 
   // What every figure draws: one series per material (class colour and marker
   // shape, D-28) and one axis per property. Symbols only when unambiguous: two
   // identical labels on one axis would be read as the same property.
-  const series = useMemo<CompareSeries[]>(
-    () =>
-      materials.map((m) => {
-        const visual = classVisual(m.class_slug);
-        return {
-          id: m.material_id,
-          name: m.name,
-          className: m.class_name,
-          color: visual.color,
-          symbol: visual.symbol,
-          complete: m.complete,
-        };
-      }),
-    [materials],
-  );
+  //
+  // D-187: with a few materials the class look is the whole story. With many,
+  // several share a class, so the k-th of a class takes its own tone and, every
+  // third, its own marker shape (`classVariant`); the first keeps the class look.
+  const series = useMemo<CompareSeries[]>(() => {
+    const seen = new Map<string, number>();
+    const crowded = materials.length > CLASS_VARIANTS_FROM;
+    return materials.map((m) => {
+      const visual = classVisual(m.class_slug);
+      const k = seen.get(m.class_slug) ?? 0;
+      seen.set(m.class_slug, k + 1);
+      const look = crowded ? classVariant(visual, k) : visual;
+      return {
+        id: m.material_id,
+        name: m.name,
+        className: m.class_name,
+        color: look.color,
+        symbol: look.symbol,
+        complete: m.complete,
+      };
+    });
+  }, [materials]);
   const axes = useMemo<CompareAxisView[]>(() => {
     const labels = buildAxisLabels(properties);
     return properties.map((p, i) => ({
@@ -252,17 +250,14 @@ export function ComparisonView({
     }),
   );
 
-  const refusal = figureRefusal(mode, materials.length);
-
-  if (mode === "table" || refusal !== null) {
+  if (mode === "table") {
     // Many rows: the box gets a height so the header (sticky) and the material
     // column (sticky) stay in view while the reader scrolls both ways.
     const wide = materials.length > 12;
     const hint = t.wideHint(materials.length);
     return (
       <div className="flex flex-col gap-3">
-        {refusal !== null && <Alert tone="warning">{refusal}</Alert>}
-        {hint !== null && refusal === null && (
+        {hint !== null && (
           <p className="text-support text-ink-subtle">{hint}</p>
         )}
         <div className="flex justify-end">
@@ -330,7 +325,7 @@ export function ComparisonView({
               </Tr>
             </THead>
             <TBody>
-              {materials.map((material) => (
+              {materials.slice(0, rowsShown).map((material) => (
                 <Tr key={material.material_id}>
                   <RowHeader className="sticky left-0 z-[1] bg-panel">
                     {material.name}
@@ -433,6 +428,19 @@ export function ComparisonView({
             </TBody>
           </Table>
         </TableScroll>
+        {materials.length > rowsShown && (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-support text-ink-subtle">
+              {t.rowsShown(rowsShown, materials.length)}
+            </span>
+            <Button size="sm" variant="secondary" onClick={() => setRowsShown((n) => n + TABLE_CHUNK)}>
+              {t.showMoreRows(TABLE_CHUNK)}
+            </Button>
+            <Button size="sm" variant="link" onClick={() => setRowsShown(materials.length)}>
+              {t.showAllRows}
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -447,15 +455,18 @@ export function ComparisonView({
       exportName={fileName}
       exportDisabled={!canDraw}
       notice={
-        mode === "radar" && (properties.length < 3 || incomplete.length > 0) ? (
+        (mode === "radar" && (properties.length < 3 || incomplete.length > 0)) ||
+        (mode !== "heatmap" && materials.length > DENSE_FROM) ? (
           <div className="mb-3 flex flex-col gap-2">
-            {properties.length < 3 && (
+            {materials.length > DENSE_FROM && (
+              <p className="text-support text-ink-subtle">{t.denseFigure(materials.length)}</p>
+            )}
+            {mode === "radar" && properties.length < 3 && (
               <Alert tone="warning">{t.radarNeedsThree}</Alert>
             )}
-            {incomplete.length > 0 && (
+            {mode === "radar" && incomplete.length > 0 && (
               <Alert tone="warning">
-                {t.radarSkipsMissing} (
-                {incomplete.map((m) => m.name).join(", ")})
+                {t.radarSkipsMissing} ({listNames(incomplete)})
               </Alert>
             )}
           </div>

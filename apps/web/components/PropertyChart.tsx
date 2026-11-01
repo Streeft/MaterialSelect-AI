@@ -21,6 +21,7 @@ import { IconChartScatter } from "@/components/ui/icons";
 import { ChartLegend } from "@/components/charts/ChartLegend";
 import { ChartTooltip, type TooltipContent } from "@/components/charts/ChartTooltip";
 import { FigureData, type FigureColumn } from "@/components/charts/FigureData";
+import { PLOTLY_HEIGHT, usePlotlyResize } from "@/components/charts/usePlotlyResize";
 
 // Plotly touches the DOM/window, so it must not render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -57,6 +58,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
   const [scale, setScale] = useState<Scale>("log");
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
+  const plotBox = usePlotlyResize<HTMLDivElement>();
 
   const { plotted, xs, ys, labels, colors, sizes, droppedForLog } = useMemo(() => {
     const plotted: ChartPoint[] = [];
@@ -108,7 +110,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
     () => ({
       ...paint.layout,
       autosize: true,
-      height: 380,
+      // D-190: the wrapper sets the height (PLOTLY_HEIGHT); see usePlotlyResize.
       margin: { l: 70, r: 20, t: 10, b: 55 },
       showlegend: false,
       uirevision: `${data.x_property_slug}|${data.y_property_slug}|${scale}`,
@@ -201,7 +203,10 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
         ) : null
       }
     >
-      <div className="chart-plotly relative" role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
+      <div
+        ref={plotBox}
+        className={`chart-plotly relative ${PLOTLY_HEIGHT.property}`}
+        role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
         <Plot
           data={[
             {
@@ -227,7 +232,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
             // to select on a material sheet.
             modeBarButtonsToRemove: ["toImage", "lasso2d", "select2d"],
           }}
-          style={{ width: "100%" }}
+          style={{ width: "100%", height: "100%" }}
           useResizeHandler
           onHover={handleHover as unknown as (event: unknown) => void}
           onUnhover={() => setTip(null)}

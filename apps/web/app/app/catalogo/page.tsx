@@ -147,7 +147,7 @@ export default function CatalogPage() {
             field styles its control, not its wrapper, so the columns come from
             the grid; `items-start` keeps the three labels on one line even
             though only the search carries a hint under it. */}
-        <CardBody className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_14rem_auto]">
+        <CardBody className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,12rem)_minmax(0,14rem)_auto]">
           <Input
             label={t.searchLabel}
             type="search"

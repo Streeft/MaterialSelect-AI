@@ -714,10 +714,28 @@ class TestCompare:
         response = client.post(COMPARE_URL, json={"material_ids": [], "property_slugs": []})
         assert response.status_code == 422
 
-    def test_too_many_materials_is_rejected(self, client: TestClient) -> None:
+    def test_more_than_the_old_ceiling_is_no_longer_rejected_by_the_schema(
+        self, client: TestClient
+    ) -> None:
+        """D-187: 79 ids (past the old 60) reach the service, which answers 404 for the
+        ids that do not exist, not 422 from the schema."""
         response = client.post(
             COMPARE_URL,
             json={"material_ids": list(range(1, 80)), "property_slugs": ["densidade"]},
+        )
+        assert response.status_code == 404
+
+    def test_a_list_past_the_safety_ceiling_is_rejected_by_the_schema(
+        self, client: TestClient
+    ) -> None:
+        from app.schemas.charts import MAX_COMPARE_MATERIALS
+
+        response = client.post(
+            COMPARE_URL,
+            json={
+                "material_ids": list(range(1, MAX_COMPARE_MATERIALS + 2)),
+                "property_slugs": ["densidade"],
+            },
         )
         assert response.status_code == 422
 
