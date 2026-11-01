@@ -41,7 +41,7 @@ from sqlalchemy.orm import Session
 from app.db.base import Base, SessionLocal, engine
 from app.db.demo_catalog import load_lots
 from app.db.demo_identity_data import designation_table, parse_composition, parse_designation
-from app.db.link_demo_processes import link_demo_processes
+from app.db.link_demo_processes import sync_demo_process_links
 from app.db.seed import (
     DEMO_DESIGNATIONS,
     DEMO_MATERIALS,
@@ -518,8 +518,8 @@ def seed_demo_catalog_expansion(
     * Designação e composição pelo escritor único ``_seed_demo_identity``.
     * Curvas derivadas das propriedades de cada um, com a forma do
       ``curve_hint`` do lote (``build_curve_specs`` com ``names``/``hints``).
-    * Processos por classe **só** para os ids destes materiais: sem
-      ``material_ids``, ``link_demo_processes`` tocaria material real também.
+    * Processos por subclasse (D-192) **só** para os ids destes materiais;
+      ``sync_demo_process_links`` nunca toca material real de todo modo.
     * Os três valores do cartão CAE vêm escritos nos lotes, então
       ``seed_demo_cae_values`` (que só preenche par ausente) não entra aqui.
     """
@@ -538,13 +538,13 @@ def seed_demo_catalog_expansion(
     names = [m["name"] for m in chosen]
     hints = {m["name"]: m["curve_hint"] for m in chosen if m.get("curve_hint")}
     curves = _seed_demo_curves(db, source, build_curve_specs(db, names=names, hints=hints))
-    links = link_demo_processes(db, material_ids=tcc_demo_material_ids(db, chosen))
+    links = sync_demo_process_links(db, material_ids=tcc_demo_material_ids(db, chosen))
     return {
         "tcc_materials_created": created,
         "tcc_designations_created": identity["designations_created"],
         "tcc_composition_entries_created": identity["composition_entries_created"],
         "tcc_curves_created": curves,
-        "tcc_process_links_created": links["links_created"],
+        "tcc_process_links_created": links["demo_process_links_created"],
     }
 
 
@@ -572,6 +572,8 @@ def main() -> None:
         created = seed_extended_materials(db, demo_source)
         expansion = seed_demo_catalog_expansion(db, demo_source)  # D-185: 593 do TCC
         releases = seed_demo_releases(db)  # D-108: duas releases fictícias comparáveis
+        # D-192: os 70 e os 10 das releases também ganham processos por subclasse.
+        process_links = sync_demo_process_links(db)
         identity = seed_extended_identity(db, demo_source)
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
         cae_values = seed_demo_cae_values(db, demo_source, EXTENDED_DEMO_MATERIALS)  # D-124
@@ -583,6 +585,7 @@ def main() -> None:
     print(f"[seed_extended] Concluído: {created} materiais criados.")
     print(f"[seed_extended] Catálogo demo ampliado (D-185): {expansion}")
     print(f"[seed_extended] Releases demo: {releases}")
+    print(f"[seed_extended] Processos demo por subclasse (D-192): {process_links}")
     print(f"[seed_extended] Identidade e curvas demo: {identity}")
     print(f"[seed_extended] Equivalências demo: {equivalences}")
     print(f"[seed_extended] Valores CAE demo: {{'cae_values_created': {cae_values}}}")
