@@ -151,6 +151,18 @@ def _letter_latex(text: str) -> str:
     return "".join(out).strip()
 
 
+#: Symbols whose conventional typesetting no general rule recovers: a
+#: subscript in mixed case (K_Ic), a function name (tan δ), a Greek prefix
+#: (ΔT_c), an instrument scale (Shore A). Keyed by the catalogue's spelling.
+_SYMBOL_OVERRIDES = {
+    "KIc": r"K_{\mathrm{Ic}}",
+    "tanδ": r"\tan\delta",
+    "ΔTc": r"\Delta T_{\mathrm{c}}",
+    "ShA": r"\mathrm{Shore\ A}",
+    "ShD": r"\mathrm{Shore\ D}",
+}
+
+
 def symbol_latex(symbol: str) -> str:
     """Typeset a catalogue symbol the way Ashby writes it.
 
@@ -161,6 +173,8 @@ def symbol_latex(symbol: str) -> str:
     subscript.
     """
     symbol = symbol.strip()
+    if symbol in _SYMBOL_OVERRIDES:
+        return _SYMBOL_OVERRIDES[symbol]
     if "_" in symbol:
         base, sub = symbol.split("_", 1)
     elif len(symbol) > 1 and not (symbol[1].isupper()):
@@ -176,8 +190,12 @@ def symbol_latex(symbol: str) -> str:
             if translated != char:
                 parts.append(f"_{{{translated}}}")
             else:
-                parts.append(_letter_latex(char))
-        return "".join(parts)
+                latex = _letter_latex(char)
+                # A command followed by a letter would fuse ("\DeltaT").
+                parts.append(
+                    latex + " " if latex.startswith("\\") and latex[-1].isalpha() else latex
+                )
+        return "".join(parts).strip()
 
     base_latex = run(base)
     if len(base) > 1 and all(c.isascii() or c in "₀₁₂₃₄₅₆₇₈₉" for c in base):

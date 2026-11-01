@@ -241,6 +241,11 @@ def test_symbol_rendering_follows_ashby() -> None:
     assert symbol_latex("HV") == r"\mathrm{HV}"
     assert symbol_latex("CO₂m") == r"\mathrm{CO_{2}m}"
     assert symbol_latex("ṅ") == r"\dot{n}"
+    # The extended catalogue (D-188): no command fuses with the next letter.
+    assert symbol_latex("ΔT") == r"\Delta T"
+    assert symbol_latex("ΔTc") == r"\Delta T_{\mathrm{c}}"
+    assert symbol_latex("KIc") == r"K_{\mathrm{Ic}}"
+    assert symbol_latex("tanδ") == r"\tan\delta"
 
 
 def test_every_function_renders() -> None:
