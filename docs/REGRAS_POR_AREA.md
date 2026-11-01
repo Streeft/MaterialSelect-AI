@@ -186,6 +186,15 @@ que uma planilha leria como fórmula (número não). Nos relatórios e no laudo 
 sai na seção "Notas do autor" (`Onde | Nota`), com o escape do formato de cada saída; sem nota,
 a seção diz que não há.
 
+**D-191: a gramática de índice é uma só, e o leitor nunca vê o nome interno**
+([D-191](DECISIONS.md)): funções, constantes e mensagens moram em
+`calculations/expressions.py` (`FUNCTIONS`, `CONSTANTS`); o LaTeX e a leitura em
+texto saem do AST em `calculations/expression_render.py`, nunca de troca de texto.
+Na tela, expressão se edita com `ExpressionBuilder` e se mostra com
+`ExpressionLabel` (KaTeX); slug só no modo "Digitar". Um campo novo de expressão
+usa os dois; uma legenda gerada no servidor usa `friendly_label`. KaTeX roda com
+`trust: false` e só recebe TeX do backend.
+
 ## Processos (D-57, D-59)
 
 **O P0-2 deu o segundo universo** ([D-57](DECISIONS.md)): `ProcessClass`

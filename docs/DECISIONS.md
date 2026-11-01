@@ -11710,3 +11710,41 @@ D-113 (barras 12, radar 8, paralelas 30) recusavam a figura por escrito; a API r
   e sem animação acima de 30 materiais.
 
 **Consequência.** Substitui os tetos de D-113 (TM3) para as figuras. Exportação SVG/PNG leva a figura inteira (nada é recortado por janela).
+
+## D-191 — Calculadora visual de índice: cartões, KaTeX e o nome da propriedade no lugar do slug
+
+**Contexto.** O usuário pediu (item 6) uma calculadora "fácil de entender, visual e super interativa", no estilo Symbolab, Desmos
+scientific e calculadoraonline: lista de propriedades para escolher, cartões arrastáveis para uma calculadora virtual com as
+operações, busca rápida que já traz o cartão ao digitar, e nenhum nome de bastidor na tela — `modulo_young / densidade` é informação
+de backend; o leitor vê "Módulo de Young / Densidade", com a fórmula em LaTeX. O público é estudante e engenheiro. O catálogo de
+propriedades vai crescer (dezenas a mais), então a lista não pode ser escrita no cliente.
+
+**Decisão.**
+- **A gramática continua uma só** (`calculations/expressions.py`) e cresce: `ln`, `log10`, `exp`, `pow`, `min`, `max`, `sq` (x²),
+  `inv` (1/x) e as constantes `pi` e `e`, ao lado de `sqrt`, `cbrt`, `abs`. `FUNCTIONS` e `CONSTANTS` são a lista; aridade conferida
+  (`min`/`max` de 2 a 8). `ln`/`log10`/`exp` só aceitam argumento **adimensional** (no Pint só a dimensão é conferida, porque ali as
+  grandezas valem 1 por construção; no `float` o domínio é imposto e um ln de valor não positivo deixa o índice **indefinido** para o
+  material, nunca zero). `sq`, `inv` e `pow` são potências e preservam a lei de potência; as demais sobre propriedades não têm linha reta.
+  Toda recusa leva o trecho (`ExpressionError.start/end`, em caracteres, não bytes), e `^` é recusado dizendo para usar `**`.
+- **O LaTeX é gerado no backend a partir do AST** (`calculations/expression_render.py`): nomes amigáveis em `\text{}` escapado, a versão
+  com símbolos à moda de Ashby (`σy` → `\sigma_{\mathrm{y}}`, `E^{1/2}`), números com vírgula decimal, frações, raízes e parênteses só
+  onde a precedência exige; e uma leitura em texto simples (`√(Módulo de Young) / Densidade`) para onde não se tipografa.
+- **Dois endpoints finos** (`routers/expressions.py` → `ExpressionService`): `POST /api/expressions/describe` (normalizada, árvore,
+  LaTeX nos dois modos, leitura, dimensão, unidade do resultado, variáveis, `is_multiplicative`, erros com posição — **sempre 200**,
+  porque a calculadora pergunta a cada mudança) e `GET /api/expressions/palette?universe=` (propriedades ou atributos numéricos de
+  processo por categoria, com nome, símbolo em LaTeX e unidade; funções com rótulo de tecla e ajuda; constantes). A validade do
+  `describe` é a mesma do `/selection/index` (teste de equivalência), inclusive a recusa nomeada de propriedade ordinal.
+- **Frontend:** `ExpressionBuilder` substitui as caixas de texto do comparador, da Seleção (índice), dos Mapas (eixo e sobreposição) e
+  do Estágio de gráfico (linha e eixo). Paleta lida da API, agrupada por categoria, busca sem acento (Enter insere o primeiro); fita de
+  peças com cursor; teclado científico (funções e constantes vindas da paleta); arrastar e soltar **HTML5 nativo** (cartão para a fita
+  e peça para outro lugar), com **clique e teclado** como alternativa (setas, Backspace, Delete, Ctrl+Z, números e operadores direto na
+  fita, letra abre a busca); visor em **KaTeX** (única dependência nova, MIT, `trust: false`) com nomes ou símbolos, validade, unidade e a
+  peça do erro marcada; modo "Digitar" que guarda o texto; exemplos clássicos e ajuda passo a passo. Nada é avaliado no cliente.
+- **O slug sai da tela:** `ExpressionLabel` (KaTeX via `describe`, em cache) no `IndexCard`, na proveniência dos Resultados, nas colunas
+  calculadas (com os insumos pelo nome) e nas expressões adicionadas ao comparador; o servidor intitula eixo de índice sem nome,
+  sobreposição e coluna calculada pela leitura (`friendly_label`), escreve "Dados ausentes: Módulo de Young" e usa a leitura na prosa do
+  estágio de gráfico e na legenda do mapa no relatório. O TSV das colunas calculadas leva só o nome.
+
+**Fora, de propósito.** A planilha do índice nas exportações e o arquivo de estudo guardam a expressão na gramática (é o que reproduz o
+cálculo). O `Dimensionar` mostra as expressões do catálogo de casos de carga, cujas variáveis não são slugs. Sem migração; KaTeX entra
+pelo `package.json` do web.

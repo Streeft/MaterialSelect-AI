@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 148 — 01/11/26 — Calculadora visual de índice com KaTeX e leitura amigável (D-191)
+
+**O que mudou.** A gramática de índice ganhou `ln`, `log10`, `exp`, `pow`, `min`, `max`, `sq`, `inv`, `pi` e `e`, com aridade, domínio
+adimensional para as transcendentes e posição em cada recusa. `expression_render.py` gera do AST o LaTeX com nomes, com símbolos e a
+leitura em texto; `POST /api/expressions/describe` e `GET /api/expressions/palette` servem a calculadora. `ExpressionBuilder` (cartões
+por categoria com busca sem acento, fita com cursor, teclado científico, arrastar nativo com alternativa por clique e teclado, visor KaTeX,
+modo Digitar, exemplos e ajuda) entrou no comparador, na Seleção, nos Mapas e no Estágio de gráfico; `ExpressionLabel` tira o slug de
+`IndexCard`, Resultados e colunas calculadas. No servidor, eixo de índice sem nome, sobreposição, coluna calculada, "Dados ausentes",
+prosa do estágio de gráfico e legenda do mapa no relatório passaram a usar o nome da propriedade. Testes que falham na `main` e passam
+aqui: título do eixo de índice, motivo de ausência no `/selection/index` e prosa do relatório. E2E novo `e2e/calculadora.spec.ts`
+monta E^(1/2)/ρ por cliques e busca. Contagens em `PROJECT_CONTEXT.md`. Numeração: D-187 a D-190 já usados ou com PRs abertos. Sem
+migração; dependência nova: `katex` 0.16.47 (MIT).
+
 ## Sessão 147 — 31/10/26 — Telas que se adaptam: aba, mapa no Nível 2 e ficha sem corte (D-190)
 
 **O que mudou.** Três defeitos de tela reproduzidos no Chromium e corrigidos. A linha primária que atravessava a página era o indicador de aba

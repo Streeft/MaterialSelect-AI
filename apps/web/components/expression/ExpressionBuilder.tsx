@@ -516,19 +516,7 @@ function Display({
       className="well flex min-w-0 flex-col gap-2"
       data-testid="expression-display"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div
-          className={cn(
-            "min-h-12 min-w-0 flex-1 overflow-x-auto py-1 text-xl text-ink transition-opacity",
-            stale && "opacity-60",
-          )}
-        >
-          {empty ? (
-            <p className="text-sm text-ink-muted">{t.displayEmpty}</p>
-          ) : latex ? (
-            <MathTex latex={latex} label={description?.label ?? text} display />
-          ) : null}
-        </div>
+      <div className="flex justify-end">
         <ButtonGroup label={t.notationLabel}>
           <ButtonGroupItem
             selected={notation === "names"}
@@ -545,6 +533,18 @@ function Display({
             {t.showSymbols}
           </ButtonGroupItem>
         </ButtonGroup>
+      </div>
+      <div
+        className={cn(
+          "min-h-12 min-w-0 overflow-x-auto py-1 text-xl text-ink transition-opacity",
+          stale && "opacity-60",
+        )}
+      >
+        {empty ? (
+          <p className="text-sm text-ink-muted">{t.displayEmpty}</p>
+        ) : latex ? (
+          <MathTex latex={latex} label={description?.label ?? text} display />
+        ) : null}
       </div>
       <div aria-live="polite" className="min-h-5 text-support">
         {empty ? null : failed ? (
@@ -1085,7 +1085,7 @@ function Keypad({
         <KeyButton label="−" spoken={t.keys.minus} tone="op" onPress={() => onKey("-")} />
         <KeyButton label="0" spoken="0" tone="num" onPress={() => onKey("0")} />
         <KeyButton label="," spoken={t.keys.decimal} tone="num" onPress={() => onKey(",")} />
-        <KeyButton label="xʸ" spoken={t.keys.power} tone="op" onPress={() => onKey("^")} />
+        <KeyButton label="^" spoken={t.keys.power} tone="op" onPress={() => onKey("^")} />
         <KeyButton label=";" spoken={t.keys.separator} tone="op" onPress={() => onKey(";")} />
         <KeyButton label="⌫" spoken={t.keys.backspace} tone="danger" onPress={() => onKey("Backspace")} />
       </div>

@@ -153,6 +153,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Seleção tem o funil ao lado** ([D-186](docs/DECISIONS.md)): etapas de entrada em `PaneScaffold` *supporting-pane* com `LiveFunnel`, que só lê a prévia
   do servidor (nenhum número no cliente; `FunnelRow` é o mesmo dos resultados). Com objetivo, Executar é `SplitButton` com "Executar só os limites".
 
+- **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
+  HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
+  fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum
