@@ -117,7 +117,7 @@ function EntryCard({
         {entry ? (
           <>
             <p className="text-sm text-ink">{entry.summary}</p>
-            <dl className="well grid gap-3 text-sm sm:grid-cols-[10rem_1fr]">
+            <dl className="well grid gap-3 text-sm sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
               <dt className="font-medium text-ink-muted">{t.definition}</dt>
               <dd className="text-ink">{entry.definition}</dd>
               <dt className="font-medium text-ink-muted">{t.howMeasured}</dt>

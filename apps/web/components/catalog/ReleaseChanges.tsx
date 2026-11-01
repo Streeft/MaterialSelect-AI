@@ -335,7 +335,7 @@ function ReleaseComparison({
 
           <Card>
             <CardHeader headingLevel={2} title={t.filtersTitle} />
-            <CardBody className="grid items-end gap-3 md:grid-cols-[14rem_14rem_16rem_auto]">
+            <CardBody className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,14rem)_minmax(0,14rem)_minmax(0,16rem)_auto]">
               <Select
                 label={t.filterStatus}
                 value={tipo ?? ""}

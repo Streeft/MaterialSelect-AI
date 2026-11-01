@@ -246,7 +246,7 @@ export function SimilarPanel({
     <Section id="semelhantes" title={t.title} description={t.hint}>
       <Card>
         <CardBody className="flex flex-col gap-4">
-          <fieldset className="flex flex-col gap-2">
+          <fieldset className="flex min-w-0 flex-col gap-2">
             <legend className="text-sm font-medium text-ink">
               {t.basisLabel}
             </legend>
@@ -276,7 +276,9 @@ export function SimilarPanel({
           </fieldset>
 
           {basis.length > 0 && (
-            <fieldset className="well flex flex-col gap-3">
+            // `min-w-0`: a fieldset is `min-inline-size: min-content` by default
+            // and would grow past its column instead of letting the rows wrap.
+            <fieldset className="well flex min-w-0 flex-col gap-3">
               <legend className="text-sm font-medium text-ink">
                 {t.settingsTitle}
               </legend>
@@ -295,14 +297,14 @@ export function SimilarPanel({
               <p className="text-support text-ink-muted">
                 {t.propertyToleranceHint}
               </p>
-              <div className="flex flex-col gap-3">
+              <div className="similar-weights flex flex-col gap-3">
                 {basis.map((slug) => {
                   const name = nameOf(slug);
                   const own = propertyTolerance(slug);
                   return (
                     <div
                       key={slug}
-                      className="grid gap-2 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_8rem_14rem_11rem]"
+                      className="similar-weight-row"
                     >
                       <span className="text-sm text-ink">{name}</span>
                       <Select

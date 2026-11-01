@@ -95,7 +95,7 @@ export function CustomIndexForm({
           placeholder={t.placeholder}
           autoComplete="off"
           spellCheck={false}
-          className="min-w-[16rem] flex-1"
+          className="min-w-[min(16rem,100%)] flex-1"
         />
         <div className="pt-6">
           <Button type="submit" size="sm" variant="secondary" loading={validate.isPending}>

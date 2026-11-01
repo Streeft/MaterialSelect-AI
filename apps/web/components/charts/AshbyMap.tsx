@@ -22,6 +22,7 @@ import { IconChartScatter } from "@/components/ui/icons";
 import { ChartLegend, type LegendItem } from "./ChartLegend";
 import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
+import { PLOTLY_HEIGHT, usePlotlyResize } from "./usePlotlyResize";
 
 // Plotly touches window/document, so it must never render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -256,6 +257,7 @@ export function AshbyMap({
   // figure has to be rebuilt when the reader switches — not only recoloured.
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
+  const plotBox = usePlotlyResize<HTMLDivElement>();
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
   const [localDragMode, setLocalDragMode] = useState<"select" | "zoom">("select");
@@ -599,9 +601,9 @@ export function AshbyMap({
       // linear axis and its hover numbers follow the rest of the app.
       separators: ",.",
       autosize: true,
-      // With `fillHeight` the container sets the height and Plotly's own
-      // resize handler follows it; a number here would win over the CSS.
-      height: fillHeight ? undefined : 540,
+      // D-190: the wrapper sets the height (540 px, or the viewport clamp with
+      // `fillHeight`); a number here is deleted by Plotly's resize and then
+      // collapses the figure to 0 px (see usePlotlyResize).
       margin: { l: 76, r: 24, t: 16, b: 56 },
       hoverlabel: {
         bgcolor: paint.tooltipBg,
@@ -636,7 +638,7 @@ export function AshbyMap({
         ...(isLog ? logAxisTicks(map.y_axis.min_value, map.y_axis.max_value) : {}),
       },
     };
-  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox, fillHeight]);
+  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox]);
 
   // The legend MSDS draws under its scatter: one button per class (colour *and*
   // marker shape, D-28), then one per index level the backend traced.
@@ -762,12 +764,13 @@ export function AshbyMap({
           into one object for assistive technology. What replaces them is the
           data table behind "Ver tabela de dados", not a longer label. */}
       <div
+        ref={plotBox}
         className={cn(
           "chart-plotly relative",
           // Viewport height minus the page header and the card's own toolbar
           // and legend, never shorter than a readable plot nor taller than a
           // square-ish one on a very tall screen.
-          fillHeight && "h-[clamp(26rem,calc(100dvh-17rem),54rem)]",
+          fillHeight ? "h-[clamp(26rem,calc(100dvh-17rem),54rem)]" : PLOTLY_HEIGHT.map,
         )}
         role="img"
         aria-label={ptBR.chart.figureLabel(t.figure)}
@@ -791,7 +794,7 @@ export function AshbyMap({
           onHover={handleHover as unknown as (event: unknown) => void}
           onUnhover={() => setTip(null)}
           onInitialized={() => rebindHandlers()}
-          style={{ width: "100%", height: fillHeight ? "100%" : undefined }}
+          style={{ width: "100%", height: "100%" }}
           useResizeHandler
         />
         <ChartTooltip content={tip} />

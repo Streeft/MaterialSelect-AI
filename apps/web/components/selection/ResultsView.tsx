@@ -29,6 +29,7 @@ import {
 import { candidatesTsv } from "@/lib/selection/copyTable";
 import { funnelTsv, stagesTsv } from "@/lib/copyTables";
 import { copyTablesText } from "@/lib/i18n-copy-tables";
+import { encodeIdList } from "@/lib/idList";
 import { CopyTableButton } from "./CopyTableButton";
 import { FunnelRow, percent } from "./FunnelRow";
 
@@ -375,7 +376,10 @@ export function ResultsView({
                     >
                       {t.viewOnMap}
                     </ButtonLink>
-                    <ButtonLink href={`/app/comparar?materiais=${candidateIds}`} variant="secondary">
+                    <ButtonLink
+                      href={`/app/comparar?materiais=${encodeIdList(candidates.map((c) => c.record_id))}`}
+                      variant="secondary"
+                    >
                       {t.compareCandidates}
                     </ButtonLink>
                   </div>

@@ -129,3 +129,48 @@
 
 /* The legend under a figure: marker and name, no box — the AI Studio row. */
 .chart-legend-row { margin-top: var(--space-3); gap: 6px 16px; }
+
+
+/* D-187: a legend of hundreds scrolls in its own box, so it never pushes the
+   figure's notes off the screen; the figure's own scroll frame is below it. */
+.chart-legend-box { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.chart-legend-long {
+  margin-top: 0;
+  max-height: 9.5rem;
+  overflow-y: auto;
+  padding: var(--space-2);
+  border: 1px solid rgb(var(--edge));
+  border-radius: 8px;
+  background: rgb(var(--surface-sunken));
+}
+.chart-legend-all {
+  font-size: 12px;
+  color: rgb(var(--accent));
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* A tall figure (hundreds of materials) scrolls vertically inside its card. */
+.chart-scroll-frame {
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 8px;
+}
+.chart-scroll-frame:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+
+/* The dense figures are one tab stop with the arrows inside; the ring is drawn
+   in the SVG, so the browser's own outline would only draw a box around it all. */
+.chart-dense { outline: none; }
+.chart-dense:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 6px; }
+.chart-readout { margin: var(--space-2) 0 0; font-size: 12px; color: rgb(var(--ink-muted)); min-height: 1.4em; }
+.chart-dense-line { transition: opacity 120ms var(--msds-ease); }
+
+/* D-187: dense lines. The opacity is one custom property on the figure, so a
+   hover re-styles the root, not hundreds of lines; the line in focus is drawn
+   again on top by the figure itself. */
+.chart-dense-line { opacity: var(--dense-opacity, 0.5); }
+.chart-dense[data-focus="true"] .chart-dense-line { opacity: calc(var(--dense-opacity, 0.5) * 0.35); }

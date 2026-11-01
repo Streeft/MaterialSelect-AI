@@ -19,6 +19,8 @@ declare module "plotly.js/lib/core" {
     toImage(root: HTMLElement, options: PlotlyToImageOptions): Promise<string>;
     /** Add trace modules to this Plotly instance. */
     register(modules: unknown[]): void;
+    /** Re-measure a drawn graph against its container (D-190). */
+    Plots: { resize(root: HTMLElement): Promise<unknown> };
   }
 
   const Plotly: PlotlyStatic;

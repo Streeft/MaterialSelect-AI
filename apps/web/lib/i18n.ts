@@ -2539,6 +2539,12 @@ export const ptBR = {
       `${title}. Figura; a tabela de dados equivalente abre pela alternância “Tabela”.`,
     legend: "Legenda",
     legendToggle: "Legenda — clique num item para mostrar ou ocultar a série",
+    // D-187: com centenas de séries a legenda rola e ganha atalhos para todas.
+    legendScroll: "Legenda rolável; use as setas para percorrer os itens",
+    legendHideAll: "Ocultar todos",
+    legendShowAll: "Mostrar todos",
+    denseReadout: (words: string) => `Em foco: ${words}`,
+    denseKeys: "Use as setas para percorrer os materiais; Home e End vão às pontas.",
     otherMaterials: "Demais materiais",
     missingOnAxis: (n: number) => `${n} ${n === 1 ? "ausente" : "ausentes"}`,
     indexLevel: "Linha de índice",
@@ -2855,17 +2861,23 @@ export const ptBR = {
     lockedUntilMaterial: "Escolha ao menos um material no passo 1.",
     lockedUntilProperty: "Escolha ao menos uma propriedade no passo 2.",
     selectedCount: (chosen: number, max: number) => `${chosen} de ${max}`,
+    materialsCount: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
     noMaterialsFound: "Nenhum material corresponde ao filtro.",
     figure: "Comparação de materiais",
-    // TM3 (D-113): a tabela comporta dezenas; cada figura tem o seu teto de
-    // legibilidade e diz por escrito quando para de desenhar.
+    // D-187: nenhuma figura recusa a seleção; com muitos materiais ela muda de
+    // forma (linhas finas, rolagem, destaque ao passar o mouse), e diz isso aqui.
     wideHint: (n: number) =>
       n > 12
-        ? `${n} materiais: a tabela e o mapa de calor comportam todos; barras, radar e coordenadas paralelas têm limite de legibilidade.`
+        ? `${n} materiais: a tabela rola nos dois sentidos, com o cabeçalho e a coluna do material fixos. As figuras desenham todos.`
         : null,
-    figureTooMany: (view: string, max: number, n: number) =>
-      `A vista "${view}" só é desenhada com até ${max} materiais (há ${n}). Os valores continuam na tabela abaixo; use o mapa de calor ou reduza a seleção.`,
+    denseFigure: (n: number) =>
+      `${n} materiais, todos desenhados: as linhas ficam finas e translúcidas, a figura e a legenda rolam, e o material sob o mouse ou o foco aparece em destaque.`,
+    rowsShown: (shown: number, total: number) => `Mostrando ${shown} de ${total} materiais na tabela.`,
+    showMoreRows: (n: number) => `Mostrar mais ${n}`,
+    showAllRows: "Mostrar todos",
+    scrollRegion: "Figura com muitos materiais; role para ver todos",
+    legendRegion: "Legenda dos materiais, rolável",
     tableRegion: (n: number, p: number) => `Tabela de comparação, ${n} materiais por ${p} propriedades`,
   },
   categories: {

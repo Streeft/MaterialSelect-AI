@@ -16,7 +16,7 @@ export function SearchHelp({ onUse }: { onUse?: (query: string) => void }) {
     <Disclosure summary={t.searchHelpTitle} flush>
       <div className="flex flex-col gap-3 px-1 pb-2 pt-3 text-sm">
         <p className="max-w-prose text-ink-muted">{t.searchHelpIntro}</p>
-        <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,16rem)_1fr]">
+        <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
           {t.searchHelpExamples.map((example) => (
             <div key={example.query} className="contents">
               <dt>

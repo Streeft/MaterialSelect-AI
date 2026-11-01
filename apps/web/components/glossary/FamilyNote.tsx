@@ -130,7 +130,7 @@ export function FamilyNoteContent({ note }: { note: FamilyNoteEntry }) {
           </ul>
         </div>
       </div>
-      <dl className="grid gap-x-3 gap-y-1 text-support sm:grid-cols-[10rem_1fr]">
+      <dl className="grid gap-x-3 gap-y-1 text-support sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
         <dt className="font-medium text-ink-muted">{t.reference}</dt>
         <dd className="text-ink">{note.reference ?? t.referenceMissing}</dd>
         <dt className="font-medium text-ink-muted">{t.license}</dt>
