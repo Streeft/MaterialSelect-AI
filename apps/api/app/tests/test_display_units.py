@@ -223,9 +223,10 @@ def test_toda_convencao_semeada_e_valida():
     from app.db.seed import PROPERTIES
 
     conventions = [p for p in PROPERTIES if p.get("display_unit")]
-    # Cinco grandezas têm convenção de leitura; as outras se leem como estão
-    # guardadas. O número está fixado para que acrescentar uma passe por aqui.
-    assert len(conventions) == 5
+    # Cinco grandezas do núcleo e 21 do catálogo ampliado (D-188) têm convenção
+    # de leitura; as outras se leem como estão guardadas. O número está fixado
+    # para que acrescentar uma passe por aqui.
+    assert len(conventions) == 26
 
     for spec in conventions:
         reading = reading_for(

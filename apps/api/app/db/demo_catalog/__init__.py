@@ -44,7 +44,7 @@ from app.db.demo_identity_data import (
     parse_composition,
     parse_designation,
 )
-from app.db.seed import PROPERTIES
+from app.db.seed import CORE_SLUGS, PROPERTIES
 from app.domain.composition import build_composition_entry, validate_composition
 from app.domain.data_quality import build_interval_value, build_scalar_value
 from app.models.enums import DataQuality, DesignationSystem
@@ -54,8 +54,13 @@ LOT_DIR = Path(__file__).resolve().parent
 LOT_GLOB = "L*.json"
 
 #: slug -> (canonical unit, accepted units), straight from the seed's definitions.
+#: Only the core 15 (D-188): a lot carries exactly one row for each of them, and
+#: the extended catalogue is filled afterwards by ``seed_demo_extended_props``,
+#: so the JSON lots never change when a definition is added.
 UNITS: dict[str, tuple[str, frozenset[str]]] = {
-    spec["slug"]: (spec["canonical_unit"], frozenset(spec["accepted_units"])) for spec in PROPERTIES
+    spec["slug"]: (spec["canonical_unit"], frozenset(spec["accepted_units"]))
+    for spec in PROPERTIES
+    if spec["slug"] in CORE_SLUGS
 }
 #: The three a lot may write absent, with a note (HV that does not apply,
 #: recycling route not established). Every other one feeds a screen.

@@ -14,8 +14,11 @@ frontend (Vercel) publica automaticamente a cada push em `main`. Depois de
 mesclar qualquer PR que toque `apps/api/**`, dispare os dois workflows
 manuais na aba Actions: **Deploy da API** (`deploy-api.yml`) sempre, e
 **Administração do banco** (`admin-banco.yml`): `semear_referencia` mantém só
-referência real reutilizável; `semear_demo` recria propositalmente os seeds
-fictícios e só deve ser usado em desenvolvimento/demo. Depois do cutover
+referência real reutilizável; `semear_demo` acrescenta o demo fictício que
+falta — aditivo e idempotente, sem duplicar nem alterar valor já gravado
+([D-189](docs/DECISIONS.md)) — e, por decisão do autor, pode rodar no banco de
+produção atual depois de um PR que traga definições ou valores demo novos (como
+o D-188); confira no log as contagens `extended_*`. Depois do cutover
 oficial, nunca use `semear_demo` no banco de produção. A carga oficial segue
 `docs/18-catalogo-oficial-granta.md`. Se o PR
 mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`

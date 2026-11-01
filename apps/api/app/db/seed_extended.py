@@ -50,6 +50,7 @@ from app.db.seed import (
 )
 from app.db.seed_demo_cae import seed_demo_cae_values
 from app.db.seed_demo_equivalences import seed_demo_equivalences
+from app.db.seed_demo_extended_props import seed_demo_extended_properties
 from app.db.seed_demo_ordinal import seed_demo_ordinals
 from app.db.seed_demo_releases import DEMO_RELEASES, seed_demo_releases
 from app.db.seed_extended_identity import build_curve_specs, seed_extended_identity
@@ -575,6 +576,8 @@ def main() -> None:
         equivalences = seed_demo_equivalences(db, demo_source)  # D-115 (TM1)
         cae_values = seed_demo_cae_values(db, demo_source, EXTENDED_DEMO_MATERIALS)  # D-124
         ordinals = seed_demo_ordinals(db, demo_source)  # D-126
+        # D-188/D-189: o catálogo ampliado em todo material demo; só o que falta.
+        extended = seed_demo_extended_properties(db, demo_source)
         db.commit()
 
     print(f"[seed_extended] Concluído: {created} materiais criados.")
@@ -584,6 +587,7 @@ def main() -> None:
     print(f"[seed_extended] Equivalências demo: {equivalences}")
     print(f"[seed_extended] Valores CAE demo: {{'cae_values_created': {cae_values}}}")
     print(f"[seed_extended] Propriedades ordinais demo: {ordinals}")
+    print(f"[seed_extended] Catálogo ampliado (D-188): {extended}")
 
 
 if __name__ == "__main__":

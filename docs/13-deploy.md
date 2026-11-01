@@ -249,13 +249,23 @@ Três detalhes que não são arbitrários:
 - **As ações `semear_referencia` e `semear_demo` rodam `alembic upgrade head` antes do seed.** `app.db.seed`
   chama `create_all` por conveniência, e num banco vazio isso criaria as tabelas
   sem carimbo do Alembic — a migração seguinte quebraria.
+- **`semear_demo` é aditivo e idempotente ([D-189](DECISIONS.md)).** Rodado num
+  banco que já tem o demo, ele só acrescenta o que falta — definições, valores
+  e níveis ordinais novos em materiais demo existentes — sem duplicar e sem
+  alterar valor já gravado; rodado de novo, cria zero. O autor decidiu rodá-lo
+  em produção depois do merge do [D-188](DECISIONS.md) (catálogo ampliado):
+  **Deploy da API** primeiro, depois `semear_demo`, e conferir no log a linha
+  `Catálogo ampliado (D-188)` (`extended_values_created`,
+  `extended_missing_declared`, `extended_ordinal_values_created`). Num banco
+  limpo a primeira rodada cria 17 741 valores, 4 633 ausências declaradas e
+  8 136 níveis ordinais; a segunda, zero.
 - **`excluir_demo` é irreversível**, e não é algo para disparar depois de um
   merge comum — só no cutover. Apaga exclusivamente linhas `is_demo=True` em
   `Material`, `Process`, `TransportMode`, `BatteryChemistry`,
   `PerformanceIndex` e `Source`, com as dependências explícitas; uma fonte
   demo ainda citada por registro real faz o comando abortar. Depois do cutover,
-  `semear_referencia` é o seed seguro; `semear_demo` recriaria dados
-  fictícios deliberadamente e não deve ser usado naquele banco. Ver
+  `semear_referencia` é o seed seguro; `semear_demo` acrescentaria dados
+  fictícios e não deve ser usado naquele banco. Ver
   [`docs/15-dados-demonstrativos.md`](15-dados-demonstrativos.md) e
   [`18-catalogo-oficial-granta.md`](18-catalogo-oficial-granta.md).
 - **`conhecimento_simular_remocao` antes de `conhecimento_remover`, sempre.**
@@ -313,7 +323,7 @@ fixa, para qualquer agente ou pessoa que mesclar um PR nesta base:
 | O PR tocou em… | Disparar | Por quê |
 |---|---|---|
 | `apps/api/**` (rotas, serviços, modelos, migração) | **Deploy da API** (`deploy-api.yml`, sem entrada nenhuma) | `flyctl deploy` constrói a imagem nova; o `release_command` aplica `alembic upgrade head` antes do primeiro tráfego. |
-| `apps/api/app/db/seed.py` / `seed_extended.py` para desenvolvimento/demo | **Administração do banco**, `semear_demo` | Recria deliberadamente dados fictícios. **Não usar depois do cutover oficial.** |
+| `apps/api/app/db/seed.py` / `seed_extended.py` / `seed_demo_extended_props.py` para desenvolvimento/demo | **Administração do banco**, `semear_demo` | Acrescenta o demo que falta, sem duplicar nem alterar valor gravado (D-189); pode rodar no banco atual por decisão do autor. **Não usar depois do cutover oficial.** |
 | `apps/api/app/db/seed_reference.py` ou referência real reutilizável | **Administração do banco**, `semear_referencia` | Mantém taxonomias/definições/dados reais sem recriar materiais, processos ou modais demo. |
 | bundle oficial novo ou nova release do catálogo | `catalogo_oficial_validar` → conferir log → snapshot do banco → `excluir_demo` (somente no primeiro cutover) → `semear_referencia` → `catalogo_oficial_importar` | O dry-run prova hashes/contagens/referências; o import recusa enquanto houver demo e grava tudo numa transação. Ver `18-catalogo-oficial-granta.md`. |
 | `Cérebro/**` ou `Cérebro/manifesto.json` (PDF novo ou trocado, entrada nova no manifesto; `removidos.txt` é a linha abaixo) | **Base de conhecimento (Cérebro)**, `ingerir` — fora do horário de aula | Nada no deploy lê o Cérebro: sem este passo o arquivo está no repositório e não no RAG. Os vetores dos trechos novos chegam na execução noturna ([D-101](DECISIONS.md), §5-septies). |
