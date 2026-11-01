@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 147 — 31/10/26 — Telas que se adaptam: aba, mapa no Nível 2 e ficha sem corte (D-190)
+
+**O que mudou.** Três defeitos de tela reproduzidos no Chromium e corrigidos. A linha primária que atravessava a página era o indicador de aba
+sem âncora (`.msds-tab` ganhou `position: relative`). O mapa "distorcido" ao trocar para o Nível 2 era o `.svg-container` do Plotly com 0 px:
+`Plots.resize` apaga `layout.height` do objeto memorizado e o redesenho seguinte punha `height: 100%` num wrapper sem altura; a altura passou
+para o CSS do wrapper (`usePlotlyResize`, também em Ragone e na ficha), com `ResizeObserver`, `fillHeight` no mapa, memo pelas strings da URL e
+o painel de controles abaixo da barra de busca. A ficha cortada era "Materiais semelhantes" com trilhas fixas num cartão `overflow: hidden`:
+consulta de contêiner e `minmax(0, …)`, e a mesma varredura em mais dez arquivos; a tabela de propriedades foi para `TableScroll`.
+`e2e/larguras.spec.ts` mede corte por `overflow: hidden`, indicador de aba e a troca de nível do mapa, e visita ficha, resultados e Nível 2:
+3 testes novos falham na `main` e passam aqui; a suíte `larguras` inteira passa (24). +1 de frontend (vitest do indicador): 1542 passam (140
+arquivos). Numeração: D-186/Sessão 144 já eram do #212 e D-187 a D-189/Sessões 145 e 146 estão com os PRs paralelos. Sem backend nem migração.
+
 ## Sessão 146 — 31/10/26 — Catálogo ampliado: 45 propriedades novas em todo material demo; `semear_demo` aditivo (D-188, D-189)
 
 **O que mudou.** 33 definições numéricas novas (total 48) em `app/db/property_catalog_extended.py`, com nível (4 no L1, 17 no L2, 12
@@ -132,8 +144,16 @@ duas vezes num banco limpo com `alembic upgrade head` — a segunda rodada cria 
 de sempre (`CORE_SLUGS`), então os JSON não mudaram. Achado e corrigido: o mock de IA mandava "temperatura de serviço" para a
 primeira propriedade com "temperatura" no nome (com 48, a fusão ou a mínima de serviço); agora desempata pela especificidade.
 Testes que fixavam 15 propriedades passam a 48 com a contagem à mão explicada. +49 testes de backend
-(`test_seed_demo_extended_props.py`); suíte 5239 (5233 passam, 6 pulam). Sem migração; frontend sem mudança. Rules, `docs/13`, `docs/15`, workflow e `CLAUDE.md` curto
+(`test_seed_demo_extended_props.py`); suíte 5239 (5233 passam, 6 pulam); 5241 depois do merge com D-187 e D-190. Sem migração; frontend sem mudança. Rules, `docs/13`, `docs/15`, workflow e `CLAUDE.md` curto
 atualizados para o `semear_demo` aditivo.
+
+## Sessão 145 — 30/10/26 — Barras, Radar e Paralelas sem limite de materiais (D-187)
+
+**O que mudou.** Saíram os tetos de legibilidade (barras 12, radar 8, paralelas 30) e o teto de 60 do comparador: as três figuras desenham a seleção inteira,
+como o mapa de calor. Acima de 30 materiais mudam de forma (SVG enxuto, linhas finas e translúcidas, rolagem, destaque ao passar o mouse ou focar, legenda
+rolável com "Ocultar/Mostrar todos"). O teto da API passou de 60 para 5000 (válvula de segurança). Links com ids usam faixas (`1-679`). Tabela em blocos de 100 linhas.
+Medido em Chromium headless (200 / 600 materiais x 15 propriedades): barras 174 / 428 ms, radar 191 / 289 ms, paralelas 175 / 350 ms; mapa de calor com
+arrasto do mouse de 367 para 18 ms por movimento (grade memorizada). Testes: frontend 1562 (+21), backend +1; a suíte inteira de `app/tests` não foi rodada aqui.
 
 ## Sessão 144 — 30/10/26 — Seleção com o funil ao lado e "Executar seleção ▾" (D-186)
 

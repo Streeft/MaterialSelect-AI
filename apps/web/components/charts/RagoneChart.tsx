@@ -14,6 +14,7 @@ import { logAxisTicks, titled } from "./AshbyMap";
 import { ChartFrame } from "./ChartFrame";
 import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
+import { PLOTLY_HEIGHT, usePlotlyResize } from "./usePlotlyResize";
 
 // Plotly touches window/document, so it must never render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -43,6 +44,7 @@ function axisTitle(axis: RagoneAxis): string {
 export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; headingLevel?: 2 | 3 | 4 }) {
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
+  const plotBox = usePlotlyResize<HTMLDivElement>();
   const [tip, setTip] = useState<TooltipContent | null>(null);
 
   const { x_axis: xAxis, y_axis: yAxis } = data;
@@ -109,7 +111,7 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
       // pt-BR (D-30): decimal comma, thousands point.
       separators: ",.",
       autosize: true,
-      height: 480,
+      // D-190: the wrapper sets the height (PLOTLY_HEIGHT); see usePlotlyResize.
       margin: { l: 76, r: 24, t: 16, b: 56 },
       hoverlabel: {
         bgcolor: paint.tooltipBg,
@@ -231,7 +233,10 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
     >
       {/* `role="img"` collapses Plotly's nodes into one object for assistive
           technology; what replaces them is the data table (D-31). */}
-      <div className="chart-plotly relative" role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
+      <div
+        ref={plotBox}
+        className={`chart-plotly relative ${PLOTLY_HEIGHT.ragone}`}
+        role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
         <Plot
           data={traces}
           layout={layout}
@@ -242,7 +247,7 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
           }}
           onHover={handleHover as unknown as (event: unknown) => void}
           onUnhover={() => setTip(null)}
-          style={{ width: "100%" }}
+          style={{ width: "100%", height: "100%" }}
           useResizeHandler
         />
         <ChartTooltip content={tip} />

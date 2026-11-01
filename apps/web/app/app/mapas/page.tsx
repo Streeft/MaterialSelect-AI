@@ -29,6 +29,7 @@ import type {
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
 import { optionsAtLevel } from "@/lib/depth";
+import { encodeIdList } from "@/lib/idList";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { PropertyHint } from "@/components/glossary/PropertyHint";
@@ -127,7 +128,7 @@ function AxisControl({
   const selectedProperty = properties.find((p) => p.slug === axis.property);
 
   return (
-    <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
+    <div className="flex min-w-[min(16rem,100%)] flex-1 flex-col gap-2">
       {allowIndex && (
         <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
           <ButtonGroupItem
@@ -194,7 +195,7 @@ function AxisControl({
             <div className="flex flex-wrap items-end gap-2">
               <Input
                 label={t.expression}
-                className="min-w-[12rem] flex-1"
+                className="min-w-[min(12rem,100%)] flex-1"
                 value={axis.customExpression}
                 onChange={(e) => onChange({ ...axis, customExpression: e.target.value })}
                 placeholder="modulo_young / densidade"
@@ -280,11 +281,13 @@ function MapsPageContent() {
   const [handoffError, setHandoffError] = useState<string | null>(null);
 
   // Records carried over from a selection run, so a study can be read on the map.
-  const restrictedIds = useMemo(
-    () => parseIds(params.get(universe === "process" ? "processos" : "materiais")),
-    [params, universe],
-  );
-  const highlightIds = useMemo(() => parseIds(params.get("destaque")), [params]);
+  // Memoised on the strings, not on `params` (D-190): every URL change (a
+  // level, a unit) gives `params` a new identity, and a new array here redraws
+  // the whole map for nothing.
+  const restrictedRaw = params.get(universe === "process" ? "processos" : "materiais");
+  const highlightRaw = params.get("destaque");
+  const restrictedIds = useMemo(() => parseIds(restrictedRaw), [restrictedRaw]);
+  const highlightIds = useMemo(() => parseIds(highlightRaw), [highlightRaw]);
 
   const properties = useQuery({
     queryKey: ["properties"],
@@ -865,6 +868,7 @@ function MapsPageContent() {
                 map={map.data}
                 displayScale={displayScale}
                 isFetching={map.isFetching}
+                fillHeight
                 highlightIds={highlightIds}
                 showEnvelopes={showEnvelopes}
                 showIntervals={showIntervals}
@@ -911,7 +915,7 @@ function MapsPageContent() {
               {universe === "material" && map.data.points.length > 0 && (
                 <div>
                   <ButtonLink
-                    href={`/app/comparar?materiais=${map.data.points.map((p) => p.material_id).join(",")}`}
+                    href={`/app/comparar?materiais=${encodeIdList(map.data.points.map((p) => p.material_id))}`}
                     size="sm"
                   >
                     {t.compareSelected} →
@@ -927,7 +931,9 @@ function MapsPageContent() {
         <aside
           id="controles"
           aria-labelledby="controles-titulo"
-          className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+          // Below the sticky search bar (72 px, as the supporting pane of D-182),
+          // not under it (D-190).
+          className="lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
         >
           <Card>
             <CardHeader
@@ -1119,7 +1125,7 @@ function MapsPageContent() {
                                 <div className="flex flex-wrap items-end gap-3">
                                   <Input
                                     label={t.expression}
-                                    className="min-w-[16rem] flex-1"
+                                    className="min-w-[min(16rem,100%)] flex-1"
                                     value={customExpression}
                                     onChange={(e) => setCustomExpression(e.target.value)}
                                     placeholder="modulo_young / densidade"
@@ -1161,7 +1167,7 @@ function MapsPageContent() {
                                   <Select
                                     label={t.levelThrough}
                                     hint={t.levelsHint}
-                                    className="min-w-[14rem]"
+                                    className="min-w-[min(14rem,100%)]"
                                     value=""
                                     onChange={(e) => {
                                       const id = Number(e.target.value);

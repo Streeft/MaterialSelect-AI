@@ -15,6 +15,7 @@ import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
 import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES } from "@/lib/compareLimits";
+import { parseIdList } from "@/lib/idList";
 import { prettyUnit } from "@/lib/format";
 import { optionsAtLevel } from "@/lib/depth";
 import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
@@ -49,17 +50,12 @@ import {
 const t = ptBR.compare;
 
 // Mirrors MAX_COMPARE_* in apps/api/app/schemas/charts.py; the server rejects
-// anything larger, and the UI should not let the user get that far.
+// anything larger. The materials' ceiling is a safety valve far above the
+// catalogue (D-187), so the selection is never in practice cut by it.
 const MAX_MATERIALS = MAX_COMPARE_MATERIALS;
 const MAX_PROPERTIES = MAX_COMPARE_PROPERTIES;
 
-function parseIds(raw: string | null): number[] {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((part) => Number.parseInt(part.trim(), 10))
-    .filter((id) => Number.isInteger(id) && id > 0);
-}
+const parseIds = parseIdList;
 
 function ComparePageContent() {
   const params = useSearchParams();
@@ -338,7 +334,7 @@ function ComparePageContent() {
           description={t.pickMaterials}
           actions={
             <Badge tone={materialsFull ? "warning" : "neutral"}>
-              {t.selectedCount(selectedMaterials.length, MAX_MATERIALS)}
+              {t.materialsCount(selectedMaterials.length)}
             </Badge>
           }
         >
@@ -361,7 +357,16 @@ function ComparePageContent() {
             <p className="text-sm text-ink-muted">{t.noneChosen}</p>
           ) : (
             <div className="flex flex-col gap-2">
-              <ul aria-label={t.chosenMaterials} className="flex flex-wrap gap-2">
+              {/* A whole-catalogue selection (D-187) is hundreds of chips: the
+                  list scrolls inside its card instead of pushing the figure away. */}
+              <ul
+                aria-label={t.chosenMaterials}
+                className={
+                  chosenMaterials.length > 40
+                    ? "flex max-h-56 flex-wrap gap-2 overflow-y-auto"
+                    : "flex flex-wrap gap-2"
+                }
+              >
                 {chosenMaterials.map((m) => (
                   <li key={m.id}>
                     <RemovableChip
