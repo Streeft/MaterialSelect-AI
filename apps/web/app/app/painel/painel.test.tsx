@@ -5,9 +5,21 @@ import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { ptBR } from "@/lib/i18n";
-import type { DashboardOverview, PropertyDistribution } from "@/lib/types";
+import { dashboardText as d } from "@/lib/i18n-dashboard";
+import type {
+  DashboardActivity,
+  DashboardComposition,
+  DashboardCorrelation,
+  DashboardOverview,
+  DashboardProcesses,
+  DashboardPropertyStats,
+  DashboardSources,
+  DashboardTop,
+  PropertyDistribution,
+} from "@/lib/types";
 
 const t = ptBR.dashboard;
 
@@ -17,10 +29,36 @@ const t = ptBR.dashboard;
 vi.mock("react-plotly.js", () => ({ default: () => null }));
 
 // PageHeader reads its section from the current route (Task 1) — the mock
-// needs a real pathname so `sectionForPath` doesn't crash on `null`.
+// needs a real pathname so `sectionForPath` doesn't crash on `null`. The
+// panel keeps its tab and filters in the URL (D-193), so the mock is a tiny
+// store: `router.replace` changes the search and re-renders its readers.
+const nav = vi.hoisted(() => ({
+  search: new URLSearchParams(),
+  listeners: new Set<() => void>(),
+  push: (() => undefined) as (url: string) => void,
+}));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/painel",
+  useSearchParams: () =>
+    useSyncExternalStore(
+      (listener: () => void) => {
+        nav.listeners.add(listener);
+        return () => nav.listeners.delete(listener);
+      },
+      () => nav.search,
+    ),
+  useRouter: () => ({
+    replace: (url: string) => {
+      nav.search = new URLSearchParams(url.split("?")[1] ?? "");
+      nav.listeners.forEach((listener) => listener());
+    },
+    push: (url: string) => nav.push(url),
+  }),
 }));
+
+function at(search: string) {
+  nav.search = new URLSearchParams(search);
+}
 
 const overview: DashboardOverview = {
   materials: 5,
@@ -131,12 +169,174 @@ const distributions: Record<string, PropertyDistribution> = {
   },
 };
 
-const getDashboardOverview = vi.fn(() => Promise.resolve(overview));
-const getDashboardDistribution = vi.fn((slug: string) => Promise.resolve(distributions[slug]));
+const filtersOut = { class_slug: null, subclass: null, level: 3, demo: "todos" as const, materials: 5 };
+
+const composition: DashboardComposition = {
+  filters: filtersOut,
+  width: 160,
+  height: 90,
+  cells: [
+    { key: "c:metais", depth: 0, class_slug: "metais", class_name: "Metais", subclass: null, count: 2, share_pct: 66.7, x0: 0, y0: 0, x1: 106.7, y1: 90 },
+    { key: "s:metais:Aços", depth: 1, class_slug: "metais", class_name: "Metais", subclass: "Aços", count: 2, share_pct: 66.7, x0: 0, y0: 0, x1: 106.7, y1: 90 },
+    { key: "c:ceramicas", depth: 0, class_slug: "ceramicas", class_name: "Cerâmicas", subclass: null, count: 1, share_pct: 33.3, x0: 106.7, y0: 0, x1: 160, y1: 90 },
+    { key: "s:ceramicas:", depth: 1, class_slug: "ceramicas", class_name: "Cerâmicas", subclass: null, count: 1, share_pct: 33.3, x0: 106.7, y0: 0, x1: 160, y1: 90 },
+  ],
+};
+
+const processes: DashboardProcesses = {
+  filters: filtersOut,
+  processes: 2,
+  families: [
+    { slug: "uniao", name: "União", root_slug: "uniao", root_name: "União", processes: 2, materials: 3 },
+  ],
+  by_process: [
+    { slug: "solda-mig", name: "Solda MIG", family_slug: "uniao", family_name: "União", materials: 2, share_pct: 40 },
+    { slug: "adesivagem", name: "Adesivagem", family_slug: "uniao", family_name: "União", materials: 0, share_pct: 0 },
+  ],
+  by_material_class: [{ class_slug: "metais", class_name: "Metais", materials: 2, processes: 2 }],
+  materials_with_process: 3,
+  materials_without_process: 2,
+};
+
+const sources: DashboardSources = {
+  filters: filtersOut,
+  values: 6,
+  sources: [
+    {
+      key: "1",
+      label: "Fonte Demo",
+      is_demo: true,
+      license_label: null,
+      materials: 5,
+      values: 6,
+      medido: 4,
+      importado: 1,
+      estimado: 1,
+      declared_missing: 1,
+      share_pct: 100,
+    },
+  ],
+};
+
+const stats: DashboardPropertyStats = {
+  filters: filtersOut,
+  property_slug: "modulo_young",
+  property_name: "Módulo de Young",
+  symbol_latex: null,
+  category: "MECANICA",
+  display_unit: "GPa",
+  better_direction: "HIGHER",
+  allows_log_scale: true,
+  log_bins: false,
+  count: 1,
+  declared_missing: 0,
+  not_recorded: 4,
+  coverage_pct: 20,
+  minimum: 200,
+  q1: 200,
+  median: 200,
+  q3: 200,
+  maximum: 200,
+  mean: 200,
+  bins: [{ lower: 200, upper: 200, count: 1 }],
+};
+
+const emptyStats: DashboardPropertyStats = {
+  ...stats,
+  property_slug: "densidade",
+  property_name: "Densidade",
+  count: 0,
+  minimum: null,
+  q1: null,
+  median: null,
+  q3: null,
+  maximum: null,
+  mean: null,
+  coverage_pct: null,
+  bins: [],
+};
+
+const top: DashboardTop = {
+  filters: filtersOut,
+  kind: "property",
+  slug: "modulo_young",
+  label: "Módulo de Young",
+  expression: null,
+  unit: "GPa",
+  order: "melhor",
+  direction: "maior",
+  ranked: 2,
+  without_value: 3,
+  items: [
+    { rank: 1, material_id: 11, name: "Aço A", class_slug: "metais", class_name: "Metais", subclass: "Aços", is_demo: true, value: 210 },
+    { rank: 2, material_id: 12, name: "Aço B", class_slug: "metais", class_name: "Metais", subclass: null, is_demo: true, value: 190 },
+  ],
+};
+
+const correlation: DashboardCorrelation = {
+  filters: filtersOut,
+  method: "spearman",
+  min_pairs: 5,
+  properties: [
+    { slug: "densidade", name: "Densidade", symbol_latex: null, count: 5 },
+    { slug: "modulo_young", name: "Módulo de Young", symbol_latex: null, count: 2 },
+  ],
+  cells: [
+    { x: "densidade", y: "densidade", rho: 1, pairs: 5 },
+    { x: "densidade", y: "modulo_young", rho: null, pairs: 2 },
+    { x: "modulo_young", y: "densidade", rho: null, pairs: 2 },
+    { x: "modulo_young", y: "modulo_young", rho: null, pairs: 2 },
+  ],
+};
+
+const activity: DashboardActivity = {
+  studies: 3,
+  charts: 1,
+  notebooks: 0,
+  own_materials: 2,
+  months: [
+    { month: "2026-10", studies: 1, charts: 0, notebooks: 0 },
+    { month: "2026-11", studies: 2, charts: 1, notebooks: 0 },
+  ],
+  actions: { CRIADO: 2 },
+  recent: [
+    { entity_type: "material", entity_id: 1, entity_label: "Meu aço", action: "CRIADO", created_at: "2026-11-01T10:00:00+00:00" },
+  ],
+  ai: {
+    today: { day: "2026-11-02", requests: 7, artifacts: 1, fetches: 2 },
+    ai_daily_limit: 100,
+    notebook_daily_limit: 60,
+    fetch_daily_limit: 30,
+    days: [{ day: "2026-11-02", requests: 7, artifacts: 1, fetches: 2 }],
+  },
+};
+
+const getDashboardOverview = vi.fn((_filters?: unknown) => Promise.resolve(overview));
+const getDashboardDistribution = vi.fn((slug: string, _filters?: unknown) =>
+  Promise.resolve(distributions[slug]),
+);
+const getDashboardPropertyStats = vi.fn((slug: string) =>
+  Promise.resolve(slug === "densidade" ? emptyStats : stats),
+);
+const getDashboardActivity = vi.fn(() => Promise.resolve(activity));
 
 vi.mock("@/lib/api", () => ({
-  getDashboardOverview: () => getDashboardOverview(),
-  getDashboardDistribution: (slug: string) => getDashboardDistribution(slug),
+  getDashboardOverview: (filters: unknown) => getDashboardOverview(filters),
+  getDashboardDistribution: (slug: string, filters: unknown) => getDashboardDistribution(slug, filters),
+  getDashboardComposition: () => Promise.resolve(composition),
+  getDashboardProcesses: () => Promise.resolve(processes),
+  getDashboardSources: () => Promise.resolve(sources),
+  getDashboardPropertyStats: (slug: string) => getDashboardPropertyStats(slug),
+  getDashboardTop: () => Promise.resolve(top),
+  getDashboardCorrelation: () => Promise.resolve(correlation),
+  getDashboardActivity: () => getDashboardActivity(),
+  listClasses: () =>
+    Promise.resolve([
+      { id: 1, slug: "metais", name: "Metais", parent_id: null, description: null },
+      { id: 2, slug: "ceramicas", name: "Cerâmicas", parent_id: null, description: null },
+    ]),
+  listPerformanceIndices: () => Promise.resolve([]),
+  dashboardExportUrl: (section: string) => `http://api/api/dashboard/export.csv?secao=${section}`,
 }));
 
 function wrap(node: ReactNode) {
@@ -147,12 +347,22 @@ function wrap(node: ReactNode) {
 // Imported after the mock so the page picks it up.
 const { default: DashboardPage } = await import("./page");
 
-async function renderDashboard() {
-  render(wrap(<DashboardPage />));
+async function renderDashboard(search = "") {
+  at(search);
+  const view = render(wrap(<DashboardPage />));
   expect(await screen.findByText(t.title)).toBeInTheDocument();
-  // The panel defaults to the worst-covered property, so its distribution has
+  // The overview tab is ready once its first tile is (the overview resolved).
+  if (search === "") expect(await screen.findByText(t.materials)).toBeInTheDocument();
+  return view;
+}
+
+async function renderProperties() {
+  await renderDashboard("aba=propriedades");
+  // The tab defaults to the worst-covered property, so its distribution has
   // loaded by the time a test can act.
-  await waitFor(() => expect(getDashboardDistribution).toHaveBeenCalledWith("modulo_young"));
+  await waitFor(() =>
+    expect(getDashboardDistribution).toHaveBeenCalledWith("modulo_young", expect.anything()),
+  );
 }
 
 describe("painel", () => {
@@ -209,6 +419,7 @@ describe("painel", () => {
         },
       ],
     });
+    at("");
     render(wrap(<DashboardPage />));
 
     expect(await screen.findByText(t.noSlots)).toBeInTheDocument();
@@ -222,18 +433,25 @@ describe("painel", () => {
   });
 
   it("defaults the distribution panel to the worst-covered property", async () => {
-    await renderDashboard();
+    await renderProperties();
 
     expect(await screen.findByText(t.distributionFigure("Módulo de Young"))).toBeInTheDocument();
     expect(screen.getByText(t.classesWithoutData)).toBeInTheDocument();
   });
 
   it("fetches a new distribution when the reader picks a different property", async () => {
-    await renderDashboard();
+    await renderProperties();
 
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.property }), "densidade");
+    await userEvent.selectOptions(
+      screen.getByShadowRole("combobox", { name: d.property.pickerLabel }),
+      "densidade",
+    );
 
-    await waitFor(() => expect(getDashboardDistribution).toHaveBeenCalledWith("densidade"));
+    await waitFor(() =>
+      expect(getDashboardDistribution).toHaveBeenCalledWith("densidade", expect.anything()),
+    );
+    // The choice is in the URL, so the view can be linked (D-193).
+    expect(nav.search.get("prop")).toBe("densidade");
     expect(await screen.findByText(t.distributionFigure("Densidade"))).toBeInTheDocument();
   });
 
@@ -248,6 +466,7 @@ describe("painel", () => {
       coverage: { filled: 0, declared_missing: 0, not_recorded: 0, slots: 0, filled_pct: null },
     });
 
+    at("");
     render(wrap(<DashboardPage />));
 
     expect(await screen.findByText(t.empty)).toBeInTheDocument();
@@ -257,6 +476,7 @@ describe("painel", () => {
     getDashboardOverview.mockRejectedValueOnce(new Error("falhou"));
     const user = userEvent.setup();
 
+    at("");
     render(wrap(<DashboardPage />));
 
     expect(await screen.findByShadowRole("alert")).toHaveTextContent(t.error);
@@ -265,5 +485,80 @@ describe("painel", () => {
 
     expect(await screen.findByText(t.materials)).toBeInTheDocument();
     expect(screen.queryByShadowRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the tab in the URL and switches content with it", async () => {
+    await renderDashboard();
+    await userEvent.click(screen.getByShadowRole("tab", { name: d.tabs.processos }));
+    expect(nav.search.get("aba")).toBe("processos");
+    expect(
+      await screen.findByShadowRole("heading", { name: d.processes.familiesTitle }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends the global filters to the API and lists subclasses of the catalogue", async () => {
+    await renderDashboard();
+    await screen.findByText(d.composition.title);
+    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: d.filters.classe }), "metais");
+    await waitFor(() =>
+      expect(getDashboardOverview).toHaveBeenCalledWith(expect.objectContaining({ classe: "metais" })),
+    );
+    expect(nav.search.get("classe")).toBe("metais");
+    const subclass = screen.getByShadowRole("combobox", { name: d.filters.subclasse });
+    expect(within(subclass).getByShadowRole("option", { name: "Aços" })).toBeInTheDocument();
+  });
+
+  it("links a subclass of the treemap to the filtered catalogue", async () => {
+    const push = vi.fn();
+    nav.push = push;
+    await renderDashboard();
+    const cell = await screen.findByShadowRole("link", { name: /Metais, Aços: abrir no catálogo/ });
+    await userEvent.click(cell);
+    expect(push).toHaveBeenCalledWith("/app/catalogo?classe=metais&subclasse=A%C3%A7os");
+  });
+
+  it("writes a statistic of nothing in words, never 0 (D-24)", async () => {
+    await renderProperties();
+    await userEvent.selectOptions(
+      screen.getByShadowRole("combobox", { name: d.property.pickerLabel }),
+      "densidade",
+    );
+    expect(await screen.findAllByText(d.property.noValues)).not.toHaveLength(0);
+    expect(await screen.findByText(d.property.histogramEmpty)).toBeInTheDocument();
+  });
+
+  it("ranks with the backend's order and offers the comparator on the listed materials", async () => {
+    await renderProperties();
+    expect(await screen.findByShadowRole("link", { name: "Aço A" })).toHaveAttribute("href", "/app/materiais/11");
+    expect(screen.getByShadowRole("link", { name: d.actions.compareTop(2) })).toHaveAttribute(
+      "href",
+      "/app/comparar?materiais=11,12",
+    );
+    expect(screen.getByText(new RegExp(d.top.without(3).slice(0, 20)))).toBeInTheDocument();
+  });
+
+  it("names a correlation without enough pairs instead of printing 0", async () => {
+    await renderProperties();
+    const cell = await screen.findByShadowRole("link", {
+      name: d.correlation.cellAria("Módulo de Young", "Densidade", d.correlation.noRho, d.correlation.pairs(2)),
+    });
+    expect(cell).toBeInTheDocument();
+  });
+
+  it("shows only the reader's own activity and AI use", async () => {
+    await renderDashboard("aba=atividade");
+    expect(await screen.findByText(d.activity.intro)).toBeInTheDocument();
+    expect(screen.getByText(d.activity.aiTodayNote(7, 100), { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("Meu aço")).toBeInTheDocument();
+  });
+
+  it("has no detectable accessibility violations on any tab", async () => {
+    for (const tab of ["", "aba=propriedades", "aba=processos", "aba=qualidade", "aba=atividade"]) {
+      const view = await renderDashboard(tab);
+      await waitFor(() => expect(screen.queryAllByText(d.loading)).toHaveLength(0));
+      const violations = await findA11yViolations(view.container);
+      expect(describeViolations(violations), tab || "visao").toBe("");
+      view.unmount();
+    }
   });
 });

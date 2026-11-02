@@ -47,7 +47,10 @@ export function PropertyDistributionPanel({
   isError,
   error,
   onRetry,
+  picker = true,
 }: {
+  /** D-193: off when the page already has one property picker driving this panel. */
+  picker?: boolean;
   properties: PropertyCoverage[];
   selected: string;
   onSelect: (slug: string) => void;
@@ -124,15 +127,17 @@ export function PropertyDistributionPanel({
       }
       notice={
         <div className="mb-3 flex flex-col gap-2">
-          <div className="w-full max-w-md">
-            <Select label={t.property} value={selected} onChange={(e) => onSelect(e.target.value)}>
-              {sortedProperties.map((p) => (
-                <SelectOption key={p.slug} value={p.slug}>
-                  {p.name}
-                </SelectOption>
-              ))}
-            </Select>
-          </div>
+          {picker ? (
+            <div className="w-full max-w-md">
+              <Select label={t.property} value={selected} onChange={(e) => onSelect(e.target.value)}>
+                {sortedProperties.map((p) => (
+                  <SelectOption key={p.slug} value={p.slug}>
+                    {p.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            </div>
+          ) : null}
           {distribution?.allows_log_scale === false && (
             <p className="text-xs text-ink-muted">{t.logDisabled}</p>
           )}

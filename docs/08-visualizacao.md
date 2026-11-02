@@ -247,6 +247,14 @@ uma figura: tabela, sem gráfico. Regras:
 | POST | `/api/charts/compare` | matriz normalizada para as cinco visualizações |
 | GET | `/api/dashboard/overview` | cobertura geral, por classe e por propriedade |
 | GET | `/api/dashboard/distribution/{property_slug}` | quartis por classe para uma propriedade |
+| GET | `/api/dashboard/composition` | materiais por classe e subclasse, com o treemap já disposto (D-193) |
+| GET | `/api/dashboard/processes` | processos por família, materiais por processo e alcance por classe (D-193) |
+| GET | `/api/dashboard/sources` | procedência (medido/importado/estimado/ausente) por fonte (D-193) |
+| GET | `/api/dashboard/property/{property_slug}` | histograma (Freedman–Diaconis, log quando cabe), resumo e lacunas (D-193) |
+| GET | `/api/dashboard/top` | os N melhores/piores por propriedade ou índice de desempenho (D-193) |
+| GET | `/api/dashboard/correlation` | matriz de ρ de Spearman, pares completos, nulo abaixo de 5 pares (D-193) |
+| GET | `/api/dashboard/activity` | estudos, gráficos, cadernos, auditoria e uso de IA **do próprio leitor** (D-193) |
+| GET | `/api/dashboard/export.csv` | as tabelas de uma aba do painel em CSV, com os filtros (D-193) |
 | GET | `/api/materials/{id}/curvas` | curvas do material e contagem por tipo (D-106) |
 | GET | `/api/materials/{id}/curvas/{curva}` | uma curva pronta para desenhar, na unidade de leitura |
 | GET | `/api/catalogo/releases` | releases do catálogo oficial, por linha, com a anterior (D-108) |

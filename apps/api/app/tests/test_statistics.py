@@ -9,7 +9,20 @@ from __future__ import annotations
 
 import pytest
 
-from app.calculations.statistics import FiveNumber, five_number_summary, quantile, share
+from app.calculations.statistics import (
+    MAX_BINS,
+    MIN_BINS,
+    FiveNumber,
+    average_ranks,
+    bin_count,
+    five_number_summary,
+    histogram,
+    mean,
+    pearson,
+    quantile,
+    share,
+    spearman,
+)
 
 
 class TestQuantileUsesTheDocumentedDefinition:
@@ -103,3 +116,77 @@ class TestShareRefusesToInventAPercentage:
     def test_a_part_larger_than_the_whole_means_something_was_counted_twice(self) -> None:
         with pytest.raises(ValueError, match="maior que o todo"):
             share(6, 5)
+
+
+# --- D-193: histogram, mean, rank correlation --------------------------------
+
+
+class TestHistogram:
+    def test_nothing_to_count_is_none(self) -> None:
+        assert histogram([]) is None
+
+    def test_single_distinct_value_is_one_bin(self) -> None:
+        h = histogram([3.0, 3.0, 3.0])
+        assert h is not None
+        assert len(h.bins) == 1
+        assert h.bins[0].count == 3
+
+    def test_counts_add_up_and_edges_cover_the_range(self) -> None:
+        values = [float(v) for v in range(1, 101)]
+        h = histogram(values)
+        assert h is not None
+        assert sum(b.count for b in h.bins) == 100
+        assert h.bins[0].lower == 1.0
+        assert h.bins[-1].upper == 100.0
+        assert MIN_BINS <= len(h.bins) <= MAX_BINS
+        # Contiguous: each bin starts where the previous ended.
+        for left, right in zip(h.bins, h.bins[1:], strict=False):
+            assert left.upper == pytest.approx(right.lower)
+
+    def test_log_bins_are_equal_in_log10(self) -> None:
+        values = [1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0]
+        h = histogram(values, log=True)
+        assert h is not None and h.log
+        ratios = {round(b.upper / b.lower, 6) for b in h.bins}
+        assert len(ratios) == 1
+
+    def test_log_falls_back_to_linear_with_non_positive_values(self) -> None:
+        h = histogram([-1.0, 0.0, 5.0, 10.0, 20.0], log=True)
+        assert h is not None and not h.log
+
+    def test_bin_count_is_clamped(self) -> None:
+        assert bin_count([1.0, 2.0]) == MIN_BINS
+        assert bin_count([float(v) for v in range(100000)]) == MAX_BINS
+
+
+class TestMean:
+    def test_mean_of_nothing_is_none(self) -> None:
+        assert mean([]) is None
+
+    def test_mean(self) -> None:
+        assert mean([1.0, 2.0, 3.0, 6.0]) == 3.0
+
+
+class TestRankCorrelation:
+    def test_ties_share_the_average_rank(self) -> None:
+        assert average_ranks([10.0, 20.0, 20.0, 5.0]) == [2.0, 3.5, 3.5, 1.0]
+
+    def test_spearman_hand_worked(self) -> None:
+        # ranks (3,5,1,4,2) vs (2,4,1,5,3): Σd² = 4 -> 1 - 24/120 = 0,8.
+        xs = [2700.0, 7850.0, 1050.0, 3900.0, 1600.0]
+        ys = [69.0, 210.0, 2.5, 380.0, 120.0]
+        assert spearman(xs, ys) == pytest.approx(0.8)
+
+    def test_monotone_but_nonlinear_is_one(self) -> None:
+        xs = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        assert spearman(xs, [x**5 for x in xs]) == pytest.approx(1.0)
+        assert spearman(xs, [-(x**3) for x in xs]) == pytest.approx(-1.0)
+
+    def test_too_few_pairs_or_no_variance_is_none(self) -> None:
+        assert spearman([1.0, 2.0, 3.0], [3.0, 2.0, 1.0]) is None
+        assert spearman([1.0] * 6, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) is None
+        assert pearson([1.0, 1.0], [2.0, 3.0]) is None
+
+    def test_lengths_must_match(self) -> None:
+        with pytest.raises(ValueError):
+            spearman([1.0], [1.0, 2.0])

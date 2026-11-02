@@ -112,7 +112,10 @@ Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md
   família (`/app/catalogo/{slug}`).
 - **Meus registros** — registros próprios de cada pessoa, ao lado do catálogo
   compartilhado; favoritos e recentes.
-- **Painel** — cobertura do catálogo, lacunas e distribuição por propriedade.
+- **Painel** — cinco abas sobre filtros de classe, subclasse, nível e demonstração (D-193): cobertura e
+  composição (treemap), histograma, caixas, ranking por propriedade ou índice, correlação de Spearman,
+  processos por família, qualidade por fonte e a sua própria atividade e uso de IA; clique leva ao
+  catálogo, ao mapa ou ao comparador; CSV por aba.
 - **Buscar por composição e designação** — no catálogo, `comp:Cr>=12`,
   `comp:Ni:8-10`, `norma:UNS` e `designacao:S30400` se combinam com AND/OR/NOT;
   a faixa de composição é lida por alcance, material sem o dado não passa e a

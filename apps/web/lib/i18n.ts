@@ -1986,6 +1986,9 @@ export const ptBR = {
   },
 
   catalog: {
+    // D-193: a subclass filter reached from the panel, shown as a chip.
+    subclassFilter: (name: string) => `Subclasse: ${name}`,
+    subclassFilterRemove: (name: string) => `Remover o filtro de subclasse ${name}`,
     title: "Catálogo de materiais",
     densityLabel: "Densidade da tabela",
     densityComfortable: "Confortável",
