@@ -36,7 +36,7 @@ function useCountUp(target: number): number {
  *
  * `index` staggers the row's entry, left to right in reading order.
  */
-function StatTile({
+export function StatTile({
   label,
   value,
   format,

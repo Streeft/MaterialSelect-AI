@@ -1312,6 +1312,28 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listStudies: () => Promise.resolve(studies),
   getDashboardOverview: () => Promise.resolve(overview),
   getDashboardDistribution: () => Promise.resolve(distribution),
+  // D-193: the overview tab also reads the composition and the processes.
+  getDashboardComposition: () =>
+    Promise.resolve({
+      filters: { class_slug: null, subclass: null, level: 3, demo: "todos", materials: 2 },
+      width: 160,
+      height: 90,
+      cells: [
+        { key: "c:metais", depth: 0, class_slug: "metais", class_name: "Metais", subclass: null, count: 2, share_pct: 100, x0: 0, y0: 0, x1: 160, y1: 90 },
+        { key: "s:metais:Aços", depth: 1, class_slug: "metais", class_name: "Metais", subclass: "Aços", count: 2, share_pct: 100, x0: 0, y0: 0, x1: 160, y1: 90 },
+      ],
+    }),
+  getDashboardProcesses: () =>
+    Promise.resolve({
+      filters: { class_slug: null, subclass: null, level: 3, demo: "todos", materials: 2 },
+      processes: 0,
+      families: [],
+      by_process: [],
+      by_material_class: [],
+      materials_with_process: 0,
+      materials_without_process: 2,
+    }),
+  dashboardExportUrl: () => "http://api/api/dashboard/export.csv",
   deactivateMaterial: () => Promise.resolve(),
   // D-97: the search well in the sources panel reads what is switched on.
   getSourceCapabilities: () =>

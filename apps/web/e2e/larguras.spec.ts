@@ -107,6 +107,12 @@ const ROUTES: ReadonlyArray<readonly [string, string]> = [
   // D-190: screens that only exist with state in the address.
   ["selecao-resultados", "/app/selecao?etapa=resultados"],
   ["mapas-nivel-2", "/app/mapas?nivel=2"],
+  // D-193: each tab of the panel is its own screen, with its own figures.
+  ["painel-propriedades", "/app/painel?aba=propriedades"],
+  ["painel-processos", "/app/painel?aba=processos"],
+  ["painel-qualidade", "/app/painel?aba=qualidade"],
+  ["painel-atividade", "/app/painel?aba=atividade"],
+  ["painel-filtrado", "/app/painel?classe=metais&nivel=1"],
 ];
 
 for (const [slug, path] of ROUTES) {

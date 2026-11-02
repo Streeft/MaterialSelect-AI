@@ -155,6 +155,16 @@
   --quality-ausente: 95 99 104;
   --quality-ausente-soft: 241 243 244;
 
+  /* D-193 · diverging pair for the panel's correlation matrix (ρ of Spearman).
+   * Okabe–Ito blue (positive) and vermilion (negative): the classic CVD-safe
+   * polarity pair, validated with the dataviz validator (light, surface #fff:
+   * band, chroma, CVD ΔE 21.9, normal ΔE 31.2, contrast all PASS). Strength is
+   * drawn as opacity over the panel surface, so the neutral midpoint (ρ = 0)
+   * is the surface itself. Route-independent on purpose: a section's brand
+   * ramp must not flip the meaning of a sign. */
+  --diverge-pos: 0 114 178;
+  --diverge-neg: 213 94 0;
+
   /* Material 3 scheme for @material/web's shadow DOM. Only primary/secondary/tint
    * families are rewritten per section; surfaces and error stay neutral so M3
    * components don't fight with the palette above. Hex, not "R G B": that's the
@@ -761,6 +771,10 @@
 
 
 [data-theme="dark"] {
+  /* D-193 · diverging pair, dark: re-stepped into the dark band (L 0.48–0.67,
+   * surface #1c1b1f — every check PASS, CVD ΔE 22.8). */
+  --diverge-pos: 58 147 208;
+  --diverge-neg: 200 105 42;
   color-scheme: dark;
 
   /* Blue-tinted charcoal, not nearly black: a raised panel needs a page

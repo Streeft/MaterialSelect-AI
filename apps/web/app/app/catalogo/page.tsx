@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { catalogueExportUrl, listClasses, searchMaterials } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/types";
@@ -28,6 +29,7 @@ import {
   Input,
   LoadingState,
   PageHeader,
+  RemovableChip,
   Section,
   Select,
   SelectOption,
@@ -73,8 +75,22 @@ function isQueryRejection(error: unknown): error is Error & { status: 400 } {
 }
 
 export default function CatalogPage() {
-  const [search, setSearch] = useState("");
-  const [classSlug, setClassSlug] = useState("");
+  // `useSearchParams` needs a boundary, or `next build` refuses the page.
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <CatalogPageContent />
+    </Suspense>
+  );
+}
+
+function CatalogPageContent() {
+  // D-193: the panel links here filtered — `?classe=` (with its descendants)
+  // and `?subclasse=`. Read once, as the starting state; the controls own it
+  // from then on.
+  const params = useSearchParams();
+  const [search, setSearch] = useState(() => params.get("busca") ?? "");
+  const [classSlug, setClassSlug] = useState(() => params.get("classe") ?? "");
+  const [subclass, setSubclass] = useState(() => params.get("subclasse") ?? "");
   const [quality, setQuality] = useState<QualityFilter>("any");
   const debouncedSearch = useDebounced(search, 300);
 
@@ -95,15 +111,24 @@ export default function CatalogPage() {
 
   // Class and quality filter what the server already returned: both are facts
   // the payload carries, so filtering here costs no round trip and no guess.
+  // A class from the panel means the class and everything under it, as on the
+  // family page; one picked in the select matches the same way.
+  const classSet = useMemo(
+    () => (classSlug ? descendantSlugs(classSlug, classes.data ?? []) : null),
+    [classSlug, classes.data],
+  );
   const shown = useMemo(() => {
     const all = items ?? [];
     return all.filter(
-      (m) => (!classSlug || m.class_slug === classSlug) && matchesQuality(m, quality),
+      (m) =>
+        (!classSet || classSet.has(m.class_slug) || m.class_slug === classSlug) &&
+        (!subclass || m.subclass === subclass) &&
+        matchesQuality(m, quality),
     );
-  }, [items, classSlug, quality]);
+  }, [items, classSet, classSlug, subclass, quality]);
 
   const total = items?.length ?? 0;
-  const filtered = Boolean(classSlug) || quality !== "any";
+  const filtered = Boolean(classSlug) || Boolean(subclass) || quality !== "any";
 
   // D-184: list-detail. A plain click on a name shows the material beside the
   // list when the list's own block is wide enough for two panes (the same 840 px
@@ -190,12 +215,23 @@ export default function CatalogPage() {
             onClick={() => {
               setSearch("");
               setClassSlug("");
+              setSubclass("");
               setQuality("any");
             }}
           >
             {t.clearFilters}
           </Button>
         </CardBody>
+        {subclass ? (
+          <CardBody className="pt-0">
+            <RemovableChip
+              onRemove={() => setSubclass("")}
+              removeLabel={t.subclassFilterRemove(subclass)}
+            >
+              {t.subclassFilter(subclass)}
+            </RemovableChip>
+          </CardBody>
+        ) : null}
         <CardBody className="pt-0">
           <SearchHelp onUse={setSearch} />
         </CardBody>

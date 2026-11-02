@@ -75,6 +75,7 @@ export function HorizontalBars({
   showLegend = true,
   axisTitle,
   describe,
+  onSelect,
 }: {
   figureLabel: string;
   segments: BarSegment[];
@@ -89,6 +90,12 @@ export function HorizontalBars({
    * given, replaces the default tooltip (every segment of the row).
    */
   describe: (row: BarRow, segment: BarSegment) => { aria: string; info?: ReactNode; tip?: TooltipContent };
+  /**
+   * D-193: what a click (or Enter) on a category does — the panel opens the
+   * catalogue or the process behind the bar. Each mark then announces itself
+   * as a link; without it the figure stays read-only, as before.
+   */
+  onSelect?: (row: BarRow) => void;
 }) {
   const [measure, width] = useChartWidth();
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
@@ -197,9 +204,21 @@ export function HorizontalBars({
         key={segment.key}
         ref={roving.register(index)}
         className="chart-mark"
-        role="img"
+        role={onSelect ? "link" : "img"}
         aria-label={words.aria}
         tabIndex={roving.tabIndexFor(index)}
+        style={onSelect ? { cursor: "pointer" } : undefined}
+        onClick={onSelect ? () => onSelect(row) : undefined}
+        onKeyDown={
+          onSelect
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(row);
+                }
+              }
+            : undefined
+        }
         onMouseEnter={() => setActive({ row: row.key, segment: segment.key, focus: false })}
         onFocus={() => {
           roving.setActive(index);
@@ -273,6 +292,8 @@ export function HorizontalBars({
                       y={plotTop}
                       width={band}
                       height={PLOT_HEIGHT}
+                      style={onSelect ? { cursor: "pointer" } : undefined}
+                      onClick={onSelect ? () => onSelect(row) : undefined}
                       onMouseEnter={() => setActive({ row: row.key, segment: null, focus: false })}
                     />
                     {stack.map((segment, si) => {
@@ -352,6 +373,8 @@ export function HorizontalBars({
                       y={rowTop}
                       width={W}
                       height={ROW}
+                      style={onSelect ? { cursor: "pointer" } : undefined}
+                      onClick={onSelect ? () => onSelect(row) : undefined}
                       onMouseEnter={() => setActive({ row: row.key, segment: null, focus: false })}
                     />
                     <text

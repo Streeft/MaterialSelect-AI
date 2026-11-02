@@ -1685,6 +1685,8 @@ export interface DashboardOverview {
   by_class: ClassCoverage[];
   by_property: PropertyCoverage[];
   gaps: PropertyCoverage[];
+  /** Os filtros com que o panorama foi calculado (D-193). */
+  filters?: DashboardFiltersOut | null;
 }
 
 /** The five numbers of a box are computed in the backend (ADR 0004); the
@@ -1714,6 +1716,227 @@ export interface PropertyDistribution {
   boxes: DistributionBox[];
   classes_without_data: string[];
 }
+
+// --- Painel rico (D-193) ------------------------------------------------------
+//
+// Every number and every rectangle below is computed in the backend
+// (`dashboard_service.py`, ADR 0004). The client draws and formats only.
+
+export type DashboardDemoFilter = "todos" | "demo" | "reais";
+
+/** The panel's four global filters, as the URL and the API name them. */
+export interface DashboardFilters {
+  classe?: string | null;
+  subclasse?: string | null;
+  nivel?: 1 | 2 | 3;
+  demo?: DashboardDemoFilter;
+}
+
+export interface DashboardFiltersOut {
+  class_slug: string | null;
+  subclass: string | null;
+  level: number;
+  demo: DashboardDemoFilter;
+  materials: number;
+}
+
+export interface TreemapCell {
+  key: string;
+  /** 0 = classe, 1 = subclasse. */
+  depth: 0 | 1;
+  class_slug: string;
+  class_name: string;
+  /** `null` at depth 1 = materiais sem subclasse. */
+  subclass: string | null;
+  count: number;
+  share_pct: number | null;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+export interface DashboardComposition {
+  filters: DashboardFiltersOut;
+  width: number;
+  height: number;
+  cells: TreemapCell[];
+}
+
+export interface ProcessFamilyUse {
+  slug: string;
+  name: string;
+  root_slug: string;
+  root_name: string;
+  processes: number;
+  materials: number;
+}
+
+export interface ProcessUse {
+  slug: string;
+  name: string;
+  family_slug: string;
+  family_name: string;
+  materials: number;
+  share_pct: number | null;
+}
+
+export interface ProcessClassUse {
+  class_slug: string;
+  class_name: string;
+  materials: number;
+  processes: number;
+}
+
+export interface DashboardProcesses {
+  filters: DashboardFiltersOut;
+  processes: number;
+  families: ProcessFamilyUse[];
+  by_process: ProcessUse[];
+  by_material_class: ProcessClassUse[];
+  materials_with_process: number;
+  materials_without_process: number;
+}
+
+export interface SourceQuality {
+  key: string;
+  /** `null` = valores sem fonte. */
+  label: string | null;
+  is_demo: boolean;
+  license_label: string | null;
+  materials: number;
+  values: number;
+  medido: number;
+  importado: number;
+  estimado: number;
+  declared_missing: number;
+  share_pct: number | null;
+}
+
+export interface DashboardSources {
+  filters: DashboardFiltersOut;
+  values: number;
+  sources: SourceQuality[];
+}
+
+export interface HistogramBin {
+  lower: number;
+  upper: number;
+  count: number;
+}
+
+export interface DashboardPropertyStats {
+  filters: DashboardFiltersOut;
+  property_slug: string;
+  property_name: string;
+  symbol_latex: string | null;
+  category: PropertyCategory;
+  display_unit: string | null;
+  better_direction: string;
+  allows_log_scale: boolean;
+  log_bins: boolean;
+  count: number;
+  declared_missing: number;
+  not_recorded: number;
+  coverage_pct: number | null;
+  /** Nulos quando `count` é 0 — não há mínimo de nada (D-24). */
+  minimum: number | null;
+  q1: number | null;
+  median: number | null;
+  q3: number | null;
+  maximum: number | null;
+  mean: number | null;
+  bins: HistogramBin[];
+}
+
+export interface DashboardRankedMaterial {
+  rank: number;
+  material_id: number;
+  name: string;
+  class_slug: string;
+  class_name: string;
+  subclass: string | null;
+  is_demo: boolean;
+  value: number;
+}
+
+export interface DashboardTop {
+  filters: DashboardFiltersOut;
+  kind: "property" | "index";
+  slug: string;
+  label: string;
+  expression: string | null;
+  unit: string | null;
+  order: "melhor" | "pior";
+  direction: "maior" | "menor";
+  ranked: number;
+  without_value: number;
+  items: DashboardRankedMaterial[];
+}
+
+export interface CorrelationProperty {
+  slug: string;
+  name: string;
+  symbol_latex: string | null;
+  count: number;
+}
+
+export interface CorrelationCell {
+  x: string;
+  y: string;
+  /** ρ de Spearman; `null` com poucos pares ou sem variância — nunca 0. */
+  rho: number | null;
+  pairs: number;
+}
+
+export interface DashboardCorrelation {
+  filters: DashboardFiltersOut;
+  method: "spearman";
+  min_pairs: number;
+  properties: CorrelationProperty[];
+  cells: CorrelationCell[];
+}
+
+export interface ActivityMonth {
+  month: string;
+  studies: number;
+  charts: number;
+  notebooks: number;
+}
+
+export interface ActivityEvent {
+  entity_type: string;
+  entity_id: number;
+  entity_label: string;
+  action: string;
+  created_at: string;
+}
+
+export interface AIDay {
+  day: string;
+  requests: number;
+  artifacts: number;
+  fetches: number;
+}
+
+export interface DashboardActivity {
+  studies: number;
+  charts: number;
+  notebooks: number;
+  own_materials: number;
+  months: ActivityMonth[];
+  actions: Record<string, number>;
+  recent: ActivityEvent[];
+  ai: {
+    today: AIDay;
+    ai_daily_limit: number;
+    notebook_daily_limit: number;
+    fetch_daily_limit: number;
+    days: AIDay[];
+  };
+}
+
+export type DashboardSection = "visao" | "propriedades" | "processos" | "qualidade" | "atividade";
 
 // --- Auth (login com Google) ------------------------------------------------
 

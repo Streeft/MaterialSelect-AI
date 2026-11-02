@@ -28,7 +28,16 @@ import type {
   Curve,
   CurveScale,
   CurveValue,
+  DashboardActivity,
+  DashboardComposition,
+  DashboardCorrelation,
+  DashboardFilters,
   DashboardOverview,
+  DashboardProcesses,
+  DashboardPropertyStats,
+  DashboardSection,
+  DashboardSources,
+  DashboardTop,
   EcoAuditRequest,
   EndOfLifeRouteInfo,
   EcoAuditResult,
@@ -878,16 +887,88 @@ export function getComparison(payload: ComparisonRequest): Promise<Comparison> {
 
 // --- Dashboard ---------------------------------------------------------------
 
-export function getDashboardOverview(): Promise<DashboardOverview> {
-  return request<DashboardOverview>(`/api/dashboard/overview`);
+/**
+ * The panel's global filters as a query string (D-193). Defaults are left out,
+ * so the unfiltered panel asks exactly what it always asked.
+ */
+export function dashboardQuery(
+  filters: DashboardFilters = {},
+  extra: Record<string, string | number | null | undefined> = {},
+): string {
+  const params = new URLSearchParams();
+  if (filters.classe) params.set("classe", filters.classe);
+  if (filters.subclasse) params.set("subclasse", filters.subclasse);
+  if (filters.nivel && filters.nivel !== 3) params.set("nivel", String(filters.nivel));
+  if (filters.demo && filters.demo !== "todos") params.set("demo", filters.demo);
+  for (const [key, value] of Object.entries(extra)) {
+    if (value !== null && value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
+
+export function getDashboardOverview(filters: DashboardFilters = {}): Promise<DashboardOverview> {
+  return request<DashboardOverview>(`/api/dashboard/overview${dashboardQuery(filters)}`);
 }
 
 export function getDashboardDistribution(
   propertySlug: string,
+  filters: DashboardFilters = {},
 ): Promise<PropertyDistribution> {
   return request<PropertyDistribution>(
-    `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}`,
+    `/api/dashboard/distribution/${encodeURIComponent(propertySlug)}${dashboardQuery(filters)}`,
   );
+}
+
+export function getDashboardComposition(filters: DashboardFilters = {}): Promise<DashboardComposition> {
+  return request<DashboardComposition>(`/api/dashboard/composition${dashboardQuery(filters)}`);
+}
+
+export function getDashboardProcesses(filters: DashboardFilters = {}): Promise<DashboardProcesses> {
+  return request<DashboardProcesses>(`/api/dashboard/processes${dashboardQuery(filters)}`);
+}
+
+export function getDashboardSources(filters: DashboardFilters = {}): Promise<DashboardSources> {
+  return request<DashboardSources>(`/api/dashboard/sources${dashboardQuery(filters)}`);
+}
+
+export function getDashboardPropertyStats(
+  propertySlug: string,
+  filters: DashboardFilters = {},
+): Promise<DashboardPropertyStats> {
+  return request<DashboardPropertyStats>(
+    `/api/dashboard/property/${encodeURIComponent(propertySlug)}${dashboardQuery(filters)}`,
+  );
+}
+
+export function getDashboardTop(
+  target: { propriedade: string } | { indice: string },
+  options: { n?: number; ordem?: "melhor" | "pior" } = {},
+  filters: DashboardFilters = {},
+): Promise<DashboardTop> {
+  return request<DashboardTop>(
+    `/api/dashboard/top${dashboardQuery(filters, { ...target, n: options.n, ordem: options.ordem })}`,
+  );
+}
+
+export function getDashboardCorrelation(
+  propertySlugs: string[] | null,
+  filters: DashboardFilters = {},
+): Promise<DashboardCorrelation> {
+  return request<DashboardCorrelation>(
+    `/api/dashboard/correlation${dashboardQuery(filters, {
+      propriedades: propertySlugs && propertySlugs.length > 0 ? propertySlugs.join(",") : null,
+    })}`,
+  );
+}
+
+export function getDashboardActivity(): Promise<DashboardActivity> {
+  return request<DashboardActivity>(`/api/dashboard/activity`);
+}
+
+/** The CSV of one tab of the panel — a plain download link, escaped server-side. */
+export function dashboardExportUrl(section: DashboardSection, filters: DashboardFilters = {}): string {
+  return `${API_URL}/api/dashboard/export.csv${dashboardQuery(filters, { secao: section })}`;
 }
 
 // --- Optional AI layer ------------------------------------------------------

@@ -13,6 +13,7 @@ import type { MaterialListItem } from "@/lib/types";
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/catalogo",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const t = ptBR.catalog;

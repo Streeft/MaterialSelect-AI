@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ClassCoverage } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { formatPercent } from "@/lib/format";
@@ -35,7 +36,15 @@ type SegmentKey = "filled" | "declared_missing" | "not_recorded";
  * backend. A class with no slots has no percentage, and says so in words —
  * never "0%" (D-24).
  */
-export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
+export function ClassCoverageChart({
+  classes,
+  catalogue,
+}: {
+  classes: ClassCoverage[];
+  /** D-193: where a click on a class leads (the catalogue filtered on it). */
+  catalogue?: (slug: string) => string;
+}) {
+  const router = useRouter();
   const sorted = useMemo(
     () => [...classes].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [classes],
@@ -139,6 +148,7 @@ export function ClassCoverageChart({ classes }: { classes: ClassCoverage[] }) {
         rows={rows}
         toggleable
         axisTitle={t.columnCount}
+        onSelect={catalogue ? (row) => router.push(catalogue(row.key)) : undefined}
         describe={(row, segment) => {
           const slots = bySlug.get(row.key)?.coverage.slots ?? 0;
           const count = row.values[segment.key as SegmentKey] ?? 0;
