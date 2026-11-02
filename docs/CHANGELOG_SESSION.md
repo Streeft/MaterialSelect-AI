@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 149 — 02/11/26 — Processos: todo o leque do Ashby e vínculo por subclasse (D-192)
+
+**O que mudou.** 131 processos demo novos (144 no total, 20 famílias) em `app/db/process_catalog_ashby.py`, com atributos estimados:
+os 12 nos de conformação, os 5 do exercício 11 nos de união e superfície. A tabela `app/db/demo_process_compat.py` dá os processos
+plausíveis por classe e subclasse, com regras de nome e restrições; `sync_demo_process_links` acrescenta o que falta e remove só vínculo
+demo × demo implausível (vindo da migração por classe), chamado por `seed()` e `seed_extended`. Os 70 do `seed_extended` e os 10 das
+releases passam a ter processo num banco limpo. Testes novos em `test_demo_process_compat.py` (catálogo, lista negra, cobertura dos 678
+sem banco, sync idempotente, material e processo reais intocados); `test_seed_family_records` deriva o número de galhos de Conformação.
+Backend 5342 testes (+35; 5336 passam e 6 pulam). Medido: banco limpo com 13 439 vínculos e segunda rodada zero; banco com os vínculos da migração perde 1 228 implausíveis. Numeração:
+D-191/Sessão 148 eram do #216. Sem migração. Depois do merge: **Deploy da API** e `semear_demo`.
+
 ## Sessão 148 — 01/11/26 — Calculadora visual de índice com KaTeX e leitura amigável (D-191)
 
 **O que mudou.** A gramática de índice ganhou `ln`, `log10`, `exp`, `pow`, `min`, `max`, `sq`, `inv`, `pi` e `e`, com aridade, domínio

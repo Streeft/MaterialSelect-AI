@@ -195,7 +195,18 @@ Na tela, expressão se edita com `ExpressionBuilder` e se mostra com
 usa os dois; uma legenda gerada no servidor usa `friendly_label`. KaTeX roda com
 `trust: false` e só recebe TeX do backend.
 
-## Processos (D-57, D-59)
+## Processos (D-57, D-59, D-192)
+
+**D-192: vínculo demo por subclasse, nunca só por classe** ([D-192](DECISIONS.md)).
+Processo demo novo entra em `app/db/process_catalog_ashby.py` (conformação com os
+12 atributos; união e superfície só com os 5 do exercício 11). Quem serve a quem
+está em `app/db/demo_process_compat.py`: lista por (classe, subclasse), regra de
+nome para subclasse mista, restrição por nome; subclasse nova de demo **entra na
+tabela** (o teste de cobertura falha sem ela). O acerto é
+`sync_demo_process_links`: só material demo sem dono × processo demo, acrescenta
+e remove o implausível; nunca toca material real nem processo real, nem edita a
+migração `b7d219fa82de`. A lista negra de `test_demo_process_compat.py` é o
+contrato.
 
 **O P0-2 deu o segundo universo** ([D-57](DECISIONS.md)): `ProcessClass`
 hierárquica, `Process` e a associação N–N `material_process`, que é o que torna
@@ -866,8 +877,8 @@ JSON (`app/db/demo_catalog/`), numa lista **separada** (`TCC_DEMO_MATERIALS`,
 `seed_demo_catalog_expansion()` no `main()` de `seed_extended`) para não mover as
 contagens fixas dos 75. Validados na carga por `validate_lots()` (puro; falha
 alto, nunca semeia pela metade). Lote novo ou valor novo passa por ele. Nenhuma
-`MaterialClass` nova: família nova vai em `subclass`. Processos demo só por
-`link_demo_processes(material_ids=…)` com os ids do lote, nunca sem ids. A busca
+`MaterialClass` nova: família nova vai em `subclass`. Processos demo por
+`sync_demo_process_links(material_ids=…)`, pela tabela por subclasse (D-192). A busca
 do seed por nome considera só `is_demo` sem dono.
 
 ## Composição e busca (D-105)

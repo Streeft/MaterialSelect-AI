@@ -121,8 +121,8 @@ de base comercial, e as designações são todas `DEMO-…`/`Demo…`.
 - **O que cada um ganha.** 15 propriedades (`ESTIMADO`, fonte
   `Dataset Demo MaterialSelect`; ausência escrita com nota só em dureza e
   reciclagem), designação, composição, as três curvas (forma pelo `curve_hint`
-  do lote) e os processos da classe — **só** nos ids novos, por
-  `link_demo_processes(material_ids=…)`.
+  do lote) e os processos plausíveis para a subclasse — por
+  `sync_demo_process_links`, que só toca material demo × processo demo (D-192).
 - **Validado na carga.** `validate_lot()`/`validate_lots()` (puros) aplicam as
   regras do QA: estrutura, unidade aceita e conversão pela trilha de
   `app/calculations/units.py`, nenhum zero, escoamento ≤ tração, faixas por

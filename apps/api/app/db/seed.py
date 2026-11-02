@@ -20,6 +20,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import Base, SessionLocal, engine
+from app.db.link_demo_processes import sync_demo_process_links
+from app.db.process_catalog_ashby import (
+    ASHBY_PROCESS_ATTRIBUTE_VALUES,
+    ASHBY_PROCESS_CLASSES,
+    ASHBY_PROCESSES,
+)
 from app.db.property_catalog_extended import EXTENDED_PROPERTIES
 from app.db.seed_demo_cae import seed_demo_cae_values
 from app.domain.composition import build_composition_entry, validate_composition
@@ -1767,6 +1773,12 @@ PROCESS_ATTRIBUTE_VALUES = {
     ],
 }
 
+# D-192: the rest of Ashby's range, from its own module. The 13 above stay as
+# they are — several of their gaps are fixtures the suite tests.
+PROCESS_CLASSES = [*PROCESS_CLASSES, *ASHBY_PROCESS_CLASSES]
+PROCESSES = [*PROCESSES, *ASHBY_PROCESSES]
+PROCESS_ATTRIBUTE_VALUES = {**PROCESS_ATTRIBUTE_VALUES, **ASHBY_PROCESS_ATTRIBUTE_VALUES}
+
 #: Material name → the processes it is declared compatible with. Fictitious, as
 #: the note above says. "Cerâmica Demo D" has no joining process on purpose:
 #: absence is a state here too, and a process stage must reject a material
@@ -1900,11 +1912,17 @@ def _seed_process_universe(db: Session) -> dict[str, int]:
             links_created += 1
     db.flush()
 
+    # D-192: every demo material of the catalogue gets the processes its
+    # subclass admits, and loses the demo links the class-only migration gave
+    # it that it does not. Demo material × demo process only.
+    synced = sync_demo_process_links(db, curated=MATERIAL_PROCESS_LINKS)
+
     attributes_created = _seed_process_attributes(db, process_by_slug)
     return {
         "process_classes": len(PROCESS_CLASSES),
         "processes": len(PROCESSES),
-        "material_process_links": links_created,
+        "material_process_links": links_created + synced["demo_process_links_created"],
+        "material_process_links_removed": synced["demo_process_links_removed"],
         "process_attributes": len(PROCESS_ATTRIBUTES),
         "process_attribute_values": attributes_created,
     }
