@@ -110,15 +110,18 @@ class TestComposition:
 class TestProcesses:
     def test_processes_per_family_and_materials_per_process(self, client: TestClient) -> None:
         data = _get(client, "/processes")
-        assert data["processes"] == 13
+        # D-192: 13 original processes + 131 of the Ashby catalogue; only 22
+        # links reach the five base materials.
+        assert data["processes"] == 144
         by_slug = {p["slug"]: p for p in data["by_process"]}
-        assert len(by_slug) == 13
+        assert len(by_slug) == 144
+        assert sum(p["materials"] for p in data["by_process"]) == 22
         assert by_slug["usinagem-convencional"]["materials"] == 3
         assert by_slug["usinagem-convencional"]["share_pct"] == 60.0
         # Sorted by reach, most-used first.
         assert data["by_process"][0]["materials"] == 3
         families = {f["slug"]: f for f in data["families"]}
-        assert families["conformacao-solido"]["processes"] == 3
+        assert families["conformacao-solido"]["processes"] == 14
         assert families["conformacao-solido"]["root_slug"] == "conformacao"
         assert data["materials_with_process"] + data["materials_without_process"] == 5
 
@@ -127,7 +130,7 @@ class TestProcesses:
         reached = {p["slug"]: p["materials"] for p in data["by_process"] if p["materials"]}
         assert all(count == 1 for count in reached.values())
         # Every active process still listed: a zero here is a real count of links.
-        assert len(data["by_process"]) == 13
+        assert len(data["by_process"]) == 144
 
 
 class TestSources:
