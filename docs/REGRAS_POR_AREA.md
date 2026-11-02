@@ -950,10 +950,13 @@ campo marcaria tudo como alterado); a grafia da unidade (`kg/m^3` × `kg/m³`) �
 "só a escrita da fonte". Propriedade sem definição é 400 em palavras
 (`ValidationError`), nunca 500.
 
-4079 testes de backend (nenhum skip na CI; sem `POSTGRES_TEST_URL`, 4073 passam
-e 6 pulam) e 797 de frontend, todos verdes. CI no
-GitHub Actions roda em todo PR e push para `main`, agora com um quinto job
-(`Lighthouse`, medindo desempenho/acessibilidade em 11 rotas — ver §12 do
+A contagem de testes vigente está só em `PROJECT_CONTEXT.md` (§3; em 02/11/2026,
+5393 de backend e 1588 de frontend; nenhum skip na CI, e sem `POSTGRES_TEST_URL`
+6 do backend pulam). CI no
+GitHub Actions roda em todo PR e push para `main`, com cinco jobs na época do TM7
+e hoje sete checks (Backend 3.11 e 3.12, Frontend, E2E, Lighthouse, Migrações
+PostgreSQL e o comentário de pré-visualização da Vercel), entre eles o
+`Lighthouse` (medindo desempenho/acessibilidade em 11 rotas — ver §12 do
 PROJECT_CONTEXT.md).
 
 **Promoção de release** ([D-114](DECISIONS.md), Sessão 69): o import da release

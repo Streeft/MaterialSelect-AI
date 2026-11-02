@@ -329,7 +329,7 @@ Detalhes em [`docs/09-camada-ia.md`](docs/09-camada-ia.md) e
 Todo PR atualiza, **no mesmo PR**, o texto que a mudança tornou falso: este
 README, as decisões, o backlog, o registro de sessão e o documento da área
 tocada. PR sem isso está incompleto — a regra completa está em
-[`docs/CLAUDE.md`](docs/CLAUDE.md) §9, e o modelo de PR em
+[`docs/CLAUDE.md`](docs/CLAUDE.md) §1.12, e o modelo de PR em
 [`.github/pull_request_template.md`](.github/pull_request_template.md).
 
 ## Para agentes de IA

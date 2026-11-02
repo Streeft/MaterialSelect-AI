@@ -47,8 +47,11 @@ contagens, dry-run, import transacional e preservação lossless de valores que 
 modelo numérico ainda não representa. O corpus não entra no Git; a extração dos
 `data.gdb` roda fora do repositório com o extrator somente leitura em
 `scripts/granta/`. O cutover exige zero `is_demo=True` em todos os modelos marcáveis antes de
-aceitar a base oficial, e produção passa a usar `semear_referencia` em vez de
-`semear_demo`. A instalação auditada tem 21 `data.gdb` (3.273.637.888
+aceitar a base oficial, e **depois do cutover** produção passa a usar
+`semear_referencia` em vez de `semear_demo`. **O cutover não aconteceu**: o
+catálogo oficial não ficou pronto (C1 no `TODO.md`), e a produção segue com o
+demo, que o `semear_demo` completa de forma aditiva e idempotente
+([D-189](DECISIONS.md)). A instalação auditada tem 21 `data.gdb` (3.273.637.888
 bytes) mais ProductConfig, Templates, Attribute Notes e Exporters; inventário em
 [`19-inventario-instalacao-granta.md`](19-inventario-instalacao-granta.md).
 Operação completa em
@@ -988,7 +991,9 @@ venha de uma sessão de fato observada.
 ## 6. Pendências
 
 Ver [TODO.md](TODO.md) para o backlog priorizado com impacto, dificuldade e
-dependências. O único item que resta:
+dependências (alta prioridade: C1, popular o catálogo oficial; C2, fechar o
+portão de licença das fontes abertas; S3, CVEs sem correção publicada). O item
+de teste com usuários, que um agente não fecha sozinho:
 
 1. **Nenhuma sessão de teste de usabilidade** — compromisso do §3.5, com o
    instrumento pronto em [11-usabilidade.md](11-usabilidade.md) e a análise
@@ -1043,29 +1048,31 @@ que mais afetam quem for mexer no código:
 ## 9. Limitações atuais
 
 - **Composição e designação só existem no demo.** Nenhum registro real as tem:
-  dependem do bundle do D-102 ou de fonte aberta APROVADA. Também não há tela de
-  edição, estágio de seleção por composição nem composição nas exportações
-  ([D-105](DECISIONS.md); TM2-a a TM2-e no `TODO.md`).
+  dependem do bundle do D-102 ou de fonte aberta APROVADA. A edição à mão, o
+  estágio de seleção por composição e a composição nas exportações já existem
+  ([D-105](DECISIONS.md), [D-111](DECISIONS.md), [D-112](DECISIONS.md); o que
+  resta de TM2 está no `TODO.md`).
 
-- **O cartão CAE dos solvers ainda recusa todo material.** Coeficiente de
-  Poisson, expansão térmica e calor específico não têm slug no catálogo; o
-  exportador os lê de `coef_poisson`, `coef_expansao_termica` e
-  `calor_especifico`, e sem ν os decks de MAPDL, Abaqus, Nastran e LS-DYNA
-  respondem 422 — só o MatML sai. Os arquivos foram escritos a partir da
-  documentação pública, sem rodar nenhum solver nem validar o XSD do MatML
-  ([D-104](DECISIONS.md); TM5-a e TM5-e no `TODO.md`).
+- **O cartão CAE só sai para material com as propriedades que o formato exige.**
+  Coeficiente de Poisson, expansão térmica e calor específico têm definição de
+  referência desde o [D-124](DECISIONS.md), mas **valor só no demo**: material
+  real sem ν continua recebendo 422 nos decks de MAPDL, Abaqus, Nastran e
+  LS-DYNA (só o MatML sai). Os arquivos foram escritos a partir da documentação
+  pública, sem rodar nenhum solver nem validar o XSD do MatML
+  ([D-104](DECISIONS.md); TM5 no `TODO.md`).
 
 - **A instância publicada usa um provedor real, e por isso não é reproduzível.**
-  `AI_PROVIDER=openai-compat` apontado para a Groq (modelo `openai/gpt-oss-20b`),
+  A IA oficial é o Gemini no plano gratuito, pelo provedor `openai-compat`
+  ([D-93](DECISIONS.md); a Groq foi o primeiro provedor real, [D-36](DECISIONS.md)),
   configurado por `fly secrets set` — decisão de operação, não de código, e por
-  isso o `fly.toml` continua sem `AI_PROVIDER` ([D-36](DECISIONS.md)). Só o
+  isso o `fly.toml` continua sem `AI_PROVIDER`. Só o
   `mock` é determinístico ([D-35](DECISIONS.md)), e ele segue sendo o padrão do
   código e o que a suíte de testes exercita. Duas consequências: o que for
-  digitado no painel de IA é enviado à Groq, e planos gratuitos costumam reservar
-  o direito de treinar em cima — a interface avisa isso ao lado de cada sugestão;
-  e o RAG sobre o Cérebro liga junto ([D-47](DECISIONS.md)). Até a ação
-  `ingerir` do workflow **Base de conhecimento (Cérebro)** rodar em produção
-  ([D-101](DECISIONS.md)), ele encontra a base vazia e as explicações vêm
+  digitado no painel de IA é enviado ao Google, e planos gratuitos costumam
+  reservar o direito de treinar em cima (o autor aceitou isso para os livros do
+  Cérebro, [D-101](DECISIONS.md)); e o RAG sobre o Cérebro
+  liga junto ([D-47](DECISIONS.md)). Sem a ingestão do Cérebro
+  ([D-101](DECISIONS.md)), a base está vazia e as explicações vêm
   **sem citações** — ausência que o backend declara em vez de esconder.
 - **`/billing/checkout` responde 503 na instância publicada**, porque
   `STRIPE_API_KEY` está vazio ([D-36](DECISIONS.md)). O portão de assinatura
@@ -1081,18 +1088,23 @@ que mais afetam quem for mexer no código:
   chunks, `Plotly` aparece em 2 e `maplibre` em nenhum, verificado com controle
   positivo. **Isto deixa de valer se um traço de mapa for registrado.** Ver
   "S3" em [TODO.md](TODO.md).
-- **Dados demonstrativos são fictícios.** 668 materiais semeados (5 de
-  `app.db.seed`, exercitando conversão/intervalo/ausência/incerteza; 70 de
-  `app.db.seed_extended`, cobertura mais ampla das cinco famílias; e, desde o
-  [D-185](DECISIONS.md), os 593 do catálogo demo ampliado do TCC, nove lotes
-  JSON em `app/db/demo_catalog/` com valores na ordem de grandeza da literatura
-  aberta, semeados pelo mesmo `seed_extended`), mais os 10 das duas releases
-  demo, existem para exercitar o sistema, não para descrever materiais reais. Marcados com
-  `is_demo`; a interface e as exportações não os avisam mais ([D-138](DECISIONS.md)). **Os dois
-  módulos ficaram meses sem chegar à produção** por um defeito de integração
-  registrado no [D-71](DECISIONS.md#d-71) — corrigido, e
-  `docs/15-dados-demonstrativos.md` é a regra para não repeti-lo com o
-  próximo dado de demonstração.
+- **Dados demonstrativos são fictícios.** 678 materiais `is_demo` no seed (em
+  produção o autor viu 679 no catálogo, um a mais que o seed: origem a
+  confirmar). Os 668 de `seed` + `seed_extended` são 5 de `app.db.seed`
+  (exercitam conversão, intervalo, ausência e incerteza), 70 de
+  `app.db.seed_extended` (cobertura mais ampla das cinco famílias) e, desde o
+  [D-185](DECISIONS.md), os 593 do catálogo demo ampliado do TCC (nove lotes JSON
+  em `app/db/demo_catalog/`, valores na ordem de grandeza da literatura aberta);
+  somam-se os 10 das duas releases demo. Cada um tem valor ou ausência declarada
+  nas 48 propriedades numéricas e nos 12 níveis ordinais
+  ([D-188](DECISIONS.md)) e está ligado a processos dos 144 processos demo
+  ([D-192](DECISIONS.md)); o catálogo ampliado e os atributos de processo são
+  `ESTIMADO`. Existem para exercitar o sistema, não para descrever materiais
+  reais. Marcados com `is_demo`; a interface e as exportações não os avisam mais
+  ([D-138](DECISIONS.md)). **Os dois módulos de seed ficaram meses sem chegar à
+  produção** por um defeito de integração registrado no
+  [D-71](DECISIONS.md#d-71) — corrigido, e `docs/15-dados-demonstrativos.md` é a
+  regra para não repetir isso com o próximo dado de demonstração.
 - **A base definitiva do orientador ainda não chegou.** A camada de importação
   genérica existe justamente para não depender disso. Quando chegar, a ação
   `excluir_demo` de `admin-banco.yml` apaga todos os materiais fictícios (os 593 do D-185 inclusive) num
@@ -1113,15 +1125,15 @@ que mais afetam quem for mexer no código:
   do Neon. Uma ingestão feita durante a aula reconstrói o índice a cada
   consulta — por isso `ingerir` roda fora do horário de aula.
 - **Curvas só existem no demo.** Nenhum registro real as tem: dependem do bundle
-  do D-102 ou de fonte aberta APROVADA. Também não há edição, leitura de "valor
-  a T" (interpolação)
-  ([D-106](DECISIONS.md); TM4-a a TM4-e no `TODO.md`).
+  do D-102 ou de fonte aberta APROVADA. A edição à mão existe
+  ([D-111](DECISIONS.md)); o valor lido numa curva é só o ponto que a fonte
+  declarou, **nunca interpolado** ([D-110](DECISIONS.md), [D-175](DECISIONS.md)).
 - **Busca por palavra-chave usa LIKE sobre JSON** — não escala.
 - **Com provedor de IA real, a leitura do enunciado não é reproduzível.** Só o
   `mock` é determinístico, e é ele o padrão. O `claude-api` foi exercitado
   contra um cliente falso nos testes, mas ainda não contra a API de verdade —
   não há chave neste ambiente. O `claude-cli` e o `openai-compat` foram
-  verificados ao vivo; o segundo contra a Groq, na instância publicada, e foi
+  verificados ao vivo; o segundo contra a Groq (e depois o Gemini, D-93), e foi
   esse exercício que revelou os dois defeitos descritos no §3.
 - **O portão de assinatura está ligado, e o checkout foi testado ao vivo.**
   `require_active_subscription` bloqueia toda rota (exceto
@@ -1154,13 +1166,7 @@ que mais afetam quem for mexer no código:
 | Dependência de provedor de IA | Arquitetura desacoplada com provedor simulado; funciona sem chave. |
 | Incorporação inadvertida de dado protegido | Triagem de licenciamento (M1, item 4.2 da proposta) — `Source` registra licença/procedência, e uma fonte nova sem licença ou marcada como possivelmente protegida sem confirmação humana é recusada antes de qualquer linha ser escrita ([D-44](DECISIONS.md)). |
 | Resultado não reproduzível por interferência de IA | Cálculo determinístico + guardrails executáveis + confirmação do usuário. |
-| Regressão silenciosa | CI com 5041 testes de backend e 1374 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5054 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5041 testes de backend e 1373 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5049 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5061 testes de backend e 1360 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5041 testes de backend e 1383 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
-| Regressão silenciosa | CI com 5123 testes de backend e 1455 de frontend, **obrigatória para o merge**; canário de isolamento de testes. |
+| Regressão silenciosa | CI com 5393 testes de backend e 1588 de frontend (medidos em 02/11/2026), **obrigatória para o merge**; canário de isolamento de testes. |
 | Material licenciado do Cérebro exposto em `main` (repositório público) | Risco aceito por decisão explícita do autor, não mitigado — o Cérebro é a base de conhecimento da camada de IA ([D-45](DECISIONS.md)). |
 | Texto dos livros do Cérebro enviado ao Gemini no plano gratuito, onde o Google pode usá-lo para melhorar os produtos | Risco aceito pelo autor ao escolher busca por vetores ([D-101](DECISIONS.md)); a alternativa sem envio é a busca só por palavras, que continua funcionando sozinha. Material na lista de remoção **nunca** é enviado: o `embed` lê `removidos.txt` e, sem conseguir lê-lo, não envia nada. |
 | Texto dos livros do Cérebro num log público do Actions (um traceback do SQLAlchemy imprime SQL e parâmetros) | Aconteceu uma vez, na primeira `ingerir` de 06/10 (execução 37415600025). Os CLIs do Cérebro imprimem só a classe de um erro de banco, sem traceback, e o motor tem `hide_parameters=True` ([D-101](DECISIONS.md), atualização de 06/10). O log publicado foi apagado pelo dono em 06/10/2026, pela interface do Actions ([TODO](TODO.md), "Débitos já quitados"); apagar não desfaz uma cópia feita enquanto esteve público. |
@@ -1172,7 +1178,8 @@ que mais afetam quem for mexer no código:
 ## 11. Próximos passos sugeridos
 
 **Aplicar o teste de usabilidade** de [11-usabilidade.md](11-usabilidade.md)
-é o único item que resta. O instrumento está pronto e a interface acabou de
+é o único item que depende só de participantes reais (os itens C1 e C2 do
+[TODO.md](TODO.md) dependem de dado licenciado e de decisão do autor). O instrumento está pronto e a interface acabou de
 ser refeita; é o momento em que a sessão rende mais, e o §4.1 cobra a análise
 e as melhorias como entrega. Única pendência que exige um humano fora do
 teclado — nenhum agente fecha sozinho.
