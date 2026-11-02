@@ -162,11 +162,19 @@ Duas consequências que não são detalhe de implementação:
   entra em `excluded` com o motivo escrito. É a mesma regra de dado ausente do
   resto do sistema: a lacuna é nomeada, nunca preenchida.
 
-## O painel de indicadores (Fase 9, [D-39](DECISIONS.md))
+## O painel de indicadores (Fase 9, [D-39](DECISIONS.md); ampliado no [D-193](DECISIONS.md))
 
-`/painel` responde "quanto do catálogo está preenchido, e com que qualidade" em
-cinco figuras: cobertura geral, composição por tipo de evidência, cobertura por
-classe, ranking de lacunas e distribuição por propriedade com **box-plot**.
+`/app/painel` nasceu respondendo "quanto do catálogo está preenchido, e com que
+qualidade" em cinco figuras: cobertura geral, composição por tipo de evidência,
+cobertura por classe, ranking de lacunas e distribuição por propriedade com
+**box-plot**. Desde o D-193 essas figuras são só uma parte: o Painel tem **cinco
+abas** (Visão geral, Propriedades, Processos, Qualidade e Minha atividade) sobre
+filtros globais de classe, subclasse, nível e demonstração, que vivem na URL.
+Acrescentou treemap de composição, histograma, ranking por propriedade ou índice,
+correlação de Spearman, processos por família, qualidade por fonte, atividade
+própria e CSV por aba; clicar numa marca leva ao catálogo, ao mapa ou ao
+comparador. Os endpoints estão na tabela mais abaixo; a regra é a mesma — toda
+agregação é do backend.
 
 Quartis, medianas, extremos e percentuais são computados no backend
 (`app/calculations/statistics.py`), como manda o [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)

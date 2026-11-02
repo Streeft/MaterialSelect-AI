@@ -5,7 +5,8 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
 > **Sob demanda, não por inteiro:** estado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md),
 > guia completo em [`docs/CLAUDE.md`](docs/CLAUDE.md), arquitetura em
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), pendências em [`docs/TODO.md`](docs/TODO.md).
-> **Nunca leia inteiros** `DECISIONS.md` (650 KB), `CHANGELOG_SESSION.md`, `TODO.md`,
+> **Escrevendo a monografia do TCC?** Comece por [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md) (método, arquitetura, funcionalidades com a D-NN, números e limitações).
+> **Nunca leia inteiros** `DECISIONS.md` (cerca de 800 KB), `CHANGELOG_SESSION.md`, `TODO.md`,
 > `ESTADO_ATUAL.md`: use `rg "D-NN"` e leia só a faixa; edite por trecho.
 
 ## Princípios inegociáveis (metodologia)

@@ -1,5 +1,7 @@
 # Prompt — Redesign de interface do MaterialSelect AI
 
+> **Histórico (Fase 8, concluída).** Este é o prompt que conduziu o redesign de agosto de 2026; o sistema de design vigente está em `.claude/rules/frontend-design-system.md` e nas decisões D-23, D-33, D-49, D-80, D-91 e D-133 a D-137 (`docs/DECISIONS.md`). Não use como descrição do estado atual da interface.
+
 > Cole este texto inteiro no Claude Code, na raiz do repositório
 > `MaterialSelect-AI`. Ele pressupõe o estado do branch `fase-7-relatorio-html`.
 

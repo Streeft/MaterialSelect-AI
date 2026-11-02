@@ -12,8 +12,8 @@ O backend é a **fonte de verdade de todo número**; o frontend desenha.
 
 ```mermaid
 flowchart LR
-  subgraph Web["apps/web — Next.js 14 (App Router)"]
-    UI["Telas: catálogo, importação,<br/>seleção, mapas, comparador"]
+  subgraph Web["apps/web — Next.js 16 (App Router)"]
+    UI["Telas: catálogo, importação, seleção, mapas,<br/>comparador, painel, ferramentas, cadernos"]
     Q["TanStack Query"]
     Plot["Plotly (só desenha)"]
     UI --> Q
@@ -39,7 +39,7 @@ flowchart LR
     AI -. "só catálogo + texto" .-> Calc
   end
 
-  DB[("SQLite dev · PostgreSQL alvo")]
+  DB[("SQLite em dev e testes · PostgreSQL (Neon) em produção")]
   Q -- "HTTP /api/*" --> R
   M --> DB
 ```
@@ -64,27 +64,38 @@ Duas consequências que costumam surpreender quem chega:
 ```
 MaterialSelect-AI/
 ├─ apps/
-│  ├─ api/                      # backend FastAPI (~18.300 linhas Python)
-│  │  ├─ alembic/versions/      # 7 migrations; fonte de verdade do schema
+│  ├─ api/                      # backend FastAPI (311 arquivos .py fora dos testes)
+│  │  ├─ alembic/versions/      # 42 migrations; fonte de verdade do schema
 │  │  ├─ app/
-│  │  │  ├─ ai/                 # camada de IA opcional (Fase 6; 4 provedores)
+│  │  │  ├─ ai/                 # camada de IA opcional (4 provedores: mock,
+│  │  │  │                      #   claude-api, claude-cli, openai-compat)
 │  │  │  ├─ calculations/       # cálculo determinístico: units, expressions,
-│  │  │  │                      #   performance, powerlaw, statistics
-│  │  │  ├─ db/                 # engine, sessão, seed
+│  │  │  │                      #   performance, powerlaw, statistics, solver,
+│  │  │  │                      #   part_cost, eco_audit, synthesis, battery,
+│  │  │  │                      #   family_sweep, treemap, expression_render
+│  │  │  ├─ db/                 # engine, sessão, seeds (reference, demo,
+│  │  │  │                      #   extended, demo_catalog/*.json)
 │  │  │  ├─ domain/             # regras puras, sem I/O
-│  │  │  ├─ exporters/          # report/spreadsheet/html/cells + figures (SVG)
+│  │  │  ├─ exporters/          # report/spreadsheet/html/docx/pptx/cells,
+│  │  │  │                      #   figures (SVG), cae/ (cartões de CAE)
 │  │  │  ├─ importers/          # CSV/XLSX de entrada (Fase 3)
+│  │  │  ├─ integrations/       # única saída de rede (safe_fetch.py)
+│  │  │  ├─ knowledge/          # Cérebro: ingestão, BM25 + vetores, RAG
+│  │  │  ├─ notebooks/          # Cadernos e Estúdio (fontes, grounding)
 │  │  │  ├─ models/             # SQLAlchemy 2.0
 │  │  │  ├─ repositories/       # acesso a dados, sempre parametrizado
-│  │  │  ├─ routers/            # HTTP fino, sem regra de negócio
+│  │  │  ├─ routers/            # HTTP fino, sem regra de negócio (31 módulos)
 │  │  │  ├─ schemas/            # contratos Pydantic v2
 │  │  │  ├─ services/           # orquestração de casos de uso
-│  │  │  └─ tests/              # 28 arquivos, 639 testes
+│  │  │  └─ tests/              # 190 arquivos, 5393 testes (medido em 02/11/2026)
 │  │  └─ pyproject.toml
-│  └─ web/                      # frontend Next.js 14
-│     ├─ app/                   # App Router: uma pasta por rota — catalogo,
-│     │                         #   materiais, mapas, comparar, selecao,
-│     │                         #   importar, painel, admin, estilo
+│  └─ web/                      # frontend Next.js 16 (build com --webpack)
+│     ├─ app/                   # App Router: landing, entrar, assinatura e,
+│     │                         #   sob app/app/, uma pasta por tela — catalogo,
+│     │                         #   materiais, mapas, comparar, selecao, processos,
+│     │                         #   dimensionar, custo, eco, sintetizar, baterias,
+│     │                         #   cadernos, glossario, importar, painel,
+│     │                         #   meus-registros, admin, estilo
 │     ├─ components/            # componentes por domínio (ui/, charts/,
 │     │                         #   dashboard/, selection/, layout/, ai/, ...)
 │     ├─ lib/                   # api.ts, types.ts, i18n.ts, format.ts,
@@ -126,6 +137,12 @@ routers → services → repositories → models → banco
 | `powerlaw.py` | Reescreve o índice como monômio `C·Πp^e`; **deriva** a inclinação log-log `−a/b`. | É o que torna a linha de índice testável em vez de presumida. |
 | `performance.py` | Avalia um índice para um material. | Compartilhado entre seleção e mapas — impede que discordem. |
 | `statistics.py` | Quartis, mínimo, mediana, máximo e percentuais de cobertura do painel. | Um box-plot é geometria, e geometria é cálculo ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)): o navegador recebe os cinco números prontos, nunca a amostra para quantilizar. |
+| `expression_render.py` | LaTeX e leitura em texto de uma expressão, gerados do AST ([D-191](DECISIONS.md)). | A calculadora visual só mostra o que o servidor entendeu; o nome interno da propriedade nunca chega à tela. |
+| `solver.py`, `load_cases.py` | Dimensionamento por caso de carga: massa = fator estrutural / índice ([D-64](DECISIONS.md) a [D-66](DECISIONS.md)). | O índice derivado é o mesmo da Seleção. |
+| `part_cost.py`, `eco_audit.py` | Custo por peça termo a termo ([D-65](DECISIONS.md), curva custo × lote no [D-96](DECISIONS.md)) e auditoria ecológica em cinco fases ([D-66](DECISIONS.md), [D-121](DECISIONS.md)). | Cálculo de custo e de pegada nunca na tela. |
+| `synthesis.py`, `family_sweep.py` | Compósitos, espumas, painéis sanduíche e varredura de família ([D-67](DECISIONS.md), [D-68](DECISIONS.md), [D-144](DECISIONS.md)). | Cada valor sintetizado leva a lei que o produziu. |
+| `battery.py` | Pack de bateria e curva de Ragone ([D-69](DECISIONS.md), [D-145](DECISIONS.md)). | Linhas de iso-tempo calculadas no servidor. |
+| `treemap.py` | Treemap squarified do Painel ([D-193](DECISIONS.md)). | Geometria é cálculo. |
 
 ### `domain/` — regras puras
 
@@ -255,13 +272,19 @@ JavaScript. E a ausência de IA é **declarada** no próprio laudo, nunca silenc
 — um documento que omitisse a interpretação sem dizer que ela não existe faria o
 leitor supor que ela não era necessária.
 
-### Painel de indicadores (Fase 9)
+### Painel de indicadores (Fase 9, ampliado no D-193)
 
-`/painel` lê `DashboardService`, que emite **7 consultas agregadas** e nenhum
-laço por material — verificado em perfil. Cobertura geral, composição por tipo
-de evidência, cobertura por classe, ranking de lacunas e distribuição por
-propriedade com box-plot, tudo sobre quartis e percentuais computados em
-`calculations/statistics.py` ([D-39](DECISIONS.md), [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
+O Painel nasceu no [D-39](DECISIONS.md) com dois endpoints (`overview` e
+`distribution`: cobertura, composição por tipo de evidência, lacunas e box-plot).
+Desde o [D-193](DECISIONS.md) são **cinco abas** (Visão geral, Propriedades,
+Processos, Qualidade e Minha atividade) sobre **filtros globais** de classe,
+subclasse, nível e demonstração, que vivem na URL e passam por **um só**
+predicado (`DashboardRepository.scope()`). Toda agregação é do backend
+([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)): treemap squarified
+(`calculations/treemap.py`), histograma de Freedman–Diaconis, ranking por
+propriedade ou índice, correlação de Spearman (nunca 0 abaixo de 5 pares),
+processos por família, qualidade por fonte, atividade própria e CSV por aba. Cada
+rota faz um número fixo de consultas agregadas, sem laço por material.
 
 ---
 
@@ -382,6 +405,15 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
 | Auditoria | `GET /audit` — quem mudou o quê e quando ([D-43](DECISIONS.md)) |
 | Fontes | `GET /sources` — licença, procedência e revisor de cada fonte registrada ([D-44](DECISIONS.md)) |
+| Calculadora de índice | `POST /expressions/describe`, `GET /expressions/palette` — LaTeX, dimensão e validade vindos do servidor ([D-191](DECISIONS.md)) |
+| Processos | `/processes` — taxonomia, atributos, vínculo material–processo ([D-57](DECISIONS.md), [D-59](DECISIONS.md), [D-192](DECISIONS.md)) |
+| Ferramentas | `/solver` (dimensionar, [D-64](DECISIONS.md)), `/custo` ([D-65](DECISIONS.md)), `/eco` ([D-66](DECISIONS.md), [D-121](DECISIONS.md)), `/baterias` ([D-69](DECISIONS.md)), `POST /sintetizar/…` ([D-67](DECISIONS.md), [D-68](DECISIONS.md), [D-144](DECISIONS.md)) |
+| Catálogo e glossário | `/catalogo` (releases e diff, [D-108](DECISIONS.md)), `/materials/{id}/curvas` ([D-106](DECISIONS.md)), `/glossario` e `/familias/notas` ([D-130](DECISIONS.md), [D-151](DECISIONS.md)), `/my-records` ([D-62](DECISIONS.md)) |
+| Cadernos e Cérebro | `/notebooks` (fontes, conversa, Estúdio; [D-92](DECISIONS.md), [D-94](DECISIONS.md), [D-97](DECISIONS.md), [D-98](DECISIONS.md)), `/knowledge` (RAG; [D-47](DECISIONS.md), [D-101](DECISIONS.md)) |
+| Assinatura | `/billing` ([D-46](DECISIONS.md), [D-83](DECISIONS.md)) |
+
+A lista acima resume os 31 módulos de `app/routers/`; a lista exata de rotas é a
+documentação interativa em `/docs` (FastAPI) com a API rodando.
 
 Visualização e comparação são **POST** porque a entrada é estruturada (par de
 eixos, filtros, conjuntos de materiais, expressão e níveis) e não caberia
@@ -453,12 +485,13 @@ Google).
 ### Frontend
 | Biblioteca | Papel |
 |---|---|
-| Next.js 14 (App Router) | Rotas e build |
+| Next.js 16 (App Router), React 18 | Rotas e build (`--webpack`, [D-51](DECISIONS.md)) |
 | TypeScript estrito | `strict` + `noUncheckedIndexedAccess` |
 | TanStack Query | Estado de servidor |
-| Plotly (`react-plotly.js`) | Só desenha |
+| Plotly (`react-plotly.js`) | Só desenha os mapas; as demais figuras são SVG próprio |
+| KaTeX | Visor da calculadora de índice ([D-191](DECISIONS.md)) |
 | Tailwind | Estilo |
-| Vitest | Testes de unidade |
+| Vitest, Playwright | Testes de unidade e E2E |
 
 ---
 

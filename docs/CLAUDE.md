@@ -143,6 +143,7 @@ o seed carregava 5 materiais.
 | `docs/CHANGELOG_SESSION.md` | Toda sessão de trabalho, no topo. |
 | `docs/PROJECT_CONTEXT.md` | Estado atual, a contagem de testes, funcionalidades, limitações e riscos que mudaram. |
 | Documento da área | O de número que cobre o que foi tocado — `07-selecao-deterministica.md`, `09-camada-ia.md`, `10-relatorios.md`, `13-deploy.md`, `15-dados-demonstrativos.md`… |
+| `docs/TCC_GUIA.md` | Porta de entrada de quem escreve a monografia: quando muda um número do §5 (materiais, propriedades, processos, testes), uma funcionalidade do §4 ou uma limitação do §6, atualize a linha e a data da medição ([D-194](DECISIONS.md)). |
 | `docs/ESTADO_ATUAL.md` | Opcional: narrativa histórica, só quando houver decisão nova relevante. Não recebe contagem de testes. |
 | `CLAUDE.md` (raiz) | Uma regra nova só se ela valer para toda sessão; o "Estado atual" ali é curto e não leva narrativa. |
 | `.env.example` (`apps/api/`, raiz) | Toda variável de ambiente nova, renomeada ou com padrão novo, e a tabela do §6 deste arquivo. |
@@ -511,6 +512,7 @@ Três coisas que não são detalhe de configuração:
 
 | Pergunta | Arquivo |
 |---|---|
+| Escrever a monografia do TCC: o que o app é, método, arquitetura, funcionalidades com a D-NN, números e limitações | [TCC_GUIA.md](TCC_GUIA.md) |
 | Estado do projeto, o que falta | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) |
 | Como o sistema é organizado | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Por que foi decidido assim | [DECISIONS.md](DECISIONS.md) e [adr/](adr/) |
