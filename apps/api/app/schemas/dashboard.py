@@ -127,3 +127,232 @@ class DistributionOut(BaseModel):
     classes_without_data: list[str] = Field(
         default_factory=list, description="Nomes das classes sem nenhum valor desta propriedade"
     )
+
+
+# --- Painel rico (D-193) ----------------------------------------------------
+
+DemoFilter = Literal["todos", "demo", "reais"]
+
+
+class FiltersOut(BaseModel):
+    """The filters a response was computed under, echoed back.
+
+    Echoed so a CSV or a screenshot of the panel carries its own context, and so
+    the client can tell a stale response (an older filter) from a fresh one.
+    """
+
+    class_slug: str | None = None
+    subclass: str | None = None
+    level: int = Field(ge=1, le=3, default=3)
+    demo: DemoFilter = "todos"
+    materials: int = Field(ge=0, description="Materiais que passam pelos filtros")
+
+
+class TreemapCellOut(BaseModel):
+    """One rectangle of the composition treemap, in the box's data coordinates."""
+
+    key: str
+    depth: Literal[0, 1] = Field(description="0 = classe, 1 = subclasse")
+    class_slug: str
+    class_name: str
+    #: A subclasse (depth 1). ``None`` com ``depth=1`` = materiais sem subclasse.
+    subclass: str | None = None
+    count: int = Field(ge=0)
+    share_pct: float | None = None
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class CompositionOut(BaseModel):
+    """Materials per class and subclass, with the treemap already laid out."""
+
+    filters: FiltersOut
+    width: float = Field(description="Largura da caixa em que as células foram dispostas")
+    height: float
+    cells: list[TreemapCellOut]
+
+
+class ProcessFamilyOut(BaseModel):
+    slug: str
+    name: str
+    root_slug: str
+    root_name: str
+    processes: int = Field(ge=0, description="Processos ativos desta família")
+    materials: int = Field(ge=0, description="Materiais distintos ligados a algum deles")
+
+
+class ProcessUseOut(BaseModel):
+    slug: str
+    name: str
+    family_slug: str
+    family_name: str
+    materials: int = Field(ge=0)
+    share_pct: float | None = Field(default=None, description="Dos materiais filtrados")
+
+
+class ProcessClassUseOut(BaseModel):
+    """How many distinct processes reach the materials of one class."""
+
+    class_slug: str
+    class_name: str
+    materials: int = Field(ge=0)
+    processes: int = Field(ge=0)
+
+
+class ProcessPanelOut(BaseModel):
+    filters: FiltersOut
+    processes: int = Field(ge=0)
+    families: list[ProcessFamilyOut]
+    by_process: list[ProcessUseOut]
+    by_material_class: list[ProcessClassUseOut]
+    materials_with_process: int = Field(ge=0)
+    materials_without_process: int = Field(ge=0)
+
+
+class SourceQualityOut(BaseModel):
+    """One source and the provenance of the values it backs."""
+
+    key: str = Field(description="Id da fonte, ou 'sem-fonte'")
+    label: str | None = Field(default=None, description="Nulo = valores sem fonte")
+    is_demo: bool = False
+    license_label: str | None = None
+    materials: int = Field(ge=0)
+    values: int = Field(ge=0, description="Valores com número")
+    medido: int = Field(ge=0)
+    importado: int = Field(ge=0)
+    estimado: int = Field(ge=0)
+    declared_missing: int = Field(ge=0)
+    share_pct: float | None = Field(default=None, description="Dos valores com número")
+
+
+class SourcesOut(BaseModel):
+    filters: FiltersOut
+    values: int = Field(ge=0)
+    sources: list[SourceQualityOut]
+
+
+class HistogramBinOut(BaseModel):
+    lower: float
+    upper: float
+    count: int = Field(ge=0)
+
+
+class PropertyStatsOut(BaseModel):
+    """One property, whole-catalogue: histogram, summary and gaps (D-193)."""
+
+    filters: FiltersOut
+    property_slug: str
+    property_name: str
+    symbol_latex: str | None = None
+    category: PropertyCategory
+    display_unit: str | None = None
+    better_direction: str
+    allows_log_scale: bool
+    log_bins: bool = Field(description="Faixas iguais em log10")
+    count: int = Field(ge=0, description="Materiais com número")
+    declared_missing: int = Field(ge=0)
+    not_recorded: int = Field(ge=0)
+    coverage_pct: float | None = None
+    # Nulos quando count = 0: não há mínimo de nada (D-24).
+    minimum: float | None = None
+    q1: float | None = None
+    median: float | None = None
+    q3: float | None = None
+    maximum: float | None = None
+    mean: float | None = None
+    bins: list[HistogramBinOut]
+
+
+class RankedMaterialOut(BaseModel):
+    rank: int = Field(ge=1)
+    material_id: int
+    name: str
+    class_slug: str
+    class_name: str
+    subclass: str | None = None
+    is_demo: bool
+    value: float
+
+
+class TopOut(BaseModel):
+    """The N best (or worst) materials by one property or performance index."""
+
+    filters: FiltersOut
+    kind: Literal["property", "index"]
+    slug: str
+    label: str
+    expression: str | None = None
+    unit: str | None = None
+    order: Literal["melhor", "pior"]
+    direction: Literal["maior", "menor"] = Field(description="O que 'melhor' quis dizer")
+    ranked: int = Field(ge=0, description="Materiais com valor")
+    without_value: int = Field(ge=0, description="Materiais filtrados sem valor")
+    items: list[RankedMaterialOut]
+
+
+class CorrelationPropertyOut(BaseModel):
+    slug: str
+    name: str
+    symbol_latex: str | None = None
+    count: int = Field(ge=0)
+
+
+class CorrelationCellOut(BaseModel):
+    x: str
+    y: str
+    #: ρ de Spearman; nulo com poucos pares ou sem variância — nunca 0.
+    rho: float | None = None
+    pairs: int = Field(ge=0)
+
+
+class CorrelationOut(BaseModel):
+    filters: FiltersOut
+    method: Literal["spearman"] = "spearman"
+    min_pairs: int
+    properties: list[CorrelationPropertyOut]
+    cells: list[CorrelationCellOut]
+
+
+class MonthCountOut(BaseModel):
+    month: str = Field(description="AAAA-MM")
+    studies: int = Field(ge=0)
+    charts: int = Field(ge=0)
+    notebooks: int = Field(ge=0)
+
+
+class AuditEventOut(BaseModel):
+    entity_type: str
+    entity_id: int
+    entity_label: str
+    action: str
+    created_at: str
+
+
+class AIDayOut(BaseModel):
+    day: str
+    requests: int = Field(ge=0)
+    artifacts: int = Field(ge=0)
+    fetches: int = Field(ge=0)
+
+
+class AIUsageOut(BaseModel):
+    """Only the caller's own counters — never anybody else's."""
+
+    today: AIDayOut
+    ai_daily_limit: int
+    notebook_daily_limit: int
+    fetch_daily_limit: int
+    days: list[AIDayOut]
+
+
+class ActivityOut(BaseModel):
+    studies: int = Field(ge=0)
+    charts: int = Field(ge=0)
+    notebooks: int = Field(ge=0)
+    own_materials: int = Field(ge=0)
+    months: list[MonthCountOut]
+    actions: dict[str, int]
+    recent: list[AuditEventOut]
+    ai: AIUsageOut
