@@ -259,6 +259,12 @@ Três detalhes que não são arbitrários:
   `extended_missing_declared`, `extended_ordinal_values_created`). Num banco
   limpo a primeira rodada cria 17 741 valores, 4 633 ausências declaradas e
   8 136 níveis ordinais; a segunda, zero.
+- **Processos por subclasse ([D-192](DECISIONS.md)).** O mesmo `semear_demo` cria os
+  131 processos demo novos e seus atributos e acerta os vínculos: acrescenta os
+  plausíveis e remove **só** vínculo de material demo com processo demo que a
+  tabela rejeita (os que a migração `b7d219fa82de` gravou por classe). Conferir no
+  log `material_process_links_removed` (linha `[seed]`) e a linha
+  `Processos demo por subclasse (D-192)`; rodado de novo, zero.
 - **`excluir_demo` é irreversível**, e não é algo para disparar depois de um
   merge comum — só no cutover. Apaga exclusivamente linhas `is_demo=True` em
   `Material`, `Process`, `TransportMode`, `BatteryChemistry`,
