@@ -106,6 +106,7 @@ export function ActivityPanel() {
           description={d.activity.monthsHint}
           exportName={chartFileName("painel", "minha-atividade")}
           exportDisabled={!anyMonth}
+          empty={anyMonth ? undefined : <EmptyState title={d.activity.monthsEmpty} />}
           table={
             <FigureData<ActivityMonth>
               caption={d.activity.monthsFigure}
@@ -138,6 +139,7 @@ export function ActivityPanel() {
           description={d.activity.aiHint(ai.ai_daily_limit)}
           exportName={chartFileName("painel", "meu-uso-de-ia")}
           exportDisabled={!anyAI}
+          empty={anyAI ? undefined : <EmptyState title={d.activity.aiEmpty} />}
           table={
             <FigureData<AIDay>
               caption={d.activity.aiFigure}

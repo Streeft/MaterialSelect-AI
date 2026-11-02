@@ -22,7 +22,7 @@ export const dashboardText = {
     allSubclasses: "Todas as subclasses",
     nivel: "Nível",
     nivelOption: (level: number) =>
-      level === 3 ? "Nível 3 (todas as propriedades)" : `Nível ${level}`,
+      level === 3 ? "Nível 3 (todas)" : `Nível ${level}`,
     demo: "Dados de demonstração",
     demoTodos: "Todos os materiais",
     demoDemo: "Só demonstração",
@@ -203,6 +203,8 @@ export const dashboardText = {
     monthsTitle: "O que você criou, mês a mês",
     monthsHint: "Estudos, gráficos salvos e cadernos dos últimos 12 meses.",
     monthsFigure: "Criações por mês",
+    monthsEmpty: "Nada criado nos últimos 12 meses.",
+    aiEmpty: "Nenhuma consulta à IA nos últimos 14 dias.",
     columnMonth: "Mês",
     aiTitle: "Seu uso de IA nos últimos 14 dias",
     aiHint: (limit: number) => `Consultas por dia. O limite diário é de ${limit.toLocaleString("pt-BR")} por pessoa.`,

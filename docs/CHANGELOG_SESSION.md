@@ -120,6 +120,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 150 — 02/11/26 — Painel rico: abas, filtros globais, treemap, histograma, ranking, correlação e minha atividade (D-193)
+
+**O que mudou.** O Painel virou cinco abas sobre filtros globais na URL (classe com descendentes, subclasse, nível, demonstração).
+Backend: oito rotas novas em `dashboard_service` (`composition`, `processes`, `sources`, `property/{slug}`, `top`, `correlation`,
+`activity`, `export.csv`), as duas antigas aceitando os filtros; `app/calculations/treemap.py` (squarified) e histograma, média e
+Spearman em `app/calculations/statistics.py`. Frontend: `CompositionTreemap`, `HistogramChart`, `PropertyStatsTiles`, `TopRanking`,
+`CorrelationMatrix`, `ProcessPanels`, `SourceQualityChart`, `ActivityPanel`, `DashboardKpis`; `HorizontalBars` com `onSelect`; o
+catálogo lê `?classe=` e `?subclasse=`; tokens `--diverge-pos/neg`. Testes: `test_dashboard_rich.py` (32, contados à mão do seed),
+`test_treemap.py` (6), +13 em `test_statistics.py`; `painel.test.tsx` com abas, filtros, links, D-24 e axe nas cinco abas; cinco telas
+do painel em `e2e/larguras.spec.ts`. Backend 5393 (+51), frontend 1588 (+8). Tempos medidos no D-193. Numeração: D-192/Sessão 149
+eram do #218. Sem migração. Depois do merge: **Deploy da API**.
+
+---
+
 ## Sessão 149 — 02/11/26 — Processos: todo o leque do Ashby e vínculo por subclasse (D-192)
 
 **O que mudou.** 131 processos demo novos (144 no total, 20 famílias) em `app/db/process_catalog_ashby.py`, com atributos estimados:

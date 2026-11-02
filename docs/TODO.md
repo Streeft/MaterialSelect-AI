@@ -87,6 +87,9 @@ quitados".
 
 ## Média prioridade
 
+- **Painel (D-193), próximos passos.** Histórico do catálogo por release no painel (pede guardar contagens por release — hoje não há
+  série para desenhar); seleção de várias subclasses no filtro; matriz de correlação por classe lado a lado (pequenos múltiplos).
+
 - **Catálogo ampliado ([D-188](DECISIONS.md), [D-189](DECISIONS.md), Sessão 146) — pendências.**
   (1) **Autor:** depois do merge, **Deploy da API** e `semear_demo` em produção (aditivo; conferir no log
   `extended_values_created` e companhia); (2) revisão humana de uma amostra dos valores estimados por

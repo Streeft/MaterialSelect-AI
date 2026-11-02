@@ -11858,3 +11858,52 @@ Banco simulando produção (vínculos por classe da migração em todos os mater
 **Fora, de propósito.** A tela Processos lista os processos de cada raiz sem agrupar por subfamília (o card de Conformação passa de
 100 itens); a navegação pela pasta (`/app/processos/classe`) já mostra os galhos. Valor sobre o *par* material–processo continua sem
 modelo (P0-2). Sem migração.
+
+## D-193 — Painel rico: abas, filtros globais e agregações no `dashboard_service`
+
+**Contexto.** O usuário pediu: "aprimore a aba 'Painel', adicione mais gráfico, mais interações, mais dados para o usuário, adicione
+mais dashboard e comandos, está muito pobre de informações". A tela usava só `/api/dashboard/overview` e `/distribution`: quatro
+números, a mistura de qualidade, a cobertura por classe, as lacunas e as caixas de uma propriedade.
+
+**Decisão.**
+- **Cinco abas** (`Tabs`): Visão geral, Propriedades, Processos, Qualidade e Minha atividade. A aba, os filtros e a propriedade em
+  leitura ficam **na URL** (`aba`, `classe`, `subclasse`, `nivel`, `demo`, `prop`; `lib/dashboardState.ts`), pela razão do D-63:
+  um link reproduz a vista.
+- **Filtros globais** (`app/domain/dashboard_filters.py`), aplicados por **um só** predicado (`DashboardRepository.scope()`) a toda
+  consulta de material: classe **com descendentes**, subclasse exata, demonstração (`todos`/`demo`/`reais`) e o **nível** do D-127,
+  que restringe as **propriedades** contadas (cobertura, qualidade, correlação), nunca os materiais. Slug de classe desconhecido
+  devolve painel vazio, não o catálogo inteiro. Os filtros voltam em `filters` em cada resposta e no cabeçalho do CSV.
+- **Agregações novas, todas no backend** (ADR 0004), em `GET /api/dashboard/…`:
+  - `composition`: materiais por classe e subclasse com o **treemap squarified** (Bruls et al.) já disposto numa caixa 160 × 90
+    (`app/calculations/treemap.py`); o cliente só escala.
+  - `processes`: processos por família (com a raiz), materiais por processo e alcance por classe, em **cinco consultas agregadas**,
+    qualquer que seja o número de processos (144 desde o D-192).
+  - `sources`: medido/importado/estimado/ausente por fonte, sobre as propriedades do nível.
+  - `property/{slug}`: **histograma** Freedman–Diaconis (Sturges se o IQR é zero), 5 a 40 faixas, iguais em log10 quando a grandeza
+    admite e todo valor é positivo; cinco números, média, ausentes declarados e não registrados, na unidade de leitura (D-70).
+  - `top`: os N (1–50) melhores ou piores por **propriedade** (melhor segue `better_direction`) ou por **índice de desempenho**
+    (avaliado por `evaluate_index`, o mesmo do mapa); material sem valor é contado em `without_value`, nunca ranqueado como zero.
+  - `correlation`: **ρ de Spearman** (por postos, médias nos empates) por pares completos; `null` abaixo de **5 pares** ou sem
+    variância — nunca 0. Por postos e não Pearson porque as grandezas cobrem décadas e porque o posto não muda com a unidade de
+    leitura. Sem lista, as 12 propriedades do Nível 1 mais preenchidas; com lista, até 60.
+  - `activity`: estudos, gráficos salvos e cadernos por mês (12 meses), registros próprios, ações da auditoria e as 15 últimas, e
+    o uso de IA de hoje e dos 14 dias (`AIUsage`) — **só linhas do próprio leitor**; os filtros do catálogo não se aplicam.
+  - `export.csv?secao=`: as tabelas de cada aba pelo `to_csv` existente (escape de fórmula em toda célula); percentual sem pares sai
+    escrito "sem pares", não vazio nem 0.
+- **Frontend**: KPIs em `StatTile`; treemap (cor da classe pelo assento Okabe–Ito, subclasse num tom da mesma cor, rótulo quando cabe,
+  legenda, tooltip e tabela), histograma, caixas, ranking com "Comparar top N", matriz de correlação e barras de processos e de fonte.
+  **Clicar leva adiante**: subclasse do treemap e barra de classe → catálogo filtrado (`/app/catalogo?classe=&subclasse=`, que o
+  catálogo passa a ler); família e processo → suas páginas; célula da matriz → o par no mapa; "Abrir no mapa"; "Comparar top N".
+  `HorizontalBars` ganhou `onSelect` (marca vira `role="link"`, Enter e clique). Um só `primary` ("Nova seleção"); exportação num
+  `MenuButton`. Nome amigável da propriedade em todo lugar, símbolo em KaTeX quando a definição tem (`symbol_latex` do backend).
+- **Cor da correlação**: par divergente novo `--diverge-pos`/`--diverge-neg` (azul e vermelhão do Okabe–Ito no claro; re-escalonados
+  para o escuro), validado com o validador do `dataviz` nos dois temas (faixa, croma, CVD ΔE ≥ 21,9, contraste). A força é opacidade
+  sobre a superfície, então ρ = 0 é o neutro; célula sem ρ é hachurada no token de ausência. Independente da rota de propósito.
+
+**Medido** (SQLite, 678 materiais × 48 propriedades, 144 processos, HTTP local): overview 67 ms, composition 7 ms, processes 27 ms,
+sources 55 ms, property 11 ms, top 20 ms, correlation padrão 60 ms, correlation com as 48 propriedades 594 ms, activity 16 ms,
+export.csv 120 ms. Sem N+1: cada rota faz um número fixo de consultas.
+
+**Fora, de propósito.** Sem gráfico de série temporal do catálogo (não há histórico de valores para desenhar, princípio 1); sem
+"Exportar PNG" do painel inteiro — cada figura já exporta PNG/SVG no canto (`ChartFrame`); o uso de IA de outras pessoas nunca
+aparece; sem migração.
