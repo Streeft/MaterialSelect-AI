@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderWithQuery as render } from "@/lib/testing/queryWrapper";
 import { screen } from "shadow-dom-testing-library";
 import { ComparisonView } from "./ComparisonView";
@@ -8,6 +8,28 @@ import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type { CompareAxis, CompareCell, Comparison } from "@/lib/types";
 
 const t = ptBR.compare;
+
+// D-191: the table reads a typed index by its friendly description.
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  describeExpression: async (expression: string) => ({
+    expression,
+    valid: true,
+    normalized: expression,
+    latex: "\\frac{\\text{Módulo de Young}}{\\text{Densidade}}",
+    latex_symbols: "\\frac{E}{\\rho}",
+    label: "Módulo de Young / Densidade",
+    dimension: "dimensionless",
+    unit: "dimensionless",
+    is_multiplicative: true,
+    variables: [
+      { variable: "modulo_young", slug: "modulo_young", name: "Módulo de Young", symbol: "E", symbol_latex: "E", unit: "Pa", display_unit: null, category: "MECANICA", description: null },
+      { variable: "densidade", slug: "densidade", name: "Densidade", symbol: "ρ", symbol_latex: "\\rho", unit: "kg/m**3", display_unit: null, category: "FISICA", description: null },
+    ],
+    errors: [],
+    tree: null,
+  }),
+}));
 
 function axis(overrides: Partial<CompareAxis>): CompareAxis {
   return {
@@ -214,12 +236,15 @@ describe("ComputedTable: propriedades computadas (D-128)", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("diz 'Calculada' por escrito, com ícone, e a nota do que é calculado", () => {
+  it("diz 'Calculada' por escrito, com ícone, e a nota do que é calculado", async () => {
     render(<ComputedTable comparison={withComputed} />);
 
     expect(screen.getByShadowText(t.computed.badge)).toBeInTheDocument();
     expect(screen.getByShadowText(t.computed.note)).toBeInTheDocument();
-    expect(screen.getByShadowText(new RegExp(t.computed.inputs("densidade, modulo_young")))).toBeInTheDocument();
+    // D-191: the inputs are read by name, never by the grammar's slug.
+    expect(
+      await screen.findByShadowText(new RegExp(t.computed.inputs("Módulo de Young, Densidade"))),
+    ).toBeInTheDocument();
   });
 
   it("a dispersão da coluna e o selo de limiar são texto, não só cor", () => {
@@ -257,15 +282,17 @@ describe("ComputedTable: propriedades computadas (D-128)", () => {
     ).toBeInTheDocument();
   });
 
-  it("um índice digitado (nome = expressão) não repete a expressão e passa no axe", async () => {
+  it("um índice digitado é lido pelo nome e pela fórmula, nunca pela gramática (D-191)", async () => {
     const typed = comparison({
       computed: [
-        { ...withComputed.computed![0]!, name: "modulo_young / densidade" },
+        { ...withComputed.computed![0]!, name: "Módulo de Young / Densidade" },
       ],
     });
     const { container } = render(<ComputedTable comparison={typed} />);
 
-    expect(screen.getAllByShadowText("modulo_young / densidade")).toHaveLength(1);
+    expect(screen.getByShadowText("Módulo de Young / Densidade")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Módulo de Young / Densidade" })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("modulo_young / densidade");
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
   });

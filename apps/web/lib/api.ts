@@ -2,6 +2,9 @@
 // Base URL comes from NEXT_PUBLIC_API_URL (default: http://localhost:8000).
 
 import type {
+  ExpressionDescription,
+  ExpressionPalette,
+  ExpressionUniverse,
   AhpWeightsIn,
   AhpWeightsOut,
   AIStatus,
@@ -746,6 +749,29 @@ export function evaluateIndex(
   return request<IndexResult>(`/api/selection/index`, {
     method: "POST",
     body: JSON.stringify({ expression, goal }),
+  });
+}
+
+/** A paleta da calculadora de expressões (D-191): propriedades, funções e constantes. */
+export function getExpressionPalette(
+  universe: ExpressionUniverse = "material",
+): Promise<ExpressionPalette> {
+  return request<ExpressionPalette>(
+    `/api/expressions/palette?universe=${encodeURIComponent(universe)}`,
+  );
+}
+
+/**
+ * LaTeX amigável, dimensão, unidade e erros com posição de uma expressão
+ * (D-191). Nunca avalia: responde 200 mesmo quando a expressão é recusada.
+ */
+export function describeExpression(
+  expression: string,
+  universe: ExpressionUniverse = "material",
+): Promise<ExpressionDescription> {
+  return request<ExpressionDescription>(`/api/expressions/describe`, {
+    method: "POST",
+    body: JSON.stringify({ expression, universe }),
   });
 }
 

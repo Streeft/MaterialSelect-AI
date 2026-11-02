@@ -15,6 +15,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
+from app.calculations.expression_render import friendly_label
 from app.calculations.expressions import (
     ExpressionError,
     is_multiplicative,
@@ -607,7 +608,11 @@ class ChartService:
         """
         if index_in is not None:
             used, dimension = self._validate_expression(index_in.expression)
-            label = index_in.name or index_in.expression
+            # The grammar form is backend information (D-191): an unnamed index
+            # is titled by its reading, "Módulo de Young / Densidade".
+            label = index_in.name or friendly_label(
+                index_in.expression, self.repo.list_properties()
+            )
             meta = MapAxisOut(
                 is_index=True,
                 property_name=label,
@@ -800,10 +805,12 @@ class ChartService:
 
         expression = request.index.expression
         used, dimension = self._validate_expression(expression)
+        properties = self.repo.list_properties()
+        names = {safe_variable(p.slug): p.name for p in properties}
 
         evaluations: dict[int, IndexEvaluation] = {
             point.material_id: evaluate_index(
-                expression, used, variables.get(point.material_id, {})
+                expression, used, variables.get(point.material_id, {}), names
             )
             for point in points
         }
@@ -814,7 +821,7 @@ class ChartService:
 
         defined = {mid: e.value for mid, e in evaluations.items() if e.value is not None}
         overlay = IndexOverlayOut(
-            name=request.index.name,
+            name=request.index.name or friendly_label(expression, properties),
             expression=expression,
             goal=request.index.goal,
             dimension=dimension,
@@ -1143,13 +1150,17 @@ class ChartService:
         input gets the evaluator's written reason, never a zero.
         """
         variables = self._material_variables(materials)
-        units = {safe_variable(p.slug): p.canonical_unit for p in self.repo.list_properties()}
+        properties = self.repo.list_properties()
+        units = {safe_variable(p.slug): p.canonical_unit for p in properties}
+        names = {safe_variable(p.slug): p.name for p in properties}
         columns: list[ComputedColumnOut] = []
         for index in indices:
             used, dimension = self._validate_expression(index.expression)
             values: list[ComputedValueOut] = []
             for material in materials:
-                evaluation = evaluate_index(index.expression, used, variables.get(material.id, {}))
+                evaluation = evaluate_index(
+                    index.expression, used, variables.get(material.id, {}), names
+                )
                 values.append(
                     ComputedValueOut(
                         material_id=material.id,
@@ -1168,7 +1179,7 @@ class ChartService:
             )
             columns.append(
                 ComputedColumnOut(
-                    name=index.name or index.expression,
+                    name=index.name or friendly_label(index.expression, properties),
                     expression=index.expression,
                     goal=index.goal,
                     dimension=dimension,

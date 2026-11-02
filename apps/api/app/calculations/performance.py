@@ -12,6 +12,7 @@ arithmetic itself fails (division by zero, complex result, overflow).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from app.calculations.expressions import ExpressionError, evaluate
@@ -30,7 +31,10 @@ class IndexEvaluation:
 
 
 def evaluate_index(
-    expression: str, used_variables: set[str], variables: dict[str, float]
+    expression: str,
+    used_variables: set[str],
+    variables: dict[str, float],
+    labels: Mapping[str, str] | None = None,
 ) -> IndexEvaluation:
     """Evaluate ``expression`` for one material.
 
@@ -38,6 +42,9 @@ def evaluate_index(
         expression: an already-validated index expression.
         used_variables: the variable names the expression actually references.
         variables: the material's canonical values, keyed by safe variable name.
+        labels: optional ``{variable: property name}``, so the reason a reader
+            sees says "Módulo de Young" and not the grammar's ``modulo_young``
+            (D-191). Without it the variable names are used, as before.
 
     Returns:
         The numeric value, or an :class:`IndexEvaluation` carrying the reason the
@@ -45,9 +52,8 @@ def evaluate_index(
     """
     missing = used_variables - set(variables)
     if missing:
-        return IndexEvaluation(
-            value=None, undefined_reason=f"Dados ausentes: {', '.join(sorted(missing))}"
-        )
+        names = sorted((labels or {}).get(name, name) for name in missing)
+        return IndexEvaluation(value=None, undefined_reason=f"Dados ausentes: {', '.join(names)}")
     try:
         return IndexEvaluation(
             value=evaluate(expression, {k: variables[k] for k in used_variables})

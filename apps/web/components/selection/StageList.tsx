@@ -50,6 +50,7 @@ import {
   nextEditorId,
   toConstraintPayload,
 } from "./ConstraintEditor";
+import { ExpressionBuilder } from "@/components/expression/ExpressionBuilder";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 
 const t = ptBR.selection;
@@ -1109,12 +1110,14 @@ function ChartStageFields({
         <ChartAxisFields
           axis={stage.x}
           label={t.stageChartAxisX}
+          universe={universe}
           properties={properties}
           onChange={(x) => onChange({ ...stage, x })}
         />
         <ChartAxisFields
           axis={stage.y}
           label={t.stageChartAxisY}
+          universe={universe}
           properties={properties}
           onChange={(y) => onChange({ ...stage, y })}
         />
@@ -1164,14 +1167,13 @@ function ChartStageFields({
       <div className="well flex flex-col gap-3">
         <p className="text-sm font-medium text-ink">{t.stageChartLine}</p>
         <p className="text-sm text-ink-muted">{t.stageChartLineHint}</p>
+        <ExpressionBuilder
+          label={t.stageChartExpression}
+          universe={universe}
+          value={stage.indexExpression}
+          onChange={(next) => onChange({ ...stage, indexExpression: next })}
+        />
         <div className="flex flex-wrap items-end gap-3">
-          <Input
-            label={t.stageChartExpression}
-            className="min-w-[min(14rem,100%)] flex-1"
-            value={stage.indexExpression}
-            placeholder={t.stageChartExpressionPlaceholder}
-            onChange={(e) => onChange({ ...stage, indexExpression: e.target.value })}
-          />
           <Input
             label={t.stageChartLevel}
             className="w-40"
@@ -1229,11 +1231,13 @@ function invertedAxis(stage: Extract<StageState, { kind: "chart" }>): string | n
 function ChartAxisFields({
   axis,
   label,
+  universe = "material",
   properties,
   onChange,
 }: {
   axis: ChartAxisState;
   label: string;
+  universe?: SelectionUniverse;
   properties: { slug: string; name: string; canonical_unit?: string | null }[];
   onChange: (axis: ChartAxisState) => void;
 }) {
@@ -1277,12 +1281,11 @@ function ChartAxisFields({
           ))}
         </Select>
       ) : (
-        <Input
+        <ExpressionBuilder
           label={t.stageChartExpression}
+          universe={universe}
           value={axis.expression}
-          placeholder={t.stageChartExpressionPlaceholder}
-          hint={t.stageChartExpressionHint}
-          onChange={(e) => onChange({ ...axis, expression: e.target.value })}
+          onChange={(next) => onChange({ ...axis, expression: next })}
         />
       )}
 

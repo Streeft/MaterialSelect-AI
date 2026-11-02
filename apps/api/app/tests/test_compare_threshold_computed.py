@@ -159,7 +159,8 @@ def test_computed_with_a_missing_input_is_written_absence(
     # The third material has no test temperature: absent, written, never 0.
     third = values[ids[2]]
     assert third["value"] is None
-    assert "temp_ensaio_celsius" in third["undefined_reason"]
+    # Named by the property, not the grammar's variable (D-191).
+    assert third["undefined_reason"] == "Dados ausentes: Temperatura de ensaio"
     assert body["computed"][0]["undefined_count"] >= 1
 
 

@@ -384,7 +384,9 @@ def test_the_problem_section_describes_the_plane_and_the_bounds(client) -> None:
 
     assert "Módulo de Young × Densidade" in html
     assert "eixo X ≤ 2800" in html
-    assert f"{INDEX} ≥ 90" in html
+    # D-191: the index line is written as its reading, never the grammar form.
+    assert "√(Módulo de Young) / Densidade ≥ 90" in html
+    assert INDEX not in html
 
 
 def test_a_plane_with_no_box_and_no_line_says_what_it_asks(client) -> None:

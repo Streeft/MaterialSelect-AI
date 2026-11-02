@@ -70,7 +70,9 @@ describe("Comparador: Copiar tabela das colunas calculadas (D-173)", () => {
     await user.click(screen.getByRole("button", { name: c.computed.aria }));
 
     const rows = rowsOf(writeText);
-    expect(rows[0]?.[2]).toContain(`${ptBR.compare.computed.badge}: Rigidez específica (modulo_young / densidade)`);
+    expect(rows[0]?.[2]).toContain(`${ptBR.compare.computed.badge}: Rigidez específica`);
+    // D-191: the grammar form is backend information, never pasted.
+    expect(rows[0]?.[2]).not.toContain("modulo_young");
     expect(rows[1]).toEqual(["Aço", "Metais", "26,5"]);
     expect(rows[2]).toEqual([
       "Liga B",
