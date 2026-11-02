@@ -118,9 +118,10 @@ de base comercial, e as designações são todas `DEMO-…`/`Demo…`.
   abaixo, registrada no D-185; o objetivo da regra se mantém — mesmo arquivo,
   mesmo escritor (`seed_extended_materials`), mesmo `main()` que `semear_demo`
   e `scripts/seed.ps1` já executam (conferidos: nenhum dos dois precisou mudar).
-- **O que cada um ganha.** 15 propriedades (`ESTIMADO`, fonte
+- **O que cada um ganha.** As 15 propriedades de base dos lotes (`ESTIMADO`, fonte
   `Dataset Demo MaterialSelect`; ausência escrita com nota só em dureza e
-  reciclagem), designação, composição, as três curvas (forma pelo `curve_hint`
+  reciclagem) — e, desde o [D-188](DECISIONS.md), mais 33 numéricas e 12 ordinais
+  derivadas pelo `seed_demo_extended_props` (48 numéricas no catálogo) —, designação, composição, as três curvas (forma pelo `curve_hint`
   do lote) e os processos plausíveis para a subclasse — por
   `sync_demo_process_links`, que só toca material demo × processo demo (D-192).
 - **Validado na carga.** `validate_lot()`/`validate_lots()` (puros) aplicam as

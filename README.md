@@ -209,7 +209,7 @@ pip install -e ".[dev]"            # extras: postgres, billing, ai, knowledge
 copy .env.example .env
 python -m alembic upgrade head
 python -m app.db.seed              # base de demonstração
-python -m app.db.seed_extended     # opcional: +70 de exercício e +593 do catálogo demo ampliado (D-185), com designação, composição e curva; 668 no total
+python -m app.db.seed_extended     # opcional: +70 de exercício e +593 do catálogo demo ampliado (D-185), com designação, composição e curva (668 materiais; com os 10 das releases de exemplo, 678 `is_demo`), 48 propriedades numéricas (D-188) e 144 processos (D-192)
 python -m app.db.demo_coverage     # quem tem (e quem não tem) designação, composição e curva
 uvicorn app.main:app --reload      # http://localhost:8000/docs
 ```
@@ -259,7 +259,7 @@ npm run test:e2e                            # Playwright, API e banco próprios
 
 Os testes do backend rodam em SQLite em memória e **não têm rede** — o
 `conftest.py` reprova quem tentar sair. Pelo último registro em
-[`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md), são **5163 testes de backend** e 1497 de frontend.
+[`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) (medido em 02/11/2026), são **5393 testes de backend** (190 arquivos) e **1588 de frontend** (144 arquivos), fora os de E2E.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo PR e em
 todo push para `main`: **Backend** (Python 3.11 e 3.12: ruff, black, pytest com
