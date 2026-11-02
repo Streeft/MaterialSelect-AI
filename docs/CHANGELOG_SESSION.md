@@ -128,7 +128,7 @@ plausíveis por classe e subclasse, com regras de nome e restrições; `sync_dem
 demo × demo implausível (vindo da migração por classe), chamado por `seed()` e `seed_extended`. Os 70 do `seed_extended` e os 10 das
 releases passam a ter processo num banco limpo. Testes novos em `test_demo_process_compat.py` (catálogo, lista negra, cobertura dos 678
 sem banco, sync idempotente, material e processo reais intocados); `test_seed_family_records` deriva o número de galhos de Conformação.
-Medido: banco limpo com 13 439 vínculos e segunda rodada zero; banco com os vínculos da migração perde 1 228 implausíveis. Numeração:
+Backend 5342 testes (+35; 5336 passam e 6 pulam). Medido: banco limpo com 13 439 vínculos e segunda rodada zero; banco com os vínculos da migração perde 1 228 implausíveis. Numeração:
 D-191/Sessão 148 eram do #216. Sem migração. Depois do merge: **Deploy da API** e `semear_demo`.
 
 ## Sessão 148 — 01/11/26 — Calculadora visual de índice com KaTeX e leitura amigável (D-191)
