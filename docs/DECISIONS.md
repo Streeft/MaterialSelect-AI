@@ -61,6 +61,8 @@ diferente. O que é óbvio não precisa de registro.
 | D-50 | Toggle manual "Tabela/Cartões" do catálogo substituído por troca automática de breakpoint | aceito | abaixo |
 | D-51 | Next 16 traz Turbopack por padrão; a build fica no webpack, por medição | aceito | abaixo |
 
+> **O índice acima para na D-51.** A lista completa, uma por linha: `git grep -n "^## D-" docs/DECISIONS.md`. Para quem escreve o TCC, o mapa das decisões por funcionalidade está em [`TCC_GUIA.md`](TCC_GUIA.md) §4.
+
 ---
 
 ## D-05 — Parser de expressões sem `eval`
@@ -11907,3 +11909,39 @@ export.csv 120 ms. Sem N+1: cada rota faz um número fixo de consultas.
 **Fora, de propósito.** Sem gráfico de série temporal do catálogo (não há histórico de valores para desenhar, princípio 1); sem
 "Exportar PNG" do painel inteiro — cada figura já exporta PNG/SVG no canto (`ChartFrame`); o uso de IA de outras pessoas nunca
 aparece; sem migração.
+
+## D-194 — `docs/TCC_GUIA.md` é a porta de entrada da monografia, e os documentos que ficaram falsos foram corrigidos
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 151)
+
+**Contexto.** Outra sessão do Claude monta a monografia do TCC e precisa ler os `.md` do repositório, entender em que pé está o app e
+escrever com clareza. A documentação cresceu por sessão (D-05 a D-193, 150 sessões) e tinha três problemas para esse leitor: não havia um
+ponto de entrada que juntasse o método, a arquitetura, as funcionalidades com a decisão de cada uma, os números e as limitações;
+vários textos de estado contradiziam o código (`ARCHITECTURE.md` com Next 14, 7 migrations e 639 testes; `PROJECT_CONTEXT.md` com duas
+linhas de contagem de testes e sete linhas repetidas de "Regressão silenciosa"; limitações já resolvidas, como "o cartão CAE recusa
+todo material" e a IA publicada ser a Groq); e o `README.md` com contagem de testes velha.
+
+**Decisão.**
+1. **Cria-se `docs/TCC_GUIA.md`**, em PT-BR e sem jargão de agente, com dez seções: o que o app é, o método (Ashby e os princípios
+   inegociáveis), a arquitetura (com diagrama), o mapa das funcionalidades com a `D-NN` de cada uma, os números medidos com a data e o
+   commit, os dados e as limitações (o catálogo de 678 materiais é **demonstrativo**, porque o catálogo oficial licenciado não ficou
+   pronto antes da apresentação), como verificar e reproduzir, glossário, onde ler mais (com a busca de uma `D-NN` por `git grep`, sem
+   abrir o arquivo inteiro) e a sugestão de mapeamento para os capítulos da monografia.
+2. **O guia não duplica o estado**: aponta para `PROJECT_CONTEXT.md` (estado e contagem de testes) e para os documentos de área. Todo
+   número e fato cita arquivo ou `D-NN`; o que não se confirmou no repositório está marcado "a confirmar" (os 679 materiais vistos em
+   produção, um a mais que o seed).
+3. **Ligam-se ao guia** o `README.md`, o `CLAUDE.md` da raiz (uma linha na lista de leitura sob demanda), o `AGENTS.md` e `docs/CLAUDE.md`
+   (§1.12 e §11). Quem muda um número, uma funcionalidade ou uma limitação atualiza a linha do guia e a data da medição, no mesmo PR.
+4. **Corrigem-se** os textos que o #213 a #219 (D-186 a D-193) e as sessões anteriores deixaram falsos: contagem de testes medida em
+   02/11/2026 (5393 de backend, 1588 de frontend); `ARCHITECTURE.md` (Next 16, 42 migrations, módulos novos, Painel do D-193, rotas);
+   `PROJECT_CONTEXT.md` (uma só linha de contagem, limitações de CAE, composição, curvas e IA, 678 demo, cutover não realizado);
+   `08-visualizacao.md` (Painel), `14-plataforma-selecao.md` (calculadora), `15-dados-demonstrativos.md` (48 propriedades) e
+   `REGRAS_POR_AREA.md` (contagem velha).
+
+**Descartado.** Reescrever o `PROJECT_CONTEXT.md` inteiro (103 KB, com a narrativa por sessão que o `docs/CLAUDE.md` pede para manter);
+copiar para o guia o texto das decisões (envelheceria no PR seguinte); ler `DECISIONS.md`, `CHANGELOG_SESSION.md`, `TODO.md` e
+`ESTADO_ATUAL.md` por inteiro (a regra do `CLAUDE.md` raiz proíbe, e o guia ensina a buscar a faixa).
+
+**Consequências.** Só documentação: sem código, sem migração, sem seed, sem deploy. O índice no topo de `DECISIONS.md` continua parando
+na D-51; a lista completa sai de `git grep -n "^## D-" docs/DECISIONS.md`. O número D-130 está duplicado (aviso com Desfazer e
+glossário) e D-154, D-159 e D-160 não têm seção (o registro de sessões ainda cita D-160 e D-162 em títulos de 117 a 120, o que sugere renumeração; a confirmar): o guia avisa.

@@ -120,6 +120,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 151 — 02/11/26 — Guia do TCC e revisão dos `.md` que ficaram falsos (D-194)
+
+**O que mudou.** Só documentação. Novo `docs/TCC_GUIA.md`, porta de entrada de quem escreve a monografia: o que o app é, método (Ashby e os
+princípios), arquitetura com diagrama, mapa das funcionalidades com a D-NN de cada uma, números medidos, dados e limitações (o catálogo de
+678 materiais é demonstrativo), como reproduzir, glossário, onde ler mais e mapeamento para os capítulos. Ligado no `README.md`, no
+`CLAUDE.md` raiz, no `AGENTS.md`, em `docs/CLAUDE.md` e no cabeçalho de `docs/ESTADO_ATUAL.md`. Revisão dos 77 `.md` versionados; corrigidos
+`ARCHITECTURE.md` (Next 16, 42 migrations, módulos, Painel do D-193, rotas), `PROJECT_CONTEXT.md` (uma só linha de contagem e sete linhas
+repetidas de CI removidas; limitações de CAE, composição, curvas e IA; 678 demo; cutover não realizado), `README.md` (contagem, §1.12),
+`08-visualizacao.md`, `14-plataforma-selecao.md`, `15-dados-demonstrativos.md` e `REGRAS_POR_AREA.md`. Contagens medidas em 02/11/2026 no
+commit `e617033`: backend 5393 coletados (190 arquivos), frontend 1588 passaram (144 arquivos), sem teste novo. Sem código, sem migração,
+sem seed. Numeração: D-194 e Sessão 151 estavam livres em `origin/main`.
+
+---
+
 ## Sessão 150 — 02/11/26 — Painel rico: abas, filtros globais, treemap, histograma, ranking, correlação e minha atividade (D-193)
 
 **O que mudou.** O Painel virou cinco abas sobre filtros globais na URL (classe com descendentes, subclasse, nível, demonstração).

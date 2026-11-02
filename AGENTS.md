@@ -29,6 +29,11 @@ faixa; nunca abra inteiros `DECISIONS.md`, `CHANGELOG_SESSION.md`, `TODO.md` e
 5. [`docs/15-dados-demonstrativos.md`](docs/15-dados-demonstrativos.md) —
    **antes de escrever ou apagar qualquer seed** ou dado fictício.
 
+**Se a tarefa é escrever ou revisar a monografia do TCC** (e não código), comece
+por [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md): o que o app é, o método, a
+arquitetura, as funcionalidades com a decisão D-NN de cada uma, os números
+medidos, as limitações e o que é demonstrativo ([D-194](docs/DECISIONS.md)).
+
 **Só então escreva código, seguindo essas regras.**
 
 ## Três regras sobre as regras

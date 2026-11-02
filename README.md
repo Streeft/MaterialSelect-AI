@@ -19,6 +19,10 @@ veio. A IA interpreta, sugere e explica — e nunca produz um número.
 No ar: frontend em <https://material-select-ai-web.vercel.app> (login pelo
 Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
 
+**Quem escreve a monografia do TCC** começa por [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md):
+o que o app é, o método, a arquitetura, as funcionalidades com a decisão D-NN de
+cada uma, os números medidos e as limitações (incluindo o que é demonstrativo).
+
 ## O que a ferramenta faz
 
 **Estudar**
@@ -343,10 +347,11 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 
 ## Documentação
 
-**Comece por [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).**
+**Comece por [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)** (ou, para escrever a monografia, por [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md)).
 
 | Documento | Para quê |
 |---|---|
+| [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md) | Porta de entrada da monografia: método, arquitetura, funcionalidades com a D-NN, números e limitações. |
 | [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) | Estado do projeto, o que falta, riscos. |
 | [`docs/CLAUDE.md`](docs/CLAUDE.md) | Guia de desenvolvimento: regras, armadilhas, o que não alterar. |
 | [`docs/REGRAS_POR_AREA.md`](docs/REGRAS_POR_AREA.md) · [`docs/ESTADO_ATUAL.md`](docs/ESTADO_ATUAL.md) | Regras operacionais por área; histórico narrativo detalhado. |

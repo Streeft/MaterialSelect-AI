@@ -8,6 +8,7 @@
 > - As **regras operacionais** por área estão em [`REGRAS_POR_AREA.md`](REGRAS_POR_AREA.md).
 > - O **estado resumido** e a contagem de testes atual: [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
 > - As **decisões** (D-NN): [`DECISIONS.md`](DECISIONS.md).
+> - **Este arquivo é histórico**: não recebe contagem de testes nem descreve o estado vigente (isso é do `PROJECT_CONTEXT.md`). Quem escreve a monografia do TCC começa por [`TCC_GUIA.md`](TCC_GUIA.md) (D-194).
 > - Entrada nova aqui é **opcional**: só quando houver decisão nova relevante
 >   que mereça narrativa.
 
