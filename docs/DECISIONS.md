@@ -11806,3 +11806,55 @@ propriedades vai crescer (dezenas a mais), então a lista não pode ser escrita 
 **Fora, de propósito.** A planilha do índice nas exportações e o arquivo de estudo guardam a expressão na gramática (é o que reproduz o
 cálculo). O `Dimensionar` mostra as expressões do catálogo de casos de carga, cujas variáveis não são slugs. Sem migração; KaTeX entra
 pelo `package.json` do web.
+
+## D-192 — Processos: todo o leque do Ashby, com compatibilidade por subclasse
+
+**Contexto.** O usuário pediu "mais processos na aba Processos para testar junto dos 679 materiais", "todo o leque de Ashby, sem
+exceções, mais do que ~60 no total, mais todos os dados estimados que existirem", e que se verificasse se todo material da lista é
+compatível com os processos e está criado corretamente. Havia 13 processos demo e o vínculo vinha **só da classe**
+(`link_demo_processes` e a migração `b7d219fa82de`), com cinco classes para 678 materiais: todo vidro, granito e gesso ganhava
+"Prensagem e sinterização"; todo concreto e toda madeira, "Moldagem por compressão"; todo aço, "Anodização". Num banco limpo os 70 do
+`seed_extended` e os 10 das releases ficavam sem processo nenhum.
+
+**Decisão.**
+- **144 processos demo em 20 famílias** (131 novos, em `app/db/process_catalog_ashby.py`): fundição (areia, sob pressão, cera perdida,
+  coquilha, baixa pressão, centrífuga, lingotamento contínuo, modelo evaporativo, gesso, casca), deformação (forjamento em matriz aberta e
+  fechada, laminação, trefilação, estampagem, embutimento, repuxo, hidroconformação, superplástica, perfilagem, extrusão por impacto), pós
+  e cerâmica (MIM/CIM, HIP, CIP, prensagem a quente, barbotina, fita, extrusão de massa, sinterização reativa, infiltração, conformação
+  plástica), moldagem de polímeros (sopro, termoformagem, rotomoldagem, calandragem, transferência, espuma expandida, espumação reativa,
+  RIM, fundição de resina, sinterização de PTFE/PI, imersão, filme), compósitos (laminação manual e por aspersão, prepreg em autoclave e
+  fora, RTM, VARTM, enrolamento, pultrusão, AFP/ATL, estampagem termoplástica, CVI, PIP), vidro (flutuação, sopro, prensagem, fibra,
+  tubo, fundição, ceramização), aditiva (FDM, SLA, SLS, SLM/DMLS, EBM, jato de aglutinante, DED, jato de material), remoção (torneamento,
+  fresamento, furação, eletroerosão a fio e por penetração, laser, jato de água, plasma, oxicorte, química, eletroquímica, ultrassom,
+  lapidação, faca e matriz), conformação especial (CVD de peça, eletroformação, monocristal), construção e naturais (concretagem in loco,
+  pré-moldagem, projeção, serraria, marcenaria, prensagem de painéis, cantaria), união em quatro subfamílias (20 processos: TIG, eletrodo,
+  arco submerso, ponto, fricção, FSW, laser, feixe de elétrons, difusão, ultrassom, placa quente, gás quente, brasagem, solda branda,
+  solvente, argamassa, rebite, encaixe, costura, pregos) e superfície em três (18: pintura a pó, galvanização, eletrodeposição, PVD, CVD,
+  aspersão térmica, esmaltação, verniz, preservativo de madeira, nitretação, cementação, têmpera e revenido, têmpera superficial, têmpera
+  térmica e química de vidro, jateamento, polimento, passivação). Os 13 originais ficam **intocados**: várias lacunas deles são fixture.
+- **Atributos estimados, na ordem de grandeza do Ashby**, na mesma escala dos originais (moeda não especificada), `ESTIMADO` sob a fonte
+  demo; nada copiado de base comercial. Conformação (remoção incluída) leva os **12** atributos; o CO₂ de processo sai da energia pelo
+  fator que os sete originais já implicavam (0,073 kg CO₂/MJ). União e superfície levam só os **5 do exercício 11** — a regra de
+  `test_only_shaping_processes_carry_economics` vale para eles: custo e Eco Audit precificam *fazer* a peça.
+- **Compatibilidade por (classe, subclasse)** em `app/db/demo_process_compat.py`, pura: lista base por subclasse (as 69 subclasses dos
+  678 demo), recaída por classe só para subclasse desconhecida, **regras de nome** para subclasse mista (grau fundido × trabalhado,
+  inox dentro de "Aços", PTFE e PEUAPM, safira, diamante CVD, vidro float × embalagem, compósito termoplástico, cortiça, couro…) e
+  **restrições** de processo por nome (rotomoldagem só em PE/PP/PVC/PA, fundição sob pressão de magnésio só nos graus de injeção…).
+  Lista negra testada: vidro × sinterização/forjamento/MIG, concreto × compressão/injeção, pedra × fundição, madeira × fundição/anodização,
+  espuma metálica × forjamento/laminação, ferro fundido × forjamento/laminação, termofixo × solda de termoplástico/termoformagem,
+  refratário × fundição em areia, inox × oxicorte/galvanização, 2024/7075 × MIG/TIG, polímero × anodização/eletroerosão, e anodização
+  só em Al, Ti e Mg.
+- **`sync_demo_process_links`** acerta o catálogo: só material demo sem dono × processo demo; acrescenta o que falta e **remove só o
+  vínculo demo implausível** (o que a migração por classe gravou). Material real, de usuário e processo real nunca são tocados; a
+  migração `b7d219fa82de` fica como está. Os cinco materiais de base mantêm o conjunto escolhido a dedo (perdem só o que nem ele nem a
+  tabela admitem — a anodização do "Aço Demo B"). `seed()` e `seed_extended` chamam a função; `semear_demo` em produção cria os 131
+  processos, os atributos e os vínculos, remove os implausíveis e, rodado de novo, cria e remove zero (D-189).
+- `link_demo_processes` continua **só aditiva** (para material de usuário), agora pela mesma tabela.
+
+**Medido.** Banco limpo, `alembic upgrade head` + seed + `seed_extended`: 144 processos, 20 famílias, 1 407 valores de atributo,
+13 439 vínculos, todo material demo com processo (mín. 2, que é a "Cerâmica Demo D"; média 19,8; máx. 49); segunda rodada, zero.
+Banco simulando produção (vínculos por classe da migração em todos os materiais): primeira rodada remove 1 228 vínculos implausíveis.
+
+**Fora, de propósito.** A tela Processos lista os processos de cada raiz sem agrupar por subfamília (o card de Conformação passa de
+100 itens); a navegação pela pasta (`/app/processos/classe`) já mostra os galhos. Valor sobre o *par* material–processo continua sem
+modelo (P0-2). Sem migração.

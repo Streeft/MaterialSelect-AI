@@ -106,9 +106,8 @@ quitados".
   nomes de grau próximos ao demo antigo, ausência de 14,2 %/12,5 % em L08/L09); (3) conferir no
   navegador o mapa de Ashby com 678 pontos (legibilidade e desempenho do Plotly); (4) decidir se as
   subclasses antigas (`Aços`, `Ligas Leves`, `Compósitos Poliméricos`…) são reclassificadas para as
-  novas ou continuam convivendo. Observado ao medir: num banco limpo os 70 do `seed_extended` não
-  ganham processo (o vínculo deles veio da migração `b7d219fa82de`, que roda antes de existirem);
-  os 593 ganham, por `link_demo_processes(material_ids=…)`.
+  novas ou continuam convivendo. ~~Num banco limpo os 70 do `seed_extended` não ganham processo~~ —
+  resolvido no D-192 (Sessão 149): todo demo ganha processo por subclasse.
 - ~~**Varredura de família do Synthesizer ([D-144](DECISIONS.md), Sessão 99)**~~ — feita
   nas duas pontas. Backend: `POST /api/sintetizar/varredura` varre a razão c/t do painel ou a fração
   do compósito numa grade por índice (até 50 passos, linear ou log), avalia o índice em cada passo e
@@ -205,6 +204,9 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   dito e sai do pedido e do endereço. Resíduo: (b) guardar a comparação com nome,
   para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
   navegador, de propósito).
+- ~~Processos: todo o leque do Ashby~~ ✔ entregue (D-192, Sessão 149): 144 processos demo, vínculo por subclasse e lista
+  negra. Pendente: agrupar a tela Processos por subfamília (o card de Conformação passa de 100 itens) e revisar
+  uma amostra dos atributos estimados.
 - ~~Calculadora visual de índice~~ ✔ entregue (D-191, Sessão 148): cartões, fita, teclado científico, KaTeX e leitura amigável em
   Seleção, Mapas, Estágio de gráfico, Comparar, Resultados e colunas calculadas. Resíduo: a planilha do índice (`_index_sheet` nas
   exportações) e o arquivo de estudo guardam a expressão na gramática de propósito (reprodutibilidade); os casos de carga do
