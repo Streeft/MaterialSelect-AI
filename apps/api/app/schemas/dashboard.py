@@ -85,6 +85,7 @@ class OverviewOut(BaseModel):
     gaps: list[PropertyCoverageOut] = Field(
         description="As propriedades menos preenchidas, da pior para a melhor"
     )
+    filters: FiltersOut | None = Field(default=None, description="Filtros aplicados (D-193)")
 
 
 class BoxOut(BaseModel):
@@ -356,3 +357,6 @@ class ActivityOut(BaseModel):
     actions: dict[str, int]
     recent: list[AuditEventOut]
     ai: AIUsageOut
+
+
+OverviewOut.model_rebuild()
