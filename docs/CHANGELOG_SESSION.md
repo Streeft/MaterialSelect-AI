@@ -120,6 +120,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 153 — 03/11/26 — Aparência: cor do app, contraste, movimento e densidade (D-196)
+
+**O que mudou.** Tela `/app/aparencia` (ícone de paleta no rodapé da conta) com tema, contraste (padrão, médio, alto), cor do app (uma
+por tela ou uma de seis paletas de tela já verificadas), movimento (padrão ou reduzido) e densidade das tabelas, e uma prévia ao lado.
+`lib/appearance.ts` guarda no aparelho e um script no `<head>` aplica antes do primeiro quadro. +19 de frontend (14 em
+`appearance.test.ts`, 5 na tela); a contagem de links da gaveta passa a incluir Aparência. Suíte: 1618 passam; contraste sem falha; E2E
+de larguras (com a rota nova) e de transição passam. No Chromium, claro e escuro: cada amostra com a sua cor, Violeta mantido em outra
+rota, contraste alto igualando o texto secundário ao principal e movimento reduzido zerando as transições. Sem backend nem migração.
+
 ## Sessão 152 — 03/11/26 — Início que começa escrevendo, e o menu "Novo" (D-195)
 
 **O que mudou.** O Início abre com "O que a peça precisa fazer?": a caixa (`HomeComposer`) leva o texto à função do estudo pela URL

@@ -11967,3 +11967,31 @@ que se cria num botão "Novo" (M3: *Components › FAB menu*, Expressive; *Compo
 
 **Fonte.** m3.material.io › *Components › FAB menu*, *Components › Chips* e *Components › Navigation rail* (expanded), lidas em 30/10 e 03/11/26.
 
+## D-196 — Aparência: cor do app, contraste, movimento e densidade, escolhidos por quem usa
+
+**Contexto.** Sexto passo do plano de D-181, que deixou a cor do app à escolha de cada pessoa. Até aqui só o tema (claro, escuro,
+sistema) e a densidade das tabelas eram escolhas do leitor, e cada uma morava num lugar. O M3 trata contraste e cor como preferência
+(*Styles › Color › Contrast*; *Dynamic color*), e o movimento reduzido só existia se o sistema operacional pedisse.
+
+**Decisão.**
+- **Uma tela, `/app/aparencia`**, aberta pelo ícone de paleta no rodapé da conta (barra lateral e gaveta). Tema, contraste, cor do app,
+  movimento e densidade das tabelas, com uma prévia ao lado no `PaneScaffold` *supporting-pane* (D-182). Tudo fica **neste aparelho**
+  (`localStorage`, `lib/appearance.ts`), como o tema e a densidade já ficavam; sincronizar entre aparelhos pediria backend e fica no TODO.
+- **Cor do app sem cor nova.** "Uma cor por tela" (o padrão de D-73) ou uma de seis cores, e cada uma **é uma paleta de tela que já
+  existe** (Azul = Processos, Verde-azulado = Mapas, Verde = Importar, Violeta = Seleção, Rosa = Comparar, Terracota = Painel): rampas da
+  receita OKLCH de D-38/D-73, contraste verificado, papéis M3 gerados, claro e escuro. Escolher uma faz o `SectionTheme` escrever essa
+  paleta em `data-section` em toda rota. A amostra é um elemento sob o próprio `[data-section]` pintado com o token, então não discorda
+  do que o app veste. O Azul usa Processos (matiz 250) e não o `:root` (262), porque "inicio" não tem bloco e a amostra herdaria a cor
+  da página. As cores de qualidade e a paleta Okabe–Ito nunca mudam.
+- **Contraste padrão, médio e alto.** O padrão já passa de 4,5:1 (D-34). Médio e alto só apontam um token para outro mais escuro que já
+  existe (`--ink-subtle` → `--ink-muted` → `--ink`, `--edge` → `--edge-strong` → `--edge-control`, `--m3-outline-variant` →
+  `--m3-outline`, e no alto `--m3-on-surface-variant` → `--m3-on-surface`), então nenhuma cor nova aparece. Sem escolha guardada, o
+  `prefers-contrast: more` do sistema pede o alto.
+- **Movimento reduzido daqui** faz o que o do sistema faz: `data-motion="reduced"` zera animação e transição no CSS, e
+  `prefersReducedMotion()` responde aos três scripts que animam (transformação de contêiner, áudio do Estúdio, MSDS). "Padrão" continua
+  obedecendo ao sistema.
+- **Sem piscar.** Um script no `<head>`, como o do tema, aplica cor, contraste e movimento antes do primeiro quadro; o `SectionTheme`
+  lê a preferência direto do armazenamento para não desfazer isso durante a hidratação.
+
+**Fonte.** m3.material.io › *Styles › Color › Contrast*, *Styles › Color › Dynamic color* e *Foundations › Customization*, lidas em 03/11/26.
+

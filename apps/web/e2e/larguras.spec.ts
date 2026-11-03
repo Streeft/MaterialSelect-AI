@@ -85,6 +85,7 @@ const WIDTHS = [
 // these by their own specs; here the point is the shell and each tool's screen.
 const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["inicio", "/app"],
+  ["aparencia", "/app/aparencia"],
   ["catalogo", "/app/catalogo"],
   ["selecao", "/app/selecao"],
   ["mapas", "/app/mapas"],

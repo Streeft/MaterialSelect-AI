@@ -31,6 +31,7 @@ import {
   IconLayers,
   IconLeaf,
   IconLogout,
+  IconPalette,
   IconMenu,
   IconNotebook,
   IconPanelLeft,
@@ -345,13 +346,24 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
           </span>
         )}
       </div>
-      <IconButton
-        size="sm"
-        label={ptBR.auth.logout}
-        icon={<IconLogout />}
-        onClick={handleLogout}
-        disabled={loggingOut}
-      />
+      <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
+        {/* D-196: Aparência, a link with the icon button's look. */}
+        <Link
+          href="/app/aparencia"
+          aria-label={ptBR.appearance.open}
+          title={ptBR.appearance.open}
+          className="msds-icon-btn msds-icon-btn-standard msds-icon-btn-sm msds-ripple-host"
+        >
+          <IconPalette />
+        </Link>
+        <IconButton
+          size="sm"
+          label={ptBR.auth.logout}
+          icon={<IconLogout />}
+          onClick={handleLogout}
+          disabled={loggingOut}
+        />
+      </div>
     </div>
   );
 }
