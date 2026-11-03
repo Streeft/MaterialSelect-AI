@@ -522,6 +522,10 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ## Baixa prioridade
 
+**Aparência em todos os aparelhos (D-196).** ▁ Cor do app, contraste e movimento ficam no `localStorage` de cada aparelho, como o
+tema. Para valer "nos outros aparelhos em que entrar" é preciso guardar a preferência na conta (coluna ou tabela de preferências,
+migração, rota `GET/PUT /api/me/appearance`) e o script do `<head>` continuar lendo a cópia local para não piscar.
+
 **Resíduos do D-177 (upload e exportações).** ▁ (a) Limpar caracteres de
 controle também na **entrada** (`name`/`description` de material, estudo e
 registro próprio), como higiene; a exportação já não cai sem isso. (b) As cópias

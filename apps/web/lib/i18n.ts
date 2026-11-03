@@ -3137,6 +3137,46 @@ export const ptBR = {
     customHint: "Você declara a expressão e as hipóteses.",
   },
 
+  // D-196: a tela de Aparência. Tudo fica neste aparelho, como o tema.
+  appearance: {
+    title: "Aparência",
+    description: "Cor, contraste, movimento e densidade. Vale para você, neste aparelho.",
+    open: "Aparência",
+    themeTitle: "Tema",
+    themeHint: "Claro, escuro ou o mesmo do sistema.",
+    contrastTitle: "Contraste",
+    contrastHint:
+      "O padrão já passa de 4,5:1 no texto. Médio e alto escurecem contornos e textos secundários. Sem escolha, segue o \u201caumentar contraste\u201d do sistema.",
+    contrast: { standard: "Padrão", medium: "Médio", high: "Alto" },
+    colorTitle: "Cor do app",
+    colorHint:
+      "A cor gera os botões, os chips e o item ativo. As cores de qualidade do dado e as dos gráficos nunca mudam.",
+    colorGroup: "Cor do app",
+    colors: {
+      route: "Uma cor por tela",
+      azul: "Azul",
+      "verde-azulado": "Verde-azulado",
+      verde: "Verde",
+      violeta: "Violeta",
+      rosa: "Rosa",
+      terracota: "Terracota",
+    },
+    colorChosen: (name: string) => `Cor do app: ${name}.`,
+    motionTitle: "Movimento",
+    motionHint: "Padrão usa as molas do M3 e segue o \u201creduzir movimento\u201d do sistema. Reduzido desliga as transições aqui.",
+    motion: { standard: "Padrão", reduced: "Reduzido" },
+    densityTitle: "Densidade das tabelas",
+    densityHint: "Vale para todas as tabelas; cada uma ainda pode trocar na hora.",
+    density: { comfortable: "Confortável", compact: "Compacta" },
+    previewTitle: "Prévia",
+    previewEyebrow: "Início",
+    previewHeading: "O que a peça precisa fazer?",
+    previewPrimary: "Montar a seleção",
+    previewTonal: "Ver exemplo",
+    previewActive: "Item ativo do trilho",
+    fixedTitle: "Não mudam com a cor nem com o contraste",
+    fixedChart: "Paleta dos gráficos (Okabe–Ito)",
+  },
   home: {
     // D-132: a home que devolve o leitor ao que ele estava fazendo.
     greeting: (name: string) => `Olá, ${name}.`,

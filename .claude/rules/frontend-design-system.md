@@ -156,6 +156,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Início começa escrevendo** ([D-195](docs/DECISIONS.md)): `HomeComposer` é o `primary` da tela e só leva texto à função do estudo
   (`?funcao=`, `lib/selection/functionParam.ts`); nenhum número nasce ali. "Novo" é `FabMenu` no Início, não no trilho escuro.
 
+- **Aparência é escolha de quem usa** ([D-196](docs/DECISIONS.md)): `lib/appearance.ts` (aparelho, `localStorage`). Cor do app só entre
+  paletas de tela que já existem (`APP_COLOR_SECTION`), nunca cor nova; contraste médio/alto só aponta token para token; script que anima
+  pergunta `prefersReducedMotion()` dali, nunca `matchMedia` sozinho.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

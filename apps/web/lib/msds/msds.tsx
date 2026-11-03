@@ -46,9 +46,11 @@ const useEffect = React.useEffect;
     return ref.current;
   }
 
+  // D-196: the reader's "Reduzido" on Aparência counts as much as the system's.
   function prefersReducedMotion() {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return !!window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof window === "undefined") return false;
+    if (document.documentElement.dataset.motion === "reduced") return true;
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
 
   // ---------------------------------------------------------------------

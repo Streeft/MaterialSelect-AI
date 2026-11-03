@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { takeContainerOrigin, type ContainerOrigin } from "@/lib/containerTransition";
+import { prefersReducedMotion } from "@/lib/appearance";
 
 const DURATION_MS = 350; // --m3-dur-medium3
 // --m3-ease-standard. `emphasized-decelerate` here put 90 % of the growth in the first
@@ -32,7 +33,7 @@ export function ContainerTransition() {
     const origin = taken.current;
     if (!origin) return;
     if (typeof document.body.animate !== "function") return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (prefersReducedMotion()) return;
     const content = document.getElementById("conteudo")?.getBoundingClientRect();
     if (!content) return;
     // The content area as the reader sees it: the page may still be scrolled (the router

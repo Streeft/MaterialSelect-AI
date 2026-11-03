@@ -213,7 +213,12 @@ describe("AppSidebar", () => {
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
       // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
       // Dezoito desde o D-130: "Glossário", em "Dados".
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(19); // 18 + o wordmark
+      // D-196: mais o atalho de Aparência no rodapé da conta.
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(20); // 18 + o wordmark + Aparência
+      expect(within(drawer).getByShadowRole("link", { name: ptBR.appearance.open })).toHaveAttribute(
+        "href",
+        "/app/aparencia",
+      );
     });
 
     it("marks the current page inside the drawer too", async () => {

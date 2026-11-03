@@ -18,16 +18,12 @@ import {
 import { IconArrowLeft, IconArrowRight, IconAudio } from "@/components/ui/icons";
 import { CitationChips } from "../AnswerView";
 import type { Cites } from "./views";
+import { prefersReducedMotion } from "@/lib/appearance";
 
 const t = ptBR.notebooks.studio;
 
 /** The speeds offered; 1 is the voice's own pace. */
 export const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * Resumo em áudio (D-98): the script is read by the browser's own voice — no
