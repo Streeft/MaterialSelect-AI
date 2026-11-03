@@ -84,7 +84,7 @@ function ValueCell({ p }: { p: PropertyValueOut }) {
 
   if (p.is_missing) {
     return (
-      <ProvenancePopover provenance={provenance}>
+      <ProvenancePopover provenance={provenance} title={p.property_name}>
         <MissingValue />
       </ProvenancePopover>
     );
@@ -92,7 +92,7 @@ function ValueCell({ p }: { p: PropertyValueOut }) {
 
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
-      <ProvenancePopover provenance={provenance}>
+      <ProvenancePopover provenance={provenance} title={p.property_name}>
         <ValueText p={p} />
       </ProvenancePopover>
       <DataQualityBadge state={state} />

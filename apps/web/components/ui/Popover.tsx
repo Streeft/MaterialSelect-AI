@@ -11,7 +11,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
-import { IconChevronRight } from "./icons";
+import { ptBR } from "@/lib/i18n";
+import { useWindowClass } from "@/lib/useWindowClass";
+import { IconChevronRight, IconClose } from "./icons";
 
 const PANEL_WIDTH = 288; // w-72, in pixels — the positioner needs a number.
 const GAP = 6;
@@ -29,10 +31,17 @@ const MARGIN = 8;
  * by its own scroll container. And the trigger is often inline in prose, where
  * a `<div>` panel would be invalid inside the surrounding `<p>` and would make
  * React tear down the whole tree at hydration.
+ *
+ * D-197: on a compact window (under 600 px) the same content opens as an M3
+ * modal bottom sheet (m3.material.io › Components › Bottom sheets): a 288 px
+ * panel pinned to a tapped value is too small to read on a phone, and the
+ * thumb is at the bottom. Modal there — a scrim, focus moved in and kept in,
+ * the page behind not scrolling, focus back on the value when it closes.
  */
 export function Popover({
   trigger,
   label,
+  title,
   align = "start",
   className,
   panelClassName,
@@ -42,6 +51,8 @@ export function Popover({
   trigger: ReactNode;
   /** Accessible name for the trigger — it is usually an icon or a bare value. */
   label: string;
+  /** D-197: the bottom sheet's heading on a phone; the trigger's `label` when absent. */
+  title?: string;
   align?: "start" | "end";
   className?: string;
   panelClassName?: string;
@@ -56,6 +67,9 @@ export function Popover({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const headingId = useId();
+  // Behaviour, not layout (D-182): which surface opens is decided by the window.
+  const sheet = useWindowClass() === "compact";
 
   const place = useCallback(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -83,12 +97,28 @@ export function Popover({
     const close = (restoreFocus: boolean) => {
       setOpen(false);
       // Escape must give focus back, or the reader is dropped at the top of the
-      // document with no idea what closed.
-      if (restoreFocus) triggerRef.current?.focus();
+      // document with no idea what closed. A sheet is modal: it always does.
+      if (restoreFocus || sheet) triggerRef.current?.focus();
     };
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") close(true);
+      // The sheet keeps focus inside it, as any modal does.
+      if (sheet && event.key === "Tab" && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panelRef.current)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     const onPointer = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -110,10 +140,56 @@ export function Popover({
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [open, place]);
+  }, [open, place, sheet]);
+
+  // The sheet takes focus when it opens, and the page behind stops scrolling.
+  useEffect(() => {
+    if (!open || !sheet) return;
+    panelRef.current?.focus();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open, sheet]);
+
+  function closeSheet() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  const sheetPanel =
+    open && sheet && typeof document !== "undefined"
+      ? createPortal(
+          <>
+            <div aria-hidden className="m3-sheet-scrim" />
+            <div
+              ref={panelRef}
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={headingId}
+              tabIndex={-1}
+              className="m3-bottom-sheet"
+            >
+              <span aria-hidden className="m3-bottom-sheet-handle" />
+              <div className="flex items-start justify-between gap-3">
+                <h2 id={headingId} className="text-heading font-semibold text-ink">
+                  {title ?? label}
+                </h2>
+                <button type="button" onClick={closeSheet} aria-label={ptBR.ui.close} className="m3-bottom-sheet-close">
+                  <IconClose className="h-5 w-5" />
+                </button>
+              </div>
+              <div className={cn("text-sm text-ink", panelClassName)}>{children}</div>
+            </div>
+          </>,
+          document.body,
+        )
+      : null;
 
   const panel =
-    open && position && typeof document !== "undefined"
+    open && !sheet && position && typeof document !== "undefined"
       ? createPortal(
           <div
             ref={panelRef}
@@ -152,6 +228,7 @@ export function Popover({
         {trigger}
       </button>
       {panel}
+      {sheetPanel}
     </span>
   );
 }

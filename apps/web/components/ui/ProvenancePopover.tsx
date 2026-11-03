@@ -210,17 +210,21 @@ export function ProvenanceDetails({ p, className }: { p: Provenance; className?:
 export function ProvenancePopover({
   provenance,
   children,
+  title,
   align = "start",
   className,
 }: {
   provenance: Provenance;
   children: React.ReactNode;
+  /** D-197: what the value is (a property's name), heading the sheet on a phone. */
+  title?: string;
   align?: "start" | "end";
   className?: string;
 }) {
   return (
     <Popover
       label={ptBR.provenance.trigger}
+      title={title}
       align={align}
       className={className}
       trigger={

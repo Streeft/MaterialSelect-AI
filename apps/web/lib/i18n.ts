@@ -2149,6 +2149,10 @@ export const ptBR = {
     positionHint:
       "Densidade × módulo de Young, os dois eixos do mapa. Este material aparece destacado.",
     openInMaps: "Ver no mapa completo",
+    // D-197: no celular, as ações da ficha numa barra flutuante sobre a navegação inferior.
+    sheetActions: "Ações da ficha",
+    compareThis: "Comparar",
+    seeOnMap: "Ver no mapa",
     // The sheet is where §3.2 has to pay off: every number says where it came
     // from, and the legend explains the vocabulary once, no matter how many
     // properties the material has.

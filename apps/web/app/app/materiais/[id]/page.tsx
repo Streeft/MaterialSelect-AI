@@ -32,6 +32,7 @@ import { PropertyChart } from "@/components/PropertyChart";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import { groupsAtLevel } from "@/lib/depth";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
+import { SheetActions } from "@/components/material/SheetActions";
 import { CompositionByCondition } from "@/components/material/CompositionByCondition";
 import { DesignationTable } from "@/components/material/DesignationTable";
 import { CopyTableButton } from "@/components/selection/CopyTableButton";
@@ -157,7 +158,7 @@ export default function MaterialDetailPage() {
     data !== undefined && !data.is_official && (data.is_own_record || canEditCatalog);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="m3-sheet-actions-room flex flex-col gap-6">
       <ButtonLink
         href="/app/catalogo"
         variant="link"
@@ -239,9 +240,12 @@ export default function MaterialDetailPage() {
                 )}
               </div>
               <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">
-                <FavoriteButton universe="material" recordId={data.id} />
-                {/* D-104 e D-124: menu "Exportar ▾" com ficha técnica em PDF/HTML e CAE card. */}
-                <MaterialExportMenu materialId={data.id} unitChoices={unitChoices} />
+                {/* D-197: on a phone these two live in the floating toolbar below. */}
+                <span className="m3-hide-compact inline-flex items-center gap-2">
+                  <FavoriteButton universe="material" recordId={data.id} />
+                  {/* D-104 e D-124: menu "Exportar ▾" com ficha técnica em PDF/HTML e CAE card. */}
+                  <MaterialExportMenu materialId={data.id} unitChoices={unitChoices} />
+                </span>
                 {/* D-83: in open access mode a shared material is read-only for
                     a student; the server refuses the write, this only avoids
                     offering a button that cannot work. */}
@@ -531,6 +535,8 @@ export default function MaterialDetailPage() {
           >
             <MaterialCurves materialId={data.id} canEdit={canEditIdentity} />
           </Section>
+
+          <SheetActions materialId={data.id} unitChoices={unitChoices} showMap={Boolean(chart.data)} />
         </>
       )}
     </div>
