@@ -153,6 +153,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
 - **Seleção tem o funil ao lado** ([D-186](docs/DECISIONS.md)): etapas de entrada em `PaneScaffold` *supporting-pane* com `LiveFunnel`, que só lê a prévia
   do servidor (nenhum número no cliente; `FunnelRow` é o mesmo dos resultados). Com objetivo, Executar é `SplitButton` com "Executar só os limites".
 
+- **Início começa escrevendo** ([D-195](docs/DECISIONS.md)): `HomeComposer` é o `primary` da tela e só leva texto à função do estudo
+  (`?funcao=`, `lib/selection/functionParam.ts`); nenhum número nasce ali. "Novo" é `FabMenu` no Início, não no trilho escuro.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".
