@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ptBR } from "@/lib/i18n";
-import { ButtonLink, Disclosure, Section } from "@/components/ui";
-import { IconArrowRight } from "@/components/ui/icons";
+import { Disclosure, Section } from "@/components/ui";
 import { Greeting } from "@/components/home/Greeting";
 import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
+import { HomeComposer } from "@/components/home/HomeComposer";
+import { NewMenu } from "@/components/home/NewMenu";
 
 const t = ptBR.home;
 
@@ -24,15 +25,20 @@ const STEPS = [
 
 export default function HomePage() {
   return (
-    <div className="space-y-6">
-      {/* D-86: one thing to do first, said once. */}
-      <section className="space-y-3">
-        <Greeting />
-        <h1 className="text-2xl font-semibold text-ink">{ptBR.appName}</h1>
-        <p className="max-w-prose text-ink-muted">{t.lead}</p>
-        <ButtonLink href="/app/selecao" variant="primary" icon={<IconArrowRight />}>
-          {t.start}
-        </ButtonLink>
+    // pb-24: the "Novo" FAB floats in the corner; the last row must scroll clear of it.
+    <div className="space-y-6 pb-24">
+      {/* D-86: one thing to do first, said once. D-195: it is a box to write in,
+          the way a Google app starts, and the study opens with it filled in. */}
+      <section aria-labelledby="home-title" className="m3-home-hero max-w-3xl space-y-4">
+        <div className="space-y-2">
+          <Greeting />
+          <p className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">{ptBR.appName}</p>
+          <h1 id="home-title" className="text-display text-ink">
+            {t.composer.title}
+          </h1>
+          <p className="max-w-prose text-ink-muted">{t.lead}</p>
+        </div>
+        <HomeComposer />
       </section>
 
       <RecentRecords />
@@ -80,6 +86,8 @@ export default function HomePage() {
           ))}
         </ol>
       </Disclosure>
+
+      <NewMenu />
     </div>
   );
 }

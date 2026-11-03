@@ -3165,6 +3165,30 @@ export const ptBR = {
     stepResultsHint: "Classificação, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
+    // D-195: começar escrevendo, como num app do Google. O texto vai para a
+    // função do estudo e mais nada: nenhum número sai daqui.
+    composer: {
+      title: "O que a peça precisa fazer?",
+      label: "Função do componente",
+      placeholder: "Ex.: viga leve que não pode fletir muito, a até 80 °C",
+      hint: "Vira a função do estudo. Os limites e o índice você escolhe nas etapas seguintes.",
+      submit: "Montar a seleção",
+      suggestionsLabel: "Sugestões para começar",
+      suggestions: [
+        "Viga leve e rígida em flexão",
+        "Mola que guarde muita energia elástica",
+        "Painel isolante térmico e barato",
+        "Eixo que resista à fadiga",
+      ],
+    },
+    // D-195: o menu "Novo" (FAB do M3 Expressive).
+    newMenu: {
+      label: "Novo",
+      study: "Estudo de seleção",
+      material: "Material próprio",
+      notebook: "Caderno",
+      notebookError: "Não foi possível criar o caderno. Tente de novo.",
+    },
     savedTitle: "Retomar um estudo",
     savedHint:
       "Estudos salvos ficam disponíveis para reabrir e executar de novo.",

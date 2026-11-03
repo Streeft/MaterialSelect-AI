@@ -126,6 +126,7 @@ import {
 import { AIAssistPanel, type AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
 import { WeightBudget } from "@/components/selection/WeightBudget";
 import { parseWeightInput, weightsGate } from "@/lib/selection/weightsGate";
+import { functionFromParams } from "@/lib/selection/functionParam";
 
 const t = ptBR.selection;
 type Step = "function" | "constraints" | "objective" | "results";
@@ -400,7 +401,9 @@ function SelectionWizard() {
   }, []);
 
   const [name, setName] = useState("");
-  const [functionText, setFunctionText] = useState("");
+  // D-195: the home's composer opens the wizard with what the part must do
+  // already written (`?funcao=`). Text only: nothing in it becomes a number.
+  const [functionText, setFunctionText] = useState(() => functionFromParams(params));
   const [objectiveText, setObjectiveText] = useState("");
   const [freeVariables, setFreeVariables] = useState("");
   const [studyNotes, setStudyNotes] = useState("");

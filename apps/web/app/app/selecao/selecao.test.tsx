@@ -915,3 +915,14 @@ describe("funil ao lado e botão dividido (D-186)", () => {
     expect(calls.every((c) => c.ranking === null && c.index === null)).toBe(true);
   });
 });
+
+describe("função vinda do Início (D-195)", () => {
+  it("opens on the function step with the composer's text in the function field", async () => {
+    searchParams.set("etapa", "funcao");
+    searchParams.set("funcao", "Viga leve e rígida em flexão");
+    render(wrap(<SelectionPage />));
+    expect(await screen.findByRole("textbox", { name: t.functionText })).toHaveValue(
+      "Viga leve e rígida em flexão",
+    );
+  });
+});

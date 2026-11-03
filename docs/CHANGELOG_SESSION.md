@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 152 — 03/11/26 — Início que começa escrevendo, e o menu "Novo" (D-195)
+
+**O que mudou.** O Início abre com "O que a peça precisa fazer?": a caixa (`HomeComposer`) leva o texto à função do estudo pela URL
+(`?funcao=`), com quatro sugestões em chip. O FAB "Novo" (`NewMenu` sobre o `FabMenu`) cria estudo, material próprio ou caderno. +11 de
+frontend (7 em `composer.test.tsx`, 3 em `functionParam.test.ts`, 1 na Seleção); a auditoria de acessibilidade do Início passa a achar o
+título novo. Suíte: 1599 passam; contraste sem falha; E2E de larguras passa. No Chromium a 1440 e a 390 px, sem rolagem horizontal e com o FAB
+acima da barra inferior; a sugestão vai até o campo de função da Seleção. Sem backend nem migração.
+
 ## Sessão 151 — 02/11/26 — Guia do TCC e revisão dos `.md` que ficaram falsos (D-194)
 
 **O que mudou.** Só documentação. Novo `docs/TCC_GUIA.md`, porta de entrada de quem escreve a monografia: o que o app é, método (Ashby e os

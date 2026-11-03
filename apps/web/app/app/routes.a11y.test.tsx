@@ -1501,7 +1501,7 @@ describe("acessibilidade das telas principais", () => {
   });
 
   it("início", async () => {
-    await auditRoute(<HomePage />, ptBR.appName);
+    await auditRoute(<HomePage />, ptBR.home.composer.title);
   });
 
   it("catálogo", async () => {

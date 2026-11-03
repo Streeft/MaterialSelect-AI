@@ -11945,3 +11945,25 @@ copiar para o guia o texto das decisões (envelheceria no PR seguinte); ler `DEC
 **Consequências.** Só documentação: sem código, sem migração, sem seed, sem deploy. O índice no topo de `DECISIONS.md` continua parando
 na D-51; a lista completa sai de `git grep -n "^## D-" docs/DECISIONS.md`. O número D-130 está duplicado (aviso com Desfazer e
 glossário) e D-154, D-159 e D-160 não têm seção (o registro de sessões ainda cita D-160 e D-162 em títulos de 117 a 120, o que sugere renumeração; a confirmar): o guia avisa.
+
+## D-195 — Início que começa escrevendo, e o menu "Novo"
+
+**Contexto.** Quinto passo do plano de D-181. O Início abria com o nome do app e um botão "Começar um estudo"; o estudo começava vazio,
+e criar um caderno ou um material próprio pedia saber em que tela isso mora. Os apps do Google começam por uma caixa de escrever e põem o
+que se cria num botão "Novo" (M3: *Components › FAB menu*, Expressive; *Components › Chips*, assist chip).
+
+**Decisão.**
+- **A ação principal do Início vira uma caixa** (`HomeComposer`): "O que a peça precisa fazer?". "Montar a seleção" (o único `primary`
+  da tela, D-86/D-91) abre o assistente na etapa Função com o texto já no campo de função, por `?funcao=` (`lib/selection/functionParam.ts`,
+  até 500 caracteres). O texto vira a função do estudo e mais nada: nenhum número sai dele, limites e índice continuam nas etapas. Em
+  branco, abre o estudo vazio como antes. Enter envia, Shift+Enter quebra a linha. Quatro sugestões em *assist chip* só preenchem a caixa.
+- **"Novo" é o `FabMenu` (D-183)** no canto, acima da barra inferior do celular: Estudo de seleção, Material próprio e Caderno. O caderno
+  é criado ali e aberto, como o botão de Cadernos faz; falha vira snackbar (que já é região viva, D-130). O FAB é tonal, então não disputa
+  com "Montar a seleção".
+- **O "Novo" fica no Início, não no trilho.** O trilho expandido do M3 pode levar o FAB no topo, mas na barra escura (D-37) ele seria um
+  segundo destaque em toda tela, ao lado do `primary` de cada uma (D-91). A barra lateral já é o trilho expandido (rótulos, seções, pílula
+  do item ativo, D-137); o que mudou é a tela de chegada.
+- O resto do Início (vistos recentemente, estudos salvos, explorar, o método) fica como estava.
+
+**Fonte.** m3.material.io › *Components › FAB menu*, *Components › Chips* e *Components › Navigation rail* (expanded), lidas em 30/10 e 03/11/26.
+
