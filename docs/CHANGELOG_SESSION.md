@@ -120,6 +120,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 154 — 03/11/26 — Ficha no celular: folha inferior e barra flutuante (D-197)
+
+**O que mudou.** Abaixo de 600 px o `Popover` vira folha inferior modal do M3 (foco preso, Esc e véu fecham, foco volta ao valor), e a
+proveniência leva o nome da propriedade como título. A ficha ganha `SheetActions`, barra flutuante com favoritar, comparar, ver no mapa
+e exportar acima da navegação inferior; as cópias do cabeçalho somem no celular. `useWindowClass` tolera o `addListener` antigo. +7 de
+frontend (5 da folha, 2 da barra); o teste da proveniência passa a achar a folha pelo nome da propriedade. Suíte: 1625 passam; contraste
+sem falha; E2E de larguras, offline e transição passam. No Chromium a 390 px: barra acima da navegação, folha com foco dentro e devolvido
+ao fechar, sem rolagem horizontal; a 1440 px o popover continua ancorado e a barra não aparece. Fecha o plano de D-181. Sem backend.
+
 ## Sessão 153 — 03/11/26 — Aparência: cor do app, contraste, movimento e densidade (D-196)
 
 **O que mudou.** Tela `/app/aparencia` (ícone de paleta no rodapé da conta) com tema, contraste (padrão, médio, alto), cor do app (uma

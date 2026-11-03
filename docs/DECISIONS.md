@@ -11995,3 +11995,28 @@ sistema) e a densidade das tabelas eram escolhas do leitor, e cada uma morava nu
 
 **Fonte.** m3.material.io › *Styles › Color › Contrast*, *Styles › Color › Dynamic color* e *Foundations › Customization*, lidas em 03/11/26.
 
+## D-197 — Ficha no celular: proveniência em folha inferior e ações numa barra flutuante
+
+**Contexto.** Sétimo e último passo do plano de D-181. No celular a proveniência de um valor abria num painel de 288 px preso ao número
+tocado, pequeno para ler e longe do polegar; e as ações da ficha (favoritar, exportar) ficavam no cabeçalho, que sai da tela logo que a
+ficha longa rola. O M3 resolve com a *bottom sheet* modal e a barra de ferramentas flutuante (*Components › Bottom sheets*; *Toolbars*).
+
+**Decisão.**
+- **Todo `Popover` vira folha inferior modal numa janela compacta** (abaixo de 600 px, `useWindowClass`, que é comportamento e não
+  layout, D-182): alça, cantos de 28 px, véu de 32 % (D-136), entra na mola expressiva (D-183). É modal de verdade: foco vai para a
+  folha e fica nela (Tab circula), a página atrás não rola, Esc, o botão "Fechar" ou um toque no véu fecham, e o foco volta ao valor.
+  Vale para proveniência, glossário, citações, comparador e processos, porque o problema é o mesmo em todos. De 600 px para cima, o
+  painel ancorado continua como era.
+- **A folha da proveniência leva o nome da propriedade como título** (`title` no `Popover`/`ProvenancePopover`), e o conteúdo é a
+  mesma trilha de sempre: valor original e unidade, valor normalizado, conversão do Pint, condição e fonte. Nenhum dado novo.
+- **Ações da ficha numa barra flutuante** (`SheetActions`, só abaixo de 600 px): favoritar, comparar, ver no mapa e "Exportar ▾", acima da
+  barra de navegação inferior. É a variante *standard* (clara, `surface-container-high`), não a vibrante de D-184, para os botões do app
+  manterem as cores. Comparar e Ver no mapa são só ícone (com nome para leitor de tela): quatro botões com rótulo não cabem em 375 px. As
+  cópias do cabeçalho somem no celular, para nenhuma ação ser lida duas vezes, e a página deixa espaço para o fim não ficar coberto.
+- **Barra ancorada (*docked*) não**: o celular já tem a navegação inferior (D-91); uma segunda barra presa à borda empilharia duas.
+  "Usar na seleção", do esboço, também ficou de fora: não há hoje um sentido claro para "usar um material" num estudo, e a barra só
+  leva portas que a ficha já tem.
+- `useWindowClass` passa a aceitar `MediaQueryList` antigo (`addListener`, Safari < 14), porque agora todo `Popover` pergunta por ela.
+
+**Fonte.** m3.material.io › *Components › Bottom sheets* e *Components › Toolbars* (floating), lidas em 03/11/26.
+

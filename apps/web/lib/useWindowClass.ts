@@ -8,8 +8,19 @@ function queries(): MediaQueryList[] {
 function subscribe(onChange: () => void): () => void {
   if (typeof window.matchMedia !== "function") return () => {};
   const lists = queries();
-  lists.forEach((list) => list.addEventListener("change", onChange));
-  return () => lists.forEach((list) => list.removeEventListener("change", onChange));
+  // Safari before 14 only has the old `addListener`; a page there must not
+  // break because a popover asked which window it is in (D-197).
+  lists.forEach((list) =>
+    typeof list.addEventListener === "function"
+      ? list.addEventListener("change", onChange)
+      : list.addListener?.(onChange),
+  );
+  return () =>
+    lists.forEach((list) =>
+      typeof list.removeEventListener === "function"
+        ? list.removeEventListener("change", onChange)
+        : list.removeListener?.(onChange),
+    );
 }
 
 function snapshot(): WindowClass {

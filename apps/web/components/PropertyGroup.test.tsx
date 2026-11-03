@@ -85,7 +85,9 @@ describe("PropertyGroupCard", () => {
       screen.getByRole("button", { name: ptBR.provenance.trigger }),
     );
 
-    const panel = screen.getByRole("dialog", { name: ptBR.provenance.trigger });
+    // jsdom matches no media query, so the window counts as compact and the
+    // trail opens as the bottom sheet, headed by the property's name (D-197).
+    const panel = screen.getByRole("dialog", { name: group.properties[0]!.property_name });
     // §3.2: the reference for a value is reachable in the interface, not only
     // in the exported report.
     expect(within(panel).getByText("ASM Handbook")).toBeInTheDocument();
