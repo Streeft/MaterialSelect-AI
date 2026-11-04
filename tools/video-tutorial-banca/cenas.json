@@ -275,8 +275,8 @@
         "O Importar recebe planilhas em CSV ou XLSX.",
         "Este arquivo tem três materiais fictícios.",
         "A ferramenta sugere o mapeamento das colunas e pede a unidade de cada uma.",
-        "A validação aponta o problema de cada linha.",
-        "A célula vazia vira dado ausente, e não zero."
+        "A validação mostra o resultado de cada linha antes de importar.",
+        "No material B, a célula vazia não vira zero: na ficha, o valor aparece como ausente."
       ]
     },
     {
@@ -285,7 +285,7 @@
       "demo": true,
       "frases": [
         "Os Processos são o segundo universo do método.",
-        "Cada processo tem atributos de capacidade e a lista de materiais compatíveis, que também entram como etapa da seleção."
+        "Cada processo tem atributos de capacidade, com fonte e qualidade, e o conjunto de materiais que ele atende, que também entra como etapa da seleção."
       ]
     },
     {

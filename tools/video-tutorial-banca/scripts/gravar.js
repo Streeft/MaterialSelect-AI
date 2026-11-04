@@ -16,6 +16,7 @@ const TOKEN = process.env.E2E_SESSION_TOKEN || "video-banca-local-session-0001";
 const HERE = path.resolve(__dirname, "..");
 const NARR_OFFSET = 0.5; // s of picture before the first word
 const TAIL = 0.5; // s of picture after the last word
+const GAP = 0.45; // pause between sentences, as in narrar.py
 const FORBIDDEN = [
   /bicicleta/i,
   /Viga leve limitada por rigidez/,
@@ -23,6 +24,8 @@ const FORBIDDEN = [
   /Viga leve e rígida em flexão/,
   /100\s?000\s?N\/m/,
 ];
+// Error messages must never be on screen.
+const ERRORS = [/Não foi possível/, /Sintaxe inválida/, /Tentar novamente/, /Application error/];
 // The bike example's winner: allowed in a long list, never focused. Logged, not fatal.
 const WATCH = [/CFRP UD Alto Módulo \/ Epóxi/];
 
@@ -54,13 +57,50 @@ class Rec {
       this.frames.push({ f, t: this.now() });
     });
   }
+  // Runs during the whole take: busy indicators pause the clock (dry cut), and the
+  // visible text is checked for the forbidden strings every 700 ms.
+  startWatch() {
+    if (this.watch) return;
+    this.autoPaused = false;
+    const guard = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("watch timeout")), ms));
+    // Fast tick: busy indicators pause the clock almost at once (dry cut).
+    this.watch = setInterval(async () => {
+      if (!this.recording || this.fast || this.inBusy) return;
+      this.inBusy = true;
+      try {
+        const busy = await Promise.race([guard(1500), this.page.evaluate(() => !window.__vc || window.__vc.busy())]);
+        if (busy && !this.paused) { this.pause(); this.autoPaused = true; }
+        else if (!busy && this.autoPaused) { this.autoPaused = false; await this.resume(); }
+      } catch (e) { /* navigation in progress */ }
+      this.inBusy = false;
+    }, 150);
+    // Slow tick: what is visible is checked for forbidden strings and error messages.
+    this.watchScan = setInterval(async () => {
+      if (!this.recording || this.fast || this.paused || this.inScan) return;
+      this.inScan = true;
+      try { await Promise.race([guard(2000), this.scan("contínuo t=" + this.now().toFixed(1))]); } catch (e) { /* */ }
+      this.inScan = false;
+    }, 700);
+  }
   now() { return (this.vt + (this.since !== null ? Date.now() - this.since : 0)) / 1000; }
   pause() { if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; } this.paused = true; }
   async resume() {
+    if (!this.recording || this.fast) return;
+    if (this.autoPaused) return;
     this.paused = false;
     this.since = Date.now();
-    await this.page.evaluate(() => window.__vc && window.__vc.nudge()).catch(() => {});
-    await sleep(60);
+    await this.grab();
+  }
+  // Force a frame of what is on screen now: after a dry cut nothing may change on
+  // screen, and the screencast would leave the pre-cut frame showing.
+  async grab() {
+    if (DRY || !this.recording) return;
+    try {
+      const { data } = await this.cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 88 });
+      const f = `f${String(++this.frameNo).padStart(6, "0")}.jpg`;
+      fs.writeFileSync(path.join(this.dir, f), Buffer.from(data, "base64"));
+      this.frames.push({ f, t: this.now() });
+    } catch (e) { /* page navigating */ }
   }
 
   async begin(cena, narr) {
@@ -72,18 +112,27 @@ class Rec {
     fs.rmSync(this.dir, { recursive: true, force: true });
     fs.mkdirSync(this.dir, { recursive: true });
     this.frames = [];
-    this.events = { clicks: [], confirms: [], zooms: [], labels: [] };
+    this.events = { clicks: [], confirms: [], zooms: [], labels: [], at: {} };
     this.vt = 0;
+    this.since = null;
+    this.paused = true;
+    this.autoPaused = false;
     this.recording = true;
+    this.startWatch();
     await this.stable();
     this.since = Date.now();
     this.paused = false;
-    await this.page.evaluate(() => window.__vc.nudge());
+    await this.grab();
     await this.scan("início");
   }
   async end() {
     if (this.fast) return;
-    if (this.narr) await this.until(NARR_OFFSET + this.narr.duracao + TAIL);
+    if (this.narr) {
+      const F = this.narr.frases;
+      this.events.frases_t = F.map((_, k) => this.sentenceStart(k));
+      const last = F.length - 1;
+      await this.until(this.events.frases_t[last] + (F[last].fim - F[last].inicio) + TAIL);
+    }
     await this.until(this.now() + 0.3);
     await this.scan("fim");
     const dur = this.now();
@@ -95,28 +144,57 @@ class Rec {
     }, null, 1));
     console.log(`cena ${this.cena.id}: ${dur.toFixed(1)} s, ${this.frames.length} quadros`);
   }
-  async until(t) { if (this.fast) return; while (this.now() < t) await sleep(20); }
+  async until(t) {
+    if (this.fast) return;
+    let stuck = 0;
+    while (this.now() < t) {
+      await sleep(20);
+      stuck = this.paused ? stuck + 20 : 0;
+      if (stuck > 15000) {
+        this.issue(`relógio pausado por 15 s (autoPaused=${this.autoPaused}); retomando`);
+        this.autoPaused = false;
+        await this.resume();
+        stuck = 0;
+      }
+    }
+  }
   // Wait for sentence k of the scene's narration to start (+ a small lead).
+  // Sentence k never starts before its scheduled time, nor before the previous one
+  // ends; if the screen is late, the sentence waits for it (logged in events.at).
   async at(k, lead = 0.1) {
     if (this.fast || !this.narr) return;
-    const f = this.narr.frases[Math.min(k, this.narr.frases.length - 1)];
-    await this.until(NARR_OFFSET + f.inicio + lead);
+    this.dbg("at " + k);
+    k = Math.min(k, this.narr.frases.length - 1);
+    const sched = this.sentenceStart(k);
+    await this.until(sched + lead);
+    this.events.at[k] = Math.max(sched, this.now() - lead);
+  }
+  sentenceStart(k) {
+    const F = this.narr.frases;
+    let t = 0;
+    for (let i = 0; i <= k; i++) {
+      const base = NARR_OFFSET + F[i].inicio;
+      const prevEnd = i ? t + (F[i - 1].fim - F[i - 1].inicio) + GAP : 0;
+      t = Math.max(base, prevEnd, this.events.at[i] ?? 0);
+    }
+    return t;
   }
   async hold(ms) { if (!this.fast) await sleep(ms); }
 
   // Stable = heading visible, no loading texts, no busy markers. Time spent here is cut.
-  async stable(maxMs = 15000) {
-    const wasRec = this.recording && !this.paused;
-    if (wasRec) this.pause();
+  async stable(maxMs = 15000, opts = {}) {
+    this.dbg && this.cena && this.dbg("stable");
+    const wasRec = this.recording && !this.fast && opts.resume !== false;
+    if (this.recording && !this.fast) this.pause();
     const t0 = Date.now();
     await this.page.locator("h1").first().waitFor({ timeout: maxMs }).catch(() => {});
     for (;;) {
-      const busy = await this.page.evaluate(() => {
-        const t = document.body.innerText;
-        return /Verificando sessão|Recalculando|Conferindo a soma dos pesos|Carregando|Calculando…/.test(t)
-          || !!document.querySelector('[aria-busy="true"]');
-      }).catch(() => true);
-      if (!busy) break;
+      const busy = await this.page.evaluate(() => !window.__vc || window.__vc.busy()).catch(() => true);
+      if (!busy) {
+        await sleep(500);
+        const again = await this.page.evaluate(() => !window.__vc || window.__vc.busy()).catch(() => true);
+        if (!again) break;
+      }
       if (Date.now() - t0 > maxMs) {
         this.issue("tela não estabilizou em " + maxMs / 1000 + " s");
         break;
@@ -128,6 +206,10 @@ class Rec {
   }
   issue(msg) {
     const id = this.cena ? this.cena.id : "?";
+    const key = id + msg.replace(/t=[\d.]+/, "");
+    this.seen = this.seen || new Set();
+    if (msg.includes("contínuo") && this.seen.has(key)) return;
+    this.seen.add(key);
     this.issues.push({ cena: id, msg });
     console.log(`  ! [${id}] ${msg}`);
   }
@@ -135,11 +217,13 @@ class Rec {
     const zoom = this.curZoom;
     const text = await this.page.evaluate((r) => window.__vc.visibleText(r), zoom || null);
     for (const re of FORBIDDEN) if (re.test(text)) this.issue(`PROIBIDO na tela (${where}): ${re}`);
+    for (const re of ERRORS) if (re.test(text)) this.issue(`ERRO na tela (${where}): ${re}`);
     for (const re of WATCH) if (re.test(text)) this.issue(`atenção (${where}): vencedor do exemplo da viga visível em lista: ${re}`);
     return text;
   }
   async shot(name) {
     if (!DRY) return;
+    await this.scan(name);
     fs.mkdirSync(path.join(OUT, "_seco"), { recursive: true });
     await this.page.screenshot({ path: path.join(OUT, "_seco", `${this.cena.id}_${name}.png`) });
   }
@@ -190,25 +274,39 @@ class Rec {
     await this.page.evaluate(() => window.__vc.ring(null));
   }
   // Highlight, curved move, 300 ms wait, click.
+  dbg(what) { if (process.env.VDEBUG && !this.fast) console.log(`    [${this.cena.id} t=${this.now().toFixed(1)} paused=${this.paused} auto=${this.autoPaused}] ${what}`); }
   async click(loc, opts = {}) {
-    if (this.fast) { await loc.click(opts); return; }
+    this.dbg("click " + loc.toString().slice(0, 90));
+    if (this.fast) { const { pauseAfter, pauseBefore, ...o } = opts; await loc.click(o); return; }
     const { b } = await this.moveTo(loc, opts);
     await this.page.evaluate((r) => window.__vc.ring(r), b);
     await sleep(500);
     await sleep(300);
     this.events.clicks.push(this.now());
     await this.page.evaluate(() => window.__vc.ripple());
-    await loc.click(opts);
+    const { pauseAfter, pauseBefore, ...clickOpts } = opts;
+    if (pauseBefore) this.pause();
+    await loc.click(clickOpts);
+    if (pauseAfter || pauseBefore) { this.pause(); await this.page.evaluate(() => window.__vc.ring(null)); return; }
     await this.page.evaluate(() => window.__vc.ring(null));
     await sleep(200);
   }
   async type(loc, text) {
     await this.click(loc);
     if (this.fast) { await loc.fill(text); return; }
+    // Start from an empty field: a click alone leaves what was there (a default "1").
+    await this.page.keyboard.press("ControlOrMeta+a");
+    await this.page.keyboard.press("Backspace");
     for (const ch of text) {
       await this.page.keyboard.type(ch);
       await sleep(rand(40, 70));
     }
+  }
+  // Click the field, then put the whole text at once (like a paste): for fields where
+  // every keystroke triggers a heavy re-render (catalog search).
+  async paste(loc, text) {
+    await this.click(loc);
+    await loc.fill(text);
   }
   async select(loc, label) {
     if (!this.fast) await this.click(loc);
@@ -232,8 +330,35 @@ class Rec {
     await this.page.evaluate((d) => window.scrollBy({ top: d, behavior: "smooth" }), dy);
     await sleep(800);
   }
+  // Dry cut to a new scroll position: the jump itself never reaches the video.
+  async jump(loc, targetY, opts = {}) {
+    const wasRec = this.recording && !this.fast;
+    if (wasRec) this.pause();
+    await loc.waitFor({ state: "attached", timeout: 15000 });
+    // Scroll every scrolling ancestor (an inner panel included) so the target's card
+    // starts at the top of its container, then put it at targetY in the window.
+    await loc.evaluate((el) => {
+      let c = el;
+      while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+      c.scrollIntoView({ block: "start", behavior: "auto" });
+    });
+    const b = await loc.evaluate((el) => el.getBoundingClientRect().top);
+    await this.page.evaluate((d) => window.scrollBy(0, d), b - targetY);
+    await sleep(250);
+    await this.stable(15000, { resume: !opts.stayPaused });
+    if (opts.stayPaused) { this.pause(); return; }
+    if (wasRec) await this.resume();
+  }
+  async jumpTop() {
+    const wasRec = this.recording && !this.fast;
+    if (wasRec) this.pause();
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(250);
+    await this.stable();
+    if (wasRec) await this.resume();
+  }
   async waitEnabled(loc, ms) {
-    const wasRec = this.recording && !this.paused;
+    const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
     const t0 = Date.now();
     while (await loc.isDisabled()) {
@@ -255,13 +380,18 @@ class Rec {
     this.curZoom = r;
     this.events.zooms.push({ t: this.now(), ...r });
   }
-  crop(r) {
+  crop(r, opts = {}) {
     if (this.fast) return;
     this.curZoom = r;
-    this.events.zooms.push({ t: this.now(), ...r });
+    this.events.zooms.push({ t: this.now(), ...r, ...(opts.instant ? { instant: true } : {}) });
   }
   async zoomOn(loc, scale = 1.25) { const b = await this.box(loc); this.zoom(b, scale); await this.hold(450); }
-  async unzoom() { if (this.fast || !this.curZoom) return; this.curZoom = null; this.events.zooms.push({ t: this.now(), x: 0, y: 0, width: 1920, height: 1080 }); await this.hold(450); }
+  async unzoom(opts = {}) {
+    if (this.fast || !this.curZoom) return;
+    this.curZoom = null;
+    this.events.zooms.push({ t: this.now(), x: 0, y: 0, width: 1920, height: 1080, ...(opts.instant ? { instant: true } : {}) });
+    if (!opts.instant) await this.hold(450);
+  }
   confirm() { if (!this.fast) this.events.confirms.push(this.now()); }
   label(text) { if (!this.fast) this.events.labels.push({ t: this.now(), text }); }
   // Read a value from the screen and stop if it differs from what the narration says.
@@ -324,6 +454,8 @@ const SCENES = require("./cenas_acoes.js");
     if (ONLY && ONLY.every((id) => fs.existsSync(path.join(OUT, id, "cena.json")) || id === cena.id) && cena.id === ONLY[ONLY.length - 1]) break;
   }
   fs.writeFileSync(path.join(OUT, "problemas.json"), JSON.stringify(r.issues, null, 1));
+  clearInterval(r.watch);
+  clearInterval(r.watchScan);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })();

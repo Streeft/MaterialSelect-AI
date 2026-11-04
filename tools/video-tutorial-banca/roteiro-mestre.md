@@ -411,3 +411,20 @@ em legenda inferior.
 Em `tools/video-tutorial-banca/out/` (fora do Git): versão completa com narração,
 trilha e legendas; `.srt` separado; `capitulos.txt`; versão sem narração (trilha
 e legendas); `roteiro-final.md` com o texto integral e a tabela de tempos.
+
+---
+
+## Alterações feitas na produção (depois da aprovação)
+
+Registradas aqui para que o roteiro aprovado e o vídeo não divirjam em silêncio.
+O texto integral narrado está em `roteiro-final.md`.
+
+| Cena | Alteração | Motivo |
+|---|---|---|
+| 2.2, 2.6 | Estudo "Tirante leve e rígido a 200 °C"; terceiro limite **Temperatura máxima de serviço ≥ 200 °C**; funil 678 → 364 → 268 → **194**; vencedor **CFRP (Fibras de Carbono Contínuas)** | Sem o limite de temperatura, o vencedor do tirante era o mesmo do exemplo da viga (a resposta da tarefa T4). Com ele, o vencedor da viga sai até do top 5. |
+| 2.4 | A calculadora passou para os Mapas (eixo Y como expressão), logo depois da placa | Na Seleção, a opção "Expressão personalizada" fica ao lado do cartão "Viga leve limitada por rigidez" |
+| 2.8 | "A aba Eliminados mostra quem saiu, e em que etapa." | Pronúncia da voz sintética |
+| 2.10 | Narração descreve a "Proveniência do resultado" (limites, expressão, dimensão, método, pesos) | É o que a aba Origem dos dados mostra; a origem de cada valor fica na ficha (2.14) |
+| 2.17 | "A validação mostra o resultado de cada linha antes de importar. No material B, a célula vazia não vira zero: na ficha, o valor aparece como ausente." | O relatório de validação não marca a célula vazia; a ausência aparece na ficha do material B, mostrada na cena |
+| 2.18 | "…e o conjunto de materiais que ele atende…" | A ficha do processo mostra "Serve N materiais do catálogo", não uma lista |
+| 4.2 | "Se você é estudante de Engenharia de Materiais…" | Pronúncia da voz sintética |

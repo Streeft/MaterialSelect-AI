@@ -7,6 +7,88 @@ const bar = (p) => p.getByRole("group", { name: "Ações da etapa" });
 const steps = (p) => p.getByRole("navigation", { name: "Etapas" });
 const funnel = (p) => p.locator("aside, section, div").filter({ has: p.getByRole("heading", { name: "Funil de candidatos" }) }).last();
 
+// D2 in Comparar: the "Propriedades computadas" block lists every catalog index,
+// beam ones included. Keep its top edge just below the bottom of the viewport.
+async function hideBelow(r, p) {
+  const wasRec = r.recording && !r.fast;
+  if (wasRec) r.pause();
+  await r.stable();
+  // Re-place until the layout stops moving (charts resize after they draw).
+  let calm = 0;
+  for (let i = 0; i < 40 && calm < 6; i++) {
+    await new Promise((res) => setTimeout(res, 250));
+    const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
+    if (!(await h.count())) break;
+    const b = await h.boundingBox();
+    if (Math.abs(b.y - 1090) > 3) { await p.evaluate((d) => window.scrollBy(0, d), b.y - 1090); calm = 0; } else calm++;
+  }
+  if (wasRec) await r.resume();
+}
+
+// D2 in Comparar, by framing: an instant 16:9 crop whose bottom edge stops above the
+// "Propriedades computadas" block (it lists every catalog index, beam ones included).
+async function cropAbove(r, p) {
+  if (r.fast) return;
+  await r.stable(15000, { resume: false });
+  let top = 1e9;
+  for (let i = 0; i < 12; i++) {  // wait for the chart to settle
+    await new Promise((res) => setTimeout(res, 250));
+    const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
+    const t = (await h.count()) ? (await h.boundingBox()).y : 1e9;
+    if (Math.abs(t - top) < 2) break;
+    top = t;
+  }
+  const bottom = Math.min(1080, top - 12);
+  if (bottom >= 1078) { await r.unzoom({ instant: true }); await r.resume(); return; }
+  const hgt = bottom, wid = (hgt * 16) / 9;
+  const card = await p.getByText("Comparação de materiais").filter({ visible: true }).first().boundingBox().catch(() => null);
+  const cx = card ? card.x + 730 : 1088;
+  const x = Math.max(0, Math.min(1920 - wid, cx - wid / 2));
+  r.crop({ x, y: 0, width: wid, height: hgt }, { instant: true });
+  await r.resume();
+}
+
+// Dry cut: page to the top and the map side panel (its own scroller) to a target.
+async function panelCut(r, p, loc, block = "start") {
+  const wasRec = r.recording && !r.fast;
+  if (wasRec) r.pause();
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await loc.evaluate((el, b) => {
+    let c = el;
+    while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+    const aside = el.closest("aside");
+    if (aside) aside.scrollTop += c.getBoundingClientRect().top - aside.getBoundingClientRect().top - (b === "start" ? 0 : 0);
+  }, block);
+  await new Promise((res) => setTimeout(res, 250));
+  await r.stable();
+  if (wasRec) await r.resume();
+}
+async function panelTop(r, p) {
+  const wasRec = r.recording && !r.fast;
+  if (wasRec) r.pause();
+  await p.evaluate(() => {
+    window.scrollTo(0, 0);
+    const a = [...document.querySelectorAll("aside")].find((x) => x.textContent.includes("Controles do mapa"));
+    if (a) { a.style.scrollBehavior = "auto"; a.scrollTop = 0; }
+  });
+  await new Promise((res) => setTimeout(res, 250));
+  await r.stable();
+  if (wasRec) await r.resume();
+}
+
+// Crop (instant, inside a dry cut) that starts right above the plate's index card, so
+// the beam card above it never enters the frame. 16:9, anchored at the bottom right.
+async function cropInfo(r, p, info) {
+  const top = await info.evaluate((el) => {
+    let c = el;
+    while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+    return c.getBoundingClientRect().top;
+  });
+  const h = Math.min(1080, 1080 - (top - 8));
+  const w = (h * 16) / 9;
+  r.crop({ x: 1920 - w, y: 1080 - h, width: w, height: h }, { instant: true });
+}
+
 module.exports = {
   // ------------------------------------------------------------ Abertura
   "0.2": async (r, p) => {
@@ -109,8 +191,8 @@ module.exports = {
     await r.stable();
     await r.resume();
     await r.type(p.getByLabel("Nome do estudo"), "Tirante leve e rígido a 200 °C");
-    await r.type(p.getByLabel("Objetivo", { exact: true }), "Mínima massa para rigidez axial dada");
     await r.at(1);
+    await r.type(p.getByLabel("Objetivo", { exact: true }), "Mínima massa para rigidez axial dada");
     const f = p.getByRole("heading", { name: "Funil de candidatos" });
     await r.zoomOn(f.locator("xpath=ancestor::*[self::section or self::aside or self::div][1]"), 1.3);
     await r.expect(p.locator("main"), /678\s*de 678 continuam/, "funil inicial 678");
@@ -119,25 +201,34 @@ module.exports = {
 
   "2.3": async (r, p) => {
     await r.unzoom();
-    await r.click(bar(p).getByRole("button", { name: "Próximo: Objetivo" }));
-    await r.stable();
+    await r.click(bar(p).getByRole("button", { name: "Próximo: Objetivo" }), { pauseAfter: true });
+    await r.stable(15000, { resume: false });
     // D2: park the "Rigidez específica" card just above the action bar, so the row
     // below it (where the beam indices start) stays off screen.
     const radio = p.getByRole("radio", { name: "Rigidez específica" });
+    // Dry cut: scroll the card to just above the action bar and crop at once, so the
+    // row below (where the beam indices start) never shows.
+    r.pause();
     const card = await r.cardBox(radio);
-    await r.scrollToBottomY(radio, card, 985);
+    await p.evaluate((d) => window.scrollBy(0, d), card.y + card.height - 985);
+    await r.stable(15000, { resume: false });
     const c2 = await r.cardBox(radio);
-    // Exact crop whose bottom edge stops above the action bar (y < 1000).
-    r.crop({ x: Math.max(0, c2.x + c2.width - 1477), y: 995 - 831, width: 1477, height: 831 });
+    r.crop({ x: Math.max(0, c2.x + c2.width - 1477), y: 995 - 831, width: 1477, height: 831 }, { instant: true });
+    await r.resume();
     await r.hold(450);
     await r.shot("indice");
     await r.at(1);
     await r.click(p.getByText("Rigidez específica", { exact: true }).filter({ visible: true }).first());
     await r.hold(500);
     await r.at(2);
-    await r.unzoom();
-    await r.click(p.getByRole("button", { name: "Continuar: critérios e pesos" }));
+    // Dry cut: "Continuar" sits right under the index grid, beam cards included.
+    r.pause();
+    await r.unzoom({ instant: true });
+    await p.getByRole("button", { name: "Continuar: critérios e pesos" }).click();
     await r.stable();
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await r.stable();
+    await r.resume();
     const cond = p.getByText("Condições de validade").filter({ visible: true }).first();
     await r.scrollTo(cond, "center");
     const cb = await r.cardBox(cond, 220);
@@ -155,8 +246,6 @@ module.exports = {
     await r.stable();
     const pesos = p.getByLabel("Peso");
     await r.at(1);
-    await r.click(pesos.nth(0));
-    await p.keyboard.press("ControlOrMeta+a");
     await r.type(pesos.nth(0), "0,7");
     await r.click(add);
     await r.stable();
@@ -185,10 +274,10 @@ module.exports = {
     await r.hold(300);
     await r.click(p.getByRole("option", { name: /Resistência à tração/ }).first());
     await r.select(p.getByLabel("Operador").nth(0), "≥ maior ou igual");
+    await r.at(1);
     await r.type(p.getByLabel("Valor").nth(0), "100");
     await r.select(p.getByLabel("Unidade").nth(0), "MPa");
     await r.stable();
-    await r.at(1);
     const le = p.getByText(/Lê-se:/).filter({ visible: true }).first();
     r.zoom(await r.cardBox(le, 160), 1.3);
     await r.hold(450);
@@ -212,17 +301,17 @@ module.exports = {
     await r.click(p.getByRole("option", { name: /^Temperatura máxima de serviço/ }).first());
     await r.select(p.getByLabel("Operador").nth(2), "≥ maior ou igual");
     await r.type(p.getByLabel("Valor").nth(2), "200");
+    await r.at(4);
     await r.stable();
     await r.shot("limites");
 
-    await r.at(4);
     const fun = p.getByRole("heading", { name: "Funil de candidatos" });
     await r.scrollTo(fun, "center");
     r.zoom(await r.cardBox(fun, 300), 1.25);
     await r.hold(450);
     const txt = (await r.scan("funil")).replace(/\s+/g, " ");
     for (const n of ["678", "364", "268", "194"]) {
-      if (!txt.includes(n)) { r.issue(`NÚMERO DIVERGENTE no funil: ${n} ausente`); throw new Error("funil diverge"); }
+      if (!txt.includes(n) && !r.fast) { r.issue(`NÚMERO DIVERGENTE no funil: ${n} ausente`); throw new Error("funil diverge"); }
     }
     await r.shot("funil");
   },
@@ -317,41 +406,74 @@ module.exports = {
 
   "2.12": async (r, p) => {
     await r.unzoom();
-    await r.scrollBy(-3000);
+    await r.jumpTop();
     const pers = p.getByText("Personalizar o mapa").filter({ visible: true }).first();
     await r.scrollTo(pers, "center");
     await r.click(pers);
     await r.stable();
-    await r.at(1);
     const radio = p.getByRole("radio", { name: "Placa leve limitada por rigidez" });
-    await r.scrollTo(radio, "center");
-    await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first());
+    // D2: the plate card sits on the bottom edge of the viewport; the beam cards,
+    // further down the list, stay below it.
+    // Align the plate card with the bottom of the side panel (its own scroller) and of
+    // the window, inside a dry cut, so the row below it never shows.
+    r.pause();
+    await radio.evaluate((el) => {
+      let c = el;
+      while (c.parentElement && c.getBoundingClientRect().height < 110) c = c.parentElement;
+      const aside = el.closest("aside");
+      if (aside) { aside.style.scrollBehavior = "auto"; aside.scrollTop += c.getBoundingClientRect().bottom - Math.min(aside.getBoundingClientRect().bottom, innerHeight) + 4; }
+    });
+    await r.stable(15000, { resume: false });
+    await r.resume();
+    await r.at(1);
+    await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first(), { pauseAfter: true });
+    // Cut to the plate's index card, cropped so the beam card above it stays out.
+    const info = p.getByText(/Índice E\^\(1\/3\)\/ρ para placas leves/).filter({ visible: true }).first();
+    await r.jump(info, 100, { stayPaused: true });
+    await cropInfo(r, p, info);
+    await r.resume();
+    const line = p.getByLabel("Linha passando por");
+    await r.select(line, "Alumínio 1100-H14");
     await r.stable();
-    await r.select(p.getByLabel("Linha passando por"), "Alumínio 1100-H14");
-    await r.stable();
+    await r.hold(1200);
     await r.shot("placa_controles");
+    // Cut back to the map at page top (side panel at its top: controls only).
     await r.at(2);
+    r.pause();
+    await r.unzoom({ instant: true });
+    await panelTop(r, p);
+    await p.waitForFunction(() => {
+      const g = document.querySelector(".js-plotly-plot");
+      return g && g.data && g.data.some((d) => /Alumínio 1100-H14/.test(d.name || ""));
+    }, null, { timeout: 15000 });
+    await r.hold(600);
     const plot = p.locator(".js-plotly-plot").first();
-    await r.scrollTo(plot, "center");
-    r.zoom(await r.cardBox(plot, 300), 1.15);
+    r.zoom(await r.cardBox(plot, 300), 1.2);
     await r.hold(450);
     await r.shot("placa_mapa");
+    // Cut to the slope the server derived, same safe crop.
     await r.at(3);
-    await r.unzoom();
+    r.pause();
+    await r.unzoom({ instant: true });
+    await r.jump(info, 100, { stayPaused: true });
+    await cropInfo(r, p, info);
+    await r.resume();
     const incl = p.getByText("Inclinação (log-log)").filter({ visible: true }).first();
-    await r.scrollTo(incl, "center");
     await r.expect(incl.locator(".."), /3,000/, "inclinação 3");
-    r.zoom(await r.cardBox(incl, 120), 1.3);
-    await r.hold(450);
-    await r.point(incl, 1000);
+    await r.point(incl, 1200);
+    await r.shot("inclinacao");
+    // Back to the map for the reading rule.
     await r.at(4);
-    await r.unzoom();
-    await r.scrollTo(plot, "center");
+    r.pause();
+    await r.unzoom({ instant: true });
+    await panelTop(r, p);
+    await r.hold(300);
     await r.shot("placa_fim");
   },
 
   "2.4": async (r, p) => {
     await r.unzoom();
+    await panelTop(r, p);
     const idxBtn = p.getByRole("button", { name: "Índice", exact: true }).nth(1);
     await r.scrollTo(idxBtn, "center");
     await r.click(idxBtn);
@@ -365,10 +487,13 @@ module.exports = {
     await r.at(1);
     await r.type(search, "Young");
     await r.click(p.getByRole("button", { name: "Inserir Módulo de Young na expressão" }));
-    await r.click(p.getByTestId("expression-keypad").getByText("÷", { exact: true }));
-    await search.fill("");
-    await r.type(search, "Densid");
-    await r.click(p.getByRole("button", { name: "Inserir Densidade na expressão" }));
+    await r.stable();
+    // "E ÷" alone is an invalid expression and the page says so; the rest of the
+    // build happens inside a dry cut, and the video resumes on the valid expression.
+    await r.click(p.getByTestId("expression-keypad").getByText("÷", { exact: true }), { pauseBefore: true });
+    await search.fill("Densid");
+    await p.getByRole("button", { name: "Inserir Densidade na expressão" }).click();
+    await p.getByText("Expressão válida").filter({ visible: true }).first().waitFor({ timeout: 15000 });
     await r.stable();
     await r.at(2);
     const ok = p.getByText("Expressão válida").filter({ visible: true }).first();
@@ -383,48 +508,60 @@ module.exports = {
     await r.unzoom();
     await r.goto("/app/comparar");
     const add = p.getByRole("combobox", { name: "Buscar e adicionar material" }).filter({ visible: true }).first();
-    for (const [q, full] of [
+    const mats = [
       ["Fibras de Carbono Cont", "CFRP (Fibras de Carbono Contínuas)"],
       ["Infiltração de Fundido", "CMC SiC/SiC por Infiltração de Fundido (MI)"],
       ["SiC/SiC por Infiltração Qu", "CMC SiC/SiC por Infiltração Química em Vapor (CVI)"],
-    ]) {
-      await r.type(add, q);
-      await r.hold(300);
-      await r.click(p.getByRole("option", { name: full }).first());
-      await r.stable();
+    ];
+    await r.type(add, mats[0][0]);
+    await r.hold(300);
+    await r.click(p.getByRole("option", { name: mats[0][1] }).first());
+    await r.stable();
+    // Dry cut: the other two candidates and the property choice, then back on camera.
+    r.pause();
+    for (const [q, full] of mats.slice(1)) {
+      await add.fill(q);
+      await p.getByRole("option", { name: full }).first().click();
+      await r.stable(15000, { resume: false });
     }
     for (const off of ["Absorção de água (24 h, em massa)", "Alongamento na ruptura", "Coeficiente de perda (amortecimento)"]) {
       const b = p.getByRole("button", { name: off, exact: true });
-      if (await b.count()) await r.click(b.first());
+      if (await b.count()) await b.first().click();
     }
     for (const on of ["Módulo de Young", "Resistência à tração", "Custo por massa"]) {
-      await r.click(p.getByRole("button", { name: on, exact: true }).first());
+      await p.getByRole("button", { name: on, exact: true }).first().click();
     }
+    await r.resume();
     await r.stable();
+    await hideBelow(r, p);
     await r.at(1);
-    const tbl = p.getByRole("table").first();
-    await r.scrollTo(tbl, "center");
     await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 900);
     await r.shot("tabela");
     await r.at(2);
     for (const v of ["Barras", "Radar", "Coordenadas paralelas", "Heatmap"]) {
       const b = p.getByRole("button", { name: v, exact: true }).or(p.getByRole("tab", { name: v, exact: true })).first();
-      await r.click(b);
-      await r.stable();
-      await r.hold(900);
+      await r.click(b, { pauseBefore: true });
+      await b.evaluate((el) => new Promise((res) => {
+        const t0 = Date.now();
+        const tick = () => (el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-pressed") === "true"
+          || Date.now() - t0 > 5000) ? setTimeout(res, 700) : setTimeout(tick, 100);
+        tick();
+      }));
+      await cropAbove(r, p);
+      await r.hold(700);
       await r.shot("v_" + v);
     }
   },
 
   "2.14": async (r, p) => {
     await r.goto("/app/catalogo");
-    await r.type(p.getByLabel("Buscar materiais"), "Infiltração de Fundido");
+    await r.paste(p.getByLabel("Buscar materiais"), "Infiltração de Fundido");
     await r.stable();
-    await r.click(p.getByRole("table").getByRole("link", { name: /Infiltração de Fundido/ }).first());
+    await r.click(p.getByRole("link", { name: /Infiltração de Fundido/ }).filter({ visible: true }).first());
     await r.stable();
     await r.shot("preview");
     await r.at(1);
-    const val = p.getByRole("button", { name: /2,75 g\/cm³/ }).filter({ visible: true }).first();
+    const val = p.getByRole("button", { name: "Ver a proveniência deste valor" }).filter({ hasText: "2,75" }).filter({ visible: true }).first();
     await r.scrollTo(val, "center");
     await r.click(val);
     await r.stable();
@@ -443,11 +580,14 @@ module.exports = {
   "2.15": async (r, p) => {
     await r.unzoom();
     await r.goto("/app/dimensionar");
-    await r.type(p.getByLabel("Comprimento (m)"), "0,5");
+    await r.type(p.getByLabel("Comprimento (m)"), "0.5");
     await r.type(p.getByLabel("Rigidez exigida (N/m)"), "20000000");
     await r.at(1);
     await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    r.pause();
+    await p.getByRole("table").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     await r.stable();
+    await r.resume();
     const res = p.getByRole("heading", { name: "3. O resultado" });
     await r.scrollTo(res, "start");
     await r.shot("tirante");
@@ -462,15 +602,22 @@ module.exports = {
     await r.scrollBy(-3000);
     await r.select(p.getByLabel("Caso"), "Placa em flexão, rigidez especificada");
     await r.stable();
-    await r.type(p.getByLabel("Comprimento (m)"), "0,4");
-    await r.type(p.getByLabel("Largura da placa (m)"), "0,3");
-    await r.type(p.getByLabel("Rigidez exigida (N/m)"), "5000");
+    await r.type(p.getByLabel("Comprimento (m)"), "0.4");
+    // Dry cut for the remaining fields (width, stiffness, support).
+    r.pause();
+    await p.getByLabel("Largura da placa (m)").fill("0.3");
+    await p.getByLabel("Rigidez exigida (N/m)").fill("5000");
     const sup = p.locator("select", { has: p.locator("option", { hasText: "Biapoiada, carga no meio do vão" }) });
-    if (await sup.count()) await r.select(sup.first(), "Biapoiada, carga no meio do vão");
-    else await r.type(p.getByLabel(/Constante de apoio/), "48");
+    if (await sup.count()) await sup.first().selectOption({ label: "Biapoiada, carga no meio do vão" });
+    else await p.getByLabel(/Constante de apoio/).fill("48");
+    await r.stable(15000, { resume: false });
+    await r.resume();
     await r.shot("placa_form");
     await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    r.pause();
+    await p.getByRole("table").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     await r.stable();
+    await r.resume();
     const res = p.getByRole("heading", { name: "3. O resultado" });
     await r.scrollTo(res, "start");
     await r.at(1);
@@ -494,7 +641,6 @@ module.exports = {
     await r.scrollTo(map, "start");
     await r.point(p.getByLabel("Unidade da coluna densidade [g/cm3]"), 900);
     await r.select(p.getByLabel("Classe padrão (quando a coluna estiver vazia)"), "Compósitos");
-    await r.type(p.getByLabel("Fonte dos dados (opcional)"), "Dados fictícios do vídeo");
     await r.shot("mapa_colunas");
     await r.at(3);
     await r.click(p.getByRole("button", { name: "Validar", exact: true }));
@@ -503,16 +649,29 @@ module.exports = {
     const rep = p.getByRole("heading", { name: "Relatório de validação" });
     await r.scrollTo(rep, "start");
     await r.shot("relatorio");
-    await r.at(4);
-    const aus = p.getByText(/[Aa]usente/).filter({ visible: true }).first();
-    if (await aus.count()) { r.zoom(await r.cardBox(aus, 120), 1.3); await r.hold(450); await r.point(aus, 900); }
-    else r.issue("2.17: valor ausente não encontrado no relatório");
-    await r.unzoom();
     await r.click(p.getByRole("button", { name: /Importar linhas válidas/ }));
     await p.getByText("Importação concluída").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     r.confirm();
     await r.stable();
     await r.shot("concluida");
+    // Dry cut from "Importação concluída" straight to material B's sheet in the catalog.
+    await r.click(p.getByRole("link", { name: "Ver no catálogo" }), { pauseBefore: true });
+    await p.waitForURL(/catalogo/, { timeout: 20000 });
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await r.stable(15000, { resume: false });
+    await p.getByLabel("Buscar materiais").fill("Material Fictício B");
+    await r.stable(15000, { resume: false });
+    await p.getByRole("link", { name: /Material Fictício B/ }).filter({ visible: true }).first().click();
+    await r.stable(15000, { resume: false });
+    await r.resume();
+    const row = p.getByText(/^Resistência à tração/).filter({ visible: true }).first();
+    await r.scrollTo(row, "center");
+    await r.at(4);
+    r.zoom(await r.cardBox(row, 60), 1.3);
+    await r.hold(450);
+    await r.expect(row.locator("xpath=ancestor::*[self::tr or self::div][1]"), /Ausente/, "B sem resistência à tração");
+    await r.point(row, 1200);
+    await r.shot("ausente");
   },
 
   "2.18": async (r, p) => {
@@ -522,9 +681,11 @@ module.exports = {
     await r.stable();
     await r.shot("processo");
     await r.at(1);
-    const comp = p.getByText(/[Mm]ateriais compatíveis/).filter({ visible: true }).first();
-    if (await comp.count()) await r.scrollTo(comp, "start");
-    else { r.issue("2.18: seção de materiais compatíveis não encontrada"); await r.scrollBy(500); }
+    await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 800);
+    const serve = p.getByText(/^Serve \d+ materiais do catálogo/).filter({ visible: true }).first();
+    r.zoom(await r.cardBox(serve, 80), 1.3);
+    await r.hold(450);
+    await r.point(serve, 1400);
     await r.shot("compat");
   },
 
@@ -539,13 +700,14 @@ module.exports = {
 
   "3.1": async (r, p) => {
     // The own record is created only now, so the selection scenes count 678.
-    await p.request.post("http://127.0.0.1:8811/api/materials", { data: {
+    const own = await p.request.post("http://127.0.0.1:8811/api/materials", { data: {
       name: "Liga Exemplo do Participante (fictícia)", class_id: 1, is_own_record: true,
       description: "Registro próprio fictício, criado só para a demonstração em vídeo.",
       values: [
         { property_slug: "densidade", kind: "scalar", value: 2.75, unit: "g/cm**3" },
         { property_slug: "modulo_young", kind: "scalar", value: 71, unit: "GPa" },
       ] } });
+    if (own.status() !== 201) r.issue(`3.1: registro próprio não criado (${own.status()})`);
     const tour = [
       [1, "/app/cadernos", "Cadernos"], [2, "/app/custo", "Custo"], [3, "/app/eco", "Eco"],
       [4, "/app/baterias", "Baterias"], [5, "/app/sintetizar", "Sintetizar"],
@@ -558,7 +720,10 @@ module.exports = {
       r.label(name);
       if (url === "/app/cadernos") {
         const nb = p.getByText("Seleção de materiais: anotações").filter({ visible: true }).first();
-        if (await nb.count()) { await r.click(nb); await r.stable(); }
+        await nb.waitFor({ timeout: 15000 });
+        await r.click(nb, { pauseAfter: true });
+        await p.getByText("Resumo do método (texto de demonstração)").filter({ visible: true }).first().waitFor({ timeout: 20000 });
+        await r.stable();
       }
       await r.shot(name);
     }
