@@ -104,28 +104,65 @@
       setTimeout(() => r.remove(), 600);
     },
     nudge: () => { mount(); place(pos.x + 0.01, pos.y); },
+    // A screen still loading: waiting texts, busy markers, visible skeletons, or a main
+    // area with almost no text yet. The recorder pauses its clock while this is true.
+    busy: () => {
+      const t = document.body.innerText;
+      if (/Verificando sessão|Recalculando|Conferindo a soma dos pesos|Carregando|Calculando…/.test(t)) return true;
+      if (document.querySelector('[aria-busy="true"]')) return true;
+      for (const el of document.querySelectorAll('.animate-pulse, [class*="skeleton"], [class*="shimmer"]')) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 40 && b.height > 8 && b.bottom > 0 && b.top < innerHeight) return true;
+      }
+      const m = document.querySelector("main");
+      return !m || m.innerText.trim().length < 120;
+    },
     // Text actually visible inside a viewport rectangle (for the forbidden-string check).
     visibleText: (rect) => {
       const R = rect || { x: 0, y: 0, width: innerWidth, height: innerHeight };
       const out = [];
-      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const clipCache = new Map();
+      // Visible area of an element after every clipping/scrolling ancestor (cached).
+      const clipOf = (el) => {
+        if (!el || el === document.body || el === document.documentElement) return { l: R.x, t: R.y, r: R.x + R.width, b: R.y + R.height };
+        if (clipCache.has(el)) return clipCache.get(el);
+        const up = clipOf(el.parentElement);
+        let c = up;
+        const st = getComputedStyle(el);
+        if (/(auto|scroll|hidden|clip)/.test(st.overflowY + st.overflowX)) {
+          const ab = el.getBoundingClientRect();
+          c = { l: Math.max(up.l, ab.left), t: Math.max(up.t, ab.top), r: Math.min(up.r, ab.right), b: Math.min(up.b, ab.bottom) };
+        }
+        clipCache.set(el, c);
+        return c;
+      };
+      // Prune whole subtrees that lie off screen (a long list costs only its visible rows).
+      const off = (b) => b.bottom < R.y || b.top > R.y + R.height || b.right < R.x || b.left > R.x + R.width;
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+          if (node.nodeType === 1) {
+            const st = node.ownerDocument.defaultView.getComputedStyle(node);
+            if (st.display === "none") return NodeFilter.FILTER_REJECT;
+            if (st.position === "fixed" || st.position === "sticky" || st.display === "contents") return NodeFilter.FILTER_SKIP;
+            const b = node.getBoundingClientRect();
+            if ((b.width || b.height) && off(b) && st.overflow !== "visible") return NodeFilter.FILTER_REJECT;
+            if ((b.width || b.height) && off(b) && node.childElementCount > 3) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_SKIP;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      });
       let n;
       while ((n = w.nextNode())) {
         const el = n.parentElement;
         if (!el || !n.nodeValue.trim()) continue;
+        const pb = el.getBoundingClientRect();
+        if (!pb.width || off(pb)) continue;
         if (el.closest("#vc-cursor,#vc-ring,script,style,option")) continue;
         if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+        const clip = clipOf(el.parentElement);
         const range = document.createRange();
         range.selectNodeContents(n);
-        // Clip by every scrolling/clipping ancestor: text scrolled out of a panel is not on screen.
-        let clip = { l: R.x, t: R.y, r: R.x + R.width, b: R.y + R.height };
-        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
-          const st = getComputedStyle(a);
-          if (/(auto|scroll|hidden|clip)/.test(st.overflowY + st.overflowX)) {
-            const ab = a.getBoundingClientRect();
-            clip = { l: Math.max(clip.l, ab.left), t: Math.max(clip.t, ab.top), r: Math.min(clip.r, ab.right), b: Math.min(clip.b, ab.bottom) };
-          }
-        }
         for (const b of range.getClientRects()) {
           if (b.width > 0 && b.right > clip.l && b.left < clip.r && b.bottom > clip.t && b.top < clip.b) {
             out.push(n.nodeValue.trim());

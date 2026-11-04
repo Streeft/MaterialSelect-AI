@@ -16,6 +16,7 @@ const TOKEN = process.env.E2E_SESSION_TOKEN || "video-banca-local-session-0001";
 const HERE = path.resolve(__dirname, "..");
 const NARR_OFFSET = 0.5; // s of picture before the first word
 const TAIL = 0.5; // s of picture after the last word
+const GAP = 0.45; // pause between sentences, as in narrar.py
 const FORBIDDEN = [
   /bicicleta/i,
   /Viga leve limitada por rigidez/,
@@ -55,7 +56,7 @@ class Rec {
     });
   }
   // Runs during the whole take: busy indicators pause the clock (dry cut), and the
-  // visible text is checked for the forbidden strings every 400 ms.
+  // visible text is checked for the forbidden strings every 700 ms.
   startWatch() {
     if (this.watch) return;
     this.autoPaused = false;
@@ -63,17 +64,14 @@ class Rec {
       if (!this.recording || this.fast || this.inWatch) return;
       this.inWatch = true;
       try {
-        const busy = await this.page.evaluate(() => {
-          const t = document.body.innerText;
-          return /Verificando sessão|Recalculando|Conferindo a soma dos pesos|Carregando|Calculando…/.test(t)
-            || !!document.querySelector('[aria-busy="true"]');
-        });
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("watch timeout")), 2000));
+        const busy = await Promise.race([timeout, this.page.evaluate(() => !window.__vc || window.__vc.busy())]);
         if (busy && !this.paused) { this.pause(); this.autoPaused = true; }
         else if (!busy && this.autoPaused) { this.autoPaused = false; await this.resume(); }
-        if (!this.paused) await this.scan("contínuo t=" + this.now().toFixed(1));
+        if (!this.paused) await Promise.race([new Promise((res) => setTimeout(res, 2000)), this.scan("contínuo t=" + this.now().toFixed(1))]);
       } catch (e) { /* navigation in progress */ }
       this.inWatch = false;
-    }, 400);
+    }, 700);
   }
   now() { return (this.vt + (this.since !== null ? Date.now() - this.since : 0)) / 1000; }
   pause() { if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; } this.paused = true; }
@@ -94,7 +92,7 @@ class Rec {
     fs.rmSync(this.dir, { recursive: true, force: true });
     fs.mkdirSync(this.dir, { recursive: true });
     this.frames = [];
-    this.events = { clicks: [], confirms: [], zooms: [], labels: [] };
+    this.events = { clicks: [], confirms: [], zooms: [], labels: [], at: {} };
     this.vt = 0;
     this.recording = true;
     this.startWatch();
@@ -106,7 +104,12 @@ class Rec {
   }
   async end() {
     if (this.fast) return;
-    if (this.narr) await this.until(NARR_OFFSET + this.narr.duracao + TAIL);
+    if (this.narr) {
+      const F = this.narr.frases;
+      this.events.frases_t = F.map((_, k) => this.sentenceStart(k));
+      const last = F.length - 1;
+      await this.until(this.events.frases_t[last] + (F[last].fim - F[last].inicio) + TAIL);
+    }
     await this.until(this.now() + 0.3);
     await this.scan("fim");
     const dur = this.now();
@@ -118,27 +121,50 @@ class Rec {
     }, null, 1));
     console.log(`cena ${this.cena.id}: ${dur.toFixed(1)} s, ${this.frames.length} quadros`);
   }
-  async until(t) { if (this.fast) return; while (this.now() < t) await sleep(20); }
+  async until(t) {
+    if (this.fast) return;
+    let stuck = 0;
+    while (this.now() < t) {
+      await sleep(20);
+      stuck = this.paused ? stuck + 20 : 0;
+      if (stuck > 15000) {
+        this.issue(`relógio pausado por 15 s (autoPaused=${this.autoPaused}); retomando`);
+        this.autoPaused = false;
+        await this.resume();
+        stuck = 0;
+      }
+    }
+  }
   // Wait for sentence k of the scene's narration to start (+ a small lead).
+  // Sentence k never starts before its scheduled time, nor before the previous one
+  // ends; if the screen is late, the sentence waits for it (logged in events.at).
   async at(k, lead = 0.1) {
     if (this.fast || !this.narr) return;
-    const f = this.narr.frases[Math.min(k, this.narr.frases.length - 1)];
-    await this.until(NARR_OFFSET + f.inicio + lead);
+    k = Math.min(k, this.narr.frases.length - 1);
+    const sched = this.sentenceStart(k);
+    await this.until(sched + lead);
+    this.events.at[k] = Math.max(sched, this.now() - lead);
+  }
+  sentenceStart(k) {
+    const F = this.narr.frases;
+    let t = 0;
+    for (let i = 0; i <= k; i++) {
+      const base = NARR_OFFSET + F[i].inicio;
+      const prevEnd = i ? t + (F[i - 1].fim - F[i - 1].inicio) + GAP : 0;
+      t = Math.max(base, prevEnd, this.events.at[i] ?? 0);
+    }
+    return t;
   }
   async hold(ms) { if (!this.fast) await sleep(ms); }
 
   // Stable = heading visible, no loading texts, no busy markers. Time spent here is cut.
-  async stable(maxMs = 15000) {
-    const wasRec = this.recording && !this.paused;
-    if (wasRec) this.pause();
+  async stable(maxMs = 15000, opts = {}) {
+    const wasRec = this.recording && !this.fast && opts.resume !== false;
+    if (this.recording && !this.fast) this.pause();
     const t0 = Date.now();
     await this.page.locator("h1").first().waitFor({ timeout: maxMs }).catch(() => {});
     for (;;) {
-      const busy = await this.page.evaluate(() => {
-        const t = document.body.innerText;
-        return /Verificando sessão|Recalculando|Conferindo a soma dos pesos|Carregando|Calculando…/.test(t)
-          || !!document.querySelector('[aria-busy="true"]');
-      }).catch(() => true);
+      const busy = await this.page.evaluate(() => !window.__vc || window.__vc.busy()).catch(() => true);
       if (!busy) break;
       if (Date.now() - t0 > maxMs) {
         this.issue("tela não estabilizou em " + maxMs / 1000 + " s");
@@ -219,14 +245,17 @@ class Rec {
   }
   // Highlight, curved move, 300 ms wait, click.
   async click(loc, opts = {}) {
-    if (this.fast) { await loc.click(opts); return; }
+    if (this.fast) { const { pauseAfter, pauseBefore, ...o } = opts; await loc.click(o); return; }
     const { b } = await this.moveTo(loc, opts);
     await this.page.evaluate((r) => window.__vc.ring(r), b);
     await sleep(500);
     await sleep(300);
     this.events.clicks.push(this.now());
     await this.page.evaluate(() => window.__vc.ripple());
-    await loc.click(opts);
+    const { pauseAfter, pauseBefore, ...clickOpts } = opts;
+    if (pauseBefore) this.pause();
+    await loc.click(clickOpts);
+    if (pauseAfter || pauseBefore) { this.pause(); await this.page.evaluate(() => window.__vc.ring(null)); return; }
     await this.page.evaluate(() => window.__vc.ring(null));
     await sleep(200);
   }
@@ -240,6 +269,12 @@ class Rec {
       await this.page.keyboard.type(ch);
       await sleep(rand(40, 70));
     }
+  }
+  // Click the field, then put the whole text at once (like a paste): for fields where
+  // every keystroke triggers a heavy re-render (catalog search).
+  async paste(loc, text) {
+    await this.click(loc);
+    await loc.fill(text);
   }
   async select(loc, label) {
     if (!this.fast) await this.click(loc);
@@ -264,8 +299,8 @@ class Rec {
     await sleep(800);
   }
   // Dry cut to a new scroll position: the jump itself never reaches the video.
-  async jump(loc, targetY) {
-    const wasRec = this.recording && !this.paused;
+  async jump(loc, targetY, opts = {}) {
+    const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
     await loc.waitFor({ state: "attached", timeout: 15000 });
     // Scroll every scrolling ancestor (an inner panel included) so the target's card
@@ -278,11 +313,12 @@ class Rec {
     const b = await loc.evaluate((el) => el.getBoundingClientRect().top);
     await this.page.evaluate((d) => window.scrollBy(0, d), b - targetY);
     await sleep(250);
-    await this.stable();
+    await this.stable(15000, { resume: !opts.stayPaused });
+    if (opts.stayPaused) { this.pause(); return; }
     if (wasRec) await this.resume();
   }
   async jumpTop() {
-    const wasRec = this.recording && !this.paused;
+    const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
     await this.page.evaluate(() => window.scrollTo(0, 0));
     await sleep(250);
@@ -290,7 +326,7 @@ class Rec {
     if (wasRec) await this.resume();
   }
   async waitEnabled(loc, ms) {
-    const wasRec = this.recording && !this.paused;
+    const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
     const t0 = Date.now();
     while (await loc.isDisabled()) {
@@ -312,13 +348,18 @@ class Rec {
     this.curZoom = r;
     this.events.zooms.push({ t: this.now(), ...r });
   }
-  crop(r) {
+  crop(r, opts = {}) {
     if (this.fast) return;
     this.curZoom = r;
-    this.events.zooms.push({ t: this.now(), ...r });
+    this.events.zooms.push({ t: this.now(), ...r, ...(opts.instant ? { instant: true } : {}) });
   }
   async zoomOn(loc, scale = 1.25) { const b = await this.box(loc); this.zoom(b, scale); await this.hold(450); }
-  async unzoom() { if (this.fast || !this.curZoom) return; this.curZoom = null; this.events.zooms.push({ t: this.now(), x: 0, y: 0, width: 1920, height: 1080 }); await this.hold(450); }
+  async unzoom(opts = {}) {
+    if (this.fast || !this.curZoom) return;
+    this.curZoom = null;
+    this.events.zooms.push({ t: this.now(), x: 0, y: 0, width: 1920, height: 1080, ...(opts.instant ? { instant: true } : {}) });
+    if (!opts.instant) await this.hold(450);
+  }
   confirm() { if (!this.fast) this.events.confirms.push(this.now()); }
   label(text) { if (!this.fast) this.events.labels.push({ t: this.now(), text }); }
   // Read a value from the screen and stop if it differs from what the narration says.

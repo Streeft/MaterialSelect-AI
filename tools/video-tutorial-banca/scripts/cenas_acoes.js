@@ -10,22 +10,47 @@ const funnel = (p) => p.locator("aside, section, div").filter({ has: p.getByRole
 // D2 in Comparar: the "Propriedades computadas" block lists every catalog index,
 // beam ones included. Keep its top edge just below the bottom of the viewport.
 async function hideBelow(r, p) {
-  const wasRec = r.recording && !r.paused;
+  const wasRec = r.recording && !r.fast;
   if (wasRec) r.pause();
   await r.stable();
-  await new Promise((res) => setTimeout(res, 400));
-  const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
-  if (await h.count()) {
-    const b = await h.boundingBox();
-    await p.evaluate((d) => window.scrollBy(0, d), b.y - 1090);
+  // Re-place until the layout stops moving (charts resize after they draw).
+  let calm = 0;
+  for (let i = 0; i < 40 && calm < 6; i++) {
     await new Promise((res) => setTimeout(res, 250));
+    const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
+    if (!(await h.count())) break;
+    const b = await h.boundingBox();
+    if (Math.abs(b.y - 1090) > 3) { await p.evaluate((d) => window.scrollBy(0, d), b.y - 1090); calm = 0; } else calm++;
   }
   if (wasRec) await r.resume();
 }
 
+// D2 in Comparar, by framing: an instant 16:9 crop whose bottom edge stops above the
+// "Propriedades computadas" block (it lists every catalog index, beam ones included).
+async function cropAbove(r, p) {
+  if (r.fast) return;
+  await r.stable(15000, { resume: false });
+  let top = 1e9;
+  for (let i = 0; i < 12; i++) {  // wait for the chart to settle
+    await new Promise((res) => setTimeout(res, 250));
+    const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
+    const t = (await h.count()) ? (await h.boundingBox()).y : 1e9;
+    if (Math.abs(t - top) < 2) break;
+    top = t;
+  }
+  const bottom = Math.min(1080, top - 12);
+  if (bottom >= 1078) { await r.unzoom({ instant: true }); await r.resume(); return; }
+  const hgt = bottom, wid = (hgt * 16) / 9;
+  const card = await p.getByText("Comparação de materiais").filter({ visible: true }).first().boundingBox().catch(() => null);
+  const cx = card ? card.x + 730 : 1088;
+  const x = Math.max(0, Math.min(1920 - wid, cx - wid / 2));
+  r.crop({ x, y: 0, width: wid, height: hgt }, { instant: true });
+  await r.resume();
+}
+
 // Dry cut: page to the top and the map side panel (its own scroller) to a target.
 async function panelCut(r, p, loc, block = "start") {
-  const wasRec = r.recording && !r.paused;
+  const wasRec = r.recording && !r.fast;
   if (wasRec) r.pause();
   await p.evaluate(() => window.scrollTo(0, 0));
   await loc.evaluate((el, b) => {
@@ -39,7 +64,7 @@ async function panelCut(r, p, loc, block = "start") {
   if (wasRec) await r.resume();
 }
 async function panelTop(r, p) {
-  const wasRec = r.recording && !r.paused;
+  const wasRec = r.recording && !r.fast;
   if (wasRec) r.pause();
   await p.evaluate(() => {
     window.scrollTo(0, 0);
@@ -49,6 +74,19 @@ async function panelTop(r, p) {
   await new Promise((res) => setTimeout(res, 250));
   await r.stable();
   if (wasRec) await r.resume();
+}
+
+// Crop (instant, inside a dry cut) that starts right above the plate's index card, so
+// the beam card above it never enters the frame. 16:9, anchored at the bottom right.
+async function cropInfo(r, p, info) {
+  const top = await info.evaluate((el) => {
+    let c = el;
+    while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+    return c.getBoundingClientRect().top;
+  });
+  const h = Math.min(1080, 1080 - (top - 8));
+  const w = (h * 16) / 9;
+  r.crop({ x: 1920 - w, y: 1080 - h, width: w, height: h }, { instant: true });
 }
 
 module.exports = {
@@ -163,25 +201,29 @@ module.exports = {
 
   "2.3": async (r, p) => {
     await r.unzoom();
-    await r.click(bar(p).getByRole("button", { name: "Próximo: Objetivo" }));
-    await r.stable();
+    await r.click(bar(p).getByRole("button", { name: "Próximo: Objetivo" }), { pauseAfter: true });
+    await r.stable(15000, { resume: false });
     // D2: park the "Rigidez específica" card just above the action bar, so the row
     // below it (where the beam indices start) stays off screen.
     const radio = p.getByRole("radio", { name: "Rigidez específica" });
+    // Dry cut: scroll the card to just above the action bar and crop at once, so the
+    // row below (where the beam indices start) never shows.
+    r.pause();
     const card = await r.cardBox(radio);
-    await r.scrollToBottomY(radio, card, 985);
+    await p.evaluate((d) => window.scrollBy(0, d), card.y + card.height - 985);
+    await r.stable(15000, { resume: false });
     const c2 = await r.cardBox(radio);
-    // Exact crop whose bottom edge stops above the action bar (y < 1000).
-    r.crop({ x: Math.max(0, c2.x + c2.width - 1477), y: 995 - 831, width: 1477, height: 831 });
+    r.crop({ x: Math.max(0, c2.x + c2.width - 1477), y: 995 - 831, width: 1477, height: 831 }, { instant: true });
+    await r.resume();
     await r.hold(450);
     await r.shot("indice");
     await r.at(1);
     await r.click(p.getByText("Rigidez específica", { exact: true }).filter({ visible: true }).first());
     await r.hold(500);
     await r.at(2);
-    await r.unzoom();
     // Dry cut: "Continuar" sits right under the index grid, beam cards included.
     r.pause();
+    await r.unzoom({ instant: true });
     await p.getByRole("button", { name: "Continuar: critérios e pesos" }).click();
     await r.stable();
     await p.evaluate(() => window.scrollTo(0, 0));
@@ -269,7 +311,7 @@ module.exports = {
     await r.hold(450);
     const txt = (await r.scan("funil")).replace(/\s+/g, " ");
     for (const n of ["678", "364", "268", "194"]) {
-      if (!txt.includes(n)) { r.issue(`NÚMERO DIVERGENTE no funil: ${n} ausente`); throw new Error("funil diverge"); }
+      if (!txt.includes(n) && !r.fast) { r.issue(`NÚMERO DIVERGENTE no funil: ${n} ausente`); throw new Error("funil diverge"); }
     }
     await r.shot("funil");
   },
@@ -372,21 +414,33 @@ module.exports = {
     const radio = p.getByRole("radio", { name: "Placa leve limitada por rigidez" });
     // D2: the plate card sits on the bottom edge of the viewport; the beam cards,
     // further down the list, stay below it.
-    const card = await r.cardBox(radio);
-    await r.scrollToBottomY(radio, card, 1072);
+    // Align the plate card with the bottom of the side panel (its own scroller) and of
+    // the window, inside a dry cut, so the row below it never shows.
+    r.pause();
+    await radio.evaluate((el) => {
+      let c = el;
+      while (c.parentElement && c.getBoundingClientRect().height < 110) c = c.parentElement;
+      const aside = el.closest("aside");
+      if (aside) { aside.style.scrollBehavior = "auto"; aside.scrollTop += c.getBoundingClientRect().bottom - Math.min(aside.getBoundingClientRect().bottom, innerHeight) + 4; }
+    });
+    await r.stable(15000, { resume: false });
+    await r.resume();
     await r.at(1);
-    await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first());
-    await r.stable();
-    // Cut to the index card (beam cards now above the top edge) and draw the line.
+    await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first(), { pauseAfter: true });
+    // Cut to the plate's index card, cropped so the beam card above it stays out.
     const info = p.getByText(/Índice E\^\(1\/3\)\/ρ para placas leves/).filter({ visible: true }).first();
-    await r.jump(info, 100);
+    await r.jump(info, 100, { stayPaused: true });
+    await cropInfo(r, p, info);
+    await r.resume();
     const line = p.getByLabel("Linha passando por");
     await r.select(line, "Alumínio 1100-H14");
     await r.stable();
     await r.hold(1200);
     await r.shot("placa_controles");
-    // Cut back to the map: the line, at page top.
+    // Cut back to the map at page top (side panel at its top: controls only).
     await r.at(2);
+    r.pause();
+    await r.unzoom({ instant: true });
     await panelTop(r, p);
     await p.waitForFunction(() => {
       const g = document.querySelector(".js-plotly-plot");
@@ -397,19 +451,21 @@ module.exports = {
     r.zoom(await r.cardBox(plot, 300), 1.2);
     await r.hold(450);
     await r.shot("placa_mapa");
-    // Cut to the slope the server derived.
+    // Cut to the slope the server derived, same safe crop.
     await r.at(3);
-    await r.unzoom();
+    r.pause();
+    await r.unzoom({ instant: true });
+    await r.jump(info, 100, { stayPaused: true });
+    await cropInfo(r, p, info);
+    await r.resume();
     const incl = p.getByText("Inclinação (log-log)").filter({ visible: true }).first();
-    await r.jump(info, 100);
     await r.expect(incl.locator(".."), /3,000/, "inclinação 3");
-    r.zoom(await r.cardBox(incl, 120), 1.3);
-    await r.hold(450);
-    await r.point(incl, 1000);
+    await r.point(incl, 1200);
     await r.shot("inclinacao");
     // Back to the map for the reading rule.
     await r.at(4);
-    await r.unzoom();
+    r.pause();
+    await r.unzoom({ instant: true });
     await panelTop(r, p);
     await r.hold(300);
     await r.shot("placa_fim");
@@ -474,8 +530,14 @@ module.exports = {
     await r.at(2);
     for (const v of ["Barras", "Radar", "Coordenadas paralelas", "Heatmap"]) {
       const b = p.getByRole("button", { name: v, exact: true }).or(p.getByRole("tab", { name: v, exact: true })).first();
-      await r.click(b);
-      await hideBelow(r, p);
+      await r.click(b, { pauseBefore: true });
+      await b.evaluate((el) => new Promise((res) => {
+        const t0 = Date.now();
+        const tick = () => (el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-pressed") === "true"
+          || Date.now() - t0 > 5000) ? setTimeout(res, 700) : setTimeout(tick, 100);
+        tick();
+      }));
+      await cropAbove(r, p);
       await r.hold(1200);
       await r.shot("v_" + v);
     }
@@ -483,9 +545,9 @@ module.exports = {
 
   "2.14": async (r, p) => {
     await r.goto("/app/catalogo");
-    await r.type(p.getByLabel("Buscar materiais"), "Infiltração de Fundido");
+    await r.paste(p.getByLabel("Buscar materiais"), "Infiltração de Fundido");
     await r.stable();
-    await r.click(p.getByRole("table").getByRole("link", { name: /Infiltração de Fundido/ }).first());
+    await r.click(p.getByRole("link", { name: /Infiltração de Fundido/ }).filter({ visible: true }).first());
     await r.stable();
     await r.shot("preview");
     await r.at(1);
@@ -579,12 +641,14 @@ module.exports = {
     await r.stable();
     await r.shot("concluida");
     await r.at(4);
-    await r.click(p.getByRole("link", { name: "Ver no catálogo" }));
-    r.pause();
+    await r.click(p.getByRole("link", { name: "Ver no catálogo" }), { pauseAfter: true });
     await p.waitForURL(/catalogo/, { timeout: 20000 });
-    await r.stable();
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await r.stable(15000, { resume: false });
     await r.resume();
-    await r.click(p.getByRole("table").getByRole("link", { name: /Material Fictício B/ }).first());
+    await r.paste(p.getByLabel("Buscar materiais"), "Material Fictício B");
+    await r.stable();
+    await r.click(p.getByRole("link", { name: /Material Fictício B/ }).filter({ visible: true }).first());
     await r.stable();
     const row = p.getByText(/^Resistência à tração/).filter({ visible: true }).first();
     await r.scrollTo(row, "center");
@@ -641,7 +705,10 @@ module.exports = {
       r.label(name);
       if (url === "/app/cadernos") {
         const nb = p.getByText("Seleção de materiais: anotações").filter({ visible: true }).first();
-        if (await nb.count()) { await r.click(nb); await r.stable(); }
+        await nb.waitFor({ timeout: 15000 });
+        await r.click(nb, { pauseAfter: true });
+        await p.getByText("Resumo do método (texto de demonstração)").filter({ visible: true }).first().waitFor({ timeout: 20000 });
+        await r.stable();
       }
       await r.shot(name);
     }

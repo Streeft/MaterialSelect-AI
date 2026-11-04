@@ -83,13 +83,14 @@ def rect_at(zooms: list[dict], t: float) -> tuple[float, float, float, float]:
     """Crop rectangle at time t: each zoom event eases from where the frame was."""
     prev = cur = (0.0, 0.0, float(W), float(H))
     t0 = -1e9
+    instant = False
     for z in zooms:
         if z["t"] > t:
             break
-        p = ease((z["t"] - t0) / ZOOM_S)
+        p = 1.0 if instant else ease((z["t"] - t0) / ZOOM_S)
         prev = tuple(a + (b - a) * p for a, b in zip(prev, cur))
-        cur, t0 = (z["x"], z["y"], z["width"], z["height"]), z["t"]
-    p = ease((t - t0) / ZOOM_S)
+        cur, t0, instant = (z["x"], z["y"], z["width"], z["height"]), z["t"], bool(z.get("instant"))
+    p = 1.0 if instant else ease((t - t0) / ZOOM_S)
     return tuple(a + (b - a) * p for a, b in zip(prev, cur))
 
 
@@ -475,9 +476,22 @@ def main() -> None:
     voz = np.zeros(n, np.float32)
     sfx = np.zeros(n, np.float32)
     clique, confirma, trans = (read_wav(S / f"{k}.wav") for k in ("clique", "confirma", "transicao"))
+    def sentence_times(s: dict) -> list[float]:
+        """Scene-relative start of each sentence: as recorded (the screen may have made
+        a sentence wait), or as scheduled for cards."""
+        fr = narr[s["id"]]["frases"]
+        if s["kind"] == "app":
+            meta = json.loads((G / s["id"] / "cena.json").read_text(encoding="utf-8"))
+            if meta.get("frases_t"):
+                return meta["frases_t"]
+        return [0.5 + f["inicio"] for f in fr]
+
     for s in timeline:
         if s.get("narr"):
-            place(voz, read_wav(N / f"{s['id']}.wav"), s["start"] + 0.5)
+            wav = read_wav(N / f"{s['id']}.wav")
+            for f, t0 in zip(narr[s["id"]]["frases"], sentence_times(s)):
+                a, b = int(f["inicio"] * SR), int(f["fim"] * SR)
+                place(voz, wav[a:b], s["start"] + t0)
         if s["kind"] == "app":
             meta = json.loads((G / s["id"] / "cena.json").read_text(encoding="utf-8"))
             for c in meta["clicks"]:
@@ -532,8 +546,9 @@ def main() -> None:
     for s in timeline:
         if not s.get("narr"):
             continue
-        for f in narr[s["id"]]["frases"]:
-            cues += cues_for(f["texto"], s["start"] + 0.5 + f["inicio"], s["start"] + 0.5 + f["fim"] + 0.25)
+        for f, t0 in zip(narr[s["id"]]["frases"], sentence_times(s)):
+            d = f["fim"] - f["inicio"]
+            cues += cues_for(f["texto"], s["start"] + t0, s["start"] + t0 + d + 0.25)
     srt = "".join(f"{i}\n{ts(a)} --> {ts(b)}\n{txt}\n\n" for i, (a, b, txt) in enumerate(cues, 1))
     (O / f"{NAME}.srt").write_text(srt, encoding="utf-8")
 
