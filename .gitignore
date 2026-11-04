@@ -93,3 +93,8 @@ Cérebro/_Duplicados-Para-Revisao/
 # Staging de coleta do catálogo complementar (D-103): fora do git; versiona-se
 # só o manifest. Ver docs/20-catalogo-fontes-abertas.md.
 data/staging/
+
+# Vídeo tutorial da banca: mídia gerada nunca entra no Git
+tools/video-tutorial-banca/out/
+tools/video-tutorial-banca/tmp/
+tools/video-tutorial-banca/assets/
