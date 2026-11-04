@@ -24,6 +24,8 @@ const FORBIDDEN = [
   /Viga leve e rígida em flexão/,
   /100\s?000\s?N\/m/,
 ];
+// Error messages must never be on screen.
+const ERRORS = [/Não foi possível/, /Sintaxe inválida/, /Tentar novamente/, /Application error/];
 // The bike example's winner: allowed in a long list, never focused. Logged, not fatal.
 const WATCH = [/CFRP UD Alto Módulo \/ Epóxi/];
 
@@ -60,27 +62,45 @@ class Rec {
   startWatch() {
     if (this.watch) return;
     this.autoPaused = false;
+    const guard = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("watch timeout")), ms));
+    // Fast tick: busy indicators pause the clock almost at once (dry cut).
     this.watch = setInterval(async () => {
-      if (!this.recording || this.fast || this.inWatch) return;
-      this.inWatch = true;
+      if (!this.recording || this.fast || this.inBusy) return;
+      this.inBusy = true;
       try {
-        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("watch timeout")), 2000));
-        const busy = await Promise.race([timeout, this.page.evaluate(() => !window.__vc || window.__vc.busy())]);
+        const busy = await Promise.race([guard(1500), this.page.evaluate(() => !window.__vc || window.__vc.busy())]);
         if (busy && !this.paused) { this.pause(); this.autoPaused = true; }
         else if (!busy && this.autoPaused) { this.autoPaused = false; await this.resume(); }
-        if (!this.paused) await Promise.race([new Promise((res) => setTimeout(res, 2000)), this.scan("contínuo t=" + this.now().toFixed(1))]);
       } catch (e) { /* navigation in progress */ }
-      this.inWatch = false;
+      this.inBusy = false;
+    }, 150);
+    // Slow tick: what is visible is checked for forbidden strings and error messages.
+    this.watchScan = setInterval(async () => {
+      if (!this.recording || this.fast || this.paused || this.inScan) return;
+      this.inScan = true;
+      try { await Promise.race([guard(2000), this.scan("contínuo t=" + this.now().toFixed(1))]); } catch (e) { /* */ }
+      this.inScan = false;
     }, 700);
   }
   now() { return (this.vt + (this.since !== null ? Date.now() - this.since : 0)) / 1000; }
   pause() { if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; } this.paused = true; }
   async resume() {
+    if (!this.recording || this.fast) return;
     if (this.autoPaused) return;
     this.paused = false;
     this.since = Date.now();
-    await this.page.evaluate(() => window.__vc && window.__vc.nudge()).catch(() => {});
-    await sleep(60);
+    await this.grab();
+  }
+  // Force a frame of what is on screen now: after a dry cut nothing may change on
+  // screen, and the screencast would leave the pre-cut frame showing.
+  async grab() {
+    if (DRY || !this.recording) return;
+    try {
+      const { data } = await this.cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 88 });
+      const f = `f${String(++this.frameNo).padStart(6, "0")}.jpg`;
+      fs.writeFileSync(path.join(this.dir, f), Buffer.from(data, "base64"));
+      this.frames.push({ f, t: this.now() });
+    } catch (e) { /* page navigating */ }
   }
 
   async begin(cena, narr) {
@@ -94,12 +114,15 @@ class Rec {
     this.frames = [];
     this.events = { clicks: [], confirms: [], zooms: [], labels: [], at: {} };
     this.vt = 0;
+    this.since = null;
+    this.paused = true;
+    this.autoPaused = false;
     this.recording = true;
     this.startWatch();
     await this.stable();
     this.since = Date.now();
     this.paused = false;
-    await this.page.evaluate(() => window.__vc.nudge());
+    await this.grab();
     await this.scan("início");
   }
   async end() {
@@ -140,6 +163,7 @@ class Rec {
   // ends; if the screen is late, the sentence waits for it (logged in events.at).
   async at(k, lead = 0.1) {
     if (this.fast || !this.narr) return;
+    this.dbg("at " + k);
     k = Math.min(k, this.narr.frases.length - 1);
     const sched = this.sentenceStart(k);
     await this.until(sched + lead);
@@ -159,13 +183,18 @@ class Rec {
 
   // Stable = heading visible, no loading texts, no busy markers. Time spent here is cut.
   async stable(maxMs = 15000, opts = {}) {
+    this.dbg && this.cena && this.dbg("stable");
     const wasRec = this.recording && !this.fast && opts.resume !== false;
     if (this.recording && !this.fast) this.pause();
     const t0 = Date.now();
     await this.page.locator("h1").first().waitFor({ timeout: maxMs }).catch(() => {});
     for (;;) {
       const busy = await this.page.evaluate(() => !window.__vc || window.__vc.busy()).catch(() => true);
-      if (!busy) break;
+      if (!busy) {
+        await sleep(500);
+        const again = await this.page.evaluate(() => !window.__vc || window.__vc.busy()).catch(() => true);
+        if (!again) break;
+      }
       if (Date.now() - t0 > maxMs) {
         this.issue("tela não estabilizou em " + maxMs / 1000 + " s");
         break;
@@ -188,6 +217,7 @@ class Rec {
     const zoom = this.curZoom;
     const text = await this.page.evaluate((r) => window.__vc.visibleText(r), zoom || null);
     for (const re of FORBIDDEN) if (re.test(text)) this.issue(`PROIBIDO na tela (${where}): ${re}`);
+    for (const re of ERRORS) if (re.test(text)) this.issue(`ERRO na tela (${where}): ${re}`);
     for (const re of WATCH) if (re.test(text)) this.issue(`atenção (${where}): vencedor do exemplo da viga visível em lista: ${re}`);
     return text;
   }
@@ -244,7 +274,9 @@ class Rec {
     await this.page.evaluate(() => window.__vc.ring(null));
   }
   // Highlight, curved move, 300 ms wait, click.
+  dbg(what) { if (process.env.VDEBUG && !this.fast) console.log(`    [${this.cena.id} t=${this.now().toFixed(1)} paused=${this.paused} auto=${this.autoPaused}] ${what}`); }
   async click(loc, opts = {}) {
+    this.dbg("click " + loc.toString().slice(0, 90));
     if (this.fast) { const { pauseAfter, pauseBefore, ...o } = opts; await loc.click(o); return; }
     const { b } = await this.moveTo(loc, opts);
     await this.page.evaluate((r) => window.__vc.ring(r), b);
@@ -423,6 +455,7 @@ const SCENES = require("./cenas_acoes.js");
   }
   fs.writeFileSync(path.join(OUT, "problemas.json"), JSON.stringify(r.issues, null, 1));
   clearInterval(r.watch);
+  clearInterval(r.watchScan);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })();

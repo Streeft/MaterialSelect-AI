@@ -557,14 +557,14 @@ def main() -> None:
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-i", str(tmp / "mix.m4a"), "-i", str(O / f"{NAME}.srt"),
                     "-map", "0:v", "-map", "1:a", "-map", "2", "-c:v", "copy", "-c:a", "copy", "-c:s", "mov_text",
                     "-metadata:s:a:0", "language=por", "-metadata:s:s:0", "language=por", "-disposition:s:0", "default",
-                    "-shortest", "-movflags", "+faststart", str(full)], check=True)
+                    "-t", f"{total:.3f}", "-movflags", "+faststart", str(full)], check=True)
     style = ("FontName=Inter,FontSize=15,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
              "BackColour=&H99000000,BorderStyle=3,Outline=2,Shadow=0,MarginV=22")
     srt_path = str(O / f"{NAME}.srt").replace(":", r"\:")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-i", str(tmp / "sem_narracao.m4a"),
                     "-vf", f"subtitles={srt_path}:force_style='{style}'", "-map", "0:v", "-map", "1:a",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "copy",
-                    "-shortest", "-movflags", "+faststart", str(O / f"{NAME}_sem_narracao.mp4")], check=True)
+                    "-t", f"{total:.3f}", "-movflags", "+faststart", str(O / f"{NAME}_sem_narracao.mp4")], check=True)
 
     # 6) Chapters and the final script with the timing table.
     def mmss(x: float) -> str:

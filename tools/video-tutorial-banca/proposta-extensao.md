@@ -1,6 +1,6 @@
 # Proposta para chegar a 12 min (aguarda aprovação do autor)
 
-A primeira versão completa tem **9 min 34 s**. A narração aprovada soma 7 min 49 s
+A versão entregue tem **9 min 20 s**. A narração aprovada soma cerca de 7 min 42 s
 de fala; o restante é ação de tela e cartelas. Para chegar a cerca de 12 min sem
 encher o vídeo, proponho três ajustes, nesta ordem.
 
@@ -37,5 +37,5 @@ cerca de **+20 s**.
 
 ## Resultado esperado
 
-Cerca de **12 min 10 s**. Se preferir manter 9 min 34 s, a versão atual já está
+Cerca de **12 min**. Se preferir manter 9 min 20 s, a versão atual já está
 completa e verificada.

@@ -191,8 +191,8 @@ module.exports = {
     await r.stable();
     await r.resume();
     await r.type(p.getByLabel("Nome do estudo"), "Tirante leve e rígido a 200 °C");
-    await r.type(p.getByLabel("Objetivo", { exact: true }), "Mínima massa para rigidez axial dada");
     await r.at(1);
+    await r.type(p.getByLabel("Objetivo", { exact: true }), "Mínima massa para rigidez axial dada");
     const f = p.getByRole("heading", { name: "Funil de candidatos" });
     await r.zoomOn(f.locator("xpath=ancestor::*[self::section or self::aside or self::div][1]"), 1.3);
     await r.expect(p.locator("main"), /678\s*de 678 continuam/, "funil inicial 678");
@@ -274,10 +274,10 @@ module.exports = {
     await r.hold(300);
     await r.click(p.getByRole("option", { name: /Resistência à tração/ }).first());
     await r.select(p.getByLabel("Operador").nth(0), "≥ maior ou igual");
+    await r.at(1);
     await r.type(p.getByLabel("Valor").nth(0), "100");
     await r.select(p.getByLabel("Unidade").nth(0), "MPa");
     await r.stable();
-    await r.at(1);
     const le = p.getByText(/Lê-se:/).filter({ visible: true }).first();
     r.zoom(await r.cardBox(le, 160), 1.3);
     await r.hold(450);
@@ -301,10 +301,10 @@ module.exports = {
     await r.click(p.getByRole("option", { name: /^Temperatura máxima de serviço/ }).first());
     await r.select(p.getByLabel("Operador").nth(2), "≥ maior ou igual");
     await r.type(p.getByLabel("Valor").nth(2), "200");
+    await r.at(4);
     await r.stable();
     await r.shot("limites");
 
-    await r.at(4);
     const fun = p.getByRole("heading", { name: "Funil de candidatos" });
     await r.scrollTo(fun, "center");
     r.zoom(await r.cardBox(fun, 300), 1.25);
@@ -487,10 +487,13 @@ module.exports = {
     await r.at(1);
     await r.type(search, "Young");
     await r.click(p.getByRole("button", { name: "Inserir Módulo de Young na expressão" }));
-    await r.click(p.getByTestId("expression-keypad").getByText("÷", { exact: true }));
-    await search.fill("");
-    await r.type(search, "Densid");
-    await r.click(p.getByRole("button", { name: "Inserir Densidade na expressão" }));
+    await r.stable();
+    // "E ÷" alone is an invalid expression and the page says so; the rest of the
+    // build happens inside a dry cut, and the video resumes on the valid expression.
+    await r.click(p.getByTestId("expression-keypad").getByText("÷", { exact: true }), { pauseBefore: true });
+    await search.fill("Densid");
+    await p.getByRole("button", { name: "Inserir Densidade na expressão" }).click();
+    await p.getByText("Expressão válida").filter({ visible: true }).first().waitFor({ timeout: 15000 });
     await r.stable();
     await r.at(2);
     const ok = p.getByText("Expressão válida").filter({ visible: true }).first();
@@ -505,23 +508,30 @@ module.exports = {
     await r.unzoom();
     await r.goto("/app/comparar");
     const add = p.getByRole("combobox", { name: "Buscar e adicionar material" }).filter({ visible: true }).first();
-    for (const [q, full] of [
+    const mats = [
       ["Fibras de Carbono Cont", "CFRP (Fibras de Carbono Contínuas)"],
       ["Infiltração de Fundido", "CMC SiC/SiC por Infiltração de Fundido (MI)"],
       ["SiC/SiC por Infiltração Qu", "CMC SiC/SiC por Infiltração Química em Vapor (CVI)"],
-    ]) {
-      await r.type(add, q);
-      await r.hold(300);
-      await r.click(p.getByRole("option", { name: full }).first());
-      await r.stable();
+    ];
+    await r.type(add, mats[0][0]);
+    await r.hold(300);
+    await r.click(p.getByRole("option", { name: mats[0][1] }).first());
+    await r.stable();
+    // Dry cut: the other two candidates and the property choice, then back on camera.
+    r.pause();
+    for (const [q, full] of mats.slice(1)) {
+      await add.fill(q);
+      await p.getByRole("option", { name: full }).first().click();
+      await r.stable(15000, { resume: false });
     }
     for (const off of ["Absorção de água (24 h, em massa)", "Alongamento na ruptura", "Coeficiente de perda (amortecimento)"]) {
       const b = p.getByRole("button", { name: off, exact: true });
-      if (await b.count()) await r.click(b.first());
+      if (await b.count()) await b.first().click();
     }
     for (const on of ["Módulo de Young", "Resistência à tração", "Custo por massa"]) {
-      await r.click(p.getByRole("button", { name: on, exact: true }).first());
+      await p.getByRole("button", { name: on, exact: true }).first().click();
     }
+    await r.resume();
     await r.stable();
     await hideBelow(r, p);
     await r.at(1);
@@ -538,7 +548,7 @@ module.exports = {
         tick();
       }));
       await cropAbove(r, p);
-      await r.hold(1200);
+      await r.hold(700);
       await r.shot("v_" + v);
     }
   },
@@ -593,11 +603,15 @@ module.exports = {
     await r.select(p.getByLabel("Caso"), "Placa em flexão, rigidez especificada");
     await r.stable();
     await r.type(p.getByLabel("Comprimento (m)"), "0.4");
-    await r.type(p.getByLabel("Largura da placa (m)"), "0.3");
-    await r.type(p.getByLabel("Rigidez exigida (N/m)"), "5000");
+    // Dry cut for the remaining fields (width, stiffness, support).
+    r.pause();
+    await p.getByLabel("Largura da placa (m)").fill("0.3");
+    await p.getByLabel("Rigidez exigida (N/m)").fill("5000");
     const sup = p.locator("select", { has: p.locator("option", { hasText: "Biapoiada, carga no meio do vão" }) });
-    if (await sup.count()) await r.select(sup.first(), "Biapoiada, carga no meio do vão");
-    else await r.type(p.getByLabel(/Constante de apoio/), "48");
+    if (await sup.count()) await sup.first().selectOption({ label: "Biapoiada, carga no meio do vão" });
+    else await p.getByLabel(/Constante de apoio/).fill("48");
+    await r.stable(15000, { resume: false });
+    await r.resume();
     await r.shot("placa_form");
     await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
     r.pause();
@@ -640,18 +654,19 @@ module.exports = {
     r.confirm();
     await r.stable();
     await r.shot("concluida");
-    await r.at(4);
-    await r.click(p.getByRole("link", { name: "Ver no catálogo" }), { pauseAfter: true });
+    // Dry cut from "Importação concluída" straight to material B's sheet in the catalog.
+    await r.click(p.getByRole("link", { name: "Ver no catálogo" }), { pauseBefore: true });
     await p.waitForURL(/catalogo/, { timeout: 20000 });
     await p.evaluate(() => window.scrollTo(0, 0));
     await r.stable(15000, { resume: false });
+    await p.getByLabel("Buscar materiais").fill("Material Fictício B");
+    await r.stable(15000, { resume: false });
+    await p.getByRole("link", { name: /Material Fictício B/ }).filter({ visible: true }).first().click();
+    await r.stable(15000, { resume: false });
     await r.resume();
-    await r.paste(p.getByLabel("Buscar materiais"), "Material Fictício B");
-    await r.stable();
-    await r.click(p.getByRole("link", { name: /Material Fictício B/ }).filter({ visible: true }).first());
-    await r.stable();
     const row = p.getByText(/^Resistência à tração/).filter({ visible: true }).first();
     await r.scrollTo(row, "center");
+    await r.at(4);
     r.zoom(await r.cardBox(row, 60), 1.3);
     await r.hold(450);
     await r.expect(row.locator("xpath=ancestor::*[self::tr or self::div][1]"), /Ausente/, "B sem resistência à tração");
