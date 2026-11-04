@@ -1,0 +1,4 @@
+nome,densidade [g/cm3],modulo_young [GPa],resistencia_tracao [MPa]
+Material Fictício A (vídeo),1.6,60,550
+Material Fictício B (vídeo),2.9,72,
+Material Fictício C (vídeo),7.5,190,480

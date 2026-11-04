@@ -1,0 +1,570 @@
+// Screen actions per scene. Each function receives the recorder (r) and the page.
+// r.at(k) waits for sentence k of that scene's narration, so what is shown follows
+// what is said. Values the narration quotes are read back with r.expect().
+"use strict";
+
+const bar = (p) => p.getByRole("group", { name: "Ações da etapa" });
+const steps = (p) => p.getByRole("navigation", { name: "Etapas" });
+const funnel = (p) => p.locator("aside, section, div").filter({ has: p.getByRole("heading", { name: "Funil de candidatos" }) }).last();
+
+module.exports = {
+  // ------------------------------------------------------------ Abertura
+  "0.2": async (r, p) => {
+    await r.goto("/app");
+    await r.page.evaluate(() => window.__vc.setPos(1500, 760));
+    await r.hold(600);
+    await r.zoomOn(p.getByRole("heading", { level: 1 }), 1.18);
+    await r.shot("titulo");
+    await r.at(3);
+    await r.unzoom();
+  },
+
+  // ------------------------------------------------------------ Parte 1
+  "1.1": async (r, p) => {
+    await r.goto("/app/selecao");
+    await r.zoomOn(p.getByText("Função → Objetivo → Limites → Resultados", { exact: false }).filter({ visible: true }).first(), 1.2);
+    await r.at(1);
+    await r.unzoom();
+    const s = steps(p);
+    await r.point(s.getByRole("button", { name: /Função/ }));
+    await r.at(2);
+    await r.point(s.getByRole("button", { name: /Objetivo/ }));
+    await r.at(3);
+    await r.point(s.getByRole("button", { name: /Limites/ }));
+    await r.at(4);
+    await r.point(s.locator("li, button, div").filter({ hasText: /^4\s*Resultados/ }).first());
+    await r.shot("etapas");
+  },
+
+  "1.2": async (r, p) => {
+    await r.goto("/app/dimensionar");
+    const deriv = p.getByText("Como o índice sai daí").filter({ visible: true }).first();
+    await r.scrollTo(deriv);
+    await r.click(deriv);
+    await r.hold(500);
+    const box = p.locator("details, section, div").filter({ has: p.getByText("Objetivo: m = A · L · ρ.") }).last();
+    await r.scrollTo(p.getByText("Objetivo: m = A · L · ρ."));
+    await r.zoomOn(box, 1.25);
+    await r.shot("derivacao");
+    await r.at(1);
+    await r.point(p.getByText("Objetivo: m = A · L · ρ."), 600);
+    await r.at(2);
+    await r.point(p.getByText("Isolando a variável livre: A = S · L / E."), 600);
+    await r.at(3);
+    await r.point(p.getByText(/Minimizar a massa é portanto maximizar E\/ρ/), 900);
+  },
+
+  "1.3": async (r, p) => {
+    await r.goto("/app/mapas");
+    await p.locator(".js-plotly-plot .main-svg").first().waitFor({ timeout: 20000 });
+    await r.stable();
+    const plot = p.locator(".js-plotly-plot").first();
+    await r.scrollTo(plot, "center");
+    await r.shot("mapa");
+    await r.at(1);
+    await r.zoomOn(plot, 1.15);
+    await r.at(2);
+    await r.unzoom();
+    await r.goto("/app/selecao");
+    await r.zoomOn(p.getByRole("heading", { name: "Funil de candidatos" }).locator("xpath=ancestor::*[self::section or self::aside or self::div][1]"), 1.3);
+    await r.shot("funil");
+  },
+
+  "1.4": async (r, p) => {
+    await r.unzoom();
+    await r.zoomOn(p.getByText("(determinístico, sem IA)", { exact: false }).filter({ visible: true }).first(), 1.3);
+    await r.at(2);
+    await r.unzoom();
+    const adv = p.getByText("Opções avançadas").filter({ visible: true }).first();
+    await r.scrollTo(adv);
+    await r.click(adv);
+    const ia = p.getByText("Preencher a partir de um texto (IA)").filter({ visible: true }).first();
+    await r.scrollTo(ia);
+    await r.point(ia, 1400);
+    await r.shot("ia");
+    await r.at(4);
+    await r.click(adv);
+    await r.scrollBy(-2000);
+  },
+
+  // ------------------------------------------------------------ Parte 2
+  "2.1": async (r, p) => {
+    await r.goto("/app");
+    const box = p.getByRole("textbox").first();
+    await r.type(box, "Tirante leve e rígido em tração");
+    await r.at(1);
+    await r.point(p.getByRole("button", { name: "Montar a seleção" }), 1000);
+    await r.at(3);
+    const retomar = p.getByRole("heading", { name: "Retomar um estudo" });
+    await r.scrollTo(retomar, "start");
+    await r.point(p.getByText("Tirante leve e rígido", { exact: true }).filter({ visible: true }).first(), 1200);
+    await r.shot("retomar");
+    await r.scrollBy(-2000);
+  },
+
+  "2.2": async (r, p) => {
+    await r.click(p.getByRole("button", { name: "Montar a seleção" }));
+    await p.waitForURL(/selecao/, { timeout: 20000 });
+    r.pause();
+    await r.stable();
+    await r.resume();
+    await r.type(p.getByLabel("Nome do estudo"), "Tirante leve e rígido a 200 °C");
+    await r.type(p.getByLabel("Objetivo", { exact: true }), "Mínima massa para rigidez axial dada");
+    await r.at(1);
+    const f = p.getByRole("heading", { name: "Funil de candidatos" });
+    await r.zoomOn(f.locator("xpath=ancestor::*[self::section or self::aside or self::div][1]"), 1.3);
+    await r.expect(p.locator("main"), /678\s*de 678 continuam/, "funil inicial 678");
+    await r.shot("funcao");
+  },
+
+  "2.3": async (r, p) => {
+    await r.unzoom();
+    await r.click(bar(p).getByRole("button", { name: "Próximo: Objetivo" }));
+    await r.stable();
+    // D2: park the "Rigidez específica" card just above the action bar, so the row
+    // below it (where the beam indices start) stays off screen.
+    const radio = p.getByRole("radio", { name: "Rigidez específica" });
+    const card = await r.cardBox(radio);
+    await r.scrollToBottomY(radio, card, 985);
+    const c2 = await r.cardBox(radio);
+    // Exact crop whose bottom edge stops above the action bar (y < 1000).
+    r.crop({ x: Math.max(0, c2.x + c2.width - 1477), y: 995 - 831, width: 1477, height: 831 });
+    await r.hold(450);
+    await r.shot("indice");
+    await r.at(1);
+    await r.click(p.getByText("Rigidez específica", { exact: true }).filter({ visible: true }).first());
+    await r.hold(500);
+    await r.at(2);
+    await r.unzoom();
+    await r.click(p.getByRole("button", { name: "Continuar: critérios e pesos" }));
+    await r.stable();
+    const cond = p.getByText("Condições de validade").filter({ visible: true }).first();
+    await r.scrollTo(cond, "center");
+    const cb = await r.cardBox(cond, 220);
+    r.zoom(cb, 1.25);
+    await r.hold(450);
+    await r.point(cond, 1500);
+    await r.shot("condicoes");
+  },
+
+  "2.5": async (r, p) => {
+    await r.unzoom();
+    const add = p.getByRole("button", { name: "Adicionar critério" });
+    await r.scrollTo(add, "center");
+    await r.click(add);
+    await r.stable();
+    const pesos = p.getByLabel("Peso");
+    await r.at(1);
+    await r.click(pesos.nth(0));
+    await p.keyboard.press("ControlOrMeta+a");
+    await r.type(pesos.nth(0), "0,7");
+    await r.click(add);
+    await r.stable();
+    const crit = p.getByLabel("Critério").nth(1);
+    await r.type(crit, "Custo por");
+    await r.hold(400);
+    await r.click(p.getByRole("option", { name: /Custo por massa/ }).first());
+    await r.select(p.getByLabel("Direção").nth(1), "Menor é melhor");
+    await r.type(pesos.nth(1), "0,3");
+    await r.stable();
+    await r.at(2);
+    const total = p.getByText(/Total 1 de 1/).filter({ visible: true }).first();
+    await r.scrollTo(total, "center");
+    r.zoom(await r.cardBox(total, 260), 1.25);
+    await r.hold(450);
+    await r.expect(p.locator("main"), /Total 1 de 1 — fechado/, "pesos fecham 1");
+    await r.shot("pesos");
+  },
+
+  "2.6": async (r, p) => {
+    await r.unzoom();
+    await r.click(bar(p).getByRole("button", { name: "Próximo: Limites" }));
+    await r.stable();
+    const prop = p.getByRole("combobox", { name: "Propriedade" });
+    await r.type(prop.nth(0), "tração");
+    await r.hold(300);
+    await r.click(p.getByRole("option", { name: /Resistência à tração/ }).first());
+    await r.select(p.getByLabel("Operador").nth(0), "≥ maior ou igual");
+    await r.type(p.getByLabel("Valor").nth(0), "100");
+    await r.select(p.getByLabel("Unidade").nth(0), "MPa");
+    await r.stable();
+    await r.at(1);
+    const le = p.getByText(/Lê-se:/).filter({ visible: true }).first();
+    r.zoom(await r.cardBox(le, 160), 1.3);
+    await r.hold(450);
+    await r.expect(le.locator(".."), /Resistência à tração ≥ 100 MPa/, "frase Lê-se");
+    await r.point(le, 900);
+    await r.unzoom();
+
+    await r.at(2);
+    await r.click(p.getByRole("button", { name: "Adicionar limite" }));
+    await r.type(prop.nth(1), "tenacidade à");
+    await r.hold(300);
+    await r.click(p.getByRole("option", { name: /^Tenacidade à fratura/ }).first());
+    await r.select(p.getByLabel("Operador").nth(1), "≥ maior ou igual");
+    await r.type(p.getByLabel("Valor").nth(1), "15");
+    await r.stable();
+
+    await r.at(3);
+    await r.click(p.getByRole("button", { name: "Adicionar limite" }));
+    await r.type(prop.nth(2), "temperatura máxima");
+    await r.hold(300);
+    await r.click(p.getByRole("option", { name: /^Temperatura máxima de serviço/ }).first());
+    await r.select(p.getByLabel("Operador").nth(2), "≥ maior ou igual");
+    await r.type(p.getByLabel("Valor").nth(2), "200");
+    await r.stable();
+    await r.shot("limites");
+
+    await r.at(4);
+    const fun = p.getByRole("heading", { name: "Funil de candidatos" });
+    await r.scrollTo(fun, "center");
+    r.zoom(await r.cardBox(fun, 300), 1.25);
+    await r.hold(450);
+    const txt = (await r.scan("funil")).replace(/\s+/g, " ");
+    for (const n of ["678", "364", "268", "194"]) {
+      if (!txt.includes(n)) { r.issue(`NÚMERO DIVERGENTE no funil: ${n} ausente`); throw new Error("funil diverge"); }
+    }
+    await r.shot("funil");
+  },
+
+  "2.7": async (r, p) => {
+    await r.unzoom();
+    const run = bar(p).getByRole("button", { name: "Executar seleção" });
+    await r.waitEnabled(run, 10000);
+    await r.click(run);
+    r.pause();
+    await p.getByRole("heading", { name: /^Vencedor: / }).waitFor({ timeout: 30000 });
+    await r.stable();
+    await r.resume();
+    const win = p.getByRole("heading", { name: /^Vencedor: / });
+    await r.expect(win, /CFRP \(Fibras de Carbono Contínuas\)/, "vencedor do tirante");
+    await r.scrollTo(win, "center");
+    r.zoom(await r.cardBox(win, 200), 1.25);
+    await r.hold(450);
+    await r.shot("vencedor");
+    await r.at(1);
+    await r.unzoom();
+    await r.click(p.getByRole("tab", { name: /Classificação/ }));
+    await r.stable();
+    const tbl = p.getByRole("table").first();
+    await r.scrollTo(tbl, "start");
+    await r.shot("classificacao");
+  },
+
+  "2.8": async (r, p) => {
+    await r.click(p.getByRole("tab", { name: /Eliminados/ }));
+    await r.stable();
+    await r.shot("eliminados");
+    await r.at(1);
+    const miss = p.getByText("Excluídos por dados ausentes").filter({ visible: true }).first();
+    if (await miss.count()) { await r.scrollTo(miss, "center"); r.zoom(await r.cardBox(miss, 200), 1.25); await r.hold(450); await r.point(miss, 1200); }
+    else r.issue("aba Eliminados: não achei a linha do material sem dado");
+    await r.shot("eliminados2");
+  },
+
+  "2.9": async (r, p) => {
+    await r.unzoom();
+    await r.click(p.getByRole("tab", { name: /Sensibilidade/ }));
+    await r.stable();
+    const t = p.getByRole("table").first();
+    await r.scrollTo(t, "center");
+    r.zoom(await r.cardBox(t, 200), 1.25);
+    await r.hold(450);
+    await r.expect(t, /CFRP \(Fibras de Carbono Contínuas\)/, "sensibilidade estável");
+    await r.shot("sensibilidade");
+  },
+
+  "2.10": async (r, p) => {
+    await r.unzoom();
+    await r.click(p.getByRole("tab", { name: /Origem dos dados/ }));
+    await r.stable();
+    const h = p.getByText("Proveniência do resultado").filter({ visible: true }).first();
+    await r.scrollTo(h, "start");
+    await r.shot("origem");
+    await r.at(1);
+    await r.scrollBy(300);
+    await r.at(2);
+    await r.click(bar(p).getByRole("button", { name: "Salvar estudo" }));
+    await p.getByText("Estudo salvo.", { exact: true }).waitFor({ timeout: 15000 });
+    r.confirm();
+    await r.zoomOn(p.getByText("Estudo salvo.", { exact: true }), 1.3);
+    await r.shot("salvo");
+  },
+
+  "2.11": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/mapas");
+    await p.locator(".js-plotly-plot .main-svg").first().waitFor({ timeout: 20000 });
+    await r.stable();
+    const lv = p.getByRole("button", { name: "Nível 1", exact: true });
+    await r.point(lv, 600);
+    await r.point(p.getByRole("button", { name: "Nível 3", exact: true }), 600);
+    await r.point(p.getByLabel("Eixo X"), 700);
+    await r.point(p.getByLabel("Eixo Y"), 700);
+    await r.at(1);
+    const plotted = p.getByText(/materiais plotados/).filter({ visible: true }).first();
+    await r.expect(plotted, /673 de 678 materiais plotados/, "materiais plotados");
+    r.zoom(await r.cardBox(plotted, 60), 1.3);
+    await r.hold(450);
+    await r.at(2);
+    await r.unzoom();
+    const fora = p.getByRole("heading", { name: "Materiais fora do mapa" });
+    await r.scrollTo(fora, "center");
+    r.zoom(await r.cardBox(fora, 260), 1.25);
+    await r.hold(450);
+    await r.shot("fora");
+  },
+
+  "2.12": async (r, p) => {
+    await r.unzoom();
+    await r.scrollBy(-3000);
+    const pers = p.getByText("Personalizar o mapa").filter({ visible: true }).first();
+    await r.scrollTo(pers, "center");
+    await r.click(pers);
+    await r.stable();
+    await r.at(1);
+    const radio = p.getByRole("radio", { name: "Placa leve limitada por rigidez" });
+    await r.scrollTo(radio, "center");
+    await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first());
+    await r.stable();
+    await r.select(p.getByLabel("Linha passando por"), "Alumínio 1100-H14");
+    await r.stable();
+    await r.shot("placa_controles");
+    await r.at(2);
+    const plot = p.locator(".js-plotly-plot").first();
+    await r.scrollTo(plot, "center");
+    r.zoom(await r.cardBox(plot, 300), 1.15);
+    await r.hold(450);
+    await r.shot("placa_mapa");
+    await r.at(3);
+    await r.unzoom();
+    const incl = p.getByText("Inclinação (log-log)").filter({ visible: true }).first();
+    await r.scrollTo(incl, "center");
+    await r.expect(incl.locator(".."), /3,000/, "inclinação 3");
+    r.zoom(await r.cardBox(incl, 120), 1.3);
+    await r.hold(450);
+    await r.point(incl, 1000);
+    await r.at(4);
+    await r.unzoom();
+    await r.scrollTo(plot, "center");
+    await r.shot("placa_fim");
+  },
+
+  "2.4": async (r, p) => {
+    await r.unzoom();
+    const idxBtn = p.getByRole("button", { name: "Índice", exact: true }).nth(1);
+    await r.scrollTo(idxBtn, "center");
+    await r.click(idxBtn);
+    await r.stable();
+    const sel = p.locator("select", { has: p.locator('option[value="custom"]') }).first();
+    if (!r.fast) await r.click(sel);
+    await sel.selectOption("custom");
+    await r.stable();
+    const search = p.getByLabel("Buscar propriedade ou função").first();
+    await r.scrollTo(search, "center");
+    await r.at(1);
+    await r.type(search, "Young");
+    await r.click(p.getByRole("button", { name: "Inserir Módulo de Young na expressão" }));
+    await r.click(p.getByTestId("expression-keypad").getByText("÷", { exact: true }));
+    await search.fill("");
+    await r.type(search, "Densid");
+    await r.click(p.getByRole("button", { name: "Inserir Densidade na expressão" }));
+    await r.stable();
+    await r.at(2);
+    const ok = p.getByText("Expressão válida").filter({ visible: true }).first();
+    await r.scrollTo(ok, "center");
+    r.zoom(await r.cardBox(ok, 300), 1.3);
+    await r.hold(450);
+    await r.point(p.getByText(/Unidade do resultado/).filter({ visible: true }).first(), 1200);
+    await r.shot("calc");
+  },
+
+  "2.13": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/comparar");
+    const add = p.getByRole("combobox", { name: "Buscar e adicionar material" }).filter({ visible: true }).first();
+    for (const [q, full] of [
+      ["Fibras de Carbono Cont", "CFRP (Fibras de Carbono Contínuas)"],
+      ["Infiltração de Fundido", "CMC SiC/SiC por Infiltração de Fundido (MI)"],
+      ["SiC/SiC por Infiltração Qu", "CMC SiC/SiC por Infiltração Química em Vapor (CVI)"],
+    ]) {
+      await r.type(add, q);
+      await r.hold(300);
+      await r.click(p.getByRole("option", { name: full }).first());
+      await r.stable();
+    }
+    for (const off of ["Absorção de água (24 h, em massa)", "Alongamento na ruptura", "Coeficiente de perda (amortecimento)"]) {
+      const b = p.getByRole("button", { name: off, exact: true });
+      if (await b.count()) await r.click(b.first());
+    }
+    for (const on of ["Módulo de Young", "Resistência à tração", "Custo por massa"]) {
+      await r.click(p.getByRole("button", { name: on, exact: true }).first());
+    }
+    await r.stable();
+    await r.at(1);
+    const tbl = p.getByRole("table").first();
+    await r.scrollTo(tbl, "center");
+    await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 900);
+    await r.shot("tabela");
+    await r.at(2);
+    for (const v of ["Barras", "Radar", "Coordenadas paralelas", "Heatmap"]) {
+      const b = p.getByRole("button", { name: v, exact: true }).or(p.getByRole("tab", { name: v, exact: true })).first();
+      await r.click(b);
+      await r.stable();
+      await r.hold(900);
+      await r.shot("v_" + v);
+    }
+  },
+
+  "2.14": async (r, p) => {
+    await r.goto("/app/catalogo");
+    await r.type(p.getByLabel("Buscar materiais"), "Infiltração de Fundido");
+    await r.stable();
+    await r.click(p.getByRole("table").getByRole("link", { name: /Infiltração de Fundido/ }).first());
+    await r.stable();
+    await r.shot("preview");
+    await r.at(1);
+    const val = p.getByRole("button", { name: /2,75 g\/cm³/ }).filter({ visible: true }).first();
+    await r.scrollTo(val, "center");
+    await r.click(val);
+    await r.stable();
+    const pop = p.getByRole("dialog").filter({ visible: true }).first();
+    if (await pop.count()) { r.zoom(await r.cardBox(pop, 200), 1.25); await r.hold(450); }
+    else r.issue("2.14: popover de proveniência não encontrado");
+    await r.shot("proveniencia");
+    await r.at(2);
+    await r.unzoom();
+    await p.keyboard.press("Escape");
+    await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 1000);
+    await r.at(3);
+    await r.point(p.getByText(/Valores estimados, só para demonstração/).filter({ visible: true }).first(), 1400);
+  },
+
+  "2.15": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/dimensionar");
+    await r.type(p.getByLabel("Comprimento (m)"), "0,5");
+    await r.type(p.getByLabel("Rigidez exigida (N/m)"), "20000000");
+    await r.at(1);
+    await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    await r.stable();
+    const res = p.getByRole("heading", { name: "3. O resultado" });
+    await r.scrollTo(res, "start");
+    await r.shot("tirante");
+    await r.at(2);
+    const t = p.getByRole("table").filter({ visible: true }).first();
+    r.zoom(await r.cardBox(t.locator("tr").nth(2), 40), 1.25);
+    await r.hold(450);
+  },
+
+  "2.16": async (r, p) => {
+    await r.unzoom();
+    await r.scrollBy(-3000);
+    await r.select(p.getByLabel("Caso"), "Placa em flexão, rigidez especificada");
+    await r.stable();
+    await r.type(p.getByLabel("Comprimento (m)"), "0,4");
+    await r.type(p.getByLabel("Largura da placa (m)"), "0,3");
+    await r.type(p.getByLabel("Rigidez exigida (N/m)"), "5000");
+    const sup = p.locator("select", { has: p.locator("option", { hasText: "Biapoiada, carga no meio do vão" }) });
+    if (await sup.count()) await r.select(sup.first(), "Biapoiada, carga no meio do vão");
+    else await r.type(p.getByLabel(/Constante de apoio/), "48");
+    await r.shot("placa_form");
+    await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    await r.stable();
+    const res = p.getByRole("heading", { name: "3. O resultado" });
+    await r.scrollTo(res, "start");
+    await r.at(1);
+    await r.shot("placa");
+  },
+
+  "2.17": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/importar");
+    const drop = p.getByText("Arraste o arquivo para cá ou clique para escolher").filter({ visible: true }).first();
+    const file = require("path").resolve(__dirname, "../dados/materiais-ficticios-video.csv");
+    if (r.fast) await p.getByLabel("Selecione um arquivo CSV ou XLSX (até 5 MB).").setInputFiles(file);
+    else {
+      const [fc] = await Promise.all([p.waitForEvent("filechooser"), r.click(drop)]);
+      await fc.setFiles(file);
+    }
+    await p.getByRole("heading", { name: "Mapeie as colunas" }).waitFor({ timeout: 20000 });
+    await r.stable();
+    await r.at(2);
+    const map = p.getByRole("heading", { name: "Mapeie as colunas" });
+    await r.scrollTo(map, "start");
+    await r.point(p.getByLabel("Unidade da coluna densidade [g/cm3]"), 900);
+    await r.select(p.getByLabel("Classe padrão (quando a coluna estiver vazia)"), "Compósitos");
+    await r.type(p.getByLabel("Fonte dos dados (opcional)"), "Dados fictícios do vídeo");
+    await r.shot("mapa_colunas");
+    await r.at(3);
+    await r.click(p.getByRole("button", { name: "Validar", exact: true }));
+    await p.getByRole("heading", { name: "Relatório de validação" }).waitFor({ timeout: 20000 });
+    await r.stable();
+    const rep = p.getByRole("heading", { name: "Relatório de validação" });
+    await r.scrollTo(rep, "start");
+    await r.shot("relatorio");
+    await r.at(4);
+    const aus = p.getByText(/[Aa]usente/).filter({ visible: true }).first();
+    if (await aus.count()) { r.zoom(await r.cardBox(aus, 120), 1.3); await r.hold(450); await r.point(aus, 900); }
+    else r.issue("2.17: valor ausente não encontrado no relatório");
+    await r.unzoom();
+    await r.click(p.getByRole("button", { name: /Importar linhas válidas/ }));
+    await p.getByText("Importação concluída").filter({ visible: true }).first().waitFor({ timeout: 20000 });
+    r.confirm();
+    await r.stable();
+    await r.shot("concluida");
+  },
+
+  "2.18": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/processos");
+    await r.click(p.getByRole("link", { name: /^Calandragem/ }).first());
+    await r.stable();
+    await r.shot("processo");
+    await r.at(1);
+    const comp = p.getByText(/[Mm]ateriais compatíveis/).filter({ visible: true }).first();
+    if (await comp.count()) await r.scrollTo(comp, "start");
+    else { r.issue("2.18: seção de materiais compatíveis não encontrada"); await r.scrollBy(500); }
+    await r.shot("compat");
+  },
+
+  "2.19": async (r, p) => {
+    await r.unzoom();
+    await r.goto("/app/painel");
+    await r.shot("painel");
+    const q = p.getByRole("tab", { name: "Qualidade" });
+    if (await q.count()) { await r.click(q); await r.stable(); }
+    await r.shot("qualidade");
+  },
+
+  "3.1": async (r, p) => {
+    // The own record is created only now, so the selection scenes count 678.
+    await p.request.post("http://127.0.0.1:8811/api/materials", { data: {
+      name: "Liga Exemplo do Participante (fictícia)", class_id: 1, is_own_record: true,
+      description: "Registro próprio fictício, criado só para a demonstração em vídeo.",
+      values: [
+        { property_slug: "densidade", kind: "scalar", value: 2.75, unit: "g/cm**3" },
+        { property_slug: "modulo_young", kind: "scalar", value: 71, unit: "GPa" },
+      ] } });
+    const tour = [
+      [1, "/app/cadernos", "Cadernos"], [2, "/app/custo", "Custo"], [3, "/app/eco", "Eco"],
+      [4, "/app/baterias", "Baterias"], [5, "/app/sintetizar", "Sintetizar"],
+      [6, "/app/glossario", "Glossário"], [7, "/app/meus-registros", "Meus registros"],
+      [8, "/app/admin/classes", "Classes"],
+    ];
+    for (const [k, url, name] of tour) {
+      await r.at(k, 0);
+      await r.goto(url);
+      r.label(name);
+      if (url === "/app/cadernos") {
+        const nb = p.getByText("Seleção de materiais: anotações").filter({ visible: true }).first();
+        if (await nb.count()) { await r.click(nb); await r.stable(); }
+      }
+      await r.shot(name);
+    }
+    await r.hold(2500);
+    await r.goto("/app/admin/propriedades");
+    r.label("Propriedades");
+    await r.shot("Propriedades");
+  },
+};
