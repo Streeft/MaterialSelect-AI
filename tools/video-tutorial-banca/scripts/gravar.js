@@ -54,9 +54,31 @@ class Rec {
       this.frames.push({ f, t: this.now() });
     });
   }
+  // Runs during the whole take: busy indicators pause the clock (dry cut), and the
+  // visible text is checked for the forbidden strings every 400 ms.
+  startWatch() {
+    if (this.watch) return;
+    this.autoPaused = false;
+    this.watch = setInterval(async () => {
+      if (!this.recording || this.fast || this.inWatch) return;
+      this.inWatch = true;
+      try {
+        const busy = await this.page.evaluate(() => {
+          const t = document.body.innerText;
+          return /Verificando sessão|Recalculando|Conferindo a soma dos pesos|Carregando|Calculando…/.test(t)
+            || !!document.querySelector('[aria-busy="true"]');
+        });
+        if (busy && !this.paused) { this.pause(); this.autoPaused = true; }
+        else if (!busy && this.autoPaused) { this.autoPaused = false; await this.resume(); }
+        if (!this.paused) await this.scan("contínuo t=" + this.now().toFixed(1));
+      } catch (e) { /* navigation in progress */ }
+      this.inWatch = false;
+    }, 400);
+  }
   now() { return (this.vt + (this.since !== null ? Date.now() - this.since : 0)) / 1000; }
   pause() { if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; } this.paused = true; }
   async resume() {
+    if (this.autoPaused) return;
     this.paused = false;
     this.since = Date.now();
     await this.page.evaluate(() => window.__vc && window.__vc.nudge()).catch(() => {});
@@ -75,6 +97,7 @@ class Rec {
     this.events = { clicks: [], confirms: [], zooms: [], labels: [] };
     this.vt = 0;
     this.recording = true;
+    this.startWatch();
     await this.stable();
     this.since = Date.now();
     this.paused = false;
@@ -128,6 +151,10 @@ class Rec {
   }
   issue(msg) {
     const id = this.cena ? this.cena.id : "?";
+    const key = id + msg.replace(/t=[\d.]+/, "");
+    this.seen = this.seen || new Set();
+    if (msg.includes("contínuo") && this.seen.has(key)) return;
+    this.seen.add(key);
     this.issues.push({ cena: id, msg });
     console.log(`  ! [${id}] ${msg}`);
   }
@@ -140,6 +167,7 @@ class Rec {
   }
   async shot(name) {
     if (!DRY) return;
+    await this.scan(name);
     fs.mkdirSync(path.join(OUT, "_seco"), { recursive: true });
     await this.page.screenshot({ path: path.join(OUT, "_seco", `${this.cena.id}_${name}.png`) });
   }
@@ -205,6 +233,9 @@ class Rec {
   async type(loc, text) {
     await this.click(loc);
     if (this.fast) { await loc.fill(text); return; }
+    // Start from an empty field: a click alone leaves what was there (a default "1").
+    await this.page.keyboard.press("ControlOrMeta+a");
+    await this.page.keyboard.press("Backspace");
     for (const ch of text) {
       await this.page.keyboard.type(ch);
       await sleep(rand(40, 70));
@@ -231,6 +262,32 @@ class Rec {
     if (this.fast) { await this.page.evaluate((d) => window.scrollBy(0, d), dy); return; }
     await this.page.evaluate((d) => window.scrollBy({ top: d, behavior: "smooth" }), dy);
     await sleep(800);
+  }
+  // Dry cut to a new scroll position: the jump itself never reaches the video.
+  async jump(loc, targetY) {
+    const wasRec = this.recording && !this.paused;
+    if (wasRec) this.pause();
+    await loc.waitFor({ state: "attached", timeout: 15000 });
+    // Scroll every scrolling ancestor (an inner panel included) so the target's card
+    // starts at the top of its container, then put it at targetY in the window.
+    await loc.evaluate((el) => {
+      let c = el;
+      while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+      c.scrollIntoView({ block: "start", behavior: "auto" });
+    });
+    const b = await loc.evaluate((el) => el.getBoundingClientRect().top);
+    await this.page.evaluate((d) => window.scrollBy(0, d), b - targetY);
+    await sleep(250);
+    await this.stable();
+    if (wasRec) await this.resume();
+  }
+  async jumpTop() {
+    const wasRec = this.recording && !this.paused;
+    if (wasRec) this.pause();
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(250);
+    await this.stable();
+    if (wasRec) await this.resume();
   }
   async waitEnabled(loc, ms) {
     const wasRec = this.recording && !this.paused;
@@ -324,6 +381,7 @@ const SCENES = require("./cenas_acoes.js");
     if (ONLY && ONLY.every((id) => fs.existsSync(path.join(OUT, id, "cena.json")) || id === cena.id) && cena.id === ONLY[ONLY.length - 1]) break;
   }
   fs.writeFileSync(path.join(OUT, "problemas.json"), JSON.stringify(r.issues, null, 1));
+  clearInterval(r.watch);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })();

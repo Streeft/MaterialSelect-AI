@@ -117,8 +117,17 @@
         if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
         const range = document.createRange();
         range.selectNodeContents(n);
+        // Clip by every scrolling/clipping ancestor: text scrolled out of a panel is not on screen.
+        let clip = { l: R.x, t: R.y, r: R.x + R.width, b: R.y + R.height };
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+          const st = getComputedStyle(a);
+          if (/(auto|scroll|hidden|clip)/.test(st.overflowY + st.overflowX)) {
+            const ab = a.getBoundingClientRect();
+            clip = { l: Math.max(clip.l, ab.left), t: Math.max(clip.t, ab.top), r: Math.min(clip.r, ab.right), b: Math.min(clip.b, ab.bottom) };
+          }
+        }
         for (const b of range.getClientRects()) {
-          if (b.width > 0 && b.right > R.x && b.left < R.x + R.width && b.bottom > R.y && b.top < R.y + R.height) {
+          if (b.width > 0 && b.right > clip.l && b.left < clip.r && b.bottom > clip.t && b.top < clip.b) {
             out.push(n.nodeValue.trim());
             break;
           }

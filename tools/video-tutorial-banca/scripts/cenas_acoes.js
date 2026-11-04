@@ -7,6 +7,50 @@ const bar = (p) => p.getByRole("group", { name: "Ações da etapa" });
 const steps = (p) => p.getByRole("navigation", { name: "Etapas" });
 const funnel = (p) => p.locator("aside, section, div").filter({ has: p.getByRole("heading", { name: "Funil de candidatos" }) }).last();
 
+// D2 in Comparar: the "Propriedades computadas" block lists every catalog index,
+// beam ones included. Keep its top edge just below the bottom of the viewport.
+async function hideBelow(r, p) {
+  const wasRec = r.recording && !r.paused;
+  if (wasRec) r.pause();
+  await r.stable();
+  await new Promise((res) => setTimeout(res, 400));
+  const h = p.getByText("Propriedades computadas", { exact: true }).filter({ visible: true }).first();
+  if (await h.count()) {
+    const b = await h.boundingBox();
+    await p.evaluate((d) => window.scrollBy(0, d), b.y - 1090);
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  if (wasRec) await r.resume();
+}
+
+// Dry cut: page to the top and the map side panel (its own scroller) to a target.
+async function panelCut(r, p, loc, block = "start") {
+  const wasRec = r.recording && !r.paused;
+  if (wasRec) r.pause();
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await loc.evaluate((el, b) => {
+    let c = el;
+    while (c.parentElement && c.getBoundingClientRect().height < 300) c = c.parentElement;
+    const aside = el.closest("aside");
+    if (aside) aside.scrollTop += c.getBoundingClientRect().top - aside.getBoundingClientRect().top - (b === "start" ? 0 : 0);
+  }, block);
+  await new Promise((res) => setTimeout(res, 250));
+  await r.stable();
+  if (wasRec) await r.resume();
+}
+async function panelTop(r, p) {
+  const wasRec = r.recording && !r.paused;
+  if (wasRec) r.pause();
+  await p.evaluate(() => {
+    window.scrollTo(0, 0);
+    const a = [...document.querySelectorAll("aside")].find((x) => x.textContent.includes("Controles do mapa"));
+    if (a) { a.style.scrollBehavior = "auto"; a.scrollTop = 0; }
+  });
+  await new Promise((res) => setTimeout(res, 250));
+  await r.stable();
+  if (wasRec) await r.resume();
+}
+
 module.exports = {
   // ------------------------------------------------------------ Abertura
   "0.2": async (r, p) => {
@@ -136,8 +180,13 @@ module.exports = {
     await r.hold(500);
     await r.at(2);
     await r.unzoom();
-    await r.click(p.getByRole("button", { name: "Continuar: critérios e pesos" }));
+    // Dry cut: "Continuar" sits right under the index grid, beam cards included.
+    r.pause();
+    await p.getByRole("button", { name: "Continuar: critérios e pesos" }).click();
     await r.stable();
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await r.stable();
+    await r.resume();
     const cond = p.getByText("Condições de validade").filter({ visible: true }).first();
     await r.scrollTo(cond, "center");
     const cb = await r.cardBox(cond, 220);
@@ -155,8 +204,6 @@ module.exports = {
     await r.stable();
     const pesos = p.getByLabel("Peso");
     await r.at(1);
-    await r.click(pesos.nth(0));
-    await p.keyboard.press("ControlOrMeta+a");
     await r.type(pesos.nth(0), "0,7");
     await r.click(add);
     await r.stable();
@@ -317,41 +364,60 @@ module.exports = {
 
   "2.12": async (r, p) => {
     await r.unzoom();
-    await r.scrollBy(-3000);
+    await r.jumpTop();
     const pers = p.getByText("Personalizar o mapa").filter({ visible: true }).first();
     await r.scrollTo(pers, "center");
     await r.click(pers);
     await r.stable();
-    await r.at(1);
     const radio = p.getByRole("radio", { name: "Placa leve limitada por rigidez" });
-    await r.scrollTo(radio, "center");
+    // D2: the plate card sits on the bottom edge of the viewport; the beam cards,
+    // further down the list, stay below it.
+    const card = await r.cardBox(radio);
+    await r.scrollToBottomY(radio, card, 1072);
+    await r.at(1);
     await r.click(p.getByText("Placa leve limitada por rigidez", { exact: true }).filter({ visible: true }).first());
     await r.stable();
-    await r.select(p.getByLabel("Linha passando por"), "Alumínio 1100-H14");
+    // Cut to the index card (beam cards now above the top edge) and draw the line.
+    const info = p.getByText(/Índice E\^\(1\/3\)\/ρ para placas leves/).filter({ visible: true }).first();
+    await r.jump(info, 100);
+    const line = p.getByLabel("Linha passando por");
+    await r.select(line, "Alumínio 1100-H14");
     await r.stable();
+    await r.hold(1200);
     await r.shot("placa_controles");
+    // Cut back to the map: the line, at page top.
     await r.at(2);
+    await panelTop(r, p);
+    await p.waitForFunction(() => {
+      const g = document.querySelector(".js-plotly-plot");
+      return g && g.data && g.data.some((d) => /Alumínio 1100-H14/.test(d.name || ""));
+    }, null, { timeout: 15000 });
+    await r.hold(600);
     const plot = p.locator(".js-plotly-plot").first();
-    await r.scrollTo(plot, "center");
-    r.zoom(await r.cardBox(plot, 300), 1.15);
+    r.zoom(await r.cardBox(plot, 300), 1.2);
     await r.hold(450);
     await r.shot("placa_mapa");
+    // Cut to the slope the server derived.
     await r.at(3);
     await r.unzoom();
     const incl = p.getByText("Inclinação (log-log)").filter({ visible: true }).first();
-    await r.scrollTo(incl, "center");
+    await r.jump(info, 100);
     await r.expect(incl.locator(".."), /3,000/, "inclinação 3");
     r.zoom(await r.cardBox(incl, 120), 1.3);
     await r.hold(450);
     await r.point(incl, 1000);
+    await r.shot("inclinacao");
+    // Back to the map for the reading rule.
     await r.at(4);
     await r.unzoom();
-    await r.scrollTo(plot, "center");
+    await panelTop(r, p);
+    await r.hold(300);
     await r.shot("placa_fim");
   },
 
   "2.4": async (r, p) => {
     await r.unzoom();
+    await panelTop(r, p);
     const idxBtn = p.getByRole("button", { name: "Índice", exact: true }).nth(1);
     await r.scrollTo(idxBtn, "center");
     await r.click(idxBtn);
@@ -401,17 +467,16 @@ module.exports = {
       await r.click(p.getByRole("button", { name: on, exact: true }).first());
     }
     await r.stable();
+    await hideBelow(r, p);
     await r.at(1);
-    const tbl = p.getByRole("table").first();
-    await r.scrollTo(tbl, "center");
     await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 900);
     await r.shot("tabela");
     await r.at(2);
     for (const v of ["Barras", "Radar", "Coordenadas paralelas", "Heatmap"]) {
       const b = p.getByRole("button", { name: v, exact: true }).or(p.getByRole("tab", { name: v, exact: true })).first();
       await r.click(b);
-      await r.stable();
-      await r.hold(900);
+      await hideBelow(r, p);
+      await r.hold(1200);
       await r.shot("v_" + v);
     }
   },
@@ -424,7 +489,7 @@ module.exports = {
     await r.stable();
     await r.shot("preview");
     await r.at(1);
-    const val = p.getByRole("button", { name: /2,75 g\/cm³/ }).filter({ visible: true }).first();
+    const val = p.getByRole("button", { name: "Ver a proveniência deste valor" }).filter({ hasText: "2,75" }).filter({ visible: true }).first();
     await r.scrollTo(val, "center");
     await r.click(val);
     await r.stable();
@@ -443,11 +508,14 @@ module.exports = {
   "2.15": async (r, p) => {
     await r.unzoom();
     await r.goto("/app/dimensionar");
-    await r.type(p.getByLabel("Comprimento (m)"), "0,5");
+    await r.type(p.getByLabel("Comprimento (m)"), "0.5");
     await r.type(p.getByLabel("Rigidez exigida (N/m)"), "20000000");
     await r.at(1);
     await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    r.pause();
+    await p.getByRole("table").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     await r.stable();
+    await r.resume();
     const res = p.getByRole("heading", { name: "3. O resultado" });
     await r.scrollTo(res, "start");
     await r.shot("tirante");
@@ -462,15 +530,18 @@ module.exports = {
     await r.scrollBy(-3000);
     await r.select(p.getByLabel("Caso"), "Placa em flexão, rigidez especificada");
     await r.stable();
-    await r.type(p.getByLabel("Comprimento (m)"), "0,4");
-    await r.type(p.getByLabel("Largura da placa (m)"), "0,3");
+    await r.type(p.getByLabel("Comprimento (m)"), "0.4");
+    await r.type(p.getByLabel("Largura da placa (m)"), "0.3");
     await r.type(p.getByLabel("Rigidez exigida (N/m)"), "5000");
     const sup = p.locator("select", { has: p.locator("option", { hasText: "Biapoiada, carga no meio do vão" }) });
     if (await sup.count()) await r.select(sup.first(), "Biapoiada, carga no meio do vão");
     else await r.type(p.getByLabel(/Constante de apoio/), "48");
     await r.shot("placa_form");
     await r.click(p.getByRole("button", { name: "Dimensionar", exact: true }));
+    r.pause();
+    await p.getByRole("table").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     await r.stable();
+    await r.resume();
     const res = p.getByRole("heading", { name: "3. O resultado" });
     await r.scrollTo(res, "start");
     await r.at(1);
@@ -494,7 +565,6 @@ module.exports = {
     await r.scrollTo(map, "start");
     await r.point(p.getByLabel("Unidade da coluna densidade [g/cm3]"), 900);
     await r.select(p.getByLabel("Classe padrão (quando a coluna estiver vazia)"), "Compósitos");
-    await r.type(p.getByLabel("Fonte dos dados (opcional)"), "Dados fictícios do vídeo");
     await r.shot("mapa_colunas");
     await r.at(3);
     await r.click(p.getByRole("button", { name: "Validar", exact: true }));
@@ -503,16 +573,26 @@ module.exports = {
     const rep = p.getByRole("heading", { name: "Relatório de validação" });
     await r.scrollTo(rep, "start");
     await r.shot("relatorio");
-    await r.at(4);
-    const aus = p.getByText(/[Aa]usente/).filter({ visible: true }).first();
-    if (await aus.count()) { r.zoom(await r.cardBox(aus, 120), 1.3); await r.hold(450); await r.point(aus, 900); }
-    else r.issue("2.17: valor ausente não encontrado no relatório");
-    await r.unzoom();
     await r.click(p.getByRole("button", { name: /Importar linhas válidas/ }));
     await p.getByText("Importação concluída").filter({ visible: true }).first().waitFor({ timeout: 20000 });
     r.confirm();
     await r.stable();
     await r.shot("concluida");
+    await r.at(4);
+    await r.click(p.getByRole("link", { name: "Ver no catálogo" }));
+    r.pause();
+    await p.waitForURL(/catalogo/, { timeout: 20000 });
+    await r.stable();
+    await r.resume();
+    await r.click(p.getByRole("table").getByRole("link", { name: /Material Fictício B/ }).first());
+    await r.stable();
+    const row = p.getByText(/^Resistência à tração/).filter({ visible: true }).first();
+    await r.scrollTo(row, "center");
+    r.zoom(await r.cardBox(row, 60), 1.3);
+    await r.hold(450);
+    await r.expect(row.locator("xpath=ancestor::*[self::tr or self::div][1]"), /Ausente/, "B sem resistência à tração");
+    await r.point(row, 1200);
+    await r.shot("ausente");
   },
 
   "2.18": async (r, p) => {
@@ -522,9 +602,11 @@ module.exports = {
     await r.stable();
     await r.shot("processo");
     await r.at(1);
-    const comp = p.getByText(/[Mm]ateriais compatíveis/).filter({ visible: true }).first();
-    if (await comp.count()) await r.scrollTo(comp, "start");
-    else { r.issue("2.18: seção de materiais compatíveis não encontrada"); await r.scrollBy(500); }
+    await r.point(p.getByText("Estimado", { exact: true }).filter({ visible: true }).first(), 800);
+    const serve = p.getByText(/^Serve \d+ materiais do catálogo/).filter({ visible: true }).first();
+    r.zoom(await r.cardBox(serve, 80), 1.3);
+    await r.hold(450);
+    await r.point(serve, 1400);
     await r.shot("compat");
   },
 
@@ -539,13 +621,14 @@ module.exports = {
 
   "3.1": async (r, p) => {
     // The own record is created only now, so the selection scenes count 678.
-    await p.request.post("http://127.0.0.1:8811/api/materials", { data: {
+    const own = await p.request.post("http://127.0.0.1:8811/api/materials", { data: {
       name: "Liga Exemplo do Participante (fictícia)", class_id: 1, is_own_record: true,
       description: "Registro próprio fictício, criado só para a demonstração em vídeo.",
       values: [
         { property_slug: "densidade", kind: "scalar", value: 2.75, unit: "g/cm**3" },
         { property_slug: "modulo_young", kind: "scalar", value: 71, unit: "GPa" },
       ] } });
+    if (own.status() !== 201) r.issue(`3.1: registro próprio não criado (${own.status()})`);
     const tour = [
       [1, "/app/cadernos", "Cadernos"], [2, "/app/custo", "Custo"], [3, "/app/eco", "Eco"],
       [4, "/app/baterias", "Baterias"], [5, "/app/sintetizar", "Sintetizar"],

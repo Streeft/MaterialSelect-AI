@@ -41,6 +41,7 @@ EOF
 fi
 
 pkill -f "uvicorn app.main:app --host 127.0.0.1 --port $API_PORT" 2>/dev/null || true
+while pgrep -f "uvicorn app.main:app --host 127.0.0.1 --port $API_PORT" >/dev/null; do sleep 0.5; done
 # Quatro processos: com um só, a prévia do funil e a dos pesos enfileiram e o botão
 # Executar fica desabilitado por mais de 20 s.
 nohup "$PY" -m uvicorn app.main:app --host 127.0.0.1 --port $API_PORT --workers 4 \

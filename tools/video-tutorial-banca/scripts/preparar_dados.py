@@ -1,7 +1,7 @@
 """Prepare the LOCAL recording database through the API (never production).
 
-Creates what the scenes need to show non-empty screens: the saved tie study,
-a notebook with one short text source, and one own record. Idempotent by name.
+Creates what the scenes need to show non-empty screens: the saved tie study
+and a notebook with one short text source. Idempotent by name.
 Usage: python preparar_dados.py [API base, default http://127.0.0.1:8811]
 """
 
@@ -83,25 +83,7 @@ def main() -> None:
         )
         print("caderno criado")
 
-    mine = call("GET", "/my-records")
-    own_name = "Liga Exemplo do Participante (fictícia)"
-    if own_name not in json.dumps(mine, ensure_ascii=False):
-        metais = next(c["id"] for c in call("GET", "/classes") if c["slug"] == "metais")
-        call(
-            "POST",
-            "/materials",
-            {
-                "name": own_name,
-                "class_id": metais,
-                "description": "Registro próprio fictício, criado só para a demonstração em vídeo.",
-                "is_own_record": True,
-                "values": [
-                    {"property_slug": "densidade", "kind": "scalar", "value": 2.75, "unit": "g/cm**3"},
-                    {"property_slug": "modulo_young", "kind": "scalar", "value": 71, "unit": "GPa"},
-                ],
-            },
-        )
-        print("registro próprio criado")
+    # The own record is created on camera time, in scene 3.1 (cenas_acoes.js).
 
 
 if __name__ == "__main__":
