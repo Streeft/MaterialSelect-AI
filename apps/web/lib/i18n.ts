@@ -3260,6 +3260,20 @@ export const ptBR = {
     loginButton: "Entrar com Google",
     loginHint:
       "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    // D-195: the API's Google callback never ends in a 500; it redirects here
+    // with `?erro=<code>`. One message per code; an unknown code reads as
+    // `falha`. The button stays below, so "try again" is one click.
+    loginErrorTitle: "Não foi possível entrar",
+    loginRetry: "Tente de novo pelo botão abaixo.",
+    loginErrors: {
+      sessao:
+        "O login foi interrompido ou demorou demais. Isso acontece ao cancelar a escolha da conta ou voltar pelo navegador.",
+      dominio: "Esta conta Google não pertence ao domínio permitido neste servidor.",
+      email: "O e-mail desta conta Google ainda não foi verificado pelo Google.",
+      indisponivel:
+        "O servidor ou o Google não responderam a tempo. Costuma passar na segunda tentativa.",
+      falha: "Ocorreu um erro inesperado no login. Ele foi registrado para correção.",
+    },
     checkingSession: "Verificando sessão…",
     checkingSubscription: "Verificando assinatura…",
     logout: "Sair",
