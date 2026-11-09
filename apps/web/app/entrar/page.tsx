@@ -10,7 +10,7 @@ const t = ptBR.auth;
  * The only public route: a full-page redirect into Google, not a fetch — the
  * anchor navigates the whole browser, so the session cookie the callback sets
  * is visible on the very next request. A failed attempt comes back here with
- * `?erro=<code>` (D-195): the notice says why, and the same button retries.
+ * `?erro=<code>` (D-198): the notice says why, and the same button retries.
  */
 export default function LoginPage() {
   return (

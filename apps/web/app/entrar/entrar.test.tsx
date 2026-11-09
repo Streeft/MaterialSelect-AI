@@ -29,7 +29,7 @@ describe("LoginPage", () => {
     expect(screen.queryByShadowRole("alert")).toBeNull();
   });
 
-  // D-195: the callback redirects here with `?erro=<code>` instead of a 500.
+  // D-198: the callback redirects here with `?erro=<code>` instead of a 500.
   it.each(Object.entries(ptBR.auth.loginErrors))(
     "explains ?erro=%s and keeps the button to try again",
     async (code, message) => {

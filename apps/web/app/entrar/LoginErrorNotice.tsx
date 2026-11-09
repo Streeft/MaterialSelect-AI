@@ -13,7 +13,7 @@ function isLoginErrorCode(value: string): value is LoginErrorCode {
 }
 
 /**
- * Why the last login did not finish (D-195). The API's Google callback never
+ * Why the last login did not finish (D-198). The API's Google callback never
  * answers with an error page: it sends the browser back here with
  * `?erro=<code>`. An unknown code still says something went wrong, never
  * nothing — the student only knows the login did not work.

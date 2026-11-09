@@ -1,4 +1,4 @@
-"""The Google callback never answers a 500 (D-195).
+"""The Google callback never answers a 500 (D-198).
 
 In production the callback answered "Internal Server Error" in plain text: any
 exception on the way (a Neon connection that died while the database slept, a
@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 from google.auth import exceptions as google_auth_exceptions
 from sqlalchemy.exc import DataError, OperationalError
 
-from app.db.base import get_db
+from app.db.base import engine_kwargs, get_db
 from app.integrations.http import get_http_transport
 from app.main import app
 from app.models.user import User
@@ -203,6 +203,21 @@ def test_long_name_and_avatar_fit_their_columns(db_session, google):
     assert len(user.name) == User.__table__.c.name.type.length
     # A cut URL points nowhere: an avatar that does not fit is left out.
     assert user.avatar_url is None
+
+
+def test_postgres_pool_pings_and_recycles_connections():
+    kwargs = engine_kwargs("postgresql+psycopg://u:p@host/db")
+    assert kwargs["pool_pre_ping"] is True
+    assert kwargs["pool_recycle"] == 300
+    assert kwargs["pool_timeout"] == 10
+    assert kwargs["hide_parameters"] is True
+
+
+def test_sqlite_engine_keeps_its_own_settings():
+    kwargs = engine_kwargs("sqlite://")
+    assert kwargs["connect_args"] == {"check_same_thread": False}
+    assert "pool_pre_ping" not in kwargs
+    assert "pool_size" not in kwargs
 
 
 # --- requests that cannot be a login ----------------------------------------

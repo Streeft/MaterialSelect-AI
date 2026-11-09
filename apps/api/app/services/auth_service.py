@@ -15,7 +15,7 @@ adapter; ``_HttpxTransportRequest`` below is that adapter, so httpx stays the
 project's only HTTP client instead of adding a second one just for this.
 
 Every way the callback can fail ends in one of the codes of
-:func:`login_error_code` (D-195): the route turns it into a redirect to
+:func:`login_error_code` (D-198): the route turns it into a redirect to
 ``/entrar?erro=<code>`` instead of letting an exception become a plain-text
 500. A network error talking to Google, or a database connection the server
 dropped while it slept, is retried once here before it reaches the user.

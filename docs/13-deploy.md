@@ -811,6 +811,7 @@ Depois, no navegador:
 | Sintoma | Causa provável |
 |---|---|
 | `DNS_PROBE_FINISHED_NXDOMAIN` em `…fly.dev`, com o deploy verde e as máquinas saudáveis | O app não tem endereço público. Ver abaixo — é a falha mais desnorteante das listadas aqui. |
+| Volta para `/entrar?erro=…` depois de escolher a conta Google | Ver a tabela de códigos em "Login com Google" logo abaixo; o traceback está no `flyctl logs`. Uma API anterior ao D-198 mostrava "Internal Server Error" em texto puro no lugar disso: rode o **Deploy da API**. |
 | Login em laço, sem erro em log nenhum | `BACKEND_BASE_URL` apontando para o Fly em vez da Vercel (§2), ou `API_PROXY_TARGET` ausente. |
 | `ModuleNotFoundError: psycopg` | `DATABASE_URL` com `postgresql://` em vez de `postgresql+psycopg://`. |
 | Frontend chamando `localhost:8000` | `NEXT_PUBLIC_API_URL` **ausente** (não é o mesmo que vazio) no build. Defina-a vazia e reconstrua. |
@@ -823,6 +824,41 @@ Depois, no navegador:
 | Explicações da IA sem citação do Cérebro, com o provedor real ligado | O Cérebro não foi ingerido em produção: **Base de conhecimento (Cérebro)** → `ingerir` (§5-septies). O `status` diz quantos documentos e trechos a base tem. |
 | Painel de IA com erro genérico ("Falha na requisição …") em vez do texto do provedor | Versão da API anterior ao tratador de `AIUnavailableError`. Reimplante — um *secrets deploy* não basta, porque reusa a imagem. |
 | PR mesclado em `main`, `deploy-api.yml` verde, mas o dado novo (material, química de bateria, modo de transporte) não aparece na tela | Duas causas possíveis, nessa ordem de verificação. (1) `admin-banco.yml` (`semear`) não foi disparado depois do merge — o deploy da API só roda a migração, nunca o seed. Ver §5-ter. (2) O `semear` rodou mas o log da execução (aba Actions → a execução → job `semear`) mostra a contagem certa em `Concluído: {...}` — se o campo relevante (`materials_created`, `battery_chemistries`, `transport_modes`, …) ficou em `0` quando deveria ter subido, o dado novo não está chegando a nenhum dos dois módulos de seed que `semear` executa (`app.db.seed` e `app.db.seed_extended`, §5-ter): confira se o PR de fato adicionou o dado a um dos dois, e não a um terceiro arquivo nunca importado por nenhum — foi exatamente isso que aconteceu com os 70 materiais do PR #59, que viveram meses em `seed_extended.py` sem que `semear` soubesse que esse módulo existia. |
+
+### Login com Google: o que diz o `?erro=` e como ler o log
+
+Desde o [D-198](DECISIONS.md) o callback do Google **nunca** responde 500.
+Qualquer falha desfaz a transação, grava o traceback no log da API e manda o
+navegador para `/entrar?erro=<código>`, onde a página explica o que houve e
+mostra o botão de novo. Antes disso, a mesma falha aparecia como
+"Internal Server Error" em texto puro, sem nada no log.
+
+| `?erro=` | O que significa | O que fazer |
+|---|---|---|
+| `sessao` | O `state` não bateu com o cookie, o cookie expirou (10 min), quem testava cancelou a escolha da conta ou o Google voltou sem `code`. | Tentar de novo. Se repetir sempre, confira `BACKEND_BASE_URL` (§2): o cookie do `state` pode estar ficando no domínio errado. |
+| `dominio` | A conta não termina em `@GOOGLE_ALLOWED_DOMAIN`. | Use uma conta do domínio, ou esvazie `GOOGLE_ALLOWED_DOMAIN` no Fly. |
+| `email` | O Google diz que o e-mail da conta não está verificado. | A pessoa verifica o e-mail na conta Google. |
+| `indisponivel` | O Google ou o banco não responderam, mesmo depois de uma nova tentativa feita pelo servidor: tempo esgotado ou conexão recusada com o Google, resposta que não é JSON, certificados inacessíveis, `OperationalError` do banco duas vezes seguidas ou pool esgotado. | Tentar de novo: com o Neon acordando, a segunda tentativa costuma passar. Se persistir, leia o log. |
+| `falha` | Qualquer outra coisa (código recusado pelo Google, valor que não coube na coluna, defeito). | Leia o log: o traceback está lá. |
+
+O log, pelo terminal:
+
+```bash
+flyctl logs -a materialselect-ai             # acompanha ao vivo
+flyctl logs -a materialselect-ai --no-tail   # só o que já está guardado
+```
+
+Sem terminal, o mesmo log está no painel do Fly, em **Apps → materialselect-ai
+→ Live Logs**. Procure a linha `ERROR app.routers.auth: Login com Google falhou
+(erro=<código>)`: o traceback logo abaixo diz a causa. Uma linha `WARNING` com
+"nova tentativa" antes dela mostra que o servidor já repetiu uma vez. Uma
+exceção fora do login aparece como `ERROR app: Erro sem tratamento em <método>
+<caminho>`, e a resposta ao navegador é um JSON com `detail` em português.
+
+O pool de conexões testa cada conexão antes de usá-la (`pool_pre_ping`) e as
+renova a cada 5 minutos (`pool_recycle=300`). O plano grátis do Neon suspende o
+banco ocioso e derruba as conexões; sem isso, a primeira requisição depois da
+pausa pegava uma conexão morta.
 
 ### O app sem endereço público
 

@@ -73,7 +73,7 @@ def _configure_logging() -> None:
     """Send the app's own log lines to stdout, which is what `fly logs` shows.
 
     Without a handler on the root logger an ``app.*`` logger reached only
-    Python's last-resort stream, without time or level (D-195). ``basicConfig``
+    Python's last-resort stream, without time or level (D-198). ``basicConfig``
     does nothing when a handler is already set (uvicorn's or pytest's).
     httpx stays at WARNING: at INFO it logs full request URLs (D-97).
     """
@@ -220,7 +220,7 @@ UNEXPECTED_ERROR_MESSAGE = (
 
 @app.exception_handler(Exception)
 async def _handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
-    """Last resort: any exception no other handler took (D-195).
+    """Last resort: any exception no other handler took (D-198).
 
     Before this a bug or a dropped database connection answered a plain-text
     "Internal Server Error", which the web app cannot read (it reads `detail`)

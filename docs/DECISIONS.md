@@ -12020,3 +12020,43 @@ ficha longa rola. O M3 resolve com a *bottom sheet* modal e a barra de ferrament
 
 **Fonte.** m3.material.io › *Components › Bottom sheets* e *Components › Toolbars* (floating), lidas em 03/11/26.
 
+
+## D-198 — Login com Google à prova de falha: o callback nunca responde 500
+
+**Contexto.** Em 09/11/26, no teste de usabilidade do TCC, a volta do Google para
+`/api/auth/google/callback` respondeu "Internal Server Error" em texto puro. O texto vinha do FastAPI no Fly (a Vercel
+só repassa a resposta) e a API estava de pé (`/api/health` 200, `access_mode=open`). Era uma exceção sem tratamento no
+callback, e a API não tinha log nem tratador global, então nada dizia qual. As causas possíveis, todas reproduzidas em
+teste: conexão do pool que o Neon grátis derrubou ao suspender o banco ocioso (o engine não tinha `pool_pre_ping`);
+falha de rede com o Google (`httpx` sem `try` na troca do code e nos certificados, e `.json()` sem proteção); `name` ou
+`avatar_url` maiores que a coluna (`DataError` no Postgres); pool esgotado com a turma entrando junto; e um `state`
+não-ASCII na URL, que fazia `secrets.compare_digest` levantar `TypeError`.
+
+**Decisão.**
+- **O callback nunca deixa escapar exceção.** Toda falha faz `rollback`, `logger.exception` (traceback no `fly logs`) e
+  302 para `{FRONTEND_URL}/entrar?erro=<código>`, apagando o cookie do `state`. Códigos: `sessao` (state, cookie,
+  consentimento negado, sem code), `dominio`, `email` (não verificado), `indisponivel` (Google ou banco sem resposta,
+  resposta não-JSON, certificados inacessíveis, pool esgotado) e `falha` (o resto). A tradução exceção → código é
+  `login_error_code` no `auth_service`; a rota só redireciona. Recusa de login deixa de ser 401 JSON: o callback é
+  uma navegação do navegador, que não lê JSON.
+- **Uma nova tentativa no servidor**, só onde repetir é seguro: conexão com o Google que nem abriu (`ConnectError`,
+  `ConnectTimeout`; o code é de uso único, então outro erro de rede não repete o POST); o GET dos certificados; e o
+  upsert do usuário + criação da sessão diante de `OperationalError` (depois do `rollback`, o SQLAlchemy já invalidou
+  a conexão morta e a segunda tentativa pega outra). A troca do code nunca é repetida por falha de banco.
+- **Pool só fora do SQLite:** `pool_pre_ping=True`, `pool_recycle=300` (antes da suspensão de 5 min do Neon),
+  `pool_size=5`, `max_overflow=5`, `pool_timeout=10`. SQLite e o BEGIN do `conftest` ficam como estavam.
+- **Valores do Google cabem na coluna:** `name` é cortado no tamanho da coluna; `avatar_url` longo demais vira `NULL`,
+  porque uma URL cortada aponta para lugar nenhum e o avatar é opcional. `compare_digest` compara bytes UTF-8.
+- **Tratador global de `Exception`** em `main.py`: JSON `{"detail": "Erro interno no servidor…"}` em PT-BR, sem o texto
+  da exceção (pode ter SQL), e o traceback no log. `logging.basicConfig` em INFO, com `httpx`/`httpcore` em WARNING
+  (D-97).
+- **`/entrar` lê `?erro=`** e mostra a mensagem do código (desconhecido vira `falha`) com o botão "Entrar com Google"
+  logo abaixo. Textos em `ptBR.auth.loginErrors`.
+- Sem migração nem seed. Chega à produção com o **Deploy da API**; o frontend vai com o merge.
+
+**Alternativas recusadas.** Repetir a troca do code em qualquer erro de rede (o Google recusaria a segunda com
+`invalid_grant` e o erro mudaria de nome); `NullPool` (cada requisição abriria conexão nova no Neon, mais lento e sem
+ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostraria o JSON cru).
+
+**Numeração.** O plano pedia D-195 e Sessão 152; os dois já estavam ocupados em `main` (Início que começa escrevendo),
+então esta decisão é a D-198 e a sessão é a 155.

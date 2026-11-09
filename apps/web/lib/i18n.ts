@@ -3260,7 +3260,7 @@ export const ptBR = {
     loginButton: "Entrar com Google",
     loginHint:
       "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
-    // D-195: the API's Google callback never ends in a 500; it redirects here
+    // D-198: the API's Google callback never ends in a 500; it redirects here
     // with `?erro=<code>`. One message per code; an unknown code reads as
     // `falha`. The button stays below, so "try again" is one click.
     loginErrorTitle: "Não foi possível entrar",

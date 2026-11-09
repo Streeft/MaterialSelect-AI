@@ -5,7 +5,7 @@ The three public routes (``/google/login``, ``/google/callback``,
 session — everything else requires ``get_current_user`` (see
 ``app.dependencies``).
 
-The callback never answers with an error page of its own (D-195): whatever
+The callback never answers with an error page of its own (D-198): whatever
 fails on the way is rolled back, logged with its traceback (``fly logs``) and
 turned into a redirect to ``/entrar?erro=<code>``, where the web page says
 what happened in Portuguese and offers the button again.

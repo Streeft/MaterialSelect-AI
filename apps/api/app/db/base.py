@@ -44,7 +44,7 @@ def engine_kwargs(url: str) -> dict:
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
         return kwargs
-    # A pooled server (Neon in production, D-195). Neon's free tier suspends an
+    # A pooled server (Neon in production, D-198). Neon's free tier suspends an
     # idle database after about five minutes and drops its connections; without
     # a ping the next request picked a dead one from the pool and failed — the
     # login's "Internal Server Error". `pool_pre_ping` tests each connection on

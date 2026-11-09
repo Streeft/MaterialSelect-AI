@@ -52,7 +52,7 @@ def test_google_login_redirects_to_google_when_configured(anon_client, monkeypat
     assert "msai_oauth_state" in resp.headers.get("set-cookie", "")
 
 
-# D-195: the callback is a browser navigation, so a refusal is a redirect to
+# D-198: the callback is a browser navigation, so a refusal is a redirect to
 # the login page with a code it explains, never a bare 401/500 body.
 def test_google_callback_rejects_a_denied_consent(anon_client):
     resp = anon_client.get(
