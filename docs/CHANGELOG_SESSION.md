@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
+
+**O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda
+falha no callback faz rollback, grava o traceback no log (`flyctl logs`) e redireciona para `/entrar?erro=<código>` (`sessao`,
+`dominio`, `email`, `indisponivel`, `falha`), e a página explica em PT-BR com o botão de novo. O engine usa `pool_pre_ping` e
+`pool_recycle=300` fora do SQLite; o serviço repete uma vez a conexão com o Google que não abriu e o upsert/sessão diante de
+`OperationalError`; `name` cabe na coluna e `avatar_url` longo vira `NULL`; `compare_digest` compara bytes; tratador global de
+`Exception` devolve JSON em PT-BR. +18 de backend (`test_auth_callback_resilience.py`; 16 falhavam antes) e três testes de
+`test_auth_api.py` passam de 401 para 302; +7 de frontend (`entrar.test.tsx`, que falhava antes). Suíte: backend 5411 (5405 passam e
+6 pulam), frontend 1632 passam. O plano pedia D-195/Sessão 152, já ocupadas: ficou D-198/155. Sem migração; depois do merge,
+**Deploy da API**.
+
 ## Sessão 154 — 03/11/26 — Ficha no celular: folha inferior e barra flutuante (D-197)
 
 **O que mudou.** Abaixo de 600 px o `Popover` vira folha inferior modal do M3 (foco preso, Esc e véu fecham, foco volta ao valor), e a
