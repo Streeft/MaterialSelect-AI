@@ -6,6 +6,7 @@ routers under ``/api``, and maps domain errors to HTTP status codes.
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any
 
@@ -66,6 +67,26 @@ from app.routers import (
     sources,
     synthesis,
 )
+
+
+def _configure_logging() -> None:
+    """Send the app's own log lines to stdout, which is what `fly logs` shows.
+
+    Without a handler on the root logger an ``app.*`` logger reached only
+    Python's last-resort stream, without time or level (D-198). ``basicConfig``
+    does nothing when a handler is already set (uvicorn's or pytest's).
+    httpx stays at WARNING: at INFO it logs full request URLs (D-97).
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
+_configure_logging()
+logger = logging.getLogger("app")
 
 app = FastAPI(
     title=settings.app_name,
@@ -190,6 +211,25 @@ async def _handle_integrity(_: Request, exc: IntegrityError) -> JSONResponse:
     # that slips through (e.g. a race) must surface as a conflict, not a 500.
     # The message is generic on purpose — never leak SQL/driver details.
     return _error_response(409, "Conflito de integridade de dados.")
+
+
+UNEXPECTED_ERROR_MESSAGE = (
+    "Erro interno no servidor. A falha foi registrada no log; tente de novo em instantes."
+)
+
+
+@app.exception_handler(Exception)
+async def _handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
+    """Last resort: any exception no other handler took (D-198).
+
+    Before this a bug or a dropped database connection answered a plain-text
+    "Internal Server Error", which the web app cannot read (it reads `detail`)
+    and which left no traceback anywhere the author could see. Now the answer
+    is JSON in Portuguese and the traceback goes to the log (`fly logs`). The
+    message never carries the exception's text: it may hold SQL or a path.
+    """
+    logger.error("Erro sem tratamento em %s %s", request.method, request.url.path, exc_info=exc)
+    return _error_response(500, UNEXPECTED_ERROR_MESSAGE)
 
 
 def _sanitize_nonfinite(obj: Any) -> Any:

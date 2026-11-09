@@ -388,6 +388,7 @@ D-185):
 | **Catálogo oficial licenciado sem carga** (C1) | [`TODO.md`](TODO.md); [D-102](DECISIONS.md) |
 | **Nenhuma fonte aberta aprovada** (C0 pendente: leitura direta das páginas de licença, que ficou bloqueada na sessão de 07/10/2026) | [`catalogo/fontes.md`](catalogo/fontes.md); [D-103](DECISIONS.md) |
 | **Teste de usabilidade com estudantes não aplicado**; a proposta o cobra como entrega | [`11-usabilidade.md`](11-usabilidade.md); `PROJECT_CONTEXT.md` §6 |
+| **Incidente de 09/11/26:** na primeira rodada do teste de usabilidade o login com Google respondeu "Internal Server Error" e bloqueou a sessão; corrigido em D-198 (o login nunca mais responde 500, explica o erro em `/entrar` e repete a operação uma vez no servidor). Registre na monografia como incidente de operação, não como resultado de usabilidade | [D-198](DECISIONS.md); [`13-deploy.md`](13-deploy.md) |
 | **Arquivos de CAE não validados num solver** nem contra o XSD do MatML; material real sem coeficiente de Poisson recebe 422 nos decks | [D-104](DECISIONS.md), [D-124](DECISIONS.md); TM5-e |
 | **Valor sobre o par material–processo** não tem modelo (os atributos são do processo) | [D-192](DECISIONS.md) |
 | **IA não é reproduzível** com provedor real; só o `mock` é determinístico. O texto digitado vai ao Google no plano gratuito, que pode usá-lo; o autor aceitou isso para os livros do Cérebro | [D-35](DECISIONS.md), [D-93](DECISIONS.md), [D-101](DECISIONS.md) |

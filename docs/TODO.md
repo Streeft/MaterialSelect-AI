@@ -675,6 +675,15 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Login com Google dava "Internal Server Error" em produção (Sessão 155, [D-198](DECISIONS.md))**~~ —
+  apareceu no teste de usabilidade do TCC em 09/11/26. O callback agora faz
+  rollback, grava o traceback no log e redireciona para `/entrar?erro=<código>`
+  em toda falha; o pool usa `pool_pre_ping`/`pool_recycle` contra a suspensão
+  do Neon; uma nova tentativa para conexão recusada com o Google e para
+  `OperationalError` no banco; tratador global de `Exception` com JSON em
+  PT-BR. **Resíduo:** só vale em produção depois do **Deploy da API**; a causa
+  exata do incidente de 09/11 só o `flyctl logs` da próxima falha vai dizer,
+  porque a versão anterior não registrava nada.
 - ~~**Ficha técnica em PDF dava `{"detail": "Not Found"}` em produção (Sessão 80, [D-125](DECISIONS.md))**~~ —
   a API não fora implantada depois do #135; a ficha sai para todo registro
   visível (demo, próprio, compartilhado, oficial), inexistente e alheio dão o
