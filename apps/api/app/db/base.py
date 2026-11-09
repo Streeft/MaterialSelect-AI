@@ -43,6 +43,22 @@ def engine_kwargs(url: str) -> dict:
     kwargs: dict = {"json_serializer": json_serializer, "hide_parameters": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
+        return kwargs
+    # A pooled server (Neon in production, D-195). Neon's free tier suspends an
+    # idle database after about five minutes and drops its connections; without
+    # a ping the next request picked a dead one from the pool and failed — the
+    # login's "Internal Server Error". `pool_pre_ping` tests each connection on
+    # checkout and replaces a dead one; `pool_recycle` retires them before
+    # Neon's suspend window. The pool stays small (5 + 5) because the free
+    # tier caps connections, and a checkout waits at most 10 s instead of 30 s
+    # before failing with a clear error.
+    kwargs.update(
+        pool_pre_ping=True,
+        pool_recycle=300,
+        pool_size=5,
+        max_overflow=5,
+        pool_timeout=10,
+    )
     return kwargs
 
 

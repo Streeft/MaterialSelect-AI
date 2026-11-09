@@ -52,16 +52,20 @@ def test_google_login_redirects_to_google_when_configured(anon_client, monkeypat
     assert "msai_oauth_state" in resp.headers.get("set-cookie", "")
 
 
+# D-195: the callback is a browser navigation, so a refusal is a redirect to
+# the login page with a code it explains, never a bare 401/500 body.
 def test_google_callback_rejects_a_denied_consent(anon_client):
     resp = anon_client.get(
         "/api/auth/google/callback", params={"error": "access_denied"}, follow_redirects=False
     )
-    assert resp.status_code == 401
+    assert resp.status_code == 302
+    assert resp.headers["location"].endswith("/entrar?erro=sessao")
 
 
 def test_google_callback_rejects_a_missing_code(anon_client):
     resp = anon_client.get("/api/auth/google/callback", follow_redirects=False)
-    assert resp.status_code == 401
+    assert resp.status_code == 302
+    assert resp.headers["location"].endswith("/entrar?erro=sessao")
 
 
 @pytest.fixture()
@@ -83,7 +87,9 @@ def test_google_callback_rejects_state_not_matching_the_cookie(
         params={"code": "abc", "state": "different-state"},
         follow_redirects=False,
     )
-    assert resp.status_code == 401
+    assert resp.status_code == 302
+    assert resp.headers["location"].endswith("/entrar?erro=sessao")
+    assert "msai_session" not in resp.headers.get("set-cookie", "")
 
 
 def test_google_callback_completes_login_and_sets_a_session_cookie(
