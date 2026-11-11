@@ -4,7 +4,6 @@ import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ApiError,
   createProperty,
   deleteProperty,
   listProperties,
@@ -86,16 +85,12 @@ export default function PropertiesAdminPage() {
       qc.invalidateQueries({ queryKey: ["properties"] });
     },
     onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
-    onError: (err) =>
-      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteProperty(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
     onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
-    onError: (err) =>
-      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
 
   // D-201: the row awaiting delete confirmation (MSDS dialog; deletion is permanent).
