@@ -131,6 +131,15 @@ Dimensionar; unidade legível em Administrar › Propriedades; "Ctrl K" escondid
 (`test_pretty_unit`), +6 de frontend medidos (1632 → 1638: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
 backend 5415 (5409 passam e 6 pulam), frontend 1638 passam (150 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
 a #232: ficou D-204/161. Sem migração; depois do merge, **Deploy da API** (`pretty_unit`).
+## Sessão 161 — 11/11/26 — CI resiliente na instalação do Chromium (D-204)
+
+`ci.yml`, job E2E: a instalação do Chromium do Playwright repete até 4 vezes (15 s, 45 s, 90 s) com `apt-get update`
+antes de cada tentativa de dependências, e `~/.cache/ms-playwright` é cacheado pela versão do Playwright. Motivo: DNS
+transitório do apt nos PRs #229 a #232. `docs/13-deploy.md` (Falhas comuns) atualizado. Sem mudança de código da app;
+contagem de testes inalterada.
+
+---
+
 ## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
 
 `conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
