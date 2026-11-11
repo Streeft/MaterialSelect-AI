@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, createProperty, deleteProperty, listProperties } from "@/lib/api";
+import {
+  ApiError,
+  createProperty,
+  deleteProperty,
+  listProperties,
+} from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import type { PropertyCategory, PropertyDefinition } from "@/lib/types";
 import {
@@ -11,6 +16,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  ConfirmDialog,
   Checkbox,
   ErrorState,
   Input,
@@ -78,14 +84,22 @@ export default function PropertiesAdminPage() {
       setError(null);
       qc.invalidateQueries({ queryKey: ["properties"] });
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteProperty(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
+
+  // D-201: the row awaiting delete confirmation (MSDS dialog; deletion is permanent).
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   const properties: PropertyDefinition[] = data ?? [];
 
@@ -102,7 +116,12 @@ export default function PropertiesAdminPage() {
       >
         <Card>
           <CardBody className="grid gap-3 sm:grid-cols-3">
-            <Input label={ptBR.form.name} value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input
+              label={ptBR.form.name}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
             <Select
               label={ptBR.admin.category}
               value={category}
@@ -155,7 +174,26 @@ export default function PropertiesAdminPage() {
       )}
 
       {isLoading && <LoadingState label={ptBR.catalog.loading} />}
-      {isError && <ErrorState title={ptBR.catalog.error} onRetry={() => void refetch()} />}
+      {isError && (
+        <ErrorState title={ptBR.catalog.error} onRetry={() => void refetch()} />
+      )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete
+            ? ptBR.admin.confirmDeleteProperty(pendingDelete.name)
+            : ""
+        }
+        message={ptBR.admin.confirmDeleteBody}
+        confirmLabel={ptBR.actions.delete}
+        pending={remove.isPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) remove.mutate(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+      />
 
       {data && (
         <TableScroll label={ptBR.admin.propertiesTitle}>
@@ -177,9 +215,13 @@ export default function PropertiesAdminPage() {
                 <Tr key={p.id}>
                   <RowHeader>
                     {p.name}
-                    {p.symbol && <span className="ml-1 text-ink-subtle">({p.symbol})</span>}
+                    {p.symbol && (
+                      <span className="ml-1 text-ink-subtle">({p.symbol})</span>
+                    )}
                   </RowHeader>
-                  <Td className="text-ink-muted">{ptBR.categories[p.category]}</Td>
+                  <Td className="text-ink-muted">
+                    {ptBR.categories[p.category]}
+                  </Td>
                   <Td className="text-ink-muted">{p.canonical_unit}</Td>
                   <Td numeric className="text-ink-muted">
                     {p.value_count}
@@ -188,7 +230,9 @@ export default function PropertiesAdminPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => remove.mutate(p.id)}
+                      onClick={() =>
+                        setPendingDelete({ id: p.id, name: p.name })
+                      }
                       // A property that is in use cannot be deleted without
                       // taking measured values with it. The button says why on
                       // hover and stays visible, so the rule is discoverable.
