@@ -12083,3 +12083,19 @@ excluir estudo salvo), que ignoram o tema e não se testam, e duas telas de admi
 
 **Alternativas recusadas.** Desfazer nas exclusões do admin (o DELETE é imediato e definitivo; adiar a chamada deixaria a
 lista mentindo); manter `confirm` em um ponto só por ser mais simples.
+
+---
+
+## D-203 — Workflow do Cérebro só manual
+
+**Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O
+`conhecimento.yml` rodava por cron diário contra o banco, gerando até ~1000 pedidos ao Gemini e consumindo banda de Git
+LFS: suspeito principal.
+
+**Decisão.** Retirar o gatilho `schedule`; fica só `workflow_dispatch`, mantendo ações, passos e a trava de concorrência.
+Rodar o Cérebro (`ingerir`, `embeddings`, `status`) passa a ser decisão manual, vigiando cota do Neon e banda de LFS.
+
+**Alternativas descartadas.** Reduzir o limite noturno (ainda escreve todo dia no banco); apagar o passo "Janela noturna"
+(inofensivo sem `schedule`, e facilita repor o agendamento).
+
+**Consequência.** Voltar ao agendamento exige decisão nova. Sessão 160.

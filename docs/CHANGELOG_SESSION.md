@@ -120,12 +120,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
+
+`conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
+(§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
+`docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
+
 ## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
 
 **O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
 `ConfirmDialog` (MSDS); estudos salvos perderam o `confirm` porque a exclusão já é desfazível (D-130). `admin/classes` e
 `admin/propriedades` pedem confirmação antes de excluir. As rotas de escrita do catálogo já exigiam `require_catalog_curator`:
 sem mudança no backend. +5 testes de `ConfirmDialog` (com axe) e +1 da página de classes; frontend 1638 passam. Sem migração.
+
+---
 
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
