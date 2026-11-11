@@ -461,10 +461,11 @@ jobs:
         working-directory: apps/web
         run: |
           retry() {
+            local max="$1"; shift
             local delays=(15 45 90) attempt=1
             until "$@"; do
-              if [ "$attempt" -gt "${#delays[@]}" ]; then
-                echo "::error::Falhou após $attempt tentativas: $*"
+              if [ "$attempt" -ge "$max" ]; then
+                echo "Falhou após $attempt tentativas: $*"
                 return 1
               fi
               local wait="${delays[$((attempt - 1))]}"
@@ -473,11 +474,17 @@ jobs:
               attempt=$((attempt + 1))
             done
           }
-          # Dependências do sistema (apt) e download do navegador são passos
-          # separados: só o primeiro depende da rede do apt, e o segundo vira
-          # no-op quando o cache acerta.
-          retry bash -c 'sudo apt-get update && npx playwright install-deps chromium'
-          retry npx playwright install chromium
+          # Dependências do sistema (apt): melhor esforço, 2 tentativas. Se os
+          # espelhos do Ubuntu estiverem fora do ar, o job segue: a imagem
+          # ubuntu-latest já traz as bibliotecas do Chromium (tem o Google
+          # Chrome) e o que o apt instalaria a mais são fontes asiáticas e
+          # xfonts, sem uso nos nossos testes. Se faltar biblioteca de verdade,
+          # os testes falham e mostram.
+          retry 2 bash -c 'sudo apt-get update && npx playwright install-deps chromium' \
+            || echo "::warning::Dependências do apt indisponíveis (DNS dos espelhos do Ubuntu); seguindo com as bibliotecas da imagem do runner."
+          # O download do navegador vem da CDN da Microsoft, não do apt, e
+          # continua obrigatório (4 tentativas; no-op quando o cache acerta).
+          retry 4 npx playwright install chromium
 
       - name: Rodar a suíte end-to-end
         working-directory: apps/web

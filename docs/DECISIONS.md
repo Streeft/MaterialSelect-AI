@@ -12096,5 +12096,12 @@ versão do Playwright lida do `package-lock.json` instalado; num acerto de cache
 **Alternativas descartadas.** `continue-on-error` ou pular o E2E (esconde regressão); só rodar de novo o job à mão
 (não escala); cachear o apt (frágil e grande).
 
-**Consequência.** Falha persistente de DNS por mais de ~2,5 min ainda derruba o job, e então o caminho é reexecutar.
+**Revisão (mesma sessão).** Os runners ficaram mais de 2 h sem resolver `*.ubuntu.com`; as 4 tentativas não bastaram. O
+`install-deps` virou melhor esforço (2 tentativas, depois aviso e segue): a imagem `ubuntu-latest` já tem as bibliotecas
+do Chromium e o apt só acrescentaria fontes asiáticas e xfonts, sem uso nos testes. O `playwright install chromium`
+(CDN da Microsoft) segue obrigatório, com 4 tentativas e cache. Sem `continue-on-error` e sem teste pulado: faltando
+biblioteca, os testes falham e mostram. Plano B, se isso não bastar: rodar o job no contêiner oficial
+`mcr.microsoft.com/playwright:v<versão do lock>-noble`.
+
+**Consequência.** Queda do CDN da Microsoft por mais de ~2,5 min ainda derruba o job, e então o caminho é reexecutar.
 Nenhum teste nem código da app mudou. Sessão 161.
