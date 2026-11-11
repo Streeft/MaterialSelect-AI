@@ -127,6 +127,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 mostra o erro real. Falha ao guardar a página na instalação não quebra o registro. Cache sobe para `msai-offline-v3`. +3 de frontend
 em `lib/pwa/pwa.test.tsx` (4 testes falhavam antes da correção); `e2e/offline.spec.ts` abre `/offline.html` direto e não muda.
 Suíte: frontend 1635 passam. Sem backend nem migração.
+## Sessão 161 — 11/11/26 — CI resiliente na instalação do Chromium (D-204)
+
+`ci.yml`, job E2E: a instalação do Chromium do Playwright repete até 4 vezes (15 s, 45 s, 90 s) com `apt-get update`
+antes de cada tentativa de dependências, e `~/.cache/ms-playwright` é cacheado pela versão do Playwright. Motivo: DNS
+transitório do apt nos PRs #229 a #232. `docs/13-deploy.md` (Falhas comuns) atualizado. Sem mudança de código da app;
+contagem de testes inalterada.
+
+---
+
 ## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
 
 `conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
