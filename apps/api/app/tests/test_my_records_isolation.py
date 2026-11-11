@@ -69,6 +69,8 @@ PATH_VALUES = {
 QUERY_STRINGS = {
     "/api/materials/chart": "?x=densidade&y=modulo_young",
     "/api/materials": "?search=Superliga",
+    # D-207: the palette's light search, asked for the private name itself.
+    "/api/search": "?q=Superliga",
     # D-105: the search with its report; a composition condition rides along so
     # the counts are computed too, and the name must still only reach its owner.
     "/api/materials/busca": "?q=Superliga%20OR%20comp:Cr%3E%3D1",
