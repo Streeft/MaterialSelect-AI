@@ -12060,3 +12060,20 @@ ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostr
 
 **Numeração.** O plano pedia D-195 e Sessão 152; os dois já estavam ocupados em `main` (Início que começa escrevendo),
 então esta decisão é a D-198 e a sessão é a 155.
+
+
+---
+
+## D-203 — Workflow do Cérebro só manual
+
+**Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O
+`conhecimento.yml` rodava por cron diário contra o banco, gerando até ~1000 pedidos ao Gemini e consumindo banda de Git
+LFS: suspeito principal.
+
+**Decisão.** Retirar o gatilho `schedule`; fica só `workflow_dispatch`, mantendo ações, passos e a trava de concorrência.
+Rodar o Cérebro (`ingerir`, `embeddings`, `status`) passa a ser decisão manual, vigiando cota do Neon e banda de LFS.
+
+**Alternativas descartadas.** Reduzir o limite noturno (ainda escreve todo dia no banco); apagar o passo "Janela noturna"
+(inofensivo sem `schedule`, e facilita repor o agendamento).
+
+**Consequência.** Voltar ao agendamento exige decisão nova. Sessão 160.

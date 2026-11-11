@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
+
+`conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
+(§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
+`docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
+
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
 **O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda
