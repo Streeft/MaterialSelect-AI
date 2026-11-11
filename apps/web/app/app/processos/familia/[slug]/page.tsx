@@ -16,6 +16,7 @@ import {
   Section,
 } from "@/components/ui";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
+import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.processes;
 
@@ -37,6 +38,9 @@ export default function ProcessFamilyPage() {
     queryFn: () => getProcessClass(slug),
     enabled: Boolean(slug),
   });
+
+  // D-207: the tab and the menu's "Recentes" carry the record's own name.
+  usePageTitle(family.data?.name);
 
   if (family.isLoading) return <LoadingState label={t.loading} />;
   if (family.isError) {

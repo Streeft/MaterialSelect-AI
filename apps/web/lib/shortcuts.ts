@@ -86,3 +86,14 @@ export function writeShortcutsEnabled(enabled: boolean): void {
   }
   listeners.forEach((notify) => notify());
 }
+
+/**
+ * D-207: the palette's "Ver atalhos" action opens the same list "?" opens. A
+ * window event rather than shared state, because the list is mounted once in
+ * the layout and the palette is a portal elsewhere in the tree.
+ */
+export const OPEN_SHORTCUTS_EVENT = "msai:open-shortcuts";
+
+export function openShortcutsHelp(): void {
+  window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT));
+}

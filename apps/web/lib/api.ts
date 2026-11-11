@@ -800,6 +800,30 @@ export function listStudies(): Promise<StudySummary[]> {
   return request<StudySummary[]>(`/api/selection/studies`);
 }
 
+/** One row of the palette's light search (D-207): only what it shows and links to. */
+export interface QuickSearchHit {
+  kind: "material" | "process" | "notebook" | "study";
+  id: number;
+  name: string;
+  class_name: string | null;
+  /** Set only for a process, whose page is addressed by slug. */
+  slug: string | null;
+}
+
+/**
+ * `GET /api/search` (D-207): ranked by the server (name starts with the term >
+ * whole word > word prefix > contains), accents ignored, `limit` per kind.
+ * Replaces downloading the whole catalogue the first time the palette opened.
+ */
+export function quickSearch(
+  q: string,
+  limit = 6,
+  signal?: AbortSignal,
+): Promise<{ items: QuickSearchHit[] }> {
+  const query = new URLSearchParams({ q, limit: String(limit) });
+  return request<{ items: QuickSearchHit[] }>(`/api/search?${query.toString()}`, { signal });
+}
+
 export function getStudy(id: number): Promise<StudyDetail> {
   return request<StudyDetail>(`/api/selection/studies/${id}`);
 }

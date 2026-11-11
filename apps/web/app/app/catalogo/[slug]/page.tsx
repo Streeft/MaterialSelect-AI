@@ -22,6 +22,7 @@ import {
   PageHeader,
   Section,
 } from "@/components/ui";
+import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.catalog;
 const f = ptBR.family;
@@ -56,6 +57,9 @@ export default function MaterialFamilyPage() {
     () => (materials.data ?? []).filter((m) => subtree.has(m.class_slug)),
     [materials.data, subtree],
   );
+
+  // D-207: the tab and the menu's "Recentes" carry the record's own name.
+  usePageTitle(family.data?.name);
 
   if (family.isLoading) return <LoadingState label={t.loading} />;
   if (family.isError) {

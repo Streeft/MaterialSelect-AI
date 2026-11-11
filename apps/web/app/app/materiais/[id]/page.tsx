@@ -46,6 +46,7 @@ import { MaterialOrdinals } from "@/components/material/MaterialOrdinals";
 import { CompositionEditor, DesignationEditor } from "@/components/material/IdentityEditors";
 import {
   Badge,
+  Breadcrumb,
   Button,
   ButtonLink,
   Card,
@@ -58,6 +59,7 @@ import {
   LoadingState,
   Section,
 } from "@/components/ui";
+import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.detail;
 
@@ -87,6 +89,9 @@ export default function MaterialDetailPage() {
   });
 
   useRecordVisit("material", Number.isFinite(id) ? id : undefined);
+  // D-207: the tab and the menu's "Recentes" carry the material's name — not
+  // the previous one's, kept on screen while another unit choice loads.
+  usePageTitle(material.isPlaceholderData ? null : material.data?.name);
   // D-152: a sheet the server answered is kept for reading without a connection.
   useKeepOfflineSheet(material.data, material.isPlaceholderData);
 
@@ -162,14 +167,26 @@ export default function MaterialDetailPage() {
 
   return (
     <div className="m3-sheet-actions-room flex flex-col gap-6">
-      <ButtonLink
-        href="/app/catalogo"
-        variant="link"
-        size="sm"
-        className="self-start"
-      >
-        {t.back}
-      </ButtonLink>
+      {/* D-207: where the material sits — catalogue, its family, itself. Until
+          it loads there is no family to name, so the way back is the plain link. */}
+      {data ? (
+        <Breadcrumb
+          items={[
+            { label: ptBR.nav.catalog, href: "/app/catalogo" },
+            { label: data.class_name, href: `/app/catalogo/${data.class_slug}` },
+            { label: data.name },
+          ]}
+        />
+      ) : (
+        <ButtonLink
+          href="/app/catalogo"
+          variant="link"
+          size="sm"
+          className="self-start"
+        >
+          {t.back}
+        </ButtonLink>
+      )}
 
       {material.isLoading && <LoadingState label={t.loading} />}
       {material.isError &&
