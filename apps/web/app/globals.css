@@ -1975,7 +1975,7 @@ aside[data-surface="rail"] .msds-rail-item {
   .m3-sheet-actions-room { padding-bottom: 96px; }
 }
 
-/* D-204: a keyboard shortcut written on a touch screen promises a key the
+/* D-205: a keyboard shortcut written on a touch screen promises a key the
    reader does not have. The shortcut itself stays (aria-keyshortcuts), only
    its printed hint goes. */
 @media (hover: none) and (pointer: coarse) {

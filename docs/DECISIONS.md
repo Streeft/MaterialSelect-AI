@@ -12061,42 +12061,6 @@ ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostr
 **Numeração.** O plano pedia D-195 e Sessão 152; os dois já estavam ocupados em `main` (Início que começa escrevendo),
 então esta decisão é a D-198 e a sessão é a 155.
 
-## D-204 — F0 da revisão das telas: correções rápidas de unidade, texto e sobrescrito
-
-**Contexto.** A revisão de todas as telas ("M3 na estrutura, Notion na superfície", plano publicado em 11/11/26) separou numa
-fase F0 o que estava errado sem pedir decisão: unidades escritas como o Pint as escreve, textos repetidos ou numerados fora de
-ordem, sinais visuais que diziam o contrário do que acontecia e um sobrescrito que metade das telas esquecia.
-
-**Decisão.**
-- **Unidade de tempo em símbolo.** `pretty_unit` (backend) e `prettyUnit` (frontend) escrevem `hour`/`minute`/`second` como
-  `h`/`min`/`s` ("1/hour" virava rótulo na ficha de processo). Só o rótulo muda; a conversão segue no Pint.
-- **Atributo de processo usa `valueUnit`**, como a ficha de material desde D-184: custo é grandeza adimensional (D-65, dinheiro
-  não está em sistema de unidades) e o traço de `prettyUnit` ao lado do número ("50.000 —") lia-se como ausente.
-- **Baterias: a unidade no rótulo** ("Tensão nominal do barramento (V)", "Energia útil requerida (kWh)"…), como em Dimensionar.
-  A vírgula decimal do `<input type=number>` é do navegador (D-167) e não muda.
-- **`IconUpload` aponta para cima.** O desenho antigo era o de baixar, em todo "Importar" do app.
-- **Etapa ainda não alcançada é neutra no `Stepper`.** Sai o anel tracejado laranja (cor de aviso) e o motivo vem em
-  `text-ink-muted`: não ter chegado à etapa é o estado comum do assistente, não um alerta.
-- **Textos:** o topo do catálogo lista "Famílias" (não "Subclasses", não há classe-mãe ali); o cartão "O que sairia" do
-  Sintetizar perde o número (ficava "2" ao lado de "4"); a página de releases não repete "Voltar ao catálogo" no estado vazio
-  (D-156); Meus registros não repete no estado vazio a descrição do cartão.
-- **O grupo do sobrescrito vem da rota.** `groupForPath` (`lib/design/sections.ts`) dá o grupo da barra lateral
-  ("estudar · dimensionar"), e o teste percorre `GROUPS` do `AppSidebar` para os dois não divergirem. `PageHeader` só aceita
-  `group` para sobrepor. Página de detalhe com trilha (família do catálogo, processo, família de processo) passa
-  `eyebrow={false}`: a trilha já diz onde se está.
-- **Vocabulário:** o índice em Dimensionar é `ExpressionLabel` (fração em KaTeX, D-191), nunca o slug; a coluna de unidade em
-  Administrar › Propriedades usa `dimensionName` ("adimensional", "MPa·m^0.5" legível); o "Ctrl K" da busca some em tela de
-  toque (`.kbd-hint`, `hover: none` e `pointer: coarse`), e o atalho continua em `aria-keyshortcuts`.
-
-**Alternativas recusadas.** Um "Baixar modelo CSV" no Importar (exige decidir o formato do modelo; fica para F8). Trocar o
-ícone só no Importar (o glifo errado estava no barril e servia a três telas). Manter o grupo por página (oito telas tinham
-esquecido).
-
-**Numeração.** D-199 a D-203 e as Sessões 156 a 160 estão nos PRs abertos #228 a #232; esta decisão é a D-204 e a sessão é a 161.
-Mexe em `apps/api` (`pretty_unit`): depois do merge, **Deploy da API**.
-
----
-
 ## D-203 — Workflow do Cérebro só manual
 
 **Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O
@@ -12138,3 +12102,61 @@ biblioteca, os testes falham e mostram. Plano B, se isso não bastar: rodar o jo
 
 **Consequência.** Queda do CDN da Microsoft por mais de ~2,5 min ainda derruba o job, e então o caminho é reexecutar.
 Nenhum teste nem código da app mudou. Sessão 161.
+
+## D-205 — F0 da revisão das telas: correções rápidas de unidade, texto e sobrescrito
+
+**Contexto.** A revisão de todas as telas ("M3 na estrutura, Notion na superfície", plano publicado em 11/11/26) separou numa
+fase F0 o que estava errado sem pedir decisão: unidades escritas como o Pint as escreve, textos repetidos ou numerados fora de
+ordem, sinais visuais que diziam o contrário do que acontecia e um sobrescrito que metade das telas esquecia.
+
+**Decisão.**
+- **Unidade de tempo em símbolo.** `pretty_unit` (backend) e `prettyUnit` (frontend) escrevem `hour`/`minute`/`second` como
+  `h`/`min`/`s` ("1/hour" virava rótulo na ficha de processo). Só o rótulo muda; a conversão segue no Pint.
+- **Atributo de processo usa `valueUnit`**, como a ficha de material desde D-184: custo é grandeza adimensional (D-65, dinheiro
+  não está em sistema de unidades) e o traço de `prettyUnit` ao lado do número ("50.000 —") lia-se como ausente.
+- **Baterias: a unidade no rótulo** ("Tensão nominal do barramento (V)", "Energia útil requerida (kWh)"…), como em Dimensionar.
+  A vírgula decimal do `<input type=number>` é do navegador (D-167) e não muda.
+- **`IconUpload` aponta para cima.** O desenho antigo era o de baixar, em todo "Importar" do app.
+- **Etapa ainda não alcançada é neutra no `Stepper`.** Sai o anel tracejado laranja (cor de aviso) e o motivo vem em
+  `text-ink-muted`: não ter chegado à etapa é o estado comum do assistente, não um alerta.
+- **Textos:** o topo do catálogo lista "Famílias" (não "Subclasses", não há classe-mãe ali); o cartão "O que sairia" do
+  Sintetizar perde o número (ficava "2" ao lado de "4"); a página de releases não repete "Voltar ao catálogo" no estado vazio
+  (D-156); Meus registros não repete no estado vazio a descrição do cartão.
+- **O grupo do sobrescrito vem da rota.** `groupForPath` (`lib/design/sections.ts`) dá o grupo da barra lateral
+  ("estudar · dimensionar"), e o teste percorre `GROUPS` do `AppSidebar` para os dois não divergirem. `PageHeader` só aceita
+  `group` para sobrepor. Página de detalhe com trilha (família do catálogo, processo, família de processo) passa
+  `eyebrow={false}`: a trilha já diz onde se está.
+- **Vocabulário:** o índice em Dimensionar é `ExpressionLabel` (fração em KaTeX, D-191), nunca o slug; a coluna de unidade em
+  Administrar › Propriedades usa `dimensionName` ("adimensional", "MPa·m^0.5" legível); o "Ctrl K" da busca some em tela de
+  toque (`.kbd-hint`, `hover: none` e `pointer: coarse`), e o atalho continua em `aria-keyshortcuts`.
+
+**Alternativas recusadas.** Um "Baixar modelo CSV" no Importar (exige decidir o formato do modelo; fica para F8). Trocar o
+ícone só no Importar (o glifo errado estava no barril e servia a três telas). Manter o grupo por página (oito telas tinham
+esquecido).
+
+**Numeração.** D-199 a D-203 e as Sessões 156 a 160 estão nos PRs abertos #228 a #232; e a D-204/Sessão 161 entrou na `main` (CI resiliente na instalação do Chromium); esta decisão é a D-205 e a sessão é a 162.
+Mexe em `apps/api` (`pretty_unit`): depois do merge, **Deploy da API**.
+
+## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
+
+**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
+inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
+"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
+
+**Decisão.**
+- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
+  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
+  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
+  `Response.error()`.
+- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
+  é uma navegação offline sem a página amigável, como antes de existir worker.
+- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
+- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
+
+**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
+ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
+bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
+
+**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
+internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
+---

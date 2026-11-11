@@ -181,7 +181,7 @@ export default function PropertiesAdminPage() {
                     {p.symbol && <span className="ml-1 text-ink-subtle">({p.symbol})</span>}
                   </RowHeader>
                   <Td className="text-ink-muted">{ptBR.categories[p.category]}</Td>
-                  {/* D-204: "MPa·m^0.5" and "dimensionless" are how the Pint spells them. */}
+                  {/* D-205: "MPa·m^0.5" and "dimensionless" are how the Pint spells them. */}
                   <Td className="text-ink-muted">{dimensionName(p.canonical_unit)}</Td>
                   <Td numeric className="text-ink-muted">
                     {p.value_count}

@@ -310,7 +310,7 @@ def pretty_unit(unit: str | None) -> str:
     # o que o Pint sabe reler — a regra do B11, intacta.
     s = re.sub(r"\bdegC\b", "°C", unit)
     s = re.sub(r"\bdegF\b", "°F", s)
-    # D-204: the time units the Pint spells out ("1/hour" on a process sheet).
+    # D-205: the time units the Pint spells out ("1/hour" on a process sheet).
     s = re.sub(r"\bhour\b", "h", s)
     s = re.sub(r"\bminute\b", "min", s)
     s = re.sub(r"\bsecond\b", "s", s)

@@ -159,7 +159,7 @@ describe("Dimensionar", () => {
   });
 
 
-  it("põe o grupo da barra no sobrescrito, sem a tela precisar dizê-lo (D-204)", async () => {
+  it("põe o grupo da barra no sobrescrito, sem a tela precisar dizê-lo (D-205)", async () => {
     render(wrap(<SolverPage />));
     expect(await screen.findByText("estudar · dimensionar")).toBeInTheDocument();
   });

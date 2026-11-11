@@ -64,7 +64,7 @@ describe("labelForPath", () => {
   });
 });
 
-// D-204: the eyebrow's group comes from the route, and agrees with the rail.
+// D-205: the eyebrow's group comes from the route, and agrees with the rail.
 describe("groupForPath", () => {
   it("gives every rail destination the label of the rail group it sits in", () => {
     for (const group of GROUPS) {

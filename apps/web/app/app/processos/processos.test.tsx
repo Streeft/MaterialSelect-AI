@@ -152,7 +152,7 @@ const detail: ProcessDetail = {
     },
   ],
 };
-// D-204: a cost is dimensionless (money is in no unit system, D-65) and an
+// D-205: a cost is dimensionless (money is in no unit system, D-65) and an
 // hourly rate arrives as the Pint's "1/hour".
 const scalarAttribute = detail.attributes[0]!;
 detail.attributes.push(
@@ -267,7 +267,7 @@ describe("a ficha do processo", () => {
     expect(screen.getByText("Oco 3D")).toBeInTheDocument();
   });
 
-  it("escreve custo sem traço e a unidade de tempo em símbolo (D-204)", async () => {
+  it("escreve custo sem traço e a unidade de tempo em símbolo (D-205)", async () => {
     route.pathname = "/app/processos/fundicao";
     render(wrap(<ProcessDetailPage />));
 

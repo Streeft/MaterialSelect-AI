@@ -1262,7 +1262,7 @@ export const ptBR = {
       "Escolha uma aplicação de referência ou configure livremente os requisitos elétricos e mecânicos.",
     customOption: "Personalizado",
     requirementsTitle: "Requisitos de projeto",
-    // D-204: a unidade no rótulo, como em Dimensionar ("Comprimento (m)").
+    // D-205: a unidade no rótulo, como em Dimensionar ("Comprimento (m)").
     targetVoltage: "Tensão nominal do barramento (V)",
     targetEnergy: "Energia útil requerida (kWh)",
     targetPower: "Potência de pico requerida (kW)",
@@ -1416,7 +1416,7 @@ export const ptBR = {
     previewing: "Calculando…",
     save: "Gravar registro",
     saving: "Gravando…",
-    // D-204: o resultado fica ao lado da receita; numerado, lia-se "2" ao lado de "4".
+    // D-205: o resultado fica ao lado da receita; numerado, lia-se "2" ao lado de "4".
     previewStep: "O que sairia",
     previewEmpty:
       "Esta receita não produziu valor nenhum com os dados que os pais têm.",
@@ -3083,7 +3083,7 @@ export const ptBR = {
     unwritten: "Ninguém escreveu este texto ainda.",
     inThisFamily: "Nesta família",
     subclasses: "Subclasses",
-    // D-204: no topo do catálogo não há classe-mãe; o que se lista são famílias.
+    // D-205: no topo do catálogo não há classe-mãe; o que se lista são famílias.
     families: "Famílias",
     countMaterials: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
     countDirect: (n: number) =>

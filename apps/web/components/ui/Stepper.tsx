@@ -67,7 +67,7 @@ function stepDotStyle(status: StepStatus): CSSProperties {
   if (status === "current") {
     return { borderColor: "rgb(var(--accent))", background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" };
   }
-  // D-204: a step not reached yet is the wizard's ordinary state, not a
+  // D-205: a step not reached yet is the wizard's ordinary state, not a
   // warning. It keeps MSDS's neutral dot; the orange dashed ring it had read
   // as an alarm on a screen where nothing had gone wrong.
   return {};
@@ -109,7 +109,7 @@ export function Stepper<T extends string>({
                   // A step is a button, so its outline is what says it can be
                   // pressed and owes 3:1 (WCAG 1.4.11). The blocked one is
                   // disabled and therefore exempt; it stays a solid, quiet
-                  // outline on the sunken surface (D-204).
+                  // outline on the sunken surface (D-205).
                   isCurrent
                     ? "border-brand bg-brand-50"
                     : status === "done"

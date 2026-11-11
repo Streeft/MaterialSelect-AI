@@ -80,7 +80,7 @@ function BookmarkList({
   // Absence is written out, never an empty panel (D-24): a blank area reads as
   // "this failed to load", which is a different thing from "you have not
   // starred anything yet". The card above already carries the hint, so the
-  // empty state does not repeat it (D-204).
+  // empty state does not repeat it (D-205).
   if (bookmarks.length === 0) {
     return <EmptyState title={emptyTitle} />;
   }

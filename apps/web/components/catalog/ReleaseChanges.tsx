@@ -147,7 +147,7 @@ export function ReleaseChanges() {
             {undeclared > 0 ? <> {t.noPairUndeclared(undeclared)}</> : null}
           </>
         }
-        // D-156/D-204: the page header already carries "Voltar ao catálogo".
+        // D-156/D-205: the page header already carries "Voltar ao catálogo".
       />
     );
   }

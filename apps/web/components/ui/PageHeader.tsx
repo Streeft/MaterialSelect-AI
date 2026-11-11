@@ -37,12 +37,12 @@ export function PageHeader({
   actions?: ReactNode;
   /**
    * The rail grouping. Left out, it comes from the route (`groupForPath`,
-   * D-204), so a page cannot forget it; pass it only to override.
+   * D-205), so a page cannot forget it; pass it only to override.
    */
   group?: string;
   /**
    * `false` on a detail page whose breadcrumb already says where it is
-   * (D-204): "dados · catálogo" over "Catálogo › Metais" said it twice.
+   * (D-205): "dados · catálogo" over "Catálogo › Metais" said it twice.
    */
   eyebrow?: boolean;
   className?: string;

@@ -108,7 +108,7 @@ export function labelForPath(pathname: string): string {
 }
 
 /**
- * D-204: the rail group a route sits in, in the words the eyebrow writes.
+ * D-205: the rail group a route sits in, in the words the eyebrow writes.
  * Before this, each page passed its own `group`, and eight of them forgot:
  * "dimensionar" stood alone where "estudar · mapas" had its group. The rail
  * (`AppSidebar` `GROUPS`) is the source; this mirrors it, and its test walks

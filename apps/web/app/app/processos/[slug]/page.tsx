@@ -184,7 +184,7 @@ function kindHint(value: ProcessAttributeValue): string | null {
 }
 
 function AttributeValueText({ value }: { value: ProcessAttributeValue }) {
-  // D-204: `valueUnit`, as the material sheet does since D-184. A cost is a
+  // D-205: `valueUnit`, as the material sheet does since D-184. A cost is a
   // dimensionless quantity here (D-65: money is in no unit system), and the
   // dash `prettyUnit` writes for it read as "missing" ("50.000 —").
   const unit = valueUnit(value.original_unit);

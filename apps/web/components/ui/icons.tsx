@@ -231,7 +231,7 @@ export const IconCompare = (p: IconProps) => (
   </Svg>
 );
 
-// D-204: the arrow leaves the tray. It used to point down into it, which is
+// D-205: the arrow leaves the tray. It used to point down into it, which is
 // the download glyph, on every "Importar" in the app.
 export const IconUpload = (p: IconProps) => (
   <Svg {...p}>

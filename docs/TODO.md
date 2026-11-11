@@ -87,7 +87,7 @@ quitados".
 
 ## Média prioridade
 
-**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 entregue** (D-204: unidades,
+**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 entregue** (D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). Próximas: F1 fundações do sistema de design (PageDoc, PropertyList, FilterBar,
 SavedViews…), F2 bases de dados, F3 fichas como documento, F4 bancadas, F5 Estudar, F6 Início, F7 Cadernos, F8 Entrada (com o
 "Baixar modelo CSV" do Importar), F9 Admin. Antes da F2, cinco decisões do autor: visões salvas em abas (revoga D-50 em parte),
@@ -154,7 +154,7 @@ onde guardar visões e layout, barra lateral clara como opção, um `primary` po
   tabelas e a seleção nos cartões do celular seguem em aberto); ~~(4) home estilo Drive~~ (entregue na Sessão 86, [D-132](DECISIONS.md)); ~~(5) rascunho salvo e saída segura no assistente da
   Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 96, [D-141](DECISIONS.md), só o esmaecer; a
   transformação de contêiner cartão→ficha foi entregue na Sessão 103, [D-148](DECISIONS.md)); ~~(7) app instalável~~ (entregue na Sessão 97, [D-142](DECISIONS.md), com ícone provisório e só a
-  página offline; ~~o catálogo offline com data~~ foi entregue na Sessão 107, [D-152](DECISIONS.md), só para fichas já abertas); ~~(8) Cadernos em grade com menu e
+  página offline, servida só com o aparelho sem rede desde a Sessão 156, [D-199](DECISIONS.md); ~~o catálogo offline com data~~ foi entregue na Sessão 107, [D-152](DECISIONS.md), só para fichas já abertas); ~~(8) Cadernos em grade com menu e
   painéis redimensionáveis~~ (entregue na Sessão 98, [D-143](DECISIONS.md)); ~~(9) região `aria-live` global~~ (entregue na Sessão 101, [D-146](DECISIONS.md), com o foco no título ao trocar de etapa); a regressão visual em
   quatro larguras (Playwright, REDESIGN §10) foi entregue na Sessão 102 ([D-147](DECISIONS.md)). Candidato extra: catálogo em *list-detail* em tela larga.
 

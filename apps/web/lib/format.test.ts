@@ -46,7 +46,7 @@ describe("prettyUnit", () => {
 
   it("turns compact squares and cubes into superscripts", () => {
     expect(prettyUnit("kg/m**3")).toBe("kg/m³");
-    // D-204: the time units the Pint spells out.
+    // D-205: the time units the Pint spells out.
     expect(prettyUnit("1/hour")).toBe("1/h");
     expect(prettyUnit("m/second**2")).toBe("m/s²");
     expect(prettyUnit("[length] / [time]")).toBe("[length] / [time]");

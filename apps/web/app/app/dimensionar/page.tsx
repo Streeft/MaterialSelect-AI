@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-// D-204: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
+// D-205: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LoadCase, SolveResult, SolverObjective } from "@/lib/types";
