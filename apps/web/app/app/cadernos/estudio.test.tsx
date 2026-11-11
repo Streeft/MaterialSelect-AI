@@ -327,7 +327,7 @@ describe("Estúdio: criar", () => {
   });
 
   it("the API's refusal is shown in the dialog", async () => {
-    api.createStudioArtifact.mockRejectedValue(new Error("Você usou as 10 gerações de hoje no Estúdio."));
+    api.createStudioArtifact.mockRejectedValue(Object.assign(new Error("Você usou as 10 gerações de hoje no Estúdio."), { status: 429 }));
     const user = userEvent.setup();
     render(wrap(<NotebookWorkspace id={4} />));
     await openTool(user, t.studioTools.quiz);

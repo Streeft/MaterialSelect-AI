@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useMutation } from "@tanstack/react-query";
 import { downloadEcoAudit, type ExportFormat } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -56,7 +57,7 @@ export function EcoExportMenu({
     <div className="flex flex-wrap items-center justify-end gap-3">
       {file.isError ? (
         <Alert tone="danger" role="alert" title={text.errorTitle}>
-          {file.error.message}
+          {describeApiError(file.error)}
         </Alert>
       ) : null}
       {file.isSuccess ? (

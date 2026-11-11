@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, importStudyFile } from "@/lib/api";
@@ -66,7 +67,7 @@ export function ImportStudyButton() {
       qc.invalidateQueries({ queryKey: ["studies"] });
       setDone(t.importDone(study.name));
     } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : t.readFailed);
+      setMessage(describeApiError(err, t.readFailed));
     } finally {
       setBusy(false);
     }

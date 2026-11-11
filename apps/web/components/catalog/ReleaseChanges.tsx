@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -96,7 +97,7 @@ function httpStatus(error: unknown): number | undefined {
 function errorDetail(error: unknown): string | undefined {
   const status = httpStatus(error);
   return status !== undefined && status >= 400 && status < 500 && error instanceof Error
-    ? error.message
+    ? describeApiError(error)
     : undefined;
 }
 

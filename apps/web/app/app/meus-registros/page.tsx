@@ -128,7 +128,7 @@ export default function MyRecordsPage() {
       <PageHeader title={t.title} description={t.subtitle} />
 
       {query.isLoading && <LoadingState />}
-      {query.isError && <ErrorState description={(query.error as Error).message} />}
+      {query.isError && <ErrorState error={query.error} onRetry={() => void query.refetch()} />}
 
       {query.data && (
         <>

@@ -156,7 +156,7 @@ export default function CustoPage() {
   );
 
   if (materials.isLoading) return <LoadingState label={t.title} />;
-  if (materials.isError) return <ErrorState description={String(materials.error)} />;
+  if (materials.isError) return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">

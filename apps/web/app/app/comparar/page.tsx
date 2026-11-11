@@ -503,10 +503,7 @@ function ComparePageContent() {
             {comparison.isLoading && <LoadingState label={t.loading} />}
             {comparison.isError && (
               <ErrorState
-                title={t.error}
-                description={
-                  comparison.error instanceof Error ? comparison.error.message : undefined
-                }
+                title={t.error} error={comparison.error}
                 onRetry={() => void comparison.refetch()}
               />
             )}
@@ -588,7 +585,7 @@ function ComparePageContent() {
             ) : (
               <>
                 {comparison.isLoading && <LoadingState label={t.computed.loading} />}
-                {comparison.isError && <ErrorState title={t.computed.error} />}
+                {comparison.isError && <ErrorState title={t.computed.error} error={comparison.error} onRetry={() => void comparison.refetch()} />}
                 {comparison.data && <ComputedTable comparison={comparison.data} />}
               </>
             )}

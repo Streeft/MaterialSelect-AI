@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError, getAIStatus, interpretStatement } from "@/lib/api";
@@ -71,7 +72,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
       setAcceptedConstraints(new Set(data.constraints.map((_, i) => i)));
       setAcceptedIndex(data.indices[0]?.slug ?? null);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : t.error),
+    onError: (err) => setError(describeApiError(err, t.error)),
   });
 
   const selectedCount = useMemo(

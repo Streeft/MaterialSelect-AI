@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -119,7 +120,7 @@ export function MaterialForm({ classes, properties, initial, copyFrom }: Materia
       qc.invalidateQueries({ queryKey: ["chart"] });
       router.push(`/app/materiais/${savedId}`);
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? err.message : ptBR.form.genericError);
+      setSubmitError(describeApiError(err, ptBR.form.genericError));
     }
   }
 

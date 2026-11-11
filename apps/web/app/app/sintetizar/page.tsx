@@ -301,11 +301,11 @@ export default function SintetizarPage() {
   if (kinds.isLoading || materials.isLoading || classes.isLoading) {
     return <LoadingState label={t.title} />;
   }
-  if (kinds.isError) return <ErrorState description={String(kinds.error)} />;
+  if (kinds.isError) return <ErrorState error={kinds.error} onRetry={() => void kinds.refetch()} />;
   if (materials.isError)
-    return <ErrorState description={String(materials.error)} />;
+    return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
   if (classes.isError)
-    return <ErrorState description={String(classes.error)} />;
+    return <ErrorState error={classes.error} onRetry={() => void classes.refetch()} />;
 
   const noteOf = (value: SynthesisKind) =>
     (kinds.data ?? []).find((item) => item.kind === value)?.note;

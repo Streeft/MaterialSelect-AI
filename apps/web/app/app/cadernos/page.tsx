@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createNotebook, listNotebooks } from "@/lib/api";
@@ -59,14 +60,13 @@ export default function NotebooksPage() {
       />
       {create.error ? (
         <Alert tone="danger" role="alert">
-          {create.error.message}
+          {describeApiError(create.error)}
         </Alert>
       ) : null}
       {notebooks.isPending ? (
         <ListSkeleton variant="cards" />
       ) : notebooks.error ? (
-        <ErrorState
-          description={notebooks.error.message}
+        <ErrorState error={notebooks.error}
           onRetry={() => void notebooks.refetch()}
         />
       ) : notebooks.data.length === 0 ? (

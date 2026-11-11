@@ -681,6 +681,9 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Erros crus na tela e menu que some com a API fora (Sessão 157, [D-200](DECISIONS.md))**~~ — `describeApiError`
+  único, `ErrorState` com `error`/retry, fronteiras na raiz, `AuthGate` com menu e "Redirecionando…", 404 distinto de
+  falha. Pendente (baixo): `studio_service._fail` ainda grava `str(exc)` do provedor de IA no artefato.
 - ~~**Pequenos acertos de UI da auditoria visual (Sessão 159, [D-202](DECISIONS.md))**~~ — barra inferior com rótulos de 12 px,
   rótulos de seção do menu com token AA, menu que cabe em 1280x800 e gaveta que rola, `/app/estilo` só para o curador em produção,
   resultados sem executar sem contradição nem truncamento, `<main>` em `/entrar` e `/assinatura`, chaves únicas no catálogo e vitrine

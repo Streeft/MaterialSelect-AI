@@ -933,9 +933,9 @@ export default function EcoPage() {
   if (materials.isLoading || modes.isLoading || routes.isLoading)
     return <LoadingState label={t.title} />;
   if (materials.isError)
-    return <ErrorState description={String(materials.error)} />;
-  if (modes.isError) return <ErrorState description={String(modes.error)} />;
-  if (routes.isError) return <ErrorState description={String(routes.error)} />;
+    return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
+  if (modes.isError) return <ErrorState error={modes.error} onRetry={() => void modes.refetch()} />;
+  if (routes.isError) return <ErrorState error={routes.error} onRetry={() => void routes.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">

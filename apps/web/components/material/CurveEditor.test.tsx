@@ -118,7 +118,7 @@ describe("CurveEditor (TM4-d)", () => {
   });
 
   it("shows the server's refusal", async () => {
-    api.createMaterialCurve.mockRejectedValue(new Error("x tem de crescer ao longo da série"));
+    api.createMaterialCurve.mockRejectedValue(Object.assign(new Error("x tem de crescer ao longo da série"), { status: 422 }));
     mount();
     await userEvent.type(await screen.findByRole("textbox", { name: t.points }), "1; 1{Enter}0; 2");
     await userEvent.click(screen.getByRole("button", { name: ptBR.actions.save }));

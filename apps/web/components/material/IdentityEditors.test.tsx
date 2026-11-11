@@ -100,7 +100,7 @@ describe("edição da composição (TM2-a)", () => {
   });
 
   it("shows the server's refusal", async () => {
-    api.replaceMaterialComposition.mockRejectedValue(new Error("Faixa invertida"));
+    api.replaceMaterialComposition.mockRejectedValue(Object.assign(new Error("Faixa invertida"), { status: 422 }));
     mount(<CompositionEditor materialId={7} entries={[chromium]} onDone={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: ptBR.actions.save }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Faixa invertida");

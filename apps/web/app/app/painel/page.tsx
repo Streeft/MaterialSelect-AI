@@ -282,8 +282,7 @@ function CatalogueTab({
   if (overview.isError || !overview.data) {
     return (
       <ErrorState
-        title={t.error}
-        description={overview.error instanceof Error ? overview.error.message : undefined}
+        title={t.error} error={overview.error}
         onRetry={() => void overview.refetch()}
       />
     );
@@ -428,8 +427,7 @@ function PropertiesTab({
       {correlation.isLoading ? <LoadingState label={d.loading} /> : null}
       {correlation.isError ? (
         <ErrorState
-          title={d.error}
-          description={correlation.error instanceof Error ? correlation.error.message : undefined}
+          title={d.error} error={correlation.error}
           onRetry={() => void correlation.refetch()}
         />
       ) : null}

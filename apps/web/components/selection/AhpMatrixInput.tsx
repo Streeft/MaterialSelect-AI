@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, deriveAhpWeights } from "@/lib/api";
@@ -118,7 +119,7 @@ export function AhpMatrixInput({ criteria, onDerived }: AhpMatrixInputProps) {
 
   const errorMessage = query.isError
     ? query.error instanceof ApiError
-      ? query.error.message
+      ? describeApiError(query.error)
       : ptBR.selection.genericError
     : null;
 

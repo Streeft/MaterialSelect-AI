@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { replaceMaterialComposition, replaceMaterialDesignations } from "@/lib/api";
@@ -104,7 +105,7 @@ export function CompositionEditor({
       await qc.invalidateQueries({ queryKey: ["material", materialId] });
       onDone();
     },
-    onError: (e: Error) => setProblem(e.message),
+    onError: (e: Error) => setProblem(describeApiError(e)),
   });
 
   const update = (key: number, patch: Partial<CompositionRow>) =>
@@ -294,7 +295,7 @@ export function DesignationEditor({
       await qc.invalidateQueries({ queryKey: ["material", materialId] });
       onDone();
     },
-    onError: (e: Error) => setProblem(e.message),
+    onError: (e: Error) => setProblem(describeApiError(e)),
   });
   const update = (key: number, patch: Partial<DesignationRow>) =>
     setRows((current) => current.map((r) => (r.key === key ? { ...r, ...patch } : r)));

@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addExternalSource, getSourceCapabilities, searchSources } from "@/lib/api";
@@ -126,7 +127,7 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
           setSelected((now) => now.filter((key) => key !== result.key));
           await refresh();
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = describeApiError(error);
           setItems((now) => ({ ...now, [result.key]: { state: "failed", message } }));
           // A failed fetch still left the server and counted.
           void refresh();
@@ -253,7 +254,7 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
 
       {search.error ? (
         <Alert tone="danger" role="alert">
-          {search.error.message}
+          {describeApiError(search.error)}
         </Alert>
       ) : null}
 

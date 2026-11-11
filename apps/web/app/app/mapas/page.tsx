@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -770,8 +771,7 @@ function MapsPageContent() {
           {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
           {map.isError && (
             <ErrorState
-              title={t.error}
-              description={map.error instanceof Error ? map.error.message : undefined}
+              title={t.error} error={map.error}
               onRetry={() => void map.refetch()}
             />
           )}
@@ -825,7 +825,7 @@ function MapsPageContent() {
                               })
                             ).box;
                           } catch (error) {
-                            setHandoffError(error instanceof Error ? error.message : String(error));
+                            setHandoffError(describeApiError(error));
                             return;
                           } finally {
                             setHandingOff(false);

@@ -12127,6 +12127,42 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
+## D-200 — Erros humanos e com saída: um só tradutor de falha, menu que sobrevive, 404 que não finge ser falha
+
+**Contexto.** Na auditoria visual, a falha de rede aparecia como "Failed to fetch" e o erro do servidor como "Internal
+Server Error: sqlalchemy…" em Cadernos, Mapas e Meus registros; cerca de doze telas (painel, sintetizar, eco, custo,
+dimensionar, baterias…) mostravam `String(err)` ou `err.message` crus; algumas `ErrorState` não tinham "Tentar de novo";
+com a API fora o `AuthGate` trocava o app inteiro por "Algo não funcionou" e o menu sumia; `catalogo/[slug]` dizia
+"pasta vazia" quando a consulta falhava (ausência inventada a partir de erro) e devolvia `null` sem família; a ficha não
+distinguia 404 de falha; o `AuthGate` ficava em branco durante o redirecionamento.
+
+**Decisão.**
+- **`describeApiError` (`lib/errors.ts`) é o único tradutor** de falha para texto de tela, com as frases em
+  `lib/i18n-errors.ts`: rede (status 0 ou `TypeError`), 401, 403, 404, 409, 400/422, 429 e 5xx. Um 4xx legível mantém a
+  frase do servidor ("Nome já em uso", limite diário), pois diz o que corrigir; 401 e 5xx **nunca** a mostram, e um
+  texto com cara de desenvolvedor (SQLAlchemy, traceback, "Failed to fetch") é descartado em qualquer status. Quem
+  recebe um valor que não é do tipo `ApiError` cai no texto de fallback do chamador.
+- `request()` em `lib/api.ts` converte a falha do `fetch` em `ApiError(status 0)`; o cancelamento (`AbortError`) passa.
+- **`ErrorState` aceita `error`** e escolhe título e frase por tipo de falha; todo uso com `onRetry` mostra "Tentar de
+  novo". Os pontos crus (`String(err)`, `err.message`) passaram a usar o helper.
+- **Fronteiras:** `app/error.tsx` e `app/not-found.tsx` na raiz (com caminho de volta); `app/app/error.tsx` fica dentro do
+  layout, então menu e busca continuam; a mensagem lançada vai ao `console.error`, nunca à tela.
+- **`AuthGate`:** falha da checagem de sessão ou de assinatura (API fora, 5xx) mostra o menu e a falha com "Tentar de
+  novo"; só 401 sai do app. O redirecionamento mostra "Redirecionando…" em vez de página em branco.
+- **`catalogo/[slug]` e ficha:** consulta de materiais ou classes que falha mostra o erro, não "nenhum material"; família
+  e material com 404 dizem "não encontrado" com a saída (sem "tentar de novo", que não adianta); falha de verdade tem
+  retry; sem slug não é mais tela em branco.
+- **Backend:** nenhuma mudança. O tratador global de `Exception` (D-198) já devolve `detail` em PT-BR e registra o
+  traceback; os `str(exc)` que restam em `main.py` e nos serviços são mensagens de domínio escritas para o leitor.
+  Fica como risco conhecido o `studio_service._fail(artifact, str(exc))`, que grava no artefato o texto de uma falha do
+  provedor de IA; o front agora o filtra, mas o texto continua armazenado.
+
+**Alternativas recusadas.** Mostrar sempre a frase do servidor (vazaria SQL em 500); trocar o texto no backend por
+status (o front já precisa cobrir a rede, que não chega ao backend); mostrar o `children` com a API fora (o portão
+deixaria de ser portão).
+
+---
+
 ---
 
 ## D-201 — Confirmações no diálogo MSDS e exclusões do admin com confirmação

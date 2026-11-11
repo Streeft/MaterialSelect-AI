@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { convertMapBox, getPropertyMap } from "@/lib/api";
@@ -1089,7 +1090,7 @@ function ChartStageFields({
       .catch((error: unknown) => {
         // Never fall back to writing the drawn numbers: they are in another unit.
         if (seq !== boxSeq.current) return;
-        setBoxError(error instanceof Error ? error.message : String(error));
+        setBoxError(describeApiError(error));
       });
   };
 

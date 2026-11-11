@@ -3288,6 +3288,7 @@ export const ptBR = {
     },
     checkingSession: "Verificando sessão…",
     checkingSubscription: "Verificando assinatura…",
+    redirecting: "Redirecionando…",
     logout: "Sair",
     loggingOut: "Saindo…",
   },

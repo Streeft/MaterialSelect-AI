@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type CSSProperties } from "react";
@@ -107,8 +108,7 @@ export function NotebookWorkspace({ id }: { id: number }) {
   if (notebook.isPending) return <LoadingState />;
   if (notebook.error || !notebook.data) {
     return (
-      <ErrorState
-        description={notebook.error?.message}
+      <ErrorState error={notebook.error}
         onRetry={() => void notebook.refetch()}
       />
     );
@@ -346,7 +346,7 @@ function Header({
       <IconButton label={t.remove} icon={<IconTrash />} onClick={remove} />
       {rename.error ? (
         <Alert tone="danger" role="alert" className="w-full">
-          {rename.error.message}
+          {describeApiError(rename.error)}
         </Alert>
       ) : null}
     </div>

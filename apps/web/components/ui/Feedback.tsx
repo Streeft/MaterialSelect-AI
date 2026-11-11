@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
+import { describeApiError, describeApiErrorTitle } from "@/lib/errors";
 import { useOnline } from "@/lib/useOnline";
 import { IconInfo } from "./icons";
 import { Button } from "./Button";
@@ -129,11 +130,18 @@ export function LoadingState({
 export function ErrorState({
   title,
   description,
+  error,
   onRetry,
   className,
 }: {
   title?: string;
   description?: ReactNode;
+  /**
+   * The thrown value of a failed query or mutation (D-200). Passing it, instead
+   * of its `.message`, is what keeps "Failed to fetch" and server details off
+   * the screen: the text is chosen by kind of failure in `describeApiError`.
+   */
+  error?: unknown;
   onRetry?: () => void;
   className?: string;
 }) {
@@ -141,6 +149,10 @@ export function ErrorState({
   // wording says it. A caller that passes its own title keeps it.
   const online = useOnline();
   const offlineDefault = !online && title === undefined;
+  if (error !== undefined && error !== null) {
+    title = title ?? describeApiErrorTitle(error);
+    description = description ?? describeApiError(error);
+  }
   return (
     <div role="alert" className={className}>
       <MsdsErrorState

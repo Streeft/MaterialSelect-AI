@@ -127,8 +127,7 @@ export function TopRanking({
         {top.isLoading ? <LoadingState label={d.loading} /> : null}
         {top.isError ? (
           <ErrorState
-            title={d.error}
-            description={top.error instanceof Error ? top.error.message : undefined}
+            title={d.error} error={top.error}
             onRetry={() => void top.refetch()}
           />
         ) : null}

@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
 import { ptBR } from "@/lib/i18n";
+import { errorsText } from "@/lib/i18n-errors";
 import type { BillingStatus, CurrentUser } from "@/lib/types";
 
 const route = { pathname: "/" };
@@ -18,6 +19,12 @@ vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
   useRouter: () => ({ replace: routerReplace }),
 }));
+
+// The failure screens keep the menu (D-200); the menu has its own tests.
+vi.mock("@/components/layout/AppSidebar", () => ({
+  AppSidebar: () => <nav aria-label="menu">menu</nav>,
+}));
+vi.mock("@/components/layout/BottomNav", () => ({ BottomNav: () => null }));
 
 const getCurrentUser = vi.fn();
 const getBillingStatus = vi.fn();
@@ -218,5 +225,23 @@ describe("AuthGate — assinatura", () => {
     getBillingStatus.mockClear();
     fireEvent.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
     await waitFor(() => expect(getBillingStatus).toHaveBeenCalled());
+  });
+
+  it("keeps the menu and shows readable text when the API is down (D-200)", async () => {
+    getCurrentUser.mockRejectedValue(new ApiError("Falha de rede", 0));
+    renderGate(<p>Conteúdo protegido</p>);
+
+    expect(await screen.findByText("menu")).toBeInTheDocument();
+    expect(await screen.findByText(errorsText.network)).toBeInTheDocument();
+    expect(screen.queryByText("Falha de rede")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it("shows a redirect notice, not a blank page, while leaving for /entrar", async () => {
+    getCurrentUser.mockRejectedValue(new ApiError("Não autenticado.", 401));
+    renderGate(<p>Conteúdo protegido</p>);
+
+    expect(await screen.findByText(ptBR.auth.redirecting)).toBeInTheDocument();
   });
 });

@@ -381,7 +381,7 @@ export function SimilarPanel({
             )}
           </div>
 
-          {search.isError && <ErrorState description={search.error.message} />}
+          {search.isError && <ErrorState error={search.error} onRetry={() => search.mutate()} />}
 
           {result && (
             <div className="flex flex-col gap-4">

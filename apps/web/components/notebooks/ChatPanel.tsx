@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Notebook, NotebookMessage } from "@/lib/types";
@@ -175,7 +176,7 @@ export function ChatPanel({
 
           {guide.error ? (
             <Alert tone="warning" role="alert">
-              {guide.error.message}
+              {describeApiError(guide.error)}
             </Alert>
           ) : null}
 
@@ -265,12 +266,12 @@ export function ChatPanel({
       <div className="flex flex-col gap-2 border-t border-edge-subtle px-4 py-3 sm:px-6">
         {ask.error ? (
           <Alert tone="danger" role="alert">
-            {ask.error.message}
+            {describeApiError(ask.error)}
           </Alert>
         ) : null}
         {save.error ? (
           <Alert tone="danger" role="alert">
-            {save.error.message}
+            {describeApiError(save.error)}
           </Alert>
         ) : null}
         <form

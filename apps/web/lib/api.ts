@@ -194,16 +194,24 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-    credentials: "include",
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch (cause) {
+    // An aborted request (a cancelled query) is not a network failure: let it through.
+    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    // Nothing answered. Status 0 is how `describeApiError` knows (D-200).
+    throw new ApiError("Falha de rede", 0);
+  }
   if (!res.ok) {
     throw new ApiError(
       await errorMessage(res, `Falha na requisição ${path}`),
