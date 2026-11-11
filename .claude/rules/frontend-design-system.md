@@ -111,7 +111,8 @@ ficou sem objeto. Três regras que não são questão de gosto:
   novo respeita `prefers-reduced-motion`.
 
 - **O app é instalável, mas não guarda dado de material** ([D-142](docs/DECISIONS.md)): `public/sw.js`
-  só responde com `/offline.html` a uma navegação que falhou. Nunca cache de API, catálogo, estudo
+  só responde com `/offline.html` a uma navegação que falhou **com o aparelho sem rede** (`navigator.onLine === false`,
+  [D-199](docs/DECISIONS.md)); online, repassa o erro real. Nunca cache de API, catálogo, estudo
   ou resultado: propriedade sem fonte e data fere o princípio 1. Ao mudar `offline.html`, mude `CACHE`.
   **Exceção única** ([D-152](docs/DECISIONS.md)): a ficha já aberta fica no `localStorage` como texto
   (`lib/offlineSheets.ts`), com a fonte e a data da leitura em cada valor, e só `offline.html` a mostra. Nada de
