@@ -25,7 +25,7 @@ mudou `Cérebro/removidos.txt`, a mesma aba tem `conhecimento_simular_remocao`
 e, conferido o log, `conhecimento_remover` (D-100). Se tocou `Cérebro/` ou
 `Cérebro/manifesto.json`, dispare **Base de conhecimento (Cérebro)**
 (`conhecimento.yml`), ação `ingerir`, fora do horário de aula — os vetores dos
-trechos novos chegam na execução noturna (D-101). Passo a
+trechos novos só saem rodando `embeddings` à mão (sem execução noturna, D-203). Passo a
 passo completo e por quê em [`docs/13-deploy.md` §5-ter](docs/13-deploy.md).
 Pular este passo é a causa mais provável de "o PR está em `main` mas não
 aparece no ar". A outra causa, menos visível: um dado de seed que vive num
