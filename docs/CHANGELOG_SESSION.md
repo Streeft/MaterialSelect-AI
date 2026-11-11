@@ -131,6 +131,13 @@ Dimensionar; unidade legível em Administrar › Propriedades; "Ctrl K" escondid
 (`test_pretty_unit`), +6 de frontend medidos (1632 → 1638: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
 backend 5415 (5409 passam e 6 pulam), frontend 1638 passam (150 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
 a #232: ficou D-204/161. Sem migração; depois do merge, **Deploy da API** (`pretty_unit`).
+## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
+
+`conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
+(§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
+`docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
 
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 

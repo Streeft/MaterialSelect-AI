@@ -12094,3 +12094,19 @@ esquecido).
 
 **Numeração.** D-199 a D-203 e as Sessões 156 a 160 estão nos PRs abertos #228 a #232; esta decisão é a D-204 e a sessão é a 161.
 Mexe em `apps/api` (`pretty_unit`): depois do merge, **Deploy da API**.
+
+---
+
+## D-203 — Workflow do Cérebro só manual
+
+**Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O
+`conhecimento.yml` rodava por cron diário contra o banco, gerando até ~1000 pedidos ao Gemini e consumindo banda de Git
+LFS: suspeito principal.
+
+**Decisão.** Retirar o gatilho `schedule`; fica só `workflow_dispatch`, mantendo ações, passos e a trava de concorrência.
+Rodar o Cérebro (`ingerir`, `embeddings`, `status`) passa a ser decisão manual, vigiando cota do Neon e banda de LFS.
+
+**Alternativas descartadas.** Reduzir o limite noturno (ainda escreve todo dia no banco); apagar o passo "Janela noturna"
+(inofensivo sem `schedule`, e facilita repor o agendamento).
+
+**Consequência.** Voltar ao agendamento exige decisão nova. Sessão 160.
