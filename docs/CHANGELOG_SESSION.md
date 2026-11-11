@@ -131,7 +131,10 @@ Recentes primeiro sem texto); "?" lista também as teclas da paleta; menu latera
 **Recentes** em `localStorage` com `try/catch`, página atual sempre à vista; **título da aba** por página (`usePageTitle`,
 `DocumentTitle`); **migalhas** na ficha do material e no caderno. Testes: +18 de backend (`test_quick_search.py`: ordem, acento,
 limite, carga, dono, login, acesso; e `/api/search` na varredura de isolamento), +27 de frontend (paleta, ações, menu, título da
-aba, migalhas, atalhos; axe em cada um) e +1 de E2E (`e2e/paleta.spec.ts`: Ctrl+K, "aço", Enter abre um aço). Suíte: backend
+aba, migalhas, atalhos; axe em cada um) e +1 de E2E (`e2e/paleta.spec.ts`: Ctrl+K, "aço", Enter abre um aço). Na CI, o E2E
+pegou dois efeitos do menu novo: a página aberta aparecia em Recentes com um botão "Fixar <título>" que colidia com o rótulo
+"Título" do caderno (corrigido na raiz: Recentes não lista a página aberta) e o primeiro link para uma ficha passou a ser o do
+menu (seletores de `transicao`/`offline` agora dentro de `<main>`). Suíte: backend
 5433 (192 arquivos), frontend 1714 passam (161 arquivos). Sem migração nem seed; depois do merge, **Deploy da API** (rota nova).
 
 ## Sessão 162 — 11/11/26 — F0 da revisão das telas: correções rápidas (D-205)

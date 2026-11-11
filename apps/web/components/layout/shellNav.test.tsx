@@ -148,6 +148,8 @@ describe("Fixados e Recentes", () => {
 
   it("mostra as visitas recentes, a mais nova primeiro, e deixa fixá-las", async () => {
     act(() => {
+      // The page on screen (/app/mapas) is not listed as a recent.
+      recordRecent({ href: "/app/mapas", label: nav.maps });
       recordRecent({ href: "/app/materiais/7", label: "Aço inoxidável 304" });
       recordRecent({ href: "/app/processos/fundicao", label: "Fundição em areia" });
       recordRecent({ href: "/app/materiais/7", label: "Aço inoxidável 304" });

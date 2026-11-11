@@ -25,7 +25,7 @@ test("criar um caderno, colar uma fonte, perguntar e abrir a citação", async (
   // Adicionar fontes → Colar texto.
   await page.getByRole("button", { name: "Adicionar fontes" }).click();
   await page.getByRole("tab", { name: "Colar texto" }).click();
-  await page.getByLabel("Título").fill("Aula de aços");
+  await page.getByLabel("Título", { exact: true }).fill("Aula de aços");
   await page.getByRole("textbox", { name: "Texto" }).fill(SOURCE);
   await page.getByRole("button", { name: "Adicionar texto" }).click();
 
@@ -72,7 +72,7 @@ test("gerar um relatório e cartões no Estúdio, abrir e exportar", async ({ pa
   await page.waitForURL(/\/app\/cadernos\/\d+/, { timeout: 20_000 });
   await page.getByRole("button", { name: "Adicionar fontes" }).click();
   await page.getByRole("tab", { name: "Colar texto" }).click();
-  await page.getByLabel("Título").fill("Aula de aços");
+  await page.getByLabel("Título", { exact: true }).fill("Aula de aços");
   await page.getByRole("textbox", { name: "Texto" }).fill(SOURCE);
   await page.getByRole("button", { name: "Adicionar texto" }).click();
   await expect(page.getByRole("button", { name: "Ler a fonte “Aula de aços”" })).toBeVisible();

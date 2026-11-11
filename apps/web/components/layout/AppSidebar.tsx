@@ -384,7 +384,10 @@ function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: st
   const collapsedGroups = useCollapsedGroups();
   const currentTitle = useTitleOverride(pathname) ?? routeTitle(pathname);
   const currentPinned = isPinned(pinned, pathname);
-  const shownRecents = recents.slice(0, SHOWN_RECENTS);
+  // The page on screen is not a "recent": it is where the reader is, already
+  // marked in the menu, and listing it twice put a second "Fixar <this page>"
+  // button beside the one in the title.
+  const shownRecents = recents.filter((entry) => entry.href !== pathname).slice(0, SHOWN_RECENTS);
 
   const pinnedListId = `${idPrefix}-list-pinned`;
   const recentsListId = `${idPrefix}-list-recents`;

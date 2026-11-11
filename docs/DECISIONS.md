@@ -12294,7 +12294,7 @@ do leitor; a ficha do material e o caderno não tinham trilha; a aba do navegado
   a ação da paleta abre a mesma lista por um evento de janela.
 - **Menu lateral que lembra** (`lib/navMemory.ts`): grupos recolhíveis pelo título (botão com `aria-expanded`), seção
   **Fixados** (botão "Fixar esta página" no título; desafixar ao lado de cada item) e **Recentes** (as 5 últimas páginas ou
-  registros com nome; até 8 guardados). Tudo em `localStorage` lido por `useSyncExternalStore` (servidor e primeiro render
+  registros com nome, sem a página aberta, que já está marcada no menu; até 8 guardados). Tudo em `localStorage` lido por `useSyncExternalStore` (servidor e primeiro render
   concordam), com `try/catch` em toda leitura e escrita: se o armazenamento recusa, vale a memória até recarregar. Entrada
   inválida no armazenamento (outro domínio, tipo errado) é descartada. Um grupo recolhido **continua mostrando a página
   atual**; a lista segue rolando dentro do trilho (D-202) e o trilho recolhido não desenha Fixados/Recentes (um registro não
@@ -12310,6 +12310,9 @@ do leitor; a ficha do material e o caderno não tinham trilha; a aba do navegado
 `unaccent`/coluna normalizada agora (migração fora do escopo). Botão de fixar em todo item do menu (dobraria as paradas de Tab).
 `metadata` do Next por rota (as telas são componentes de cliente; o nome do registro só existe depois da consulta). Persistir o
 trilho estreito (continua estado de React, como antes: ler o armazenamento na carga o faria piscar).
+
+**E2E.** Os links do menu (Recentes) também apontam para fichas: os seletores de E2E que pegavam "o primeiro link para
+`/app/materiais/`" passam a procurar dentro de `<main>`, e o campo "Título" do caderno é buscado pelo rótulo exato.
 
 **Numeração.** D-206/Sessão 163 ficaram com o PR 2.3, que corre em paralelo; esta é a D-207 e a sessão é a 164.
 Mexe em `apps/api` (rota nova): depois do merge, **Deploy da API**. Sem migração nem seed.
