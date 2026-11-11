@@ -20,7 +20,7 @@
 #                        o Cérebro inteiro gastaria a banda de LFS do mês.
 #   embeddings           gera vetores agora, até `limite_pedidos` pedidos
 #                        (`python -m app.knowledge.embed`).
-#   (noturno, sozinho)   o mesmo, toda noite, com a sobra da cota diária
+#   (noturno)            DESLIGADO (D-203): era o mesmo, toda noite, com a sobra da cota diária
 #                        gratuita do Gemini — até 1000 pedidos ou o fim da
 #                        janela antes da virada da cota (meia-noite do
 #                        Pacífico), o que vier antes.
@@ -98,12 +98,10 @@ on:
         required: false
         type: string
         default: "20"
-  # 05:07 UTC = 22:07 no horário de verão do Pacífico (21:07 fora dele): a
-  # última hora e pouco antes de a cota diária do Gemini virar, quando o que
-  # sobrou do dia já não serve a mais ninguém. O passo "Janela noturna" confere
-  # a hora de verdade, porque o GitHub pode atrasar um agendamento.
-  schedule:
-    - cron: "7 5 * * *"
+  # SEM `schedule` de propósito (D-203): a execução noturna gerava até ~1000
+  # pedidos ao Gemini por dia contra o banco e puxava banda de Git LFS; o Neon
+  # grátis antigo estourou a cota ("exceeded the quota"). Só roda à mão. Para
+  # voltar ao agendamento, é uma decisão nova: reponha `schedule` com cron.
 
 # O mesmo grupo do `admin-banco.yml`: as duas escrevem nas mesmas tabelas, e
 # uma ingestão não pode correr junto de um `conhecimento_remover`.

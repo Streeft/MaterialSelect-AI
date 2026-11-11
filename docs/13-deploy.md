@@ -216,7 +216,7 @@ disparo manual em `.github/workflows/`, na aba **Actions** do repositório.
 | **Deploy da API (Fly.io)** | `flyctl deploy --remote-only` | o `fly deploy` do §2 |
 | **Administração do banco** | `migrar`, `semear_referencia`, `semear_demo`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, ações do Cérebro, `conceder`, `revogar` | o `fly ssh console` do §2 e do §5 |
 | **Modo de acesso** | `abrir`, `restaurar_assinatura` — grava `ACCESS_MODE` no Fly e confere em `/api/health` | o `fly secrets set` do §5-quater |
-| **Base de conhecimento (Cérebro)** | `status`, `ingerir`, `embeddings`, e uma execução noturna agendada — põe o Cérebro no banco (§5-septies) | a ingestão offline, que não tinha onde rodar |
+| **Base de conhecimento (Cérebro)** | `status`, `ingerir`, `embeddings`, só à mão (sem agendamento, D-203) — põe o Cérebro no banco (§5-septies) | a ingestão offline, que não tinha onde rodar |
 
 Para as operações usuais, dois segredos em *Settings → Secrets and variables → Actions*:
 
@@ -725,6 +725,16 @@ o Gemini responde a uma chave errada com 400, não 401) ou o servidor fora do ar
 depois de três novas tentativas. Um trecho que o servidor sempre recusa
 aparece como `::warning::` em toda execução e fica pendente, sem travar os
 outros; tirá-lo de vez é tirar o documento pela lista de remoção.
+
+**Só manual (D-203).** O `schedule` foi retirado de `conhecimento.yml`: a execução
+noturna fazia até ~1000 pedidos ao Gemini por dia contra o banco e puxava banda
+de Git LFS (1 GB/mês no plano grátis), e o Neon grátis antigo estourou a cota
+("exceeded the quota"), sendo trocado por um projeto novo. Para rodar: *Actions →
+Base de conhecimento (Cérebro) → Run workflow*, ação `embeddings` com
+`limite_pedidos` baixo (ex.: 300), ou `ingerir`/`status`. Vigie o armazenamento e
+as horas de computação do Neon e a banda de LFS antes de rodar de novo, e não use
+`forcar` sem necessidade. Voltar ao agendamento pede decisão nova. O que segue
+vale **só se o agendamento for reposto**:
 
 **O agendamento tem regras do GitHub que o código não controla:**
 

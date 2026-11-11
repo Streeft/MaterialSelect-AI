@@ -127,6 +127,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 mostra o erro real. Falha ao guardar a página na instalação não quebra o registro. Cache sobe para `msai-offline-v3`. +3 de frontend
 em `lib/pwa/pwa.test.tsx` (4 testes falhavam antes da correção); `e2e/offline.spec.ts` abre `/offline.html` direto e não muda.
 Suíte: frontend 1635 passam. Sem backend nem migração.
+## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
+
+`conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
+(§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
+`docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
 
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
