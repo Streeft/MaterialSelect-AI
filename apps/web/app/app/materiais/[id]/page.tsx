@@ -49,6 +49,7 @@ import {
   Card,
   CardBody,
   ClassBadge,
+  ConfirmDialog,
   DataQualityLegend,
   EmptyState,
   ErrorState,
@@ -132,10 +133,10 @@ export default function MaterialDetailPage() {
       setDuplicateError(err instanceof Error ? err.message : ptBR.detail.error),
   });
 
+  // D-201: confirmation on the MSDS dialog, not window.confirm.
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
   function handleDeactivate() {
-    if (window.confirm(ptBR.actions.confirmDeactivate)) {
-      deactivate.mutate();
-    }
+    setConfirmingDeactivate(true);
   }
 
   const data = material.data;
@@ -294,6 +295,17 @@ export default function MaterialDetailPage() {
                     {ptBR.actions.deactivate}
                   </Button>
                 )}
+                <ConfirmDialog
+                  open={confirmingDeactivate}
+                  title={ptBR.actions.deactivate}
+                  message={ptBR.actions.confirmDeactivate}
+                  confirmLabel={ptBR.actions.deactivate}
+                  onCancel={() => setConfirmingDeactivate(false)}
+                  onConfirm={() => {
+                    setConfirmingDeactivate(false);
+                    deactivate.mutate();
+                  }}
+                />
               </div>
               {duplicateError && (
                 <p role="alert" className="w-full text-support text-danger-fg">

@@ -12,6 +12,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  ConfirmDialog,
   ErrorState,
   Input,
   LoadingState,
@@ -56,14 +57,22 @@ export default function ClassesAdminPage() {
       setError(null);
       qc.invalidateQueries({ queryKey: ["classes"] });
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteClass(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["classes"] }),
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
   });
+
+  // D-201: the row awaiting delete confirmation (MSDS dialog; deletion is permanent).
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   const classes: MaterialClass[] = data ?? [];
 
@@ -80,8 +89,17 @@ export default function ClassesAdminPage() {
       >
         <Card>
           <CardBody className="grid gap-3 sm:grid-cols-4">
-            <Input label={ptBR.form.name} value={name} onChange={(e) => setName(e.target.value)} required />
-            <Select label={ptBR.admin.parent} value={parentId} onChange={(e) => setParentId(e.target.value)}>
+            <Input
+              label={ptBR.form.name}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <Select
+              label={ptBR.admin.parent}
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+            >
               <SelectOption value="">{ptBR.admin.noParent}</SelectOption>
               {classes.map((c) => (
                 <SelectOption key={c.id} value={String(c.id)}>
@@ -111,7 +129,24 @@ export default function ClassesAdminPage() {
       )}
 
       {isLoading && <LoadingState label={ptBR.catalog.loading} />}
-      {isError && <ErrorState title={ptBR.catalog.error} onRetry={() => void refetch()} />}
+      {isError && (
+        <ErrorState title={ptBR.catalog.error} onRetry={() => void refetch()} />
+      )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete ? ptBR.admin.confirmDeleteClass(pendingDelete.name) : ""
+        }
+        message={ptBR.admin.confirmDeleteBody}
+        confirmLabel={ptBR.actions.delete}
+        pending={remove.isPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) remove.mutate(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+      />
 
       {data && (
         <TableScroll label={ptBR.admin.classesTitle}>
@@ -131,7 +166,9 @@ export default function ClassesAdminPage() {
               {classes.map((c) => (
                 <Tr key={c.id}>
                   <RowHeader>{c.name}</RowHeader>
-                  <Td className="font-mono text-2xs text-ink-muted">{c.slug}</Td>
+                  <Td className="font-mono text-2xs text-ink-muted">
+                    {c.slug}
+                  </Td>
                   <Td numeric className="text-ink-muted">
                     {c.material_count}
                   </Td>
@@ -139,11 +176,15 @@ export default function ClassesAdminPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => remove.mutate(c.id)}
+                      onClick={() =>
+                        setPendingDelete({ id: c.id, name: c.name })
+                      }
                       // A class with materials in it cannot be removed without
                       // orphaning them. The button stays visible and says why.
                       disabled={c.material_count > 0}
-                      title={c.material_count > 0 ? ptBR.admin.inUse : undefined}
+                      title={
+                        c.material_count > 0 ? ptBR.admin.inUse : undefined
+                      }
                       aria-label={`${ptBR.actions.delete}: ${c.name}`}
                     >
                       {ptBR.actions.delete}

@@ -170,6 +170,10 @@ export const ptBR = {
     betterDirection: "Direção desejável",
     allowsLog: "Permite escala log",
     inUse: "em uso",
+    /** D-201: confirmation before removing a class or a property from the catalogue. */
+    confirmDeleteClass: (name: string) => `Excluir a classe "${name}"?`,
+    confirmDeleteProperty: (name: string) => `Excluir a propriedade "${name}"?`,
+    confirmDeleteBody: "A exclusão é definitiva e não pode ser desfeita.",
   },
   direction: {
     HIGHER: "Maior é melhor",
@@ -770,7 +774,6 @@ export const ptBR = {
     noStudies: "Nenhum estudo salvo.",
     load: "Abrir",
     delete: "Excluir",
-    deleteConfirm: "Excluir este estudo salvo?",
     runSaved: "Executar",
     emptyResults: "Nenhum candidato após os limites.",
     viewOnMap: "Ver candidatos no mapa",

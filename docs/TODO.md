@@ -675,6 +675,9 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**`window.confirm` nativo e exclusões do admin sem confirmação (Sessão 158, [D-201](DECISIONS.md))**~~ —
+  `ConfirmDialog` MSDS na ficha, curvas, histórico de importação, `admin/classes` e `admin/propriedades`; estudos salvos
+  usam o desfazer (D-130).
 - ~~**Login com Google dava "Internal Server Error" em produção (Sessão 155, [D-198](DECISIONS.md))**~~ —
   apareceu no teste de usabilidade do TCC em 09/11/26. O callback agora faz
   rollback, grava o traceback no log e redireciona para `/entrar?erro=<código>`

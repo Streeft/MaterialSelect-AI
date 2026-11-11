@@ -144,6 +144,15 @@ contagem de testes inalterada.
 
 ---
 
+## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
+
+**O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
+`ConfirmDialog` (MSDS); estudos salvos perderam o `confirm` porque a exclusão já é desfazível (D-130). `admin/classes` e
+`admin/propriedades` pedem confirmação antes de excluir. As rotas de escrita do catálogo já exigiam `require_catalog_curator`:
+sem mudança no backend. +5 testes de `ConfirmDialog` (com axe) e +1 da página de classes; frontend 1638 passam. Sem migração.
+
+---
+
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
 **O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda
