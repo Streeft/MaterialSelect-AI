@@ -128,8 +128,8 @@ apontando para cima; etapa bloqueada do `Stepper` neutra (sem tracejado laranja)
 sem número no Sintetizar; sem "Voltar ao catálogo" duplicado nas releases nem descrição repetida nos vazios de Meus registros;
 sobrescrito com o grupo da barra derivado da rota (`groupForPath`) e escondido nas páginas de detalhe com trilha; índice em KaTeX em
 Dimensionar; unidade legível em Administrar › Propriedades; "Ctrl K" escondido em tela de toque. +4 casos de backend
-(`test_pretty_unit`), +5 de frontend medidos (1666 → 1671 sobre a `main` com #229 a #231: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
-backend 5415 (5409 passam e 6 pulam), frontend 1671 passam (157 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
+(`test_pretty_unit`), +5 de frontend medidos (1682 → 1687 sobre a `main` com #229 a #232: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
+backend 5415 (5409 passam e 6 pulam), frontend 1687 passam (159 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
 a #232 e a D-204/Sessão 161 entrou na `main` com a CI resiliente: ficou D-205/162. Sem migração; depois do merge, **Deploy da API** (`pretty_unit`).
 
 ## Sessão 156 — 11/11/26 — Service worker honesto (D-199)
