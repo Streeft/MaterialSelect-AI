@@ -6,6 +6,7 @@ import { ptBR } from "@/lib/i18n";
 import { useBillingStatus } from "@/lib/billing";
 import { styleGuideVisible } from "@/lib/styleGuideAccess";
 import { M3Foundations } from "./M3Foundations";
+import { F1Specimens } from "./F1Specimens";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
 import {
@@ -1137,6 +1138,9 @@ function StyleGuide() {
           </div>
         </div>
       </Section>
+
+      {/* D-206: the F1 pieces. */}
+      <F1Specimens />
 
       <Section title={ptBR.styleGuide.feedback} headingLevel={2}>
         <div className="grid gap-3 sm:grid-cols-2">

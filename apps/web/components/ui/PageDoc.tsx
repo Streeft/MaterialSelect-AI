@@ -57,7 +57,7 @@ export function PageDoc({
               {icon}
             </span>
           ) : null}
-          <h1 id={titleId} className="min-w-0 flex-1 text-display text-ink">
+          <h1 id={titleId} className="min-w-0 flex-1 basis-48 text-display text-ink">
             {onTitleChange ? (
               // Keyed by the title: one changed elsewhere (a save that
               // normalised it) remounts the field with the new draft.
@@ -96,16 +96,20 @@ function EditableTitle({ value, onCommit }: { value: string; onCommit: (value: s
     if (next !== value) onCommit(next);
   }
 
+  // A textarea, not an input: a long title wraps like the heading it stands
+  // for, where an input would cut it on a phone (the widths suite caught that).
+  // Enter still commits; the title never takes a line break.
   return (
-    <input
+    <textarea
       aria-label={t.titleLabel}
+      rows={1}
       value={draft}
-      onChange={(event) => setDraft(event.target.value)}
+      onChange={(event) => setDraft(event.target.value.replace(/\n/g, " "))}
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();
-          (event.target as HTMLInputElement).blur();
+          (event.target as HTMLTextAreaElement).blur();
         } else if (event.key === "Escape") {
           setDraft(value);
         }

@@ -167,6 +167,13 @@ ficou sem objeto. Três regras que não são questão de gosto:
   véu, Esc); passe `title` com o que o valor é. Ações de uma tela longa no celular vão numa barra flutuante *standard* acima da navegação
   inferior (`SheetActions`), escondendo as cópias do cabeçalho com `.m3-hide-compact`; nunca uma segunda barra ancorada.
 
+- **Fundações e peças da F1** ([D-206](docs/DECISIONS.md)): alvo de toque é `--target-min` (44 px; área invisível em `pointer: coarse`,
+  nunca desenho maior); texto usa papel (`text-caption`/`text-body`, nunca `text-xs`/`text-sm`); hover é véu, nunca borda (só o campo
+  de texto escurece o contorno). Reordenar é `useReorder` + `Block` (arrastar e Alt+↑/↓, anunciado); filtro é `FilterBar` (folha
+  inferior no celular, nunca cartão de filtros); par nome → valor é `PropertyList`; página de registro é `PageDoc` (ações extras no ⋯);
+  tela vazia é `EmptyState layout="page"` com `templates`; abrir ao lado é `SidePeek` modal; cálculo é `Workbench`. Nenhuma peça
+  calcula, filtra ou ordena dado: relatam a escolha, o servidor responde. `foundations.test.ts` guarda as regras.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

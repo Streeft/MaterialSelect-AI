@@ -12286,3 +12286,48 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
+
+## D-206 — F1 da revisão das telas: fundações do sistema de design e oito peças novas
+
+**Contexto.** A F0 (D-205) corrigiu o que estava errado. A F1 é a base que as fases seguintes (bases de dados, fichas como
+documento, bancadas) vão usar: a auditoria contou 449 tamanhos de texto fora dos papéis, 12 hovers que trocavam borda, cartões
+feitos à mão, alvos de toque abaixo de 32 px (88 de 165 na ficha) e nenhuma peça para filtrar em chips, mover blocos, abrir ao
+lado ou montar uma bancada de cálculo. O rumo é o do plano: "M3 na estrutura, Notion na superfície".
+
+**Decisão.**
+- **Alvo de toque é token.** `--target-min: 44px`. Em ponteiro grosso (`pointer: coarse`), botão, botão de ícone, chip e
+  `.touch-target` ganham uma área invisível de `max(100%, 44px)` em `::after`; o desenho não cresce e nada no layout se move, como
+  o M3 faz no botão de ícone de 40 px. A posição relativa vai em `:where()` (especificidade zero), para um controle `absolute`
+  manter a sua.
+- **Tamanho de texto vem de papel.** `text-xs`/`text-sm` viraram `text-caption`/`text-body` (397 usos, 94 arquivos; `caption` tem
+  as mesmas medidas de `xs`, `body` tem 2 px a mais de entrelinha que `sm`). Os passos numéricos que sobraram (`text-base` a
+  `-3xl`, 44 usos) dimensionam por encaixe (glifo, título) e ficam presos à contagem medida.
+- **Hover é véu.** Cartões de link, `Stepper`, `RadioCard`, o Importar e o Estúdio trocaram a borda de hover pelo véu de estado
+  (`.m3-state` ou `msds-card[data-interactive]`); o botão de ícone deixou de crescer 6 % no hover (D-134). Exceção única: o campo
+  de texto, cujo contorno escurece no hover pela especificação M3.
+- **Oito peças** em `components/ui/`, no barril, com teste e axe:
+  - `useReorder` + `Block`: arrastar nativo (HTML5, como D-191) e Alt + ↑/↓ na alça, anunciado (D-146); ocultar sem apagar. A
+    ordem fica com quem chama; a peça nunca grava.
+  - `FilterBar`: chips "Campo: valor ▾", "+ Filtro" e "Limpar". No celular cada painel é a folha inferior do `Popover` (D-197):
+    a "FilterSheet" do plano é a mesma peça. A barra só relata a escolha; filtrar é do servidor. O `Popover` ganhou
+    `triggerClassName` e `children(close)`, e devolve o foco ao gatilho num efeito.
+  - `PropertyList`: pares nome → valor numa `<dl>`, empilhados por container query abaixo de 480 px; não formata nada (o valor
+    chega escrito por `ValueText`).
+  - `PageDoc`: ícone, título editável no lugar (o `<h1>` continua), linha de propriedades, uma ação visível e o resto num "⋯".
+  - `EmptyState` com `layout="page"` e `templates`: um modelo é link ou botão que abre a tela preparada, nunca um valor.
+  - `SidePeek`: folha lateral **modal** do M3 (foco preso e devolvido, Esc, véu), tela cheia abaixo de 600 px, com "Abrir página".
+  - `Workbench`: `PaneScaffold` *supporting-pane* com entradas, resultado ao vivo (`aria-live`) e "Como se calcula" recolhido.
+    Não calcula nada.
+  - Barra do topo no celular: abaixo de `lg` a barra escura leva a marca, o nome da tela e a busca como ícone (evento
+    `msai:open-search`, para não haver dois `GlobalSearchButton` respondendo ao Ctrl+K); a barra de busca larga fica de `lg` para cima.
+- **Vitrine.** Cada peça tem seção viva em `/app/estilo` (`F1Specimens.tsx`).
+- **Guarda.** `lib/design/foundations.test.ts` falha se voltar `text-xs`/`text-sm`, se os passos numéricos passarem de 44, se
+  aparecer hover de borda fora do campo ou se o alvo de toque sair do CSS.
+
+**Alternativas recusadas.** Aumentar o desenho dos botões pequenos para 44 px (mexeria em todo layout denso; o M3 também separa
+alvo de desenho). `SidePeek` não modal (duas rolagens e nenhum caminho claro de volta). Menu dentro de menu no "+ Filtro" (o clique
+no painel interno fechava o externo): o campo escolhido entra na barra e o chip dele escolhe o valor. Trocar já as telas para as
+peças novas: é a F2 em diante, uma tela por vez.
+
+**Numeração.** D-206 e Sessão 163, as próximas livres em `main` (D-205/Sessão 162 da F0). Só frontend: sem migração, seed nem Deploy
+da API.

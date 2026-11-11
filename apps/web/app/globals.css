@@ -2090,8 +2090,9 @@ div[data-surface="rail"] .msds-rail-item {
   background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container));
 }
 .ds-doc-title-input {
-  width: 100%; min-width: 0; padding: 0 4px; margin: 0 -4px; border: 0; border-radius: var(--shape-extra-small);
+  display: block; width: 100%; min-width: 0; padding: 0 4px; margin: 0 -4px; border: 0; border-radius: var(--shape-extra-small);
   background: transparent; color: inherit; font: inherit; letter-spacing: inherit;
+  resize: none; field-sizing: content; overflow-wrap: anywhere;
 }
 .ds-doc-title-input:hover { background: rgb(var(--m3-on-surface) / 0.04); }
 .ds-doc-title-input:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 2px; }

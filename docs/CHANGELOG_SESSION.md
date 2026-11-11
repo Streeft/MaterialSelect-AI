@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 163 — 11/11/26 — F1 da revisão das telas: fundações e peças novas (D-206)
+
+**O que mudou.** Alvo de toque de 44 px como token (`--target-min`), aplicado em ponteiro grosso por uma área invisível ao redor de
+botão, botão de ícone e chip. `text-xs`/`text-sm` viraram os papéis `text-caption`/`text-body` (397 usos em 94 arquivos); hovers de
+borda viraram véu de estado; o botão de ícone parou de crescer no hover. Oito peças novas no sistema de design, todas na vitrine
+`/app/estilo`: `useReorder`/`Block`, `FilterBar` (folha inferior no celular), `PropertyList`, `PageDoc`, `EmptyState` com modelos,
+`SidePeek`, `Workbench` e a barra do topo no celular (nome da tela e busca como ícone). `foundations.test.ts` (4) guarda as regras;
+`f1Pieces.test.tsx` (15, com axe) cobre as peças; dois testes passaram a procurar `text-caption` e o crédito pelo texto. Suíte:
+frontend 1706 passam (161 arquivos), backend sem mudança (5415). No Chromium a 1440 e a 390 px: vitrine sem rolagem horizontal,
+filtro abre como folha inferior no celular, `SidePeek` à direita, bancada com o resultado ao lado das entradas. Sem backend.
+
 ## Sessão 162 — 11/11/26 — F0 da revisão das telas: correções rápidas (D-205)
 
 **O que mudou.** Primeira fase do plano de revisão das telas. Unidade de tempo em símbolo (`1/h`, não `1/hour`) no backend e no
