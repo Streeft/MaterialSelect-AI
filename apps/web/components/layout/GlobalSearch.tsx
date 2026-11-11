@@ -69,8 +69,21 @@ function isTypingTarget(target: EventTarget | null): boolean {
  * names the highlighted option, so a screen reader hears each result as the
  * arrows move without focus leaving the field.
  */
+/**
+ * D-206: the top app bar's search icon on a narrow screen opens the same
+ * dialog. An event rather than a second `GlobalSearchButton`: two of them
+ * would both answer Ctrl+K and toggle the dialog open and shut again.
+ */
+export const OPEN_SEARCH_EVENT = "msai:open-search";
+
 export function GlobalSearchButton({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SEARCH_EVENT, onOpen);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

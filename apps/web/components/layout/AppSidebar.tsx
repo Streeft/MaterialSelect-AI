@@ -17,6 +17,7 @@ import { ptBR } from "@/lib/i18n";
 import { IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconSearch,
   IconBattery,
   IconBlend,
   IconBook,
@@ -42,6 +43,8 @@ import {
   IconUpload,
 } from "@/components/ui/icons";
 import { useCanEditCatalog } from "@/lib/billing";
+import { labelForPath } from "@/lib/design/sections";
+import { OPEN_SEARCH_EVENT } from "./GlobalSearch";
 
 const t = ptBR.nav;
 
@@ -427,7 +430,17 @@ export function AppSidebar() {
           aria-controls="menu-principal"
           onClick={() => setOpen(true)}
         />
-        <BrandLink pathname={pathname} />
+        {/* D-206: M3's small top app bar on a narrow screen — the brand as a
+            mark, the screen's name, and search as an icon (the full bar would
+            print "Ctrl K" on a phone and take a row of its own). */}
+        <BrandLink pathname={pathname} collapsed />
+        <span className="ds-topbar-title">{labelForPath(pathname)}</span>
+        <IconButton
+          size="sm"
+          label={ptBR.ds.searchOpen}
+          icon={<IconSearch />}
+          onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+        />
       </header>
 
       {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place

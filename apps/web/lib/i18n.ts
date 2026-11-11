@@ -2948,6 +2948,34 @@ export const ptBR = {
       "Esta tela precisa do servidor. Quando a conexão voltar, tente de novo; as fichas já abertas continuam disponíveis para leitura.",
   },
 
+  // D-206: as peças do sistema de design da F1 (vitrine em /app/estilo).
+  ds: {
+    dragHandle: (name: string) => `Mover ${name}`,
+    dragHint: "Arraste, ou use Alt + seta para cima ou para baixo",
+    moved: (name: string, position: number, total: number) =>
+      `${name} na posição ${position} de ${total}.`,
+    hideBlock: (name: string) => `Ocultar ${name}`,
+    showBlock: (name: string) => `Mostrar ${name}`,
+    hiddenBlock: "Oculto",
+    filters: "Filtros",
+    addFilter: "Filtro",
+    addFilterMenu: "Adicionar filtro",
+    clearFilters: "Limpar",
+    anyValue: "Qualquer",
+    filterChip: (field: string, value: string) => `${field}: ${value}`,
+    removeFilter: (field: string) => `Remover o filtro ${field}`,
+    noMoreFilters: "Todos os filtros já estão na barra.",
+    moreActions: "Mais ações",
+    titleLabel: "Título",
+    templates: "Comece por um modelo",
+    sidePeekOpen: "Abrir página",
+    close: "Fechar",
+    workbenchInputs: "Entradas",
+    workbenchResult: "Resultado",
+    workbenchMethod: "Como se calcula",
+    searchOpen: "Buscar",
+  },
+
   ui: {
     loading: "Carregando…",
     errorTitle: "Algo não funcionou",

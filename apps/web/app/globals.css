@@ -2031,6 +2031,103 @@ div[data-surface="rail"] .msds-rail-item {
   }
 }
 
+/* ---------- D-206: the F1 pieces (Notion's surface on M3's structure) ---------- */
+
+/* Block: a movable row. The grip shows on hover or focus with a pointer that
+   hovers; on touch there is no hover, so it is always there. */
+.ds-block {
+  display: flex; align-items: flex-start; gap: 4px; padding: 6px 4px; border-radius: var(--shape-small);
+  transition: background-color var(--motion-effects-fast-dur) var(--motion-effects-fast);
+}
+.ds-block[data-dragged] { opacity: 0.6; }
+.ds-block[data-drop-target] { box-shadow: inset 0 2px 0 rgb(var(--m3-primary)); }
+.ds-block-grip {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 28px; border-radius: var(--shape-extra-small);
+  color: rgb(var(--ink-subtle)); cursor: grab;
+}
+.ds-block-grip:active { cursor: grabbing; }
+.ds-block-grip:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 1px; color: rgb(var(--ink)); }
+.ds-block-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+@media (hover: hover) and (pointer: fine) {
+  .ds-block-grip, .ds-block-actions { opacity: 0; transition: opacity var(--motion-effects-fast-dur) var(--motion-effects-fast); }
+  .ds-block:hover .ds-block-grip, .ds-block:focus-within .ds-block-grip,
+  .ds-block:hover .ds-block-actions, .ds-block:focus-within .ds-block-actions,
+  .ds-block[data-hidden] .ds-block-actions { opacity: 1; }
+  .ds-block:hover { background: rgb(var(--m3-on-surface) / 0.04); }
+}
+
+/* FilterBar: an active chip is filled with the tonal container (M3 filter chip, selected). */
+.msds-chip.ds-filter-on {
+  background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container));
+  border-color: transparent;
+}
+.msds-chip.ds-filter-add { border-style: dashed; color: rgb(var(--ink-muted)); }
+.ds-option {
+  display: flex; width: 100%; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px;
+  border-radius: var(--shape-small); text-align: left; font-size: 0.875rem; color: rgb(var(--ink));
+}
+.ds-option[aria-pressed="true"] { font-weight: 600; }
+@media (pointer: coarse) { .ds-option { min-height: var(--target-min); } }
+
+/* PropertyList: two aligned columns that stack when the block is narrow (D-182). */
+.ds-props { container-type: inline-size; }
+.ds-props-list { display: grid; grid-template-columns: minmax(7rem, 12rem) minmax(0, 1fr); column-gap: 16px; }
+.ds-props-row { display: contents; }
+.ds-props-row > dt, .ds-props-row > dd { padding: 6px 0; border-bottom: 1px solid rgb(var(--border-divider)); margin: 0; }
+.ds-props-row:last-child > dt, .ds-props-row:last-child > dd { border-bottom: 0; }
+.ds-props-dense .ds-props-row > dt, .ds-props-dense .ds-props-row > dd { padding: 3px 0; }
+@container (max-width: 480px) {
+  .ds-props-list { grid-template-columns: minmax(0, 1fr); }
+  .ds-props-row > dt { border-bottom: 0; padding-bottom: 0; }
+  .ds-props-row > dd { padding-top: 2px; }
+}
+
+/* PageDoc: the icon and an in-place title that looks like the heading it is. */
+.ds-doc-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 40px; height: 40px; border-radius: var(--shape-medium);
+  background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container));
+}
+.ds-doc-title-input {
+  width: 100%; min-width: 0; padding: 0 4px; margin: 0 -4px; border: 0; border-radius: var(--shape-extra-small);
+  background: transparent; color: inherit; font: inherit; letter-spacing: inherit;
+}
+.ds-doc-title-input:hover { background: rgb(var(--m3-on-surface) / 0.04); }
+.ds-doc-title-input:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 2px; }
+
+/* EmptyState v2 (page). */
+.ds-empty-page { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px 16px; }
+.ds-empty-glyph {
+  display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px;
+  border-radius: var(--shape-large);
+  background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container));
+}
+.ds-template {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; height: 100%; padding: 12px 14px; text-align: left;
+  border: 1px solid rgb(var(--border-panel)); border-radius: var(--shape-medium); background: rgb(var(--surface-panel));
+}
+.ds-template:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 2px; }
+
+/* SidePeek: M3 modal side sheet, full screen on a compact window. */
+.ds-side-peek {
+  position: fixed; z-index: 61; top: 0; right: 0; bottom: 0; width: min(28rem, 100vw);
+  display: flex; flex-direction: column; background: rgb(var(--m3-surface-container-low)); color: rgb(var(--m3-on-surface));
+  border-radius: 16px 0 0 16px; box-shadow: var(--elevation-1);
+  animation: ds-peek-in var(--motion-spatial-dur) var(--motion-spatial) both;
+}
+.ds-side-peek:focus { outline: none; }
+@media (max-width: 599px) { .ds-side-peek { width: 100vw; border-radius: 0; } }
+@keyframes ds-peek-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .ds-side-peek { animation: none; } }
+:root[data-motion="reduced"] .ds-side-peek { animation: none; }
+
+/* TopAppBar (compact): the screen's name between the menu and the search icon. */
+.ds-topbar-title {
+  min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 1rem; font-weight: 600; color: rgb(var(--rail-ink));
+}
+
 /* m3-roles:begin (generated by lib/design/m3Roles.test.ts, npm run tokens:m3; do not edit) */
 :root {
   --m3-primary: 42 79 142;

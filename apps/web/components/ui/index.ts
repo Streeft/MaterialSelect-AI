@@ -44,7 +44,15 @@ export {
 export { DensityToggle } from "./DensityToggle";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";
-export { EmptyState, ErrorState, ListSkeleton, LoadingState, Skeleton, Spinner } from "./Feedback";
+export {
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  LoadingState,
+  Skeleton,
+  Spinner,
+  type EmptyTemplate,
+} from "./Feedback";
 export {
   Checkbox,
   Field,
@@ -96,3 +104,10 @@ export { ToolTile, type ToolTone } from "./ToolTile";
 export { SplitButton } from "./SplitButton";
 export { LoadingIndicator } from "./LoadingIndicator";
 export { FabMenu, type FabMenuAction } from "./FabMenu";
+// D-206: the F1 pieces.
+export { Block, reorder, useReorder } from "./Block";
+export { FilterBar, type FilterField, type FilterOption } from "./FilterBar";
+export { PropertyList, type PropertyItem } from "./PropertyList";
+export { PageDoc } from "./PageDoc";
+export { SidePeek } from "./SidePeek";
+export { Workbench } from "./Workbench";
