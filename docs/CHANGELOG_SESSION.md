@@ -155,6 +155,12 @@ Stepper deixa de truncar; `<main>` em `/entrar` e `/assinatura`; chaves únicas 
 `components/layout/acertosUi.test.tsx`, `app/app/estilo/acesso.test.tsx`, `app/paginasPublicas.test.tsx`,
 `components/catalog/keysUnicas.test.tsx` e três casos em `selecao.test.tsx` (todos falhavam antes, exceto os de remoção, que checam o estado
 final). Sem backend, migração nem seed.
+## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
+
+**O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
+`ConfirmDialog` (MSDS); estudos salvos perderam o `confirm` porque a exclusão já é desfazível (D-130). `admin/classes` e
+`admin/propriedades` pedem confirmação antes de excluir. As rotas de escrita do catálogo já exigiam `require_catalog_curator`:
+sem mudança no backend. +5 testes de `ConfirmDialog` (com axe) e +1 da página de classes; frontend 1638 passam. Sem migração.
 
 ---
 

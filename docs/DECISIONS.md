@@ -12129,6 +12129,28 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
 
+## D-201 — Confirmações no diálogo MSDS e exclusões do admin com confirmação
+
+**Contexto.** A auditoria visual achou quatro `window.confirm` nativos (desativar ficha, excluir curva, desfazer importação,
+excluir estudo salvo), que ignoram o tema e não se testam, e duas telas de administração (`admin/classes`,
+`admin/propriedades`) que excluíam com um clique, sem confirmação nem desfazer.
+
+**Decisão.**
+- Novo `ConfirmDialog` (`components/ui/ConfirmDialog.tsx`) sobre o `Dialog` MSDS: Cancelar/Escape/fundo cancelam; confirmar
+  é o único botão primário. Substitui `window.confirm` na ficha (desativar), em `MaterialCurves`, em `ImportHistory`.
+- Estudos salvos: a exclusão já era desfazível (`useUndoableDelete`, D-130), então o `confirm` foi retirado e o "Desfazer"
+  da barra é a rede de segurança (texto `deleteConfirm` removido).
+- `admin/classes` e `admin/propriedades`: `ConfirmDialog` antes de excluir (a exclusão é definitiva no servidor, então
+  confirmar e não desfazer). Texto em `ptBR.admin.confirmDelete*`.
+- Backend: conferido, sem mudança. `POST/PUT/DELETE` de `/classes` e `/properties` já dependem de
+  `require_catalog_curator` (`app/dependencies.py`); a UI só confirma.
+- Sem migração nem seed; só frontend.
+
+**Alternativas recusadas.** Desfazer nas exclusões do admin (o DELETE é imediato e definitivo; adiar a chamada deixaria a
+lista mentindo); manter `confirm` em um ponto só por ser mais simples.
+
+---
+
 ## D-203 — Workflow do Cérebro só manual
 
 **Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O

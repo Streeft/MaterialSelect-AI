@@ -681,6 +681,9 @@ Registrados para não voltarem por engano:
   sem uso removida. **Resíduo:** a causa exata do aviso de chave duplicada em dados reais não foi reproduzida; sem E2E de layout para o
   menu em 1280x800 (a medida é do navegador).
 
+- ~~**`window.confirm` nativo e exclusões do admin sem confirmação (Sessão 158, [D-201](DECISIONS.md))**~~ —
+  `ConfirmDialog` MSDS na ficha, curvas, histórico de importação, `admin/classes` e `admin/propriedades`; estudos salvos
+  usam o desfazer (D-130).
 - ~~**Login com Google dava "Internal Server Error" em produção (Sessão 155, [D-198](DECISIONS.md))**~~ —
   apareceu no teste de usabilidade do TCC em 09/11/26. O callback agora faz
   rollback, grava o traceback no log e redireciona para `/entrar?erro=<código>`
