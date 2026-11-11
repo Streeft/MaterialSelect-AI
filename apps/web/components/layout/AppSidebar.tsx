@@ -192,7 +192,7 @@ function NavLink({
       // screen reader users with no idea where they are.
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
-      className={cn("msds-rail-item text-sm", collapsed && "justify-center")}
+      className={cn("msds-rail-item text-body", collapsed && "justify-center")}
     >
       <Icon
         className={cn("msds-rail-icon", active && "text-rail-accent")}
@@ -270,7 +270,7 @@ function BrandLink({
           too narrow to paint it. */}
       <span
         aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-sm font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-body font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
       >
         M
       </span>
@@ -335,13 +335,13 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         ) : (
           <span
             aria-hidden
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rail-accent/25 text-xs font-semibold text-rail-accent"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rail-accent/25 text-caption font-semibold text-rail-accent"
           >
             {user.name.charAt(0).toUpperCase()}
           </span>
         )}
         {!collapsed && (
-          <span className="truncate text-xs font-medium text-rail-ink-muted">
+          <span className="truncate text-caption font-medium text-rail-ink-muted">
             {user.name}
           </span>
         )}

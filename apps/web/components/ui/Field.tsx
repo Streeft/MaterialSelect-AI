@@ -96,7 +96,7 @@ export function Field({
   return (
     <FieldContext.Provider value={{ id, describedBy, invalid: Boolean(error) }}>
       <div className={cn("flex flex-col gap-1", className)}>
-        <label htmlFor={id} className="text-xs font-medium text-ink-muted">
+        <label htmlFor={id} className="text-caption font-medium text-ink-muted">
           {label}
           {required ? (
             <span className="ml-0.5 text-danger" aria-hidden>
@@ -126,7 +126,7 @@ export function Field({
 // tokens are a tenth of that. Only the ConstraintEditor multi-select still uses
 // this — every other control gets its outline from `.msds-control` itself.
 const CONTROL =
-  "w-full rounded-control border border-edge-control bg-surface-raised px-2.5 text-sm text-ink " +
+  "w-full rounded-control border border-edge-control bg-surface-raised px-2.5 text-body text-ink " +
   "placeholder:text-ink-subtle transition " +
   "hover:border-ink-subtle " +
   "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle " +
@@ -457,7 +457,7 @@ export function Fieldset({
 }) {
   return (
     <fieldset className={cn("flex flex-col gap-3", className)}>
-      <legend className="text-sm font-semibold text-ink">{legend}</legend>
+      <legend className="text-body font-semibold text-ink">{legend}</legend>
       {children}
     </fieldset>
   );

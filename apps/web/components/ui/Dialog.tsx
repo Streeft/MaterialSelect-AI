@@ -61,7 +61,7 @@ export function Dialog({
     <MsdsDialog open={open} onClose={onClose} title={title} footer={footer}>
       {description ? (
         <>
-          <p className="mb-2 text-sm text-ink-muted">{description}</p>
+          <p className="mb-2 text-body text-ink-muted">{description}</p>
           {children}
         </>
       ) : (

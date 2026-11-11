@@ -59,7 +59,7 @@ export function DesignationTable({
                 <span className="font-mono">{d.code}</span>
               </Td>
               <Td>
-                {d.region ?? <span className="text-xs italic text-ink-subtle">{t.noRegion}</span>}
+                {d.region ?? <span className="text-caption italic text-ink-subtle">{t.noRegion}</span>}
               </Td>
               <Td>
                 <span className="flex flex-col">

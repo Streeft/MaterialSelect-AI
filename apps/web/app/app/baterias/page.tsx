@@ -174,7 +174,7 @@ function StatTile({
         <span className="text-lg font-semibold tabular-nums text-ink">
           {value}
         </span>
-        {unit ? <span className="text-xs text-ink-muted">{unit}</span> : null}
+        {unit ? <span className="text-caption text-ink-muted">{unit}</span> : null}
       </div>
     </div>
   );
@@ -676,7 +676,7 @@ export default function BateriasPage() {
                         value={`US$ ${formatNumber(design.chemistry.cell_cost_per_kwh)}`}
                       />
                     </div>
-                    <dl className="well flex flex-col gap-2 text-xs">
+                    <dl className="well flex flex-col gap-2 text-caption">
                       <div className="flex flex-col gap-0.5">
                         <dt className="font-semibold text-ink">
                           {t.citationLabel}
@@ -818,10 +818,10 @@ export default function BateriasPage() {
                       </div>
 
                       <div className="flex flex-col gap-1.5 rounded-lg bg-surface-sunken p-3">
-                        <span className="text-xs font-semibold text-ink">
+                        <span className="text-caption font-semibold text-ink">
                           Diretrizes de Gerenciamento Térmico:
                         </span>
-                        <ul className="list-inside list-disc text-xs text-ink-muted">
+                        <ul className="list-inside list-disc text-caption text-ink-muted">
                           {design.thermal_guidelines.map((guide, idx) => (
                             <li key={idx}>{guide}</li>
                           ))}
@@ -879,15 +879,15 @@ export default function BateriasPage() {
                             */}
                             {winner ? (
                               <>
-                                <span className="text-sm font-semibold text-ink">
+                                <span className="text-body font-semibold text-ink">
                                   {winner.chemistry_name}
                                 </span>
-                                <span className="text-xs text-ink-muted">
+                                <span className="text-caption text-ink-muted">
                                   {facet.detail(winner)}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-xs text-ink-muted">
+                              <span className="text-caption text-ink-muted">
                                 {t.podiumMissing}
                               </span>
                             )}

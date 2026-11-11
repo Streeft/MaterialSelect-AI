@@ -58,16 +58,16 @@ export function FileDrop({
       <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-100 text-brand-800">
         <IconUpload className="h-5 w-5" />
       </span>
-      <p className="text-sm font-semibold text-ink">{title}</p>
+      <p className="text-body font-semibold text-ink">{title}</p>
       {hint ? (
-        <p id={hintId} className="max-w-sm text-xs text-ink-muted">
+        <p id={hintId} className="max-w-sm text-caption text-ink-muted">
           {hint}
         </p>
       ) : null}
       <label
         htmlFor={inputId}
         className={cn(
-          "pressable inline-flex cursor-pointer items-center rounded-control border border-edge-control bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-50",
+          "pressable inline-flex cursor-pointer items-center rounded-control border border-edge-control bg-surface px-3 py-1.5 text-body font-medium text-ink hover:bg-brand-50",
           "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand",
           disabled && "pointer-events-none",
         )}
@@ -131,7 +131,7 @@ export function UploadList({
                 : `${statusLabels.sending} ${percent}%`;
         return (
           <li key={item.key} className="flex flex-col gap-1 rounded-control border border-edge px-3 py-2">
-            <div className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center justify-between gap-2 text-caption">
               <span className="min-w-0 truncate font-medium text-ink">{item.name}</span>
               <span
                 className={cn(

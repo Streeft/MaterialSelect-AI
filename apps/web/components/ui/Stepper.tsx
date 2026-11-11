@@ -104,7 +104,7 @@ export function Stepper<T extends string>({
                 aria-current={isCurrent ? "step" : undefined}
                 title={disabled ? step.blockedReason : undefined}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-control border px-3 py-2 text-left text-sm transition",
+                  "flex w-full items-center gap-2 rounded-control border px-3 py-2 text-left text-body transition",
                   "disabled:cursor-not-allowed",
                   // A step is a button, so its outline is what says it can be
                   // pressed and owes 3:1 (WCAG 1.4.11). The blocked one is
@@ -113,10 +113,10 @@ export function Stepper<T extends string>({
                   isCurrent
                     ? "border-brand bg-brand-50"
                     : status === "done"
-                      ? "border-edge-control bg-surface-raised hover:border-ink-subtle"
+                      ? "m3-state border-edge-control bg-surface-raised"
                       : status === "blocked"
                         ? "border-edge bg-surface-sunken text-ink-muted"
-                        : "border-edge-control bg-surface-raised hover:border-ink-subtle",
+                        : "m3-state border-edge-control bg-surface-raised",
                 )}
               >
                 <span className="msds-step-dot" style={stepDotStyle(status)} aria-hidden="true">

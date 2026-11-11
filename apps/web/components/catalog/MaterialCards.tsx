@@ -50,7 +50,7 @@ function MaterialCard({
               </Link>
             </span>
             {material.subclass ? (
-              <span className="text-xs text-ink-subtle">
+              <span className="text-caption text-ink-subtle">
                 <HighlightText text={material.subclass} query={searchQuery} />
               </span>
             ) : null}

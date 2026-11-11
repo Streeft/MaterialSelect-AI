@@ -164,7 +164,7 @@ export function SourceSearch({ notebook }: { notebook: Notebook }) {
     <section aria-labelledby={`${reasonId}-titulo`} className="well flex flex-col gap-3">
       <h3
         id={`${reasonId}-titulo`}
-        className="flex items-center gap-2 text-sm font-semibold text-ink"
+        className="flex items-center gap-2 text-body font-semibold text-ink"
       >
         <IconSearch className="text-brand-700" />
         {s.label}

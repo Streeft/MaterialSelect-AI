@@ -94,7 +94,7 @@ export default function FamilyNotesPage() {
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
-              <p className="text-sm text-ink-muted" aria-live="polite">
+              <p className="text-body text-ink-muted" aria-live="polite">
                 {t.count(shown.length)}
               </p>
             </div>
@@ -123,7 +123,7 @@ function NoteCard({ row }: { row: Row }) {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id={headingId} className="text-base font-semibold text-ink">
             {row.name}{" "}
-            <span className="font-mono text-sm font-normal text-ink-subtle">{row.slug}</span>
+            <span className="font-mono text-body font-normal text-ink-subtle">{row.slug}</span>
           </h2>
           {row.note && (
             <Badge tone={row.note.review_status === "revisado" ? "success" : "warning"}>
@@ -134,7 +134,7 @@ function NoteCard({ row }: { row: Row }) {
         {row.note ? (
           <FamilyNoteContent note={row.note} />
         ) : (
-          <p className="text-sm text-ink-muted">
+          <p className="text-body text-ink-muted">
             <strong className="font-medium">{t.missing}.</strong> {t.missingHint}
           </p>
         )}

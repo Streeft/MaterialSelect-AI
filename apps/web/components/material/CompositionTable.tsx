@@ -83,7 +83,7 @@ export function CompositionTable({
                   <abbr title={entry.element_name} className="font-mono no-underline">
                     {entry.element}
                   </abbr>
-                  <span className="block text-xs text-ink-subtle">{entry.element_name}</span>
+                  <span className="block text-caption text-ink-subtle">{entry.element_name}</span>
                 </RowHeader>
                 <Td>
                   {entry.state === "ausente" ? (
@@ -112,7 +112,7 @@ export function CompositionTable({
                 )}
                 <Td>
                   {original === null ? (
-                    <span className="text-xs italic text-ink-subtle">{t.noOriginal}</span>
+                    <span className="text-caption italic text-ink-subtle">{t.noOriginal}</span>
                   ) : (
                     <span className="flex flex-col">
                       <span className="tabular-nums">{original}</span>

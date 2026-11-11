@@ -135,7 +135,7 @@ export function ChartFrame({
           ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          {meta ? <span className="mr-1 font-mono text-xs text-ink-subtle">{meta}</span> : null}
+          {meta ? <span className="mr-1 font-mono text-caption text-ink-subtle">{meta}</span> : null}
           {controls}
           {hasFigure && (table || (views && views.length > 1)) ? (
             // D-95: the AI Studio corner — round icon buttons, one per way to

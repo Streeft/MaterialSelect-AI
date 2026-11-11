@@ -161,7 +161,7 @@ export function AudioView({
                     </span>
                     <RichText
                       text={line.text}
-                      className="text-sm text-ink"
+                      className="text-body text-ink"
                       trailing={
                         <CitationChips
                           numbers={line.citations}

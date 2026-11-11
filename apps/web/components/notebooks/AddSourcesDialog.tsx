@@ -242,7 +242,7 @@ function AppTab({ notebookId }: { notebookId: number }) {
           }))}
         />
       ) : (studies.data ?? []).length === 0 && studies.isSuccess ? (
-        <p className="text-sm text-ink-muted">{t.noStudies}</p>
+        <p className="text-body text-ink-muted">{t.noStudies}</p>
       ) : (
         <Select
           label={t.appStudy}
@@ -263,7 +263,7 @@ function AppTab({ notebookId }: { notebookId: number }) {
         </Alert>
       ) : null}
       {add.isSuccess ? (
-        <p role="status" className="text-sm text-success-fg">
+        <p role="status" className="text-body text-success-fg">
           {t.added(add.data.title)}
         </p>
       ) : null}

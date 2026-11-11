@@ -253,7 +253,7 @@ function CatalogPageContent() {
               <Card className="pressable">
                 <CardBody className="flex flex-col gap-0.5 px-4 py-3">
                   <span className="font-medium text-ink">{family.name}</span>
-                  <span className="text-xs text-ink-muted">
+                  <span className="text-caption text-ink-muted">
                     {ptBR.family.countMaterials(
                       (items ?? []).filter((m) =>
                         descendantSlugs(family.slug, classes.data ?? []).has(m.class_slug),

@@ -110,7 +110,7 @@ export function VideoView({ content, cites }: { content: StudioDeckContent; cite
         index={scene}
         cites={cites}
         caption={
-          <p className="rounded-control bg-well px-3 py-2 text-sm text-ink">
+          <p className="rounded-control bg-well px-3 py-2 text-body text-ink">
             <span className="sr-only">{t.caption}: </span>
             {captionText}
           </p>
@@ -194,7 +194,7 @@ export function VideoView({ content, cites }: { content: StudioDeckContent; cite
                   </span>
                   <RichText
                     text={narrationOf(item)}
-                    className="text-sm text-ink"
+                    className="text-body text-ink"
                     trailing={
                       <CitationChips
                         numbers={item.citations}

@@ -99,19 +99,19 @@ function FamilyCard({
           >
             {family.name}
           </Link>
-          <span className="text-sm text-ink-muted">{t.countProcesses(inFamily.length)}</span>
+          <span className="text-body text-ink-muted">{t.countProcesses(inFamily.length)}</span>
         </div>
 
         {inFamily.length === 0 ? (
           // Written out, never a blank card: an empty family is a state.
-          <p className="text-sm text-ink-muted">{t.emptyFolder}</p>
+          <p className="text-body text-ink-muted">{t.emptyFolder}</p>
         ) : (
           <ul className="-mx-2 flex flex-col">
             {inFamily.map((process) => (
               <li key={process.slug}>
                 <Link
                   href={`/app/processos/${process.slug}`}
-                  className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5 text-sm text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span>{process.name}</span>
                   <span aria-hidden className="text-ink-subtle">

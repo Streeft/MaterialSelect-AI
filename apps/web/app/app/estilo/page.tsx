@@ -346,20 +346,20 @@ function StyleGuide() {
         <div className="rounded-card border border-rail-edge/15 bg-rail p-4 text-rail-ink">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-control bg-rail-accent/15 font-mono text-xs font-bold text-rail-accent">
+              <span className="flex h-8 w-8 items-center justify-center rounded-control bg-rail-accent/15 font-mono text-caption font-bold text-rail-accent">
                 MS
               </span>
               <div>
-                <p className="text-xs font-semibold text-rail-ink">MaterialSelect AI</p>
+                <p className="text-caption font-semibold text-rail-ink">MaterialSelect AI</p>
                 <p className="text-2xs text-rail-ink-muted">Moldura fixa de navegação</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-control bg-rail-accent/20 px-3 py-1 text-xs font-medium text-rail-accent">
+              <span className="inline-flex items-center gap-1.5 rounded-control bg-rail-accent/20 px-3 py-1 text-caption font-medium text-rail-accent">
                 <span className="h-1.5 w-1.5 rounded-full bg-rail-accent" />
                 Rota ativa
               </span>
-              <span className="inline-flex items-center rounded-control px-3 py-1 text-xs text-rail-ink-muted">
+              <span className="inline-flex items-center rounded-control px-3 py-1 text-caption text-rail-ink-muted">
                 Item inativo
               </span>
               <span className="font-mono text-2xs text-rail-ink-subtle">
@@ -377,7 +377,7 @@ function StyleGuide() {
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-ink-muted">Alternar matiz ativo da página:</span>
+            <span className="text-caption font-medium text-ink-muted">Alternar matiz ativo da página:</span>
             {SECTIONS.map((sec) => (
               <ToggleChip
                 key={sec.id}
@@ -390,7 +390,7 @@ function StyleGuide() {
           </div>
 
           <div className="rounded-card border border-edge bg-surface-raised p-4">
-            <p className="mb-3 text-xs font-medium text-ink-muted">
+            <p className="mb-3 text-caption font-medium text-ink-muted">
               Rampa ativa (seção <strong className="text-ink">{SECTIONS.find((s) => s.id === activeSection)?.label}</strong>{" · "}{SECTIONS.find((s) => s.id === activeSection)?.hue}{"°"}):
             </p>
             <div className="flex flex-wrap gap-2">
@@ -420,7 +420,7 @@ function StyleGuide() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-semibold text-ink">{sec.label}</span>
+                    <span className="text-body font-semibold text-ink">{sec.label}</span>
                     <span className="ml-2 font-mono text-2xs text-ink-muted">{sec.route}</span>
                   </div>
                   <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-brand-700">
@@ -471,7 +471,7 @@ function StyleGuide() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="pressable grid h-14 w-28 place-items-center rounded-card border border-edge bg-surface-raised text-xs text-ink-muted shadow-card hover:shadow-lift">
+          <span className="pressable grid h-14 w-28 place-items-center rounded-card border border-edge bg-surface-raised text-caption text-ink-muted shadow-card hover:shadow-lift">
             .pressable
           </span>
           <Button variant="primary">Botão primário</Button>
@@ -498,7 +498,7 @@ function StyleGuide() {
                     dados · catálogo
                   </span>
                   <p className="text-xl font-bold text-ink">Catálogo de materiais</p>
-                  <p className="text-xs text-ink-muted">
+                  <p className="text-caption text-ink-muted">
                     Demonstração de casca canônica de rota com cabeçalho de página e ações.
                   </p>
                 </div>
@@ -510,7 +510,7 @@ function StyleGuide() {
                 </div>
               </div>
               <div className="rounded-card border border-edge bg-surface-raised p-4 shadow-card">
-                <p className="text-xs text-ink-muted">
+                <p className="text-caption text-ink-muted">
                   Conteúdo interno da tela encapsulado em <code>PanelShell</code>, onde cartões e tabelas utilizam <code>rounded-card</code> (20 px) para criar hierarquia visual concêntrica clara.
                 </p>
               </div>
@@ -528,7 +528,7 @@ function StyleGuide() {
           <CardBody className="flex flex-col gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-caption">
                   <span className="font-medium text-ink">Pontuação alta (84%)</span>
                   <span className="font-mono tabular-nums text-ink-muted">0,84</span>
                 </div>
@@ -536,7 +536,7 @@ function StyleGuide() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-caption">
                   <span className="font-medium text-ink">Pontuação média (50%)</span>
                   <span className="font-mono tabular-nums text-ink-muted">0,50</span>
                 </div>
@@ -544,7 +544,7 @@ function StyleGuide() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-caption">
                   <span className="font-medium text-ink">Pontuação baixa (15%)</span>
                   <span className="font-mono tabular-nums text-ink-muted">0,15</span>
                 </div>
@@ -552,7 +552,7 @@ function StyleGuide() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-caption">
                   <span className="font-medium text-ink">Dado ausente (§1.3 / D-24)</span>
                   <span className="flex items-center gap-1 text-2xs text-ink-subtle">
                     <MissingValue /> ausente
@@ -563,26 +563,26 @@ function StyleGuide() {
             </div>
 
             <div className="border-t border-edge-subtle pt-3">
-              <p className="mb-2 text-xs font-medium text-ink-muted">
+              <p className="mb-2 text-caption font-medium text-ink-muted">
                 Barras com cores de classe (paleta Okabe–Ito) e entrada escalonada (delay):
               </p>
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-caption">
                     <ClassBadge name="Metais" color={seats[0]?.color ?? "#0072B2"} />
                     <span className="font-mono tabular-nums text-ink-muted">75%</span>
                   </div>
                   <Bar value={0.75} color="bg-[#0072B2]" delay={40} label="Metais 75%" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-caption">
                     <ClassBadge name="Polímeros" color={seats[1]?.color ?? "#E69F00"} />
                     <span className="font-mono tabular-nums text-ink-muted">60%</span>
                   </div>
                   <Bar value={0.6} color="bg-[#E69F00]" delay={80} label="Polímeros 60%" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-caption">
                     <ClassBadge name="Cerâmicas" color={seats[2]?.color ?? "#009E73"} />
                     <span className="font-mono tabular-nums text-ink-muted">90%</span>
                   </div>
@@ -599,7 +599,7 @@ function StyleGuide() {
           {SEMANTIC.map(([name, solid, soft]) => (
             <div key={name} className="flex items-center gap-3">
               <span className={`h-8 w-8 shrink-0 rounded ${solid}`} />
-              <span className={`rounded-control px-2 py-1 text-xs ${soft}`}>
+              <span className={`rounded-control px-2 py-1 text-caption ${soft}`}>
                 {name} · texto sobre o fundo suave
               </span>
             </div>
@@ -631,7 +631,7 @@ function StyleGuide() {
             <DataQualityLegend />
           </CardBody>
         </Card>
-        <p className="text-sm text-ink-muted">
+        <p className="text-body text-ink-muted">
           Valor com proveniência:{" "}
           <ProvenancePopover provenance={SAMPLE}>
             <span className="tabular-nums font-medium">3,9 g/cm³</span>
@@ -672,8 +672,8 @@ function StyleGuide() {
           ))}
         </dl>
         <div className="space-y-1">
-          <p className="font-mono text-sm text-ink">sqrt(modulo_young) / densidade</p>
-          <p className="tabular-nums text-sm text-ink">
+          <p className="font-mono text-body text-ink">sqrt(modulo_young) / densidade</p>
+          <p className="tabular-nums text-body text-ink">
             1,0 · 10,5 · 100,25 · 1000,5 — alinham em coluna
           </p>
         </div>
@@ -708,7 +708,7 @@ function StyleGuide() {
               {BUTTON_VARIANTS.map(([variant, name, use]) => (
                 <tr key={variant}>
                   <th scope="row" className="py-3 pr-3 align-middle">
-                    <span className="block text-sm font-semibold text-ink">{name}</span>
+                    <span className="block text-body font-semibold text-ink">{name}</span>
                     <span className="block max-w-[14rem] text-caption font-normal text-ink-subtle">
                       {use}
                     </span>
@@ -852,7 +852,7 @@ function StyleGuide() {
             { id: "barras", label: "Barras" },
             { id: "radar", label: "Radar", meta: "3+" },
           ]}
-          panelClassName="pt-3 text-sm text-ink-muted"
+          panelClassName="pt-3 text-body text-ink-muted"
         >
           Conteúdo da aba <strong className="font-medium text-ink">{tab}</strong>. O painel é
           filho do próprio componente: assim o <code className="font-mono">aria-controls</code> da
@@ -873,7 +873,7 @@ function StyleGuide() {
               { label: "Aços" },
             ]}
           />
-          <p className="max-w-prose text-sm text-ink-muted">
+          <p className="max-w-prose text-body text-ink-muted">
             O último passo é a página em que se está: sai como texto com{" "}
             <code className="font-mono">aria-current=&quot;page&quot;</code>, nunca como link,
             porque link de volta para a página atual anuncia um destino que não existe. A barra
@@ -891,7 +891,7 @@ function StyleGuide() {
 
       <Section title="Layouts de dois painéis (M3)" headingLevel={2}>
         <div className="flex flex-col gap-4">
-          <p className="max-w-prose text-sm text-ink-muted">
+          <p className="max-w-prose text-body text-ink-muted">
             Lista e detalhe, e painel de apoio. Os painéis ficam lado a lado a partir de 840 px de
             largura do próprio bloco (não da janela, porque a barra lateral já ocupa a sua parte);
             abaixo disso, a lista e o detalhe aparecem um de cada vez e o apoio desce para baixo.
@@ -901,22 +901,22 @@ function StyleGuide() {
             layout="list-detail"
             primaryLabel="Exemplo: lista"
             secondaryLabel="Exemplo: detalhe"
-            primary={<div className="well p-4 text-sm">Lista de itens</div>}
-            secondary={<div className="well p-4 text-sm">O item aberto</div>}
+            primary={<div className="well p-4 text-body">Lista de itens</div>}
+            secondary={<div className="well p-4 text-body">O item aberto</div>}
           />
           <PaneScaffold
             layout="supporting-pane"
             primaryLabel="Exemplo: conteúdo principal"
             secondaryLabel="Exemplo: painel de apoio"
-            primary={<div className="well p-4 text-sm">O trabalho (cerca de dois terços)</div>}
-            secondary={<div className="well p-4 text-sm">O que ajuda a ler o trabalho</div>}
+            primary={<div className="well p-4 text-body">O trabalho (cerca de dois terços)</div>}
+            secondary={<div className="well p-4 text-body">O que ajuda a ler o trabalho</div>}
           />
         </div>
       </Section>
 
       <Section title="M3 Expressive: botão dividido, menu do FAB e carregamento" headingLevel={2}>
         <div className="flex flex-col gap-5">
-          <p className="max-w-prose text-sm text-ink-muted">
+          <p className="max-w-prose text-body text-ink-muted">
             Tudo aqui se move nas molas expressivas do M3 (curva e duração da página de movimento),
             e para quando o sistema pede movimento reduzido. O grupo de botões acima, nos formulários,
             já é o grupo conectado: o escolhido arredonda inteiro.
@@ -967,7 +967,7 @@ function StyleGuide() {
               onClick={() => undefined}
             />
           </div>
-          <p className="max-w-prose text-sm text-ink-muted">
+          <p className="max-w-prose text-body text-ink-muted">
             Duas coisas dizem o estado, e são precisas as duas: o nome acessível diz o que o
             clique vai fazer, e o <code className="font-mono">aria-pressed</code> diz em que
             estado se está — quem ouve não deveria ter de inferir isso da troca do verbo. O
@@ -1112,7 +1112,7 @@ function StyleGuide() {
             </div>
             {/* D-94: o cartão de modelo do "Criar …", com o lápis como ação. */}
             <fieldset className="grid gap-2 sm:grid-cols-2">
-              <legend className="mb-2 text-sm font-semibold text-ink">Modelo</legend>
+              <legend className="mb-2 text-body font-semibold text-ink">Modelo</legend>
               <RadioCard
                 name="estilo-modelo"
                 value="guia"
@@ -1161,7 +1161,7 @@ function StyleGuide() {
                 Abrir diálogo
               </Button>
               <Disclosure summary="Materiais fora do mapa (3)">
-                <p className="text-sm text-ink-muted">
+                <p className="text-body text-ink-muted">
                   Nenhum material é descartado em silêncio.
                 </p>
               </Disclosure>
@@ -1186,7 +1186,7 @@ function StyleGuide() {
           </>
         }
       >
-        <p className="text-sm text-ink-muted">
+        <p className="text-body text-ink-muted">
           O foco entra no diálogo, não sai dele enquanto está aberto e volta ao botão que o abriu.
         </p>
       </Dialog>
@@ -1221,7 +1221,7 @@ function GuidedDemo() {
         summary="Viga leve e rígida — √E/ρ, maximizar"
         onEdit={() => setIndexDone(false)}
       >
-        <p className="text-sm text-ink-muted">Escolha um índice ou siga sem índice.</p>
+        <p className="text-body text-ink-muted">Escolha um índice ou siga sem índice.</p>
         <Button className="mt-3" variant="primary" onClick={() => setIndexDone(true)}>
           Continuar: critérios e pesos
         </Button>
@@ -1248,7 +1248,7 @@ function GuidedDemo() {
         open={advancedOpen}
         onOpenChange={setAdvancedOpen}
       >
-        <p className="text-sm text-ink-muted">Método de ranking, normalização e AHP.</p>
+        <p className="text-body text-ink-muted">Método de ranking, normalização e AHP.</p>
       </Disclosure>
     </div>
   );

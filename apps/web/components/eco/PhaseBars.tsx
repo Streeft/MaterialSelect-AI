@@ -89,11 +89,11 @@ export function PhaseBars({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h4 className="text-sm font-semibold text-ink">{title}</h4>
-          {caption && <p className="text-xs text-ink-muted">{caption}</p>}
+          <h4 className="text-body font-semibold text-ink">{title}</h4>
+          {caption && <p className="text-caption text-ink-muted">{caption}</p>}
         </div>
         {hasMultipleSeries && (
-          <div className="flex items-center gap-3 text-xs text-ink-muted">
+          <div className="flex items-center gap-3 text-caption text-ink-muted">
             {seriesNames.map((s) => (
               <div key={s.name} className="flex items-center gap-1.5">
                 <span
@@ -118,12 +118,12 @@ export function PhaseBars({
             key={row.phase}
             className="flex flex-col gap-1.5 border-b border-edge-subtle py-2 last:border-b-0"
           >
-            <div className="flex items-center justify-between text-xs font-medium text-ink sm:text-sm">
+            <div className="flex items-center justify-between text-caption font-medium text-ink sm:text-body">
               <span>{row.label}</span>
             </div>
             <div className="flex flex-col gap-1">
               {row.items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs">
+                <div key={idx} className="flex items-center gap-2 text-caption">
                   {hasMultipleSeries && (
                     <span
                       className="w-24 shrink-0 truncate font-medium text-ink-muted sm:w-32"
@@ -134,7 +134,7 @@ export function PhaseBars({
                   )}
                   {item.value === null ? (
                     <div className="flex flex-1 items-center">
-                      <span className="text-xs italic text-ink-muted">
+                      <span className="text-caption italic text-ink-muted">
                         {item.reason ?? ecoPhaseI18n.notCalculated}
                       </span>
                     </div>

@@ -136,7 +136,7 @@ export function ChatPanel({
   return (
     <section aria-labelledby="conversa-titulo" className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-12 items-center justify-between gap-2 border-b border-edge-subtle px-4 py-2">
-        <h2 id="conversa-titulo" className="text-sm font-semibold text-ink">
+        <h2 id="conversa-titulo" className="text-body font-semibold text-ink">
           {t.panels.chat}
         </h2>
         {history.length > 0 ? (
@@ -155,23 +155,23 @@ export function ChatPanel({
             {notebook.emoji}
           </span>
           <p className="text-xl font-bold text-ink">{notebook.title}</p>
-          <p className="text-xs text-ink-muted">
+          <p className="text-caption text-ink-muted">
             {t.sourceCount(notebook.sources.length)}
             {date ? ` · ${date}` : ""}
           </p>
 
           {notebook.sources.length === 0 ? (
-            <p className="text-sm text-ink-muted">{t.noSourcesYet}</p>
+            <p className="text-body text-ink-muted">{t.noSourcesYet}</p>
           ) : guide.isPending ? (
-            <p role="status" className="flex items-center gap-2 text-sm text-ink-muted">
+            <p role="status" className="flex items-center gap-2 text-body text-ink-muted">
               <Spinner /> {t.writingSummary}
             </p>
           ) : notebook.summary ? (
-            <div className="flex flex-col gap-3 text-sm leading-relaxed text-ink">
+            <div className="flex flex-col gap-3 text-body leading-relaxed text-ink">
               <AnswerView answer={notebook.summary} liveSourceIds={liveSourceIds} />
             </div>
           ) : (
-            <p className="text-sm text-ink-muted">{t.summaryEmpty}</p>
+            <p className="text-body text-ink-muted">{t.summaryEmpty}</p>
           )}
 
           {guide.error ? (
@@ -197,7 +197,7 @@ export function ChatPanel({
 
           {notebook.suggested_questions.length > 0 && history.length === 0 ? (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-medium text-ink-muted">{t.suggested}</p>
+              <p className="text-caption font-medium text-ink-muted">{t.suggested}</p>
               <div className="flex flex-wrap gap-2">
                 {notebook.suggested_questions.map((q) => (
                   <ToggleChip
@@ -227,7 +227,7 @@ export function ChatPanel({
               actions={
                 message.answer && message.answer.paragraphs.length > 0 ? (
                   savedId === message.id ? (
-                    <span role="status" className="text-xs text-success-fg">
+                    <span role="status" className="text-caption text-success-fg">
                       {t.savedNote}
                     </span>
                   ) : (
@@ -256,7 +256,7 @@ export function ChatPanel({
             <ChatMessage from="user" author={t.you}>
               {pending}
             </ChatMessage>
-            <p role="status" className="flex items-center gap-2 text-sm text-ink-muted">
+            <p role="status" className="flex items-center gap-2 text-body text-ink-muted">
               <Spinner /> {t.thinking}
             </p>
           </>

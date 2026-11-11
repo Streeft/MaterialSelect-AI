@@ -87,7 +87,8 @@ describe("barra inferior do celular", () => {
     for (const link of links) {
       const label = link.lastElementChild as HTMLElement;
       expect(label.textContent?.length).toBeGreaterThan(0);
-      expect(label.className).toContain("text-xs");
+      // D-206: text-xs became the caption role, same 12 px.
+      expect(label.className).toContain("text-caption");
       expect(label.className).not.toMatch(/text-\[0\.5625rem\]|text-\[9px\]/);
     }
   });

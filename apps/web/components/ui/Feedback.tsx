@@ -119,7 +119,7 @@ export function LoadingState({
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex items-center gap-2 py-8 text-sm text-ink-muted", className)}
+      className={cn("flex items-center gap-2 py-8 text-body text-ink-muted", className)}
     >
       <Spinner />
       {label}

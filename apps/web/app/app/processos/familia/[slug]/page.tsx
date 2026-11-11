@@ -75,7 +75,7 @@ export default function ProcessFamilyPage() {
         {data.processes.length === 0 ? (
           // Absence written out, and the two absences are not the same: a folder
           // whose contents are one level down is not an empty folder.
-          <p className="text-sm text-ink-muted">
+          <p className="text-body text-ink-muted">
             {hasChildren ? t.emptyFolderWithChildren : t.emptyFolder}
           </p>
         ) : (
@@ -107,7 +107,7 @@ export default function ProcessFamilyPage() {
                 <Card className="pressable">
                   <CardBody className="flex flex-col gap-0.5 px-4 py-3">
                     <span className="font-medium text-ink">{child.name}</span>
-                    <span className="text-xs text-ink-muted">
+                    <span className="text-caption text-ink-muted">
                       {t.countDirect(child.process_count)}
                     </span>
                   </CardBody>

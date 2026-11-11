@@ -79,8 +79,8 @@ function NamedList({
   if (items.length === 0) return null;
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-ink">{title}</span>
-      <span className="text-xs text-ink-muted">{hint}</span>
+      <span className="text-caption font-medium text-ink">{title}</span>
+      <span className="text-caption text-ink-muted">{hint}</span>
       <div className="flex flex-wrap gap-1">
         {items.map((label) => (
           <Badge key={label}>{label}</Badge>
@@ -247,7 +247,7 @@ export function SimilarPanel({
       <Card>
         <CardBody className="flex flex-col gap-4">
           <fieldset className="flex min-w-0 flex-col gap-2">
-            <legend className="text-sm font-medium text-ink">
+            <legend className="text-body font-medium text-ink">
               {t.basisLabel}
             </legend>
             {/* The picker itself is on the sheet above; here the level only says
@@ -279,7 +279,7 @@ export function SimilarPanel({
             // `min-w-0`: a fieldset is `min-inline-size: min-content` by default
             // and would grow past its column instead of letting the rows wrap.
             <fieldset className="well flex min-w-0 flex-col gap-3">
-              <legend className="text-sm font-medium text-ink">
+              <legend className="text-body font-medium text-ink">
                 {t.settingsTitle}
               </legend>
               <p className="text-support text-ink-muted">{t.settingsHint}</p>
@@ -306,7 +306,7 @@ export function SimilarPanel({
                       key={slug}
                       className="similar-weight-row"
                     >
-                      <span className="text-sm text-ink">{name}</span>
+                      <span className="text-body text-ink">{name}</span>
                       <Select
                         label={t.weightLabel(name)}
                         value={String(settings.weights[slug] ?? 1)}
@@ -377,7 +377,7 @@ export function SimilarPanel({
             </Button>
             {/* Written, not a disabled button with no explanation (D-24). */}
             {basis.length === 0 && (
-              <span className="text-xs text-ink-muted">{t.basisEmpty}</span>
+              <span className="text-caption text-ink-muted">{t.basisEmpty}</span>
             )}
           </div>
 
@@ -405,7 +405,7 @@ export function SimilarPanel({
                         <CardBody className="flex flex-col gap-2">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <span className="flex min-w-0 flex-wrap items-center gap-2">
-                              <span className="text-xs text-ink-muted">
+                              <span className="text-caption text-ink-muted">
                                 {neighbour.rank}.
                               </span>
                               <Link
@@ -420,12 +420,12 @@ export function SimilarPanel({
                                 </Badge>
                               )}
                             </span>
-                            <span className="text-xs text-ink-muted">
+                            <span className="text-caption text-ink-muted">
                               {t.distance}: {formatNumber(neighbour.distance)}
                             </span>
                           </div>
                           {neighbour.tolerance_matches !== null && (
-                            <span className="text-xs text-ink">
+                            <span className="text-caption text-ink">
                               {t.toleranceSummary(
                                 neighbour.tolerance_matches,
                                 applicableCount(result),
@@ -433,7 +433,7 @@ export function SimilarPanel({
                             </span>
                           )}
                           {/* Why this position: each property's weighted share (D-120). */}
-                          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-ink-muted">
                             <dt className="sr-only">{t.contributionsTitle}</dt>
                             {result.basis.map((slug, index) => {
                               const share = neighbour.contributions[slug];
@@ -486,17 +486,17 @@ export function SimilarPanel({
 
               {result.excluded.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">
+                  <span className="text-caption font-medium text-ink">
                     {t.excludedTitle}
                   </span>
-                  <span className="text-xs text-ink-muted">
+                  <span className="text-caption text-ink-muted">
                     {t.excludedHint}
                   </span>
                   <ul className="flex flex-col gap-1">
                     {result.excluded.map((item) => (
                       <li
                         key={item.record_id}
-                        className="text-xs text-ink-muted"
+                        className="text-caption text-ink-muted"
                       >
                         {item.name} — {t.excludedMissing}{" "}
                         {item.missing_labels.join(", ")}
@@ -539,12 +539,12 @@ function ToleranceSummary({ result }: { result: Similar }) {
     .filter(({ slug }) => !banded.has(slug));
   return (
     <div className="subsection flex flex-col gap-2">
-      <span className="text-xs font-medium text-ink">
+      <span className="text-caption font-medium text-ink">
         {result.tolerance_pct !== null
           ? t.toleranceTitle(formatNumber(result.tolerance_pct))
           : t.toleranceTitlePerProperty}
       </span>
-      <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+      <ul className="flex flex-col gap-1 text-caption text-ink-muted">
         {result.tolerance_bands.map((band) => (
           <li key={band.slug}>
             {t.toleranceBandLabel(band.label, formatNumber(band.tolerance_pct))}:{" "}

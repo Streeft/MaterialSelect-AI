@@ -103,7 +103,8 @@ body {
   box-shadow: var(--shadow-control);
   transition: all var(--msds-dur) var(--msds-ease);
 }
-.msds-icon-btn:hover { transform: scale(1.06); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+/* D-206: hover is the state veil of the ripple host (D-134); it neither grows nor changes the outline. */
+.msds-icon-btn:hover { color: rgb(var(--ink)); }
 .msds-icon-btn[aria-pressed="true"] { background: rgb(var(--brand-50)); color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
 .msds-icon-btn svg { width: 18px; height: 18px; }
 

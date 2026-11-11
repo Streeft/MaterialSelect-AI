@@ -91,7 +91,7 @@ export function StatTile({
         </div>
       ) : null}
       {note ? (
-        <div className={inverted ? "mt-2 text-xs text-rail-ink-muted" : "mt-2 text-xs text-ink-muted"}>
+        <div className={inverted ? "mt-2 text-caption text-rail-ink-muted" : "mt-2 text-caption text-ink-muted"}>
           {note}
         </div>
       ) : null}

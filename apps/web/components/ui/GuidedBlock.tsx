@@ -65,7 +65,7 @@ export function GuidedBlock({
         <div className="min-w-0 flex-1">
           <Heading
             className={cn(
-              "text-sm font-semibold",
+              "text-body font-semibold",
               state === "locked" ? "text-ink-muted" : "text-ink",
             )}
           >
@@ -73,10 +73,10 @@ export function GuidedBlock({
             {state === "done" ? <span className="sr-only"> ({ptBR.ui.stepDone})</span> : null}
           </Heading>
           {state === "done" && summary ? (
-            <div className="mt-0.5 text-xs text-ink-muted">{summary}</div>
+            <div className="mt-0.5 text-caption text-ink-muted">{summary}</div>
           ) : null}
           {state === "locked" && lockedReason ? (
-            <p className="mt-0.5 text-xs text-ink-muted">{lockedReason}</p>
+            <p className="mt-0.5 text-caption text-ink-muted">{lockedReason}</p>
           ) : null}
         </div>
         {state === "done" && onEdit ? (

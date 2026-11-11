@@ -280,6 +280,10 @@
   --state-pressed: 0.1;
   --state-dragged: 0.16;
 
+  /* D-206: the smallest thing a finger is asked to hit. WCAG 2.5.8 asks 24 px,
+   * Apple's HIG 44 pt, M3 48 dp; 44 is the floor here, 48 where M3 draws it. */
+  --target-min: 44px;
+
   --m3-dur-short1: 50ms;
   --m3-dur-short2: 100ms;
   --m3-dur-short3: 150ms;
@@ -1999,6 +2003,31 @@ div[data-surface="rail"] .msds-rail-item {
 @media (hover: none) and (pointer: coarse) {
   .kbd-hint {
     display: none;
+  }
+}
+
+/* D-206: on a touch screen every small control gets an invisible hit area of
+   --target-min around it. The drawing does not grow (a 32 px button stays 32 px,
+   so no layout moves); only where the finger lands does, as M3 does for its
+   40 px icon button. `::after` is free on these four (state layers use
+   `::before` or a child span), and none of them clips its overflow. */
+@media (pointer: coarse) {
+  /* `:where` keeps this at zero specificity, so a control placed with
+     `absolute`/`fixed` keeps its own position. */
+  :where(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target) {
+    position: relative;
+  }
+  .msds-btn::after,
+  .msds-icon-btn::after,
+  .msds-chip::after,
+  .touch-target::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--target-min));
+    height: max(100%, var(--target-min));
+    transform: translate(-50%, -50%);
   }
 }
 

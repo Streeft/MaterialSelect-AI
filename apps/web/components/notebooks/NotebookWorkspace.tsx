@@ -294,7 +294,7 @@ function Header({
     <div className="flex flex-wrap items-center gap-2">
       <Link
         href="/app/cadernos"
-        className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-brand-700"
+        className="inline-flex items-center gap-1 text-body text-ink-muted hover:text-brand-700"
       >
         <IconArrowLeft /> {t.back}
       </Link>

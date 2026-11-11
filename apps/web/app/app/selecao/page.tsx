@@ -294,9 +294,9 @@ function CandidateCounter({
         <span className="hidden sm:inline">{t.remaining}</span>
       </span>
       {failed ? (
-        <span className="text-xs text-danger-fg">{t.counterError}</span>
+        <span className="text-caption text-danger-fg">{t.counterError}</span>
       ) : count === null || total === null ? (
-        <span className="text-xs text-ink-muted">{t.counterPending}</span>
+        <span className="text-caption text-ink-muted">{t.counterPending}</span>
       ) : (
         <>
           <span className="text-lg font-semibold leading-none tabular-nums text-brand-700">
@@ -1373,7 +1373,7 @@ function SelectionWizard() {
         {/* Step 1: function */}
         {step === "function" && (
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-ink-muted">{t.exampleIntro}</span>
+            <span className="text-body text-ink-muted">{t.exampleIntro}</span>
             <Button variant="secondary" onClick={applyExample}>
               {t.loadExample}
             </Button>
@@ -1446,7 +1446,7 @@ function SelectionWizard() {
               onOpenChange={setAdvFunction}
             >
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                <span className="text-caption font-medium text-ink-muted">{t.universeTitle}</span>
                 <ButtonGroup label={t.universeTitle}>
                   <ButtonGroupItem
                     selected={universe === "material"}
@@ -1459,7 +1459,7 @@ function SelectionWizard() {
                     onClick={() => changeUniverse("process")}
                   />
                 </ButtonGroup>
-                <p className="text-xs text-ink-muted">{t.universeHint}</p>
+                <p className="text-caption text-ink-muted">{t.universeHint}</p>
                 {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
               </div>
             </Disclosure>
@@ -1538,7 +1538,7 @@ function SelectionWizard() {
               onOpenChange={setAdvConstraints}
             >
               <div className="flex flex-col gap-3">
-                <p className="text-xs text-ink-muted">{t.advancedConstraintsHint}</p>
+                <p className="text-caption text-ink-muted">{t.advancedConstraintsHint}</p>
                 <StageAddButtons stages={stages} universe={universe} onChange={setStages} />
               </div>
             </Disclosure>
@@ -1607,13 +1607,13 @@ function SelectionWizard() {
                             </Button>
                           )}
                         </div>
-                        <p className="mt-2 text-xs text-ink-muted">
+                        <p className="mt-2 text-caption text-ink-muted">
                           {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}
                         </p>
                       </>
                     }
                   />
-                  {validation && <p className="text-xs text-ink-muted">{validation}</p>}
+                  {validation && <p className="text-caption text-ink-muted">{validation}</p>}
                   {/* The conditions of validity, shown without asking for a click —
                       an index that does not fit the problem is worse than no index. */}
                   {indexDescriptor && <IndexCard index={indexDescriptor} />}
@@ -1638,12 +1638,12 @@ function SelectionWizard() {
               lockedReason={t.indexLockedReason}
             >
                 <div className="space-y-3">
-                  <p className="text-xs text-ink-muted">{t.rankingHint}</p>
+                  <p className="text-caption text-ink-muted">{t.rankingHint}</p>
                   {/* A non-default method stays visible with the section closed:
                       the rule is that a collapsed section never hides what is
                       already in use (D-85). */}
                   {!advObjective && method !== "weighted_sum" && (
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-caption text-ink-muted">
                       {t.methodInUse(method === "topsis" ? t.methodTopsis : t.methodPromethee)}
                     </p>
                   )}
@@ -1771,7 +1771,7 @@ function SelectionWizard() {
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-wrap items-end gap-3">
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                          <span className="text-caption font-medium text-ink-muted">{t.method}</span>
                           <ButtonGroup label={t.method}>
                             <ButtonGroupItem
                               selected={method === "weighted_sum"}
@@ -1810,7 +1810,7 @@ function SelectionWizard() {
                         )}
                       </div>
                       {method !== "weighted_sum" && (
-                        <p className="text-xs text-ink-muted">{t.methodHint}</p>
+                        <p className="text-caption text-ink-muted">{t.methodHint}</p>
                       )}
                       {/* AHP derives weights; it never becomes a fourth `method`
                           (Task 2's scope note) — so it only shows up here, next

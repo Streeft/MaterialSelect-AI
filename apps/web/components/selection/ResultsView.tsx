@@ -89,8 +89,8 @@ function Contributions({
 function ProvenanceItem({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-edge-subtle py-2 last:border-b-0 sm:flex-row sm:gap-3">
-      <dt className="text-xs font-medium text-ink-muted sm:w-56 sm:shrink-0">{term}</dt>
-      <dd className="min-w-0 text-sm text-ink">{children}</dd>
+      <dt className="text-caption font-medium text-ink-muted sm:w-56 sm:shrink-0">{term}</dt>
+      <dd className="min-w-0 text-body text-ink">{children}</dd>
     </div>
   );
 }
@@ -159,8 +159,8 @@ function WinnerCard({ result, winner }: { result: RunResult; winner: Winner }) {
       <Card>
         <CardBody className="space-y-1">
           <h2 className="text-base font-semibold text-ink">{t.winnerNoneTitle}</h2>
-          <p className="text-sm text-ink-muted">{t.winnerNone[winner.reason]}</p>
-          <p className="text-xs text-ink-muted">{passed}</p>
+          <p className="text-body text-ink-muted">{t.winnerNone[winner.reason]}</p>
+          <p className="text-caption text-ink-muted">{passed}</p>
         </CardBody>
       </Card>
     );
@@ -181,7 +181,7 @@ function WinnerCard({ result, winner }: { result: RunResult; winner: Winner }) {
           {t.winnerEyebrow}
         </p>
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
-        <ul className="space-y-1 text-sm text-ink-muted">
+        <ul className="space-y-1 text-body text-ink-muted">
           {winner.kind === "ranked" && (
             <li>
               {winner.method === "topsis"
@@ -387,7 +387,7 @@ export function ResultsView({
                 )}
               </>
             )}
-            <p className="text-xs text-ink-muted">
+            <p className="text-caption text-ink-muted">
               {t.funnelLine(result.initial_count, result.final_count)}
             </p>
           </div>
@@ -479,7 +479,7 @@ export function ResultsView({
             {withContributions.map((r) => (
               <li key={r.record_id} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-medium text-ink">{r.name}</span>
+                  <span className="text-body font-medium text-ink">{r.name}</span>
                   <span className="text-2xs tabular-nums text-ink-subtle">
                     {t.score}: {formatScore(r.score, 3)}
                   </span>
@@ -502,7 +502,7 @@ export function ResultsView({
         description={t.funnelHint}
         actions={
           <>
-            <span className="text-xs text-ink-muted">
+            <span className="text-caption text-ink-muted">
               {t.candidates}: <strong className="text-brand-700">{result.final_count}</strong> {t.of}{" "}
               {result.initial_count}
             </span>
@@ -543,8 +543,8 @@ export function ResultsView({
                 getText={() => stagesTsv(stages)}
               />
             </div>
-            <table className="w-full text-sm">
-              <caption className="mb-2 text-left text-xs text-ink-muted">
+            <table className="w-full text-body">
+              <caption className="mb-2 text-left text-caption text-ink-muted">
                 {t.stagesHint}
               </caption>
               <thead>
@@ -560,7 +560,7 @@ export function ResultsView({
                     <td className="py-1 pr-3">
                       {stage.label || t.stageNumber(stage.position + 1, stage.kind)}
                       {!stage.enabled && (
-                        <span className="ml-2 text-xs text-ink-muted">({t.stageDisabled})</span>
+                        <span className="ml-2 text-caption text-ink-muted">({t.stageDisabled})</span>
                       )}
                     </td>
                     <td className="py-1 pr-3 tabular-nums">{formatNumber(stage.passed)}</td>
@@ -662,7 +662,7 @@ export function ResultsView({
               <ExpressionLabel
                 expression={index.expression}
                 universe={result.universe}
-                className="text-sm"
+                className="text-body"
               />
             ) : (
               <span className="text-ink-muted">{t.provNone}</span>

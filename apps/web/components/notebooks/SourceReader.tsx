@@ -37,7 +37,7 @@ export function SourceReader({
     <Dialog open={source !== null} onClose={onClose} title={source?.title ?? t.readerTitle}>
       {source ? (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-ink-muted">
+          <p className="text-caption text-ink-muted">
             {t.sourceKinds[source.kind] ?? source.kind} ·{" "}
             {t.sourceSize(source.char_count, source.page_count)}
             {source.truncated ? ` · ${t.truncated}` : ""}
@@ -50,7 +50,7 @@ export function SourceReader({
             <div
               tabIndex={0}
               aria-label={source.title}
-              className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-control bg-surface-sunken p-3 text-sm text-ink"
+              className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-control bg-surface-sunken p-3 text-body text-ink"
             >
               {detail.data?.content}
             </div>
@@ -168,7 +168,7 @@ function SourceOrigin({ source }: { source: NotebookSource }) {
 
   return (
     <section aria-labelledby={`origem-${source.id}`} className="subsection flex flex-col gap-2">
-      <h4 id={`origem-${source.id}`} className="text-sm font-semibold text-ink">
+      <h4 id={`origem-${source.id}`} className="text-body font-semibold text-ink">
         {r.origin}
       </h4>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-support">

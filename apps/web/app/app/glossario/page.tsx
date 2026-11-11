@@ -70,7 +70,7 @@ export default function GlossaryPage() {
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
-              <p className="text-sm text-ink-muted" aria-live="polite">
+              <p className="text-body text-ink-muted" aria-live="polite">
                 {t.count(shown.length)}
               </p>
             </div>
@@ -106,7 +106,7 @@ function EntryCard({
       <CardBody className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id={headingId} className="text-base font-semibold text-ink">
-            {name} <span className="font-mono text-sm font-normal text-ink-subtle">{slug}</span>
+            {name} <span className="font-mono text-body font-normal text-ink-subtle">{slug}</span>
           </h2>
           {entry && (
             <Badge tone={entry.review_status === "revisado" ? "success" : "warning"}>
@@ -116,8 +116,8 @@ function EntryCard({
         </div>
         {entry ? (
           <>
-            <p className="text-sm text-ink">{entry.summary}</p>
-            <dl className="well grid gap-3 text-sm sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
+            <p className="text-body text-ink">{entry.summary}</p>
+            <dl className="well grid gap-3 text-body sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
               <dt className="font-medium text-ink-muted">{t.definition}</dt>
               <dd className="text-ink">{entry.definition}</dd>
               <dt className="font-medium text-ink-muted">{t.howMeasured}</dt>
@@ -131,7 +131,7 @@ function EntryCard({
             </dl>
           </>
         ) : (
-          <p className="text-sm text-ink-muted">
+          <p className="text-body text-ink-muted">
             <strong className="font-medium">{t.missing}.</strong> {t.missingHint}
           </p>
         )}

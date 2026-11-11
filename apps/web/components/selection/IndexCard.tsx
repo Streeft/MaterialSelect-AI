@@ -127,7 +127,7 @@ function dimensionLabel(dimension: string | null): string | null {
  * never the grammar's `modulo_young / densidade`, which is backend information.
  */
 function Expression({ children }: { children: string }) {
-  return <ExpressionLabel expression={children} className="text-sm text-ink" />;
+  return <ExpressionLabel expression={children} className="text-body text-ink" />;
 }
 
 /** Label/value pair, used for both assumptions and derived facts. */
@@ -138,7 +138,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
           this card sits on — measured 4.46:1. The term is small (12 px), so no
           large-text exemption applies. */}
       <dt className="text-caption font-medium text-ink-muted">{label}</dt>
-      <dd className="text-xs text-ink">{children}</dd>
+      <dd className="text-caption text-ink">{children}</dd>
     </div>
   );
 }
@@ -189,12 +189,12 @@ export function IndexCard({
       data-testid="index-card"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold text-ink">{index.name}</h3>
+        <h3 className="text-body font-semibold text-ink">{index.name}</h3>
         <Badge tone={index.goal === "minimize" ? "info" : "brand"}>{goalLabel(index.goal)}</Badge>
       </div>
 
       {index.description ? (
-        <p className="mt-1 text-xs text-ink-muted">{index.description}</p>
+        <p className="mt-1 text-caption text-ink-muted">{index.description}</p>
       ) : null}
 
       <dl className="mt-3 space-y-1.5">
@@ -287,9 +287,9 @@ export function IndexPicker({
 
   return (
     <fieldset className={cn("min-w-0", className)} aria-describedby={hint ? hintId : undefined}>
-      <legend className="text-sm font-semibold text-ink">{t.selectLabel}</legend>
+      <legend className="text-body font-semibold text-ink">{t.selectLabel}</legend>
       {hint ? (
-        <p id={hintId} className="mt-0.5 text-xs text-ink-muted">
+        <p id={hintId} className="mt-0.5 text-caption text-ink-muted">
           {hint}
         </p>
       ) : null}
