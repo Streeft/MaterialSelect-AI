@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-// D-86: while the tool is shown to a class, the front door is one button. The
-// full showcase is kept — swap `StartScreen` back for `Landing` to restore it.
+// D-86: while the tool is shown to a class, the front door is one button.
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { ptBR } from "@/lib/i18n";
 

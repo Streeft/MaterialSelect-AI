@@ -90,8 +90,9 @@ function MaterialCard({
 
         {material.keywords.length > 0 && (
           <span className="flex flex-wrap gap-1">
-            {material.keywords.map((kw) => (
-              <Badge key={kw}>
+            {material.keywords.map((kw, i) => (
+              // Text plus position: a record may repeat a keyword (D-202).
+              <Badge key={`${kw}:${i}`}>
                 <HighlightText text={kw} query={searchQuery} />
               </Badge>
             ))}

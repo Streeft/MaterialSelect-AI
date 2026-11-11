@@ -230,6 +230,10 @@ lista, refeita a cada mudança de tela:
       controle ali, e é o item que passou despercebido na primeira medição —
       dezessete campos por tela a 1,12:1 (ver [D-34](DECISIONS.md)).
 - [ ] Nenhuma rota rola horizontalmente a 375 px.
+- [ ] Menu lateral a 1280x800: do Início a "Propriedades" e ao rodapé (Aparência, sair, tema), tudo alcançável; se a lista rola, a
+      barra de rolagem é visível. Na gaveta do celular (667 px de altura), "Administrar" é alcançável rolando a lista (D-202).
+- [ ] Barra inferior do celular: rótulos de 12 px ou mais e alvos de 48 px (D-202).
+- [ ] Páginas fora de `/app` (`/entrar`, `/assinatura`) têm um `<main>`: o leitor de tela salta direto ao conteúdo (D-202).
 
 ---
 
