@@ -12062,6 +12062,28 @@ ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostr
 então esta decisão é a D-198 e a sessão é a 155.
 
 
+## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
+
+**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
+inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
+"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
+
+**Decisão.**
+- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
+  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
+  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
+  `Response.error()`.
+- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
+  é uma navegação offline sem a página amigável, como antes de existir worker.
+- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
+- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
+
+**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
+ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
+bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
+
+**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
+internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
 
 ## D-201 — Confirmações no diálogo MSDS e exclusões do admin com confirmação
