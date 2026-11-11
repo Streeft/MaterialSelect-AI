@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useEffect, useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addUrlSource, addYoutubeSource, getSourceCapabilities } from "@/lib/api";
@@ -183,7 +184,7 @@ export function LinkTab({ notebookId, onDone }: { notebookId: number; onDone: ()
 
       {add.error ? (
         <Alert tone="danger" role="alert">
-          {add.error.message}
+          {describeApiError(add.error)}
         </Alert>
       ) : null}
 

@@ -7,11 +7,38 @@ import { useCurrentUser } from "@/lib/auth";
 import { useBillingStatus } from "@/lib/billing";
 import { ptBR } from "@/lib/i18n";
 import { ErrorState, LoadingState } from "@/components/ui";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { BottomNav } from "@/components/layout/BottomNav";
 
 /** The only route a logged-out visitor may reach. */
 const LOGIN_ROUTE = "/entrar";
 /** Reachable by a logged-in user with no active subscription. */
 const BILLING_ROUTE = "/assinatura";
+
+function RedirectNotice() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <LoadingState label={ptBR.auth.redirecting} />
+    </div>
+  );
+}
+
+/**
+ * A failed session or billing check (API down, 5xx) is not "logged out": the
+ * menu stays so the reader can move, and the failure says what happened and
+ * offers a retry (D-200). Only 401 leaves the app.
+ */
+function GateFailure({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <AppSidebar />
+      <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <ErrorState error={error} onRetry={onRetry} />
+      </main>
+      <BottomNav />
+    </div>
+  );
+}
 
 /**
  * Two-stage gate: `/auth/me` first (unauthenticated → /entrar), then
@@ -44,6 +71,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     data: billing,
     isLoading: billingLoading,
     isError: billingIsError,
+    error: billingError,
     refetch: refetchBilling,
   } = useBillingStatus({ enabled: billingEnabled });
   // `has_access` and not `active`: in open mode (D-83) the server admits a
@@ -73,14 +101,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (isUnauthenticated) return null; // redirect above is in flight
+  // Redirect above is in flight: say so instead of leaving a blank page.
+  if (isUnauthenticated) return <RedirectNotice />;
 
   if (userIsError || !user) {
-    return (
-      <div className="p-4">
-        <ErrorState onRetry={() => refetchUser()} />
-      </div>
-    );
+    return <GateFailure error={userError} onRetry={() => refetchUser()} />;
   }
 
   if (isBillingRoute) return <>{children}</>;
@@ -93,14 +118,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (isNotSubscribed) return null; // redirect above is in flight
+  if (isNotSubscribed) return <RedirectNotice />;
 
   if (billingIsError) {
-    return (
-      <div className="p-4">
-        <ErrorState onRetry={() => refetchBilling()} />
-      </div>
-    );
+    return <GateFailure error={billingError} onRetry={() => refetchBilling()} />;
   }
 
   // Positive check, not a fall-through: TanStack Query has states where `data`

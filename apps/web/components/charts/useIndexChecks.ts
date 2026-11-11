@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useQueries } from "@tanstack/react-query";
 import { ApiError, evaluateIndex } from "@/lib/api";
 import { expressionKey } from "@/lib/compare-expression";
@@ -49,7 +50,7 @@ export function useIndexChecks(expressions: readonly string[]): IndexCheck[] {
       return {
         expression,
         state: "refused",
-        message: error instanceof ApiError ? error.message : compareLinkText.unverified,
+        message: describeApiError(error, compareLinkText.unverified),
       };
     }
     return { expression, state: "accepted" };

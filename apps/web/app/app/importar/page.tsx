@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -172,7 +173,7 @@ export default function ImportPage() {
   const templates = useQuery({ queryKey: ["import-templates"], queryFn: listImportTemplates });
 
   function fail(err: unknown) {
-    setError(err instanceof ApiError ? err.message : t.genericError);
+    setError(describeApiError(err, t.genericError));
   }
 
   const doUpload = useMutation({

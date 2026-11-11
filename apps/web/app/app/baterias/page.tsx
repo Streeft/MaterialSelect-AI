@@ -194,11 +194,7 @@ function RagoneSection() {
   if (ragone.isError) {
     return (
       <ErrorState
-        title={t.ragone.error}
-        description={
-          ragone.error instanceof Error ? ragone.error.message : String(ragone.error)
-        }
-      />
+        title={t.ragone.error} error={ragone.error} onRetry={() => void ragone.refetch()} />
     );
   }
   if (!ragone.data) return <EmptyState title={t.ragone.empty} />;
@@ -371,11 +367,11 @@ export default function BateriasPage() {
   }
 
   if (chemistries.isError) {
-    return <ErrorState description={String(chemistries.error)} />;
+    return <ErrorState error={chemistries.error} onRetry={() => void chemistries.refetch()} />;
   }
 
   if (archetypes.isError) {
-    return <ErrorState description={String(archetypes.error)} />;
+    return <ErrorState error={archetypes.error} onRetry={() => void archetypes.refetch()} />;
   }
 
   const design = designQuery.data;
@@ -547,13 +543,7 @@ export default function BateriasPage() {
             )}
             {designQuery.isError && (
               <ErrorState
-                title={t.error}
-                description={
-                  designQuery.error instanceof Error
-                    ? designQuery.error.message
-                    : String(designQuery.error)
-                }
-              />
+                title={t.error} error={designQuery.error} onRetry={() => void designQuery.refetch()} />
             )}
 
             {design && (
@@ -857,13 +847,7 @@ export default function BateriasPage() {
             )}
             {comparisonQuery.isError && (
               <ErrorState
-                title={t.error}
-                description={
-                  comparisonQuery.error instanceof Error
-                    ? comparisonQuery.error.message
-                    : String(comparisonQuery.error)
-                }
-              />
+                title={t.error} error={comparisonQuery.error} onRetry={() => void comparisonQuery.refetch()} />
             )}
 
             {comparison && (

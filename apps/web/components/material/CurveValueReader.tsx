@@ -1,8 +1,9 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, getCurveValue } from "@/lib/api";
+import { getCurveValue } from "@/lib/api";
 import type { Curve, CurveSeriesValue, CurveValue } from "@/lib/types";
 import { fichaText } from "@/lib/i18n-ficha";
 import { formatNumber, prettyUnit } from "@/lib/format";
@@ -232,7 +233,7 @@ function Reader({
       {read.isError && applied !== null ? (
         <p role="alert" className="max-w-prose text-support text-danger-fg">
           <span className="font-semibold">{t.error}</span>{" "}
-          {read.error instanceof ApiError ? read.error.message : null}
+          {describeApiError(read.error)}
         </p>
       ) : null}
       {read.data ? <ReadingResult curve={curve} result={read.data} /> : null}

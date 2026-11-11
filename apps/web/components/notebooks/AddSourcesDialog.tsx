@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -108,7 +109,7 @@ function UploadTab({ notebookId }: { notebookId: number }) {
       } catch (error) {
         patch(item.key, {
           status: "failed",
-          error: error instanceof Error ? error.message : String(error),
+          error: describeApiError(error),
         });
       }
     }
@@ -176,7 +177,7 @@ function TextTab({ notebookId, onDone }: { notebookId: number; onDone: () => voi
       />
       {add.error ? (
         <Alert tone="danger" role="alert">
-          {add.error.message}
+          {describeApiError(add.error)}
         </Alert>
       ) : null}
       <div className="flex justify-end">
@@ -258,7 +259,7 @@ function AppTab({ notebookId }: { notebookId: number }) {
       )}
       {add.error ? (
         <Alert tone="danger" role="alert">
-          {add.error.message}
+          {describeApiError(add.error)}
         </Alert>
       ) : null}
       {add.isSuccess ? (

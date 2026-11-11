@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getClass, listClasses, listMaterials } from "@/lib/api";
+import { isNotFound } from "@/lib/errors";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs } from "@/lib/taxonomy";
 import { MaterialList } from "@/components/catalog/MaterialList";
@@ -12,6 +13,7 @@ import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
 import {
   Breadcrumb,
+  ButtonLink,
   Card,
   CardBody,
   DataQualityLegend,
@@ -57,9 +59,23 @@ export default function MaterialFamilyPage() {
 
   if (family.isLoading) return <LoadingState label={t.loading} />;
   if (family.isError) {
-    return <ErrorState title={f.notFound} onRetry={() => void family.refetch()} />;
+    // D-200: a family that does not exist (404) is not a failed request. Only
+    // the second can be retried; the first has a way out, the catalogue.
+    return isNotFound(family.error) ? (
+      <ErrorState
+        title={f.notFound}
+        description={
+          <ButtonLink href="/app/catalogo" variant="link" size="sm">
+            {f.allClasses}
+          </ButtonLink>
+        }
+      />
+    ) : (
+      <ErrorState error={family.error} onRetry={() => void family.refetch()} />
+    );
   }
-  if (!family.data) return null;
+  // `enabled: Boolean(slug)` leaves the query idle without a slug; never a blank screen.
+  if (!family.data) return <ErrorState title={f.notFound} />;
 
   const data = family.data;
   const hasChildren = data.children.length > 0;
@@ -119,7 +135,17 @@ export default function MaterialFamilyPage() {
         description={countLine(data.material_count, data.descendant_material_count)}
       >
         {materials.isLoading && <LoadingState label={t.loading} />}
-        {shown.length === 0 && !materials.isLoading ? (
+        {materials.isError || classes.isError ? (
+          // D-200: a failed query is not an empty folder. Saying "nenhum material"
+          // here would be data absence invented out of a network error.
+          <ErrorState
+            error={materials.error ?? classes.error}
+            onRetry={() => {
+              void materials.refetch();
+              void classes.refetch();
+            }}
+          />
+        ) : shown.length === 0 && !materials.isLoading ? (
           // Two absences, and they are not the same sentence: a folder whose
           // contents are one level down is not an empty folder.
           <p className="text-sm text-ink-muted">

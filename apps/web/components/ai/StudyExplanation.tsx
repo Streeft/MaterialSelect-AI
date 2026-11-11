@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError, explainStudy, getAIStatus } from "@/lib/api";
@@ -33,7 +34,7 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
       setExplanation(data);
       setError(null);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : t.explainError),
+    onError: (err) => setError(describeApiError(err, t.explainError)),
   });
 
   if (explanation) {

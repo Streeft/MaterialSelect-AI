@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -185,7 +186,7 @@ export function StudioPanel({
               </p>
               {catalog.error ? (
                 <Alert tone="danger" role="alert">
-                  {catalog.error.message}
+                  {describeApiError(catalog.error)}
                 </Alert>
               ) : null}
 
@@ -240,7 +241,7 @@ export function StudioPanel({
                 )}
                 {create.error ? (
                   <Alert tone="danger" role="alert">
-                    {create.error.message}
+                    {describeApiError(create.error)}
                   </Alert>
                 ) : null}
                 <Button
@@ -365,7 +366,7 @@ function ArtifactRow({
       {artifact.error ? <span className="text-2xs text-ink">{artifact.error}</span> : null}
       {error ? (
         <span role="alert" className="text-2xs text-danger-fg">
-          {error.message}
+          {describeApiError(error)}
         </span>
       ) : null}
       <Button
@@ -449,7 +450,7 @@ function NoteEditor({
       ) : null}
       {error ? (
         <Alert tone="danger" role="alert">
-          {error.message}
+          {describeApiError(error)}
         </Alert>
       ) : null}
       <div className="flex justify-between gap-2">

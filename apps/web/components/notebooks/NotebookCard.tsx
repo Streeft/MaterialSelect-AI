@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -123,7 +124,7 @@ export function NotebookCard({
       </div>
       {rename.error ? (
         <Alert tone="danger" role="alert" className="m-4 mt-0">
-          {rename.error.message}
+          {describeApiError(rename.error)}
         </Alert>
       ) : null}
     </Card>

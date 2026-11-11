@@ -57,8 +57,7 @@ export function ActivityPanel() {
   if (activity.isError || !activity.data) {
     return (
       <ErrorState
-        title={d.activity.error}
-        description={activity.error instanceof Error ? activity.error.message : undefined}
+        title={d.activity.error} error={activity.error}
         onRetry={() => void activity.refetch()}
       />
     );

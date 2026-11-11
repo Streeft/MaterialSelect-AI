@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -225,8 +226,7 @@ export function CaeExportDialog({
               <LoadingState label={x.curve.loading} className="py-2" />
             ) : curves.isError ? (
               <ErrorState
-                title={x.curve.errorTitle}
-                description={curves.error.message}
+                title={x.curve.errorTitle} error={curves.error}
                 onRetry={() => void curves.refetch()}
               />
             ) : stressStrain.length === 0 ? (
@@ -261,8 +261,7 @@ export function CaeExportDialog({
                 <LoadingState label={x.series.loading} className="py-2" />
               ) : curveDetail.isError ? (
                 <ErrorState
-                  title={x.series.errorTitle}
-                  description={curveDetail.error.message}
+                  title={x.series.errorTitle} error={curveDetail.error}
                   onRetry={() => void curveDetail.refetch()}
                 />
               ) : (
@@ -303,7 +302,7 @@ export function CaeExportDialog({
             role="alert"
             title={refused ? t.refusedTitle : t.errorTitle}
           >
-            {card.error.message}
+            {describeApiError(card.error)}
           </Alert>
         ) : null}
       </div>

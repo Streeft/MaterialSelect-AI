@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { ApiError, evaluateIndex } from "@/lib/api";
@@ -47,7 +48,7 @@ export function CustomIndexForm({
       setText("");
       setError(null);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : t.genericError),
+    onError: (err) => setError(describeApiError(err, t.genericError)),
   });
 
   const atLimit = total >= MAX_COMPUTED;

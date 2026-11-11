@@ -207,8 +207,7 @@ export function MaterialCurves({
       {counts}
       {curve.isError ? (
         <ErrorState
-          title={t.curveError}
-          description={curve.error instanceof ApiError ? curve.error.message : undefined}
+          title={t.curveError} error={curve.error}
           onRetry={() =>
             // A stale link with a unit the axis refuses is fixed by dropping
             // the choice, not by asking again.
