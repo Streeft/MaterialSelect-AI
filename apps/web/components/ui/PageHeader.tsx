@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { labelForPath } from "@/lib/design/sections";
+import { groupForPath, labelForPath } from "@/lib/design/sections";
 
 /**
  * A route's header: where you are, what this screen is, and the controls
@@ -28,26 +28,38 @@ export function PageHeader({
   description,
   actions,
   group,
+  eyebrow: showEyebrow = true,
   className,
 }: {
   title: ReactNode;
   description?: ReactNode;
   /** Controls of the whole page, not a card. */
   actions?: ReactNode;
-  /** The rail grouping, if it exists: "study", "data". */
+  /**
+   * The rail grouping. Left out, it comes from the route (`groupForPath`,
+   * D-205), so a page cannot forget it; pass it only to override.
+   */
   group?: string;
+  /**
+   * `false` on a detail page whose breadcrumb already says where it is
+   * (D-205): "dados · catálogo" over "Catálogo › Metais" said it twice.
+   */
+  eyebrow?: boolean;
   className?: string;
 }) {
   const pathname = usePathname();
   const label = labelForPath(pathname).toLowerCase();
-  const eyebrow = group ? `${group} · ${label}` : label;
+  const groupLabel = (group ?? groupForPath(pathname))?.toLowerCase();
+  const eyebrow = groupLabel ? `${groupLabel} · ${label}` : label;
 
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
-          {eyebrow}
-        </span>
+        {showEyebrow ? (
+          <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">
+            {eyebrow}
+          </span>
+        ) : null}
         <h1 className="text-2xl font-bold text-ink">{title}</h1>
         {description ? (
           <p className="max-w-prose text-sm text-ink-muted">{description}</p>

@@ -312,7 +312,7 @@ function ComparePageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-        group="estudar"
+       
         actions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
       />
 

@@ -207,6 +207,10 @@ def test_parse_plain_integers_with_four_plus_digits(raw, expected):
         ("[length] ** 2.5 / [mass] ** 0.5 / [time]", "[length]^2.5 / [mass]^0.5 / [time]"),
         ("kJ/mol", "kJ/mol"),
         ("g/cm**3", "g/cm³"),
+        ("1/hour", "1/h"),
+        ("1/minute", "1/min"),
+        ("m/second**2", "m/s²"),
+        ("[length] / [time]", "[length] / [time]"),
     ],
 )
 def test_pretty_unit(raw, expected):

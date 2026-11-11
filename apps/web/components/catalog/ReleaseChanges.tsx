@@ -2,7 +2,6 @@
 
 import { describeApiError } from "@/lib/errors";
 import { useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -149,11 +148,7 @@ export function ReleaseChanges() {
             {undeclared > 0 ? <> {t.noPairUndeclared(undeclared)}</> : null}
           </>
         }
-        action={
-          <Link href="/app/catalogo" className="text-sm font-medium text-accent underline">
-            {t.backToCatalog}
-          </Link>
-        }
+        // D-156/D-205: the page header already carries "Voltar ao catálogo".
       />
     );
   }

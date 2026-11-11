@@ -384,6 +384,11 @@ describe("Stepper", () => {
     expect(blocked).toHaveTextContent("Execute a seleção primeiro.");
     await userEvent.click(blocked);
     expect(onSelect).not.toHaveBeenCalled();
+    // D-205: not reached yet is ordinary, not a warning — no dashed orange.
+    expect(blocked.className).not.toContain("border-dashed");
+    const dot = blocked.querySelector(".msds-step-dot") as HTMLElement;
+    expect(dot.style.borderStyle).toBe("");
+    expect(dot.style.borderColor).toBe("");
   });
 });
 

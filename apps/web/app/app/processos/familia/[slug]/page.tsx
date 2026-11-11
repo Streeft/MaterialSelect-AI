@@ -60,7 +60,7 @@ export default function ProcessFamilyPage() {
         ]}
       />
 
-      <PageHeader title={data.name} description={data.description ?? undefined} group="dados" />
+      <PageHeader title={data.name} description={data.description ?? undefined} eyebrow={false} />
 
       <FamilyProseCard
         applications={data.applications}

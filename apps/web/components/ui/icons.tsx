@@ -231,10 +231,12 @@ export const IconCompare = (p: IconProps) => (
   </Svg>
 );
 
+// D-205: the arrow leaves the tray. It used to point down into it, which is
+// the download glyph, on every "Importar" in the app.
 export const IconUpload = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M12 4.2v10.6" />
-    <path d="M7.2 10l4.8 4.8 4.8-4.8" />
+    <path d="M12 14.8V4.2" />
+    <path d="M7.2 9l4.8-4.8L16.8 9" />
     <path d="M5 19.2h14" />
   </Svg>
 );

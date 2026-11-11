@@ -8,6 +8,7 @@ import {
   deleteProperty,
   listProperties,
 } from "@/lib/api";
+import { dimensionName } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import type { PropertyCategory, PropertyDefinition } from "@/lib/types";
 import {
@@ -220,7 +221,8 @@ export default function PropertiesAdminPage() {
                   <Td className="text-ink-muted">
                     {ptBR.categories[p.category]}
                   </Td>
-                  <Td className="text-ink-muted">{p.canonical_unit}</Td>
+                  {/* D-205: "MPa·m^0.5" and "dimensionless" are how the Pint spells them. */}
+                  <Td className="text-ink-muted">{dimensionName(p.canonical_unit)}</Td>
                   <Td numeric className="text-ink-muted">
                     {p.value_count}
                   </Td>

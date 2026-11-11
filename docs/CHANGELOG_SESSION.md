@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 162 — 11/11/26 — F0 da revisão das telas: correções rápidas (D-205)
+
+**O que mudou.** Primeira fase do plano de revisão das telas. Unidade de tempo em símbolo (`1/h`, não `1/hour`) no backend e no
+frontend; atributo de processo sem o traço de adimensional ao lado do custo; rótulos das baterias com a unidade; ícone de enviar
+apontando para cima; etapa bloqueada do `Stepper` neutra (sem tracejado laranja); "Famílias" no topo do catálogo; "O que sairia"
+sem número no Sintetizar; sem "Voltar ao catálogo" duplicado nas releases nem descrição repetida nos vazios de Meus registros;
+sobrescrito com o grupo da barra derivado da rota (`groupForPath`) e escondido nas páginas de detalhe com trilha; índice em KaTeX em
+Dimensionar; unidade legível em Administrar › Propriedades; "Ctrl K" escondido em tela de toque. +4 casos de backend
+(`test_pretty_unit`), +5 de frontend medidos (1682 → 1687 sobre a `main` com #229 a #232: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
+backend 5415 (5409 passam e 6 pulam), frontend 1687 passam (159 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
+a #232 e a D-204/Sessão 161 entrou na `main` com a CI resiliente: ficou D-205/162. Sem migração; depois do merge, **Deploy da API** (`pretty_unit`).
+
 ## Sessão 156 — 11/11/26 — Service worker honesto (D-199)
 
 **O que mudou.** `public/sw.js` servia `/offline.html` em qualquer falha de navegação, mesmo online, e usuários ficaram presos em

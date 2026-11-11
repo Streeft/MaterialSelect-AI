@@ -115,6 +115,10 @@ export function prettyUnit(unit: string | null): string {
       // de conversão continua guardando `degC`, que é o que o Pint sabe reler.
       .replace(/\bdegC\b/g, "°C")
       .replace(/\bdegF\b/g, "°F")
+      // D-205: the time units the Pint spells out ("1/hour" on a process sheet).
+      .replace(/\bhour\b/g, "h")
+      .replace(/\bminute\b/g, "min")
+      .replace(/\bsecond\b/g, "s")
       .replace(/\s*\*\*\s*3(?![\d.])/g, "³")
       .replace(/\s*\*\*\s*2(?![\d.])/g, "²")
       .replace(/\s*\*\*\s*/g, "^")

@@ -152,6 +152,37 @@ const detail: ProcessDetail = {
     },
   ],
 };
+// D-205: a cost is dimensionless (money is in no unit system, D-65) and an
+// hourly rate arrives as the Pint's "1/hour".
+const scalarAttribute = detail.attributes[0]!;
+detail.attributes.push(
+  {
+    ...scalarAttribute,
+    attribute_id: 4,
+    attribute_name: "Custo de ferramental dedicado",
+    attribute_slug: "custo-ferramental",
+    kind: "ESCALAR",
+    value_scalar: 50000,
+    value_min: null,
+    value_max: null,
+    value_typical: null,
+    original_unit: "dimensionless",
+    canonical_unit: "dimensionless",
+  },
+  {
+    ...scalarAttribute,
+    attribute_id: 5,
+    attribute_name: "Custo de operação por hora",
+    attribute_slug: "custo-hora-operacao",
+    kind: "ESCALAR",
+    value_scalar: 250,
+    value_min: null,
+    value_max: null,
+    value_typical: null,
+    original_unit: "1/hour",
+    canonical_unit: "1/hour",
+  },
+);
 
 const familyDetail: ProcessClassDetail = {
   id: 1,
@@ -234,6 +265,17 @@ describe("a ficha do processo", () => {
     expect(await screen.findByText(/0,2\s*–\s*400/)).toBeInTheDocument();
     expect(screen.getByText("Maciço 3D")).toBeInTheDocument();
     expect(screen.getByText("Oco 3D")).toBeInTheDocument();
+  });
+
+  it("escreve custo sem traço e a unidade de tempo em símbolo (D-205)", async () => {
+    route.pathname = "/app/processos/fundicao";
+    render(wrap(<ProcessDetailPage />));
+
+    const cost = await screen.findByText("50.000");
+    // The dash after a number reads as "missing" in this app; a cost has no unit to write.
+    expect(cost.parentElement).not.toHaveTextContent("—");
+    expect(screen.getByText("250").parentElement).toHaveTextContent(/250\s*1\/h$/);
+    expect(screen.queryByText(/hour/)).not.toBeInTheDocument();
   });
 
   it("escreve a ausência em vez de desenhar zero", async () => {

@@ -73,17 +73,16 @@ function BookmarkRow({ bookmark, index }: { bookmark: Bookmark; index: number })
 function BookmarkList({
   bookmarks,
   emptyTitle,
-  emptyHint,
 }: {
   bookmarks: Bookmark[];
   emptyTitle: string;
-  emptyHint: string;
 }) {
   // Absence is written out, never an empty panel (D-24): a blank area reads as
   // "this failed to load", which is a different thing from "you have not
-  // starred anything yet".
+  // starred anything yet". The card above already carries the hint, so the
+  // empty state does not repeat it (D-205).
   if (bookmarks.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyHint} />;
+    return <EmptyState title={emptyTitle} />;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -140,7 +139,6 @@ export default function MyRecordsPage() {
               <BookmarkList
                 bookmarks={query.data.favorites}
                 emptyTitle={t.favoritesEmpty}
-                emptyHint={t.favoritesHint}
               />
             </StepCard>
 
@@ -148,7 +146,6 @@ export default function MyRecordsPage() {
               <BookmarkList
                 bookmarks={query.data.recents}
                 emptyTitle={t.recentsEmpty}
-                emptyHint={t.recentsHint}
               />
             </StepCard>
           </div>

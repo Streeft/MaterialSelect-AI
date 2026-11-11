@@ -292,7 +292,7 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t.title} description={t.subtitle} group="dados" />
+      <PageHeader title={t.title} description={t.subtitle} />
       <CatalogReadOnlyNotice />
 
       <Stepper label={ptBR.ui.steps} steps={STEPS} statusOf={statusOf} current={step} onSelect={setStep} />

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { labelForPath, sectionForPath } from "./sections";
+import { GROUPS } from "@/components/layout/AppSidebar";
+import { groupForPath, labelForPath, sectionForPath } from "./sections";
 
 describe("sectionForPath", () => {
   it("maps each section's own route to itself", () => {
@@ -60,5 +61,27 @@ describe("labelForPath", () => {
   it("falls back to the initial section for anything else", () => {
     expect(labelForPath("/")).toBe("Início");
     expect(labelForPath("/entrar")).toBe("Início");
+  });
+});
+
+// D-205: the eyebrow's group comes from the route, and agrees with the rail.
+describe("groupForPath", () => {
+  it("gives every rail destination the label of the rail group it sits in", () => {
+    for (const group of GROUPS) {
+      for (const item of group.items) {
+        expect(groupForPath(item.href), item.href).toBe(group.label);
+        expect(groupForPath(`${item.href}/qualquer`), item.href).toBe(group.label);
+      }
+    }
+  });
+
+  it("has no group for Início and the routes outside the rail", () => {
+    expect(groupForPath("/app")).toBeNull();
+    expect(groupForPath("/app/estilo")).toBeNull();
+    expect(groupForPath("/app/aparencia")).toBeNull();
+  });
+
+  it("files the material form under Dados, with the catalogue", () => {
+    expect(groupForPath("/app/materiais/novo")).toBe("Dados");
   });
 });

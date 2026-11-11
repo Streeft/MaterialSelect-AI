@@ -73,7 +73,7 @@ export default function FamilyNotesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} group="dados" />
+      <PageHeader title={t.title} description={t.subtitle} />
       <GlossaryNav current="familias" />
 
       {(notes.isLoading || classes.isLoading) && <LoadingState label={t.loading} />}
