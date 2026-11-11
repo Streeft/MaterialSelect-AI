@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 159 — 11/11/26 — Pequenos acertos de UI (D-202)
+
+**O que mudou.** Oito defeitos da auditoria visual, só frontend: rótulos da barra inferior do celular de 9 para 12 px (alvos de 48 px,
+reserva da barra 4,5 rem); token `--rail-eyebrow` (7,1:1) nos rótulos "Estudar/Dados/Administrar"; menu lateral compacto (linhas de 28 px,
+rodapé fixo, lista que rola com barra visível) e gaveta do celular que rola só a lista; `/app/estilo` só para o curador em produção
+("Página restrita" para os demais); resultados sem executar mostram só "A seleção ainda não foi executada" com o botão de executar, e o
+Stepper deixa de truncar; `<main>` em `/entrar` e `/assinatura`; chaves únicas nas palavras-chave e designações do catálogo; vitrine
+`Landing.tsx` (e `FunnelPreview`, `lib/marketing/content.ts`) removida, com os comentários falsos. Testes novos:
+`components/layout/acertosUi.test.tsx`, `app/app/estilo/acesso.test.tsx`, `app/paginasPublicas.test.tsx`,
+`components/catalog/keysUnicas.test.tsx` e três casos em `selecao.test.tsx` (todos falhavam antes, exceto os de remoção, que checam o estado
+final). Sem backend, migração nem seed.
+
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
 **O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda
