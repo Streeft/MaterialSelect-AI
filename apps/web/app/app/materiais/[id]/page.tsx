@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError, isNotFound } from "@/lib/errors";
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -17,6 +18,7 @@ import {
   parseUnitChoices,
 } from "@/components/UnitPicker";
 import type { MaterialDetail, PropertyGroup } from "@/lib/types";
+import { errorsText } from "@/lib/i18n-errors";
 import { ptBR } from "@/lib/i18n";
 import { flowText } from "@/lib/i18n-flow";
 import { fichaText } from "@/lib/i18n-ficha";
@@ -129,7 +131,7 @@ export default function MaterialDetailPage() {
       router.push(`/app/materiais/${copy.id}`);
     },
     onError: (err) =>
-      setDuplicateError(err instanceof Error ? err.message : ptBR.detail.error),
+      setDuplicateError(describeApiError(err, ptBR.detail.error)),
   });
 
   function handleDeactivate() {
@@ -169,9 +171,17 @@ export default function MaterialDetailPage() {
       </ButtonLink>
 
       {material.isLoading && <LoadingState label={t.loading} />}
-      {material.isError && (
-        <ErrorState title={t.error} onRetry={() => void material.refetch()} />
-      )}
+      {material.isError &&
+        (isNotFound(material.error) ? (
+          // D-200: a record that does not exist is not a failed request; there
+          // is nothing to retry, only the way back.
+          <ErrorState
+            title={errorsText.materialNotFound.title}
+            description={errorsText.materialNotFound.description}
+          />
+        ) : (
+          <ErrorState title={t.error} error={material.error} onRetry={() => void material.refetch()} />
+        ))}
 
       {data && (
         <>

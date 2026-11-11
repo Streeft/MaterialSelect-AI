@@ -675,6 +675,9 @@ continua lá, e a métrica para de medir no 3.
 
 Registrados para não voltarem por engano:
 
+- ~~**Erros crus na tela e menu que some com a API fora (Sessão 157, [D-200](DECISIONS.md))**~~ — `describeApiError`
+  único, `ErrorState` com `error`/retry, fronteiras na raiz, `AuthGate` com menu e "Redirecionando…", 404 distinto de
+  falha. Pendente (baixo): `studio_service._fail` ainda grava `str(exc)` do provedor de IA no artefato.
 - ~~**Login com Google dava "Internal Server Error" em produção (Sessão 155, [D-198](DECISIONS.md))**~~ —
   apareceu no teste de usabilidade do TCC em 09/11/26. O callback agora faz
   rollback, grava o traceback no log e redireciona para `/entrar?erro=<código>`

@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Notebook, NotebookChatGoal, NotebookResponseLength } from "@/lib/types";
@@ -103,7 +104,7 @@ function SettingsForm({ notebook, onClose }: { notebook: Notebook; onClose: () =
       </div>
       {save.error ? (
         <Alert tone="danger" role="alert">
-          {save.error.message}
+          {describeApiError(save.error)}
         </Alert>
       ) : null}
       <div className="flex justify-end">

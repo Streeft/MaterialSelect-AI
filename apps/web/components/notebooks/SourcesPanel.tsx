@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Notebook, NotebookSource } from "@/lib/types";
@@ -91,7 +92,7 @@ export function SourcesPanel({
 
           {error ? (
             <Alert tone="danger" role="alert">
-              {error.message}
+              {describeApiError(error)}
             </Alert>
           ) : null}
 

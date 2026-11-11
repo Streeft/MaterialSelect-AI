@@ -312,7 +312,7 @@ export default function DimensionarPage() {
     : null;
 
   if (cases.isLoading) return <LoadingState label={t.title} />;
-  if (cases.isError) return <ErrorState description={String(cases.error)} />;
+  if (cases.isError) return <ErrorState error={cases.error} onRetry={() => void cases.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { ApiError, createCheckoutSession, createPortalSession } from "@/lib/api";
 import { useBillingStatus } from "@/lib/billing";
@@ -30,7 +31,7 @@ export default function BillingPage() {
       window.location.href = session.url;
     } catch (err) {
       setRedirecting(false);
-      setActionError(err instanceof ApiError ? err.message : t.checkoutError);
+      setActionError(describeApiError(err, t.checkoutError));
     }
   }
 
@@ -42,7 +43,7 @@ export default function BillingPage() {
       window.location.href = session.url;
     } catch (err) {
       setRedirecting(false);
-      setActionError(err instanceof ApiError ? err.message : t.portalError);
+      setActionError(describeApiError(err, t.portalError));
     }
   }
 

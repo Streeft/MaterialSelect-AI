@@ -145,7 +145,7 @@ export function PropertyDistributionPanel({
           {isError && (
             <ErrorState
               title={t.error}
-              description={error instanceof Error ? error.message : undefined}
+              error={error}
               onRetry={onRetry}
             />
           )}

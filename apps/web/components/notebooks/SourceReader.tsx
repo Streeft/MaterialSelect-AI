@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { NotebookSource } from "@/lib/types";
@@ -44,7 +45,7 @@ export function SourceReader({
           {detail.isPending ? (
             <LoadingState />
           ) : detail.error ? (
-            <Alert tone="danger">{detail.error.message}</Alert>
+            <Alert tone="danger">{describeApiError(detail.error)}</Alert>
           ) : (
             <div
               tabIndex={0}

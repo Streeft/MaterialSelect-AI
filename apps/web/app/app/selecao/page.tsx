@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDebounced } from "@/lib/useDebounced";
@@ -537,7 +538,7 @@ function SelectionWizard() {
   const indices = useQuery({ queryKey: ["performance-indices"], queryFn: listPerformanceIndices });
   const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
 
-  const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : t.genericError);
+  const fail = (err: unknown) => setError(describeApiError(err, t.genericError));
 
   /**
    * What a ranking criterion may name, in this study's universe (D-84).
@@ -762,7 +763,7 @@ function SelectionWizard() {
     mutationFn: () => evaluateIndex(customExpression.trim(), indexGoal),
     onSuccess: (res) =>
       setValidation(`${t.validationOk} ${t.dimension}: ${dimensionName(res.dimension)}`),
-    onError: (err) => setValidation(err instanceof ApiError ? err.message : t.genericError),
+    onError: (err) => setValidation(describeApiError(err, t.genericError)),
   });
 
   const loadStudy = useMutation({

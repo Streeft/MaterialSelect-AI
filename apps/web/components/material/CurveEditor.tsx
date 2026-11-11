@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createMaterialCurve, listCurveKinds, replaceMaterialCurve } from "@/lib/api";
@@ -185,7 +186,7 @@ function Form({
       await onSaved();
       onDone();
     },
-    onError: (e: Error) => setProblem(e.message),
+    onError: (e: Error) => setProblem(describeApiError(e)),
   });
 
   const xOption = quantityOf(spec.x_quantities, xq);

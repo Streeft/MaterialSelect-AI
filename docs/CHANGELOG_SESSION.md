@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 157 — 11/11/26 — Erros humanos e com saída (D-200)
+
+**O que mudou.** Falha de rede e erro de servidor deixam de aparecer como "Failed to fetch" ou "Internal Server Error:
+sqlalchemy…". `describeApiError` traduz rede/401/403/404/409/422/429/5xx para PT-BR e é usado em todos os pontos que
+mostravam `err.message`/`String(err)`; `ErrorState` aceita `error` e oferece "Tentar de novo". Raiz ganha `error.tsx` e
+`not-found.tsx`; a fronteira de `/app` mantém o menu; o `AuthGate` com a API fora mostra o menu e a falha, e
+"Redirecionando…" no lugar da página em branco. `catalogo/[slug]` não diz mais "pasta vazia" quando a consulta falha, e a
+ficha separa 404 de falha. Sem mudança de backend e sem migração. Frontend 1648 testes (152 arquivos; +16: `errors.test.ts`,
+`ErrorState.test.tsx`, dois no `AuthGate`); quatro testes de recusa passaram a lançar erro com `status`, como a API real.
+
+---
+
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
 **O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda

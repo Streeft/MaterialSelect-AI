@@ -80,7 +80,7 @@ describe("duplicar registro próprio (D-122)", () => {
   });
 
   it("says why when the server refuses, and stays on the record", async () => {
-    state.duplicate.mockRejectedValue(new Error("Só é possível duplicar um registro próprio."));
+    state.duplicate.mockRejectedValue(Object.assign(new Error("Só é possível duplicar um registro próprio."), { status: 400 }));
     mount();
     await userEvent.click(await screen.findByRole("button", { name: flowText.duplicate.button }));
     expect(await screen.findByRole("alert")).toHaveTextContent("duplicar um registro próprio");

@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -154,7 +155,7 @@ export function ArtifactViewer({
     return (
       <div className="flex flex-col gap-2">
         {back}
-        <ErrorState description={artifact.error?.message} onRetry={() => void artifact.refetch()} />
+        <ErrorState error={artifact.error} onRetry={() => void artifact.refetch()} />
       </div>
     );
   }
@@ -250,13 +251,13 @@ export function ArtifactViewer({
       {[rename.error, note.error].map((error, i) =>
         error ? (
           <Alert key={i} tone="danger" role="alert">
-            {error.message}
+            {describeApiError(error)}
           </Alert>
         ) : null,
       )}
       {png.error ? (
         <Alert tone="danger" role="alert">
-          {png.error instanceof RasterizeError ? t.pngFailed : png.error.message}
+          {png.error instanceof RasterizeError ? t.pngFailed : describeApiError(png.error)}
         </Alert>
       ) : null}
       {data.withheld.length > 0 && !OWN_WITHHELD.has(data.tool) ? (
@@ -292,7 +293,7 @@ export function ArtifactViewer({
         <p className="text-sm text-ink">{t.removeConfirm(data.title)}</p>
         {remove.error ? (
           <Alert tone="danger" role="alert">
-            {remove.error.message}
+            {describeApiError(remove.error)}
           </Alert>
         ) : null}
       </Dialog>

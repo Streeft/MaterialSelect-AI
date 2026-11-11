@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { StudioChoice, StudioRequest, StudioToolSpec } from "@/lib/types";
@@ -260,7 +261,7 @@ function CreateForm({
 
       {create.error ? (
         <Alert tone="danger" role="alert">
-          {create.error.message}
+          {describeApiError(create.error)}
         </Alert>
       ) : null}
 

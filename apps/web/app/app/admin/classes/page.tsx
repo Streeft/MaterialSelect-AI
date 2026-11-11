@@ -1,5 +1,6 @@
 "use client";
 
+import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClass, deleteClass, listClasses } from "@/lib/api";
@@ -56,13 +57,13 @@ export default function ClassesAdminPage() {
       setError(null);
       qc.invalidateQueries({ queryKey: ["classes"] });
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteClass(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["classes"] }),
-    onError: (err) => setError(err instanceof ApiError ? err.message : ptBR.form.genericError),
+    onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
   });
 
   const classes: MaterialClass[] = data ?? [];
