@@ -12077,3 +12077,24 @@ Rodar o Cérebro (`ingerir`, `embeddings`, `status`) passa a ser decisão manual
 (inofensivo sem `schedule`, e facilita repor o agendamento).
 
 **Consequência.** Voltar ao agendamento exige decisão nova. Sessão 160.
+
+
+---
+
+## D-204 — CI resiliente na instalação do Chromium
+
+**Contexto.** Nos PRs #229 a #232 o job "E2E (Playwright)" falhou duas vezes cada no passo "Instalar o Chromium do
+Playwright": o apt das dependências (`--with-deps`) dava "Temporary failure resolving 'archive.ubuntu.com'" (também
+`security.` e `azure.archive.`), "E: Unable to fetch some archives", saída 100. Nenhum teste chegava a rodar. O job
+Lighthouse não instala navegador (usa o do runner), então só o E2E é afetado.
+
+**Decisão.** O passo vira um laço de até 4 tentativas com espera de 15 s, 45 s e 90 s. Dependências do sistema
+(`sudo apt-get update` + `playwright install-deps chromium`) e download do navegador (`playwright install chromium`)
+passam a ser comandos separados, cada um com seu laço. `~/.cache/ms-playwright` entra em `actions/cache` com chave na
+versão do Playwright lida do `package-lock.json` instalado; num acerto de cache o download vira no-op.
+
+**Alternativas descartadas.** `continue-on-error` ou pular o E2E (esconde regressão); só rodar de novo o job à mão
+(não escala); cachear o apt (frágil e grande).
+
+**Consequência.** Falha persistente de DNS por mais de ~2,5 min ainda derruba o job, e então o caminho é reexecutar.
+Nenhum teste nem código da app mudou. Sessão 161.

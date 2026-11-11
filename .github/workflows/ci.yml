@@ -442,9 +442,42 @@ jobs:
         working-directory: .
         run: npm ci
 
+      # D-204: o apt das dependências do Chromium falha por DNS transitório
+      # ("Temporary failure resolving 'archive.ubuntu.com'", exit 100) e
+      # derrubava o job antes de qualquer teste. A instalação é repetida com
+      # espera crescente; o cache do navegador evita o download repetido.
+      - name: Descobrir a versão do Playwright
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache do navegador do Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
       - name: Instalar o Chromium do Playwright
         working-directory: apps/web
-        run: npx playwright install --with-deps chromium
+        run: |
+          retry() {
+            local delays=(15 45 90) attempt=1
+            until "$@"; do
+              if [ "$attempt" -gt "${#delays[@]}" ]; then
+                echo "::error::Falhou após $attempt tentativas: $*"
+                return 1
+              fi
+              local wait="${delays[$((attempt - 1))]}"
+              echo "::warning::Tentativa $attempt falhou; nova tentativa em ${wait}s"
+              sleep "$wait"
+              attempt=$((attempt + 1))
+            done
+          }
+          # Dependências do sistema (apt) e download do navegador são passos
+          # separados: só o primeiro depende da rede do apt, e o segundo vira
+          # no-op quando o cache acerta.
+          retry bash -c 'sudo apt-get update && npx playwright install-deps chromium'
+          retry npx playwright install chromium
 
       - name: Rodar a suíte end-to-end
         working-directory: apps/web
