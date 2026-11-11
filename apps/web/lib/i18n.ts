@@ -1262,11 +1262,12 @@ export const ptBR = {
       "Escolha uma aplicação de referência ou configure livremente os requisitos elétricos e mecânicos.",
     customOption: "Personalizado",
     requirementsTitle: "Requisitos de projeto",
-    targetVoltage: "Tensão nominal do barramento",
-    targetEnergy: "Energia útil requerida",
-    targetPower: "Potência de pico requerida",
+    // D-204: a unidade no rótulo, como em Dimensionar ("Comprimento (m)").
+    targetVoltage: "Tensão nominal do barramento (V)",
+    targetEnergy: "Energia útil requerida (kWh)",
+    targetPower: "Potência de pico requerida (kW)",
     dod: "Profundidade de descarga (DoD)",
-    cellCapacity: "Capacidade unitária da célula",
+    cellCapacity: "Capacidade unitária da célula (Ah)",
     packingFactors: "Fatores de empacotamento",
     massPackingFactor: "Fator mássico (células / pack)",
     volumePackingFactor: "Fator volumétrico (células / pack)",
@@ -1415,7 +1416,8 @@ export const ptBR = {
     previewing: "Calculando…",
     save: "Gravar registro",
     saving: "Gravando…",
-    previewStep: "4. O que sairia",
+    // D-204: o resultado fica ao lado da receita; numerado, lia-se "2" ao lado de "4".
+    previewStep: "O que sairia",
     previewEmpty:
       "Esta receita não produziu valor nenhum com os dados que os pais têm.",
     // Nome provisório da prévia: a API exige nome no corpo, a prévia não
@@ -3081,6 +3083,8 @@ export const ptBR = {
     unwritten: "Ninguém escreveu este texto ainda.",
     inThisFamily: "Nesta família",
     subclasses: "Subclasses",
+    // D-204: no topo do catálogo não há classe-mãe; o que se lista são famílias.
+    families: "Famílias",
     countMaterials: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
     countDirect: (n: number) =>
       n === 1 ? "1 material aqui" : `${n} materiais aqui`,

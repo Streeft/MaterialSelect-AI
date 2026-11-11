@@ -295,6 +295,7 @@ def pretty_unit(unit: str | None) -> str:
     - Replaces general power operator (``**``) with ``^``;
     - Replaces multiplication operator (``*``) with a middle dot (``·``);
     - Renders ``degC``/``degF`` as ``°C``/``°F``;
+    - Renders ``hour``/``minute``/``second`` as ``h``/``min``/``s``;
     - Renders ``dimensionless`` as an em-dash ``—``;
     - Returns an empty string if ``unit`` is None or empty.
     """
@@ -309,6 +310,10 @@ def pretty_unit(unit: str | None) -> str:
     # o que o Pint sabe reler — a regra do B11, intacta.
     s = re.sub(r"\bdegC\b", "°C", unit)
     s = re.sub(r"\bdegF\b", "°F", s)
+    # D-204: the time units the Pint spells out ("1/hour" on a process sheet).
+    s = re.sub(r"\bhour\b", "h", s)
+    s = re.sub(r"\bminute\b", "min", s)
+    s = re.sub(r"\bsecond\b", "s", s)
     s = re.sub(r"\s*\*\*\s*3(?![0-9.])", "³", s)
     s = re.sub(r"\s*\*\*\s*2(?![0-9.])", "²", s)
     s = re.sub(r"\s*\*\*\s*", "^", s)

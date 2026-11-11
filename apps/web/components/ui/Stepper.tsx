@@ -67,9 +67,9 @@ function stepDotStyle(status: StepStatus): CSSProperties {
   if (status === "current") {
     return { borderColor: "rgb(var(--accent))", background: "rgb(var(--accent))", color: "rgb(var(--accent-fg))" };
   }
-  if (status === "blocked") {
-    return { borderColor: "rgb(var(--warning))", borderStyle: "dashed", color: "rgb(var(--warning-fg))" };
-  }
+  // D-204: a step not reached yet is the wizard's ordinary state, not a
+  // warning. It keeps MSDS's neutral dot; the orange dashed ring it had read
+  // as an alarm on a screen where nothing had gone wrong.
   return {};
 }
 
@@ -108,14 +108,14 @@ export function Stepper<T extends string>({
                   "disabled:cursor-not-allowed",
                   // A step is a button, so its outline is what says it can be
                   // pressed and owes 3:1 (WCAG 1.4.11). The blocked one is
-                  // disabled and therefore exempt, but a dashed hairline on the
-                  // dark theme's page is invisible rather than merely quiet.
+                  // disabled and therefore exempt; it stays a solid, quiet
+                  // outline on the sunken surface (D-204).
                   isCurrent
                     ? "border-brand bg-brand-50"
                     : status === "done"
                       ? "border-edge-control bg-surface-raised hover:border-ink-subtle"
                       : status === "blocked"
-                        ? "border-dashed border-edge-strong bg-surface-sunken"
+                        ? "border-edge bg-surface-sunken text-ink-muted"
                         : "border-edge-control bg-surface-raised hover:border-ink-subtle",
                 )}
               >
@@ -125,7 +125,7 @@ export function Stepper<T extends string>({
                 <span className="min-w-0">
                   <span className="msds-step-label block truncate">{step.label}</span>
                   {disabled && step.blockedReason ? (
-                    <span className="msds-step-blocked block truncate">{step.blockedReason}</span>
+                    <span className="block truncate text-2xs text-ink-muted">{step.blockedReason}</span>
                   ) : step.summary ? (
                     <span className="block truncate text-2xs text-ink-muted">{step.summary}</span>
                   ) : null}

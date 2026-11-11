@@ -137,7 +137,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
 
 - **Rota nova tem rótulo no sobrescrito** ([D-156](docs/DECISIONS.md)): `PageHeader` lê `labelForPath`
   (`lib/design/sections.ts`). Tela fora do mapa de seções entra em `ROUTE_LABELS` ou ganha seção; senão o cabeçalho escreve
-  "início". Um estado vazio que já traz o botão da tela não repete o do cabeçalho.
+  "início". Um estado vazio que já traz o botão da tela não repete o do cabeçalho. O grupo ("estudar · …") vem de
+  `groupForPath`, espelho de `GROUPS` da barra ([D-204](docs/DECISIONS.md)): página não passa `group`; detalhe com trilha
+  passa `eyebrow={false}`. Etapa bloqueada do `Stepper` é neutra, nunca cor de aviso.
 
 - **Dois painéis são `PaneScaffold`** ([D-182](docs/DECISIONS.md)): lista e detalhe ou painel de apoio, decididos pela largura do bloco
   (container query, limiares M3 de `lib/design/breakpoints.ts`), nunca por `matchMedia` no render. `useWindowClass` é só para comportamento.

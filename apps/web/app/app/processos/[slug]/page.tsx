@@ -8,7 +8,7 @@ import type { ProcessAttributeValue } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
-import { formatNumber, prettyUnit } from "@/lib/format";
+import { formatNumber, valueUnit } from "@/lib/format";
 import {
   Badge,
   Breadcrumb,
@@ -71,7 +71,7 @@ export default function ProcessDetailPage() {
       <PageHeader
         title={data.name}
         description={data.description ?? undefined}
-        group="dados"
+        eyebrow={false}
         actions={
           <span className="flex items-center gap-2">
             <FavoriteButton universe="process" recordId={data.id} />
@@ -184,7 +184,10 @@ function kindHint(value: ProcessAttributeValue): string | null {
 }
 
 function AttributeValueText({ value }: { value: ProcessAttributeValue }) {
-  const unit = prettyUnit(value.original_unit);
+  // D-204: `valueUnit`, as the material sheet does since D-184. A cost is a
+  // dimensionless quantity here (D-65: money is in no unit system), and the
+  // dash `prettyUnit` writes for it read as "missing" ("50.000 —").
+  const unit = valueUnit(value.original_unit);
 
   if (value.kind === "DISCRETO") {
     if (value.labels.length === 0) return <MissingValue />;

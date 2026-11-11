@@ -151,7 +151,7 @@ function DashboardContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-        group="dados"
+       
         actions={
           <>
             <MenuButton label={d.actions.exportLabel} icon={<IconDownload />}>

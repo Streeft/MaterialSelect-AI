@@ -687,7 +687,7 @@ function MapsPageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-        group="estudar"
+       
         actions={
           <>
             <Button

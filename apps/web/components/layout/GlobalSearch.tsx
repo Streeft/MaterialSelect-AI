@@ -101,7 +101,7 @@ export function GlobalSearchButton({ className }: { className?: string }) {
       >
         <IconSearch aria-hidden className="h-4 w-4 shrink-0" />
         <span className="msds-btn-label flex-1 text-left">{t.open}</span>
-        <kbd className="msds-kbd">{t.shortcut}</kbd>
+        <kbd className="msds-kbd kbd-hint">{t.shortcut}</kbd>
       </button>
       {open ? <SearchDialog onClose={() => setOpen(false)} /> : null}
     </>

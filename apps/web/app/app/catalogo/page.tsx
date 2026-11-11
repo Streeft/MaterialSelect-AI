@@ -152,7 +152,7 @@ function CatalogPageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-        group="dados"
+       
         actions={
           <>
             {/* D-108: a quiet door to a maintenance reading, not a second action. */}
@@ -242,7 +242,7 @@ function CatalogPageContent() {
           on this screen, a family card leaves for that family's own page, where
           the record and the subclasses are. Collapsing them into one control
           would cost whichever question lost. */}
-      <Section id="familias" title={ptBR.family.subclasses} description={t.browseHint}>
+      <Section id="familias" title={ptBR.family.families} description={t.browseHint}>
         <div className="flex flex-wrap gap-2">
           {roots(classes.data ?? []).map((family) => (
             <Link

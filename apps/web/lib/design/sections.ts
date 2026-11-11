@@ -106,3 +106,44 @@ export function labelForPath(pathname: string): string {
   const extra = ROUTE_LABELS.find((r) => pathname === r.route || pathname.startsWith(`${r.route}/`));
   return extra?.label ?? sectionMeta(sectionForPath(pathname)).label;
 }
+
+/**
+ * D-204: the rail group a route sits in, in the words the eyebrow writes.
+ * Before this, each page passed its own `group`, and eight of them forgot:
+ * "dimensionar" stood alone where "estudar · mapas" had its group. The rail
+ * (`AppSidebar` `GROUPS`) is the source; this mirrors it, and its test walks
+ * the rail so the two cannot drift.
+ */
+const SECTION_GROUP: Partial<Record<SectionId, string>> = {
+  selecao: "Estudar",
+  mapas: "Estudar",
+  comparar: "Estudar",
+  cadernos: "Estudar",
+  dimensionar: "Estudar",
+  custo: "Estudar",
+  eco: "Estudar",
+  baterias: "Estudar",
+  catalogo: "Dados",
+  processos: "Dados",
+  sintetizar: "Dados",
+  "meus-registros": "Dados",
+  painel: "Dados",
+  importar: "Dados",
+  classes: "Administrar",
+  propriedades: "Administrar",
+};
+
+const ROUTE_GROUP = [
+  { route: "/app/glossario", group: "Dados" },
+  { route: "/app/materiais", group: "Dados" },
+] as const;
+
+/** The rail group of a route, or `null` for Início and the routes outside the rail. */
+export function groupForPath(pathname: string): string | null {
+  const own = SECTIONS.find(
+    (s) => s.route !== "/" && (pathname === s.route || pathname.startsWith(`${s.route}/`)),
+  );
+  if (own) return SECTION_GROUP[own.id] ?? null;
+  const extra = ROUTE_GROUP.find((r) => pathname === r.route || pathname.startsWith(`${r.route}/`));
+  return extra?.group ?? null;
+}

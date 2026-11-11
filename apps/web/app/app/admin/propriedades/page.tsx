@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, createProperty, deleteProperty, listProperties } from "@/lib/api";
+import { dimensionName } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import type { PropertyCategory, PropertyDefinition } from "@/lib/types";
 import {
@@ -180,7 +181,8 @@ export default function PropertiesAdminPage() {
                     {p.symbol && <span className="ml-1 text-ink-subtle">({p.symbol})</span>}
                   </RowHeader>
                   <Td className="text-ink-muted">{ptBR.categories[p.category]}</Td>
-                  <Td className="text-ink-muted">{p.canonical_unit}</Td>
+                  {/* D-204: "MPa·m^0.5" and "dimensionless" are how the Pint spells them. */}
+                  <Td className="text-ink-muted">{dimensionName(p.canonical_unit)}</Td>
                   <Td numeric className="text-ink-muted">
                     {p.value_count}
                   </Td>

@@ -12060,3 +12060,37 @@ ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostr
 
 **Numeração.** O plano pedia D-195 e Sessão 152; os dois já estavam ocupados em `main` (Início que começa escrevendo),
 então esta decisão é a D-198 e a sessão é a 155.
+
+## D-204 — F0 da revisão das telas: correções rápidas de unidade, texto e sobrescrito
+
+**Contexto.** A revisão de todas as telas ("M3 na estrutura, Notion na superfície", plano publicado em 11/11/26) separou numa
+fase F0 o que estava errado sem pedir decisão: unidades escritas como o Pint as escreve, textos repetidos ou numerados fora de
+ordem, sinais visuais que diziam o contrário do que acontecia e um sobrescrito que metade das telas esquecia.
+
+**Decisão.**
+- **Unidade de tempo em símbolo.** `pretty_unit` (backend) e `prettyUnit` (frontend) escrevem `hour`/`minute`/`second` como
+  `h`/`min`/`s` ("1/hour" virava rótulo na ficha de processo). Só o rótulo muda; a conversão segue no Pint.
+- **Atributo de processo usa `valueUnit`**, como a ficha de material desde D-184: custo é grandeza adimensional (D-65, dinheiro
+  não está em sistema de unidades) e o traço de `prettyUnit` ao lado do número ("50.000 —") lia-se como ausente.
+- **Baterias: a unidade no rótulo** ("Tensão nominal do barramento (V)", "Energia útil requerida (kWh)"…), como em Dimensionar.
+  A vírgula decimal do `<input type=number>` é do navegador (D-167) e não muda.
+- **`IconUpload` aponta para cima.** O desenho antigo era o de baixar, em todo "Importar" do app.
+- **Etapa ainda não alcançada é neutra no `Stepper`.** Sai o anel tracejado laranja (cor de aviso) e o motivo vem em
+  `text-ink-muted`: não ter chegado à etapa é o estado comum do assistente, não um alerta.
+- **Textos:** o topo do catálogo lista "Famílias" (não "Subclasses", não há classe-mãe ali); o cartão "O que sairia" do
+  Sintetizar perde o número (ficava "2" ao lado de "4"); a página de releases não repete "Voltar ao catálogo" no estado vazio
+  (D-156); Meus registros não repete no estado vazio a descrição do cartão.
+- **O grupo do sobrescrito vem da rota.** `groupForPath` (`lib/design/sections.ts`) dá o grupo da barra lateral
+  ("estudar · dimensionar"), e o teste percorre `GROUPS` do `AppSidebar` para os dois não divergirem. `PageHeader` só aceita
+  `group` para sobrepor. Página de detalhe com trilha (família do catálogo, processo, família de processo) passa
+  `eyebrow={false}`: a trilha já diz onde se está.
+- **Vocabulário:** o índice em Dimensionar é `ExpressionLabel` (fração em KaTeX, D-191), nunca o slug; a coluna de unidade em
+  Administrar › Propriedades usa `dimensionName` ("adimensional", "MPa·m^0.5" legível); o "Ctrl K" da busca some em tela de
+  toque (`.kbd-hint`, `hover: none` e `pointer: coarse`), e o atalho continua em `aria-keyshortcuts`.
+
+**Alternativas recusadas.** Um "Baixar modelo CSV" no Importar (exige decidir o formato do modelo; fica para F8). Trocar o
+ícone só no Importar (o glifo errado estava no barril e servia a três telas). Manter o grupo por página (oito telas tinham
+esquecido).
+
+**Numeração.** D-199 a D-203 e as Sessões 156 a 160 estão nos PRs abertos #228 a #232; esta decisão é a D-204 e a sessão é a 161.
+Mexe em `apps/api` (`pretty_unit`): depois do merge, **Deploy da API**.

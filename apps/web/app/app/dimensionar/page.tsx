@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+// D-204: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
+import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LoadCase, SolveResult, SolverObjective } from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
@@ -116,9 +118,7 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
               {loadCase.index_name ?? loadCase.index_slug}
             </Link>
             {loadCase.index_expression ? (
-              <code className="rounded-seat bg-well px-2 py-0.5 font-mono text-xs text-ink">
-                {loadCase.index_expression}
-              </code>
+              <ExpressionLabel expression={loadCase.index_expression} className="text-sm text-ink" />
             ) : null}
           </div>
         </div>
@@ -139,9 +139,7 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
               {loadCase.cost_index_name ?? loadCase.cost_index_slug}
             </Link>
             {loadCase.cost_index_expression ? (
-              <code className="rounded-seat bg-well px-2 py-0.5 font-mono text-xs text-ink">
-                {loadCase.cost_index_expression}
-              </code>
+              <ExpressionLabel expression={loadCase.cost_index_expression} className="text-sm text-ink" />
             ) : null}
           </div>
           <span className="text-xs text-ink-muted">{t.costIndexHint}</span>
@@ -450,9 +448,7 @@ export default function DimensionarPage() {
                 {result.index_name ?? result.index_slug}
               </Link>
               {result.index_expression ? (
-                <code className="ml-2 rounded-control bg-surface-sunken px-2 py-0.5 text-ink">
-                  {result.index_expression}
-                </code>
+                <ExpressionLabel expression={result.index_expression} className="ml-2 text-ink" />
               ) : null}
             </p>
             <ResultTable result={result} />

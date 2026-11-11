@@ -1307,7 +1307,7 @@ function SelectionWizard() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <PageHeader title={t.title} description={t.subtitle} group="estudar" />
+        <PageHeader title={t.title} description={t.subtitle} />
 
         {recovered && (
           <Alert tone="info" role="status">
