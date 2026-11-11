@@ -812,6 +812,7 @@ Depois, no navegador:
 |---|---|
 | `DNS_PROBE_FINISHED_NXDOMAIN` em `…fly.dev`, com o deploy verde e as máquinas saudáveis | O app não tem endereço público. Ver abaixo — é a falha mais desnorteante das listadas aqui. |
 | Volta para `/entrar?erro=…` depois de escolher a conta Google | Ver a tabela de códigos em "Login com Google" logo abaixo; o traceback está no `flyctl logs`. Uma API anterior ao D-198 mostrava "Internal Server Error" em texto puro no lugar disso: rode o **Deploy da API**. |
+| Página "Sem conexão" com a internet funcionando (app instalado, service worker antigo) | O `sw.js` anterior ao D-199 servia `/offline.html` em qualquer falha de navegação. A versão atual (`msai-offline-v3`) só a serve com `navigator.onLine === false`; online, o navegador mostra o erro real (DNS, servidor fora do ar). O worker novo assume no próximo carregamento; se o aparelho continuar preso, "Limpar dados do site" resolve. |
 | Login em laço, sem erro em log nenhum | `BACKEND_BASE_URL` apontando para o Fly em vez da Vercel (§2), ou `API_PROXY_TARGET` ausente. |
 | `ModuleNotFoundError: psycopg` | `DATABASE_URL` com `postgresql://` em vez de `postgresql+psycopg://`. |
 | Frontend chamando `localhost:8000` | `NEXT_PUBLIC_API_URL` **ausente** (não é o mesmo que vazio) no build. Defina-a vazia e reconstrua. |

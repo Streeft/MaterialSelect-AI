@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 156 — 11/11/26 — Service worker honesto (D-199)
+
+**O que mudou.** `public/sw.js` servia `/offline.html` em qualquer falha de navegação, mesmo online, e usuários ficaram presos em
+"Sem conexão". Agora só serve a página com `self.navigator.onLine === false`; online, repassa `Response.error()` e o navegador
+mostra o erro real. Falha ao guardar a página na instalação não quebra o registro. Cache sobe para `msai-offline-v3`. +3 de frontend
+em `lib/pwa/pwa.test.tsx` (4 testes falhavam antes da correção); `e2e/offline.spec.ts` abre `/offline.html` direto e não muda.
+Suíte: frontend 1635 passam. Sem backend nem migração.
+
 ## Sessão 155 — 09/11/26 — Login com Google à prova de falha (D-198)
 
 **O que mudou.** No teste de usabilidade do TCC o callback do Google respondeu "Internal Server Error" em texto puro. Agora toda
