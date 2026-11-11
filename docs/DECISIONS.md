@@ -12061,6 +12061,96 @@ ganho com o `pre_ping`); devolver 401/503 em JSON no callback (o navegador mostr
 **Numeração.** O plano pedia D-195 e Sessão 152; os dois já estavam ocupados em `main` (Início que começa escrevendo),
 então esta decisão é a D-198 e a sessão é a 155.
 
+## D-202 — Pequenos acertos de UI: barra inferior, menu, estilo restrito, resultados e landmarks
+
+**Contexto.** A auditoria visual de 09/11/26 deixou oito defeitos pequenos, todos confirmados no código de `main`: rótulos de 9 px na
+barra inferior do celular; rótulos de seção do menu ("Estudar", "Dados", "Administrar") a cerca de 4,2:1 sobre o trilho, com 11 px;
+em 1280x800 o menu lateral deixava Classes, Propriedades e Aparência atrás de uma barra de rolagem quase invisível, e a gaveta do celular
+cortava "ADMINISTRAR"; `/app/estilo` respondia 200 a todo leitor logado em produção; `?etapa=resultados` sem executar mostrava "Execute a
+seleção…" junto de "Nenhum candidato após os limites" e o Stepper cortava o motivo; `/entrar` e `/assinatura` não tinham `<main>`; o console
+do catálogo avisava de chave duplicada; `Landing.tsx` só era usada pelo próprio teste e dois comentários mandavam "trocar um import" para
+trazê-la de volta.
+
+**Decisão.**
+- **Barra inferior:** rótulo em `text-xs` (12 px, antes 9 px), alvo mínimo de 48 px mantido (pílula de 32 + 4 + rótulo de 16 = 52 px);
+  `--bottom-nav-offset` sobe de 4,25 para 4,5 rem (72 px com o preenchimento) para a barra de ação da seleção não ficar por baixo.
+- **Rótulos de seção:** token novo `--rail-eyebrow` (150 158 178, o mesmo nos dois temas porque o trilho é escuro nos dois), 7,1:1 sobre
+  o trilho, aplicado por `[data-surface="rail"] .msds-rail-eyebrow`. O cinza fixo de 45 % do MSDS (`msds.css`) fica como está fora do trilho.
+- **Menu cabe e rola, sem reorganizar grupos:** linhas de 28 px no trilho (padding 4 px, antes 6), folga entre blocos reduzida, rodapé
+  `shrink-0`, lista `min-h-0` com rolagem própria e barra de rolagem a 40 % de branco (antes 18 %, invisível). Na gaveta, o painel deixa de
+  rolar inteiro: a lista rola dentro dele (`overflow-hidden` no painel, `overflow-y-auto` na lista), com marca, fechar e rodapé fixos; linhas de 34 px
+  (antes 38) para a lista toda caber em um celular de 667 px sem tirar o toque.
+- **`/app/estilo`:** em produção (`NODE_ENV === "production"`) só aparece para quem cura o catálogo (`can_edit_catalog === true`, o mesmo
+  leitor que vê "Administrar"); desconhecido (carregando, falha) vale como restrito, ao contrário do menu, porque aqui o custo de errar para
+  "sim" é mostrar a página inteira. Fora de produção (dev, testes, CI, E2E) todos veem e a permissão nem é pedida. A regra pura é
+  `styleGuideVisible` em `lib/styleGuideAccess.ts`. Não é fronteira de segurança (a página não tem dado): é o produto decidindo o que mostrar.
+- **Resultados sem executar:** o painel diz só "A seleção ainda não foi executada" e traz o botão "Executar seleção" ali mesmo (ou "Ir para os
+  limites" se ainda não há o que executar). A frase "Nenhum candidato após os limites" fica só para uma execução que de fato zerou. O
+  Stepper deixa de usar `truncate` no rótulo, no motivo de bloqueio e no resumo: o texto quebra em vez de ser cortado.
+- **Landmarks:** `/entrar` e `/assinatura`, fora do shell de `/app`, passam a ser um `<main id="conteudo">` cada.
+- **Chave duplicada:** as chaves de palavras-chave (linha e cartão do catálogo) e de designações passam a ser texto + posição, porque um
+  registro pode repetir uma palavra-chave ou um código. Não foi possível reproduzir o aviso contra os dados reais de produção; o teste
+  usa um registro com repetições e falhava antes.
+- **Vitrine removida:** `Landing.tsx` sai, com o que só ela usava (`FunnelPreview.tsx`, `lib/marketing/content.ts`, que carregava planos com
+  `R$ —`) e o teste de a11y dela. Os comentários de `app/page.tsx` e `StartScreen.tsx` deixam de prometer o caminho de volta (o histórico
+  do git o guarda). `AshbyPreview` fica: a capa de início o usa.
+- Só frontend. Sem backend, migração nem seed; chega com o merge (Vercel).
+
+**Alternativas recusadas.** Reorganizar os grupos do menu ou esconder itens atrás de "mais" (o pedido era caber sem mexer na ordem);
+esconder a rota `/app/estilo` por `notFound()` (um 404 diz que a página não existe e atrapalha quem a procura de propósito: "Página
+restrita" diz o motivo); manter `Landing.tsx` "por via das dúvidas" (código morto que um teste mantém vivo e comentários que mentem sobre ele).
+
+**O que ficou fora.** E2E novos (o Playwright mede layout, e o que cabe ou não em 1280x800 é medida do navegador; os testes de unidade
+fixam as classes e os tokens que produzem o efeito); a causa exata da chave duplicada em dados reais.
+
+---
+
+## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
+
+**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
+inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
+"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
+
+**Decisão.**
+- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
+  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
+  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
+  `Response.error()`.
+- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
+  é uma navegação offline sem a página amigável, como antes de existir worker.
+- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
+- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
+
+**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
+ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
+bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
+
+**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
+internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
+---
+
+## D-201 — Confirmações no diálogo MSDS e exclusões do admin com confirmação
+
+**Contexto.** A auditoria visual achou quatro `window.confirm` nativos (desativar ficha, excluir curva, desfazer importação,
+excluir estudo salvo), que ignoram o tema e não se testam, e duas telas de administração (`admin/classes`,
+`admin/propriedades`) que excluíam com um clique, sem confirmação nem desfazer.
+
+**Decisão.**
+- Novo `ConfirmDialog` (`components/ui/ConfirmDialog.tsx`) sobre o `Dialog` MSDS: Cancelar/Escape/fundo cancelam; confirmar
+  é o único botão primário. Substitui `window.confirm` na ficha (desativar), em `MaterialCurves`, em `ImportHistory`.
+- Estudos salvos: a exclusão já era desfazível (`useUndoableDelete`, D-130), então o `confirm` foi retirado e o "Desfazer"
+  da barra é a rede de segurança (texto `deleteConfirm` removido).
+- `admin/classes` e `admin/propriedades`: `ConfirmDialog` antes de excluir (a exclusão é definitiva no servidor, então
+  confirmar e não desfazer). Texto em `ptBR.admin.confirmDelete*`.
+- Backend: conferido, sem mudança. `POST/PUT/DELETE` de `/classes` e `/properties` já dependem de
+  `require_catalog_curator` (`app/dependencies.py`); a UI só confirma.
+- Sem migração nem seed; só frontend.
+
+**Alternativas recusadas.** Desfazer nas exclusões do admin (o DELETE é imediato e definitivo; adiar a chamada deixaria a
+lista mentindo); manter `confirm` em um ponto só por ser mais simples.
+
+---
+
 ## D-203 — Workflow do Cérebro só manual
 
 **Contexto.** O banco Neon gratuito antigo estourou a cota ("exceeded the quota") e foi trocado por um projeto novo. O

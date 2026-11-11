@@ -63,6 +63,13 @@ const useEffect = React.useEffect;
   function useRipple() {
     var s = useState([]);
     var ripples = s[0], setRipples = s[1];
+    // The 600 ms cleanup timers are cleared on unmount: one that outlives the
+    // component (or, in tests, the jsdom window) calls a setter on nothing, and
+    // vitest reports "window is not defined" as an unhandled error (D-202).
+    var timers = React.useRef([]);
+    useEffect(function () {
+      return function () { timers.current.forEach(clearTimeout); timers.current = []; };
+    }, []);
     function onPointerDown(e) {
       if (prefersReducedMotion()) return;
       var host = e.currentTarget;
@@ -72,9 +79,11 @@ const useEffect = React.useEffect;
       var y = e.clientY - rect.top - size / 2;
       var id = Date.now() + "-" + Math.random();
       setRipples(function (rs) { return rs.concat([{ id: id, x: x, y: y, size: size }]); });
-      setTimeout(function () {
+      var timer = setTimeout(function () {
+        timers.current = timers.current.filter(function (t) { return t !== timer; });
         setRipples(function (rs) { return rs.filter(function (r) { return r.id !== id; }); });
       }, 600);
+      timers.current.push(timer);
     }
     var layer = h("span", { className: "msds-ripple-clip", "aria-hidden": "true" },
       h("span", { className: "msds-state-layer" }),

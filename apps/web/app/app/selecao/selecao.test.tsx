@@ -926,3 +926,48 @@ describe("função vinda do Início (D-195)", () => {
     );
   });
 });
+
+// D-202: `?etapa=resultados` before any run used to print "Execute a seleção
+// para ver os resultados" together with "Nenhum candidato após os limites" —
+// two sentences that contradict each other (nothing has been evaluated, so
+// nothing can have been ruled out) — and the stepper cut the reason off.
+describe("resultados antes de executar (D-202)", () => {
+  it("diz só que ainda não foi executado, sem a frase de 'nenhum candidato'", async () => {
+    searchParams.set("etapa", "resultados");
+    render(wrap(<SelectionPage />));
+
+    expect(await screen.findByShadowText(t.notRunTitle)).toBeInTheDocument();
+    expect(screen.getByShadowText(t.notRunDescription)).toBeInTheDocument();
+    expect(screen.queryByShadowText(t.emptyResults)).toBeNull();
+  });
+
+  it("oferece o botão de executar ali mesmo, e ele executa", async () => {
+    const user = userEvent.setup();
+    searchParams.set("etapa", "resultados");
+    runSelection.mockResolvedValue(result({ final_count: 2 }));
+    render(wrap(<SelectionPage />));
+
+    await screen.findByShadowText(t.notRunTitle);
+    const run = screen.getByShadowRole("button", { name: t.run });
+    await waitFor(() => expect(run).toBeEnabled());
+    await user.click(run);
+
+    // The candidate counter's preview calls the same endpoint, so the proof is
+    // on screen: the placeholder gives way to the results.
+    await waitFor(() =>
+      expect(screen.getByShadowRole("heading", { name: t.winnerNoneTitle })).toBeInTheDocument(),
+    );
+    expect(screen.queryByShadowText(t.notRunTitle)).toBeNull();
+  });
+
+  it("o passo bloqueado mostra o motivo inteiro: o Stepper não trunca nenhuma linha", async () => {
+    render(wrap(<SelectionPage />));
+    const results = await screen.findByShadowRole("button", {
+      name: new RegExp(t.stepResults, "i"),
+    });
+    expect(results).toHaveTextContent(t.blockedResults);
+    for (const line of results.querySelectorAll("span.block")) {
+      expect(line.className).not.toContain("truncate");
+    }
+  });
+});

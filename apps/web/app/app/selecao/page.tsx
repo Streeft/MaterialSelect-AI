@@ -1839,7 +1839,29 @@ function SelectionWizard() {
         {/* Step 4: results */}
         {step === "results" && result && <ResultsView result={result} />}
         {step === "results" && !result && (
-          <EmptyState title={t.blockedResults} description={t.emptyResults} />
+          // D-202: before any run there is nothing to say about candidates — not
+          // "none passed the limits" (that is a result) — only that it has not
+          // run, and the way to run it from right here.
+          <EmptyState
+            title={t.notRunTitle}
+            description={t.notRunDescription}
+            action={
+              hasObjective || gate.canRun ? (
+                <Button
+                  variant="primary"
+                  loading={run.isPending}
+                  disabled={!gate.canRun}
+                  onClick={() => run.mutate(true)}
+                >
+                  {run.isPending ? t.running : t.run}
+                </Button>
+              ) : (
+                <Button variant="secondary" onClick={() => goToStep(LAST_INPUT_STEP)}>
+                  {t.notRunGoToLimits}
+                </Button>
+              )
+            }
+          />
         )}
         </StepPanes>
 

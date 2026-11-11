@@ -123,11 +123,11 @@ export function Stepper<T extends string>({
                   {status === "done" ? <IconCheck className="h-3.5 w-3.5" /> : index + 1}
                 </span>
                 <span className="min-w-0">
-                  <span className="msds-step-label block truncate">{step.label}</span>
+                  <span className="msds-step-label block break-words">{step.label}</span>
                   {disabled && step.blockedReason ? (
-                    <span className="block truncate text-2xs text-ink-muted">{step.blockedReason}</span>
+                    <span className="block break-words text-2xs text-ink-muted">{step.blockedReason}</span>
                   ) : step.summary ? (
-                    <span className="block truncate text-2xs text-ink-muted">{step.summary}</span>
+                    <span className="block break-words text-2xs text-ink-muted">{step.summary}</span>
                   ) : null}
                 </span>
                 {/* Status in words, for a reader who gets no colour and no shape. */}

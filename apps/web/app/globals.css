@@ -107,6 +107,10 @@
   --rail-ink: 242 244 249;
   --rail-ink-muted: 195 201 216;
   --rail-ink-subtle: 118 126 146;
+  /* D-202: the group labels ("Estudar", "Dados", "Administrar"). A token of
+   * their own because the MSDS default (45 % white) measures about 4.2:1 on
+   * the rail and these are 11 px; this one is 7.1:1, in both themes. */
+  --rail-eyebrow: 150 158 178;
   --rail-edge: 255 255 255;
   --rail-accent: var(--brand-300);
 
@@ -810,6 +814,7 @@
   --rail-ink: 242 244 249;
   --rail-ink-muted: 195 201 216;
   --rail-ink-subtle: 118 126 146;
+  --rail-eyebrow: 150 158 178;
   --rail-edge: 255 255 255;
   /* The light tone of the ramp in this theme is 700 — see the inversion note. */
   --rail-accent: var(--brand-700);
@@ -1450,17 +1455,30 @@
   color: rgb(var(--rail-accent));
   box-shadow: none;
 }
-/* The permanent rail (desktop only — the drawer keeps touch-sized rows):
- * 17 destinations at 38 px left the admin group behind a scrollbar on a
- * 900 px screen. 32 px rows and tighter group gaps fit the whole map. */
+/* The permanent rail (desktop only): 18 destinations at 38 px left the admin
+ * group behind a scrollbar on a 900 px screen, and at 32 px still on 1280x800
+ * (D-202). 28 px rows, 8 px between groups and a tighter footer fit the whole
+ * map there; below that height the list scrolls and says so. */
 aside[data-surface="rail"] .msds-rail-item {
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
+/* The drawer keeps taller rows for the thumb, but not the 38 px of before:
+ * 18 of those are 684 px, more than a 667 px phone has. */
+div[data-surface="rail"] .msds-rail-item {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+/* D-202: the group labels read this token, not MSDS's fixed 45 % white. */
+[data-surface="rail"] .msds-rail-eyebrow {
+  color: rgb(var(--rail-eyebrow));
+}
+/* A thumb you can see: at 18 % the rail's scrollbar was invisible against the
+ * dark panel, which is how "Classes" and "Propriedades" were missed. */
 [data-surface="rail"],
 [data-surface="rail"] * {
   scrollbar-width: thin;
-  scrollbar-color: rgb(var(--rail-edge) / 0.18) transparent;
+  scrollbar-color: rgb(var(--rail-edge) / 0.4) transparent;
 }
 
 

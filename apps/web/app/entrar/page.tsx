@@ -14,7 +14,8 @@ const t = ptBR.auth;
  */
 export default function LoginPage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    // D-202: outside the app shell, so the page brings its own `<main>` landmark.
+    <main id="conteudo" className="flex min-h-[60vh] items-center justify-center">
       <Card className="w-full max-w-sm">
         <CardBody className="flex flex-col items-center gap-4 py-8 text-center">
           <h1 className="text-xl font-semibold text-ink">{t.loginTitle}</h1>
@@ -28,6 +29,6 @@ export default function LoginPage() {
           <p className="text-xs text-ink-subtle">{t.loginHint}</p>
         </CardBody>
       </Card>
-    </div>
+    </main>
   );
 }

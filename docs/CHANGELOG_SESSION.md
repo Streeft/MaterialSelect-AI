@@ -128,8 +128,8 @@ apontando para cima; etapa bloqueada do `Stepper` neutra (sem tracejado laranja)
 sem número no Sintetizar; sem "Voltar ao catálogo" duplicado nas releases nem descrição repetida nos vazios de Meus registros;
 sobrescrito com o grupo da barra derivado da rota (`groupForPath`) e escondido nas páginas de detalhe com trilha; índice em KaTeX em
 Dimensionar; unidade legível em Administrar › Propriedades; "Ctrl K" escondido em tela de toque. +4 casos de backend
-(`test_pretty_unit`), +5 de frontend medidos (1635 → 1640 sobre a `main` com o D-199: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
-backend 5415 (5409 passam e 6 pulam), frontend 1640 passam (150 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
+(`test_pretty_unit`), +5 de frontend medidos (1666 → 1671 sobre a `main` com #229 a #231: processos, `groupForPath` ×3, sobrescrito em Dimensionar e outros casos novos; `format` e `Stepper` ganharam asserções). Suíte:
+backend 5415 (5409 passam e 6 pulam), frontend 1671 passam (157 arquivos); contraste sem falha. D-199 a D-203/Sessões 156 a 160 estão nos PRs #228
 a #232 e a D-204/Sessão 161 entrou na `main` com a CI resiliente: ficou D-205/162. Sem migração; depois do merge, **Deploy da API** (`pretty_unit`).
 
 ## Sessão 156 — 11/11/26 — Service worker honesto (D-199)
@@ -153,6 +153,26 @@ contagem de testes inalterada.
 `conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
 (§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
 `docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
+
+## Sessão 159 — 11/11/26 — Pequenos acertos de UI (D-202)
+
+**O que mudou.** Oito defeitos da auditoria visual, só frontend: rótulos da barra inferior do celular de 9 para 12 px (alvos de 48 px,
+reserva da barra 4,5 rem); token `--rail-eyebrow` (7,1:1) nos rótulos "Estudar/Dados/Administrar"; menu lateral compacto (linhas de 28 px,
+rodapé fixo, lista que rola com barra visível) e gaveta do celular que rola só a lista; `/app/estilo` só para o curador em produção
+("Página restrita" para os demais); resultados sem executar mostram só "A seleção ainda não foi executada" com o botão de executar, e o
+Stepper deixa de truncar; `<main>` em `/entrar` e `/assinatura`; chaves únicas nas palavras-chave e designações do catálogo; vitrine
+`Landing.tsx` (e `FunnelPreview`, `lib/marketing/content.ts`) removida, com os comentários falsos. Testes novos:
+`components/layout/acertosUi.test.tsx`, `app/app/estilo/acesso.test.tsx`, `app/paginasPublicas.test.tsx`,
+`components/catalog/keysUnicas.test.tsx` e três casos em `selecao.test.tsx` (todos falhavam antes, exceto os de remoção, que checam o estado
+final). Também: `useRipple` (`lib/msds/msds.tsx`) passa a limpar os timers de 600 ms ao desmontar; antes um deles disparava depois do teardown do jsdom e o `vitest` saía com código 1 por `window is not defined` mesmo com todos os testes verdes (`lib/msds/ripple.test.tsx`). Sem backend, migração nem seed.
+## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
+
+**O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
+`ConfirmDialog` (MSDS); estudos salvos perderam o `confirm` porque a exclusão já é desfazível (D-130). `admin/classes` e
+`admin/propriedades` pedem confirmação antes de excluir. As rotas de escrita do catálogo já exigiam `require_catalog_curator`:
+sem mudança no backend. +5 testes de `ConfirmDialog` (com axe) e +1 da página de classes; frontend 1638 passam. Sem migração.
 
 ---
 
