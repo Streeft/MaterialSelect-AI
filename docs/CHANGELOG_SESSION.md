@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 160 — 11/11/26 — Workflow do Cérebro só manual (D-203)
+
+`conhecimento.yml` perdeu o gatilho `schedule`: fica só `workflow_dispatch`. Comentário no arquivo, `docs/13-deploy.md`
+(§5-septies, como rodar à mão e cuidado com cota do Neon/LFS), `.claude/rules/deploy-pos-merge.md`, `README.md` e
+`docs/PROJECT_CONTEXT.md` ajustados. Sem mudança de código da app; contagem de testes inalterada.
+
+---
+
 ## Sessão 157 — 11/11/26 — Erros humanos e com saída (D-200)
 
 **O que mudou.** Falha de rede e erro de servidor deixam de aparecer como "Failed to fetch" ou "Internal Server Error:
@@ -129,6 +137,8 @@ mostravam `err.message`/`String(err)`; `ErrorState` aceita `error` e oferece "Te
 "Redirecionando…" no lugar da página em branco. `catalogo/[slug]` não diz mais "pasta vazia" quando a consulta falha, e a
 ficha separa 404 de falha. Sem mudança de backend e sem migração. Frontend 1648 testes (152 arquivos; +16: `errors.test.ts`,
 `ErrorState.test.tsx`, dois no `AuthGate`); quatro testes de recusa passaram a lançar erro com `status`, como a API real.
+
+---
 
 ---
 
