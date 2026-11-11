@@ -442,9 +442,49 @@ jobs:
         working-directory: .
         run: npm ci
 
+      # D-204: o apt das dependências do Chromium falha por DNS transitório
+      # ("Temporary failure resolving 'archive.ubuntu.com'", exit 100) e
+      # derrubava o job antes de qualquer teste. A instalação é repetida com
+      # espera crescente; o cache do navegador evita o download repetido.
+      - name: Descobrir a versão do Playwright
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache do navegador do Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
       - name: Instalar o Chromium do Playwright
         working-directory: apps/web
-        run: npx playwright install --with-deps chromium
+        run: |
+          retry() {
+            local max="$1"; shift
+            local delays=(15 45 90) attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$max" ]; then
+                echo "Falhou após $attempt tentativas: $*"
+                return 1
+              fi
+              local wait="${delays[$((attempt - 1))]}"
+              echo "::warning::Tentativa $attempt falhou; nova tentativa em ${wait}s"
+              sleep "$wait"
+              attempt=$((attempt + 1))
+            done
+          }
+          # Dependências do sistema (apt): melhor esforço, 2 tentativas. Se os
+          # espelhos do Ubuntu estiverem fora do ar, o job segue: a imagem
+          # ubuntu-latest já traz as bibliotecas do Chromium (tem o Google
+          # Chrome) e o que o apt instalaria a mais são fontes asiáticas e
+          # xfonts, sem uso nos nossos testes. Se faltar biblioteca de verdade,
+          # os testes falham e mostram.
+          retry 2 bash -c 'sudo apt-get update && npx playwright install-deps chromium' \
+            || echo "::warning::Dependências do apt indisponíveis (DNS dos espelhos do Ubuntu); seguindo com as bibliotecas da imagem do runner."
+          # O download do navegador vem da CDN da Microsoft, não do apt, e
+          # continua obrigatório (4 tentativas; no-op quando o cache acerta).
+          retry 4 npx playwright install chromium
 
       - name: Rodar a suíte end-to-end
         working-directory: apps/web
