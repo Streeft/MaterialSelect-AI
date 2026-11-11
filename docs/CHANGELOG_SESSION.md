@@ -154,7 +154,7 @@ Stepper deixa de truncar; `<main>` em `/entrar` e `/assinatura`; chaves únicas 
 `Landing.tsx` (e `FunnelPreview`, `lib/marketing/content.ts`) removida, com os comentários falsos. Testes novos:
 `components/layout/acertosUi.test.tsx`, `app/app/estilo/acesso.test.tsx`, `app/paginasPublicas.test.tsx`,
 `components/catalog/keysUnicas.test.tsx` e três casos em `selecao.test.tsx` (todos falhavam antes, exceto os de remoção, que checam o estado
-final). Sem backend, migração nem seed.
+final). Também: `useRipple` (`lib/msds/msds.tsx`) passa a limpar os timers de 600 ms ao desmontar; antes um deles disparava depois do teardown do jsdom e o `vitest` saía com código 1 por `window is not defined` mesmo com todos os testes verdes (`lib/msds/ripple.test.tsx`). Sem backend, migração nem seed.
 ## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
 
 **O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
