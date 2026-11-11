@@ -170,6 +170,10 @@ export const ptBR = {
     betterDirection: "Direção desejável",
     allowsLog: "Permite escala log",
     inUse: "em uso",
+    /** D-201: confirmation before removing a class or a property from the catalogue. */
+    confirmDeleteClass: (name: string) => `Excluir a classe "${name}"?`,
+    confirmDeleteProperty: (name: string) => `Excluir a propriedade "${name}"?`,
+    confirmDeleteBody: "A exclusão é definitiva e não pode ser desfeita.",
   },
   direction: {
     HIGHER: "Maior é melhor",
@@ -298,6 +302,11 @@ export const ptBR = {
     stepResults: "Resultados",
     // Why a step cannot be opened yet. Shown at the moment someone tries.
     blockedResults: "Execute a seleção para ver os resultados.",
+    // D-202: the results pane before any run says one thing — not run yet —
+    // instead of pairing "execute" with "no candidates after the limits".
+    notRunTitle: "A seleção ainda não foi executada",
+    notRunDescription: "Os candidatos e o ranking aparecem aqui depois que você executar a seleção.",
+    notRunGoToLimits: "Ir para os limites",
     back: "Voltar",
     advance: "Avançar",
     // D-85: navegação lida da ordem dos passos, e o resumo embaixo de cada um.
@@ -770,7 +779,6 @@ export const ptBR = {
     noStudies: "Nenhum estudo salvo.",
     load: "Abrir",
     delete: "Excluir",
-    deleteConfirm: "Excluir este estudo salvo?",
     runSaved: "Executar",
     emptyResults: "Nenhum candidato após os limites.",
     viewOnMap: "Ver candidatos no mapa",
@@ -3306,6 +3314,11 @@ export const ptBR = {
 
   styleGuide: {
     title: "Sistema de design",
+    // D-202: in production the style guide is for the curator only.
+    restrictedTitle: "Página restrita",
+    restrictedDescription:
+      "O sistema de design é uma referência para quem mantém o produto. Ele fica visível só para quem cura o catálogo.",
+    restrictedBack: "Voltar ao início",
     subtitle:
       "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
     tokens: "Tokens de cor",

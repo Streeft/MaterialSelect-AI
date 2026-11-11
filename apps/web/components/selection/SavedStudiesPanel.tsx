@@ -102,9 +102,9 @@ export function SavedStudiesPanel({
                         size="sm"
                         variant="danger-quiet"
                         icon={<IconTrash className="h-4 w-4" />}
-                        onClick={() => {
-                          if (window.confirm(t.deleteConfirm)) onDelete(s.id);
-                        }}
+                        // D-201: the page's onDelete is an undoable delete (D-130),
+                        // so no confirmation: "Desfazer" is the safety net.
+                        onClick={() => onDelete(s.id)}
                       >
                         {t.delete}
                       </Button>

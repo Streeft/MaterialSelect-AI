@@ -47,8 +47,9 @@ function isActive(pathname: string, href: string): boolean {
  * own action bar used to stack into a third of a 812 px screen.
  *
  * `--bottom-nav-offset` on <html> tells anything pinned to the bottom (the
- * wizard's action bar) how much room the nav is taking right now — 48 px
- * targets plus their padding — so the two never overlap. It is only read
+ * wizard's action bar) how much room the nav is taking right now — the 52 px
+ * targets (32 px pill, 4 px gap, 16 px label) plus their padding, 72 px — so
+ * the two never overlap. It is only read
  * below `lg`, where this bar exists.
  */
 const HIDE_AFTER = 80; // px from the top before hiding is allowed at all
@@ -95,6 +96,8 @@ function useHideOnScrollDown(pathname: string): boolean {
  *
  * `min-h-12` (48 px) is a floor, not a suggestion: it's the minimum touch
  * target, and the height needs to survive a label that wraps to two lines.
+ * The label is `text-xs` (12 px), the smallest body size the product uses: the
+ * 9 px it had before was unreadable at arm's length (D-202).
  * `pb-[env(safe-area-inset-bottom)]` keeps the row above iOS's gesture bar;
  * without it, the fifth item sits under it and stops being tappable.
  *
@@ -107,7 +110,7 @@ export function BottomNav() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--bottom-nav-offset", hide ? "0px" : "4.25rem");
+    root.style.setProperty("--bottom-nav-offset", hide ? "0px" : "4.5rem");
     return () => {
       root.style.removeProperty("--bottom-nav-offset");
     };
@@ -149,7 +152,7 @@ export function BottomNav() {
             >
               <Icon className="h-[19px] w-[19px] shrink-0" />
             </span>
-            <span className={cn("text-[0.5625rem] leading-tight", active && "font-semibold")}>
+            <span className={cn("text-xs leading-4", active && "font-semibold")}>
               {item.label}
             </span>
           </Link>

@@ -436,7 +436,7 @@ export function AppSidebar() {
         id="navegacao-lateral"
         data-surface="rail"
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col gap-4 bg-rail px-3 py-4 transition-[width] ease-emphasized duration-slow lg:flex",
+          "sticky top-0 hidden h-screen shrink-0 flex-col gap-2 bg-rail px-3 py-3 transition-[width] ease-emphasized duration-slow lg:flex",
           collapsed ? "w-[68px]" : "w-64",
         )}
       >
@@ -447,7 +447,7 @@ export function AppSidebar() {
         <nav
           aria-label={ptBR.ui.mainNav}
           style={railAccentStyle}
-          className="flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain"
         >
           <ul className="flex flex-col gap-0.5">
             <li>
@@ -469,7 +469,9 @@ export function AppSidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-rail-edge/10 pt-3">
+        {/* D-202: `shrink-0` keeps the footer whole; it is the list above that
+            gives way and scrolls, never the user's own controls. */}
+        <div className="mt-auto flex shrink-0 flex-col gap-1.5 border-t border-rail-edge/10 pt-2">
           <UserFooter collapsed={collapsed} />
           <div
             className={cn(
@@ -515,7 +517,7 @@ export function AppSidebar() {
             aria-label={ptBR.ui.mainNav}
             tabIndex={-1}
             data-surface="rail"
-            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-5 overflow-y-auto bg-rail p-4 shadow-overlay"
+            className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col gap-3 overflow-hidden bg-rail p-4 shadow-overlay"
           >
             <div className="flex items-center justify-between gap-2">
               <BrandLink pathname={pathname} />
@@ -526,7 +528,13 @@ export function AppSidebar() {
                 onClick={() => setOpen(false)}
               />
             </div>
-            <nav className="flex flex-1 flex-col gap-5" style={railAccentStyle}>
+            {/* D-202: the list scrolls inside the panel, not the panel itself, so the
+                brand, the close button and the footer stay in place and the last
+                group ("Administrar") is reachable on a short phone. */}
+            <nav
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain"
+              style={railAccentStyle}
+            >
               <ul className="flex flex-col gap-0.5">
                 <li>
                   <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
@@ -541,7 +549,7 @@ export function AppSidebar() {
                 />
               ))}
             </nav>
-            <div className="mt-auto flex flex-col gap-2 border-t border-rail-edge/10 pt-3">
+            <div className="mt-auto flex shrink-0 flex-col gap-2 border-t border-rail-edge/10 pt-3">
               <UserFooter />
               <ThemeToggle compact />
             </div>

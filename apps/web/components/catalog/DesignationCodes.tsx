@@ -21,7 +21,7 @@ export function DesignationCodes({
     <span className="block text-2xs text-ink-subtle">
       <span className="sr-only">{ptBR.catalog.designationsLabel}: </span>
       {designations.map((d, i) => (
-        <span key={`${d.system}:${d.code}`}>
+        <span key={`${d.system}:${d.code}:${i}`}>
           {i > 0 && " · "}
           {d.system_label} <HighlightText text={d.code} query={searchQuery} className="font-mono" />
         </span>

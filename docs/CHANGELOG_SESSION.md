@@ -155,6 +155,23 @@ ficha separa 404 de falha. Sem mudança de backend e sem migração. Frontend 16
 `ErrorState.test.tsx`, dois no `AuthGate`); quatro testes de recusa passaram a lançar erro com `status`, como a API real.
 
 ---
+## Sessão 159 — 11/11/26 — Pequenos acertos de UI (D-202)
+
+**O que mudou.** Oito defeitos da auditoria visual, só frontend: rótulos da barra inferior do celular de 9 para 12 px (alvos de 48 px,
+reserva da barra 4,5 rem); token `--rail-eyebrow` (7,1:1) nos rótulos "Estudar/Dados/Administrar"; menu lateral compacto (linhas de 28 px,
+rodapé fixo, lista que rola com barra visível) e gaveta do celular que rola só a lista; `/app/estilo` só para o curador em produção
+("Página restrita" para os demais); resultados sem executar mostram só "A seleção ainda não foi executada" com o botão de executar, e o
+Stepper deixa de truncar; `<main>` em `/entrar` e `/assinatura`; chaves únicas nas palavras-chave e designações do catálogo; vitrine
+`Landing.tsx` (e `FunnelPreview`, `lib/marketing/content.ts`) removida, com os comentários falsos. Testes novos:
+`components/layout/acertosUi.test.tsx`, `app/app/estilo/acesso.test.tsx`, `app/paginasPublicas.test.tsx`,
+`components/catalog/keysUnicas.test.tsx` e três casos em `selecao.test.tsx` (todos falhavam antes, exceto os de remoção, que checam o estado
+final). Também: `useRipple` (`lib/msds/msds.tsx`) passa a limpar os timers de 600 ms ao desmontar; antes um deles disparava depois do teardown do jsdom e o `vitest` saía com código 1 por `window is not defined` mesmo com todos os testes verdes (`lib/msds/ripple.test.tsx`). Sem backend, migração nem seed.
+## Sessão 158 — 11/11/26 — Confirmações no diálogo MSDS e exclusões do admin (D-201)
+
+**O que mudou.** `window.confirm` saiu da ficha (desativar), das curvas e do histórico de importação, trocado pelo novo
+`ConfirmDialog` (MSDS); estudos salvos perderam o `confirm` porque a exclusão já é desfazível (D-130). `admin/classes` e
+`admin/propriedades` pedem confirmação antes de excluir. As rotas de escrita do catálogo já exigiam `require_catalog_curator`:
+sem mudança no backend. +5 testes de `ConfirmDialog` (com axe) e +1 da página de classes; frontend 1638 passam. Sem migração.
 
 ---
 

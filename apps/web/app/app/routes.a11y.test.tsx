@@ -6,7 +6,6 @@ import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { installWideViewport } from "@/lib/testing/viewport";
-import { Landing } from "@/components/marketing/Landing";
 import { StartScreen } from "@/components/marketing/StartScreen";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { curveList, stressStrain } from "@/components/charts/curveFixtures";
@@ -1779,17 +1778,9 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<BatteryPage />, ptBR.battery.title);
   });
 
-  // Landing is the one route in this file that isn't under `/app`: no session,
-  // no query client, no API stubbing, because the vitrine has none of that —
-  // it's a plain server component (see its own top-of-file comment).
-  it("vitrine pública (/)", async () => {
-    const { container } = render(<Landing />);
-    await screen.findByRole("heading", { level: 1 });
-    await expectClean(container);
-  });
-
-  // What `/` renders while the tool is shown to a class (D-86). The vitrine
-  // above stays audited: it is kept in the repo, one import away from `/`.
+  // What `/` renders (D-86). The one route in this file that isn't under
+  // `/app`: no session, no query client, no API stubbing — a plain server
+  // component. The sales showcase it once sat beside was removed in D-202.
   it("capa de início (/)", async () => {
     const { container } = render(<StartScreen />);
     await screen.findByRole("heading", { level: 1, name: ptBR.appName });

@@ -43,6 +43,7 @@ export {
 } from "./DataQualityBadge";
 export { DensityToggle } from "./DensityToggle";
 export { Dialog } from "./Dialog";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState, ErrorState, ListSkeleton, LoadingState, Skeleton, Spinner } from "./Feedback";
 export {
   Checkbox,

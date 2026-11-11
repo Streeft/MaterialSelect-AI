@@ -18,6 +18,7 @@ import { CurveValueReader, type AppliedReading } from "@/components/material/Cur
 import { MenuItem } from "@/components/ui/Menu";
 import {
   Button,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -64,6 +65,8 @@ export function MaterialCurves({
   const qc = useQueryClient();
   // TM4-d: "new" | "edit" while the editor is open.
   const [editing, setEditing] = useState<"new" | "edit" | null>(null);
+  // D-201: delete confirmation on the MSDS dialog, not window.confirm.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -257,12 +260,21 @@ export function MaterialCurves({
                 size="sm"
                 variant="danger-quiet"
                 loading={remove.isPending}
-                onClick={() => {
-                  if (window.confirm(t.edit.confirmDelete)) remove.mutate(selected.id);
-                }}
+                onClick={() => setConfirmingDelete(true)}
               >
                 {t.edit.deleteCurve}
               </Button>
+              <ConfirmDialog
+                open={confirmingDelete}
+                title={t.edit.deleteCurve}
+                message={t.edit.confirmDelete}
+                confirmLabel={ptBR.actions.delete}
+                onCancel={() => setConfirmingDelete(false)}
+                onConfirm={() => {
+                  setConfirmingDelete(false);
+                  remove.mutate(selected.id);
+                }}
+              />
             </>
           )}
         </div>
