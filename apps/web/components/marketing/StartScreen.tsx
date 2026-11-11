@@ -6,11 +6,11 @@ import { AshbyPreview } from "./AshbyPreview";
 /**
  * The public front door while the tool is shown to a class (D-86).
  *
- * The full showcase (`Landing.tsx`) is a sales page: plans, prices, claims.
- * The tool is not being sold yet, and a student arriving from the professor's
- * link needs one thing — the way in. So this is the name, one line of what it
- * does, and one button. The showcase is kept, not deleted: bringing it back is
- * swapping one import in `app/page.tsx`.
+ * A student arriving from the professor's link needs one thing — the way in.
+ * So this is the name, one line of what it does, and one button. There is no
+ * sales page behind it: the plans-and-prices showcase this replaced was
+ * removed in D-202 (it was unreachable and carried placeholder prices), and
+ * git history keeps it should the tool ever be sold.
  *
  * The two notices stay, in small print: they are commitments of the proposal,
  * not marketing, and they hold on the first screen too.
