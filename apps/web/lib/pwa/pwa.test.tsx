@@ -43,7 +43,7 @@ describe("offline page (D-142)", () => {
 });
 
 /** Run public/sw.js against a fake worker scope and collect what it registers. */
-function loadWorker(cacheOf: Record<string, Map<string, unknown>> = {}) {
+function loadWorker(cacheOf: Record<string, Map<string, unknown>> = {}, opts: { online?: boolean; addFails?: boolean } = {}) {
   const listeners: Record<string, (e: unknown) => void> = {};
   const opened: string[] = [];
   const deleted: string[] = [];
@@ -52,11 +52,14 @@ function loadWorker(cacheOf: Record<string, Map<string, unknown>> = {}) {
     open: async (name: string) => {
       opened.push(name);
       return {
-        add: async (url: string) => void added.push(url),
+        add: async (url: string) => {
+          if (opts.addFails) throw new TypeError("cache add failed");
+          added.push(url);
+        },
         match: async (url: string) => cacheOf[name]?.get(url),
       };
     },
-    keys: async () => ["msai-offline-v0", "msai-offline-v1", "msai-offline-v2", "other-app"],
+    keys: async () => ["msai-offline-v0", "msai-offline-v1", "msai-offline-v2", "msai-offline-v3", "other-app"],
     delete: async (name: string) => void deleted.push(name),
   };
   const skipWaiting = vi.fn();
@@ -65,6 +68,7 @@ function loadWorker(cacheOf: Record<string, Map<string, unknown>> = {}) {
     addEventListener: (type: string, fn: (e: unknown) => void) => void (listeners[type] = fn),
     skipWaiting,
     clients: { claim },
+    navigator: { onLine: opts.online ?? true },
   };
   const Response = { error: () => "network-error" };
   let fetchImpl: (r: unknown) => Promise<unknown> = async () => "network";
@@ -87,7 +91,7 @@ describe("service worker (D-142)", () => {
     let waited: Promise<unknown> = Promise.resolve();
     w.listeners.activate!({ waitUntil: (p: Promise<unknown>) => (waited = p) });
     await waited;
-    expect(w.deleted).toEqual(["msai-offline-v0", "msai-offline-v1", "other-app"]);
+    expect(w.deleted).toEqual(["msai-offline-v0", "msai-offline-v1", "msai-offline-v2", "other-app"]);
     expect(w.claim).toHaveBeenCalled();
   });
 
@@ -106,14 +110,43 @@ describe("service worker (D-142)", () => {
     expect(await answered).toBe("the-page");
   });
 
-  it("answers a failed navigation with the offline page", async () => {
-    const w = loadWorker({ "msai-offline-v2": new Map([["/offline.html", "offline-page"]]) });
+  it("answers a failed navigation with the offline page only when the device is offline (D-199)", async () => {
+    const w = loadWorker({ "msai-offline-v3": new Map([["/offline.html", "offline-page"]]) }, { online: false });
     w.setFetch(async () => {
       throw new TypeError("offline");
     });
     let answered: Promise<unknown> = Promise.resolve();
     w.listeners.fetch!({ request: { mode: "navigate" }, respondWith: (p: Promise<unknown>) => (answered = p) });
     expect(await answered).toBe("offline-page");
+  });
+
+  it("lets the browser show the real error when a navigation fails while online (D-199)", async () => {
+    const w = loadWorker({ "msai-offline-v3": new Map([["/offline.html", "offline-page"]]) }, { online: true });
+    w.setFetch(async () => {
+      throw new TypeError("net::ERR_CONNECTION_REFUSED");
+    });
+    let answered: Promise<unknown> = Promise.resolve();
+    w.listeners.fetch!({ request: { mode: "navigate" }, respondWith: (p: Promise<unknown>) => (answered = p) });
+    expect(await answered).toBe("network-error");
+    expect(w.opened).toEqual([]);
+  });
+
+  it("falls back to a network error when offline but the offline page was never cached", async () => {
+    const w = loadWorker({}, { online: false });
+    w.setFetch(async () => {
+      throw new TypeError("offline");
+    });
+    let answered: Promise<unknown> = Promise.resolve();
+    w.listeners.fetch!({ request: { mode: "navigate" }, respondWith: (p: Promise<unknown>) => (answered = p) });
+    expect(await answered).toBe("network-error");
+  });
+
+  it("does not fail the install when caching the offline page fails (D-199)", async () => {
+    const w = loadWorker({}, { addFails: true });
+    let waited: Promise<unknown> = Promise.resolve();
+    w.listeners.install!({ waitUntil: (p: Promise<unknown>) => (waited = p) });
+    await expect(waited).resolves.toBeUndefined();
+    expect(w.skipWaiting).toHaveBeenCalled();
   });
 
   it("never stores a response: the only cache write is the offline page", () => {
