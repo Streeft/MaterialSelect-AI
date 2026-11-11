@@ -120,6 +120,13 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 156 — 11/11/26 — Service worker honesto (D-199)
+
+**O que mudou.** `public/sw.js` servia `/offline.html` em qualquer falha de navegação, mesmo online, e usuários ficaram presos em
+"Sem conexão". Agora só serve a página com `self.navigator.onLine === false`; online, repassa `Response.error()` e o navegador
+mostra o erro real. Falha ao guardar a página na instalação não quebra o registro. Cache sobe para `msai-offline-v3`. +3 de frontend
+em `lib/pwa/pwa.test.tsx` (4 testes falhavam antes da correção); `e2e/offline.spec.ts` abre `/offline.html` direto e não muda.
+Suíte: frontend 1635 passam. Sem backend nem migração.
 ## Sessão 161 — 11/11/26 — CI resiliente na instalação do Chromium (D-204)
 
 `ci.yml`, job E2E: a instalação do Chromium do Playwright repete até 4 vezes (15 s, 45 s, 90 s) com `apt-get update`
