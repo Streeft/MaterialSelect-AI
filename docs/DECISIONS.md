@@ -13217,3 +13217,50 @@ min sem gastar cota).
 **Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
 
 **Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).
+
+## D-226 — Fechamento da revisão das telas: axe em toda rota, alvos de toque no celular, Lighthouse e numeração antiga desambiguada
+
+**Contexto.** A revisão das telas (D-205 a D-225) trocou o que a auditoria da Fase 0 apontou. Faltava provar o conjunto: que
+nenhuma rota da suíte E2E tem violação de acessibilidade em navegador real, que o celular (390 px) é utilizável com o dedo, e que
+o Lighthouse sustenta as metas. E a numeração tinha cinco repetições antigas (D-130, D-199, Sessões 84, 98 e 115).
+
+**Decisão.**
+1. **axe em toda rota do E2E** (`e2e/a11y.spec.ts`, lista única em `e2e/rotas.ts`, a mesma de `larguras.spec.ts`), a 1280 e a 390 px.
+   Sem `@axe-core/playwright`: o `axe-core` já é dependência dos testes de componente e o script é injetado a partir do pacote.
+   Nenhuma regra desligada. Violações reais corrigidas: (a) `nested-interactive` na barra do Plotly, porque o `role="img"` estava no
+   contêiner que também guarda os botões de zoom: o contêiner agora é `role="group"` e a imagem é só a primeira camada `.main-svg`
+   (`usePlotlyResize(figureLabel)`; as outras camadas ficam `aria-hidden`); (b) `scrollable-region-focusable` nas fórmulas (`MathTex`):
+   o `overflow-x: auto` forçava rolagem vertical invisível pelos sobrescritos do KaTeX; agora o vertical é `hidden` com folga de
+   `0.2em`; (c) `/app/estilo`: tabela de botões com região focável e rótulos sem `opacity` (contraste).
+2. **Alvos de toque** (`e2e/mobile.spec.ts`, 390 px com `isMobile` e `hasTouch`, 13 páginas e a ficha): sem rolagem lateral e todo
+   controle com 44 px nos dois eixos, medido pela caixa do elemento ou pela área de toque invisível (`::after`). `globals.css`
+   estende a área do D-206 a todo botão e link que não está dentro de um texto corrido (exceção "em linha" do WCAG 2.5.8); campos
+   nativos, `summary`, abas e linhas de caixa de seleção crescem para `--target-min`. Fica de fora, de propósito, a barra de
+   ferramentas do Plotly (biblioteca de terceiros; as mesmas ações estão na barra acima da figura).
+3. **Lighthouse.** Os limiares ficam em performance 0,7, acessibilidade 0,9 e boas práticas 0,8 (ver "Medição").
+4. **Numeração antiga.** A regra: **quando duas entradas têm o mesmo número, a que já era mais citada (ou a mais antiga) fica com ele
+   e a outra ganha um sufixo de letra minúscula (`D-130b`, `Sessão 84b`)**; ninguém renumera para o fim, porque as citações no
+   código, nos documentos e na monografia continuariam apontando para a entrada errada. D-130 = aviso com Desfazer (o glossário passou
+   a **D-130b**, com todas as referências do código e dos documentos atualizadas); D-199 era a mesma entrada colada duas vezes (a
+   cópia foi removida, sem perda de texto); Sessão 84 = busca global e aviso (a do glossário é a **84b**), Sessão 98 = Cadernos
+   (Ragone é a **98b**) e Sessão 115 = fichas offline (tolerância no Find Similar é a **115b**). Número novo nunca repete: antes de
+   escolher, `git grep -n "^## D-NNN" docs/DECISIONS.md` e `origin/main`.
+
+**Medição.** E2E local inteiro: 116 testes passam (eram 71; os 45 novos são `a11y.spec.ts` e `mobile.spec.ts`). axe a 1280 e 390 px, tema
+claro, nas 31 rotas de `e2e/rotas.ts`: 0 violações (antes: `nested-interactive` em Mapas, `scrollable-region-focusable` em Seleção, Mapas,
+Dimensionar e Estilo, `color-contrast` em Estilo). Alvos de toque a 390 px nas 13 páginas e na ficha: 0 abaixo de 44 px (antes: de 5 a 285 por página,
+por exemplo 285 de 293 na ficha e 264 de 711 no catálogo). **Lighthouse:** não consegui rodá-lo localmente (o `lhci` do workspace aponta para o
+checkout principal) e o relatório do job não é baixável com o token da sessão; o log do job `Lighthouse` do CI (13 URLs, 3 rodadas cada) termina em
+"All results processed" sem falha de asserção, então as notas ficaram acima dos limiares atuais (0,7 / 0,9 / 0,8), mas **o valor exato não foi
+medido**. Por isso os limiares não subiram para as metas 0,9 (performance) e 0,95 (acessibilidade): falta ler o `.lighthouseci/report` do artefato
+do CI (7 dias de retenção) e, se as notas sustentarem, subir `lighthouserc.json` num PR próprio.
+
+**Alternativas recusadas.** Renumerar as duplicadas para o fim da lista (quebra links e citações já feitas). Desligar a regra
+`nested-interactive` ou esconder a barra do Plotly (zoom e reinício de eixos só existem nela). Adicionar `@axe-core/playwright`
+(mais uma dependência para o que o `axe-core` já faz). Medir alvos só pela caixa do elemento (reprovaria a área de toque do D-206,
+que é a solução escolhida para não mexer no desenho).
+
+**Consequências.** Frontend e documentação; sem migração e sem Deploy da API. O E2E fica mais longo (axe em 32 rotas × 2 larguras e
+mais 14 páginas de celular).
+
+**Numeração.** D-226/Sessão 183.

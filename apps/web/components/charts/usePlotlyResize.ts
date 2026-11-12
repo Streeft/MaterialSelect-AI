@@ -23,12 +23,14 @@ import { useEffect, useRef } from "react";
  *    `ResizeObserver` on the wrapper asks Plotly to measure again.
  *
  * And one rule of accessibility (D-226): the drawing is an image to assistive
- * technology, but the modebar (zoom, pan, reset) is made of buttons, and a button
- * inside `role="img"` is the `nested-interactive` axe failure. So the wrapper is a
- * `group` that holds the figure and its controls side by side, and `role="img"`
- * goes on Plotly's own `.svg-container` — the drawing alone — which has no
- * interactive child. Plotly builds that node, so the role is set after it exists
- * and again whenever it is rebuilt. Pass the figure's name as `figureLabel`.
+ * technology, but the modebar (zoom, pan, reset) is made of buttons — and Plotly
+ * builds it inside `.svg-container`, next to the SVG layers. A button inside
+ * `role="img"` is the `nested-interactive` axe failure, so the wrapper is a
+ * `group` and the image role goes on the first `.main-svg` layer only (the
+ * drawing itself, with no interactive child); the other layers are hidden from
+ * assistive technology. Plotly builds these nodes (and rebuilds them on
+ * re-render), so the attributes are set once they exist and again whenever they
+ * change. Pass the figure's name as `figureLabel`.
  */
 export function usePlotlyResize<T extends HTMLElement>(figureLabel?: string) {
   const ref = useRef<T | null>(null);
@@ -36,11 +38,18 @@ export function usePlotlyResize<T extends HTMLElement>(figureLabel?: string) {
     const box = ref.current;
     if (!box || !figureLabel || typeof MutationObserver === "undefined") return;
     const apply = () => {
-      for (const drawing of box.querySelectorAll<HTMLElement>(".svg-container")) {
-        if (drawing.getAttribute("role") !== "img") drawing.setAttribute("role", "img");
-        if (drawing.getAttribute("aria-label") !== figureLabel) {
-          drawing.setAttribute("aria-label", figureLabel);
-        }
+      for (const container of box.querySelectorAll<HTMLElement>(".svg-container")) {
+        const layers = Array.from(container.querySelectorAll<SVGElement>(":scope > svg.main-svg"));
+        layers.forEach((layer, index) => {
+          if (index === 0) {
+            if (layer.getAttribute("role") !== "img") layer.setAttribute("role", "img");
+            if (layer.getAttribute("aria-label") !== figureLabel) {
+              layer.setAttribute("aria-label", figureLabel);
+            }
+          } else if (layer.getAttribute("aria-hidden") !== "true") {
+            layer.setAttribute("aria-hidden", "true");
+          }
+        });
       }
     };
     apply();

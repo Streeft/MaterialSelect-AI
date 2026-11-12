@@ -1804,6 +1804,13 @@ Registrados para não voltarem por engano:
 - `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
 - Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
 
+**Fechamento da revisão das telas — pendências (D-226).**
+- Lighthouse: ver as medições no D-226; os limiares do `lighthouserc.json` só sobem até onde as medições sustentam.
+- Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
+- axe roda a 1280 e 390 px no tema claro; o tema escuro tem contraste medido em nível de token (D-29) mas não passa pelo axe do E2E. Acrescentar uma passada escura quando o tempo do E2E permitir.
+- ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
+- ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
+
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.

@@ -120,6 +120,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 183 — 12/11/26 — Fechamento da revisão das telas (D-226)
+
+**O que mudou.** `e2e/a11y.spec.ts` (axe em toda rota de `e2e/rotas.ts`, a 1280 e 390 px, sem regra desligada) e
+`e2e/mobile.spec.ts` (390 px com toque: sem rolagem lateral e alvos de 44 px em 13 páginas e na ficha). Correções que o axe
+achou: barra do Plotly dentro de `role="img"` (agora `usePlotlyResize(figureLabel)` põe a imagem só na camada `.main-svg` e o
+contêiner é `group`), rolagem vertical invisível nas fórmulas (`MathTex`), região focável e contraste em `/app/estilo`. `globals.css`
+ganhou a área de toque de 44 px para todo botão e link fora de texto corrido, e altura mínima para campos, `summary`, abas e
+linhas de checkbox em ponteiro grosso. Numeração antiga desambiguada: glossário passou a D-130b, Sessões 84b, 98b e 115b, a cópia
+repetida da D-199 saiu; regra no D-226. `TCC_GUIA.md` ganhou a seção 4.6 (Fases 0 a 5 e assistente). Teste novo:
+`usePlotlyResize.test.tsx`; `RagoneChart.test.tsx` ajustado ao `group`.
+
+**Para quem retoma.** Sem migração e sem Deploy da API. A auditoria visual antes/depois e as medições do Lighthouse estão no
+relatório do scratchpad da sessão (não vai ao repositório); os números do Lighthouse entram no D-226.
+
+---
+
 ## Sessão 182 — 12/11/26 — Assistente de projeto com IA, etapa B: interface (D-225)
 
 **O que mudou.** Início: o `HomeComposer` virou o "Assistente de projeto" (`/ai/plan`, `mode: "project"`, Ctrl/⌘+Enter, fases
