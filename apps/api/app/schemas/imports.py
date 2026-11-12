@@ -87,6 +87,10 @@ class RowReport(BaseModel):
     status: Literal["ok", "error", "duplicate"]
     issues: list[RowIssue] = []
     warnings: list[str] = []
+    #: The file's own cells, by header, for rows that did not pass (error or
+    #: duplicate), so the screen can mark the cell an issue names. Empty for ok
+    #: rows; an empty cell is ``None``, never a made-up value.
+    cells: dict[str, str | None] = {}
 
 
 class ValidationReport(BaseModel):

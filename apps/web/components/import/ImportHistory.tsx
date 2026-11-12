@@ -4,11 +4,15 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listImports, rollbackImport } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { describeApiError } from "@/lib/errors";
 import {
+  Alert,
   Badge,
   Button,
   ConfirmDialog,
   EmptyState,
+  ErrorState,
+  TableSkeleton,
   RowHeader,
   TBody,
   THead,
@@ -38,7 +42,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
 /** Past import jobs with status and a rollback action for committed ones. */
 export function ImportHistory() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["imports"],
     queryFn: listImports,
   });
@@ -48,6 +52,7 @@ export function ImportHistory() {
 
   const rollback = useMutation({
     mutationFn: (jobId: number) => rollbackImport(jobId),
+    // The rollback's own failure is said next to the button, in words (D-200).
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["imports"] });
       qc.invalidateQueries({ queryKey: ["materials"] });
@@ -55,7 +60,12 @@ export function ImportHistory() {
     },
   });
 
-  if (isLoading) return null;
+  if (isLoading) return <TableSkeleton rows={3} columns={5} label={ptBR.importer.historyLoading} />;
+  if (isError) {
+    return (
+      <ErrorState title={ptBR.importer.historyError} error={error} onRetry={() => void refetch()} />
+    );
+  }
   if (!data || data.length === 0) {
     return <EmptyState title={ptBR.importer.historyEmpty} />;
   }
@@ -73,6 +83,7 @@ export function ImportHistory() {
           setConfirmingJob(null);
         }}
       />
+      {rollback.isError && <Alert tone="danger" role="alert">{describeApiError(rollback.error)}</Alert>}
       <TableScroll label={ptBR.importer.historyTitle}>
         <Table>
           <TableCaption>{ptBR.importer.historyTitle}</TableCaption>

@@ -104,6 +104,23 @@ def test_validate_reports_row_status(client):
     assert by_row[6]["warnings"]  # formula sanitisation warning
 
 
+def test_validate_returns_the_file_cells_of_rows_that_did_not_pass(client):
+    job_id = _upload(client).json()["job_id"]
+    report = client.post(f"/api/imports/{job_id}/validate", json={"mapping": MAPPING}).json()
+    by_row = {r["row_number"]: r for r in report["rows"]}
+
+    # Rows that pass carry no cells; the ones that do not carry the file's own text, by header.
+    assert by_row[1]["cells"] == {}
+    bad = by_row[3]["cells"]
+    assert bad["nome"] == "Linha Invalida C"
+    assert bad["classe"] == "ClasseInexistente"
+    assert bad["densidade [g/cm3]"] == "abc"
+    # An empty cell is None, never a zero or a dash.
+    assert bad["limite_escoamento [MPa]"] is None
+    # The issue names the column the screen will mark.
+    assert "classe" in {i["column"] for i in by_row[3]["issues"]}
+
+
 def test_validate_unknown_column_fails(client):
     job_id = _upload(client).json()["job_id"]
     bad = dict(MAPPING, name_column="coluna_inexistente")

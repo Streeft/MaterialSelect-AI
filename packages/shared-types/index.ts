@@ -786,6 +786,8 @@ export interface RowReport {
   status: "ok" | "error" | "duplicate";
   issues: RowIssue[];
   warnings: string[];
+  /** The file's own cells by header, for rows that did not pass; `null` is an empty cell. */
+  cells?: Record<string, string | null>;
 }
 
 export interface ValidationReport {

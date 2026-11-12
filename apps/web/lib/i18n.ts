@@ -197,6 +197,18 @@ export const ptBR = {
     confirmDeleteClass: (name: string) => `Excluir a classe "${name}"?`,
     confirmDeleteProperty: (name: string) => `Excluir a propriedade "${name}"?`,
     confirmDeleteBody: "A exclusão é definitiva e não pode ser desfeita.",
+    // D-221: inline validation, said at the field, and the hierarchy of classes.
+    errorNameRequired: "Informe o nome.",
+    errorClassDuplicate: "Já existe uma classe com este nome.",
+    errorPropertyDuplicate: "Já existe uma propriedade com este nome.",
+    errorUnitRequired: "Informe a unidade canônica.",
+    errorFixFields: "Corrija os campos marcados para continuar.",
+    deletedClass: "Classe",
+    deletedProperty: "Propriedade",
+    parentColumn: "Classe pai",
+    rootClass: "raiz",
+    subclassOf: (parent: string) => `Subclasse de ${parent}`,
+    treeHint: "A hierarquia das classes, da raiz para baixo. Mover uma classe de lugar ainda não é possível aqui.",
   },
   direction: {
     HIGHER: "Maior é melhor",
@@ -299,6 +311,25 @@ export const ptBR = {
       "Reverter esta importação? Todos os materiais criados por ela serão removidos.",
     historyTitle: "Histórico de importações",
     historyEmpty: "Nenhuma importação realizada.",
+    historyLoading: "Carregando o histórico de importações",
+    historyError: "Não foi possível carregar o histórico",
+    // D-221: back between the steps, the file kept, and the checks before sending.
+    back: "Voltar",
+    backToFile: "Voltar ao arquivo",
+    backToMapping: "Voltar ao mapeamento",
+    fileKept: (name: string) => `Arquivo enviado: ${name}. Escolher outro descarta este.`,
+    continueWith: "Continuar com este arquivo",
+    errorFileType: "Este arquivo não é CSV nem XLSX. Exporte a planilha num desses formatos.",
+    errorFileSize: "O arquivo passa de 5 MB. Divida a planilha em partes menores.",
+    errorFileEmpty: "O arquivo está vazio.",
+    uploadingFile: (name: string) => `Enviando ${name}…`,
+    // The cell-by-cell view of the rows that did not pass.
+    cellsTitle: "Células com problema",
+    cellsHint:
+      "Cada linha que não passou aparece como estava no arquivo; a célula marcada é a que o relatório aponta. Célula vazia no arquivo continua vazia, nunca vira zero.",
+    cellsOther: "Outros problemas da linha",
+    cellsMore: (n: number) => `Mais ${n} ${n === 1 ? "linha com problema" : "linhas com problema"} no relatório acima.`,
+    cellProblem: "Problema nesta célula",
     columnFile: "Arquivo",
     columnDate: "Data",
     columnStatus: "Status",
@@ -3661,11 +3692,54 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
-    exploreTitle: "Ou explore os dados",
+
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
     compareHint: "Tabela, barras, radar e mapa de calor sobre valores normalizados.",
     importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
+    // D-221: o que o início devolve a quem volta, sem endpoint novo — o rascunho
+    // da seleção vive neste navegador, o mapa vem das páginas vistas, o caderno
+    // da lista que já existe.
+    resumeTitle: "Continue de onde parou",
+    resumeHint: "O que ficou aberto neste aparelho e na sua conta.",
+    resumeDraft: "Seleção em rascunho",
+    resumeDraftFallback: "Estudo sem nome",
+    resumeDraftSaved: (when: string) => `Guardado neste navegador em ${when}.`,
+    resumeDraftOpen: "Retomar a seleção",
+    resumeMap: "Último mapa",
+    resumeMapHint: "O mapa de Ashby que você abriu por último.",
+    resumeMapOpen: "Abrir o mapa",
+    resumeNotebook: "Caderno recente",
+    resumeNotebookSources: (n: number) => `${n} ${n === 1 ? "fonte" : "fontes"}`,
+    resumeNotebookOpen: "Abrir o caderno",
+    // Atalhos: o que se faz, não onde fica. Substitui “Ou explore os dados”.
+    tasksTitle: "O que você quer fazer?",
+    tasks: [
+      { href: "/app/selecao", label: "Escolher um material", hint: "Da função da peça ao ranking, com cada limite à vista." },
+      { href: "/app/comparar", label: "Comparar candidatos", hint: "Tabela, barras, radar e mapa de calor sobre valores normalizados." },
+      { href: "/app/mapas", label: "Ver o mapa de Ashby", hint: "Envelopes por classe e linhas de índice." },
+      { href: "/app/dimensionar", label: "Dimensionar uma peça", hint: "Do caso de carga à massa e ao material que a cumpre." },
+      { href: "/app/cadernos", label: "Estudar com suas fontes", hint: "Um caderno que responde só com o que você anexou." },
+      { href: "/app/importar", label: "Importar uma planilha", hint: "CSV ou XLSX com validação linha a linha." },
+    ],
+    // Guia de primeiro uso: dispensável, lembrado só neste aparelho.
+    guideTitle: "Primeiros passos",
+    guideHint: "Três passos para o primeiro estudo. Marque o que já fez; dispense quando quiser.",
+    guideDismiss: "Dispensar o guia",
+    guideOpen: "Abrir",
+    guideSteps: [
+      { id: "funcao", label: "Descreva a função da peça", hint: "Escreva no campo acima ou abra a seleção.", href: "/app/selecao" },
+      { id: "mapa", label: "Olhe os candidatos no mapa", hint: "Cada ponto é um material cadastrado.", href: "/app/mapas" },
+      { id: "origem", label: "Confira a origem de um valor", hint: "Abra uma ficha e veja de onde veio cada número.", href: "/app/catalogo" },
+    ],
+    guideProgress: (done: number, total: number) => `${done} de ${total} passos feitos`,
+    // Novidades: só o que a tabela de releases já diz; nada é inferido.
+    newsTitle: "Novidades do catálogo",
+    newsHint: "A versão mais recente do catálogo oficial.",
+    newsRelease: (name: string, release: string | null) => (release ? `${name}, versão ${release}` : name),
+    newsCount: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
+    newsWhen: (when: string) => `Importada em ${when}.`,
+    newsOpen: "Ver as mudanças entre versões",
   },
 
   auth: {
@@ -3674,6 +3748,16 @@ export const ptBR = {
     loginButton: "Entrar com Google",
     loginHint:
       "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
+    // D-221: o que a pessoa precisa saber antes de clicar, e a saída para quem chegou por engano.
+    loginAccess: "Não é preciso assinar nem pagar: o acesso é aberto a qualquer conta Google.",
+    loginBack: "Voltar à página inicial",
+    // D-221: a página inicial em uma tela — o que o app faz e o caminho para entrar.
+    landingPoints: [
+      { title: "Descreva a função", text: "Do que a peça precisa fazer ao índice de mérito, com cada limite à vista." },
+      { title: "Compare no mapa", text: "Mapas de Ashby, tabelas e radar sobre os mesmos valores cadastrados." },
+      { title: "Confira a origem", text: "Nenhuma propriedade é inventada: cada número traz a fonte ou o cálculo que o gerou." },
+    ],
+    landingEnter: "Já tem acesso? Entrar",
     // D-198: the API's Google callback never ends in a 500; it redirects here
     // with `?erro=<code>`. One message per code; an unknown code reads as
     // `falha`. The button stays below, so "try again" is one click.
@@ -3697,7 +3781,9 @@ export const ptBR = {
 
   billing: {
     title: "Assinatura",
-    inactiveSubtitle: "Assine para continuar usando o MaterialSelect AI.",
+    // D-221: only said when the server is set to require a subscription; in the
+    // open access of D-208 there is nothing to buy and the page says so.
+    inactiveSubtitle: "Esta instalação exige uma assinatura ativa para usar o MaterialSelect AI.",
     activeSubtitle: "Sua assinatura está ativa.",
     subscribeButton: "Assinar",
     manageButton: "Gerenciar assinatura",
@@ -3709,7 +3795,7 @@ export const ptBR = {
     portalError: "Não foi possível abrir o gerenciamento da assinatura.",
     // D-83: acesso aberto para testes — qualquer login Google usa a ferramenta.
     openSubtitle:
-      "O acesso está aberto para testes: com a sua conta Google você já pode usar a ferramenta, sem assinatura.",
+      "Hoje o acesso é aberto: com a sua conta Google você usa a ferramenta, sem assinatura e sem cobrança. Esta página só tem o que fazer se o acesso for fechado.",
     openButton: "Ir para a ferramenta",
     catalogReadOnlyTitle: "Catálogo compartilhado somente leitura",
     catalogReadOnly:

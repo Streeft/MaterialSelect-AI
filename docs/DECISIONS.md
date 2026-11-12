@@ -12988,3 +12988,38 @@ fazer a mesma coisa). Uma grade de planilha com teclado próprio (a tabela de co
 
 **Numeração.** D-218 e Sessão 175: o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
 (sem migração): depois do merge, **Deploy da API**.
+
+
+## D-221 — Importar com erro por célula, Início que retoma o trabalho, Admin com validação e Entrar/Assinatura sem promessa
+
+**Contexto.** Etapa "Importar, Admin, Início, Entrar e Assinatura" da revisão das telas (parte 6). Já existiam e foram mantidos: o
+assistente em quatro passos com `Stepper` (D-212), o relatório por linha com severidade em palavra, tom e fundo, o histórico com
+reverter em `ConfirmDialog` (D-201), `ErrorState` com `describeApiError` (D-200), os `ConfirmDialog` do Admin, o composer, "Vistos
+recentemente" e "Retomar um estudo" do Início, o `LoginErrorNotice` do D-198 e o texto de acesso aberto da D-83/D-208.
+
+**Decisão.**
+1. **Importar.** O relatório ganha `RowReport.cells` (backend: as células do arquivo, por cabeçalho, só das linhas que não passaram;
+   célula vazia é `null`, nunca zero; texto cortado em 120 caracteres). A tela desenha "Células com problema": a linha como estava
+   no arquivo, a célula apontada por `issue.column` com borda, a mensagem sob o valor e "Problema nesta célula" para quem não vê cor;
+   problemas sem coluna e avisos vão numa coluna à parte; no máximo 50 linhas (o resto está na tabela de cima). "Voltar" em cada
+   passo (mapeamento volta ao arquivo, que continua enviado: "Continuar com este arquivo"); recusa antes de enviar o que não é
+   CSV/XLSX, vazio ou acima de 5 MB; estado de carregando no histórico (esqueleto), erro com "Tentar de novo" e falha do reverter dita.
+2. **Admin.** Validação no campo (nome vazio ou repetido, unidade canônica), sem a bolha nativa em inglês (`noValidate`). Exclusão:
+   `ConfirmDialog` (D-201) e depois `useUndoableDelete` (D-130): a linha sai, "Desfazer" segura a chamada. Classes em ordem de árvore,
+   com recuo e coluna "Classe pai". **Árvore editável não entrou:** `PUT /api/classes/{id}` regrava `applications` e `characteristics`,
+   que o front não conhece, e mover uma classe os apagaria; pede um `PATCH` só de `parent_id`.
+3. **Início.** `ResumeWork` ("Continue de onde parou"): rascunho da seleção (local, por conta, D-139), último mapa (das páginas
+   lembradas pelo menu, D-207 — só o caminho, não os filtros) e caderno de `updated_at` mais recente (a lista que já existe); sem nada, o bloco some.
+   `FirstUseGuide`: três passos marcáveis e dispensável, guardado em `localStorage` (`msai.home.guide`, com `useSyncExternalStore` e try/catch).
+   `TaskShortcuts` troca "Ou explore os dados" por seis tarefas. `CatalogNews`: a release importada mais recente (nunca a demonstração),
+   com link para as mudanças entre versões (D-108); some se não há nada ou não carrega.
+4. **Entrar e Assinatura.** `/entrar` diz que não é preciso assinar e volta à página inicial; `/assinatura` em acesso aberto diz que
+   não há assinatura nem cobrança e que a página só serve se o acesso for fechado; com o acesso fechado, "Esta instalação exige…".
+5. **`/`.** Três pontos do que o app faz e "Já tem acesso? Entrar", em uma tela.
+
+**Numeração.** O Cadernos, que era D-218/Sessão 175 em duplicata com a F4, passou a D-220/Sessão 177 (a F4 ficou com D-218/Sessão 175);
+o arquivo e o id da migração `d218a5c0a1b2` não mudam. Esta etapa é D-221/Sessão 178.
+
+**Fora.** Árvore de classes editável (acima). Mapa recente com os filtros (pede guardar a URL completa). Editar propriedade no Admin.
+Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.
+

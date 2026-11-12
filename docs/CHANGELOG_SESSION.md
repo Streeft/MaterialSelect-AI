@@ -120,6 +120,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 178 — 12/11/26 — Importar, Admin, Início, Entrar e Assinatura (D-221)
+
+**O que mudou.** Etapa "Importar, Admin, Início, Entrar e Assinatura" (parte 6). Backend: `RowReport.cells` no relatório de validação.
+Frontend: grade "Células com problema" no Importar, "Voltar" entre os passos, checagem do arquivo antes de enviar, histórico com
+carregando e erro; Admin com validação no campo, exclusão com confirmação e "Desfazer" e classes em árvore; Início com "Continue de onde
+parou", guia de primeiros passos, atalhos de tarefa e novidades do catálogo; `/entrar`, `/assinatura` e `/` sem promessa de bloqueio.
+Testes: `test_imports_api.py` (células), `importar.test.tsx`, `inicio.test.tsx`, `admin/classes/page.test.tsx`,
+`admin/propriedades/page.test.tsx`, `entradaSemPromessa.test.tsx` e o E2E `importar-inicio.spec.ts`.
+
+**Para quem retoma.** Árvore de classes editável espera um `PATCH` de `parent_id` (o `PUT` apagaria `applications` e `characteristics`).
+A duplicata D-218/Sessão 175 foi desfeita: Cadernos é D-220/Sessão 177. Depois do merge: **Deploy da API** (sem migração).
+
+---
+
 ## Sessão 176 — 12/11/26 — Processos, Glossário, Sintetizar, Painel e Meus registros (D-219)
 
 **O que mudou.** Etapa "Processos, Glossário, Sintetizar, Painel e Meus registros" (parte 4). Backend: `GET /api/processes/matrix`

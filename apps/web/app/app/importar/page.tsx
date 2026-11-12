@@ -57,6 +57,17 @@ import { ValidationReportView } from "@/components/import/ValidationReportView";
 import { ImportHistory } from "@/components/import/ImportHistory";
 import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 
+/** The backend refuses more than this; saying so before sending saves a round trip. */
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+/** Why a file cannot be sent, or null when it can (D-221). */
+function fileProblem(file: File): string | null {
+  if (!/\.(csv|xlsx)$/i.test(file.name)) return t.errorFileType;
+  if (file.size === 0) return t.errorFileEmpty;
+  if (file.size > MAX_FILE_BYTES) return t.errorFileSize;
+  return null;
+}
+
 type Step = "upload" | "mapping" | "report" | "done";
 
 const t = ptBR.importer;
@@ -171,6 +182,17 @@ export default function ImportPage() {
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
   const templates = useQuery({ queryKey: ["import-templates"], queryFn: listImportTemplates });
+
+  /** One door for the picker and the drop: the same checks, the same messages. */
+  function sendFile(file: File) {
+    const problem = fileProblem(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setError(null);
+    doUpload.mutate(file);
+  }
 
   function fail(err: unknown) {
     setError(describeApiError(err, t.genericError));
@@ -322,7 +344,7 @@ export default function ImportPage() {
                 e.preventDefault();
                 setDragging(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file) doUpload.mutate(file);
+                if (file) sendFile(file);
               }}
               className={cn(
                 "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed px-6 py-12 text-center transition",
@@ -344,12 +366,28 @@ export default function ImportPage() {
                 accept=".csv,.xlsx"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) doUpload.mutate(file);
+                  if (file) sendFile(file);
                 }}
                 className="sr-only"
               />
             </label>
-            {doUpload.isPending && <p className="text-body text-ink-muted">{t.uploading}</p>}
+            {doUpload.isPending && (
+              <p role="status" className="text-body text-ink-muted">
+                {doUpload.variables ? t.uploadingFile(doUpload.variables.name) : t.uploading}
+              </p>
+            )}
+            {/* Back from the mapping: the file is still there, so say so and
+                offer to go on with it instead of making the reader send it again. */}
+            {upload && !doUpload.isPending && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="min-w-0 break-words text-caption text-ink-muted">
+                  {t.fileKept(upload.filename)}
+                </p>
+                <Button variant="primary" onClick={() => setStep("mapping")}>
+                  {t.continueWith}
+                </Button>
+              </div>
+            )}
           </CardBody>
         </Card>
       )}
@@ -374,6 +412,12 @@ export default function ImportPage() {
               </Select>
             )}
           </div>
+
+          {doPreviewSheet.isPending && (
+            <p role="status" className="text-caption text-ink-muted">
+              {t.uploading}
+            </p>
+          )}
 
           <Disclosure summary={t.preview} defaultOpen>
             <TableScroll label={t.preview}>
@@ -458,6 +502,7 @@ export default function ImportPage() {
             <Button variant="primary" onClick={handleValidate} loading={doValidate.isPending}>
               {doValidate.isPending ? t.validating : t.validate}
             </Button>
+            <Button onClick={() => setStep("upload")}>← {t.backToFile}</Button>
             <Button onClick={() => doCancel.mutate()}>{t.cancelImport}</Button>
           </div>
         </div>
@@ -476,7 +521,7 @@ export default function ImportPage() {
             >
               {doCommit.isPending ? t.committing : `${t.commit} (${report.valid_count})`}
             </Button>
-            <Button onClick={() => setStep("mapping")}>← {t.stepMapping}</Button>
+            <Button onClick={() => setStep("mapping")}>← {t.backToMapping}</Button>
             <Button onClick={() => doCancel.mutate()}>{t.cancelImport}</Button>
           </div>
         </Section>
