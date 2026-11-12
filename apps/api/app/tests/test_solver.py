@@ -273,4 +273,3 @@ def test_every_catalogued_case_has_a_sketch_the_screen_can_draw() -> None:
                 "engastada-rotulada",
                 "biengastada",
             }, support.key
-
