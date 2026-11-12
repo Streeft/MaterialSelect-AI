@@ -127,7 +127,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 `units.py` e o processo sem dado contado à parte). Frontend: Meus registros com busca, classe e tipo na URL e ações em lote
 (comparar, desfavoritar com confirmação e "Desfazer"); Processos com matriz, filtros por capacidade, comparação lado a lado e todo
 o estado no endereço; Glossário com debounce, estado na URL e links "Usar como eixo no Mapa" e "Usar como restrição na Seleção"
-(`?restricao=` no assistente); Sintetizar com legenda na varredura, "Tentar novamente" nos erros e prévia que acompanha a receita;
+(`?restricao=` no assistente); Sintetizar com legenda na varredura e "Tentar novamente" nos erros (a prévia ao vivo é a da F4, D-218);
 Painel conferido (já estava na URL, com `figure` nomeado e sem `setState` no render), com teste que trava isso. Testes:
 `test_process_matrix.py`, `myRecordsFilter.test.ts`, `meus-registros.test.tsx`, `processos.test.tsx`, `glossario.test.tsx`,
 `wizardState.test.ts`, `SweepSection.test.tsx`, `sintetizar.test.tsx`, `painel.test.tsx`.

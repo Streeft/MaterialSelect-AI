@@ -12940,10 +12940,9 @@ no render), o índice A–Z e o filtro sem acento do Glossário, e os `useUrlSta
    verbete (e a propriedade sem verbete) ganha "Usar como eixo no Mapa" (`/app/mapas?estado=…` com a propriedade no eixo X, por
    `mapHrefForAxis`) e "Usar como restrição na Seleção" (`/app/selecao?etapa=restricoes&restricao=<slug>`; o assistente abre a primeira
    restrição já apontada para a propriedade, sem valor, e ignora slug malformado).
-4. **Sintetizar.** A varredura ganha **legenda escrita** no gráfico (linha, ponto, passo sem índice) além da faixa; o erro da
-   varredura, o da prévia e o da gravação usam `ErrorState` com "Tentar novamente" (a prévia mostrava `String(error)`). A **prévia
-   passa a acompanhar a receita**: depois da primeira vez que o leitor a pede, uma pausa de 500 ms após a última edição refaz o
-   cálculo no backend; antes disso nada é calculado sozinho. Um registro gravado só vale para a receita de que saiu.
+4. **Sintetizar.** A prévia ao vivo veio da F4 (D-218, `useLiveResult`) e foi mantida; esta etapa não a refez. A varredura ganha
+   **legenda escrita** no gráfico (linha, ponto, passo sem índice) além da faixa; o erro da varredura, o da prévia e o da
+   gravação usam `ErrorState` com "Tentar novamente" (a gravação mostrava `String(error)`).
 5. **Painel.** Conferido, sem mudança de código: propriedade e escala já estão na URL, todo gráfico é `figure` com nome, e nenhum
    `setState` corre durante o render. Um teste novo trava as três coisas nas cinco abas.
 

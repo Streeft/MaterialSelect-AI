@@ -250,33 +250,13 @@ describe("Sintetizar material", () => {
     expect(sent.relative_density).toBeUndefined();
   });
 
-  it("não calcula nada sozinho antes da primeira prévia, e depois a prévia acompanha a receita (D-219)", async () => {
-    const user = userEvent.setup();
-    await open();
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    expect(previewSynthesis).not.toHaveBeenCalled();
-
-    await runPreview(user);
-    expect(previewSynthesis).toHaveBeenCalledTimes(1);
-
-    const fraction = await screen.findByShadowLabelText(t.fractionLabel);
-    await user.clear(fraction);
-    await user.type(fraction, "0.4");
-    // Sem apertar nada: uma pausa depois da última tecla e a prévia é refeita com o valor novo.
-    await waitFor(() => expect(previewSynthesis.mock.calls.at(-1)![0]!.volume_fraction).toBe(0.4), {
-      timeout: 3000,
-    });
-    expect(previewSynthesis.mock.calls.length).toBeLessThanOrEqual(3);
-  });
-
-  it("diz o erro da prévia com tentar de novo", async () => {
+  it("diz o erro da prévia e oferece tentar de novo (D-219)", async () => {
     previewSynthesis.mockRejectedValueOnce(new Error("falhou"));
-    const user = userEvent.setup();
     await open();
-    await user.click(await screen.findByShadowRole("button", { name: t.preview }));
-    await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.retry }));
+    await screen.findByShadowRole("button", { name: ptBR.ui.retry });
+    await userEvent.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
     await screen.findByText(new RegExp(`^${t.parentsLabel}:`));
-    expect(previewSynthesis).toHaveBeenCalledTimes(2);
+    expect(previewSynthesis.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("prevê sem nome, com um nome provisório que a API aceita", async () => {
