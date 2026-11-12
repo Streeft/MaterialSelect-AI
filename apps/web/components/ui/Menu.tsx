@@ -184,7 +184,9 @@ export function MenuButton({
                 minWidth: MIN_WIDTH,
                 transform: position?.above ? "translateY(-100%)" : undefined,
               }}
-              className="msds-menu z-50"
+              // D-220: above every overlay (scrim 60, side peek 61): a menu opened
+              // inside a panel must not open behind its veil.
+              className="msds-menu z-[70]"
             >
               {children}
             </div>

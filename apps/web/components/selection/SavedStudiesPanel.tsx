@@ -10,11 +10,6 @@ import {
   Button,
   EmptyState,
   MenuItem,
-  TBody,
-  Table,
-  TableScroll,
-  Td,
-  Tr,
 } from "@/components/ui";
 import { ExportButtons } from "@/components/ExportButtons";
 import { IconTrash } from "@/components/ui/icons";
@@ -62,80 +57,64 @@ export function SavedStudiesPanel({
       {count === 0 ? (
         <EmptyState title={t.noStudies} />
       ) : (
-        <TableScroll label={t.savedStudies}>
-          <Table>
-            <TBody>
-              {(studies ?? []).map((s) => (
-                <Tr key={s.id}>
-                  <Td>
-                    <span className="font-medium text-ink">{s.name}</span>
-                    {s.has_notes && (
-                      <Badge tone="neutral" className="ml-2">
-                        {flowText.notes.hasNotes}
-                      </Badge>
-                    )}
-                    <div className="mt-1">
-                      <ExportButtons
-                        urlFor={(format) => studyExportUrl(s.id, format)}
-                        label={ptBR.exports.study}
-                        extraItems={
-                          <MenuItem
-                            href={studyFileUrl(s.id)}
-                            download
-                            hint={flowText.file.exportHint}
-                          >
-                            {flowText.file.exportItem}
-                          </MenuItem>
-                        }
-                      />
-                    </div>
-                    <div className="mt-2">
-                      <EngineeringReportLink studyId={s.id} />
-                    </div>
-                    <StudyExplanation studyId={s.id} />
-                  </Td>
-                  <Td className="align-top text-2xs text-ink-subtle">
-                    {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)}{" "}
-                    · {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
-                  </Td>
-                  <Td className="align-top">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setOpen(false);
-                          onRun(s.id);
-                        }}
-                      >
-                        {t.runSaved}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setOpen(false);
-                          onLoad(s.id);
-                        }}
-                      >
-                        {t.load}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger-quiet"
-                        icon={<IconTrash className="h-4 w-4" />}
-                        // D-201: the page's onDelete is an undoable delete (D-130),
-                        // so no confirmation: "Desfazer" is the safety net.
-                        onClick={() => onDelete(s.id)}
-                      >
-                        {t.delete}
-                      </Button>
-                    </div>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
-        </TableScroll>
+        // D-220: a list of cards, not a table — the panel is 28rem wide, and a
+        // three-column row squeezed the counts into one word per line.
+        <ul aria-label={t.savedStudies} className="flex flex-col gap-3">
+          {(studies ?? []).map((s) => (
+            <li key={s.id} className="well flex flex-col gap-2">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="min-w-0 break-words font-medium text-ink">{s.name}</span>
+                {s.has_notes && <Badge tone="neutral">{flowText.notes.hasNotes}</Badge>}
+              </div>
+              <p className="text-caption text-ink-muted">
+                {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)} ·{" "}
+                {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setOpen(false);
+                    onRun(s.id);
+                  }}
+                >
+                  {t.runSaved}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setOpen(false);
+                    onLoad(s.id);
+                  }}
+                >
+                  {t.load}
+                </Button>
+                <ExportButtons
+                  urlFor={(format) => studyExportUrl(s.id, format)}
+                  label={ptBR.exports.study}
+                  extraItems={
+                    <MenuItem href={studyFileUrl(s.id)} download hint={flowText.file.exportHint}>
+                      {flowText.file.exportItem}
+                    </MenuItem>
+                  }
+                />
+                <Button
+                  size="sm"
+                  variant="danger-quiet"
+                  icon={<IconTrash className="h-4 w-4" />}
+                  // D-201: the page's onDelete is an undoable delete (D-130),
+                  // so no confirmation: "Desfazer" is the safety net.
+                  onClick={() => onDelete(s.id)}
+                >
+                  {t.delete}
+                </Button>
+              </div>
+              <EngineeringReportLink studyId={s.id} />
+              <StudyExplanation studyId={s.id} />
+            </li>
+          ))}
+        </ul>
       )}
       </SidePeek>
     </>
