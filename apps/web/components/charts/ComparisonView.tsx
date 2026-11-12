@@ -91,7 +91,7 @@ function DifferenceCell({ cell }: { cell: CompareCell }) {
     );
   }
   return (
-    <span className="text-xs text-ink-subtle">
+    <span className="text-caption text-ink-subtle">
       {t.difference[cell.difference_state as keyof typeof t.difference]}
     </span>
   );
@@ -113,7 +113,7 @@ export function ThresholdSummary({ comparison }: { comparison: Comparison }) {
     (p) => p.spread_state !== undefined && p.spread_state !== "calculada",
   );
   return (
-    <div className="well flex flex-col gap-1 text-sm text-ink" role="status">
+    <div className="well flex flex-col gap-1 text-body text-ink" role="status">
       {above.length === 0 ? (
         <p>{t.threshold.summaryNone(pct)}</p>
       ) : (
@@ -312,11 +312,11 @@ export function ComparisonView({
                             {p.spread_pct != null && ` · ${t.threshold.headerSpread(formatNumber(p.spread_pct))}`}
                           </Badge>
                         ) : p.spread_state === "calculada" && p.spread_pct != null ? (
-                          <span className="text-xs text-ink-subtle">
+                          <span className="text-caption text-ink-subtle">
                             {t.threshold.below} · {t.threshold.headerSpread(formatNumber(p.spread_pct))}
                           </span>
                         ) : (
-                          <span className="text-xs text-ink-subtle">{t.threshold.unavailable}</span>
+                          <span className="text-caption text-ink-subtle">{t.threshold.unavailable}</span>
                         )}
                       </span>
                     )}
@@ -329,7 +329,7 @@ export function ComparisonView({
                 <Tr key={material.material_id}>
                   <RowHeader className="sticky left-0 z-[1] bg-panel">
                     {material.name}
-                    <span className="block text-xs font-normal text-ink-subtle">
+                    <span className="block text-caption font-normal text-ink-subtle">
                       {material.class_name}
                     </span>
                     {onSetReference &&
@@ -405,7 +405,7 @@ export function ComparisonView({
                                 style={{ width: `${cell.normalized * 100}%` }}
                               />
                             </span>
-                            <span className="text-xs tabular-nums text-ink-subtle">
+                            <span className="text-caption tabular-nums text-ink-subtle">
                               {formatScore(cell.normalized)}
                             </span>
                           </span>
@@ -483,7 +483,7 @@ export function ComparisonView({
             cell: (material) => (
               <>
                 {material.name}
-                <span className="block text-xs font-normal text-ink-subtle">
+                <span className="block text-caption font-normal text-ink-subtle">
                   {material.class_name}
                 </span>
               </>

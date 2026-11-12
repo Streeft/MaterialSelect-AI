@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 
 /**
- * A screen's inputs in the query string (D-209), generalizing what
+ * A screen's inputs in the query string (D-212), generalizing what
  * `app/app/mapas/url-state.ts` already did for the map: a link carries the
  * question, a reload keeps it, and a value read back from the URL is untrusted
  * input that is kept only if it has the right shape — never repaired, never

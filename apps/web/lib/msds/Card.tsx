@@ -2,7 +2,7 @@
 /* Lint: no React Compiler exception is needed in this file (see `./msds.tsx`). */
 "use client";
 /**
- * MSDS — Card. Split out of `./msds.tsx` (D-209) without changing a line
+ * MSDS — Card. Split out of `./msds.tsx` (D-212) without changing a line
  * of behaviour: same code, same names, now one file per component family.
  * `./msds.tsx` re-exports every public name, so `@/lib/msds` is unchanged.
  * `@ts-nocheck` and the lint exceptions above: see the note in `./msds.tsx`.

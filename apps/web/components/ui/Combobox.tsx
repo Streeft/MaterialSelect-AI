@@ -234,7 +234,7 @@ export function Combobox({
                     option.disabled && "cursor-not-allowed opacity-60",
                   )}
                 >
-                  <span className="text-sm">{option.label}</span>
+                  <span className="text-body">{option.label}</span>
                   {option.description ? (
                     <span className="text-2xs text-ink-subtle">{option.description}</span>
                   ) : null}

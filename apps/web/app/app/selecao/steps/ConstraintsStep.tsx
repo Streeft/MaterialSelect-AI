@@ -99,7 +99,7 @@ export function ConstraintsStep({
         onOpenChange={(open) => dispatch({ type: "advanced", section: "constraints", open })}
       >
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-ink-muted">{t.advancedConstraintsHint}</p>
+          <p className="text-caption text-ink-muted">{t.advancedConstraintsHint}</p>
           <StageAddButtons stages={stages} universe={state.universe} onChange={setStages} />
         </div>
       </Disclosure>

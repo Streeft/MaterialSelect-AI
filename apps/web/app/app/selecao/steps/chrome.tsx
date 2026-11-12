@@ -35,9 +35,9 @@ export function CandidateCounter({
         <span className="hidden sm:inline">{t.remaining}</span>
       </span>
       {failed ? (
-        <span className="text-xs text-danger-fg">{t.counterError}</span>
+        <span className="text-caption text-danger-fg">{t.counterError}</span>
       ) : count === null || total === null ? (
-        <span className="text-xs text-ink-muted">{t.counterPending}</span>
+        <span className="text-caption text-ink-muted">{t.counterPending}</span>
       ) : (
         <>
           <span className="text-lg font-semibold leading-none tabular-nums text-brand-700">

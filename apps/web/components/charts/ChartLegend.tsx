@@ -171,7 +171,7 @@ export function ChartLegend({
   /** Hide (`true`) or show (`false`) every series at once; offered on a long legend. */
   onSetAll?: (hide: boolean) => void;
   /**
-   * D-206: Shift + click isolates a series. The legend works out which keys
+   * D-211: Shift + click isolates a series. The legend works out which keys
    * stay hidden (`isolateSeries`) and hands the whole set over.
    */
   onIsolate?: (hidden: ReadonlySet<string>) => void;
@@ -277,7 +277,7 @@ export function ChartLegend({
   return (
     <div className="chart-legend-box">
       <div className="flex flex-wrap items-center gap-2">
-        {/* D-206: a legend of hundreds can be put away to give the figure the screen. */}
+        {/* D-211: a legend of hundreds can be put away to give the figure the screen. */}
         <button
           type="button"
           className="chart-legend-all"

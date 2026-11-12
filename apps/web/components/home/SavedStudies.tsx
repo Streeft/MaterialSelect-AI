@@ -49,10 +49,10 @@ export function SavedStudies() {
             return (
               <li
                 key={study.id}
-                className="flex flex-col gap-2 rounded-card border border-edge bg-surface-raised p-4 shadow-card"
+                className="msds-card flex flex-col gap-2 p-4"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink" title={study.name}>
+                  <p className="truncate text-body font-medium text-ink" title={study.name}>
                     {study.name}
                   </p>
                   {created && <p className="text-support text-ink-muted">{created}</p>}

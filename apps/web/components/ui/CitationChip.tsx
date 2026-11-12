@@ -45,9 +45,9 @@ export function CitationChip({
       }
     >
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold text-ink">{title}</p>
+        <p className="text-caption font-semibold text-ink">{title}</p>
         {locator ? <p className="text-2xs text-ink-muted">{locator}</p> : null}
-        <blockquote className="whitespace-pre-line border-l-2 border-brand-300 pl-2 text-xs text-ink">
+        <blockquote className="whitespace-pre-line border-l-2 border-brand-300 pl-2 text-caption text-ink">
           {children}
         </blockquote>
         {credit ? <p className="text-caption text-ink-muted">{credit}</p> : null}

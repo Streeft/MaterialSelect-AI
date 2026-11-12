@@ -45,7 +45,7 @@ export function FunctionStep({
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm text-ink-muted">{t.exampleIntro}</span>
+        <span className="text-body text-ink-muted">{t.exampleIntro}</span>
         <Button variant="secondary" onClick={onExample}>
           {t.loadExample}
         </Button>
@@ -101,7 +101,7 @@ export function FunctionStep({
           onOpenChange={(open) => dispatch({ type: "advanced", section: "function", open })}
         >
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+            <span className="text-caption font-medium text-ink-muted">{t.universeTitle}</span>
             <ButtonGroup label={t.universeTitle}>
               <ButtonGroupItem
                 selected={state.universe === "material"}
@@ -114,7 +114,7 @@ export function FunctionStep({
                 onClick={() => dispatch({ type: "universe", universe: "process" })}
               />
             </ButtonGroup>
-            <p className="text-xs text-ink-muted">{t.universeHint}</p>
+            <p className="text-caption text-ink-muted">{t.universeHint}</p>
             {isProcessStudy && <Alert tone="info">{t.universeProcessNote}</Alert>}
           </div>
         </Disclosure>

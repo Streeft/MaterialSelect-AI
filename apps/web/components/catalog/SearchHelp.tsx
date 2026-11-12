@@ -14,7 +14,7 @@ const t = ptBR.catalog;
 export function SearchHelp({ onUse }: { onUse?: (query: string) => void }) {
   return (
     <Disclosure summary={t.searchHelpTitle} flush>
-      <div className="flex flex-col gap-3 px-1 pb-2 pt-3 text-sm">
+      <div className="flex flex-col gap-3 px-1 pb-2 pt-3 text-body">
         <p className="max-w-prose text-ink-muted">{t.searchHelpIntro}</p>
         <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
           {t.searchHelpExamples.map((example) => (
@@ -37,7 +37,7 @@ export function SearchHelp({ onUse }: { onUse?: (query: string) => void }) {
             </div>
           ))}
         </dl>
-        <p className="max-w-prose text-xs text-ink-subtle">{t.searchHelpRule}</p>
+        <p className="max-w-prose text-caption text-ink-subtle">{t.searchHelpRule}</p>
       </div>
     </Disclosure>
   );

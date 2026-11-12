@@ -42,7 +42,7 @@ function ValueText({ p }: { p: PropertyValueOut }) {
         </span>{" "}
         {unit}
         {typical !== null && (
-          <span className="ml-1 text-xs text-ink-subtle">
+          <span className="ml-1 text-caption text-ink-subtle">
             ({ptBR.detail.typical}: {formatNumber(typical)})
           </span>
         )}
@@ -56,7 +56,7 @@ function ValueText({ p }: { p: PropertyValueOut }) {
         <span className="font-medium tabular-nums">{formatNumber(scalar)}</span>{" "}
         {unit}
         {uncertainty !== null && (
-          <span className="ml-1 text-xs text-ink-subtle">
+          <span className="ml-1 text-caption text-ink-subtle">
             ± {formatNumber(uncertainty)}
           </span>
         )}
@@ -112,7 +112,7 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
         label={ptBR.categories[group.category]}
         className="rounded-none border-0 bg-transparent"
       >
-        <table className="min-w-full divide-y divide-edge-subtle text-sm">
+        <table className="min-w-full divide-y divide-edge-subtle text-body">
           <tbody>
             {group.properties.map((p) => (
               <tr key={p.property_slug} className="align-top">
@@ -133,7 +133,7 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
                 <td className="px-4 py-2 text-ink">
                   <ValueCell p={p} />
                   {p.notes && (
-                    <div className="mt-1 text-xs italic text-ink-subtle">
+                    <div className="mt-1 text-caption italic text-ink-subtle">
                       {p.notes}
                     </div>
                   )}

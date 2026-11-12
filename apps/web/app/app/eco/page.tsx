@@ -130,7 +130,7 @@ function ComponentFields({
   const selectedProcess = draft.processId || String(processes[0]?.id ?? "");
   return (
     <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-sm font-medium text-ink">{t.componentLegend(n)}</legend>
+      <legend className="text-body font-medium text-ink">{t.componentLegend(n)}</legend>
       <div className="sm:col-span-2">
         <Input
           label={t.componentNameLabel}
@@ -234,7 +234,7 @@ function LegFields({
   const n = index + 1;
   return (
     <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-sm font-medium text-ink">{t.legLegend(n)}</legend>
+      <legend className="text-body font-medium text-ink">{t.legLegend(n)}</legend>
       <Select
         label={t.transportModeLabel}
         value={draft.mode}
@@ -284,7 +284,7 @@ function ComponentTable({ result }: { result: EcoAuditResult }) {
             <Tr key={`${component.name}-${index}`}>
               <Td>
                 <div className="font-medium">{component.name}</div>
-                <div className="text-xs text-ink-muted">
+                <div className="text-caption text-ink-muted">
                   <Link
                     className="text-accent underline underline-offset-2"
                     href={`/app/materiais/${component.material_id}`}
@@ -297,7 +297,7 @@ function ComponentTable({ result }: { result: EcoAuditResult }) {
               </Td>
               <Td className="tabular-nums">{formatNumber(component.mass_bought)}</Td>
               {component.phases.map((phase) => (
-                <Td key={phase.phase} className="text-xs">
+                <Td key={phase.phase} className="text-caption">
                   <div>
                     <Quantity value={phase.energy} reason={phase.energy_reason} />
                   </div>
@@ -357,7 +357,7 @@ function Quantity({
     return <span className="tabular-nums">{formatNumber(value)}</span>;
   }
   return (
-    <span className="text-xs text-ink-muted">{reason ?? "Não calculada"}</span>
+    <span className="text-caption text-ink-muted">{reason ?? "Não calculada"}</span>
   );
 }
 
@@ -374,7 +374,7 @@ function Podium({
         {label}
       </span>
       {dominance.phase ? (
-        <span className="text-sm text-ink">
+        <span className="text-body text-ink">
           <strong>{dominance.label}</strong>
           {dominance.share !== null ? (
             <>
@@ -384,7 +384,7 @@ function Podium({
           ) : null}
         </span>
       ) : (
-        <span className="text-sm text-ink-muted">{dominance.refusal}</span>
+        <span className="text-body text-ink-muted">{dominance.refusal}</span>
       )}
     </div>
   );
@@ -416,7 +416,7 @@ function PhaseTable({ result }: { result: EcoAuditResult }) {
               <Td>
                 <Quantity value={phase.carbon} reason={phase.carbon_reason} />
               </Td>
-              <Td className="text-xs text-ink-muted">{phase.detail}</Td>
+              <Td className="text-caption text-ink-muted">{phase.detail}</Td>
             </Tr>
           ))}
           <Tr>
@@ -484,7 +484,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
             return (
               <Tr key={p.phase}>
                 <Td className="font-medium">{p.label}</Td>
-                <Td className="tabular-nums text-xs">
+                <Td className="tabular-nums text-caption">
                   <div>
                     <Cell value={p.energyA} unit={energyUnit} reason={p.energyReasonA} />
                   </div>
@@ -492,7 +492,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
                     <Cell value={p.carbonA} unit={carbonUnit} reason={p.carbonReasonA} />
                   </div>
                 </Td>
-                <Td className="tabular-nums text-xs">
+                <Td className="tabular-nums text-caption">
                   <div>
                     <Cell value={p.energyB} unit={energyUnit} reason={p.energyReasonB} />
                   </div>
@@ -500,7 +500,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
                     <Cell value={p.carbonB} unit={carbonUnit} reason={p.carbonReasonB} />
                   </div>
                 </Td>
-                <Td className="tabular-nums text-xs">
+                <Td className="tabular-nums text-caption">
                   <div className={deltaE !== null ? (deltaE < 0 ? "text-success-fg font-medium" : deltaE > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
                     {deltaE !== null ? `${deltaE > 0 ? "+" : ""}${formatNumber(deltaE)} ${energyUnit}` : t.noDelta}
                   </div>
@@ -513,7 +513,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
           })}
           <Tr>
             <Td className="font-medium">{t.totalLabel}</Td>
-            <Td className="tabular-nums font-semibold text-xs">
+            <Td className="tabular-nums font-semibold text-caption">
               <div>
                 <Cell value={resA.total_energy} unit={energyUnit} reason={t.noTotal} />
               </div>
@@ -521,7 +521,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
                 <Cell value={resA.total_carbon} unit={carbonUnit} reason={t.noTotal} />
               </div>
             </Td>
-            <Td className="tabular-nums font-semibold text-xs">
+            <Td className="tabular-nums font-semibold text-caption">
               <div>
                 <Cell value={resB.total_energy} unit={energyUnit} reason={t.noTotal} />
               </div>
@@ -529,7 +529,7 @@ function ComparisonTable({ result }: { result: EcoComparisonResult }) {
                 <Cell value={resB.total_carbon} unit={carbonUnit} reason={t.noTotal} />
               </div>
             </Td>
-            <Td className="tabular-nums font-semibold text-xs">
+            <Td className="tabular-nums font-semibold text-caption">
               <div className={result.delta_energy !== null ? (result.delta_energy < 0 ? "text-success-fg" : result.delta_energy > 0 ? "text-danger-fg" : "text-ink-muted") : "text-ink-muted"}>
                 {result.delta_energy !== null
                   ? `${result.delta_energy > 0 ? "+" : ""}${formatNumber(result.delta_energy)} ${energyUnit} (${result.delta_energy_percent !== null ? (result.delta_energy_percent > 0 ? "+" : "") + formatNumber(result.delta_energy_percent) + "%" : ""})`
@@ -1317,7 +1317,7 @@ export default function EcoPage() {
                 <>
                   <EcoExportMenu brief={resultBrief} />
                   <div className="flex flex-col gap-3">
-                    <span className="text-sm font-medium text-ink">
+                    <span className="text-body font-medium text-ink">
                       {t.dominanceTitle}
                     </span>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -1349,7 +1349,7 @@ export default function EcoPage() {
                     />
                   </div>
 
-                  <div className="well flex flex-col gap-2 text-xs text-ink-muted">
+                  <div className="well flex flex-col gap-2 text-caption text-ink-muted">
                     <span>
                       <strong className="text-ink">{t.massBought}:</strong>{" "}
                       {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
@@ -1369,7 +1369,7 @@ export default function EcoPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="well flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-ink">{t.winnerEnergy}</span>
+                        <span className="text-body font-medium text-ink">{t.winnerEnergy}</span>
                         <Badge tone="success">
                           {compareResult.winner_energy === "material_a"
                             ? compareResult.material_a.material_name
@@ -1379,7 +1379,7 @@ export default function EcoPage() {
                         </Badge>
                       </div>
                       {compareResult.delta_energy_percent !== null && Math.abs(compareResult.delta_energy_percent) > 0.01 && (
-                        <span className="text-xs text-ink-muted">
+                        <span className="text-caption text-ink-muted">
                           {t.savingsEnergy(Math.abs(compareResult.delta_energy_percent))}
                         </span>
                       )}
@@ -1387,7 +1387,7 @@ export default function EcoPage() {
 
                     <div className="well flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-ink">{t.winnerCarbon}</span>
+                        <span className="text-body font-medium text-ink">{t.winnerCarbon}</span>
                         <Badge tone="brand">
                           {compareResult.winner_carbon === "material_a"
                             ? compareResult.material_a.material_name
@@ -1397,7 +1397,7 @@ export default function EcoPage() {
                         </Badge>
                       </div>
                       {compareResult.delta_carbon_percent !== null && Math.abs(compareResult.delta_carbon_percent) > 0.01 && (
-                        <span className="text-xs text-ink-muted">
+                        <span className="text-caption text-ink-muted">
                           {t.savingsCarbon(Math.abs(compareResult.delta_carbon_percent))}
                         </span>
                       )}

@@ -312,6 +312,10 @@ const activity: DashboardActivity = {
 };
 
 const getDashboardOverview = vi.fn((_filters?: unknown) => Promise.resolve(overview));
+// D-209: the overview's block layout, kept in the account.
+const createSavedView = vi.fn((payload: Record<string, unknown>) =>
+  Promise.resolve({ id: 1, position: 0, created_at: "", updated_at: "", ...payload }),
+);
 const getDashboardDistribution = vi.fn((slug: string, _filters?: unknown) =>
   Promise.resolve(distributions[slug]),
 );
@@ -321,6 +325,10 @@ const getDashboardPropertyStats = vi.fn((slug: string) =>
 const getDashboardActivity = vi.fn(() => Promise.resolve(activity));
 
 vi.mock("@/lib/api", () => ({
+  listSavedViews: () => Promise.resolve([]),
+  createSavedView: (payload: Record<string, unknown>) => createSavedView(payload),
+  updateSavedView: () => Promise.resolve({}),
+  deleteSavedView: () => Promise.resolve(),
   getDashboardOverview: (filters: unknown) => getDashboardOverview(filters),
   getDashboardDistribution: (slug: string, filters: unknown) => getDashboardDistribution(slug, filters),
   getDashboardComposition: () => Promise.resolve(composition),
@@ -455,7 +463,7 @@ describe("painel", () => {
     expect(await screen.findByText(t.distributionFigure("Densidade"))).toBeInTheDocument();
   });
 
-  it("keeps the distribution's scale in the URL, both ways (D-209)", async () => {
+  it("keeps the distribution's scale in the URL, both ways (D-212)", async () => {
     at("aba=propriedades&escala=log");
     render(wrap(<DashboardPage />));
     const log = await screen.findByShadowRole("button", { name: t.log });
@@ -527,13 +535,37 @@ describe("painel", () => {
   it("sends the global filters to the API and lists subclasses of the catalogue", async () => {
     await renderDashboard();
     await screen.findByText(d.composition.title);
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: d.filters.classe }), "metais");
+    // D-209: the filters are chips; each opens its options.
+    await userEvent.click(screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.classe}: `) }));
+    await userEvent.click(await screen.findByShadowRole("button", { name: "Metais" }));
     await waitFor(() =>
       expect(getDashboardOverview).toHaveBeenCalledWith(expect.objectContaining({ classe: "metais" })),
     );
     expect(nav.search.get("classe")).toBe("metais");
-    const subclass = screen.getByShadowRole("combobox", { name: d.filters.subclasse });
-    expect(within(subclass).getByShadowRole("option", { name: "Aços" })).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.subclasse}: `) }),
+    );
+    expect(await screen.findByShadowRole("button", { name: "Aços" })).toBeInTheDocument();
+  });
+
+  it("lets the reader hide an overview block and keeps the layout in the account (D-209)", async () => {
+    await renderDashboard();
+    await screen.findByText(d.composition.title);
+    await userEvent.click(
+      screen.getByShadowRole("button", { name: ptBR.ds.hideBlock(d.blocks.lacunas) }),
+    );
+    expect(
+      screen.getByShadowRole("button", { name: ptBR.ds.showBlock(d.blocks.lacunas) }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() =>
+      expect(createSavedView).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scope: "painel",
+          kind: "layout",
+          config: expect.objectContaining({ hidden: ["lacunas"] }),
+        }),
+      ),
+    );
   });
 
   it("links a subclass of the treemap to the filtered catalogue", async () => {

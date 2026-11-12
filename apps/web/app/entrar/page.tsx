@@ -19,14 +19,14 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardBody className="flex flex-col items-center gap-4 py-8 text-center">
           <h1 className="text-xl font-semibold text-ink">{t.loginTitle}</h1>
-          <p className="text-sm text-ink-muted">{t.loginSubtitle}</p>
+          <p className="text-body text-ink-muted">{t.loginSubtitle}</p>
           <Suspense fallback={null}>
             <LoginErrorNotice />
           </Suspense>
           <ButtonLink href={googleLoginUrl()} variant="primary">
             {t.loginButton}
           </ButtonLink>
-          <p className="text-xs text-ink-subtle">{t.loginHint}</p>
+          <p className="text-caption text-ink-subtle">{t.loginHint}</p>
         </CardBody>
       </Card>
     </main>

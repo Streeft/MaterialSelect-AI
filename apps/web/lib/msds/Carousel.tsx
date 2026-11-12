@@ -14,7 +14,7 @@
    already uses, rather than rewritten line by line. */
 "use client";
 /**
- * MSDS — Carousel. Split out of `./msds.tsx` (D-209) without changing a line
+ * MSDS — Carousel. Split out of `./msds.tsx` (D-212) without changing a line
  * of behaviour: same code, same names, now one file per component family.
  * `./msds.tsx` re-exports every public name, so `@/lib/msds` is unchanged.
  * `@ts-nocheck` and the lint exceptions above: see the note in `./msds.tsx`.

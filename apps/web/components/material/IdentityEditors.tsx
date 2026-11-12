@@ -127,7 +127,7 @@ export function CompositionEditor({
         submit();
       }}
     >
-      <p className="text-xs text-ink-muted">{t.compositionRule}</p>
+      <p className="text-caption text-ink-muted">{t.compositionRule}</p>
       {rows.map((row, i) => (
         <Card as="fieldset" key={row.key}>
           <legend className="sr-only">{t.rowLabel(i + 1)}</legend>
@@ -214,9 +214,9 @@ export function CompositionEditor({
           </CardBody>
         </Card>
       ))}
-      {rows.length === 0 && <p className="text-sm text-ink-muted">{t.emptyComposition}</p>}
+      {rows.length === 0 && <p className="text-body text-ink-muted">{t.emptyComposition}</p>}
       {problem && (
-        <p role="alert" className="text-sm text-danger-fg">
+        <p role="alert" className="text-body text-danger-fg">
           {problem}
         </p>
       )}
@@ -317,7 +317,7 @@ export function DesignationEditor({
         );
       }}
     >
-      <p className="text-xs text-ink-muted">{t.designationRule}</p>
+      <p className="text-caption text-ink-muted">{t.designationRule}</p>
       {rows.map((row, i) => (
         <Card as="fieldset" key={row.key}>
           <legend className="sr-only">{t.rowLabel(i + 1)}</legend>
@@ -369,7 +369,7 @@ export function DesignationEditor({
         </Card>
       ))}
       {problem && (
-        <p role="alert" className="text-sm text-danger-fg">
+        <p role="alert" className="text-body text-danger-fg">
           {problem}
         </p>
       )}

@@ -781,16 +781,16 @@ function MapsPageContent() {
                 <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
                   <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                      <span className="text-caption font-semibold text-brand-700 dark:text-brand-300">
                         {t.selectedRegionTitle}
                       </span>
-                      <span className="text-sm text-ink">
+                      <span className="text-body text-ink">
                         {t.selectedRegionBounds(
                           `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
                           `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
                         )}
                       </span>
-                      <span className="text-xs text-ink-muted">
+                      <span className="text-caption text-ink-muted">
                         {t.selectedCount(pointsInBox.length)}
                       </span>
                     </div>
@@ -881,7 +881,7 @@ function MapsPageContent() {
                 <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
                   <Card>
                     <CardBody>
-                      <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+                      <ul className="flex flex-col gap-1 text-caption text-ink-muted">
                         {map.data.notes.map((note, i) => (
                           <li key={i}>• {note}</li>
                         ))}
@@ -897,7 +897,7 @@ function MapsPageContent() {
                 <Section id="excluidos" title={t.excludedTitle} description={t.excludedHint}>
                   <Card>
                     <CardBody>
-                      <ul className="flex flex-col gap-1 text-sm text-ink">
+                      <ul className="flex flex-col gap-1 text-body text-ink">
                         {map.data.excluded.map((e) => (
                           <li key={e.record_id ?? e.material_id}>
                             <span className="font-medium">{e.name}</span>{" "}
@@ -1011,10 +1011,10 @@ function MapsPageContent() {
                   <p className="text-support text-ink-muted">{t.customizeHint}</p>
                   <div className="flex flex-col gap-4">
                     <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-sm font-semibold text-ink">{t.groupUniverseScale}</h3>
+                      <h3 className="text-body font-semibold text-ink">{t.groupUniverseScale}</h3>
                       <div className="flex flex-wrap items-start gap-4">
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium text-ink-muted">{t.universeTitle}</span>
+                          <span className="text-caption font-medium text-ink-muted">{t.universeTitle}</span>
                           <ButtonGroup label={t.universeTitle}>
                             <ButtonGroupItem
                               selected={universe === "material"}
@@ -1030,7 +1030,7 @@ function MapsPageContent() {
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium text-ink-muted">{t.scale}</span>
+                          <span className="text-caption font-medium text-ink-muted">{t.scale}</span>
                           <ButtonGroup label={t.scale}>
                             {(["linear", "log"] as ChartScale[]).map((option) => (
                               <ButtonGroupItem
@@ -1047,7 +1047,7 @@ function MapsPageContent() {
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium text-ink-muted">{t.envelope}</span>
+                          <span className="text-caption font-medium text-ink-muted">{t.envelope}</span>
                           <ButtonGroup label={t.envelope}>
                             {(["hull", "ellipse"] as const).map((option) => (
                               <ButtonGroupItem
@@ -1062,7 +1062,7 @@ function MapsPageContent() {
                       </div>
                     </div>
                     <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-sm font-semibold text-ink">{t.groupDisplay}</h3>
+                      <h3 className="text-body font-semibold text-ink">{t.groupDisplay}</h3>
                       <div className="flex flex-col gap-2">
                         <Checkbox
                           label={t.envelopes}
@@ -1083,7 +1083,7 @@ function MapsPageContent() {
                     </div>
 
                     <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-sm font-semibold text-ink">{t.groupClasses}</h3>
+                      <h3 className="text-body font-semibold text-ink">{t.groupClasses}</h3>
                       <div className="flex flex-wrap gap-2">
                         <ToggleChip
                           selected={selectedClasses.length === 0}
@@ -1105,7 +1105,7 @@ function MapsPageContent() {
 
                     <div className="subsection flex flex-col gap-3">
                       <div>
-                        <h3 className="text-sm font-semibold text-ink">{t.groupIndex}</h3>
+                        <h3 className="text-body font-semibold text-ink">{t.groupIndex}</h3>
                         <p className="text-support text-ink-muted">{t.indexHint}</p>
                       </div>
                       <div className="flex flex-col gap-3">
@@ -1216,7 +1216,7 @@ function MapsPageContent() {
                                     {overlay.levels.map((level) => (
                                       <li
                                         key={`${level.value}-${level.material_id ?? "n"}`}
-                                        className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+                                        className="flex flex-wrap items-center gap-2 text-caption text-ink-muted"
                                       >
                                         <span>
                                           M = {formatNumber(level.value)}

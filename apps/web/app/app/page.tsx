@@ -55,10 +55,11 @@ export default function HomePage() {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="flex h-full flex-col gap-1 rounded-card border border-edge bg-surface-raised p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
+                data-interactive="true"
+                className="msds-card flex h-full flex-col gap-1 p-4"
               >
-                <span className="text-sm font-medium text-ink">{item.label}</span>
-                <span className="text-xs text-ink-muted">{item.hint}</span>
+                <span className="text-body font-medium text-ink">{item.label}</span>
+                <span className="text-caption text-ink-muted">{item.hint}</span>
               </Link>
             </li>
           ))}
@@ -68,19 +69,20 @@ export default function HomePage() {
       {/* The method, one click away rather than the first thing on the page:
           each step is still a door into the wizard at that step. */}
       <Disclosure summary={t.methodDisclosure}>
-        <p className="mb-3 text-sm text-ink-muted">{t.methodHint}</p>
+        <p className="mb-3 text-body text-ink-muted">{t.methodHint}</p>
         <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
             <li key={step.href}>
               <Link
                 href={step.href}
-                className="flex h-full flex-col gap-1 rounded-card border border-edge bg-surface-raised p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
+                data-interactive="true"
+                className="msds-card flex h-full flex-col gap-1 p-4"
               >
                 <span className="text-caption font-semibold text-brand-700">
                   {i + 1}
                 </span>
-                <span className="text-sm font-medium text-ink">{step.label}</span>
-                <span className="text-xs text-ink-muted">{step.hint}</span>
+                <span className="text-body font-medium text-ink">{step.label}</span>
+                <span className="text-caption text-ink-muted">{step.hint}</span>
               </Link>
             </li>
           ))}

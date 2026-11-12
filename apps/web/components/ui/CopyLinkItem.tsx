@@ -7,7 +7,7 @@ import { MenuItem } from "./Menu";
 
 /**
  * "Copiar o link desta configuração", for the "⋯" of a page whose inputs live
- * in the URL (D-209): the address already is the link, this only puts it on the
+ * in the URL (D-212): the address already is the link, this only puts it on the
  * clipboard and says, through the app's live region, whether that worked.
  */
 export function CopyLinkItem() {

@@ -176,7 +176,7 @@ export function MaterialForm({ classes, properties, initial, copyFrom }: Materia
           }
         />
         <CardBody className="space-y-3">
-          {fields.length === 0 && <p className="text-sm text-ink-muted">{ptBR.form.noValues}</p>}
+          {fields.length === 0 && <p className="text-body text-ink-muted">{ptBR.form.noValues}</p>}
 
           {fields.map((field, index) => {
             const kind = watchedValues?.[index]?.kind ?? "scalar";

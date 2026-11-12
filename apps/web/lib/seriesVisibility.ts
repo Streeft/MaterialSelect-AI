@@ -1,5 +1,5 @@
 /**
- * Show/hide state of a figure's series (D-206).
+ * Show/hide state of a figure's series (D-211).
  *
  * A legend click toggles one series; Shift + click *isolates* it — every other
  * series is hidden — and doing it again on the series that is already alone

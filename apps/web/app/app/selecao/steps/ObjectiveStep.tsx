@@ -171,13 +171,13 @@ export function ObjectiveStep({
                       </Button>
                     )}
                   </div>
-                  <p className="mt-2 text-xs text-ink-muted">
+                  <p className="mt-2 text-caption text-ink-muted">
                     {isProcessStudy ? t.expressionCheckedOnRun : t.expressionHint}
                   </p>
                 </div>
               }
             />
-            {state.validation && <p className="text-xs text-ink-muted">{state.validation}</p>}
+            {state.validation && <p className="text-caption text-ink-muted">{state.validation}</p>}
             {/* The conditions of validity, shown without asking for a click —
                 an index that does not fit the problem is worse than no index. */}
             {indexDescriptor && <IndexCard index={indexDescriptor} />}
@@ -203,11 +203,11 @@ export function ObjectiveStep({
           lockedReason={t.indexLockedReason}
         >
           <div className="space-y-3">
-            <p className="text-xs text-ink-muted">{t.rankingHint}</p>
+            <p className="text-caption text-ink-muted">{t.rankingHint}</p>
             {/* A non-default method stays visible with the section closed: a
                 collapsed section never hides what is already in use (D-85). */}
             {!state.advObjective && method !== "weighted_sum" && (
-              <p className="text-xs text-ink-muted">
+              <p className="text-caption text-ink-muted">
                 {t.methodInUse(method === "topsis" ? t.methodTopsis : t.methodPromethee)}
               </p>
             )}
@@ -324,7 +324,7 @@ export function ObjectiveStep({
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-ink-muted">{t.method}</span>
+                    <span className="text-caption font-medium text-ink-muted">{t.method}</span>
                     <ButtonGroup label={t.method}>
                       <ButtonGroupItem
                         selected={method === "weighted_sum"}
@@ -364,7 +364,7 @@ export function ObjectiveStep({
                     </Select>
                   )}
                 </div>
-                {method !== "weighted_sum" && <p className="text-xs text-ink-muted">{t.methodHint}</p>}
+                {method !== "weighted_sum" && <p className="text-caption text-ink-muted">{t.methodHint}</p>}
                 {/* AHP derives weights; it never becomes a fourth `method` — so
                     it only shows up here, next to the weight fields it feeds. */}
                 {method === "weighted_sum" && (

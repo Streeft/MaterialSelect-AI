@@ -101,7 +101,7 @@ export function FamilyNoteContent({ note }: { note: FamilyNoteEntry }) {
   const whenId = `${base}-when`;
   const watchId = `${base}-watch`;
   return (
-    <div className="flex flex-col gap-3 text-sm">
+    <div className="flex flex-col gap-3 text-body">
       <p className="max-w-prose font-medium text-ink">{note.summary}</p>
       {note.body.map((paragraph, i) => (
         <p key={i} className="max-w-prose text-ink">

@@ -192,7 +192,7 @@ export function StudioPanel({
 
               {artifacts.length > 0 ? (
                 <div className="flex flex-col gap-2 border-t border-edge-subtle pt-3">
-                  <h3 className="text-sm font-semibold text-ink">{s.generated}</h3>
+                  <h3 className="text-body font-semibold text-ink">{s.generated}</h3>
                   <ul className="flex flex-col gap-1.5">
                     {artifacts.map((artifact) => (
                       <ArtifactRow
@@ -207,9 +207,9 @@ export function StudioPanel({
               ) : null}
 
               <div className="flex flex-col gap-2 border-t border-edge-subtle pt-3">
-                <h3 className="text-sm font-semibold text-ink">{t.notes}</h3>
+                <h3 className="text-body font-semibold text-ink">{t.notes}</h3>
                 {notebook.notes.length === 0 ? (
-                  <p className="text-xs text-ink-muted">{t.noNotes}</p>
+                  <p className="text-caption text-ink-muted">{t.noNotes}</p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {notebook.notes.map((note) => (
@@ -221,7 +221,7 @@ export function StudioPanel({
                           className="flex w-full flex-col gap-0.5 rounded-control border border-edge px-3 py-2 text-left hover:bg-surface-sunken"
                         >
                           <span className="flex items-center gap-2">
-                            <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                            <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
                               {note.title}
                             </span>
                             {note.origin === "chat" ? (
@@ -232,7 +232,7 @@ export function StudioPanel({
                             ) : null}
                           </span>
                           {note.body ? (
-                            <span className="line-clamp-2 text-xs text-ink-muted">{note.body}</span>
+                            <span className="line-clamp-2 text-caption text-ink-muted">{note.body}</span>
                           ) : null}
                         </button>
                       </li>
@@ -322,7 +322,7 @@ function ArtifactRow({
             {ICONS[artifact.tool]}
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-sm font-medium text-ink">{artifact.title}</span>
+            <span className="truncate text-body font-medium text-ink">{artifact.title}</span>
             <span className="text-2xs text-ink-muted">
               {meta}
               {artifact.item_count !== null
@@ -339,7 +339,7 @@ function ArtifactRow({
       <li className="flex items-center gap-2 rounded-control border border-dashed border-edge px-3 py-2">
         <Spinner label={s.generating} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium text-ink">{artifact.title}</span>
+          <span className="truncate text-body font-medium text-ink">{artifact.title}</span>
           <span className="text-2xs text-ink-muted">
             {s.generating} {s.generatingHint}
           </span>
@@ -352,7 +352,7 @@ function ArtifactRow({
     <li className="flex flex-col gap-1.5 rounded-control border border-danger bg-danger-soft px-3 py-2">
       <span className="flex items-center gap-2">
         <IconWarning className="h-4 w-4 shrink-0 text-danger-fg" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+        <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
           {artifact.title} · {s.failed}
         </span>
         <IconButton

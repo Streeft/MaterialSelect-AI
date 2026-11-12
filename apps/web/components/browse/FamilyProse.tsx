@@ -41,9 +41,9 @@ function Field({ label, value }: { label: string; value: string | null }) {
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="text-caption font-semibold text-ink-subtle">{label}</span>
       {value === null ? (
-        <p className="max-w-prose text-sm italic text-ink-muted">{f.unwritten}</p>
+        <p className="max-w-prose text-body italic text-ink-muted">{f.unwritten}</p>
       ) : (
-        <p className="max-w-prose text-sm text-ink">{value}</p>
+        <p className="max-w-prose text-body text-ink">{value}</p>
       )}
     </div>
   );

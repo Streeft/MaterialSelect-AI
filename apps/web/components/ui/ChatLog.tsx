@@ -66,7 +66,7 @@ export function ChatMessage({
   if (from === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-card rounded-br-control bg-brand-100 px-4 py-2.5 text-sm text-brand-900">
+        <div className="max-w-[85%] rounded-card rounded-br-control bg-brand-100 px-4 py-2.5 text-body text-brand-900">
           <span className="sr-only">{author}: </span>
           {children}
         </div>
@@ -74,7 +74,7 @@ export function ChatMessage({
     );
   }
   return (
-    <article className="flex flex-col gap-2 text-sm leading-relaxed text-ink">
+    <article className="flex flex-col gap-2 text-body leading-relaxed text-ink">
       <span className="sr-only">{author}:</span>
       {children}
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

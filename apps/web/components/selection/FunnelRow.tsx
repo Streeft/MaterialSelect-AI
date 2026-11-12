@@ -35,7 +35,7 @@ export function FunnelRow({
 }) {
   return (
     <li className="grid grid-cols-[minmax(5rem,9rem)_minmax(0,1fr)_auto] items-center gap-3">
-      <span className="truncate text-xs text-ink-muted" title={label}>
+      <span className="truncate text-caption text-ink-muted" title={label}>
         {label}
       </span>
       <Bar
@@ -43,7 +43,7 @@ export function FunnelRow({
         color={tone === "brand" ? "bg-brand" : "bg-ink-subtle"}
         className="h-2.5"
       />
-      <span className="text-xs tabular-nums text-ink">
+      <span className="text-caption tabular-nums text-ink">
         <strong>{remaining}</strong>
         {eliminated !== null && eliminated > 0 ? (
           <span className="ml-1.5 text-2xs font-normal text-ink-subtle">

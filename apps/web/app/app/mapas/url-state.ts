@@ -33,7 +33,7 @@ export interface MapUrlState {
 }
 
 /** Opaque, URL-safe encoding of the full filter state, for the "share" link
- * (the base64url JSON of `lib/urlState.ts`, which generalizes this file, D-209). */
+ * (the base64url JSON of `lib/urlState.ts`, which generalizes this file, D-212). */
 export function encodeMapState(state: MapUrlState): string {
   return encodeUrlJson(state);
 }

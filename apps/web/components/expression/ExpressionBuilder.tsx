@@ -350,7 +350,7 @@ export function ExpressionBuilder({
       data-testid="expression-builder"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p id={titleId} className="text-sm font-semibold text-ink">
+        <p id={titleId} className="text-body font-semibold text-ink">
           {label}
         </p>
         <ButtonGroup label={t.modeLabel}>
@@ -448,7 +448,7 @@ export function ExpressionBuilder({
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-danger-fg">
+        <p role="alert" className="text-body text-danger-fg">
           {error}
         </p>
       )}
@@ -541,7 +541,7 @@ function Display({
         )}
       >
         {empty ? (
-          <p className="text-sm text-ink-muted">{t.displayEmpty}</p>
+          <p className="text-body text-ink-muted">{t.displayEmpty}</p>
         ) : latex ? (
           <MathTex latex={latex} label={description?.label ?? text} display />
         ) : null}
@@ -691,7 +691,7 @@ function TapePiece({
         title={t.tokenRemoveHint}
         data-flagged={flagged ? "true" : undefined}
         className={cn(
-          "inline-flex min-h-8 cursor-grab items-center gap-1 rounded-control border px-2 text-sm",
+          "inline-flex min-h-8 cursor-grab items-center gap-1 rounded-control border px-2 text-body",
           piece.tone === "var" && "border-brand bg-brand-50 font-medium text-brand-800",
           piece.tone === "fn" && "border-edge-control bg-well font-medium text-ink",
           piece.tone === "op" && "border-transparent bg-transparent px-1 text-base text-ink",
@@ -701,7 +701,7 @@ function TapePiece({
         )}
       >
         {variable?.symbol && (
-          <MathTex latex={variable.symbol_latex} label="" className="text-xs text-ink-muted" />
+          <MathTex latex={variable.symbol_latex} label="" className="text-caption text-ink-muted" />
         )}
         <span>{piece.text}</span>
       </button>
@@ -738,7 +738,7 @@ function TypedField({
         className="font-mono"
       />
       {start !== null && value && (
-        <p className="font-mono text-xs text-ink-muted" aria-hidden="true">
+        <p className="font-mono text-caption text-ink-muted" aria-hidden="true">
           {value.slice(0, start)}
           <mark className="rounded bg-danger-soft text-danger-fg">
             {value.slice(start, Math.max(start + 1, issue?.end ?? start + 1)) || " "}
@@ -893,7 +893,7 @@ function PalettePanel({
         ) : (
           groups.map(([category, list], i) => (
             <details key={category} open={i === 0 || universe === "process"} className="group">
-              <summary className="cursor-pointer select-none rounded-control px-1 py-1 text-sm font-semibold text-ink">
+              <summary className="cursor-pointer select-none rounded-control px-1 py-1 text-body font-semibold text-ink">
                 {t.categoryCount(categoryLabel(category), list.length)}
               </summary>
               <ul className="mt-1 flex flex-col gap-1">
@@ -955,7 +955,7 @@ function PropertyCard({
         <MathTex latex={variable.symbol_latex} label="" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-ink">{variable.name}</span>
+        <span className="truncate text-body font-medium text-ink">{variable.name}</span>
         <span className="truncate text-caption text-ink-subtle">{shownUnit}</span>
       </span>
     </button>
@@ -998,7 +998,7 @@ function KeyButton({
           : undefined
       }
       className={cn(
-        "pressable m3-state inline-flex min-h-10 min-w-10 items-center justify-center rounded-control border px-2 text-sm font-medium disabled:opacity-40",
+        "pressable m3-state inline-flex min-h-10 min-w-10 items-center justify-center rounded-control border px-2 text-body font-medium disabled:opacity-40",
         tone === "plain" && "border-edge-control bg-panel text-ink",
         tone === "num" && "border-edge-control bg-panel tabular-nums text-ink",
         tone === "op" && "border-edge-control bg-well text-ink",
@@ -1112,7 +1112,7 @@ function Examples({
   if (usable.length === 0) return null;
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-sm font-medium text-ink">{t.examples}</p>
+      <p className="text-body font-medium text-ink">{t.examples}</p>
       <p className="text-caption text-ink-subtle">{t.examplesHint}</p>
       <div className="flex flex-wrap gap-1" role="group" aria-label={t.examples}>
         {usable.map((example) => (
@@ -1120,7 +1120,7 @@ function Examples({
             key={example.expression}
             type="button"
             onClick={() => onLoad(example.expression)}
-            className="pressable m3-state inline-flex items-center gap-1.5 rounded-full border border-edge-control bg-panel px-3 py-1 text-sm text-ink"
+            className="pressable m3-state inline-flex items-center gap-1.5 rounded-full border border-edge-control bg-panel px-3 py-1 text-body text-ink"
           >
             <span>{example.title}</span>
             <span className="text-ink-subtle">{example.reading}</span>

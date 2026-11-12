@@ -43,7 +43,7 @@ interface CostBrief {
 }
 
 /**
- * The whole brief in the URL (B1, D-209), so a link carries the question: the
+ * The whole brief in the URL (B1, D-212), so a link carries the question: the
  * solver's result rows point here with the material and the mass it computed,
  * and the two premises (write-off, load factor) travel too. Their defaults are
  * visible and overridable — see the note in the schema.
@@ -266,9 +266,9 @@ export default function CustoPage() {
                 <CostCurveChart result={result} />
                 {result.uncosted.length > 0 ? (
                   <div className="well flex flex-col gap-2">
-                    <span className="text-sm font-medium text-ink">{t.uncostedTitle}</span>
-                    <span className="text-xs text-ink-muted">{t.uncostedHint}</span>
-                    <ul className="flex flex-col gap-1 text-sm text-ink">
+                    <span className="text-body font-medium text-ink">{t.uncostedTitle}</span>
+                    <span className="text-caption text-ink-muted">{t.uncostedHint}</span>
+                    <ul className="flex flex-col gap-1 text-body text-ink">
                       {result.uncosted.map((item) => (
                         <li key={item.process_id}>
                           {item.process_name} — {item.reason}

@@ -65,7 +65,7 @@ export function FigureData<Row>({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-ink-muted">{t.dataTableHint}</p>
+      <p className="text-caption text-ink-muted">{t.dataTableHint}</p>
       <TableScroll label={caption}>
         <Table>
           <TableCaption>{caption}</TableCaption>

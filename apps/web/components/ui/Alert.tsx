@@ -38,7 +38,7 @@ export function Alert({
   return (
     <div
       role={role}
-      className={cn("flex gap-2.5 rounded-card border p-3 text-sm", t.box, className)}
+      className={cn("flex gap-2.5 rounded-card border p-3 text-body", t.box, className)}
     >
       <span className="mt-0.5 shrink-0">{icon ?? t.icon}</span>
       <div className="min-w-0 space-y-1">

@@ -54,7 +54,7 @@ interface SolverBrief {
   objective: SolverObjective;
 }
 
-/** The brief in the URL (D-209): a link reopens the same case, numbers and objective. */
+/** The brief in the URL (D-212): a link reopens the same case, numbers and objective. */
 const SOLVER_URL: UrlSpec<SolverBrief> = {
   caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
   inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
@@ -98,7 +98,7 @@ function Facet({
       <span className="text-caption font-semibold text-ink-muted">
         {label}
       </span>
-      <span className="text-sm text-ink">{children}</span>
+      <span className="text-body text-ink">{children}</span>
     </div>
   );
 }
@@ -106,7 +106,7 @@ function Facet({
 function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-ink-muted">{loadCase.summary}</p>
+      <p className="text-body text-ink-muted">{loadCase.summary}</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Facet label={t.facetFunction}>{loadCase.function_label}</Facet>
@@ -140,13 +140,13 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
           </span>
           <div className="flex flex-wrap items-baseline gap-2">
             <Link
-              className="text-sm font-medium text-accent underline underline-offset-2"
+              className="text-body font-medium text-accent underline underline-offset-2"
               href={`/app/mapas?indice=${encodeURIComponent(loadCase.index_slug)}`}
             >
               {loadCase.index_name ?? loadCase.index_slug}
             </Link>
             {loadCase.index_expression ? (
-              <ExpressionLabel expression={loadCase.index_expression} className="text-sm text-ink" />
+              <ExpressionLabel expression={loadCase.index_expression} className="text-body text-ink" />
             ) : null}
           </div>
         </div>
@@ -161,30 +161,30 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
           </span>
           <div className="flex flex-wrap items-baseline gap-2">
             <Link
-              className="text-sm font-medium text-accent underline underline-offset-2"
+              className="text-body font-medium text-accent underline underline-offset-2"
               href={`/app/mapas?indice=${encodeURIComponent(loadCase.cost_index_slug)}`}
             >
               {loadCase.cost_index_name ?? loadCase.cost_index_slug}
             </Link>
             {loadCase.cost_index_expression ? (
-              <ExpressionLabel expression={loadCase.cost_index_expression} className="text-sm text-ink" />
+              <ExpressionLabel expression={loadCase.cost_index_expression} className="text-body text-ink" />
             ) : null}
           </div>
-          <span className="text-xs text-ink-muted">{t.costIndexHint}</span>
+          <span className="text-caption text-ink-muted">{t.costIndexHint}</span>
         </div>
       </div>
 
       <details className="group">
-        <summary className="cursor-pointer text-sm font-medium text-ink">
+        <summary className="cursor-pointer text-body font-medium text-ink">
           {t.derivationTitle}
         </summary>
-        <p className="mt-2 text-xs text-ink-muted">{t.derivationHint}</p>
-        <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-sm text-ink">
+        <p className="mt-2 text-caption text-ink-muted">{t.derivationHint}</p>
+        <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-body text-ink">
           {loadCase.derivation.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
-        <p className="mt-2 text-xs text-ink-muted">{loadCase.reference}</p>
+        <p className="mt-2 text-caption text-ink-muted">{loadCase.reference}</p>
       </details>
     </div>
   );
@@ -462,7 +462,7 @@ export default function DimensionarPage() {
                 {/* Which index produced these numbers, on the result and not read
                     off the case: a case carries two, and showing the other one
                     would make the screen disagree with the column under it. */}
-                <p className="text-xs text-ink-muted">
+                <p className="text-caption text-ink-muted">
                   {result.objective_label} · {t.indexRan}:{" "}
                   <Link
                     className="text-accent underline underline-offset-2"
@@ -478,11 +478,11 @@ export default function DimensionarPage() {
                 {result.excluded.length > 0 ? (
                   <Card>
                     <CardBody className="flex flex-col gap-2">
-                      <span className="text-sm font-medium text-ink">
+                      <span className="text-body font-medium text-ink">
                         {t.excludedTitle}
                       </span>
-                      <span className="text-xs text-ink-muted">{t.excludedHint}</span>
-                      <ul className="flex flex-col gap-1 text-sm text-ink">
+                      <span className="text-caption text-ink-muted">{t.excludedHint}</span>
+                      <ul className="flex flex-col gap-1 text-body text-ink">
                         {result.excluded.map((item) => (
                           <li key={item.record_id}>
                             {item.name}

@@ -24,7 +24,7 @@ import { IconMoreHorizontal } from "./icons";
  * function that writes `data-section` on `<html>`. A screen can't disagree with
  * the rail about which section it's in.
  *
- * The actions follow one order on every screen (D-209, after the Stripe and
+ * The actions follow one order on every screen (D-212, after the Stripe and
  * Vercel dashboards): the quiet secondary verbs, then the "⋯" overflow menu
  * with what is rarely needed, then the one `primary` at the far end — where
  * the eye lands last and the thumb reaches first. `actions` is the older,
@@ -93,7 +93,7 @@ export function PageHeader({
           ) : null}
           <h1 className="text-2xl font-bold text-ink">{title}</h1>
           {description ? (
-            <p className="max-w-prose text-sm text-ink-muted">{description}</p>
+            <p className="max-w-prose text-body text-ink-muted">{description}</p>
           ) : null}
         </div>
         {hasActions ? (

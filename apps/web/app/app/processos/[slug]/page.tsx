@@ -99,7 +99,7 @@ export default function ProcessDetailPage() {
         <div className="flex min-w-0 flex-col gap-3">
           <Section id="materiais" title={t.family}>
             <Card>
-              <CardBody className="flex flex-col gap-2 text-sm">
+              <CardBody className="flex flex-col gap-2 text-body">
                 <Link
                   href={`/app/processos/familia/${data.class_slug}`}
                   className="rounded-control font-medium text-ink underline-offset-2 hover:text-brand-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -136,7 +136,7 @@ function AttributeRow({ value }: { value: ProcessAttributeValue }) {
     <div className="flex flex-col gap-1 border-b border-edge pb-3 last:border-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="font-medium text-ink">{value.attribute_name}</span>
-        <span className="text-xs text-ink-subtle">{kindLabel(value)}</span>
+        <span className="text-caption text-ink-subtle">{kindLabel(value)}</span>
       </div>
 
       <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -155,7 +155,7 @@ function AttributeRow({ value }: { value: ProcessAttributeValue }) {
       </span>
 
       {kindHint(value) ? (
-        <p className="text-xs text-ink-muted">{kindHint(value)}</p>
+        <p className="text-caption text-ink-muted">{kindHint(value)}</p>
       ) : null}
     </div>
   );

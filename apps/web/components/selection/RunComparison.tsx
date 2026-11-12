@@ -88,7 +88,7 @@ export function RunComparison({
         </Alert>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-ink">
+          <p className="text-body text-ink">
             {diff.data.winner_changed
               ? w.winnerChanged(
                   diff.data.winners_before.join(" e ") || w.noWinner,

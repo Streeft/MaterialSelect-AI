@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
 import { describeApiError, describeApiErrorTitle } from "@/lib/errors";
@@ -109,7 +110,7 @@ export function ListSkeleton({
 }
 
 /**
- * The shape of what is coming, by kind (D-209): a table, a chart or a sheet of
+ * The shape of what is coming, by kind (D-212): a table, a chart or a sheet of
  * figures. Each says what it is loading once, to a screen reader and on screen
  * (the label stays visible, as `LoadingState`'s does — a grey box alone tells
  * nobody what is on its way), and its pieces stay silent. The boxes keep the
@@ -226,7 +227,7 @@ export function LoadingState({
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex items-center gap-2 py-8 text-sm text-ink-muted", className)}
+      className={cn("flex items-center gap-2 py-8 text-body text-ink-muted", className)}
     >
       <Spinner />
       {label}
@@ -277,19 +278,87 @@ export function ErrorState({
   );
 }
 
+export interface EmptyTemplate {
+  label: string;
+  description?: string;
+  /** A link (a study pre-filled by URL) or a handler; one of the two. */
+  href?: string;
+  onSelect?: () => void;
+}
+
+/**
+ * D-206: "EmptyState v2". The inline form (one line in a card) stays the
+ * default; `layout="page"` is the empty state of a whole screen — a quiet
+ * glyph in a tonal circle, one sentence, the right action and, when there are
+ * any, starting points (`templates`), as Notion's empty page offers templates
+ * instead of a blank. A template is a link or a button, never a value: it
+ * opens a screen already set up, and the numbers still come from the server.
+ */
 export function EmptyState({
   title,
   description,
   action,
   icon,
+  templates,
+  layout = "inline",
   className,
 }: {
   title: string;
   description?: ReactNode;
   action?: ReactNode;
   icon?: ReactNode;
+  templates?: readonly EmptyTemplate[];
+  layout?: "inline" | "page";
   className?: string;
 }) {
+  const starts =
+    templates && templates.length > 0 ? (
+      <div className="flex flex-col gap-2">
+        <span className="text-caption font-medium text-ink-muted">{ptBR.ds.templates}</span>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {templates.map((template) => {
+            const body = (
+              <>
+                <span className="text-body font-medium text-ink">{template.label}</span>
+                {template.description ? (
+                  <span className="text-caption text-ink-muted">{template.description}</span>
+                ) : null}
+              </>
+            );
+            return (
+              <li key={template.label}>
+                {template.href ? (
+                  <Link href={template.href} className="ds-template m3-state">
+                    {body}
+                  </Link>
+                ) : (
+                  <button type="button" onClick={template.onSelect} className="ds-template m3-state">
+                    {body}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ) : null;
+
+  if (layout === "page") {
+    return (
+      <div className={cn("ds-empty-page", className)}>
+        <span className="ds-empty-glyph" aria-hidden="true">
+          {icon ?? <IconInfo className="h-6 w-6" />}
+        </span>
+        <div className="flex max-w-prose flex-col items-center gap-1 text-center">
+          <h2 className="text-heading text-ink">{title}</h2>
+          {description ? <p className="text-body text-ink-muted">{description}</p> : null}
+        </div>
+        {action ? <div>{action}</div> : null}
+        {starts ? <div className="w-full max-w-2xl">{starts}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("msds-state", className)}>
       {/* Not `.msds-state-icon`: that class hardcodes `color: rgb(var(--danger))`
@@ -297,10 +366,13 @@ export function EmptyState({
       <span className="shrink-0 text-ink-subtle" aria-hidden="true">
         {icon ?? <IconInfo className="h-6 w-6" />}
       </span>
-      <div>
-        <div className="msds-state-title">{title}</div>
-        {description ? <div className="msds-state-desc">{description}</div> : null}
-        {action ? <div style={{ marginTop: "10px" }}>{action}</div> : null}
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div>
+          <div className="msds-state-title">{title}</div>
+          {description ? <div className="msds-state-desc">{description}</div> : null}
+          {action ? <div style={{ marginTop: "10px" }}>{action}</div> : null}
+        </div>
+        {starts}
       </div>
     </div>
   );

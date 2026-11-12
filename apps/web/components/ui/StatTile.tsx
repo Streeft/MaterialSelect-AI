@@ -24,7 +24,7 @@ function useCountUp(target: number, enabled: boolean): number {
 }
 
 /**
- * One figure with its label (D-209): the panel's KPIs and the battery pack's
+ * One figure with its label (D-212): the panel's KPIs and the battery pack's
  * results were two components drawing the same thing. Now one, in two sizes:
  *
  * - `size="hero"` (default): MSDS `StatTile` — eyebrow label, a mono number,
@@ -80,9 +80,9 @@ export function StatTile({
           <span className="text-lg font-semibold tabular-nums text-ink">
             {numeric ? format!(value as number) : (value as ReactNode)}
           </span>
-          {unit ? <span className="text-xs text-ink-muted">{unit}</span> : null}
+          {unit ? <span className="text-caption text-ink-muted">{unit}</span> : null}
         </div>
-        {note ? <span className="text-xs text-ink-muted">{note}</span> : null}
+        {note ? <span className="text-caption text-ink-muted">{note}</span> : null}
       </div>
     );
   }
@@ -136,7 +136,7 @@ export function StatTile({
         </div>
       ) : null}
       {note ? (
-        <div className={inverted ? "mt-2 text-xs text-rail-ink-muted" : "mt-2 text-xs text-ink-muted"}>
+        <div className={inverted ? "mt-2 text-caption text-rail-ink-muted" : "mt-2 text-caption text-ink-muted"}>
           {note}
         </div>
       ) : null}

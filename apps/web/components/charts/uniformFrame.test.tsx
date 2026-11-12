@@ -50,7 +50,7 @@ function Legend({ n }: { n: number }) {
   );
 }
 
-describe("legend: isolate and collapse (D-206)", () => {
+describe("legend: isolate and collapse (D-211)", () => {
   it("a click hides one series; Shift + click isolates it; again restores all", async () => {
     const user = userEvent.setup();
     render(<Legend n={3} />);
@@ -99,7 +99,7 @@ describe("tipValue", () => {
   });
 });
 
-describe("ChartFrame CSV (D-206)", () => {
+describe("ChartFrame CSV (D-211)", () => {
   it("offers the table as CSV in the Exportar menu", async () => {
     const user = userEvent.setup();
     render(

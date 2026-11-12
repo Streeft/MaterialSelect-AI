@@ -329,14 +329,14 @@ export default function ImportPage() {
                 "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2",
                 dragging
                   ? "border-brand bg-brand-50"
-                  : "border-edge-control hover:border-brand hover:bg-brand-50/60",
+                  : "m3-state border-edge-control",
               )}
             >
               <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-accent">
                 <IconUpload className="h-6 w-6" />
               </span>
-              <span className="text-sm font-semibold text-ink">{t.dropTitle}</span>
-              <span className="text-xs text-ink-muted">{t.dropHint}</span>
+              <span className="text-body font-semibold text-ink">{t.dropTitle}</span>
+              <span className="text-caption text-ink-muted">{t.dropHint}</span>
               <input
                 ref={fileInput}
                 id={fileInputId}
@@ -349,14 +349,14 @@ export default function ImportPage() {
                 className="sr-only"
               />
             </label>
-            {doUpload.isPending && <p className="text-sm text-ink-muted">{t.uploading}</p>}
+            {doUpload.isPending && <p className="text-body text-ink-muted">{t.uploading}</p>}
           </CardBody>
         </Card>
       )}
 
       {step === "mapping" && upload && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3 text-sm">
+          <div className="flex flex-wrap items-end gap-3 text-body">
             <span className="font-medium text-ink">{upload.filename}</span>
             <span className="text-ink-muted">{t.rows(upload.row_count)}</span>
             {upload.sheet_names.length > 1 && (
@@ -466,7 +466,7 @@ export default function ImportPage() {
       {step === "report" && report && (
         <Section title={t.reportTitle} headingLevel={2}>
           <ValidationReportView report={report} />
-          <p className="text-xs text-ink-muted">{t.commitHint}</p>
+          <p className="text-caption text-ink-muted">{t.commitHint}</p>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="primary"

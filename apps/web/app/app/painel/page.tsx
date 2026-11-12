@@ -50,6 +50,7 @@ import { CorrelationPicker } from "@/components/dashboard/CorrelationPicker";
 import { ProcessPanels } from "@/components/dashboard/ProcessPanels";
 import { SourceQualityChart } from "@/components/dashboard/SourceQualityChart";
 import { ActivityPanel } from "@/components/dashboard/ActivityPanel";
+import { OverviewBlocks } from "@/components/dashboard/OverviewBlocks";
 import {
   Bar,
   Button,
@@ -61,6 +62,7 @@ import {
   CardHeader,
   EmptyState,
   ErrorState,
+  FilterBar,
   LoadingState,
   MenuButton,
   MenuItem,
@@ -170,74 +172,64 @@ function DashboardContent() {
         }
       />
 
-      <Card>
-        <CardHeader headingLevel={2} title={d.filters.title} description={d.filters.hint} />
-        <CardBody className="grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
-          <Select
-            label={d.filters.classe}
-            value={filters.classe ?? ""}
-            onChange={(e) => setFilters({ classe: e.target.value || null, subclasse: null })}
-          >
-            <SelectOption value="">{d.filters.allClasses}</SelectOption>
-            {(classes.data ?? []).map((c) => (
-              <SelectOption key={c.slug} value={c.slug}>
-                {c.name}
-              </SelectOption>
-            ))}
-          </Select>
-          <Select
-            label={d.filters.subclasse}
-            value={filters.subclasse ?? ""}
-            onChange={(e) => setFilters({ subclasse: e.target.value || null })}
-          >
-            <SelectOption value="">{d.filters.allSubclasses}</SelectOption>
-            {filters.subclasse && !subclasses.includes(filters.subclasse) ? (
-              <SelectOption value={filters.subclasse}>{filters.subclasse}</SelectOption>
-            ) : null}
-            {subclasses.map((name) => (
-              <SelectOption key={name} value={name}>
-                {name}
-              </SelectOption>
-            ))}
-          </Select>
-          <Select
-            label={d.filters.nivel}
-            value={String(filters.nivel ?? 3)}
-            onChange={(e) => setFilters({ nivel: Number(e.target.value) as 1 | 2 | 3 })}
-          >
-            {[1, 2, 3].map((level) => (
-              <SelectOption key={level} value={String(level)}>
-                {d.filters.nivelOption(level)}
-              </SelectOption>
-            ))}
-          </Select>
-          <Select
-            label={d.filters.demo}
-            value={filters.demo ?? "todos"}
-            onChange={(e) => setFilters({ demo: e.target.value as DashboardFilters["demo"] })}
-          >
-            <SelectOption value="todos">{d.filters.demoTodos}</SelectOption>
-            <SelectOption value="demo">{d.filters.demoDemo}</SelectOption>
-            <SelectOption value="reais">{d.filters.demoReais}</SelectOption>
-          </Select>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={active === 0}
-            onClick={() => update({ filters: {}, property: state.property })}
-          >
-            {d.filters.clear}
-          </Button>
-        </CardBody>
+      {/* D-209: the filters as chips, still in the address (D-193): a link
+          reproduces the view. Level 3 is "all", so it reads "Qualquer". */}
+      <div className="flex flex-col gap-2">
+        <FilterBar
+          label={d.filters.title}
+          fields={[
+            {
+              id: "classe",
+              label: d.filters.classe,
+              pinned: true,
+              value: filters.classe ?? null,
+              options: (classes.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
+            },
+            {
+              id: "subclasse",
+              label: d.filters.subclasse,
+              pinned: true,
+              value: filters.subclasse ?? null,
+              options: [
+                ...(filters.subclasse && !subclasses.includes(filters.subclasse)
+                  ? [filters.subclasse]
+                  : []),
+                ...subclasses,
+              ].map((name) => ({ value: name, label: name })),
+            },
+            {
+              id: "nivel",
+              label: d.filters.nivel,
+              pinned: true,
+              value: filters.nivel && filters.nivel !== 3 ? String(filters.nivel) : null,
+              options: [1, 2].map((level) => ({ value: String(level), label: d.filters.nivelChip(level) })),
+            },
+            {
+              id: "demo",
+              label: d.filters.demo,
+              pinned: true,
+              value: filters.demo && filters.demo !== "todos" ? filters.demo : null,
+              options: [
+                { value: "demo", label: d.filters.demoDemo },
+                { value: "reais", label: d.filters.demoReais },
+              ],
+            },
+          ]}
+          onChange={(id, value) => {
+            if (id === "classe") setFilters({ classe: value, subclasse: null });
+            else if (id === "subclasse") setFilters({ subclasse: value });
+            else if (id === "nivel") setFilters({ nivel: (value ? Number(value) : 3) as 1 | 2 | 3 });
+            else if (id === "demo") setFilters({ demo: (value ?? "todos") as DashboardFilters["demo"] });
+          }}
+          onClear={() => update({ filters: {}, property: state.property })}
+        />
         {overview.data ? (
-          <CardBody className="pt-0">
-            <p className="text-caption text-ink-muted" role="status">
-              {active > 0 ? `${d.filters.active(active)} · ` : ""}
-              {overview.data.materials === 0 ? d.filters.emptyScope : d.filters.scope(overview.data.materials)}
-            </p>
-          </CardBody>
+          <p className="text-caption text-ink-muted" role="status">
+            {active > 0 ? `${d.filters.active(active)} · ` : ""}
+            {overview.data.materials === 0 ? d.filters.emptyScope : d.filters.scope(overview.data.materials)}
+          </p>
         ) : null}
-      </Card>
+      </div>
 
       <Tabs
         label={d.tabsLabel}
@@ -300,23 +292,38 @@ function CatalogueTab({
   }
 
   if (tab === "visao") {
+    // D-209: each piece of the overview is a block the reader can move or hide.
     return (
-      <>
-        <CoverageSummary overview={data} />
-        <DashboardKpis overview={data} composition={composition.data} processes={processes.data} />
-        {composition.isError ? (
-          <ErrorState title={d.error} onRetry={() => void composition.refetch()} />
-        ) : composition.data ? (
-          <CompositionTreemap data={composition.data} />
-        ) : (
-          <ChartSkeleton label={d.loading} />
-        )}
-        <div className="grid gap-4 xl:grid-cols-2">
-          <QualityMixChart slices={data.by_quality} />
-          <ClassCoverageChart classes={data.by_class} catalogue={(slug) => catalogueHref(slug)} />
-        </div>
-        <GapsList gaps={data.gaps} />
-      </>
+      <OverviewBlocks
+        blocks={[
+          { id: "cobertura", name: d.blocks.cobertura, node: <CoverageSummary overview={data} /> },
+          {
+            id: "indicadores",
+            name: d.blocks.indicadores,
+            node: (
+              <DashboardKpis overview={data} composition={composition.data} processes={processes.data} />
+            ),
+          },
+          {
+            id: "composicao",
+            name: d.blocks.composicao,
+            node: composition.isError ? (
+              <ErrorState title={d.error} onRetry={() => void composition.refetch()} />
+            ) : composition.data ? (
+              <CompositionTreemap data={composition.data} />
+            ) : (
+              <ChartSkeleton label={d.loading} />
+            ),
+          },
+          { id: "qualidade", name: d.blocks.qualidade, node: <QualityMixChart slices={data.by_quality} /> },
+          {
+            id: "classes",
+            name: d.blocks.classes,
+            node: <ClassCoverageChart classes={data.by_class} catalogue={(slug) => catalogueHref(slug)} />,
+          },
+          { id: "lacunas", name: d.blocks.lacunas, node: <GapsList gaps={data.gaps} /> },
+        ]}
+      />
     );
   }
   if (tab === "propriedades") {
@@ -382,7 +389,7 @@ function PropertiesTab({
   });
 
   // A property that refuses a log axis is drawn linear, whatever the URL asks
-  // for another one: derived here, never written back during render (D-209).
+  // for another one: derived here, never written back during render (D-212).
   const scale: ChartScale = distribution.data?.allows_log_scale === false ? "linear" : state.scale;
   const partner = property === "densidade" ? "modulo_young" : "densidade";
 

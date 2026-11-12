@@ -76,7 +76,7 @@ const result: CostResult = {
   ],
 };
 
-// The brief lives in the URL (D-209): a test opens the page at an address.
+// The brief lives in the URL (D-212): a test opens the page at an address.
 function setQuery(query: string) {
   window.history.replaceState(null, "", `/app/custo${query ? `?${query}` : ""}`);
 }
@@ -200,7 +200,7 @@ describe("Custo da peça", () => {
     });
   });
 
-  it("leva amortização e fator de carga pela URL, nos dois sentidos (D-209)", async () => {
+  it("leva amortização e fator de carga pela URL, nos dois sentidos (D-212)", async () => {
     setQuery("material=7&massa=2&amortizacao=8&fator_carga=0.7");
     const user = userEvent.setup();
     await open();

@@ -122,7 +122,7 @@ export default function MaterialFamilyPage() {
                 <Card className="pressable">
                   <CardBody className="flex flex-col gap-0.5 px-4 py-3">
                     <span className="font-medium text-ink">{child.name}</span>
-                    <span className="text-xs text-ink-muted">
+                    <span className="text-caption text-ink-muted">
                       {f.countDirect(child.material_count)}
                     </span>
                   </CardBody>
@@ -152,7 +152,7 @@ export default function MaterialFamilyPage() {
         ) : shown.length === 0 && !materials.isLoading ? (
           // Two absences, and they are not the same sentence: a folder whose
           // contents are one level down is not an empty folder.
-          <p className="text-sm text-ink-muted">
+          <p className="text-body text-ink-muted">
             {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
           </p>
         ) : (

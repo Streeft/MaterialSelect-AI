@@ -171,12 +171,12 @@ export function AshbyPreview() {
 
       <ul className="flex flex-wrap gap-x-3.5 gap-y-2 border-t border-edge-subtle pt-3">
         {LEGEND.map((item) => (
-          <li key={item.slug} className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+          <li key={item.slug} className="inline-flex items-center gap-1.5 text-caption text-ink-muted">
             <span aria-hidden className="h-2.5 w-2.5 rounded-sm" style={{ background: classVisual(item.slug).color }} />
             {item.label}
           </li>
         ))}
-        <li className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+        <li className="inline-flex items-center gap-1.5 text-caption text-ink-muted">
           <span aria-hidden className="h-0.5 w-4 bg-brand-700" />
           Linha-guia do índice
         </li>

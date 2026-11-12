@@ -61,7 +61,7 @@ export function ToolTile({
           </span>
         ) : null}
       </span>
-      <span className="text-xs font-semibold leading-tight">{label}</span>
+      <span className="text-caption font-semibold leading-tight">{label}</span>
       {description ? <span className="sr-only">{description}</span> : null}
     </button>
   );

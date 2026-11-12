@@ -282,7 +282,7 @@ export function InfographicText({
           <h4 className="text-base font-semibold text-ink">{t.stats}</h4>
           <ul className="ml-5 list-disc space-y-1.5">
             {content.stats.map((stat, i) => (
-              <li key={i} className="text-sm text-ink">
+              <li key={i} className="text-body text-ink">
                 <span className="inline-flex flex-wrap items-center gap-1">
                   <strong className="font-semibold">{stat.value}</strong>
                   {stat.label ? <span>{" "}— {stat.label}</span> : null}
@@ -298,7 +298,7 @@ export function InfographicText({
           <h4 className="text-base font-semibold text-ink">{t.points}</h4>
           <ul className="ml-5 list-disc space-y-1.5">
             {content.points.map((point, i) => (
-              <li key={i} className="text-sm text-ink">
+              <li key={i} className="text-body text-ink">
                 <span className="inline-flex flex-wrap items-center gap-1">
                   {point.heading ? <strong className="font-semibold">{point.heading}</strong> : null}
                   {point.heading && point.text ? <span aria-hidden>{" "}·</span> : null}
@@ -315,7 +315,7 @@ export function InfographicText({
           <h4 className="text-base font-semibold text-ink">{t.steps}</h4>
           <ol className="ml-5 list-decimal space-y-1.5">
             {content.steps.map((step, i) => (
-              <li key={i} className="text-sm text-ink">
+              <li key={i} className="text-body text-ink">
                 <span className="inline-flex flex-wrap items-center gap-1">
                   <span>{step.text}</span>
                   {chips(step.citations)}

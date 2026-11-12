@@ -56,7 +56,7 @@ export function RadioCard({
         // the checked option is the one the browser announces.
         checked
           ? "border-brand bg-brand-50 shadow-card"
-          : "border-edge-control bg-surface-raised hover:border-brand",
+          : "m3-state border-edge-control bg-surface-raised",
         className,
       )}
     >
@@ -79,7 +79,7 @@ export function RadioCard({
           />
           <span className="msds-radio-dot pointer-events-none" aria-hidden="true" />
         </span>
-        <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-sm font-medium text-ink">
+        <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-body font-medium text-ink">
           {title}
         </label>
         {badge}

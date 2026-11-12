@@ -233,7 +233,7 @@ const { default: BateriasPage } = await import("./page");
 describe("BateriasPage (dimensionamento de bateria)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // The brief and the tab live in the URL (D-209): each test starts clean.
+    // The brief and the tab live in the URL (D-212): each test starts clean.
     window.history.replaceState(null, "", "/app/baterias");
   });
 

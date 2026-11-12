@@ -108,7 +108,7 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
 
 Nas cinco ferramentas os parâmetros ficam à esquerda e o resultado à direita (embaixo, no celular), e em
 Dimensionar, Custo, Sintetizar e Baterias o que se digitou vai para o endereço: recarregar não perde nada e
-"Copiar o link desta configuração", no menu "⋯" do cabeçalho, entrega a mesma conta a outra pessoa (D-209).
+"Copiar o link desta configuração", no menu "⋯" do cabeçalho, entrega a mesma conta a outra pessoa (D-212).
 
 **Dados**
 

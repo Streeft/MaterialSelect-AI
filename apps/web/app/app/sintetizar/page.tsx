@@ -66,7 +66,7 @@ interface Recipe {
 }
 
 /**
- * The recipe in the URL (D-209): a link reopens the same composite, foam or
+ * The recipe in the URL (D-212): a link reopens the same composite, foam or
  * panel. The identity (name, class, description) stays out of it — it names a
  * record about to be written, not the question being asked.
  */
@@ -168,7 +168,7 @@ function PreviewTable({ preview }: { preview: SynthesisPreview }) {
               <Td>
                 <Value value={value} />
               </Td>
-              <Td className="text-xs text-ink-muted">
+              <Td className="text-caption text-ink-muted">
                 {/* A base vem junto da fórmula: "conservação de massa" e "ajuste
                     empírico" não são a mesma afirmação sobre o número. */}
                 <div className="flex flex-col items-start gap-1">
@@ -179,7 +179,7 @@ function PreviewTable({ preview }: { preview: SynthesisPreview }) {
                   <Badge>{value.rule.basis_label}</Badge>
                 </div>
               </Td>
-              <Td className="text-xs text-ink-muted">
+              <Td className="text-caption text-ink-muted">
                 {isQualityState(value.quality) ? (
                   <DataQualityBadge state={value.quality} />
                 ) : (
@@ -374,7 +374,7 @@ export default function SintetizarPage() {
                     title={item.label}
                   >
                     {note ? (
-                      <p className="text-xs leading-relaxed text-ink-muted">
+                      <p className="text-caption leading-relaxed text-ink-muted">
                         <Emphasis text={note} />
                       </p>
                     ) : null}
@@ -469,7 +469,7 @@ export default function SintetizarPage() {
                     step="any"
                     onChange={(event) => setRecipe({ coreThickness: event.target.value })}
                   />
-                  <p className="text-xs text-ink-muted sm:col-span-2 xl:col-span-1">
+                  <p className="text-caption text-ink-muted sm:col-span-2 xl:col-span-1">
                     {t.thicknessHint}
                   </p>
                 </>
@@ -569,11 +569,11 @@ export default function SintetizarPage() {
                   <PreviewTable preview={preview} />
                   {preview.skipped.length > 0 ? (
                     <div className="well flex flex-col gap-2">
-                      <span className="text-sm font-medium text-ink">
+                      <span className="text-body font-medium text-ink">
                         {t.skippedTitle}
                       </span>
-                      <span className="text-xs text-ink-muted">{t.skippedHint}</span>
-                      <ul className="flex flex-col gap-1 text-sm text-ink">
+                      <span className="text-caption text-ink-muted">{t.skippedHint}</span>
+                      <ul className="flex flex-col gap-1 text-body text-ink">
                         {preview.skipped.map((item) => (
                           <li key={item.slug}>
                             <span className="font-medium">{item.name}</span> —{" "}

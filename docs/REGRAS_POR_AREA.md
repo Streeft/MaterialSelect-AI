@@ -447,9 +447,9 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81, D-206, D-209)
+## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212)
 
-**Padrões de página (D-209).** Ação de página vai no `PageHeader` por papel: `secondaryActions`, `overflow` (o "⋯", só
+**Padrões de página (D-212).** Ação de página vai no `PageHeader` por papel: `secondaryActions`, `overflow` (o "⋯", só
 `MenuItem`) e `primaryAction` (no máximo um `primary`), nessa ordem; trilha de detalhe em `breadcrumb`. Calculadora é
 `ParamsResultLayout` com `ParamsPanel` à esquerda e `ResultPanel` à direita (container query, 1200 px do bloco), nunca
 grade de colunas à mão. Entrada que o leitor digita e quer reabrir vai para a URL por `useUrlState` (`lib/urlState.ts`,
@@ -459,7 +459,7 @@ corrigir um valor da URL (derive). Carregamento de tabela, gráfico ou ficha usa
 do MSDS vai no arquivo do componente em `lib/msds/` e se importa de `@/lib/msds`.
 
 
-**Moldura única (D-206).** Domínio de eixo, limite aberto da caixa de seleção e vencedor da rodada vêm da API (`domain`, `open_bounds`, `winner`); o componente não os calcula. `ChartFrame` oferece PNG, SVG e CSV (da tabela); `ChartLegend` isola série com Shift + clique e recolhe quando longa; número de tooltip passa por `tipValue` (pt-BR, unidade, "Ausente" por extenso).
+**Moldura única (D-211).** Domínio de eixo, limite aberto da caixa de seleção e vencedor da rodada vêm da API (`domain`, `open_bounds`, `winner`); o componente não os calcula. `ChartFrame` oferece PNG, SVG e CSV (da tabela); `ChartLegend` isola série com Shift + clique e recolhe quando longa; número de tooltip passa por `tipValue` (pt-BR, unidade, "Ausente" por extenso).
 
 **D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
 ar** ([D-80](DECISIONS.md)): `msds.css` redefinia `--accent` em hex e

@@ -1,5 +1,5 @@
 // @ts-nocheck
-/* Lint note (D-76). Since D-209 each split file disables, in its own header,
+/* Lint note (D-76). Since D-212 each split file disables, in its own header,
    only the React Compiler rules it trips (`react-hooks/refs`,
    `react-hooks/immutability`); this file trips none. The history: the
    duplicate-declaration fix below let ESLint's React Compiler rules fully
@@ -34,7 +34,7 @@
  *
  * `@ts-nocheck`: see the note at the top of `./icons.tsx` — same reasoning.
  */
-// D-209: the ~2.600 lines that lived here are now one file per component
+// D-212: the ~2.600 lines that lived here are now one file per component
 // family, next to this one. This file keeps the public surface — the same
 // names, exported from the same path — and the `api` object the source bundle
 // assigned onto `window.MSDS`. Nothing outside `lib/msds/` changed.

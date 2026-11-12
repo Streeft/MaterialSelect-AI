@@ -286,7 +286,7 @@ export function MaterialTable({
                     previewed={previewId === m.id}
                   />
                   {m.subclass && (
-                    <span className="block text-xs text-ink-subtle">
+                    <span className="block text-caption text-ink-subtle">
                       <HighlightText text={m.subclass} query={searchQuery} />
                     </span>
                   )}

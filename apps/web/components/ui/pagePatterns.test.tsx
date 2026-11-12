@@ -27,7 +27,7 @@ async function expectNoViolations(container: Element) {
   expect(violations, describeViolations(violations)).toEqual([]);
 }
 
-describe("PageHeader (D-209)", () => {
+describe("PageHeader (D-212)", () => {
   it("põe as ações numa ordem só: secundárias, menu ⋯, e o primary por último", async () => {
     const { container } = render(
       <PageHeader
@@ -81,7 +81,7 @@ describe("PageHeader (D-209)", () => {
   });
 });
 
-describe("ParamsResultLayout (D-209)", () => {
+describe("ParamsResultLayout (D-212)", () => {
   it("duas regiões nomeadas, parâmetros antes do resultado na ordem de leitura", async () => {
     const { container } = render(
       <ParamsResultLayout>
@@ -104,7 +104,7 @@ describe("ParamsResultLayout (D-209)", () => {
   });
 });
 
-describe("Skeletons por tipo (D-209)", () => {
+describe("Skeletons por tipo (D-212)", () => {
   it.each([
     ["tabela", <TableSkeleton key="t" />, ptBR.ui.loadingTable, "table"],
     ["gráfico", <ChartSkeleton key="c" />, ptBR.ui.loadingChart, "chart"],
@@ -125,7 +125,7 @@ describe("Skeletons por tipo (D-209)", () => {
   });
 });
 
-describe("StatTile unificado (D-209)", () => {
+describe("StatTile unificado (D-212)", () => {
   it("compacto: rótulo, valor já formatado e unidade", async () => {
     const { container } = render(
       <StatTile size="compact" label="Energia útil" value="42,5" unit="kWh" tone="highlight" />,
@@ -149,7 +149,7 @@ describe("StatTile unificado (D-209)", () => {
   });
 });
 
-describe("formatTyped (D-209)", () => {
+describe("formatTyped (D-212)", () => {
   it("ecoa o número digitado no formato pt-BR, sem recalcular", () => {
     expect(formatTyped("0.5")).toBe("0,5");
     expect(formatTyped("1200")).toBe("1.200");
@@ -161,7 +161,7 @@ describe("formatTyped (D-209)", () => {
   });
 });
 
-describe("CopyLinkItem (D-209)", () => {
+describe("CopyLinkItem (D-212)", () => {
   it("copia o endereço atual e anuncia o resultado", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/app/custo?massa=2");

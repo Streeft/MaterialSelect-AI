@@ -215,7 +215,7 @@ async function chooseKind(label: string) {
 }
 
 beforeEach(() => {
-  // The recipe lives in the URL (D-209): each test starts at a clean address.
+  // The recipe lives in the URL (D-212): each test starts at a clean address.
   window.history.replaceState(null, "", "/app/sintetizar");
   previewSynthesis.mockReset();
   previewSynthesis.mockResolvedValue(preview);
@@ -258,7 +258,7 @@ describe("Sintetizar material", () => {
     expect(createSynthesis).not.toHaveBeenCalled();
   });
 
-  it("guarda a receita na URL e o link reabre a mesma espuma (D-209)", async () => {
+  it("guarda a receita na URL e o link reabre a mesma espuma (D-212)", async () => {
     const user = userEvent.setup();
     await open();
     await chooseKind(t.kindFoam);

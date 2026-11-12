@@ -7,7 +7,7 @@ import { formatNumber, prettyUnit } from "@/lib/format";
 import { MarkerSymbol } from "./ChartLegend";
 
 /**
- * The one way a tooltip writes a number (D-206): pt-BR, with the unit after it
+ * The one way a tooltip writes a number (D-211): pt-BR, with the unit after it
  * and a written absence — never `0` or a dash — when there is no value.
  */
 export function tipValue(value: number | null | undefined, unit?: string | null): string {

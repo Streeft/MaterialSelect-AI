@@ -1,5 +1,5 @@
 /**
- * A figure's table as CSV (D-206).
+ * A figure's table as CSV (D-211).
  *
  * The file carries exactly the text of the table the reader sees (D-31), so the
  * figure, the table and the file cannot disagree — nothing is recomputed. The

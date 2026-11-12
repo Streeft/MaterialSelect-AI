@@ -243,7 +243,7 @@ export default function MaterialDetailPage() {
                     color={classVisual(data.class_slug).color}
                   />
                   {data.subclass && (
-                    <span className="text-sm text-ink-muted">
+                    <span className="text-body text-ink-muted">
                       {data.subclass}
                     </span>
                   )}
@@ -255,7 +255,7 @@ export default function MaterialDetailPage() {
                   className="mt-2 max-w-prose"
                 />
                 {data.description && (
-                  <p className="mt-2 max-w-prose text-sm text-ink-muted">
+                  <p className="mt-2 max-w-prose text-body text-ink-muted">
                     {data.description}
                   </p>
                 )}
@@ -505,7 +505,7 @@ export default function MaterialDetailPage() {
                 </>
               )}
               {data.is_official && (
-                <p className="mt-3 text-xs text-ink-muted">{t.edit.officialReadOnly}</p>
+                <p className="mt-3 text-caption text-ink-muted">{t.edit.officialReadOnly}</p>
               )}
             </Section>
             <Section
@@ -619,7 +619,7 @@ function UnitChoices({
             />
           ))}
         </div>
-        <p className="text-xs text-ink-muted">{ptBR.units.readingNote}</p>
+        <p className="text-caption text-ink-muted">{ptBR.units.readingNote}</p>
       </CardBody>
     </Card>
   );

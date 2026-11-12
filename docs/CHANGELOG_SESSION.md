@@ -120,6 +120,28 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 169 — 12/11/26 — Padrões de página (D-212)
+
+**O que mudou.** Etapa 2.2 (numerada D-209/Sessão 166 até o merge com a `main`, que usou esses números para a F2). `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;
+`ParamsResultLayout`/`ParamsPanel`/`ResultPanel` em Dimensionar, Custo, Eco, Baterias e Sintetizar; `useUrlState`
+(`lib/urlState.ts`) põe na URL Baterias, Dimensionar, Sintetizar e todo o Custo, e o Painel guarda a escala sem `setState`
+no render; "Copiar o link desta configuração" no "⋯"; `formatTyped` e `StatTile` únicos; `TableSkeleton`, `ChartSkeleton`
+e `SheetSkeleton` nos carregamentos; `lib/msds/msds.tsx` em 45 arquivos com reexport pelo mesmo caminho. Testes:
+`lib/urlState.test.tsx` (leitura, escrita, ida e volta, Voltar), `components/ui/pagePatterns.test.tsx` (cabeçalho, menu,
+trilha, layout, skeletons, `StatTile`, `formatTyped`, copiar link; com axe), e casos novos de URL e de regiões em
+`baterias`, `custo`, `dimensionar`, `sintetizar` e `painel`. Sem backend nem migração.
+
+## Sessão 168 — 12/11/26 — Gráficos uniformes (D-211)
+
+**O que mudou.** Etapa 2.3 (numerada D-206/Sessão 163 até o merge com a `main`, que usou esses números para a F1). O backend passou a calcular o domínio do box-plot (`DistributionOut.domain`), a extensão log-log
+da curva de custo (`CostResultOut.domain`, com `curve_domains`), os limites abertos da caixa de seleção do Ashby
+(`PropertyMapOut.open_bounds`, linear e log, material e processo) e o vencedor da rodada (`RunResultOut.winner`,
+`pick_winner`). `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` só leem. `ChartFrame` ganhou "CSV" no Exportar,
+`ChartLegend` ganhou Shift + clique para isolar e recolher a legenda longa, e `tipValue` padronizou o número do tooltip.
+Testes: `test_chart_domains.py` (funções puras e as quatro respostas), `uniformFrame.test.tsx` (isolar, recolher, CSV, axe,
+domínio do box-plot), `figureCsv.test.ts`, `seriesVisibility.test.ts`, e a lateral aberta do Ashby em `charts.test.tsx`.
+Fixtures de `RunResult` passaram a trazer `winner`. Depois do merge: **Deploy da API**.
+
 ## Sessão 167 — 12/11/26 — Seleção em passos (D-210)
 
 **O que mudou.** Etapa 3.1. `app/app/selecao/page.tsx` (~1.900 linhas, ~31 `useState`) virou orquestração: o estudo num
@@ -136,27 +158,18 @@ modelos — inclusive cada um rodando pelo pipeline real e o que falta no catál
 `e2e/selecao-modelos.spec.ts` (um estudo por modelo até os resultados). Sem migração nem seed. Depois do merge:
 **Deploy da API**.
 
-## Sessão 166 — 12/11/26 — Padrões de página (D-209)
+## Sessão 166 — 12/11/26 — F2 da revisão das telas: bases de dados com visões salvas (D-209)
 
-**O que mudou.** Etapa 2.2. `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;
-`ParamsResultLayout`/`ParamsPanel`/`ResultPanel` em Dimensionar, Custo, Eco, Baterias e Sintetizar; `useUrlState`
-(`lib/urlState.ts`) põe na URL Baterias, Dimensionar, Sintetizar e todo o Custo, e o Painel guarda a escala sem `setState`
-no render; "Copiar o link desta configuração" no "⋯"; `formatTyped` e `StatTile` únicos; `TableSkeleton`, `ChartSkeleton`
-e `SheetSkeleton` nos carregamentos; `lib/msds/msds.tsx` em 45 arquivos com reexport pelo mesmo caminho. Testes:
-`lib/urlState.test.tsx` (leitura, escrita, ida e volta, Voltar), `components/ui/pagePatterns.test.tsx` (cabeçalho, menu,
-trilha, layout, skeletons, `StatTile`, `formatTyped`, copiar link; com axe), e casos novos de URL e de regiões em
-`baterias`, `custo`, `dimensionar`, `sintetizar` e `painel`. Sem backend nem migração.
-
-## Sessão 163 — 12/11/26 — Gráficos uniformes (D-206)
-
-**O que mudou.** Etapa 2.3. O backend passou a calcular o domínio do box-plot (`DistributionOut.domain`), a extensão log-log
-da curva de custo (`CostResultOut.domain`, com `curve_domains`), os limites abertos da caixa de seleção do Ashby
-(`PropertyMapOut.open_bounds`, linear e log, material e processo) e o vencedor da rodada (`RunResultOut.winner`,
-`pick_winner`). `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` só leem. `ChartFrame` ganhou "CSV" no Exportar,
-`ChartLegend` ganhou Shift + clique para isolar e recolher a legenda longa, e `tipValue` padronizou o número do tooltip.
-Testes: `test_chart_domains.py` (funções puras e as quatro respostas), `uniformFrame.test.tsx` (isolar, recolher, CSV, axe,
-domínio do box-plot), `figureCsv.test.ts`, `seriesVisibility.test.ts`, e a lateral aberta do Ashby em `charts.test.tsx`.
-Fixtures de `RunResult` passaram a trazer `winner`. Depois do merge: **Deploy da API**.
+**O que mudou.** Visões salvas na conta: tabela `saved_view` (migração `4947c5b5057d`) e `/api/saved-views` por usuário, com
+`config` validado e teto de 20 visões por tela. Catálogo e Processos viram bases: busca, `FilterBar` e abas de visão (Tabela,
+Galeria, Lista) com "Salvar na visão", renomear e excluir com Desfazer; a D-50 é revogada em parte (a Tabela continua virando
+cartões no celular). O Painel ganha filtros em chips e a visão geral em blocos móveis e ocultáveis, com o layout na conta. O
+Glossário vira wiki: índice por letra, filtro por estado e o verbete aberto ao lado pelo hash; no celular a página foi de 54 394 para
+7 382 px. Testes: +7 de backend (`test_saved_views_api.py`) e, no frontend, abas e chips do catálogo, filtros de processos, layout do
+painel e o glossário como wiki (o verbete aberto e o vindo do endereço, com axe). No meio, a `main` trouxe a D-207/D-208; o merge
+renumerou esta fase e passou para papéis os `text-xs`/`text-sm` novos. Suíte: backend 5430 coletados (5424 passam e 6 pulam),
+frontend 1735 passam (163 arquivos); E2E inteiro passou antes (47) e depois do merge (48, com a paleta da main). No Chromium a 1440 e a 390 px: abas e Galeria no
+catálogo, blocos no painel, glossário com o verbete ao lado. Depois do merge: **Deploy da API** (rota e migração novas).
 
 ## Sessão 165 — 12/11/26 — Acesso livre a todos os menus (D-208)
 
@@ -185,6 +198,17 @@ pegou dois efeitos do menu novo: a página aberta aparecia em Recentes com um bo
 "Título" do caderno (corrigido na raiz: Recentes não lista a página aberta) e o primeiro link para uma ficha passou a ser o do
 menu (seletores de `transicao`/`offline` agora dentro de `<main>`). Suíte: backend
 5433 (192 arquivos), frontend 1714 passam (161 arquivos). Sem migração nem seed; depois do merge, **Deploy da API** (rota nova).
+
+## Sessão 163 — 11/11/26 — F1 da revisão das telas: fundações e peças novas (D-206)
+
+**O que mudou.** Alvo de toque de 44 px como token (`--target-min`), aplicado em ponteiro grosso por uma área invisível ao redor de
+botão, botão de ícone e chip. `text-xs`/`text-sm` viraram os papéis `text-caption`/`text-body` (397 usos em 94 arquivos); hovers de
+borda viraram véu de estado; o botão de ícone parou de crescer no hover. Oito peças novas no sistema de design, todas na vitrine
+`/app/estilo`: `useReorder`/`Block`, `FilterBar` (folha inferior no celular), `PropertyList`, `PageDoc`, `EmptyState` com modelos,
+`SidePeek`, `Workbench` e a barra do topo no celular (nome da tela e busca como ícone). `foundations.test.ts` (4) guarda as regras;
+`f1Pieces.test.tsx` (15, com axe) cobre as peças; dois testes passaram a procurar `text-caption` e o crédito pelo texto. Suíte:
+frontend 1706 passam (161 arquivos), backend sem mudança (5415). No Chromium a 1440 e a 390 px: vitrine sem rolagem horizontal,
+filtro abre como folha inferior no celular, `SidePeek` à direita, bancada com o resultado ao lado das entradas. Sem backend.
 
 ## Sessão 162 — 11/11/26 — F0 da revisão das telas: correções rápidas (D-205)
 

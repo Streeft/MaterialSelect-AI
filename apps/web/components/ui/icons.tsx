@@ -499,15 +499,6 @@ export const IconMoreVertical = (p: IconProps) => (
   </Svg>
 );
 
-/** "⋯": the page header's overflow menu (D-209). */
-export const IconMoreHorizontal = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
-    <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
-  </Svg>
-);
-
 export const IconAudio = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4.5 10.5v3" />
@@ -647,5 +638,34 @@ export const IconCopy = (p: IconProps) => (
   <Svg {...p}>
     <rect x="9" y="9" width="11" height="11" rx="2" />
     <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </Svg>
+);
+
+/** D-206: the "⋮⋮" grip a block shows on hover; six dots, filled, so it reads at 16 px. */
+export const IconGrip = (p: IconProps) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <circle cx="9" cy="6" r="1.5" />
+    <circle cx="15" cy="6" r="1.5" />
+    <circle cx="9" cy="12" r="1.5" />
+    <circle cx="15" cy="12" r="1.5" />
+    <circle cx="9" cy="18" r="1.5" />
+    <circle cx="15" cy="18" r="1.5" />
+  </Svg>
+);
+
+/** "⋯": a row's or a block's menu, and the page header's overflow menu (D-212). */
+export const IconMoreHorizontal = (p: IconProps) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <circle cx="6" cy="12" r="1.6" />
+    <circle cx="12" cy="12" r="1.6" />
+    <circle cx="18" cy="12" r="1.6" />
+  </Svg>
+);
+
+export const IconEyeOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c5 0 8.5 4.5 9.5 7a13 13 0 0 1-2.7 3.7M6.4 6.4A13.3 13.3 0 0 0 2.5 12c1 2.5 4.5 7 9.5 7a9.9 9.9 0 0 0 4.4-1" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
   </Svg>
 );

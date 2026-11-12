@@ -144,7 +144,7 @@ async function chooseBeam() {
 }
 
 beforeEach(() => {
-  // The brief lives in the URL (D-209): each test starts at a clean address.
+  // The brief lives in the URL (D-212): each test starts at a clean address.
   window.history.replaceState(null, "", "/app/dimensionar");
   solveBrief.mockReset();
   solveBrief.mockResolvedValue(result);
@@ -239,7 +239,7 @@ describe("Dimensionar", () => {
     );
   });
 
-  it("guarda caso, números e objetivo na URL, e o link reabre o mesmo pedido (D-209)", async () => {
+  it("guarda caso, números e objetivo na URL, e o link reabre o mesmo pedido (D-212)", async () => {
     const user = userEvent.setup();
     await chooseBeam();
     await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");

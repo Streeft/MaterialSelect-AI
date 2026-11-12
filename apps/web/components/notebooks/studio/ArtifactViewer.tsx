@@ -290,7 +290,7 @@ export function ArtifactViewer({
           </>
         }
       >
-        <p className="text-sm text-ink">{t.removeConfirm(data.title)}</p>
+        <p className="text-body text-ink">{t.removeConfirm(data.title)}</p>
         {remove.error ? (
           <Alert tone="danger" role="alert">
             {describeApiError(remove.error)}

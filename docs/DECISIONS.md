@@ -12105,7 +12105,9 @@ fixam as classes e os tokens que produzem o efeito); a causa exata da chave dupl
 
 ---
 
-## D-206 — Gráficos uniformes: domínio e vencedor vêm do backend, a moldura é uma só
+## D-211 — Gráficos uniformes: domínio e vencedor vêm do backend, a moldura é uma só
+
+*Numeração.* Escrita como D-206/Sessão 163 no PR único #237; a `main` usou esses números para a F1/F2 (#236), e o merge renumerou esta decisão e todas as referências a ela.
 
 **Contexto.** A revisão das telas (etapa 2.3) achou quatro números que o front ainda derivava sozinho, contra o ADR 0004:
 o domínio do box-plot (folga de 5 %), a extensão log-log da curva de custo, até onde vai a lateral aberta da caixa de
@@ -12129,7 +12131,7 @@ e tooltip variavam de figura para figura.
 **Consequências.** Mexe em `apps/api`: depois do merge, **Deploy da API**. Sem migração nem seed. Os campos novos são
 opcionais nos tipos (exceto `winner`), então uma API antiga não derruba a tela. `winnerOf` saiu de `ResultsView`.
 
-**Numeração.** D-206 e Sessão 163 reservadas para a etapa 2.3 (D-207 e D-208 já estão na main).
+**Numeração.** D-211 e Sessão 168 reservadas para a etapa 2.3 (D-207 e D-208 já estão na main).
 
 ---
 
@@ -12181,7 +12183,9 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
-## D-209 — Padrões de página: cabeçalho com papéis, parâmetros e resultado, estado na URL, skeletons por tipo
+## D-212 — Padrões de página: cabeçalho com papéis, parâmetros e resultado, estado na URL, skeletons por tipo
+
+*Numeração.* Escrita como D-209/Sessão 166 no PR único #237; a `main` usou esses números para a F1/F2 (#236), e o merge renumerou esta decisão e todas as referências a ela.
 
 **Contexto.** Etapa 2.2 da revisão das telas. As páginas de `/app` repetiam à mão quatro desenhos: o cabeçalho (ações em
 qualquer ordem, às vezes dois botões fortes), as calculadoras (Dimensionar, Custo, Eco, Baterias, Sintetizar) com a grade
@@ -12226,7 +12230,7 @@ ausente = padrão).
 **Rejeitado.** `router.replace` para cada tecla (é transição: o campo controlado pode perder caractere e o cursor); estado em
 `localStorage` (não vai num link); mover a correção de escala para um `useEffect` (a regra `set-state-in-effect` é erro).
 
-**Numeração.** D-209 e Sessão 166, conferidas livres em `origin/main` antes do commit.
+**Numeração.** D-212 e Sessão 169, conferidas livres em `origin/main` antes do commit.
 
 ---
 
@@ -12506,3 +12510,87 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
+
+## D-206 — F1 da revisão das telas: fundações do sistema de design e oito peças novas
+
+**Contexto.** A F0 (D-205) corrigiu o que estava errado. A F1 é a base que as fases seguintes (bases de dados, fichas como
+documento, bancadas) vão usar: a auditoria contou 449 tamanhos de texto fora dos papéis, 12 hovers que trocavam borda, cartões
+feitos à mão, alvos de toque abaixo de 32 px (88 de 165 na ficha) e nenhuma peça para filtrar em chips, mover blocos, abrir ao
+lado ou montar uma bancada de cálculo. O rumo é o do plano: "M3 na estrutura, Notion na superfície".
+
+**Decisão.**
+- **Alvo de toque é token.** `--target-min: 44px`. Em ponteiro grosso (`pointer: coarse`), botão, botão de ícone, chip e
+  `.touch-target` ganham uma área invisível de `max(100%, 44px)` em `::after`; o desenho não cresce e nada no layout se move, como
+  o M3 faz no botão de ícone de 40 px. A posição relativa vai em `:where()` (especificidade zero), para um controle `absolute`
+  manter a sua.
+- **Tamanho de texto vem de papel.** `text-xs`/`text-sm` viraram `text-caption`/`text-body` (397 usos, 94 arquivos; `caption` tem
+  as mesmas medidas de `xs`, `body` tem 2 px a mais de entrelinha que `sm`). Os passos numéricos que sobraram (`text-base` a
+  `-3xl`, 44 usos) dimensionam por encaixe (glifo, título) e ficam presos à contagem medida.
+- **Hover é véu.** Cartões de link, `Stepper`, `RadioCard`, o Importar e o Estúdio trocaram a borda de hover pelo véu de estado
+  (`.m3-state` ou `msds-card[data-interactive]`); o botão de ícone deixou de crescer 6 % no hover (D-134). Exceção única: o campo
+  de texto, cujo contorno escurece no hover pela especificação M3.
+- **Oito peças** em `components/ui/`, no barril, com teste e axe:
+  - `useReorder` + `Block`: arrastar nativo (HTML5, como D-191) e Alt + ↑/↓ na alça, anunciado (D-146); ocultar sem apagar. A
+    ordem fica com quem chama; a peça nunca grava.
+  - `FilterBar`: chips "Campo: valor ▾", "+ Filtro" e "Limpar". No celular cada painel é a folha inferior do `Popover` (D-197):
+    a "FilterSheet" do plano é a mesma peça. A barra só relata a escolha; filtrar é do servidor. O `Popover` ganhou
+    `triggerClassName` e `children(close)`, e devolve o foco ao gatilho num efeito.
+  - `PropertyList`: pares nome → valor numa `<dl>`, empilhados por container query abaixo de 480 px; não formata nada (o valor
+    chega escrito por `ValueText`).
+  - `PageDoc`: ícone, título editável no lugar (o `<h1>` continua), linha de propriedades, uma ação visível e o resto num "⋯".
+  - `EmptyState` com `layout="page"` e `templates`: um modelo é link ou botão que abre a tela preparada, nunca um valor.
+  - `SidePeek`: folha lateral **modal** do M3 (foco preso e devolvido, Esc, véu), tela cheia abaixo de 600 px, com "Abrir página".
+  - `Workbench`: `PaneScaffold` *supporting-pane* com entradas, resultado ao vivo (`aria-live`) e "Como se calcula" recolhido.
+    Não calcula nada.
+  - Barra do topo no celular: abaixo de `lg` a barra escura leva a marca, o nome da tela e a busca como ícone (evento
+    `msai:open-search`, para não haver dois `GlobalSearchButton` respondendo ao Ctrl+K); a barra de busca larga fica de `lg` para cima.
+- **Vitrine.** Cada peça tem seção viva em `/app/estilo` (`F1Specimens.tsx`).
+- **Guarda.** `lib/design/foundations.test.ts` falha se voltar `text-xs`/`text-sm`, se os passos numéricos passarem de 44, se
+  aparecer hover de borda fora do campo ou se o alvo de toque sair do CSS.
+
+**Alternativas recusadas.** Aumentar o desenho dos botões pequenos para 44 px (mexeria em todo layout denso; o M3 também separa
+alvo de desenho). `SidePeek` não modal (duas rolagens e nenhum caminho claro de volta). Menu dentro de menu no "+ Filtro" (o clique
+no painel interno fechava o externo): o campo escolhido entra na barra e o chip dele escolhe o valor. Trocar já as telas para as
+peças novas: é a F2 em diante, uma tela por vez.
+
+**Numeração.** D-206 e Sessão 163, as próximas livres em `main` (D-205/Sessão 162 da F0). Só frontend: sem migração, seed nem Deploy
+da API.
+
+## D-209 — F2 da revisão das telas: bases de dados com visões salvas na conta (revoga em parte a D-50)
+
+**Contexto.** A F1 (D-206) deu as peças; a F2 as usa nas quatro telas que são, na prática, bases de dados: Catálogo, Processos,
+Painel e Glossário. A auditoria mostrou filtros num cartão que ocupava a primeira tela do celular, nenhuma forma de guardar um
+jeito de olhar a lista, um painel de ordem fixa e um glossário de 54 mil px no celular. Duas decisões do autor, em 12/11/2026:
+**revogar em parte a D-50** (a troca manual de visão volta, como abas) e **guardar as visões na conta**, não no aparelho.
+
+**Decisão.**
+- **Visões salvas na conta.** Tabela `saved_view` (migração `4947c5b5057d`): `user_id`, `scope` (`catalogo`, `processos`,
+  `glossario`, `painel`), `name`, `kind` (`table`, `gallery`, `list`, `layout`), `config` JSON e `position`. O `config` é
+  validado por `SavedViewConfig` (filtros por slug com valor de até 120 caracteres, ordem, colunas, blocos e ocultos, todos com
+  teto; campo desconhecido é recusado), não guardado opaco: toda tela lê de volta as suas abas, e uma linha malformada quebraria a
+  tela. API `GET/POST/PATCH/DELETE /api/saved-views`, por usuário (a visão de outro é 404, como D-42); até 20 visões por tela; um
+  só `layout`, e só no Painel. Nenhum número de material entra na visão: filtros nomeiam valores que o servidor lista.
+- **A D-50 é revogada em parte.** A troca manual de visão volta como abas (`SavedViewsBar`): "Todos" e as visões da pessoa, cada uma
+  com seu tipo e filtros, "+ Nova visão" (Tabela, Galeria, Lista), renomear, excluir com Desfazer (D-130) e "Salvar na visão" quando
+  os filtros mudam. Fica da D-50 o que ela protegia: na visão **Tabela** a largura continua trocando tabela por cartões no celular,
+  sem botão que force uma tabela num telefone. Abas são botões com `aria-pressed`, não um `tablist`: o conteúdo é a mesma lista relida.
+- **Catálogo.** O cartão de filtros vira busca + `FilterBar` (classe, qualidade, subclasse); visões Tabela (a de sempre, com a
+  prévia ao lado, D-184), Galeria (`MaterialCards layout="gallery"`) e Lista (`MaterialLines`). Os filtros continuam estreitando a
+  lista que o servidor mandou, como antes.
+- **Processos.** Busca + `FilterBar` (família, subfamília, uso no catálogo) e visões Galeria (as famílias, padrão), Tabela e Lista.
+- **Painel.** Os filtros viram chips, ainda no endereço (D-193). A visão geral vira `OverviewBlocks`: cobertura, indicadores,
+  composição, qualidade, classes e lacunas reordenáveis e ocultáveis (`Block`/`useReorder`), com ordem e ocultos numa linha
+  `layout` da conta e "Restaurar a ordem padrão".
+- **Glossário como wiki.** Índice compacto por letra com o resumo de cada verbete, filtro por nome e por estado (revisado,
+  rascunho, sem verbete) e o verbete inteiro num `SidePeek`, aberto pelo hash (`#slug`, o mesmo destino de `glossaryHref`). O selo
+  de rascunho sai da lista e fica no verbete. No celular a página foi de 54 394 para 7 382 px.
+- `useDatabaseView` (`lib/savedViews.ts`) guarda filtros, tipo e visão ativa de uma tela; `useOptionalSnackbar` deixa excluir uma
+  visão funcionar numa tela renderizada fora do app.
+
+**Alternativas recusadas.** Guardar no aparelho (a recomendação inicial; o autor preferiu a conta, que segue a pessoa). `config`
+opaco como o `saved_chart` (uma visão é lida por toda tela que mostra a aba). Revogar a D-50 inteira (uma tabela forçada num telefone
+volta a rolar na horizontal). Um `tablist` ARIA (prometeria um painel por aba). Visões para o Glossário já nesta fase: o escopo
+existe, a barra fica para quando houver mais de um jeito de ler os verbetes.
+
+**Numeração.** A `main` recebeu a D-207 (paleta de comandos) e a D-208 (acesso livre) enquanto esta fase andava; a F2 ficou com a
+D-209 e a Sessão 166. Mexe em `apps/api` e traz migração: depois do merge, **Deploy da API** (o `release_command` aplica a migração).

@@ -151,6 +151,14 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * D-209: for a piece that can live outside the app shell (a screen rendered
+ * alone in a test, the style guide): `null` instead of throwing.
+ */
+export function useOptionalSnackbar(): SnackbarApi | null {
+  return useContext(SnackbarContext);
+}
+
 export function useSnackbar(): SnackbarApi {
   const api = useContext(SnackbarContext);
   if (!api) throw new Error("useSnackbar fora do SnackbarProvider");

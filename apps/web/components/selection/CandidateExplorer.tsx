@@ -104,7 +104,7 @@ export function CandidateExplorer({ result }: { result: RunResult }) {
                       {t.rank} {c.rank}
                     </Badge>
                   )}
-                  <span className="min-w-0 flex-1 text-sm font-medium text-ink">
+                  <span className="min-w-0 flex-1 text-body font-medium text-ink">
                     {c.name}
                     <span className="ml-2 text-caption font-normal text-ink-muted">{c.class_name}</span>
                   </span>

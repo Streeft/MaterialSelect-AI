@@ -2113,6 +2113,8 @@ export const ptBR = {
     count: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
     showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
     filters: "Filtros",
+    // D-209: o nome do campo no chip ("Subclasse: …").
+    subclassLabel: "Subclasse",
     filterClass: "Classe",
     allClasses: "Todas",
     // P1-4: navegar não é filtrar. O seletor estreita a lista desta tela; um
@@ -2558,7 +2560,7 @@ export const ptBR = {
     exportPngHint: "Imagem, para slides e documentos",
     exportSvg: "SVG",
     exportSvgHint: "Vetor, editável sem perder nitidez",
-    // D-206: a tabela da figura como arquivo, para planilha em pt-BR.
+    // D-211: a tabela da figura como arquivo, para planilha em pt-BR.
     exportCsv: "CSV",
     exportCsvHint: "Os números da tabela, para planilha",
     exporting: "Exportando…",
@@ -2583,7 +2585,7 @@ export const ptBR = {
     legend: "Legenda",
     legendToggle:
       "Legenda — clique num item para mostrar ou ocultar a série; Shift e clique isolam a série",
-    // D-206: a legenda longa se recolhe e o clique com Shift isola uma série.
+    // D-211: a legenda longa se recolhe e o clique com Shift isola uma série.
     legendCollapse: (n: number) => `Ocultar a legenda (${n} séries)`,
     legendExpand: (n: number) => `Mostrar a legenda (${n} séries)`,
     legendIsolateHint: "Shift e clique isolam uma série; de novo, mostram todas.",
@@ -2984,6 +2986,55 @@ export const ptBR = {
       "Esta tela precisa do servidor. Quando a conexão voltar, tente de novo; as fichas já abertas continuam disponíveis para leitura.",
   },
 
+  // D-206: as peças do sistema de design da F1 (vitrine em /app/estilo).
+  ds: {
+    dragHandle: (name: string) => `Mover ${name}`,
+    dragHint: "Arraste, ou use Alt + seta para cima ou para baixo",
+    moved: (name: string, position: number, total: number) =>
+      `${name} na posição ${position} de ${total}.`,
+    hideBlock: (name: string) => `Ocultar ${name}`,
+    showBlock: (name: string) => `Mostrar ${name}`,
+    hiddenBlock: "Oculto",
+    filters: "Filtros",
+    addFilter: "Filtro",
+    addFilterMenu: "Adicionar filtro",
+    clearFilters: "Limpar",
+    anyValue: "Qualquer",
+    filterChip: (field: string, value: string) => `${field}: ${value}`,
+    removeFilter: (field: string) => `Remover o filtro ${field}`,
+    noMoreFilters: "Todos os filtros já estão na barra.",
+    moreActions: "Mais ações",
+    titleLabel: "Título",
+    templates: "Comece por um modelo",
+    sidePeekOpen: "Abrir página",
+    close: "Fechar",
+    workbenchInputs: "Entradas",
+    workbenchResult: "Resultado",
+    workbenchMethod: "Como se calcula",
+    searchOpen: "Buscar",
+    // D-209: visões salvas (abas de uma base).
+    views: "Visões",
+    allView: "Todos",
+    newView: "Visão",
+    newViewMenu: "Nova visão",
+    kindTable: "Tabela",
+    kindGallery: "Galeria",
+    kindList: "Lista",
+    renameView: "Renomear",
+    deleteView: "Excluir",
+    viewActions: (name: string) => `Ações da visão ${name}`,
+    renameTitle: "Renomear visão",
+    nameLabel: "Nome",
+    save: "Salvar",
+    cancel: "Cancelar",
+    saveChanges: "Salvar na visão",
+    viewChanged: "Filtros mudaram",
+    viewWhat: (name: string) => `Visão “${name}”`,
+    viewsError: "Não foi possível carregar as visões salvas.",
+    viewCreated: (name: string) => `Visão “${name}” criada.`,
+    viewSaved: (name: string) => `Visão “${name}” atualizada.`,
+  },
+
   ui: {
     loading: "Carregando…",
     errorTitle: "Algo não funcionou",
@@ -3004,7 +3055,7 @@ export const ptBR = {
     change: "Alterar",
     advancedOptions: "Opções avançadas",
     comboboxPlaceholder: "Digite para buscar…",
-    // D-209: os padrões de página.
+    // D-212: os padrões de página.
     moreActions: "Mais ações",
     pageActions: "Ações da página",
     paramsPanel: "Parâmetros",
@@ -3035,6 +3086,21 @@ export const ptBR = {
     error: "Não foi possível carregar os processos.",
     empty: "Nenhum processo cadastrado.",
     familiesTitle: "Famílias",
+    // D-209: a base de processos.
+    searchLabel: "Buscar processo",
+    searchPlaceholder: "Nome do processo",
+    filterFamily: "Família",
+    filterClass: "Subfamília",
+    filterUse: "Uso no catálogo",
+    useWith: "Serve materiais",
+    useWithout: "Sem material vinculado",
+    columnProcess: "Processo",
+    columnFamily: "Família",
+    columnClass: "Subfamília",
+    columnMaterials: "Materiais",
+    shownCount: (n: number) => (n === 1 ? "1 processo" : `${n} processos`),
+    emptyFiltered: "Nenhum processo com estes filtros.",
+    clearFilters: "Limpar filtros",
     countProcesses: (n: number) => (n === 1 ? "1 processo" : `${n} processos`),
     countDirect: (n: number) =>
       n === 1 ? "1 processo aqui" : `${n} processos aqui`,
@@ -3096,6 +3162,15 @@ export const ptBR = {
     hintLabel: (name: string) => `O que é ${name}? Abrir verbete do glossário`,
     hintLoading: "Carregando verbete…",
     hintError: "Não foi possível carregar o verbete.",
+    // D-209: o glossário como wiki — índice por letra e verbete aberto ao lado.
+    lettersLabel: "Índice por letra",
+    filterState: "Estado",
+    stateReviewed: "Revisado",
+    stateDraft: "Rascunho",
+    stateMissing: "Sem verbete",
+    openEntry: (name: string) => `Abrir o verbete ${name}`,
+    summaryMissing: "Sem resumo: esta propriedade ainda não tem verbete.",
+    identifier: "Identificador",
   },
 
   // D-151: notas de família — o que a família é, por que se comporta assim, onde

@@ -140,7 +140,7 @@ export function PropertyDistributionPanel({
             </div>
           ) : null}
           {distribution?.allows_log_scale === false && (
-            <p className="text-xs text-ink-muted">{t.logDisabled}</p>
+            <p className="text-caption text-ink-muted">{t.logDisabled}</p>
           )}
           {isLoading && <LoadingState label={t.loading} />}
           {isError && (
@@ -170,7 +170,7 @@ export function PropertyDistributionPanel({
       }
       footer={
         distribution && distribution.classes_without_data.length > 0 ? (
-          <div className="mt-3 text-xs text-ink-muted">
+          <div className="mt-3 text-caption text-ink-muted">
             <p className="font-medium text-ink-subtle">{t.classesWithoutData}</p>
             <p>{distribution.classes_without_data.join(", ")}</p>
           </div>
@@ -186,7 +186,7 @@ export function PropertyDistributionPanel({
             axisTitle={titleFor(distribution.property_name, unit)}
             describe={(row) => ({
               aria: `${row.label}: ${t.columnMin} ${withUnit(row.minimum)}, ${t.columnQ1} ${withUnit(row.q1)}, ${t.columnMedian} ${withUnit(row.median)}, ${t.columnQ3} ${withUnit(row.q3)}, ${t.columnMax} ${withUnit(row.maximum)}; ${row.count} ${t.columnCountBox.toLowerCase()}`,
-              // D-95/D-206: the class, then its five numbers — the median
+              // D-95/D-211: the class, then its five numbers — the median
               // emphasised, each with its unit, pt-BR (`tipValue`).
               tip: {
                 title: row.label,

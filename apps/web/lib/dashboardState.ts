@@ -2,7 +2,7 @@ import type { ChartScale, DashboardDemoFilter, DashboardFilters, DashboardSectio
 
 /**
  * The rich panel's state in the URL (D-193): the tab, the four global filters,
- * the property being read and the scale of its distribution (D-209). In the URL rather than in component state so a
+ * the property being read and the scale of its distribution (D-212). In the URL rather than in component state so a
  * view can be linked, bookmarked and reopened — the same reason D-63 keeps the
  * reading unit there.
  */

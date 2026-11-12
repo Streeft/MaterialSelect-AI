@@ -353,7 +353,7 @@ function ComparePageContent() {
           )}
 
           {chosenMaterials.length === 0 ? (
-            <p className="text-sm text-ink-muted">{t.noneChosen}</p>
+            <p className="text-body text-ink-muted">{t.noneChosen}</p>
           ) : (
             <div className="flex flex-col gap-2">
               {/* A whole-catalogue selection (D-187) is hundreds of chips: the
@@ -396,7 +396,7 @@ function ComparePageContent() {
           }
         >
           {selectedMaterials.length === 0 ? (
-            <p className="text-sm text-ink-muted">{t.lockedUntilMaterial}</p>
+            <p className="text-body text-ink-muted">{t.lockedUntilMaterial}</p>
           ) : (
             <>
               {/* The cap is stated before it bites: a chip that simply stops
@@ -450,7 +450,7 @@ function ComparePageContent() {
         }
       >
         {!ready ? (
-          <p className="text-sm text-ink-muted">
+          <p className="text-body text-ink-muted">
             {selectedMaterials.length === 0 ? t.lockedUntilMaterial : t.lockedUntilProperty}
           </p>
         ) : (
@@ -529,7 +529,7 @@ function ComparePageContent() {
               <ErrorState title={t.computed.error} onRetry={() => void indices.refetch()} />
             )}
             {indices.data && indices.data.length === 0 && (
-              <p className="text-sm text-ink-muted">{t.computed.noneAvailable}</p>
+              <p className="text-body text-ink-muted">{t.computed.noneAvailable}</p>
             )}
             {indices.data && indices.data.length > 0 && (
               <div role="group" aria-label={t.computed.pick} className="flex flex-wrap gap-2">
@@ -580,7 +580,7 @@ function ComparePageContent() {
               }
             />
             {computedRequest.length === 0 ? (
-              <p className="text-sm text-ink-muted">{t.computed.none}</p>
+              <p className="text-body text-ink-muted">{t.computed.none}</p>
             ) : (
               <>
                 {comparison.isLoading && <LoadingState label={t.computed.loading} />}
@@ -596,7 +596,7 @@ function ComparePageContent() {
         <Section id="observacoes" title={t.notesTitle} headingLevel={2}>
           <Card>
             <CardBody>
-              <ul className="flex flex-col gap-1 text-xs text-ink-muted">
+              <ul className="flex flex-col gap-1 text-caption text-ink-muted">
                 {Array.from(new Set(comparison.data.notes)).map((note, i) => (
                   <li key={i}>• {note}</li>
                 ))}

@@ -52,7 +52,7 @@ export function TableScroll({
 
 export function Table({ className, children, ...rest }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <table {...rest} className={cn("w-full border-collapse text-sm", className)}>
+    <table {...rest} className={cn("w-full border-collapse text-body", className)}>
       {children}
     </table>
   );
@@ -202,7 +202,7 @@ export function TableCaption({
   return (
     <caption
       className={cn(
-        visible ? "px-3 py-2 text-left text-xs text-ink-muted" : "sr-only",
+        visible ? "px-3 py-2 text-left text-caption text-ink-muted" : "sr-only",
         className,
       )}
     >

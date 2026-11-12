@@ -106,7 +106,7 @@ export function ChartFrame({
   const hasFigure = !empty;
   const tableBox = useRef<HTMLDivElement>(null);
 
-  // D-206: every figure that has a table can hand it over as CSV. A figure that
+  // D-211: every figure that has a table can hand it over as CSV. A figure that
   // brings its own data export (`exportItems`, D-106) keeps that one instead.
   const csvItem =
     table && !exportItems ? (
@@ -153,7 +153,7 @@ export function ChartFrame({
           ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          {meta ? <span className="mr-1 font-mono text-xs text-ink-subtle">{meta}</span> : null}
+          {meta ? <span className="mr-1 font-mono text-caption text-ink-subtle">{meta}</span> : null}
           {controls}
           {hasFigure && (table || (views && views.length > 1)) ? (
             // D-95: the AI Studio corner — round icon buttons, one per way to
