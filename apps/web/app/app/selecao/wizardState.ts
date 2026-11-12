@@ -150,7 +150,15 @@ export function initialWizardState(params: {
 
 // P1-2: deep link from chart map (/app/mapas) initializes with a chart stage.
 function initialStages(params: { get(name: string): string | null }): StageState[] {
-  if (params.get("novo_estagio") !== "chart") return [initialLimitStage()];
+  if (params.get("novo_estagio") !== "chart") {
+    const stage = initialLimitStage();
+    // D-219: the glossary's "Usar como restrição" opens the first limit already
+    // pointed at that property. Only the property: no value is ever invented.
+    const slug = params.get("restricao");
+    const first = stage.kind === "limit" ? stage.group.constraints[0] : undefined;
+    if (first && slug && /^[a-z0-9_-]{1,120}$/.test(slug)) first.property_slug = slug;
+    return [stage];
+  }
   const xProp = params.get("x_prop");
   const yProp = params.get("y_prop");
   return [

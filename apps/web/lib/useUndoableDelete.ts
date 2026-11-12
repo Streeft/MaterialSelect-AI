@@ -27,6 +27,8 @@ export function withoutChild(field: string, id: number) {
 export interface UndoableDelete {
   /** What was deleted, as the snackbar names it: "Estudo", "Fonte"… */
   what: string;
+  /** D-219: the whole message, when "<what> excluído" does not read right (plural, other verb). */
+  message?: string;
   /**
    * The cached lists the item must disappear from now, each with the function
    * that takes it out. Anything not listed is refetched when the deletion
@@ -55,7 +57,7 @@ export function useUndoableDelete() {
   const { notify } = useSnackbar();
 
   return useCallback(
-    ({ what, hide, commit }: UndoableDelete) => {
+    ({ what, message, hide, commit }: UndoableDelete) => {
       const refresh = () => {
         for (const { queryKey } of hide) void queryClient.invalidateQueries({ queryKey });
       };
@@ -67,7 +69,7 @@ export function useUndoableDelete() {
       }
 
       notify({
-        message: t.removed(what),
+        message: message ?? t.removed(what),
         action: { label: t.undo, onAction: refresh },
         onExpire: () => {
           commit()

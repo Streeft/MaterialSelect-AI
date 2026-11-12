@@ -7,8 +7,9 @@ from collections.abc import Mapping
 from sqlalchemy.orm import Session
 
 from app.calculations.expressions import safe_variable
+from app.calculations.units import UnitError, to_canonical
 from app.domain.display_units import Reading, reading_for
-from app.domain.errors import NotFoundError
+from app.domain.errors import NotFoundError, ValidationError
 from app.domain.taxonomy import lineages
 from app.models.process import Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
@@ -16,10 +17,14 @@ from app.repositories.process_repository import ProcessRepository
 from app.schemas.process import (
     ProcessAttributeOut,
     ProcessAttributeValueOut,
+    ProcessCapabilityOut,
     ProcessClassDetailOut,
     ProcessClassOut,
     ProcessClassRefOut,
     ProcessDetailOut,
+    ProcessMatrixColumnOut,
+    ProcessMatrixOut,
+    ProcessMatrixRowOut,
     ProcessOut,
 )
 
@@ -120,6 +125,133 @@ class ProcessService:
         return [
             self.process_to_out(p, counts.get(p.id, 0)) for p in self.repo.list_active_processes()
         ]
+
+    def matrix(
+        self,
+        *,
+        mass: float | None = None,
+        mass_unit: str = "kg",
+        thickness: float | None = None,
+        thickness_unit: str = "mm",
+        batch: float | None = None,
+    ) -> ProcessMatrixOut:
+        """Material class × process, narrowed by capability (D-219).
+
+        Columns are the root families of the material taxonomy; a cell is how
+        many of that family's materials the process serves. The filters:
+
+        * ``mass`` / ``thickness`` keep a process whose capability envelope
+          *reaches* the value (the rule of D-62: a 0,1–10 kg process makes a 5 kg
+          part), after converting the value to the attribute's canonical unit
+          through ``units.py``;
+        * ``batch`` keeps a process whose economic batch is at most that many
+          parts ("pays off from N").
+
+        A process with no value for a filtered attribute is dropped and counted
+        in ``without_data``: it cannot be said to satisfy a limit nobody
+        recorded, and it is never read as 0.
+        """
+        for name, value in (("massa", mass), ("espessura", thickness), ("lote", batch)):
+            if value is not None and value < 0:
+                raise ValidationError(f"O filtro {name} não pode ser negativo.")
+
+        parents = {c.id: c for c in self.repo.material_class_parents()}
+        lineage = lineages(
+            {str(c.id): (str(c.parent_id) if c.parent_id else None) for c in parents.values()}
+        )
+        root_of = {int(k): int(v[0]) for k, v in lineage.items() if v}
+        columns_by_id = {
+            cid: ProcessMatrixColumnOut(slug=parents[cid].slug, name=parents[cid].name)
+            for cid in set(root_of.values())
+        }
+
+        counts = self.repo.material_counts_by_process_and_class()
+        cells: dict[int, dict[str, int]] = {}
+        per_root_materials: dict[int, int] = {}
+        for process_id, class_id, n in counts:
+            root_id = root_of.get(class_id, class_id)
+            if root_id not in columns_by_id:
+                continue
+            slug = columns_by_id[root_id].slug
+            cells.setdefault(process_id, {})
+            cells[process_id][slug] = cells[process_id].get(slug, 0) + n
+            per_root_materials[root_id] = per_root_materials.get(root_id, 0) + n
+        for root_id, column in columns_by_id.items():
+            column.material_count = per_root_materials.get(root_id, 0)
+
+        values = self.repo.attribute_values_by_slugs(
+            ["faixa-massa", "espessura-secao", "lote-economico"]
+        )
+        by_process: dict[int, dict[str, ProcessAttributeValue]] = {}
+        for v in values:
+            if not v.is_missing:
+                by_process.setdefault(v.process_id, {})[v.attribute.slug] = v
+
+        def canon(value: float, unit: str, slug: str) -> float:
+            target = next(
+                (v.attribute.canonical_unit for v in values if v.attribute.slug == slug), None
+            )
+            if target is None:
+                return value  # no value recorded anywhere: nothing to compare against
+            try:
+                return to_canonical(value, unit, target)[0]
+            except UnitError as exc:
+                raise ValidationError(str(exc)) from exc
+
+        mass_c = canon(mass, mass_unit, "faixa-massa") if mass is not None else None
+        thick_c = (
+            canon(thickness, thickness_unit, "espessura-secao") if thickness is not None else None
+        )
+
+        without = {"massa": 0, "espessura": 0, "lote": 0}
+        rows: list[ProcessMatrixRowOut] = []
+        for process in self.repo.list_active_processes():
+            attrs = by_process.get(process.id, {})
+            m, t, b = (
+                attrs.get("faixa-massa"),
+                attrs.get("espessura-secao"),
+                attrs.get("lote-economico"),
+            )
+            keep = True
+            for key, wanted, attr in (("massa", mass_c, m), ("espessura", thick_c, t)):
+                if wanted is None:
+                    continue
+                if attr is None or attr.normalized_min is None or attr.normalized_max is None:
+                    without[key] += 1
+                    keep = False
+                elif not (attr.normalized_min <= wanted <= attr.normalized_max):
+                    keep = False
+            if batch is not None:
+                if b is None or b.normalized_value is None:
+                    without["lote"] += 1
+                    keep = False
+                elif b.normalized_value > batch:
+                    keep = False
+            if not keep:
+                continue
+            rows.append(
+                ProcessMatrixRowOut(
+                    process=self.process_to_out(process, sum(cells.get(process.id, {}).values())),
+                    counts=cells.get(process.id, {}),
+                    mass=self._capability(m),
+                    thickness=self._capability(t),
+                    batch=b.normalized_value if b is not None else None,
+                )
+            )
+        columns = sorted(columns_by_id.values(), key=lambda c: c.name)
+        return ProcessMatrixOut(
+            columns=columns,
+            rows=rows,
+            without_data={k: v for k, v in without.items() if v},
+        )
+
+    @staticmethod
+    def _capability(value: ProcessAttributeValue | None) -> ProcessCapabilityOut:
+        if value is None:
+            return ProcessCapabilityOut()
+        return ProcessCapabilityOut(
+            minimum=value.normalized_min, maximum=value.normalized_max, unit=value.canonical_unit
+        )
 
     def list_attributes(self) -> list[ProcessAttributeOut]:
         """The process attribute catalogue (P0-4).

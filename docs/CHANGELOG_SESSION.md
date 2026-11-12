@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 176 — 12/11/26 — Processos, Glossário, Sintetizar, Painel e Meus registros (D-219)
+
+**O que mudou.** Etapa "Processos, Glossário, Sintetizar, Painel e Meus registros" (parte 4). Backend: `GET /api/processes/matrix`
+(`ProcessService.matrix`: matriz família de material × processo e filtros de massa, espessura e lote, com a unidade convertida por
+`units.py` e o processo sem dado contado à parte). Frontend: Meus registros com busca, classe e tipo na URL e ações em lote
+(comparar, desfavoritar com confirmação e "Desfazer"); Processos com matriz, filtros por capacidade, comparação lado a lado e todo
+o estado no endereço; Glossário com debounce, estado na URL e links "Usar como eixo no Mapa" e "Usar como restrição na Seleção"
+(`?restricao=` no assistente); Sintetizar com legenda na varredura e "Tentar novamente" nos erros (a prévia ao vivo é a da F4, D-218);
+Painel conferido (já estava na URL, com `figure` nomeado e sem `setState` no render), com teste que trava isso. Testes:
+`test_process_matrix.py`, `myRecordsFilter.test.ts`, `meus-registros.test.tsx`, `processos.test.tsx`, `glossario.test.tsx`,
+`wizardState.test.ts`, `SweepSection.test.tsx`, `sintetizar.test.tsx`, `painel.test.tsx`.
+
 ## Sessão 175 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-218)
 
 **O que mudou.** Etapa "Cadernos" (parte 4). Backend: `notebook.archived_at` (migração `d218a5c0a1b2`), `PATCH` com `archived`,

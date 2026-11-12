@@ -105,6 +105,7 @@ import type {
   ProcessClass,
   ProcessClassDetail,
   ProcessDetail,
+  ProcessMatrix,
   OrdinalProperty,
   PropertyDefinition,
   PropertyDefinitionIn,
@@ -614,6 +615,38 @@ export function deleteClass(id: number): Promise<void> {
 
 export function listProcesses(): Promise<Process[]> {
   return request<Process[]>(`/api/processes`);
+}
+
+export interface ProcessMatrixQuery {
+  massa?: string;
+  massaUnidade?: string;
+  espessura?: string;
+  espessuraUnidade?: string;
+  lote?: string;
+}
+
+/**
+ * Material family × process, narrowed by capability (D-219). Values are sent
+ * as typed with their unit; the backend converts (`units.py`) and compares.
+ */
+export function getProcessMatrix(query: ProcessMatrixQuery = {}): Promise<ProcessMatrix> {
+  const params = new URLSearchParams();
+  // A half-typed or malformed number is not sent: it filters nothing yet.
+  const number = (text: string | undefined) => {
+    const value = (text ?? "").trim().replace(",", ".");
+    return /^\d+(\.\d+)?$/.test(value) ? value : "";
+  };
+  if (number(query.massa)) {
+    params.set("massa", number(query.massa));
+    if (query.massaUnidade) params.set("massa_unidade", query.massaUnidade);
+  }
+  if (number(query.espessura)) {
+    params.set("espessura", number(query.espessura));
+    if (query.espessuraUnidade) params.set("espessura_unidade", query.espessuraUnidade);
+  }
+  if (number(query.lote)) params.set("lote", number(query.lote));
+  const text = params.toString();
+  return request<ProcessMatrix>(`/api/processes/matrix${text ? `?${text}` : ""}`);
 }
 
 export function listProcessClasses(): Promise<ProcessClass[]> {

@@ -612,6 +612,32 @@ describe("painel", () => {
     expect(screen.getByText("Meu aço")).toBeInTheDocument();
   });
 
+  it("names every figure on every tab and never sets state while rendering (D-219)", async () => {
+    // React reports "Cannot update a component while rendering a different one"
+    // through console.error; a spy turns that into a failure.
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      let figures = 0;
+      for (const tab of ["", "aba=propriedades", "aba=processos", "aba=qualidade", "aba=atividade"]) {
+        const view = await renderDashboard(tab);
+        await waitFor(() => expect(screen.queryAllByText(d.loading)).toHaveLength(0));
+        for (const figure of view.container.querySelectorAll("svg[data-chart-figure]")) {
+          figures += 1;
+          expect(figure.getAttribute("role"), tab || "visao").toBe("figure");
+          expect(figure.getAttribute("aria-label")?.trim(), tab || "visao").toBeTruthy();
+        }
+        view.unmount();
+      }
+      expect(figures).toBeGreaterThan(0);
+      const rendering = errors.mock.calls.filter((call) =>
+        String(call[0]).includes("while rendering a different component"),
+      );
+      expect(rendering).toEqual([]);
+    } finally {
+      errors.mockRestore();
+    }
+  });
+
   it("has no detectable accessibility violations on any tab", async () => {
     for (const tab of ["", "aba=propriedades", "aba=processos", "aba=qualidade", "aba=atividade"]) {
       const view = await renderDashboard(tab);

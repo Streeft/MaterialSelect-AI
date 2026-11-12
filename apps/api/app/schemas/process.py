@@ -164,3 +164,51 @@ class ProcessDetailOut(ProcessOut):
     """
 
     attributes: list[ProcessAttributeValueOut] = []
+
+
+class ProcessMatrixColumnOut(BaseModel):
+    """One column of the material × process matrix: a root material class."""
+
+    slug: str
+    name: str
+    #: Active materials of this class that have at least one process.
+    material_count: int = 0
+
+
+class ProcessCapabilityOut(BaseModel):
+    """One numeric capability of a process, as the matrix prints it (D-219).
+
+    Canonical units, with the unit alongside. ``None`` bounds mean the catalogue
+    has no value for this process — shown as written absence, never as 0.
+    """
+
+    minimum: float | None = None
+    maximum: float | None = None
+    unit: str | None = None
+
+
+class ProcessMatrixRowOut(BaseModel):
+    process: ProcessOut
+    #: Root material class slug → how many of its materials this process serves.
+    #: A class absent from the map has none (the screen writes it out).
+    counts: dict[str, int] = {}
+    mass: ProcessCapabilityOut = ProcessCapabilityOut()
+    thickness: ProcessCapabilityOut = ProcessCapabilityOut()
+    #: Economic batch (a count): the smallest batch from which the process pays off.
+    batch: float | None = None
+
+
+class ProcessMatrixOut(BaseModel):
+    """The material × process compatibility matrix, with attribute filters (D-219).
+
+    Filtering is done here, not on the screen: whether an envelope *reaches* a
+    threshold is a comparison, and comparisons live in the backend (ADR 0004).
+    A process with no value for a filtered attribute is left out and counted in
+    ``without_data`` — the screen says how many, because a silent omission would
+    read as "cannot do it" when the truth is "nobody recorded it".
+    """
+
+    columns: list[ProcessMatrixColumnOut] = []
+    rows: list[ProcessMatrixRowOut] = []
+    #: Filter name (``massa``, ``espessura``, ``lote``) → processes dropped for lack of data.
+    without_data: dict[str, int] = {}

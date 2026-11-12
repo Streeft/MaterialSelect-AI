@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
+from app.models.material_class import MaterialClass
 from app.models.process import MaterialProcess, Process, ProcessClass
 from app.models.process_attribute import (
     ProcessAttributeDefinition,
@@ -140,5 +141,32 @@ class ProcessRepository:
             .join(MaterialProcess, MaterialProcess.process_id == Process.id)
             .where(MaterialProcess.material_id == material_id, Process.is_active.is_(True))
             .order_by(Process.name)
+        )
+        return list(self.db.execute(stmt).scalars().unique().all())
+
+    def material_counts_by_process_and_class(self) -> list[tuple[int, int, int]]:
+        """``(process_id, material class id, active materials)`` — the matrix, one statement.
+
+        Active materials only, for the reason :meth:`material_counts_by_process`
+        gives. The class is the material's own; rolling it up to its family is
+        the service's job (a pure walk over the taxonomy).
+        """
+        stmt = (
+            select(MaterialProcess.process_id, Material.class_id, func.count(Material.id))
+            .join(Material, Material.id == MaterialProcess.material_id)
+            .where(Material.is_active.is_(True))
+            .group_by(MaterialProcess.process_id, Material.class_id)
+        )
+        return [(row[0], row[1], row[2]) for row in self.db.execute(stmt).all()]
+
+    def material_class_parents(self) -> list[MaterialClass]:
+        return list(self.db.execute(select(MaterialClass).order_by(MaterialClass.name)).scalars())
+
+    def attribute_values_by_slugs(self, slugs: list[str]) -> list[ProcessAttributeValue]:
+        stmt = (
+            select(ProcessAttributeValue)
+            .options(joinedload(ProcessAttributeValue.attribute))
+            .join(ProcessAttributeDefinition)
+            .where(ProcessAttributeDefinition.slug.in_(slugs))
         )
         return list(self.db.execute(stmt).scalars().unique().all())

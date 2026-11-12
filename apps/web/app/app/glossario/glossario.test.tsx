@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,7 +10,10 @@ import type { GlossaryEntry, PropertyDefinition } from "@/lib/types";
 
 const t = ptBR.glossary;
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/glossario" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app/glossario",
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
 
 const densidade: GlossaryEntry = {
   slug: "densidade",
@@ -106,7 +109,11 @@ describe("página do glossário (D-130)", () => {
     await screen.findByShadowRole("button", { name: t.openEntry("Densidade") });
     const box = screen.getByShadowRole("searchbox", { name: t.filter });
     await userEvent.type(box, "agua");
-    expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
+    // O filtro espera uma pausa na digitação (D-219) — e o texto já está no endereço.
+    await waitFor(() =>
+      expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument(),
+    );
+    expect(window.location.search).toContain("busca=agua");
     expect(screen.getByShadowRole("button", { name: t.openEntry("Durabilidade em água doce") })).toBeInTheDocument();
     await userEvent.clear(box);
 
@@ -115,6 +122,34 @@ describe("página do glossário (D-130)", () => {
     expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
 
     await userEvent.type(box, "zzz");
-    expect(screen.getByShadowText(t.noMatch("zzz"))).toBeInTheDocument();
+    expect(await screen.findByShadowText(t.noMatch("zzz"))).toBeInTheDocument();
+    window.history.replaceState(null, "", "/app/glossario");
+  });
+
+  it("do verbete leva ao Mapa (eixo) e à Seleção (restrição) com a propriedade", async () => {
+    window.history.replaceState(null, "", "/app/glossario#densidade");
+    render(wrap(<GlossaryPage />));
+    const dialog = await screen.findByShadowRole("dialog", { name: "Densidade" });
+
+    const axis = within(dialog).getByShadowRole("link", { name: t.useAsAxis });
+    expect(axis.getAttribute("href")).toMatch(/^\/app\/mapas\?estado=/);
+    const { decodeMapState } = await import("@/app/app/mapas/url-state");
+    const state = decodeMapState(new URL(axis.getAttribute("href")!, "http://x").searchParams.get("estado")!);
+    expect(state?.xAxis?.property).toBe("densidade");
+
+    expect(within(dialog).getByShadowRole("link", { name: t.useAsConstraint })).toHaveAttribute(
+      "href",
+      "/app/selecao?etapa=restricoes&restricao=densidade",
+    );
+    window.history.replaceState(null, "", "/app/glossario");
+  });
+
+  it("lê o estado do filtro do endereço", async () => {
+    window.history.replaceState(null, "", "/app/glossario?estado=ausente");
+    render(wrap(<GlossaryPage />));
+    await screen.findByShadowRole("button", { name: t.openEntry("Durabilidade em água doce") });
+    // "ausente" vem do endereço: Densidade tem verbete, então fica de fora.
+    expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
+    window.history.replaceState(null, "", "/app/glossario");
   });
 });
