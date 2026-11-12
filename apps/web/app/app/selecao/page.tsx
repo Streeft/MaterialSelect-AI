@@ -417,10 +417,16 @@ function SelectionWizard() {
     onError: fail,
   });
 
-  runShortcut.current = () => {
-    const onRunStep = step === LAST_INPUT_STEP || (step === "results" && result === null);
-    if (onRunStep && canRun && !run.isPending) run.mutate(true);
-  };
+  // The listener above is registered once; what it runs is refreshed after
+  // every commit, so it always sees this render's step, gate and mutation.
+  const runMutate = run.mutate;
+  const runPending = run.isPending;
+  useEffect(() => {
+    runShortcut.current = () => {
+      const onRunStep = step === LAST_INPUT_STEP || (step === "results" && result === null);
+      if (onRunStep && canRun && !runPending) runMutate(true);
+    };
+  });
 
   const save = useMutation({
     mutationFn: () =>
