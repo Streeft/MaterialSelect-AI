@@ -129,12 +129,11 @@ empilhada no estreito) e `example` nas variáveis de projeto do backend. Por cim
 desenho por tipo, prévia ao vivo e o princípio no rodapé; Baterias e premissas do Eco com unidade no campo. Testes:
 `components/ui/f4Pieces.test.tsx` (unidade no nome, debounce, resposta anterior durante a próxima, pedido incompleto, tabela com
 Desfazer e mínimo de linhas; com axe), `test_solver_api.py` (+2) e os testes das cinco telas e do `eco-ab.spec` sem botão de
-calcular. Backend 5538, frontend 1945. Sem migração. Depois do merge: **Deploy da API**.
+calcular. Backend 5539, frontend 1945. Sem migração. Depois do merge: **Deploy da API**.
 
-**Correção da CI (Python 3.12).** O total da cascata do Eco (D-216) era a soma corrida das fases, e o `total_energy` da
-auditoria era `sum()`: no 3.12 o `sum` de floats é compensado e os dois divergiam na última casa
-(`103.7449090909091 ≠ 103.74490909090909`), a barra "Total" e o número ao lado discordando. `build_waterfall` passa a usar a
-mesma soma da auditoria; o `test_eco_waterfall.py` que pegou a diferença fica como está.
+**Correção da CI (Python 3.12).** O teste da cascata do Eco (D-216) falhou só no 3.12, cujo `sum` de floats é compensado:
+a barra "Total", somada passo a passo, divergia do `total_energy` na última casa. A `main` trouxe a correção do próprio #240
+(o degrau do total passa a ser o total da auditoria, 9f9dc55f); na mescla ficou essa, e a desta branch saiu.
 
 ## Sessão 174 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-217)
 

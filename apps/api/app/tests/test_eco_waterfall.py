@@ -124,6 +124,7 @@ def test_the_audit_carries_one_waterfall_per_quantity(
         for step, phase in zip(wf["steps"], out["phases"], strict=True):
             assert step["value"] == phase[attr]
         total = out[f"total_{attr}"]
+        # The total bar IS the audit's total, bit for bit (no second sum).
         assert wf["total"]["value"] == total
         if total is not None:
             assert wf["steps"][-1]["end"] == pytest.approx(total)
@@ -161,3 +162,16 @@ def test_the_comparison_names_the_difference_of_each_phase(
                 assert delta[f"delta_{quantity}"] is None
             else:
                 assert delta[f"delta_{quantity}"] == pytest.approx(b[quantity] - a[quantity])
+
+
+def test_the_total_bar_takes_the_audits_own_total_not_a_second_sum() -> None:
+    """Summing the same floats in another order can differ in the last digit."""
+    values = (31.25, 2.125, 0.204, 70.0, 3.2)
+    phases = tuple(_phase(name, 1.0, c) for name, c in zip(PHASES, values, strict=True))
+    own = 106.77900000000001  # one ulp off the running sum, on purpose
+    wf = build_waterfall(phases, "carbon", CARBON_UNIT, own)
+    assert wf.total.value == own and wf.total.end == own
+    # Without one, it falls back to the running sum.
+    assert build_waterfall(phases, "carbon", CARBON_UNIT).total.value == pytest.approx(
+        own, rel=1e-3
+    )
