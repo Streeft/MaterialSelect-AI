@@ -1329,6 +1329,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
     }),
   getDefaults: async () => (await import("@/lib/defaults.fixture")).defaultsFixture,
   runEcoAudit: () => Promise.resolve(ecoResult),
+  compareEcoAudits: () => new Promise(() => {}),
   listBatteryChemistries: () => Promise.resolve(batteryChemistries),
   listBatteryArchetypes: () => Promise.resolve(batteryArchetypes),
   designBatteryPack: () => Promise.resolve(null),

@@ -4,6 +4,8 @@ import { useId, useMemo, useState, type ReactNode } from "react";
 import { enumCodec, textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLiveResult } from "@/lib/useLiveResult";
+import { describeApiError } from "@/lib/errors";
 import type {
   SynthesisKind,
   SynthesisPreview,
@@ -26,6 +28,7 @@ import {
   Button,
   Combobox,
   DataQualityBadge,
+  Disclosure,
   EmptyState,
   ErrorState,
   Input,
@@ -129,11 +132,51 @@ function Emphasis({ text }: { text: string }) {
   return <>{nodes}</>;
 }
 
-const KINDS: { kind: SynthesisKind; label: string }[] = [
-  { kind: "composito", label: t.kindComposite },
-  { kind: "espuma", label: t.kindFoam },
-  { kind: "painel", label: t.kindPanel },
+const KINDS: { kind: SynthesisKind; label: string; line: string }[] = [
+  { kind: "composito", label: t.kindComposite, line: t.kindLineComposite },
+  { kind: "espuma", label: t.kindFoam, line: t.kindLineFoam },
+  { kind: "painel", label: t.kindPanel, line: t.kindLinePanel },
 ];
+
+/**
+ * D-218: what each kind *is*, drawn — fibres in a matrix, cells in a solid,
+ * two faces on a core. A picture, not data: decorative (`aria-hidden`), in the
+ * ink colour, the same size for the three so the cards line up.
+ */
+function KindDrawing({ kind }: { kind: SynthesisKind }) {
+  const frame = { fill: "none", stroke: "currentColor", strokeWidth: 1.5 } as const;
+  return (
+    <svg aria-hidden viewBox="0 0 96 48" className="h-12 w-24 text-ink-muted" focusable="false">
+      {kind === "composito" ? (
+        <>
+          <rect x="2" y="4" width="92" height="40" rx="3" {...frame} />
+          {[12, 20, 28, 36].map((y) => (
+            <line key={y} x1="10" y1={y} x2="86" y2={y} stroke="currentColor" strokeWidth="2.5" />
+          ))}
+        </>
+      ) : kind === "espuma" ? (
+        <>
+          <rect x="2" y="4" width="92" height="40" rx="3" {...frame} />
+          {[
+            [16, 15, 6], [34, 14, 5], [54, 16, 7], [76, 14, 6],
+            [24, 32, 6], [44, 33, 5], [64, 31, 6], [84, 33, 4],
+          ].map(([cx, cy, r]) => (
+            <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} {...frame} />
+          ))}
+        </>
+      ) : (
+        <>
+          <rect x="2" y="4" width="92" height="6" rx="1.5" fill="currentColor" />
+          <rect x="2" y="12" width="92" height="24" rx="1.5" {...frame} />
+          {[14, 26, 38, 50, 62, 74, 86].map((x) => (
+            <line key={x} x1={x} y1="12" x2={x - 8} y2="36" stroke="currentColor" strokeWidth="1" />
+          ))}
+          <rect x="2" y="38" width="92" height="6" rx="1.5" fill="currentColor" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function PreviewTable({ preview }: { preview: SynthesisPreview }) {
   if (preview.values.length === 0) {
@@ -211,7 +254,6 @@ export default function SintetizarPage() {
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [description, setDescription] = useState("");
-  const [preview, setPreview] = useState<SynthesisPreview | null>(null);
   const [saved, setSaved] = useState<SynthesisResult | null>(null);
 
   // Derivados, não gravados por efeito: uma seleção vazia simplesmente *quer
@@ -265,24 +307,10 @@ export default function SintetizarPage() {
     coreThickness,
   ]);
 
-  const runPreview = useMutation({
-    // A prévia não cria registro, então não pede nome — mas a API valida o
-    // mesmo corpo da gravação e recusa `name` vazio com 422. Sem este nome
-    // provisório a prévia nunca rodava: o campo de nome só aparece depois
-    // dela. O nome provisório não é gravado em lugar nenhum.
-    mutationFn: () =>
-      previewSynthesis({ ...body, name: body.name || t.previewName }),
-    onSuccess: (result) => {
-      setPreview(result);
-      setSaved(null);
-    },
-  });
-
   const save = useMutation({
     mutationFn: () => createSynthesis(body),
     onSuccess: (result) => {
       setSaved(result);
-      setPreview(result);
       materials.refetch();
     },
   });
@@ -321,6 +349,16 @@ export default function SintetizarPage() {
   ]);
   const recipeReady = recipeBlocked === null;
 
+  // D-218: the preview follows the recipe. It creates nothing, so it asks with
+  // the provisional name (the API validates the same body as a save and refuses
+  // an empty one) and without the identity: typing the name asks nothing again.
+  const live = useLiveResult<SynthesisRequest, SynthesisPreview>({
+    key: "sintetizar-ao-vivo",
+    request: recipeReady ? { ...body, name: t.previewName, description: null } : null,
+    fetcher: previewSynthesis,
+  });
+  const preview: SynthesisPreview | null = saved ?? live.data ?? null;
+
   // Gravar exige nome; a prévia não, porque ela não cria registro nenhum e a
   // pergunta "o que sairia daqui" não depende de como o resultado se chamaria.
   const saveBlocked = recipeBlocked ?? (name.trim().length > 0 ? null : t.blocked.name);
@@ -349,8 +387,6 @@ export default function SintetizarPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
-      <Alert tone="info">{t.principle}</Alert>
-
       <StepCard title={t.kindStep}>
           {/* Cards, not a <select>: the rule each kind follows is what the
               reader is choosing between, and a <select> hides it until after
@@ -359,7 +395,6 @@ export default function SintetizarPage() {
             <legend className="msds-field-label">{t.kindLabel}</legend>
             <div className="mt-2 grid gap-3 md:grid-cols-3">
               {KINDS.map((item) => {
-                const note = noteOf(item.kind);
                 return (
                   <RadioCard
                     key={item.kind}
@@ -368,16 +403,14 @@ export default function SintetizarPage() {
                     checked={kind === item.kind}
                     onChange={(value) => {
                       setRecipe({ kind: value as SynthesisKind });
-                      setPreview(null);
                       setSaved(null);
                     }}
                     title={item.label}
                   >
-                    {note ? (
-                      <p className="text-caption leading-relaxed text-ink-muted">
-                        <Emphasis text={note} />
-                      </p>
-                    ) : null}
+                    <span className="flex flex-col gap-2">
+                      <KindDrawing kind={item.kind} />
+                      <span className="text-caption text-ink-muted">{item.line}</span>
+                    </span>
                   </RadioCard>
                 );
               })}
@@ -390,23 +423,6 @@ export default function SintetizarPage() {
           <StepCard
             title={t.recipeStep}
             bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => runPreview.mutate()}
-                  disabled={!recipeReady || runPreview.isPending}
-                  aria-describedby={recipeBlocked ? "sintetizar-motivo-receita" : undefined}
-                >
-                  {runPreview.isPending ? t.previewing : t.preview}
-                </Button>
-                {recipeBlocked ? (
-                  <p id="sintetizar-motivo-receita" className="text-support text-ink-muted">
-                    {recipeBlocked}
-                  </p>
-                ) : null}
-              </div>
-            }
           >
               <Combobox
                 label={
@@ -474,10 +490,12 @@ export default function SintetizarPage() {
                   </p>
                 </>
               ) : null}
-              {runPreview.isError ? (
-                <Alert tone="danger" className="sm:col-span-2 xl:col-span-1">
-                  {String(runPreview.error)}
-                </Alert>
+              {noteOf(kind) ? (
+                <Disclosure summary={t.kindNoteTitle} className="sm:col-span-2 xl:col-span-1">
+                  <p className="pt-2 text-support leading-relaxed text-ink-muted">
+                    <Emphasis text={noteOf(kind) ?? ""} />
+                  </p>
+                </Disclosure>
               ) : null}
           </StepCard>
 
@@ -557,13 +575,21 @@ export default function SintetizarPage() {
 
         {/* The result sits beside the recipe, not under it: changing a
             fraction and reading what moved should not cost a scroll. */}
-        <ResultPanel sticky>
+        <ResultPanel sticky busy={live.updating}>
           <StepCard
             title={t.previewStep}
+            actions={
+              live.updating ? (
+                <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
+              ) : undefined
+            }
             description={
               preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
             }
           >
+              {live.error ? (
+                <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
+              ) : null}
               {preview ? (
                 <>
                   <PreviewTable preview={preview} />
@@ -584,14 +610,21 @@ export default function SintetizarPage() {
                     </div>
                   ) : null}
                 </>
-              ) : (
-                <EmptyState title={t.previewIdleTitle} description={t.previewIdleHint} />
+              ) : live.error ? null : (
+                <EmptyState
+                  title={t.previewIdleTitle}
+                  description={recipeBlocked ?? t.previewIdleHint}
+                />
               )}
           </StepCard>
         </ResultPanel>
       </ParamsResultLayout>
 
       <SweepSection key={kind} kind={kind} parentA={selectedA} parentB={selectedB} />
+
+      {/* D-218: said once, in one line at the foot of the page — not a banner
+          above every field repeating principle 1. */}
+      <p className="max-w-prose text-caption text-ink-muted">{t.principle}</p>
     </div>
   );
 }
