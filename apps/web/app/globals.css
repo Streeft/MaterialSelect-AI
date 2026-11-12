@@ -2139,6 +2139,13 @@ div[data-surface="rail"] .msds-rail-item {
 .ds-view-tab:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: -2px; }
 @media (pointer: coarse) { .ds-view-tab { min-height: var(--target-min); } }
 
+/* D-207: the glossary's letter index. */
+.ds-letter {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px;
+  border-radius: var(--shape-small); font-size: 0.875rem; font-weight: 600; color: rgb(var(--m3-primary));
+}
+.ds-letter:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 1px; }
+
 /* TopAppBar (compact): the screen's name between the menu and the search icon. */
 .ds-topbar-title {
   min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

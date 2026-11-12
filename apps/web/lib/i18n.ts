@@ -3114,6 +3114,15 @@ export const ptBR = {
     hintLabel: (name: string) => `O que é ${name}? Abrir verbete do glossário`,
     hintLoading: "Carregando verbete…",
     hintError: "Não foi possível carregar o verbete.",
+    // D-207: o glossário como wiki — índice por letra e verbete aberto ao lado.
+    lettersLabel: "Índice por letra",
+    filterState: "Estado",
+    stateReviewed: "Revisado",
+    stateDraft: "Rascunho",
+    stateMissing: "Sem verbete",
+    openEntry: (name: string) => `Abrir o verbete ${name}`,
+    summaryMissing: "Sem resumo: esta propriedade ainda não tem verbete.",
+    identifier: "Identificador",
   },
 
   // D-151: notas de família — o que a família é, por que se comporta assim, onde
