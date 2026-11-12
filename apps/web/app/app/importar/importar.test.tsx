@@ -94,7 +94,7 @@ async function sendFile(user: ReturnType<typeof userEvent.setup>, file: File) {
   await user.upload(document.querySelector<HTMLInputElement>("input[type=file]")!, file);
 }
 
-describe("Importar (D-221)", () => {
+describe("Importar (D-222)", () => {
   it("recusa, antes de enviar, o que não é CSV ou XLSX e o que passa de 5 MB", async () => {
     const user = userEvent.setup({ applyAccept: false });
     renderPage();

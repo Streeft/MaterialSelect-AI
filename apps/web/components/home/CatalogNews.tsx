@@ -10,7 +10,7 @@ import { Section } from "@/components/ui";
 const t = ptBR.home;
 
 /**
- * "Novidades do catálogo" (D-221): the latest imported release, from the table
+ * "Novidades do catálogo" (D-222): the latest imported release, from the table
  * of releases that already exists (D-108). The demo seed never counts as news,
  * a release the importer never ran on has no date to print, and when there is
  * nothing to say — or the list does not load — the block is not drawn: it is

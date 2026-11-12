@@ -83,7 +83,7 @@ export function NotebookWorkspace({ id }: { id: number }) {
   return <Workspace data={notebook.data} />;
 }
 
-/** The shape of the three panels while the notebook loads (D-220): the page does not jump on arrival. */
+/** The shape of the three panels while the notebook loads (D-218): the page does not jump on arrival. */
 function WorkspaceSkeleton() {
   return (
     <div
@@ -108,7 +108,7 @@ function WorkspaceSkeleton() {
 
 function Workspace({ data }: { data: Notebook }) {
   const id = data.id;
-  // D-220: which panel, which source and which Studio item are in the address,
+  // D-218: which panel, which source and which Studio item are in the address,
   // so a link opens the notebook where it was shared and a reload keeps the place.
   const [url, setUrl] = useUrlState(notebookUrlSpec);
   const mobilePanel = url.panel;

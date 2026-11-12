@@ -153,7 +153,7 @@ beforeEach(() => {
   api.getNotebookSource.mockResolvedValue({ ...source, content: CONTENT });
 });
 
-describe("endereço do caderno (D-220)", () => {
+describe("endereço do caderno (D-218)", () => {
   it("opens on the panel the address names, and choosing another writes it back", async () => {
     window.history.replaceState(null, "", "/app/cadernos/4?aba=fontes");
     const user = userEvent.setup();
@@ -196,7 +196,7 @@ describe("endereço do caderno (D-220)", () => {
   });
 });
 
-describe("citação abre a fonte no trecho (D-220)", () => {
+describe("citação abre a fonte no trecho (D-218)", () => {
   it("opens the source, marks the cited passage and puts the source in the address", async () => {
     const user = userEvent.setup();
     render(wrap(<NotebookWorkspace id={4} />));
@@ -232,7 +232,7 @@ describe("citação abre a fonte no trecho (D-220)", () => {
   });
 });
 
-describe("carregando, vazio e erro (D-220)", () => {
+describe("carregando, vazio e erro (D-218)", () => {
   it("shows the shape of the workspace while the notebook loads", async () => {
     api.getNotebook.mockReturnValue(new Promise(() => {}));
     const { container } = render(wrap(<NotebookWorkspace id={4} />));
@@ -267,7 +267,7 @@ describe("carregando, vazio e erro (D-220)", () => {
   });
 });
 
-describe("cabeçalho do caderno: ações (D-220)", () => {
+describe("cabeçalho do caderno: ações (D-218)", () => {
   it("has one primary, the quiet secondary and the ⋯ menu with rename, duplicate, archive and delete", async () => {
     const user = userEvent.setup();
     render(wrap(<NotebookWorkspace id={4} />));
@@ -321,7 +321,7 @@ describe("cabeçalho do caderno: ações (D-220)", () => {
   });
 });
 
-describe("lista: duplicar, arquivar e ver os arquivados (D-220)", () => {
+describe("lista: duplicar, arquivar e ver os arquivados (D-218)", () => {
   it("the card menu duplicates and archives", async () => {
     api.listNotebooks.mockResolvedValue([summary()]);
     api.duplicateNotebook.mockResolvedValue(notebook({ id: 9 }));

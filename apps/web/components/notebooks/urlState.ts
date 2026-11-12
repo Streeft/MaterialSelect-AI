@@ -23,7 +23,7 @@ export const idCodec: UrlCodec<number | null> = {
 };
 
 /**
- * A notebook's address (D-220): `?aba=` the panel on a narrow screen,
+ * A notebook's address (D-218): `?aba=` the panel on a narrow screen,
  * `?fonte=` the source being read, `?artefato=` the Studio item that is open.
  * The notebook itself is the path, `/app/cadernos/4`.
  */

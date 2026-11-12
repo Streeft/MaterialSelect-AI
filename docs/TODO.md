@@ -584,7 +584,7 @@ uso; as três primeiras são decisão ou conferência do autor.
 - **Excluir registro próprio em lote.** Hoje a exclusão de material não é desfazível no servidor; "Desfazer" em lote pede um
   caminho de arquivar material antes.
 
-**Cadernos — pendências deixadas pela revisão das telas (D-220).**
+**Cadernos — pendências deixadas pela revisão das telas (D-218).**
 
 - **Citação com a posição do trecho.** O backend copia o `excerpt` mas não onde ele está na fonte; o leitor o acha por
   palavras (`locateExcerpt`) e, não achado, mostra o trecho à parte. Guardar `char_start`/`char_end` por trecho (migração em
@@ -1794,6 +1794,6 @@ Registrados para não voltarem por engano:
   (ver [DECISIONS.md](DECISIONS.md) D-22). Reaplicável e auditável por
   `scripts/protect-main.ps1`, que é idempotente.
 
-**Importar, Admin, Início, Entrar e Assinatura — pendências (D-221).**
+**Importar, Admin, Início, Entrar e Assinatura — pendências (D-222).**
 - Árvore de classes editável no Admin: pede um `PATCH /api/classes/{id}` só de `parent_id` (o `PUT` apaga `applications` e `characteristics`).
 - Início: "Último mapa" com os filtros (guardar a URL completa, hoje só o caminho); editar propriedade no Admin.

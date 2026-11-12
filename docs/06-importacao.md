@@ -60,7 +60,7 @@ Antes do primeiro material o job é reivindicado por um `UPDATE` condicional
 (`VALIDADO → IMPORTADO`); uma segunda chamada simultânea ou repetida recebe 409
 e não cria nada (D-176).
 
-## Relatório por célula e voltar entre os passos ([D-221](DECISIONS.md))
+## Relatório por célula e voltar entre os passos ([D-222](DECISIONS.md))
 
 `RowReport.cells` traz o texto do arquivo, por cabeçalho, das linhas que não passaram (vazia = `null`, nunca zero). A tela marca a
 célula que `issue.column` aponta, com a mensagem sob o valor, e mostra até 50 linhas. Cada passo tem "Voltar"; o arquivo enviado

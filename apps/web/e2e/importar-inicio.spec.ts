@@ -2,7 +2,7 @@ import path from "node:path";
 import { test, expect } from "./session";
 
 /**
- * D-221: o erro por célula na validação da importação, o "Voltar" entre os passos,
+ * D-222: o erro por célula na validação da importação, o "Voltar" entre os passos,
  * e o Início com o guia de primeiros passos e os atalhos — num navegador de verdade.
  */
 

@@ -142,7 +142,7 @@ function wrap(node: ReactNode) {
 }
 
 beforeEach(() => {
-  // The address is the notebook's state (D-220): one test's open item must not open the next.
+  // The address is the notebook's state (D-218): one test's open item must not open the next.
   window.history.replaceState(null, "", "/");
   vi.clearAllMocks();
   api.listStudio.mockResolvedValue({ artifacts: [], usage: { used: 0, limit: 10, remaining: 10 } });

@@ -27,7 +27,7 @@ function readStored(key: string): string | null {
 }
 
 /**
- * "Continue de onde parou" (D-221): the last selection, the last map and the
+ * "Continue de onde parou" (D-222): the last selection, the last map and the
  * latest notebook, from what already exists — the Selection's local draft
  * (D-139), the pages the menu remembers (D-207) and the notebooks list. No
  * endpoint of its own. A card that has nothing behind it is not drawn, and with

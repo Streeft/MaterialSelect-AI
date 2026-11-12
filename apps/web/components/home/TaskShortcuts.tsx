@@ -4,7 +4,7 @@ import { Section } from "@/components/ui";
 
 const t = ptBR.home;
 
-/** What someone comes to do, each a link to the tool that does it (D-221). */
+/** What someone comes to do, each a link to the tool that does it (D-222). */
 export function TaskShortcuts() {
   return (
     <Section title={t.tasksTitle}>

@@ -8,7 +8,7 @@ import LoginPage from "./entrar/page";
 import BillingPage from "./assinatura/page";
 import { StartScreen } from "@/components/marketing/StartScreen";
 
-/** D-221: the front door says what the app does and where to enter; the billing page never promises a block that does not exist. */
+/** D-222: the front door says what the app does and where to enter; the billing page never promises a block that does not exist. */
 
 const billing = vi.hoisted(() => ({ mode: "open" as "open" | "subscription" }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams("") }));

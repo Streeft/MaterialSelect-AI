@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-describe("admin/propriedades (D-221)", () => {
+describe("admin/propriedades (D-222)", () => {
   it("valida nome, repetição e unidade no campo, sem enviar", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");

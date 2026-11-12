@@ -30,7 +30,7 @@ const t = ptBR.notebooks;
 export default function NotebooksPage() {
   const client = useQueryClient();
   const router = useRouter();
-  // D-220: the archived ones are a view of the same list, kept in the address.
+  // D-218: the archived ones are a view of the same list, kept in the address.
   const [{ archived }, setView] = useUrlState(notebooksListUrlSpec);
   const notebooks = useQuery({
     queryKey: [...NOTEBOOKS_KEY, archived ? "arquivados" : "ativos"],

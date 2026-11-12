@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 afterEach(() => window.localStorage.clear());
 
-describe("ResumeWork (D-221)", () => {
+describe("ResumeWork (D-222)", () => {
   it("não desenha nada quando não há o que retomar", async () => {
     const { container } = render(<ResumeWork />, { wrapper });
     await act(async () => {});
@@ -92,7 +92,7 @@ describe("ResumeWork (D-221)", () => {
   });
 });
 
-describe("FirstUseGuide (D-221)", () => {
+describe("FirstUseGuide (D-222)", () => {
   it("lembra o que foi marcado e some quando dispensado, só neste aparelho", async () => {
     const user = userEvent.setup();
     const { container, unmount } = render(<FirstUseGuide />);
@@ -123,7 +123,7 @@ describe("FirstUseGuide (D-221)", () => {
   });
 });
 
-describe("TaskShortcuts (D-221)", () => {
+describe("TaskShortcuts (D-222)", () => {
   it("lista as tarefas como links, sem violações", async () => {
     const { container } = render(<TaskShortcuts />);
     expect(screen.getByRole("link", { name: /Importar uma planilha/ })).toHaveAttribute("href", "/app/importar");
@@ -133,7 +133,7 @@ describe("TaskShortcuts (D-221)", () => {
   });
 });
 
-describe("CatalogNews (D-221)", () => {
+describe("CatalogNews (D-222)", () => {
   const base = {
     slug: "granta-2026", name: "Catálogo oficial", release: "2026.1", lineage: "x", license_label: "",
     provenance: null, source_sha256: "", is_active: true, is_demo: false, created_at: "2026-10-01T00:00:00Z",

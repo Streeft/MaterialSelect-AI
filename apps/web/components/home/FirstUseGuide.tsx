@@ -65,7 +65,7 @@ function write(state: GuideState): void {
 }
 
 /**
- * "Primeiros passos" (D-221): three steps to the first study, a checklist the
+ * "Primeiros passos" (D-222): three steps to the first study, a checklist the
  * reader can dismiss. What it remembers — which steps were ticked, and that it
  * was dismissed — stays in this browser (try/catch: storage can be off); it is
  * a convenience, never product data. Drawn only after mount, so the server

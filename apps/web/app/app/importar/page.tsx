@@ -60,7 +60,7 @@ import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 /** The backend refuses more than this; saying so before sending saves a round trip. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-/** Why a file cannot be sent, or null when it can (D-221). */
+/** Why a file cannot be sent, or null when it can (D-222). */
 function fileProblem(file: File): string | null {
   if (!/\.(csv|xlsx)$/i.test(file.name)) return t.errorFileType;
   if (file.size === 0) return t.errorFileEmpty;

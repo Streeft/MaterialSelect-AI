@@ -197,7 +197,7 @@ export const ptBR = {
     confirmDeleteClass: (name: string) => `Excluir a classe "${name}"?`,
     confirmDeleteProperty: (name: string) => `Excluir a propriedade "${name}"?`,
     confirmDeleteBody: "A exclusão é definitiva e não pode ser desfeita.",
-    // D-221: inline validation, said at the field, and the hierarchy of classes.
+    // D-222: inline validation, said at the field, and the hierarchy of classes.
     errorNameRequired: "Informe o nome.",
     errorClassDuplicate: "Já existe uma classe com este nome.",
     errorPropertyDuplicate: "Já existe uma propriedade com este nome.",
@@ -313,7 +313,7 @@ export const ptBR = {
     historyEmpty: "Nenhuma importação realizada.",
     historyLoading: "Carregando o histórico de importações",
     historyError: "Não foi possível carregar o histórico",
-    // D-221: back between the steps, the file kept, and the checks before sending.
+    // D-222: back between the steps, the file kept, and the checks before sending.
     back: "Voltar",
     backToFile: "Voltar ao arquivo",
     backToMapping: "Voltar ao mapeamento",
@@ -1741,7 +1741,7 @@ export const ptBR = {
     remove: "Excluir caderno",
     cardMenu: (title: string) => `Ações de “${title}”`,
     rename: "Renomear",
-    // D-220: duplicar, arquivar, endereço da aba, abrir a fonte no trecho.
+    // D-218: duplicar, arquivar, endereço da aba, abrir a fonte no trecho.
     duplicate: "Duplicar",
     open: "Abrir",
     duplicating: "Duplicando…",
@@ -3713,7 +3713,7 @@ export const ptBR = {
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
     compareHint: "Tabela, barras, radar e mapa de calor sobre valores normalizados.",
     importHint: "Traga uma planilha CSV ou XLSX com validação linha a linha.",
-    // D-221: o que o início devolve a quem volta, sem endpoint novo — o rascunho
+    // D-222: o que o início devolve a quem volta, sem endpoint novo — o rascunho
     // da seleção vive neste navegador, o mapa vem das páginas vistas, o caderno
     // da lista que já existe.
     resumeTitle: "Continue de onde parou",
@@ -3728,7 +3728,7 @@ export const ptBR = {
     resumeNotebook: "Caderno recente",
     resumeNotebookSources: (n: number) => `${n} ${n === 1 ? "fonte" : "fontes"}`,
     resumeNotebookOpen: "Abrir o caderno",
-    // Atalhos: o que se faz, não onde fica. Substitui “Ou explore os dados”.
+    // Atalhos: o que se faz, não onde fica. “Ou explore os dados” continua abaixo.
     tasksTitle: "O que você quer fazer?",
     tasks: [
       { href: "/app/selecao", label: "Escolher um material", hint: "Da função da peça ao ranking, com cada limite à vista." },
@@ -3764,10 +3764,10 @@ export const ptBR = {
     loginButton: "Entrar com Google",
     loginHint:
       "Usamos apenas seu nome, e-mail e foto do Google para identificar sua sessão.",
-    // D-221: o que a pessoa precisa saber antes de clicar, e a saída para quem chegou por engano.
+    // D-222: o que a pessoa precisa saber antes de clicar, e a saída para quem chegou por engano.
     loginAccess: "Não é preciso assinar nem pagar: o acesso é aberto a qualquer conta Google.",
     loginBack: "Voltar à página inicial",
-    // D-221: a página inicial em uma tela — o que o app faz e o caminho para entrar.
+    // D-222: a página inicial em uma tela — o que o app faz e o caminho para entrar.
     landingPoints: [
       { title: "Descreva a função", text: "Do que a peça precisa fazer ao índice de mérito, com cada limite à vista." },
       { title: "Compare no mapa", text: "Mapas de Ashby, tabelas e radar sobre os mesmos valores cadastrados." },
@@ -3797,7 +3797,7 @@ export const ptBR = {
 
   billing: {
     title: "Assinatura",
-    // D-221: only said when the server is set to require a subscription; in the
+    // D-222: only said when the server is set to require a subscription; in the
     // open access of D-208 there is nothing to buy and the page says so.
     inactiveSubtitle: "Esta instalação exige uma assinatura ativa para usar o MaterialSelect AI.",
     activeSubtitle: "Sua assinatura está ativa.",

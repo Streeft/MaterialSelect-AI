@@ -34,7 +34,7 @@ const STATUS: Record<RowReport["status"], { tone: BadgeTone; label: string; row?
 const CELL_ROWS_LIMIT = 50;
 
 /**
- * The rows that did not pass, cell by cell (D-221) — the way Flatfile and
+ * The rows that did not pass, cell by cell (D-222) — the way Flatfile and
  * Airtable show an import: the line as the file had it, the cell the report
  * points at marked. The mark is a border, a word for readers who do not see
  * colour, and the message under the value. Nothing is invented: an empty cell

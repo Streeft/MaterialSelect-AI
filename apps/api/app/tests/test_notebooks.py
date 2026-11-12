@@ -768,7 +768,7 @@ def test_notebooks_need_login(anon_client):
     assert anon_client.get("/api/notebooks").status_code == 401
 
 
-# --- arquivar e duplicar (D-220) ---------------------------------------------
+# --- arquivar e duplicar (D-218) ---------------------------------------------
 
 
 def test_archiving_hides_a_notebook_from_the_default_list_and_brings_it_back(client):

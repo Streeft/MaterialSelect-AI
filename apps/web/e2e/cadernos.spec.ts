@@ -372,7 +372,7 @@ test("Estúdio: resumo em áudio — a voz lê e a fala destacada avança", asyn
 });
 
 /**
- * D-220: a notebook has an address. The panel on a phone, the source being
+ * D-218: a notebook has an address. The panel on a phone, the source being
  * read and the cited passage survive a reload and open from a link; and the
  * notebook can be duplicated and archived from its own header.
  */

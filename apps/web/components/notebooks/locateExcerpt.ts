@@ -1,5 +1,5 @@
 /**
- * Where a cited passage sits in the source it came from (D-220).
+ * Where a cited passage sits in the source it came from (D-218).
  *
  * The backend copies the passage into the citation as `excerpt` but not its
  * position, and a passage is the source's paragraphs joined with single spaces

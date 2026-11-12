@@ -120,7 +120,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 178 — 12/11/26 — Importar, Admin, Início, Entrar e Assinatura (D-221)
+## Sessão 179 — 12/11/26 — Importar, Admin, Início, Entrar e Assinatura (D-222)
 
 **O que mudou.** Etapa "Importar, Admin, Início, Entrar e Assinatura" (parte 6). Backend: `RowReport.cells` no relatório de validação.
 Frontend: grade "Células com problema" no Importar, "Voltar" entre os passos, checagem do arquivo antes de enviar, histórico com
@@ -130,7 +130,7 @@ Testes: `test_imports_api.py` (células), `importar.test.tsx`, `inicio.test.tsx`
 `admin/propriedades/page.test.tsx`, `entradaSemPromessa.test.tsx` e o E2E `importar-inicio.spec.ts`.
 
 **Para quem retoma.** Árvore de classes editável espera um `PATCH` de `parent_id` (o `PUT` apagaria `applications` e `characteristics`).
-A duplicata D-218/Sessão 175 foi desfeita: Cadernos é D-220/Sessão 177. Depois do merge: **Deploy da API** (sem migração).
+Entrou como D-221/Sessão 178 e passou a D-222/Sessão 179 (a F5 tomou a D-221 na `main`). Depois do merge: **Deploy da API** (sem migração).
 
 ---
 
@@ -174,7 +174,7 @@ Painel conferido (já estava na URL, com `figure` nomeado e sem `setState` no re
 `test_process_matrix.py`, `myRecordsFilter.test.ts`, `meus-registros.test.tsx`, `processos.test.tsx`, `glossario.test.tsx`,
 `wizardState.test.ts`, `SweepSection.test.tsx`, `sintetizar.test.tsx`, `painel.test.tsx`.
 
-## Sessão 177 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-220)
+## Sessão 175 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-218)
 
 **O que mudou.** Etapa "Cadernos" (parte 4). Backend: `notebook.archived_at` (migração `d218a5c0a1b2`), `PATCH` com `archived`,
 `GET /api/notebooks?archived=true`, `POST /api/notebooks/{id}/duplicate` (fontes, trechos, vetores e notas copiados como
@@ -190,8 +190,6 @@ arquiva.
 **Para quem retoma.** O endereço é a fonte da verdade da aba, da fonte lida e do item do Estúdio: os testes de tela que
 renderizam o caderno precisam limpar `window.location` entre os casos, ou o item aberto de um abre o do seguinte. Depois do
 merge: **Deploy da API** e **Administração do banco** (migrar).
-
-**Numeração.** Era D-218/Sessão 175, duplicada com a F4; a F4 fica com D-218/Sessão 175 e esta passou a D-220/Sessão 177. O arquivo e o id da migração (`d218a5c0a1b2`) não mudam.
 
 ---
 

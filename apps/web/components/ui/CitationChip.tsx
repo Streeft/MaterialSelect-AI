@@ -33,7 +33,7 @@ export function CitationChip({
    * passage as secondary text. Optional metadata, not a data value: when there
    * is none, nothing is drawn — never a dash or an empty line. */
   credit?: ReactNode;
-  /** D-220: opens the source itself at this passage, from a button under it. */
+  /** D-218: opens the source itself at this passage, from a button under it. */
   onOpenSource?: () => void;
   /** Its accessible name: "Abrir “Apostila” no trecho citado". */
   openSourceLabel?: string;

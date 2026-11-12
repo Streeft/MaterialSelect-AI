@@ -184,7 +184,7 @@ class NotebookService:
         return self.get(notebook_id)
 
     def duplicate(self, notebook_id: int) -> NotebookOut:
-        """A copy of the notebook's sources, passages and notes (D-220).
+        """A copy of the notebook's sources, passages and notes (D-218).
 
         Nothing is re-read, re-embedded or re-generated: the text and the
         vectors are copied as stored, so a copy costs no daily quota and
