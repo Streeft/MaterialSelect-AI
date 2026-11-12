@@ -1212,6 +1212,7 @@ export const ptBR = {
     colDistance: "Distância",
     cellLabel: (column: string, row: string) => `${column}, ${row}`,
     howToFill: "Como preencher",
+    componentNamePlaceholder: "Ex.: tampa",
     noProcessShort: "Nenhum processo cadastrado faz este material.",
     unitKg: "kg",
     unitKm: "km",

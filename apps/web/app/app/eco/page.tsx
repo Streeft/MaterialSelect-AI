@@ -104,6 +104,10 @@ function emptyComponent(key: number): ComponentDraft {
   };
 }
 
+function LiveError({ error }: { error: unknown }) {
+  return error ? <Alert tone="danger">{describeApiError(error, t.title)}</Alert> : null;
+}
+
 function Updating() {
   return <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>;
 }
@@ -190,7 +194,7 @@ function ComponentsTable({
             return (
               <Input
                 label={cell(t.colName)}
-                placeholder={t.componentNameHint}
+                placeholder={t.componentNamePlaceholder}
                 value={draft.name}
                 maxLength={120}
                 onChange={(event) => onPatch(draft.key, { name: event.target.value })}
@@ -1343,11 +1347,9 @@ export default function EcoPage() {
         </ParamsPanel>
 
         <ResultPanel busy={live.updating}>
-          {live.error ? (
-            <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
-          ) : null}
           {modeChoice === "individual" ? (
             <StepCard title={t.resultStep} actions={live.updating ? <Updating /> : undefined}>
+              <LiveError error={live.error} />
               {result ? (
                 <>
                   <EcoExportMenu brief={resultBrief} />
@@ -1393,12 +1395,13 @@ export default function EcoPage() {
                     <span>{t.productSummary(result.components.length, result.transport_legs.length)}</span>
                   </div>
                 </>
-              ) : (
+              ) : live.error ? null : (
                 <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           ) : (
             <StepCard title={t.compareResultStep} actions={live.updating ? <Updating /> : undefined}>
+              <LiveError error={live.error} />
               {compareResult ? (
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -1454,7 +1457,7 @@ export default function EcoPage() {
                     />
                   </div>
                 </div>
-              ) : (
+              ) : live.error ? null : (
                 <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>

@@ -431,6 +431,6 @@ describe("Dimensionar", () => {
     await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(
       screen.getByRole("link", { name: ptBR.cost.fromSolver }),
-    ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402");
+    ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402&origem=dimensionar");
   });
 });

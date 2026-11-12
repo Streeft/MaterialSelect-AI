@@ -1286,6 +1286,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
       material_name: "Compósito",
     }),
   runEcoAudit: () => Promise.resolve(ecoResult),
+  compareEcoAudits: () => new Promise(() => {}),
   listBatteryChemistries: () => Promise.resolve(batteryChemistries),
   listBatteryArchetypes: () => Promise.resolve(batteryArchetypes),
   designBatteryPack: () => Promise.resolve(null),

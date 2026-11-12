@@ -521,7 +521,7 @@ export default function DimensionarPage() {
                   </div>
                 ) : null}
               </>
-            ) : (
+            ) : live.error ? null : (
               <EmptyState
                 title={t.resultIdleTitle}
                 description={blockedReason ?? t.resultIdleHint}

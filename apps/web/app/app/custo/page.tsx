@@ -285,7 +285,7 @@ export default function CustoPage() {
                   </div>
                 ) : null}
               </>
-            ) : (
+            ) : live.error ? null : (
               <EmptyState title={t.resultIdleTitle} description={blockedReason ?? t.resultIdleHint} />
             )}
           </StepCard>

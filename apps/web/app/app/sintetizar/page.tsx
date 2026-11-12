@@ -610,7 +610,7 @@ export default function SintetizarPage() {
                     </div>
                   ) : null}
                 </>
-              ) : (
+              ) : live.error ? null : (
                 <EmptyState
                   title={t.previewIdleTitle}
                   description={recipeBlocked ?? t.previewIdleHint}
