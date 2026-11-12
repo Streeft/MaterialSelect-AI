@@ -1592,7 +1592,7 @@ async function expectClean(container: Element) {
 describe("acessibilidade das telas principais", () => {
   beforeEach(() => {
     nav.query = "";
-    // The notebook keeps its open Studio item in the address (D-218): one audit must not open the next one's.
+    // The notebook keeps its open Studio item in the address (D-220): one audit must not open the next one's.
     window.history.replaceState(null, "", "/");
   });
 

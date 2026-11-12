@@ -12867,7 +12867,7 @@ agir sobre o que não está na tela). A consulta continua lendo as linhas casada
 catálogo crescer muito, mover filtros e contagens para SQL. Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
-## D-218 — Cadernos: endereço por painel, fonte aberta no trecho citado, duplicar e arquivar
+## D-220 — Cadernos: endereço por painel, fonte aberta no trecho citado, duplicar e arquivar
 
 **Contexto.** Etapa "Cadernos" da revisão das telas (parte 4). Já existiam e foram mantidos: as três colunas Fontes | Conversa |
 Estúdio com alças de arrastar acessíveis e Estúdio dobrado abaixo de `xl` (D-143), abas por painel abaixo de `lg`, o menu "⋯" do
@@ -12905,6 +12905,8 @@ o carregamento era um spinner e o cabeçalho tinha dois botões soltos sem hiera
 **Fora.** Posição do trecho no servidor, para o link com trecho sobreviver ao recarregar. Mover a conversa e o Estúdio na
 duplicação. Arquivar em lote. Toca `apps/api` **com migração**: depois do merge, **Deploy da API** e a **Administração do
 banco** (migrar) antes de usar a lista de arquivados em produção.
+
+**Numeração.** Esta entrada nasceu como D-218/Sessão 175, em duplicata com a F4 (que fica com D-218/Sessão 175). Renumerada para D-220/Sessão 177. A migração mantém o nome e o id `d218a5c0a1b2` (já aplicável; o id de revisão não se renomeia).
 
 
 ## D-219 — Processos (matriz, capacidade, comparação), Glossário, Sintetizar, Painel e Meus registros

@@ -132,7 +132,7 @@ Painel conferido (já estava na URL, com `figure` nomeado e sem `setState` no re
 `test_process_matrix.py`, `myRecordsFilter.test.ts`, `meus-registros.test.tsx`, `processos.test.tsx`, `glossario.test.tsx`,
 `wizardState.test.ts`, `SweepSection.test.tsx`, `sintetizar.test.tsx`, `painel.test.tsx`.
 
-## Sessão 175 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-218)
+## Sessão 177 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-220)
 
 **O que mudou.** Etapa "Cadernos" (parte 4). Backend: `notebook.archived_at` (migração `d218a5c0a1b2`), `PATCH` com `archived`,
 `GET /api/notebooks?archived=true`, `POST /api/notebooks/{id}/duplicate` (fontes, trechos, vetores e notas copiados como
@@ -148,6 +148,8 @@ arquiva.
 **Para quem retoma.** O endereço é a fonte da verdade da aba, da fonte lida e do item do Estúdio: os testes de tela que
 renderizam o caderno precisam limpar `window.location` entre os casos, ou o item aberto de um abre o do seguinte. Depois do
 merge: **Deploy da API** e **Administração do banco** (migrar).
+
+**Numeração.** Era D-218/Sessão 175, duplicada com a F4; a F4 fica com D-218/Sessão 175 e esta passou a D-220/Sessão 177. O arquivo e o id da migração (`d218a5c0a1b2`) não mudam.
 
 ---
 ## Sessão 175 — 12/11/26 — F4 por cima das calculadoras da D-216: bancadas ao vivo (D-218)

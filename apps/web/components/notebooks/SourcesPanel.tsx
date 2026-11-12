@@ -38,7 +38,7 @@ export function SourcesPanel({
   expanded: boolean;
   onToggle?: () => void;
   /**
-   * D-218: the workspace owns the "Adicionar fontes" action (it is the page's
+   * D-220: the workspace owns the "Adicionar fontes" action (it is the page's
    * primary) and the reader (its address is `?fonte=`). Left out, the panel
    * keeps both itself, as it did before.
    */

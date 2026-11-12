@@ -1710,7 +1710,7 @@ export const ptBR = {
     remove: "Excluir caderno",
     cardMenu: (title: string) => `Ações de “${title}”`,
     rename: "Renomear",
-    // D-218: duplicar, arquivar, endereço da aba, abrir a fonte no trecho.
+    // D-220: duplicar, arquivar, endereço da aba, abrir a fonte no trecho.
     duplicate: "Duplicar",
     open: "Abrir",
     duplicating: "Duplicando…",

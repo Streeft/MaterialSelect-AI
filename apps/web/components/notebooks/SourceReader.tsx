@@ -28,7 +28,7 @@ export function SourceReader({
 }: {
   notebookId: number;
   source: NotebookSource | null;
-  /** The cited passage to find and mark in the text (D-218); none opens the source from its top. */
+  /** The cited passage to find and mark in the text (D-220); none opens the source from its top. */
   excerpt?: string | null;
   onClose: () => void;
 }) {

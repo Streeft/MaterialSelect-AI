@@ -10,7 +10,7 @@ import { NOTEBOOKS_KEY, notebookKey } from "./keys";
 const t = ptBR.notebooks;
 
 /**
- * Rename, duplicate and archive one notebook (D-218) — the verbs the list's
+ * Rename, duplicate and archive one notebook (D-220) — the verbs the list's
  * card and the notebook's own header share, so they cannot drift apart. Delete
  * stays with its callers: it navigates differently (D-130).
  *

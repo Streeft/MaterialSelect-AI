@@ -436,7 +436,7 @@ As regras que pesam:
   **não conta**. Falha do provedor devolve a unidade. Não há aviso de limite na
   tela (D-138).
 
-### Endereço, citação no trecho, duplicar e arquivar ([D-218](DECISIONS.md))
+### Endereço, citação no trecho, duplicar e arquivar ([D-220](DECISIONS.md))
 
 - **Endereço.** `/app/cadernos/{id}` com `?aba=` (`fontes`, `conversa`, `estudio`), `?fonte=` (fonte aberta) e `?artefato=`
   (item do Estúdio aberto); a lista, `?arquivados=1`. Tudo pelo `useUrlState`, parâmetro inválido cai no padrão.

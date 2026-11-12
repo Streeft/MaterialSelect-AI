@@ -584,7 +584,7 @@ uso; as três primeiras são decisão ou conferência do autor.
 - **Excluir registro próprio em lote.** Hoje a exclusão de material não é desfazível no servidor; "Desfazer" em lote pede um
   caminho de arquivar material antes.
 
-**Cadernos — pendências deixadas pela revisão das telas (D-218).**
+**Cadernos — pendências deixadas pela revisão das telas (D-220).**
 
 - **Citação com a posição do trecho.** O backend copia o `excerpt` mas não onde ele está na fonte; o leitor o acha por
   palavras (`locateExcerpt`) e, não achado, mostra o trecho à parte. Guardar `char_start`/`char_end` por trecho (migração em

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { locateExcerpt } from "./locateExcerpt";
 
-describe("locateExcerpt (D-218)", () => {
+describe("locateExcerpt (D-220)", () => {
   const content =
     "Introdução.\n\nO aço carbono tem densidade de 7850 kg/m³.\n\nO alumínio 6061 tem 2700 kg/m³.";
 

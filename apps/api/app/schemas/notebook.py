@@ -40,7 +40,7 @@ class NotebookUpdate(BaseModel):
     chat_goal: ChatGoal | None = None
     chat_instructions: str | None = Field(default=None, max_length=4000)
     response_length: ResponseLength | None = None
-    #: ``True`` archives the notebook, ``False`` brings it back (D-218).
+    #: ``True`` archives the notebook, ``False`` brings it back (D-220).
     archived: bool | None = None
 
 
