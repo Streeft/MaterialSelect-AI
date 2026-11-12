@@ -9,6 +9,8 @@ import { ptBR } from "@/lib/i18n";
 import { installWideViewport } from "@/lib/testing/viewport";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+import { suggestText } from "@/lib/i18n-suggest";
+import { decodeMapState } from "./url-state";
 import type {
   IndexLineOut,
   IndexLineRequest,
@@ -17,6 +19,7 @@ import type {
   PropertyDefinition,
   PropertyMap,
   PropertyMapRequest,
+  SuggestionsOut,
 } from "@/lib/types";
 
 allowLoadedRunner();
@@ -210,7 +213,11 @@ const getSavedChart = vi.fn((id: number) =>
   Promise.resolve({ id, name: "Metais leves", created_at: "2026-11-01", configuration: { scale: "linear" } }),
 );
 
+const suggestNextSteps = vi.fn<() => Promise<SuggestionsOut>>();
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: () => suggestNextSteps(),
   listProperties: () => Promise.resolve(properties),
   listClasses: () => Promise.resolve([]),
   listPerformanceIndices: () => Promise.resolve(indices),
@@ -520,5 +527,85 @@ describe("Mapas — mapas clássicos e linha de índice móvel (D-213)", () => {
     screen.getByTestId("plotly-mock").setAttribute("hidden", "");
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});
+
+describe("Mapas — Sugestão da IA (D-229)", () => {
+  function answer(): SuggestionsOut {
+    return {
+      tool: "mapas",
+      summary: "Três caminhos.",
+      suggestions: [
+        {
+          title: "Troque o eixo Y",
+          body: "A resistência tem mais valores.",
+          actions: [{ type: "set_axes", label: "Usar estes eixos", x: "densidade", y: "limite_escoamento" }],
+        },
+        {
+          title: "Abrir o mapa clássico",
+          body: "Leveza e resistência.",
+          actions: [{ type: "apply_preset", label: "Abrir este mapa", id: "resistencia-densidade" }],
+        },
+        {
+          title: "Índice do mapa",
+          body: "A linha do índice separa os melhores.",
+          actions: [{ type: "set_index", label: "Usar este índice", slug: "viga-leve-rigidez" }],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    };
+  }
+
+  beforeEach(() => {
+    suggestNextSteps.mockReset();
+    suggestNextSteps.mockResolvedValue(answer());
+  });
+
+  it("não consulta a IA ao abrir; “Usar estes eixos” troca os eixos no endereço", async () => {
+    const user = userEvent.setup();
+    await open();
+    expect(suggestNextSteps).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Usar estes eixos" }));
+    await waitFor(() => expect(query().get("estado")).not.toBeNull());
+    const state = decodeMapState(query().get("estado") ?? "");
+    expect(state?.xAxis.property).toBe("densidade");
+    expect(state?.yAxis.property).toBe("limite_escoamento");
+    await waitFor(() =>
+      expect(getPropertyMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({ x: "densidade", y: "limite_escoamento" }),
+      ),
+    );
+  });
+
+  it("“Abrir este mapa” aplica o mapa clássico e “Usar este índice” troca o índice", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Abrir este mapa" }));
+    await waitFor(() =>
+      expect(decodeMapState(query().get("estado") ?? "")?.yAxis.property).toBe("limite_escoamento"),
+    );
+    // On a narrow window the panel folds after an action; the answer is kept.
+    expect(screen.queryByRole("button", { name: "Usar este índice" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Usar este índice" }));
+    await waitFor(() =>
+      expect(decodeMapState(query().get("estado") ?? "")?.indexMode).toBe("viga-leve-rigidez"),
+    );
+  });
+
+  it("o contexto enviado é o que o mapa mostra: eixos e índice", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await screen.findByText("Troque o eixo Y");
+    expect(suggestNextSteps).toHaveBeenCalledTimes(1);
   });
 });

@@ -3517,3 +3517,10 @@ div[data-surface="rail"] .msds-rail-item {
   --m3-shadow: 0 0 0;
 }
 /* m3-roles:end */
+/* D-229: the AI suggestion cards — one column, two when the panel's own box
+   has room (the side of the map and the page's width are not the same thing). */
+.ai-suggest { container-type: inline-size; container-name: ai-suggest; min-width: 0; }
+.ai-suggest-cards { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); list-style: none; margin: 0; padding: 0; }
+@container ai-suggest (min-width: 40rem) {
+  .ai-suggest-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

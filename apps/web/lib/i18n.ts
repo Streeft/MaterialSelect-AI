@@ -2922,6 +2922,10 @@ export const ptBR = {
     presetsError: "Não foi possível carregar os mapas clássicos.",
     presetUnavailable: (names: string) => `O catálogo não define: ${names}.`,
     presetApplied: (name: string) => `Mapa clássico aplicado: ${name}.`,
+    // D-229: the answers to a click on an AI suggestion.
+    axesApplied: "Eixos do mapa trocados pela sugestão da IA.",
+    indexApplied: "Índice do mapa trocado pela sugestão da IA.",
+    aiMaterialsOnly: "As sugestões valem para o mapa de materiais.",
     customizeAlwaysHint:
       "Escala, envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
     selectionTitle: "Seleção no mapa",
