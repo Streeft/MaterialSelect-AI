@@ -436,7 +436,12 @@ def build_waterfall(phases: tuple[PhaseResult, ...], attribute: str, unit: str) 
             )
         )
     if complete:
-        total = WaterfallStep(phase="total", label="Total", value=running, start=0.0, end=running)
+        # The total bar carries the same number as the audit's own total, summed
+        # the same way: Python 3.12's ``sum`` is compensated, so a running ``+=``
+        # can differ from it in the last digit and the bar would disagree with
+        # the figure printed beside it.
+        value = sum(getattr(phase, attribute) for phase in phases)
+        total = WaterfallStep(phase="total", label="Total", value=value, start=0.0, end=value)
     else:
         total = WaterfallStep(
             phase="total",
