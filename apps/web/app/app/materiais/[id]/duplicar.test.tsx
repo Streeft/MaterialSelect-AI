@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { flowText } from "@/lib/i18n-flow";
+import { ptBR } from "@/lib/i18n";
 import type { MaterialDetail } from "@/lib/types";
 
 const push = vi.hoisted(() => vi.fn());
@@ -55,6 +56,12 @@ vi.mock("@/components/material/EquivalenceSection", () => ({ EquivalenceSection:
 
 const { default: MaterialPage } = await import("./page");
 
+/** D-214: duplicating lives in the header's "⋯" menu now, not as a button of its own. */
+async function chooseDuplicate() {
+  await userEvent.click(await screen.findByRole("button", { name: ptBR.ui.moreActions }));
+  await userEvent.click(await screen.findByRole("menuitem", { name: new RegExp(flowText.duplicate.button) }));
+}
+
 function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -74,7 +81,7 @@ describe("duplicar registro próprio (D-122)", () => {
   it("duplicates an own record and opens the copy", async () => {
     state.duplicate.mockResolvedValue(detail({ id: 9, name: "Liga do Bruno (cópia)" }));
     mount();
-    await userEvent.click(await screen.findByRole("button", { name: flowText.duplicate.button }));
+    await chooseDuplicate();
     await waitFor(() => expect(state.duplicate).toHaveBeenCalledWith(5));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/materiais/9"));
   });
@@ -82,7 +89,7 @@ describe("duplicar registro próprio (D-122)", () => {
   it("says why when the server refuses, and stays on the record", async () => {
     state.duplicate.mockRejectedValue(Object.assign(new Error("Só é possível duplicar um registro próprio."), { status: 400 }));
     mount();
-    await userEvent.click(await screen.findByRole("button", { name: flowText.duplicate.button }));
+    await chooseDuplicate();
     expect(await screen.findByRole("alert")).toHaveTextContent("duplicar um registro próprio");
     expect(push).not.toHaveBeenCalled();
   });
@@ -91,7 +98,7 @@ describe("duplicar registro próprio (D-122)", () => {
     state.current = detail({ is_own_record: false });
     mount();
     await screen.findByRole("heading", { name: "Liga do Bruno" });
-    expect(screen.queryByRole("button", { name: flowText.duplicate.button })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: new RegExp(flowText.duplicate.button) })).toBeNull();
   });
 
   it("names the original on a copy, with a link back", async () => {

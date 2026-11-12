@@ -1644,6 +1644,23 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<MaterialPage />, ptBR.detail.position);
   });
 
+  // D-214: the sheet opens with its long blocks folded and only mounts them once
+  // opened, so the audit above sees the folded page. This one opens every folded
+  // section (and the map, which asks for its figure then) and audits what appears.
+  it("ficha do material, com todas as seções abertas", async () => {
+    const user = userEvent.setup();
+    const client = makeClient();
+    const { container } = render(wrap(<MaterialPage />, client));
+    await screen.findByRole("heading", { name: ptBR.detail.position });
+    for (const id of ["semelhantes", "mapa", "equivalencias", "ordinais", "curvas"]) {
+      const summary = container.querySelector(`#${id} > details > summary`);
+      expect(summary, id).not.toBeNull();
+      await user.click(summary as HTMLElement);
+    }
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await expectClean(container);
+  });
+
   it("sistema de design", async () => {
     await auditRoute(<StylePage />, ptBR.styleGuide.title);
   });

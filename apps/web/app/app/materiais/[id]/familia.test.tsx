@@ -72,10 +72,12 @@ describe("nota da família na ficha do material (D-151)", () => {
     const summary = await screen.findByText(ptBR.familyNotes.about("Metais"));
     const details = summary.closest("details");
     expect(details?.open).toBe(false);
-    // Same header card as the material's name and class.
-    const card = screen.getByRole("heading", { level: 1, name: "Liga X" }).closest("div.min-w-0");
+    // D-214: the name is the page header's h1 now; the note stays in the card
+    // that holds the class and the description, right under the class.
+    expect(screen.getByRole("heading", { level: 1, name: "Liga X" })).toBeInTheDocument();
+    const card = details!.closest(".msds-card");
     expect(card).not.toBeNull();
-    expect(card!.contains(details)).toBe(true);
-    expect(screen.getByText("Liga leve")).toBeInTheDocument();
+    expect(card).toHaveTextContent("Metais");
+    expect(card).toHaveTextContent("Liga leve");
   });
 });

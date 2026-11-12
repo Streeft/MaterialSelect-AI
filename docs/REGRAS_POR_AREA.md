@@ -447,7 +447,14 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212, D-213)
+## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212, D-213, D-214)
+
+**Comparar e Ficha (D-214).** "Melhor" de uma propriedade e "todos iguais" vêm do backend (`best_material_ids`, `all_equal`,
+`domain/spread.best_ids`); o componente não decide se maior ou menor ganha. Seção longa da ficha usa `CollapsibleSection`
+(heading no resumo de um `<details>`, `<section id>` sempre renderizada, corpo montado só depois de aberto), e dado que só
+ela usa é pedido ao abrir (`enabled` pela seção aberta). Largura do sumário e do par composição/designações decide por
+consulta de contêiner (`.sheet-layout`, `.sheet-pair`), nunca pela janela. A ficha tem uma ação primária no `PageHeader` e o
+resto no "⋯". Radar acima de 12 materiais completos sugere outra visão e pede confirmação para desenhar; a seleção nunca é cortada.
 
 **Mapas (D-213).** A linha de índice móvel vem de `POST /api/charts/index-line` (segmento, alça, lados, passos); o
 cliente só manda o nível escolhido entre os `steps` ou o ponto do ponteiro em coordenadas de dado (`p2d` do Plotly), nunca

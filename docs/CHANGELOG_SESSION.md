@@ -120,6 +120,23 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 171 — 12/11/26 — Comparar e Ficha: melhor por propriedade, só diferenças, ficha dobrada (D-214)
+
+**O que mudou.** Etapa 3.3. Backend: `CompareAxisOut.best_material_ids` e `all_equal` (regra em `domain/spread.best_ids`:
+direção declarada da propriedade, empates incluídos, nada para neutra, para menos de dois valores ou para todos iguais).
+Comparar: "Melhor" na célula, "Só diferenças" (esconde e nomeia as colunas iguais ou ausentes em todos), `?visao=` e
+`?diferencas=1` no endereço, estado vazio com favoritos e vistos recentemente (`CompareSuggestions`, o mesmo `my-records`),
+radar que acima de 12 materiais sugere paralelas, heatmap ou tabela e deixa "desenhar mesmo assim", `TableSkeleton` e
+`ChartSkeleton` na espera, e `ComparisonFigures.tsx` (1.187 linhas) dividido em `charts/figures/*` com reexport. Ficha:
+`PageHeader` com uma primária e o "⋯", faixa de resumo (processos e parecidos), sumário lateral por consulta de contêiner,
+seções em `CollapsibleSection` (parecidos, mapa, equivalências, ordinais e curvas dobrados e só montados ao abrir), gráfico
+sob demanda e os seletores de unidade num só `Disclosure`. Testes: `test_compare_threshold_computed.py` (best_ids, eixo com
+`best_material_ids`/`all_equal`), `ComparisonView.reading.test.tsx`, `CompareSuggestions.test.tsx`, `compare-link.view.test.ts`,
+`comparar-vazio.test.tsx`, `ficha-layout.test.tsx` (dobrado/aberto, sumário, hash, resumo, ações, 404 × falha, axe), a
+auditoria axe da ficha com tudo aberto em `routes.a11y.test.tsx`, ajustes em `duplicar`, `familia` e nos testes de 200/600
+materiais, e o E2E `e2e/ficha-comparar.spec.ts`. Fora: citação ABNT (a ficha não recebe os campos da fonte) e "top do último
+estudo". Sem migração nem seed. Depois do merge: **Deploy da API**.
+
 ## Sessão 170 — 12/11/26 — Mapas: seleção que vira filtro, linha móvel, mapas clássicos (D-213)
 
 **O que mudou.** Etapa 3.2 (inspiração: Ansys Granta Selector). `app/app/mapas/page.tsx` virou orquestração com

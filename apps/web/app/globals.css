@@ -1713,6 +1713,25 @@ div[data-surface="rail"] .msds-rail-item {
 @container index-picker (min-width: 30rem) {
   .index-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* D-214: the material sheet's frame. The outline sits beside the sections only
+   when the sheet's own box has room for it (the dark sidebar already took its
+   share of the window); below that it is a wrapping row above them. The pair of
+   composition/designations splits by its own width for the same reason. */
+.sheet-layout { container-type: inline-size; container-name: sheet-layout; min-width: 0; }
+.sheet-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sheet-outline-title { display: none; }
+.sheet-outline-list { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+@container sheet-layout (min-width: 64rem) {
+  .sheet-grid { grid-template-columns: 11rem minmax(0, 1fr); gap: 24px; }
+  .sheet-outline { position: sticky; top: 72px; }
+  .sheet-outline-title { display: block; margin-bottom: 4px; }
+  .sheet-outline-list { flex-direction: column; flex-wrap: nowrap; gap: 0; }
+}
+.sheet-pair { container-type: inline-size; container-name: sheet-pair; min-width: 0; }
+.sheet-pair-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+@container sheet-pair (min-width: 48rem) {
+  .sheet-pair-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .similar-weights { container-type: inline-size; container-name: similar-weights; min-width: 0; }
 .similar-weight-row { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 @container similar-weights (min-width: 30rem) {

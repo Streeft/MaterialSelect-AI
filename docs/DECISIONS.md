@@ -12653,3 +12653,55 @@ célula; a tabela com caixas de marcar nativas basta).
 **Fora.** A Seleção ainda não recebe uma lista de ids (o laço vai para o Comparar e para o filtro); a figura para relatório
 usa as cores do tema da tela (no escuro, sai escura); os botões da barra do Plotly continuam dentro do `role="img"` do
 mapa (axe `nested-interactive`, achado antigo da auditoria). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+
+## D-214 — Comparar e Ficha do material: o melhor por propriedade, só diferenças, estado vazio com atalhos e a ficha dobrada
+
+**Contexto.** Etapa 3.3 da revisão das telas. A auditoria achou o Comparar sem estado vazio útil ("Nenhum material escolhido
+ainda", sem caminho), o radar ilegível com dezenas de materiais e `ComparisonFigures.tsx` com 1.184 linhas; e a ficha com mais
+de 7.000 px: ~40 seletores "Ler em…" antes das propriedades, "Materiais semelhantes" aberto com 40+ caixas e pesos, o
+gráfico pedido a toda visita, sete ações no cabeçalho para um registro próprio. Já estavam resolvidos e foram mantidos:
+primeira coluna e cabeçalho fixos da tabela (D-187), estado do comparador no endereço (D-163/D-174), qualidade do dado ao
+lado de cada valor e faixa mínimo–máximo (`ProvenancePopover` + `DataQualityBadge`), 404 distinto de falha na ficha (D-200).
+
+**Decisão.**
+
+1. **O melhor é fato do backend (ADR 0004).** `CompareAxisOut` ganha `best_material_ids` (quem tem o melhor valor pela
+   direção declarada da propriedade, empates incluídos; vazio se a propriedade é neutra, se há menos de dois valores ou se
+   todos são iguais) e `all_equal` (dois ou mais valores, todos iguais). A regra é `domain/spread.best_ids`; o componente
+   só marca ("Melhor" em texto, com o `title` dizendo a direção, e um fundo `success-soft` que apenas ecoa). Payload sem os
+   campos (cache antigo) não marca ninguém: ausente nunca vira "ninguém ganhou" nem "todos ganharam".
+2. **"Só diferenças".** Esconde as colunas (propriedades) com `all_equal` ou `present_count === 0` e escreve quais e por quê
+   ("Iguais em todos os materiais: …", "Sem valor em nenhum material: …"); se não sobra nenhuma, diz isso em vez de uma
+   tabela vazia. A tabela tem materiais nas linhas e propriedades nas colunas, então "linha igual em todos" do plano é, aqui,
+   coluna. A cópia da tabela (TSV) continua levando tudo.
+3. **Visão e filtro no endereço.** `?visao=` (tabela, barras, radar, paralelas, heatmap) e `?diferencas=1`, pelo mesmo
+   `compareSearch`/`readCompareLink` do D-163; o padrão sai do endereço e valor desconhecido volta ao padrão sem erro.
+4. **Estado vazio com atalhos.** Sem material, `CompareSuggestions` explica por que precisa de 2 ou mais e oferece os
+   favoritos e os vistos recentemente, com "Comparar os favoritos (N)" e um botão por material. É o mesmo `GET /my-records`
+   (e a mesma chave de consulta) que a estrela da ficha e o início já leem: nenhum endpoint novo. Com um material só, uma
+   linha avisa que falta outro. "Top do último estudo" ficou fora: pediria rodar ou reler um estudo salvo para um atalho.
+5. **Radar com muitos materiais.** Acima de 12 materiais completos (`RADAR_READABLE_UP_TO`) o radar não desenha de entrada:
+   diz que fica ilegível e oferece coordenadas paralelas, heatmap e tabela, e "Desenhar o radar mesmo assim". A seleção
+   nunca é cortada (D-187): só muda a primeira visão. Os testes de 200/600 materiais passaram a pedir o radar com esse botão.
+6. **Figuras em arquivos.** `ComparisonFigures.tsx` virou um reexport de `charts/figures/{GroupedBars,Radar,Parallel,Heatmap}Figure.tsx`;
+   as props e os imports não mudaram. A espera do comparador usa `TableSkeleton`/`ChartSkeleton`.
+7. **Ficha curta.** Cabeçalho pelo `PageHeader` (trilha, título, favoritar e exportar como secundárias, **uma** primária:
+   Editar para quem pode editar, "Fazer cópia própria" para o oficial, Comparar para o resto) e o "⋯" com Comparar, Ver no mapa,
+   Duplicar e Desativar (a confirmação continua no `ConfirmDialog`, D-201). Faixa de resumo no topo (quantos processos
+   compatíveis, com link, e a busca de parecidos) e sumário (`SheetOutline`): coluna fixa quando o bloco da ficha tem 64 rem
+   (consulta de contêiner `.sheet-layout`, não a janela), fileira que quebra linha abaixo disso. Seções em `CollapsibleSection`
+   (um `<details>` com o `h2` no resumo): propriedades, processos, composição e designações abertas; parecidos, mapa,
+   equivalências, ordinais e curvas **dobrados e só montados quando abertos**, então não pedem dados que ninguém abriu. O sumário,
+   o resumo e um `#curvas` no endereço abrem a seção. O gráfico densidade × módulo só é pedido ao abrir "Onde este material
+   fica". Os seletores "Ler em…" viraram um só `Disclosure` ("Ler os valores em outra unidade (N grandezas)"), aberto quando o
+   link já traz `?unidades=` (D-70). `SimilarPanel` ganhou `embedded` para viver dentro da seção dobrada.
+
+**Alternativas descartadas.** Calcular o melhor no componente a partir de `normalized === 1` (o neutro e o empate sairiam
+errados e a regra ficaria na apresentação). Esconder o radar acima de N sem alternativa (seria o limite que o D-187 tirou).
+Um endpoint de sugestões do comparador (o `my-records` já tem favoritos e recentes).
+
+**Fora.** "Citar fonte (ABNT)": a ficha só recebe `source_label`; a referência da fonte (`Source.reference`, texto livre) não
+vai no contrato da ficha e não há autor/título/ano estruturados, então não há como montar uma citação sem inventar campos —
+pede campos de fonte no contrato e, para boa citação, no modelo. "Top do último estudo" como atalho (ver 4). Toca
+`apps/api` sem migração: depois do merge, **Deploy da API**.

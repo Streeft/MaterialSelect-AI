@@ -286,7 +286,8 @@ slug ou nada.
   (`estado`, `sel`, `caixa`, `linha`, D-213).
 - **`/comparar`** — seleção de materiais sem teto prático (D-187) e até 20 propriedades, alternância
   entre as cinco visualizações e escolha da normalização. Aceita
-  `?materiais=1,2,3`.
+  `?materiais=1,2,3`, `?visao=` e `?diferencas=1` (D-214). Sem material, explica o que fazer e oferece favoritos e
+  vistos recentemente; a tabela marca o melhor de cada propriedade (`best_material_ids`, do backend) e tem "Só diferenças".
 - A tela de **Resultados** da seleção leva para as duas, preservando os
   candidatos e destacando o 1º colocado.
 
@@ -324,6 +325,16 @@ Propriedade que o catálogo não tem mais, pedaço sem forma de slug, excesso so
 as 20 propriedades e normalização desconhecida são ditos no aviso "O que o link
 trazia e ficou de fora" e saem do pedido e do endereço; a tabela espera o catálogo
 de propriedades antes de pedir ao servidor.
+
+## Comparar: o melhor, só diferenças e o radar com muitos (D-214)
+
+`POST /api/charts/compare` devolve, por propriedade, `best_material_ids` (quem tem o melhor valor pela direção declarada,
+empates incluídos; vazio para neutra, para menos de dois valores e para todos iguais) e `all_equal`. A tabela só marca e só
+esconde; nenhuma comparação de "maior ou menor" acontece no componente. "Só diferenças" esconde as colunas com `all_equal` ou
+sem valor em nenhum material e escreve quais; o link leva `visao` e `diferencas`. Acima de 12 materiais completos o radar
+não desenha de entrada (`RADAR_READABLE_UP_TO`): sugere paralelas, heatmap ou tabela e oferece "Desenhar o radar mesmo
+assim", sem cortar a seleção (D-187). As quatro figuras vivem em `components/charts/figures/`; `ComparisonFigures.tsx` só as
+reexporta.
 
 ## Mapas: seleção, linha móvel, mapas clássicos e figura para relatório (D-213)
 
