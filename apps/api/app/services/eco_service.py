@@ -241,10 +241,10 @@ class EcoService:
             total_energy=result.total_energy,
             total_carbon=result.total_carbon,
             energy_waterfall=self._waterfall_out(
-                build_waterfall(result.phases, "energy", result.energy_unit)
+                build_waterfall(result.phases, "energy", result.energy_unit, result.total_energy)
             ),
             carbon_waterfall=self._waterfall_out(
-                build_waterfall(result.phases, "carbon", result.carbon_unit)
+                build_waterfall(result.phases, "carbon", result.carbon_unit, result.total_carbon)
             ),
             energy_dominance=DominanceOut(
                 phase=result.energy_dominance.phase,

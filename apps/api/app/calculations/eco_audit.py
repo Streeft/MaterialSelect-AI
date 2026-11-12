@@ -401,12 +401,21 @@ WATERFALL_TOTAL_REFUSAL = (
 )
 
 
-def build_waterfall(phases: tuple[PhaseResult, ...], attribute: str, unit: str) -> Waterfall:
+def build_waterfall(
+    phases: tuple[PhaseResult, ...],
+    attribute: str,
+    unit: str,
+    audit_total: float | None = None,
+) -> Waterfall:
     """Cumulative steps for ``attribute`` (``"energy"`` or ``"carbon"``).
 
     The geometry of the chart — where each bar starts and ends and how tall the
     axis must be — is a calculation, so it lives here and the screen only maps
     these numbers to pixels.
+
+    ``audit_total``, when given, is the audit's own total for this quantity: the total
+    bar then is *that* number, bit for bit, instead of a second sum of the same
+    phases in a different order (which can differ in the last digit).
     """
     reason_attribute = f"{attribute}_reason"
     running = 0.0
@@ -436,7 +445,8 @@ def build_waterfall(phases: tuple[PhaseResult, ...], attribute: str, unit: str) 
             )
         )
     if complete:
-        total = WaterfallStep(phase="total", label="Total", value=running, start=0.0, end=running)
+        final = running if audit_total is None else audit_total
+        total = WaterfallStep(phase="total", label="Total", value=final, start=0.0, end=final)
     else:
         total = WaterfallStep(
             phase="total",

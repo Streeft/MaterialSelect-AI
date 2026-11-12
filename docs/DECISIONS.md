@@ -12782,7 +12782,7 @@ tracejada e ponto maior em `CostCurveChart`) e o Ragone com linhas de iso-tempo 
    `carbon_waterfall` (`build_waterfall` em `calculations/eco_audit`): cada degrau traz `value`, `start` e `end` em
    coordenadas de dado, mais o degrau do total e o `domain` do eixo (sempre contém o 0, nunca degenerado). Fase sem dado
    é `value: null` com o `reason` escrito, **fica no nível anterior sem mexê-lo** e o total é `null` — uma soma sobre
-   quatro das cinco fases não é um total. Crédito (valor negativo) desce. `PhaseWaterfall` só mapeia isso a pixels (o único
+   quatro das cinco fases não é um total. Crédito (valor negativo) desce. O degrau do total é o `total_energy`/`total_carbon` do próprio resultado, bit a bit (uma segunda soma das mesmas fases em outra ordem difere no último dígito e já derrubou o Python 3.12 na CI). `PhaseWaterfall` só mapeia isso a pixels (o único
    cálculo que uma figura faz no cliente), com tabela de dados, tooltip, teclado por seta e cores por token; a fase
    ausente é um marcador tracejado "sem dado", não uma barra de altura zero. No modo individual substitui as barras por fase;
    na comparação, cada cenário tem a sua cascata e as barras comparativas continuam.
