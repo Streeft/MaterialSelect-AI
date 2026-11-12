@@ -12594,3 +12594,57 @@ existe, a barra fica para quando houver mais de um jeito de ler os verbetes.
 
 **Numeração.** A `main` recebeu a D-207 (paleta de comandos) e a D-208 (acesso livre) enquanto esta fase andava; a F2 ficou com a
 D-209 e a Sessão 166. Mexe em `apps/api` e traz migração: depois do merge, **Deploy da API** (o `release_command` aplica a migração).
+
+## D-213 — Mapas: painéis, seleção que vira filtro, linha de índice móvel, mapas clássicos e figura para relatório
+
+**Contexto.** Etapa 3.2 da revisão das telas (inspiração: Ansys Granta Selector). `app/app/mapas/page.tsx` tinha ~1.270
+linhas num componente só; a personalização ficava recolhida mesmo numa tela larga; a caixa desenhada no mapa só servia
+para criar um estágio na Seleção; a linha de índice só se movia digitando um M; os pontos só eram alcançáveis pelo teclado
+na tabela da figura (escondida atrás de "Tabela"); não havia atalho para os mapas clássicos de Ashby; e a exportação saía no
+tamanho da janela, sem a cobertura ("N de M materiais plotados") que a figura afirma.
+
+**Decisão.**
+
+1. **A página em peças, sem mudar comportamento.** `MapsPageContent` orquestra; `AxesPanel` (universo, nível, mapas
+   clássicos, eixos, mapas salvos), `CustomizePanel` (escala e envelope, camadas, classes, linha de índice),
+   `SelectionPanel`, `PointList`, `IndexLineControl`, `AxisControl` e `axisIndex.ts`. Em janela a partir de "expanded"
+   (840 px, D-182) a personalização é um painel sempre aberto; abaixo disso continua o `Disclosure` do D-86, aberto
+   sozinho quando o link já usa algo dele. O universo subiu para o painel de eixos: é parte da pergunta.
+2. **Tudo do mapa no endereço**, pelo `useUrlState` do D-212 (`mapas/mapUrl.ts`): o mapa inteiro em `estado` (o mesmo
+   codec do "Compartilhar", que agora só copia o endereço; o mapa de chegada fica fora da URL), a seleção (`caixa` ou
+   `sel`), a linha móvel (`linha`, o M) e a restrição (`materiais`/`processos`, o parâmetro que um estudo já usava).
+3. **Seleção que vira filtro.** Caixa, laço (novo modo do cursor) e marcação na lista de pontos chegam ao mesmo conjunto
+   de registros. O laço usa o teste de pertinência do próprio Plotly (os pontos que ele devolve no evento), não uma conta
+   nossa; a caixa continua contando sobre os pontos plotados, como antes. Ações: "Comparar" (ids no `?materiais=`),
+   "Mostrar só estes no mapa" (restringe pela URL, com "Mostrar todos") e "Abrir na Seleção" — só para a caixa, que vira
+   estágio de gráfico convertido pelo backend (D-81); um laço não é uma região, e a Seleção não recebe lista de ids.
+4. **Linha de índice móvel com geometria no backend (ADR 0004).** `POST /api/charts/index-line` (router → `ChartService.
+   index_line` → `calculations/powerlaw`): recebe eixos, filtros, índice e um nível M ou um ponto do mapa (em unidades de
+   leitura, D-70) e devolve o segmento (unidades de leitura), a alça (meio do segmento na escala do mapa), os ids do lado
+   favorável, do outro lado e sem índice, e os `steps` do controle deslizante (geométricos entre o menor e o maior índice
+   definido, três algarismos). Sem nível nem ponto, a linha nasce no índice mediano — o valor de um material, não uma
+   média. O ponto vira M pela própria expressão (`IndexLine.level_at`), depois da volta para a canônica pela mesma regra
+   do desenho (`_map_reading`). O cliente só converte o *ponteiro* de pixel para dado com o `p2d` do eixo do Plotly
+   (`plotlyPointer.ts`) — o inverso do desenho, não uma grandeza do índice. Teclado: o deslizante anda pelos `steps`.
+5. **Mapas clássicos como dados.** `GET /api/charts/presets` lê `domain/map_presets.py`: E × ρ (E^½/ρ), σy × ρ (σy^⅔/ρ),
+   E × σy (σy²/E), E × Cv (E/Cv), λ × α (λ/α), KIc × σy (KIc/σy) — eixos, escala e índice, nenhum número de material. O
+   preset que o catálogo não desenha aparece desabilitado com as propriedades que faltam; o índice usa o slug do catálogo
+   quando a expressão coincide.
+6. **Acessibilidade.** `PointList`: tabela dos pontos visíveis (respeita a legenda), uma parada de Tab só (tabindex
+   itinerante), ↑/↓/Home/End/PageUp/PageDown, Espaço marca, o ponto em foco ganha um anel no mapa e é anunciado com as
+   duas coordenadas; passar o ponteiro num ponto destaca a linha da tabela sem roubar o foco.
+7. **Figura para relatório.** "PNG/SVG para relatório" no Exportar do `ChartFrame` (`reportExport`): o Plotly redesenha
+   em 1200 × 800 (3:2), o PNG sai em 3× (3600 px), e a descrição e o guia do cartão entram sob o título.
+
+**Nível 2 (D-190) preservado.** `fillHeight` e o `ResizeObserver` do mapa ficam; os ids vindos da URL são memorizados pela
+string (`useStableIds`), para que mudar `sel` ou `linha` não redesenhe o mapa; os painéis do `aside` não encolhem
+(`shrink-0`), porque `.msds-card` esconde o excesso. `e2e/larguras.spec.ts` (mapas, Nível 2 e a troca de nível) passa.
+
+**Alternativas descartadas.** Arrastar uma `shape` editável do Plotly (coordenadas de shape em eixo log são ambíguas e a
+linha deixaria de ser a do backend). Calcular o M no cliente a partir do ponteiro (contraria o ADR 0004). Mandar o laço
+para a Seleção como a caixa envolvente (mudaria o conjunto em silêncio). Um `role="grid"` na lista (pede navegação por
+célula; a tabela com caixas de marcar nativas basta).
+
+**Fora.** A Seleção ainda não recebe uma lista de ids (o laço vai para o Comparar e para o filtro); a figura para relatório
+usa as cores do tema da tela (no escuro, sai escura); os botões da barra do Plotly continuam dentro do `role="img"` do
+mapa (axe `nested-interactive`, achado antigo da auditoria). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.

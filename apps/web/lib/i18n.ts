@@ -2685,11 +2685,8 @@ export const ptBR = {
     // The control panel, named group by group. Eleven controls in one row said
     // nothing about which of them change the question and which change only the
     // drawing.
-    controls: "Controles do mapa",
     axesHint: "Escolha o que vai em cada eixo. O mapa aparece logo abaixo.",
     customize: "Personalizar o mapa",
-    customizeHint:
-      "Universo, escala, forma do envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
     customizeInUse: (items: string[]) => `Em uso: ${items.join(" · ")}.`,
     customizationLabels: {
       universe: "universo de processos",
@@ -2699,7 +2696,6 @@ export const ptBR = {
       layers: "camadas alteradas",
       index: "linha de índice",
     },
-    groupUniverseScale: "Universo, escala e envelope",
     groupClasses: "Classes exibidas",
     groupDisplay: "O que desenhar",
     groupIndex: "Linha de índice",
@@ -2728,6 +2724,7 @@ export const ptBR = {
     clearSelection: "Limpar seleção",
     // D-213: painéis, mapas clássicos, seleção que vira filtro, pontos e linha móvel.
     axesTitle: "Eixos e universo",
+    groupScaleEnvelope: "Escala e envelope",
     presetsTitle: "Mapas clássicos de Ashby",
     presetsHint:
       "Um clique troca os eixos, a escala e a linha de índice. Só a pergunta vem pronta: os pontos são os do catálogo.",

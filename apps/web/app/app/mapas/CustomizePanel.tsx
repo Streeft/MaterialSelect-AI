@@ -101,7 +101,7 @@ export function CustomizePanel({
   const body = (
     <div className="flex flex-col gap-4">
       <div className="subsection flex flex-col gap-3">
-        <h3 className="text-body font-semibold text-ink">{t.scale}</h3>
+        <h3 className="text-body font-semibold text-ink">{t.groupScaleEnvelope}</h3>
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-caption font-medium text-ink-muted">{t.scale}</span>

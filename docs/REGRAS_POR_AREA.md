@@ -447,7 +447,13 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212)
+## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212, D-213)
+
+**Mapas (D-213).** A linha de índice móvel vem de `POST /api/charts/index-line` (segmento, alça, lados, passos); o
+cliente só manda o nível escolhido entre os `steps` ou o ponto do ponteiro em coordenadas de dado (`p2d` do Plotly), nunca
+calcula um M. Mapas clássicos são dados do backend (`domain/map_presets.py`: eixos, escala, índice; nenhum número de
+material). Seleção (caixa, laço, lista) e linha móvel vão para a URL pelo `useUrlState` (`mapas/mapUrl.ts`); ids vindos
+da URL são memorizados pela string para não redesenhar o mapa (D-190). Painel no `aside` com `.msds-card` não encolhe.
 
 **Padrões de página (D-212).** Ação de página vai no `PageHeader` por papel: `secondaryActions`, `overflow` (o "⋯", só
 `MenuItem`) e `primaryAction` (no máximo um `primary`), nessa ordem; trilha de detalhe em `breadcrumb`. Calculadora é

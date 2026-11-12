@@ -957,8 +957,10 @@ function MapsPageContent() {
           id="controles"
           aria-labelledby="controles-titulo"
           // Below the sticky search bar (72 px, as the supporting pane of D-182),
-          // not under it (D-190).
-          className="flex flex-col gap-4 lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
+          // not under it (D-190). The panels keep their height (`shrink-0`): a
+          // `.msds-card` hides its overflow, so a squeezed one would cut its
+          // own controls instead of letting the aside scroll.
+          className="flex flex-col gap-4 [&>*]:shrink-0 lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
         >
           <SelectionPanel
             universe={universe}
