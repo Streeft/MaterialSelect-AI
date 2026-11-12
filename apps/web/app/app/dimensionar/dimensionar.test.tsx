@@ -46,12 +46,14 @@ const beam: LoadCase = {
       label: "Comprimento",
       unit: "m",
       help_text: "Vão livre.",
+      example: 1,
     },
     {
       key: "rigidez",
       label: "Rigidez exigida",
       unit: "N/m",
       help_text: "Força por deslocamento.",
+      example: 100000,
     },
     {
       key: "constante_apoio",
@@ -197,19 +199,41 @@ describe("Dimensionar", () => {
     expect(screen.getByText(beam.reference)).toBeInTheDocument();
   });
 
-  it("não deixa dimensionar enquanto faltar um número de projeto", async () => {
+  it("não pergunta nada ao servidor enquanto faltar um número de projeto", async () => {
     // O caso chega com a constante de apoio preenchida pela condição escolhida,
     // mas vão e rigidez não têm padrão nenhum — inventá-los seria a ferramenta
     // escrevendo o briefing.
     await chooseBeam();
 
-    expect(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    ).toBeDisabled();
-    // D-86: the button says which number is missing, and the result card is
-    // already on screen saying what will appear there.
-    expect(screen.getByText(t.blockedVariable("Comprimento (m)"))).toBeInTheDocument();
+    // D-86: the result card is already on screen and says which number is missing.
+    expect(await screen.findByText(t.blockedVariable("Comprimento (m)"))).toBeInTheDocument();
     expect(screen.getByText(t.resultIdleTitle)).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.solve })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(solveBrief).not.toHaveBeenCalled();
+  });
+
+  it("o exemplo do caso só entra com o clique, e o resultado vem sozinho (D-216)", async () => {
+    const user = userEvent.setup();
+    await chooseBeam();
+    // Nothing typed, nothing asked: the example is offered, never applied.
+    expect(await screen.findByShadowLabelText(/Comprimento/)).toHaveValue(null);
+    await user.click(await screen.findByShadowRole("button", { name: t.useExample }));
+    expect(screen.getByShadowLabelText(/Comprimento/)).toHaveValue(1);
+    expect(screen.getByShadowLabelText(/Rigidez exigida/)).toHaveValue(100000);
+    await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
+    expect(solveBrief.mock.calls[0]![0]).toEqual({
+      case_key: "viga-rigidez",
+      inputs: { comprimento: 1, rigidez: 100000, constante_apoio: 48 },
+      objective: "massa",
+    });
+    expect(await screen.findByText("Alumínio 6061")).toBeInTheDocument();
+  });
+
+  it("escreve a unidade dentro do campo, e ela continua no nome do campo (D-216)", async () => {
+    await chooseBeam();
+    expect(await screen.findByShadowRole("spinbutton", { name: "Comprimento (m)" })).toBeInTheDocument();
+    expect(screen.getByShadowRole("spinbutton", { name: "Rigidez exigida (N/m)" })).toBeInTheDocument();
   });
 
   it("dimensiona e mostra a massa de cada material", async () => {
@@ -224,11 +248,8 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
     expect(screen.getByText("0,402")).toBeInTheDocument();
     // A ficha do registro, não a página de família (/app/catalogo/[slug]),
@@ -270,9 +291,6 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
     await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
     expect(solveBrief.mock.calls[0]![0]).toEqual({
@@ -292,9 +310,6 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
     await screen.findByText(t.excludedTitle);
     expect(screen.getByText(/Polímero sem módulo/)).toBeInTheDocument();
@@ -310,11 +325,8 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(
       screen.getByText(new RegExp(t.structuralFactor)),
     ).toBeInTheDocument();
@@ -347,9 +359,6 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
     await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
     expect(solveBrief.mock.calls[0]![0]!.objective).toBe("custo");
@@ -375,11 +384,8 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(
       screen.getByText(
         new RegExp(`${t.columnObjectiveCost} \\(unidade monetária`),
@@ -405,11 +411,8 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(
       screen.queryByRole("link", { name: ptBR.cost.fromSolver }),
     ).not.toBeInTheDocument();
@@ -424,11 +427,8 @@ describe("Dimensionar", () => {
       await screen.findByShadowLabelText(/Rigidez exigida/),
       "200000",
     );
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.solve }),
-    );
 
-    await screen.findByRole("heading", { name: t.resultStep });
+    await screen.findByRole("link", { name: "Alumínio 6061" });
     expect(
       screen.getByRole("link", { name: ptBR.cost.fromSolver }),
     ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402");

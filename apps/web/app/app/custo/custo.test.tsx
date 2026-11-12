@@ -113,13 +113,24 @@ beforeEach(() => {
 });
 
 describe("Custo da peça", () => {
-  it("não estima enquanto faltar a massa", async () => {
+  it("não estima enquanto faltar a massa, e diz por quê no lugar do resultado", async () => {
     // Nem a massa nem o lote têm valor inventado: são os números que decidem.
     await open();
 
-    expect(await screen.findByShadowRole("button", { name: t.estimate })).toBeDisabled();
-    // D-86: the disabled button says why.
-    expect(screen.getByText(t.blocked.mass)).toBeInTheDocument();
+    // D-86/D-216: no button to press; the result card says what is missing.
+    expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.estimate })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(estimatePartCost).not.toHaveBeenCalled();
+    // The way to get the mass is one link away (D-216).
+    expect(screen.getByRole("link", { name: t.massToSolver })).toHaveAttribute("href", "/app/dimensionar");
+  });
+
+  it("diz quando a massa veio do Dimensionar (D-216)", async () => {
+    setQuery("material=7&massa=0.402&origem=dimensionar");
+    await open();
+    expect(screen.getByText(t.massFromSolver)).toBeInTheDocument();
+    expect(screen.getByShadowRole("spinbutton", { name: "Massa da peça (kg)" })).toHaveValue(0.402);
   });
 
   it("recolhe as premissas, mas imprime cada valor no resumo", async () => {
@@ -135,8 +146,6 @@ describe("Custo da peça", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
-
     await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
     expect(estimatePartCost.mock.calls[0]![0]).toMatchObject({
       material_id: 7,
@@ -151,8 +160,6 @@ describe("Custo da peça", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
-
     // The result card is always on screen; the table is what the run adds.
     const table = await screen.findByRole("table");
     for (const value of ["20", "12", "7,08", "0,95", "40,03"]) {
@@ -166,8 +173,6 @@ describe("Custo da peça", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
-
     // The result card is always on screen; the table is what the run adds.
     await screen.findByRole("table");
     expect(screen.getByText(new RegExp("unidade monetária não especificada"))).toBeInTheDocument();
@@ -179,8 +184,6 @@ describe("Custo da peça", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
-
     await screen.findByText(t.uncostedTitle);
     expect(screen.getByText(/Retificação/)).toBeInTheDocument();
     expect(screen.getByText(/Custo de ferramental dedicado/)).toBeInTheDocument();
@@ -190,8 +193,6 @@ describe("Custo da peça", () => {
     setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
     await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
     expect(estimatePartCost.mock.calls[0]![0]).toMatchObject({
@@ -207,7 +208,6 @@ describe("Custo da peça", () => {
 
     // Read from the link…
     expect(screen.getByText(t.assumptionsSummary("8", "0,7"))).toBeInTheDocument();
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
     await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
     expect(estimatePartCost.mock.calls[0]![0]).toMatchObject({
       write_off_years: 8,
@@ -234,8 +234,9 @@ describe("Custo da peça", () => {
     await userEvent.clear(loadFactor);
     await userEvent.type(loadFactor, "1.5");
 
-    expect(await screen.findByShadowRole("button", { name: t.estimate })).toBeDisabled();
-    expect(estimatePartCost).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    // Never asked with the refused value: the server would only answer a 422.
+    expect(estimatePartCost.mock.calls.some(([req]) => req.load_factor > 1)).toBe(false);
     // The premise that blocks is never left folded away.
     expect(screen.getByText(t.blocked.loadFactor)).toBeInTheDocument();
     expect(
@@ -248,8 +249,6 @@ describe("Custo da peça", () => {
     setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
 
     expect(await screen.findByRole("figure", { name: /Curva Custo/i })).toBeInTheDocument();
     expect(screen.getByShadowRole("button", { name: "Tabela" })).toBeInTheDocument();

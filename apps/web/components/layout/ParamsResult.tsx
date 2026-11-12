@@ -56,16 +56,20 @@ export function ResultPanel({
   children,
   label = ptBR.ui.resultPanel,
   sticky = false,
+  busy = false,
   className,
 }: {
   children: ReactNode;
   label?: string;
   sticky?: boolean;
+  /** D-216: a live result is being asked about again (`aria-busy`). */
+  busy?: boolean;
   className?: string;
 }) {
   return (
     <section
       aria-label={label}
+      aria-busy={busy || undefined}
       data-sticky={sticky || undefined}
       className={cn("m3-pane m3-pane-secondary flex flex-col gap-6", className)}
     >

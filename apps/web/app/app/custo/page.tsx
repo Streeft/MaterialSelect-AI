@@ -2,15 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type { CostResult } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import type { CostRequest, CostResult } from "@/lib/types";
+import { useLiveResult } from "@/lib/useLiveResult";
+import { describeApiError } from "@/lib/errors";
 import { estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatTyped } from "@/lib/format";
 import { textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
 import {
   Alert,
-  Button,
   Combobox,
   Disclosure,
   EmptyState,
@@ -107,7 +109,6 @@ export default function CustoPage() {
 
   const [brief, setBrief] = useUrlState(COST_URL);
   const { material: materialId, mass, batch, writeOff, loadFactor } = brief;
-  const [result, setResult] = useState<CostResult | null>(null);
 
   // With no material in the URL, the first of the catalogue is a starting point
   // rather than an answer: the reader still has to supply the mass and the
@@ -118,18 +119,6 @@ export default function CustoPage() {
   // flags, rightly — it renders twice and invents a "change" nobody made).
   // Empty state simply *means* "whatever the catalogue lists first".
   const selectedId = materialId || String(materials.data?.[0]?.id ?? "");
-
-  const estimate = useMutation({
-    mutationFn: () =>
-      estimatePartCost({
-        material_id: Number(selectedId),
-        part_mass: Number(mass),
-        batch_size: Number(batch),
-        write_off_years: Number(writeOff),
-        load_factor: Number(loadFactor),
-      }),
-    onSuccess: setResult,
-  });
 
   // The first unmet requirement, in words: a disabled button with no reason
   // reads as broken (D-86). Input validation only — the estimate is the
@@ -147,6 +136,24 @@ export default function CustoPage() {
     return null;
   }, [selectedId, mass, batch, writeOff, loadFactor]);
   const ready = blockedReason === null;
+
+  // D-216: the estimate follows the brief; the numbers are still the server's.
+  const live = useLiveResult<CostRequest, CostResult>({
+    key: "custo-ao-vivo",
+    request: ready
+      ? {
+          material_id: Number(selectedId),
+          part_mass: Number(mass),
+          batch_size: Number(batch),
+          write_off_years: Number(writeOff),
+          load_factor: Number(loadFactor),
+        }
+      : null,
+    fetcher: estimatePartCost,
+  });
+  const result = live.data ?? null;
+  // D-216: the mass handed over by Dimensionar says where it came from.
+  const fromSolver = useSearchParams().get("origem") === "dimensionar";
   // An assumption that blocks the estimate is never left folded away.
   const assumptionBlocks =
     blockedReason === t.blocked.writeOff || blockedReason === t.blocked.loadFactor;
@@ -184,14 +191,23 @@ export default function CustoPage() {
             </div>
             <NumberInput
               label={t.massLabel}
-              hint={t.massHint}
+              unit={t.unitKg}
+              hint={fromSolver && mass ? t.massFromSolver : t.massHint}
               value={mass}
               min={0}
               step="any"
               onChange={(event) => setBrief({ mass: event.target.value })}
             />
+            {!mass ? (
+              <p className="text-support sm:col-span-2">
+                <Link className="text-accent underline underline-offset-2" href="/app/dimensionar">
+                  {t.massToSolver}
+                </Link>
+              </p>
+            ) : null}
             <NumberInput
               label={t.batchLabel}
+              unit={t.unitPieces}
               hint={t.batchHint}
               value={batch}
               min={1}
@@ -200,26 +216,7 @@ export default function CustoPage() {
             />
           </StepCard>
 
-          <StepCard
-            title={t.assumptionsStep}
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => estimate.mutate()}
-                  disabled={!ready || estimate.isPending}
-                  aria-describedby={blockedReason ? "custo-motivo" : undefined}
-                >
-                  {estimate.isPending ? t.estimating : t.estimate}
-                </Button>
-                {blockedReason ? (
-                  <p id="custo-motivo" className="text-support text-ink-muted">
-                    {blockedReason}
-                  </p>
-                ) : null}
-              </div>
-            }
-          >
+          <StepCard title={t.assumptionsStep}>
             {/* Folded, with every value in the summary: the premises are the
                 reader's to change, never hidden from them (D-65, D-86). */}
             <Disclosure
@@ -234,6 +231,7 @@ export default function CustoPage() {
                 <p className="text-support text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
                 <NumberInput
                   label={t.writeOffLabel}
+                  unit={t.unitYears}
                   value={writeOff}
                   min={0}
                   step="any"
@@ -250,16 +248,25 @@ export default function CustoPage() {
                 />
               </div>
             </Disclosure>
-            {estimate.isError ? <Alert tone="danger">{String(estimate.error)}</Alert> : null}
           </StepCard>
         </ParamsPanel>
 
-        <ResultPanel>
+        <ResultPanel busy={live.updating}>
 
           {/* The result card is on screen before there is a result: an empty page
               under two forms reads as "nothing here", a card that says what will
               appear reads as the next step. */}
-          <StepCard title={t.resultStep}>
+          <StepCard
+            title={t.resultStep}
+            actions={
+              live.updating ? (
+                <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
+              ) : undefined
+            }
+          >
+            {live.error ? (
+              <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
+            ) : null}
             {result ? (
               <>
                 <ResultTable result={result} />
@@ -279,7 +286,7 @@ export default function CustoPage() {
                 ) : null}
               </>
             ) : (
-              <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+              <EmptyState title={t.resultIdleTitle} description={blockedReason ?? t.resultIdleHint} />
             )}
           </StepCard>
         </ResultPanel>

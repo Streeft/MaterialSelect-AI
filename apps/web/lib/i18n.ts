@@ -1039,7 +1039,7 @@ export const ptBR = {
       "O que a coluna do resultado vai medir. O fator estrutural é o mesmo número nos dois casos — só o índice muda.",
     inputsStep: "2. Os números do projeto",
     inputsHint:
-      "Cada valor vai na unidade indicada. Todos precisam ser maiores que zero.",
+      "Cada valor vai na unidade indicada dentro do campo. Todos precisam ser maiores que zero.",
     supportLabel: "Apoio e carregamento",
     solve: "Dimensionar",
     solving: "Dimensionando…",
@@ -1047,8 +1047,13 @@ export const ptBR = {
     resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
     resultIdleTitle: "Nada dimensionado ainda",
     resultIdleHint:
-      "Preencha os números do projeto e clique em Dimensionar: cada material aparece aqui com a massa (ou o custo) e a seção necessária.",
+      "Preencha os números do projeto: cada material aparece aqui com a massa (ou o custo) e a seção necessária, e o resultado acompanha o que você digita.",
     blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
+    // D-216: the workbench.
+    useExample: "Usar o exemplo",
+    exampleHint:
+      "Preenche os números do projeto com valores ilustrativos deste caso. Troque-os pelos do seu projeto.",
+    methodTitle: "Como se calcula",
     // Fator estrutural: só geometria e carga, igual para todo material do run.
     // Mostrá-lo é o que permite conferir uma massa à mão.
     structuralFactor: "Fator estrutural",
@@ -1079,15 +1084,21 @@ export const ptBR = {
       "Quanto custaria fazer esta peça em cada processo que a produz — e quanto disso o lote ainda pode tirar.",
     briefStep: "1. A peça e o lote",
     materialLabel: "Material",
-    massLabel: "Massa da peça (kg)",
+    massLabel: "Massa da peça",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
+    // D-216: the mass that came from Dimensionar, and the way there.
+    massFromSolver: "Massa calculada no Dimensionar para este material.",
+    massToSolver: "Calcular a massa no Dimensionar",
+    unitKg: "kg",
+    unitPieces: "peças",
+    unitYears: "anos",
     batchLabel: "Peças no lote",
     batchHint: "É o lote que dilui o ferramental — e só ele.",
     assumptionsStep: "2. As premissas da oficina",
     assumptionsHint:
       "Não são fatos do processo: duas fábricas com a mesma prensa amortizam em horizontes diferentes e a mantêm ocupada frações diferentes do ano.",
-    writeOffLabel: "Amortização (anos)",
+    writeOffLabel: "Amortização",
     loadFactorLabel: "Fator de carga (0 a 1)",
     loadFactorHint:
       "Fração do tempo disponível em que o equipamento roda de fato.",
@@ -1109,7 +1120,7 @@ export const ptBR = {
       "Nenhum processo compatível pôde ser precificado com estes dados.",
     resultIdleTitle: "Nada estimado ainda",
     resultIdleHint:
-      "Informe a massa da peça e o lote e peça a estimativa: cada processo compatível aparece aqui com o custo decomposto em material, ferramental, operação e capital.",
+      "Informe a massa da peça e o lote: cada processo compatível aparece aqui com o custo decomposto em material, ferramental, operação e capital, e o resultado acompanha o que você digita.",
     columnProcess: "Processo",
     columnMaterial: "Material",
     columnTooling: "Ferramental",
@@ -3127,6 +3138,8 @@ export const ptBR = {
     // D-212: os padrões de página.
     moreActions: "Mais ações",
     pageActions: "Ações da página",
+    // D-216: a live result being asked about again.
+    updating: "Atualizando…",
     paramsPanel: "Parâmetros",
     resultPanel: "Resultado",
     loadingTable: "Carregando a tabela…",
