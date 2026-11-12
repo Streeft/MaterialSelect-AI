@@ -69,6 +69,7 @@ from app.models.process_attribute import (
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
 from app.models.saved_chart import SavedChart
+from app.models.saved_view import SavedView
 from app.models.selection import (
     ConstraintGroup,
     RankingCriterion,
@@ -142,6 +143,7 @@ __all__ = [
     "RankingCriterion",
     "RecentRecord",
     "SavedChart",
+    "SavedView",
     "SelectionConstraint",
     "SelectionStage",
     "SelectionStudy",
