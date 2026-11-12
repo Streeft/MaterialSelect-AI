@@ -201,6 +201,7 @@ class SolverService:
                     label=variable.label,
                     unit=variable.unit,
                     help_text=variable.help_text,
+                    example=variable.example,
                 )
                 for variable in case.variables
             ],

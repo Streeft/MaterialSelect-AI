@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useLiveResult } from "@/lib/useLiveResult";
 import type { CostResult, DefaultsResult } from "@/lib/types";
 import { estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -194,14 +196,46 @@ export default function CustoPage() {
   );
 }
 
+interface CostBundleRequest {
+  ids: number[];
+  mass: number;
+  batch: number;
+  writeOff: number;
+  loadFactor: number;
+}
+
+async function estimateBundle(request: CostBundleRequest) {
+  const settled = await Promise.allSettled(
+    request.ids.map((id) =>
+      estimatePartCost({
+        material_id: id,
+        part_mass: request.mass,
+        batch_size: request.batch,
+        write_off_years: request.writeOff,
+        load_factor: request.loadFactor,
+      }),
+    ),
+  );
+  const [first, ...rest] = settled;
+  if (!first || first.status === "rejected") throw first?.reason ?? new Error("estimate");
+  return {
+    main: first.value,
+    others: rest.map(
+      (outcome, index): ComparedEstimate => ({
+        id: request.ids[index + 1] ?? 0,
+        result: outcome.status === "fulfilled" ? outcome.value : null,
+        error: outcome.status === "rejected" ? describeApiError(outcome.reason) : null,
+      }),
+    ),
+  };
+}
+
 function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   const materials = useQuery({ queryKey: ["materials"], queryFn: () => listMaterials() });
 
   const spec = useMemo(() => costUrlSpec(defaults), [defaults]);
   const [brief, setBrief] = useUrlState(spec);
   const { material: materialId, others, mass, batch, writeOff, loadFactor } = brief;
-  const [result, setResult] = useState<CostResult | null>(null);
-  const [compared, setCompared] = useState<ComparedEstimate[]>([]);
 
   // With no material in the URL, the first of the catalogue is a starting point
   // rather than an answer: the reader still has to supply the mass and the
@@ -212,42 +246,6 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   // flags, rightly — it renders twice and invents a "change" nobody made).
   // Empty state simply *means* "whatever the catalogue lists first".
   const selectedId = materialId || String(materials.data?.[0]?.id ?? "");
-
-  // One estimate per material, all with the same part, batch and premises
-  // (D-216). The first is the answer the page is about; a failure of one of the
-  // others is written on its row and never sinks the rest.
-  const estimate = useMutation({
-    mutationFn: async () => {
-      const ids = [Number(selectedId), ...others.filter((id) => id !== Number(selectedId))];
-      const settled = await Promise.allSettled(
-        ids.map((id) =>
-          estimatePartCost({
-            material_id: id,
-            part_mass: Number(mass),
-            batch_size: Number(batch),
-            write_off_years: Number(writeOff),
-            load_factor: Number(loadFactor),
-          }),
-        ),
-      );
-      const [first, ...rest] = settled;
-      if (!first || first.status === "rejected") throw first?.reason ?? new Error("estimate");
-      return {
-        main: first.value,
-        others: rest.map(
-          (outcome, index): ComparedEstimate => ({
-            id: ids[index + 1] ?? 0,
-            result: outcome.status === "fulfilled" ? outcome.value : null,
-            error: outcome.status === "rejected" ? describeApiError(outcome.reason) : null,
-          }),
-        ),
-      };
-    },
-    onSuccess: ({ main, others: rest }) => {
-      setResult(main);
-      setCompared(rest);
-    },
-  });
 
   // The first unmet requirement, in words: a disabled button with no reason
   // reads as broken (D-86). Input validation only — the estimate is the
@@ -265,6 +263,28 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     return null;
   }, [selectedId, mass, batch, writeOff, loadFactor]);
   const ready = blockedReason === null;
+
+  // D-218: the estimates follow the brief — one per material, all with the same
+  // part, batch and premises (D-216). The first is the answer the page is about;
+  // a failure of one of the others is written on its row and never sinks the rest.
+  // The numbers are still the server's.
+  const live = useLiveResult<CostBundleRequest, { main: CostResult; others: ComparedEstimate[] }>({
+    key: "custo-ao-vivo",
+    request: ready
+      ? {
+          ids: [Number(selectedId), ...others.filter((id) => id !== Number(selectedId))],
+          mass: Number(mass),
+          batch: Number(batch),
+          writeOff: Number(writeOff),
+          loadFactor: Number(loadFactor),
+        }
+      : null,
+    fetcher: estimateBundle,
+  });
+  const result = live.data?.main ?? null;
+  const compared = live.data?.others ?? [];
+  // D-218: the mass handed over by Dimensionar says where it came from.
+  const fromSolver = useSearchParams().get("origem") === "dimensionar";
   // An assumption that blocks the estimate is never left folded away.
   const assumptionBlocks =
     blockedReason === t.blocked.writeOff || blockedReason === t.blocked.loadFactor;
@@ -313,14 +333,23 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
             </div>
             <NumberInput
               label={t.massLabel}
-              hint={t.massHint}
+              unit={t.unitKg}
+              hint={fromSolver && mass ? t.massFromSolver : t.massHint}
               value={mass}
               min={0}
               step="any"
               onChange={(event) => setBrief({ mass: event.target.value })}
             />
+            {!mass ? (
+              <p className="text-support sm:col-span-2">
+                <Link className="text-accent underline underline-offset-2" href="/app/dimensionar">
+                  {t.massToSolver}
+                </Link>
+              </p>
+            ) : null}
             <NumberInput
               label={t.batchLabel}
+              unit={t.unitPieces}
               hint={t.batchHint}
               value={batch}
               min={1}
@@ -359,26 +388,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
             </div>
           </StepCard>
 
-          <StepCard
-            title={t.assumptionsStep}
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => estimate.mutate()}
-                  disabled={!ready || estimate.isPending}
-                  aria-describedby={blockedReason ? "custo-motivo" : undefined}
-                >
-                  {estimate.isPending ? t.estimating : t.estimate}
-                </Button>
-                {blockedReason ? (
-                  <p id="custo-motivo" className="text-support text-ink-muted">
-                    {blockedReason}
-                  </p>
-                ) : null}
-              </div>
-            }
-          >
+          <StepCard title={t.assumptionsStep}>
             {/* Folded, with every value in the summary: the premises are the
                 reader's to change, never hidden from them (D-65, D-86). */}
             <Disclosure
@@ -393,6 +403,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                 <p className="text-support text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
                 <NumberInput
                   label={t.writeOffLabel}
+                  unit={t.unitYears}
                   value={writeOff}
                   min={0}
                   step="any"
@@ -409,16 +420,25 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                 />
               </div>
             </Disclosure>
-            {estimate.isError ? <Alert tone="danger">{String(estimate.error)}</Alert> : null}
           </StepCard>
         </ParamsPanel>
 
-        <ResultPanel>
+        <ResultPanel busy={live.updating}>
 
           {/* The result card is on screen before there is a result: an empty page
               under two forms reads as "nothing here", a card that says what will
               appear reads as the next step. */}
-          <StepCard title={t.resultStep}>
+          <StepCard
+            title={t.resultStep}
+            actions={
+              live.updating ? (
+                <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
+              ) : undefined
+            }
+          >
+            {live.error ? (
+              <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
+            ) : null}
             {result ? (
               <>
                 <ResultTable result={result} />
@@ -438,8 +458,8 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                   </div>
                 ) : null}
               </>
-            ) : (
-              <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+            ) : live.error ? null : (
+              <EmptyState title={t.resultIdleTitle} description={blockedReason ?? t.resultIdleHint} />
             )}
           </StepCard>
         </ResultPanel>

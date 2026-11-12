@@ -1039,7 +1039,7 @@ export const ptBR = {
       "O que a coluna do resultado vai medir. O fator estrutural é o mesmo número nos dois casos — só o índice muda.",
     inputsStep: "2. Os números do projeto",
     inputsHint:
-      "Cada valor vai na unidade indicada. Todos precisam ser maiores que zero.",
+      "Cada valor vai na unidade indicada dentro do campo. Todos precisam ser maiores que zero.",
     supportLabel: "Apoio e carregamento",
     solve: "Dimensionar",
     solving: "Dimensionando…",
@@ -1047,8 +1047,13 @@ export const ptBR = {
     resultEmpty: "Nenhum material pôde ser dimensionado com estes dados.",
     resultIdleTitle: "Nada dimensionado ainda",
     resultIdleHint:
-      "Preencha os números do projeto e clique em Dimensionar: cada material aparece aqui com a massa (ou o custo) e a seção necessária.",
+      "Preencha os números do projeto: cada material aparece aqui com a massa (ou o custo) e a seção necessária, e o resultado acompanha o que você digita.",
     blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
+    // D-218: the workbench.
+    useExample: "Usar o exemplo",
+    exampleHint:
+      "Preenche os números do projeto com valores ilustrativos deste caso. Troque-os pelos do seu projeto.",
+    methodTitle: "Como se calcula",
     // Fator estrutural: só geometria e carga, igual para todo material do run.
     // Mostrá-lo é o que permite conferir uma massa à mão.
     structuralFactor: "Fator estrutural",
@@ -1109,15 +1114,21 @@ export const ptBR = {
       "Quanto custaria fazer esta peça em cada processo que a produz — e quanto disso o lote ainda pode tirar.",
     briefStep: "1. A peça e o lote",
     materialLabel: "Material",
-    massLabel: "Massa da peça (kg)",
+    massLabel: "Massa da peça",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
+    // D-218: the mass that came from Dimensionar, and the way there.
+    massFromSolver: "Massa calculada no Dimensionar para este material.",
+    massToSolver: "Calcular a massa no Dimensionar",
+    unitKg: "kg",
+    unitPieces: "peças",
+    unitYears: "anos",
     batchLabel: "Peças no lote",
     batchHint: "É o lote que dilui o ferramental — e só ele.",
     assumptionsStep: "2. As premissas da oficina",
     assumptionsHint:
       "Não são fatos do processo: duas fábricas com a mesma prensa amortizam em horizontes diferentes e a mantêm ocupada frações diferentes do ano.",
-    writeOffLabel: "Amortização (anos)",
+    writeOffLabel: "Amortização",
     loadFactorLabel: "Fator de carga (0 a 1)",
     loadFactorHint:
       "Fração do tempo disponível em que o equipamento roda de fato.",
@@ -1152,7 +1163,7 @@ export const ptBR = {
       "Nenhum processo compatível pôde ser precificado com estes dados.",
     resultIdleTitle: "Nada estimado ainda",
     resultIdleHint:
-      "Informe a massa da peça e o lote e peça a estimativa: cada processo compatível aparece aqui com o custo decomposto em material, ferramental, operação e capital.",
+      "Informe a massa da peça e o lote: cada processo compatível aparece aqui com o custo decomposto em material, ferramental, operação e capital, e o resultado acompanha o que você digita.",
     columnProcess: "Processo",
     columnMaterial: "Material",
     columnTooling: "Ferramental",
@@ -1179,7 +1190,7 @@ export const ptBR = {
       "Auditar uma peça é auditar fazer a peça: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar.",
     noProcess:
       "Nenhum processo cadastrado faz este material, e sem processo não há auditoria: é o processo que diz quanta energia a conformação gasta e quanto material foi preciso comprar.",
-    massLabel: "Massa da peça (kg)",
+    massLabel: "Massa da peça",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
     recycledLabel: "Teor reciclado (0 a 1)",
@@ -1187,7 +1198,7 @@ export const ptBR = {
       "Fração do material comprado que vem de reciclagem. A 0, a figura de reciclagem nem é lida — o que o cálculo precisa depende do enunciado do projeto.",
     transportStep: "2. O transporte",
     transportModeLabel: "Modal",
-    transportDistanceLabel: "Distância (km)",
+    transportDistanceLabel: "Distância",
     transportHint:
       "A distância é fato da cadeia de suprimento, não do material: entra como número visível, nunca como constante escondida.",
     useStep: "3. O uso",
@@ -1196,11 +1207,11 @@ export const ptBR = {
     useModelLabel: "Modelo de uso",
     useStatic: "Estático (consome porque funciona)",
     useMobile: "Móvel (consome porque é carregado)",
-    powerLabel: "Potência em serviço (W)",
+    powerLabel: "Potência em serviço",
     dutyLabel: "Ciclo de trabalho (0 a 1)",
     dutyHint: "Fração do tempo em que a peça de fato consome.",
-    lifeLabel: "Vida em serviço (anos)",
-    travelLabel: "Distância percorrida na vida (km)",
+    lifeLabel: "Vida em serviço",
+    travelLabel: "Distância percorrida na vida",
     intensityLabel: "Intensidade de uso (MJ por kg por km)",
     carbonPerEnergyLabel: "Carbono por energia (kg CO₂/MJ)",
     carbonPerEnergyHint:
@@ -1229,6 +1240,27 @@ export const ptBR = {
     legLegend: (n: number) => `Trecho ${n}`,
     addLeg: "Adicionar trecho",
     removeLeg: (n: number) => `Remover trecho ${n}`,
+    // D-218: the product and the legs as tables edited in place.
+    componentsTable: "Componentes do produto",
+    legsTable: "Trechos de transporte",
+    colName: "Nome",
+    colMaterial: "Material",
+    colProcess: "Processo",
+    colUnitMass: "Massa de uma unidade",
+    colQuantity: "Qtd.",
+    colRecycled: "Teor reciclado",
+    colRecycledHint: "0 a 1",
+    colEol: "Fim de vida",
+    colMode: "Modal",
+    colDistance: "Distância",
+    cellLabel: (column: string, row: string) => `${column}, ${row}`,
+    howToFill: "Como preencher",
+    componentNamePlaceholder: "Ex.: tampa",
+    noProcessShort: "Nenhum processo cadastrado faz este material.",
+    unitKg: "kg",
+    unitKm: "km",
+    unitYears: "anos",
+    unitW: "W",
     componentsTitle: "Detalhe por componente",
     legsTitle: "Detalhe por trecho",
     columnComponent: "Componente",
@@ -1278,7 +1310,7 @@ export const ptBR = {
     resultStep: "4. As cinco fases",
     resultIdleTitle: "Nada auditado ainda",
     resultIdleHint:
-      "Preencha o produto, o transporte e o uso e peça a auditoria: as cinco fases aparecem aqui, com a fase que domina a energia e a que domina o carbono.",
+      "Preencha o produto, o transporte e o uso: as cinco fases aparecem aqui, com a fase que domina a energia e a que domina o carbono, e o resultado acompanha o que você digita.",
     columnPhase: "Fase",
     columnEnergy: "Energia",
     columnCarbon: "Carbono",
@@ -1346,11 +1378,11 @@ export const ptBR = {
     customOption: "Personalizado",
     requirementsTitle: "Requisitos de projeto",
     // D-205: a unidade no rótulo, como em Dimensionar ("Comprimento (m)").
-    targetVoltage: "Tensão nominal do barramento (V)",
-    targetEnergy: "Energia útil requerida (kWh)",
-    targetPower: "Potência de pico requerida (kW)",
+    targetVoltage: "Tensão nominal do barramento",
+    targetEnergy: "Energia útil requerida",
+    targetPower: "Potência de pico requerida",
     dod: "Profundidade de descarga (DoD)",
-    cellCapacity: "Capacidade unitária da célula (Ah)",
+    cellCapacity: "Capacidade unitária da célula",
     packingFactors: "Fatores de empacotamento",
     massPackingFactor: "Fator mássico (células / pack)",
     volumePackingFactor: "Fator volumétrico (células / pack)",
@@ -1469,6 +1501,11 @@ export const ptBR = {
     kindComposite: "Compósito de dois constituintes",
     kindFoam: "Espuma de um sólido",
     kindPanel: "Painel sanduíche",
+    // D-218: one line per kind, under its drawing; the full note is one click away.
+    kindLineComposite: "Fibras ou partículas de um material dentro de outro.",
+    kindLineFoam: "Um sólido com células de ar, mais leve e menos rígido.",
+    kindLinePanel: "Duas faces finas e rígidas sobre um núcleo leve.",
+    kindNoteTitle: "Sobre este tipo",
     recipeStep: "2. A receita",
     parentALabel: "Primeiro constituinte",
     parentASolidLabel: "Sólido",
@@ -1508,7 +1545,7 @@ export const ptBR = {
     previewName: "Prévia sem nome",
     previewIdleTitle: "Nada calculado ainda",
     previewIdleHint:
-      "Monte a receita e peça para ver o que sairia: cada valor calculado aparece aqui com a lei que o produziu, e o que o registro não vai ter aparece com o motivo.",
+      "Monte a receita: cada valor calculado aparece aqui com a lei que o produziu, e o que o registro não vai ter aparece com o motivo. O resultado acompanha o que você digita.",
     columnProperty: "Propriedade",
     columnValue: "Valor",
     columnRule: "Lei",
@@ -3194,6 +3231,12 @@ export const ptBR = {
     moreActions: "Mais ações",
     titleLabel: "Título",
     outline: "Nesta página",
+    // D-218: InlineTable.
+    rowActions: (row: string) => `Ações de ${row}`,
+    duplicateRow: "Duplicar",
+    removeRow: "Remover",
+    rowRemoved: (row: string) => `${row} removido.`,
+    undo: "Desfazer",
     expandSection: (title: string) => `Mostrar ${title}`,
     collapseSection: (title: string) => `Recolher ${title}`,
     templates: "Comece por um modelo",
@@ -3249,6 +3292,8 @@ export const ptBR = {
     // D-212: os padrões de página.
     moreActions: "Mais ações",
     pageActions: "Ações da página",
+    // D-218: a live result being asked about again.
+    updating: "Atualizando…",
     paramsPanel: "Parâmetros",
     resultPanel: "Resultado",
     loadingTable: "Carregando a tabela…",

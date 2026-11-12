@@ -150,6 +150,20 @@ renderizam o caderno precisam limpar `window.location` entre os casos, ou o item
 merge: **Deploy da API** e **Administração do banco** (migrar).
 
 ---
+## Sessão 175 — 12/11/26 — F4 por cima das calculadoras da D-216: bancadas ao vivo (D-218)
+
+**O que mudou.** `useLiveResult` (pergunta ao servidor depois de uma pausa, mantém a resposta anterior e diz a que pedido ela
+responde), `NumberInput` com `unit` dentro do campo, `InlineTable` (tabela editável com linha nova, duplicar e remover com Desfazer,
+empilhada no estreito) e `example` nas variáveis de projeto do backend. Por cima do #240 (D-216): Dimensionar e Custo ao vivo,
+"Usar o exemplo", massa que passa ao custo; Eco com componentes e trechos em tabela e os dois modos ao vivo; Sintetizar com
+desenho por tipo, prévia ao vivo e o princípio no rodapé; Baterias e premissas do Eco com unidade no campo. Testes:
+`components/ui/f4Pieces.test.tsx` (unidade no nome, debounce, resposta anterior durante a próxima, pedido incompleto, tabela com
+Desfazer e mínimo de linhas; com axe), `test_solver_api.py` (+2) e os testes das cinco telas e do `eco-ab.spec` sem botão de
+calcular. Backend 5539, frontend 1945. Sem migração. Depois do merge: **Deploy da API**.
+
+**Correção da CI (Python 3.12).** O teste da cascata do Eco (D-216) falhou só no 3.12, cujo `sum` de floats é compensado:
+a barra "Total", somada passo a passo, divergia do `total_energy` na última casa. A `main` trouxe a correção do próprio #240
+(o degrau do total passa a ser o total da auditoria, 9f9dc55f); na mescla ficou essa, e a desta branch saiu.
 
 ## Sessão 174 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-217)
 

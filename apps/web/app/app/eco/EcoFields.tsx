@@ -6,12 +6,14 @@ import { ptBR } from "@/lib/i18n";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
 import {
   Alert,
-  Button,
   Combobox,
+  Disclosure,
+  InlineTable,
   Input,
   NumberInput,
   Select,
   SelectOption,
+  type InlineColumn,
 } from "@/components/ui";
 import type { ComponentDraft, LegDraft, ScenarioDraft } from "./ecoBrief";
 
@@ -117,6 +119,7 @@ export function PartFields({
       )}
       <NumberInput
         label={massLabel}
+        unit={t.unitKg}
         hint={massHint}
         value={draft.mass}
         min={0}
@@ -147,67 +150,171 @@ export function PartFields({
   );
 }
 
-export function ComponentFields({
-  index,
-  draft,
-  canRemove,
+const COMPONENT_COLUMNS: InlineColumn[] = [
+  { id: "name", header: t.colName, minWidth: "7rem" },
+  { id: "material", header: t.colMaterial, minWidth: "11rem" },
+  { id: "process", header: t.colProcess, minWidth: "9rem" },
+  { id: "mass", header: t.colUnitMass, hint: t.unitKg, numeric: true, minWidth: "6.5rem" },
+  { id: "quantity", header: t.colQuantity, numeric: true, minWidth: "4.5rem" },
+  { id: "recycled", header: t.colRecycled, hint: t.colRecycledHint, numeric: true, minWidth: "5.5rem" },
+  { id: "eol", header: t.colEol, minWidth: "8rem" },
+];
+
+/**
+ * D-218: the bill of materials as a table edited in place — one row per
+ * component, "+ Adicionar componente" under the last, ⋯ per row with Duplicar
+ * and Remover (Desfazer). The list is positional (it lives in the URL, D-216),
+ * so a row is its index. Each control names itself by column and row, so a
+ * screen reader hears "Massa de uma unidade, Componente 2 (kg)".
+ */
+export function ComponentsTable({
+  components,
   materialOptions,
-  processes,
+  processesOf,
   processesLoaded,
   routes,
-  onChange,
+  onPatch,
+  onAdd,
+  onDuplicate,
   onRemove,
+  onRestore,
 }: {
-  index: number;
-  draft: ComponentDraft;
-  canRemove: boolean;
+  /** Resolved: the material and process on screen, defaults applied. */
+  components: ComponentDraft[];
   materialOptions: MaterialOption[];
-  processes: ProcessOption[];
-  processesLoaded: boolean;
+  processesOf: (index: number) => ProcessOption[];
+  processesLoaded: (index: number) => boolean;
   routes: EndOfLifeRouteInfo[];
-  onChange: (patch: Partial<ComponentDraft>) => void;
-  onRemove: () => void;
+  onPatch: (index: number, patch: Partial<ComponentDraft>) => void;
+  onAdd: () => void;
+  onDuplicate: (index: number) => void;
+  onRemove: (index: number) => void;
+  onRestore: (draft: ComponentDraft, index: number) => void;
 }) {
-  const n = index + 1;
   return (
-    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-body font-medium text-ink">{t.componentLegend(n)}</legend>
-      <div className="sm:col-span-2">
-        <Input
-          label={t.componentNameLabel}
-          hint={t.componentNameHint}
-          value={draft.name}
-          maxLength={120}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </div>
-      <PartFields
-        draft={draft}
-        materialOptions={materialOptions}
-        processes={processes}
-        processesLoaded={processesLoaded}
-        routes={routes}
-        massLabel={index === 0 ? t.massLabel : t.unitMassLabel}
-        massHint={index === 0 ? t.massHint : undefined}
-        afterMass={
-          <NumberInput
-            label={t.quantityLabel}
-            value={draft.quantity}
-            min={1}
-            step={1}
-            onChange={(event) => onChange({ quantity: event.target.value })}
-          />
+    <InlineTable
+      label={t.componentsTable}
+      columns={COMPONENT_COLUMNS}
+      stackBelow="md"
+      rows={components}
+      rowKey={(_draft, index) => index}
+      rowName={(_draft, index) => t.componentLegend(index + 1)}
+      onAdd={onAdd}
+      addLabel={t.addComponent}
+      onDuplicate={(_draft, index) => onDuplicate(index)}
+      onRemove={(_draft, index) => onRemove(index)}
+      onRestore={onRestore}
+      renderCell={(draft, column, index) => {
+        const cell = (header: string) => t.cellLabel(header, t.componentLegend(index + 1));
+        const processes = processesOf(index);
+        const patch = (change: Partial<ComponentDraft>) => onPatch(index, change);
+        switch (column.id) {
+          case "name":
+            return (
+              <Input
+                label={cell(t.colName)}
+                placeholder={t.componentNamePlaceholder}
+                value={draft.name}
+                maxLength={120}
+                onChange={(event) => patch({ name: event.target.value })}
+              />
+            );
+          case "material":
+            return (
+              <Combobox
+                label={cell(t.colMaterial)}
+                options={materialOptions}
+                value={draft.material}
+                onChange={(value) => patch({ material: value, process: "" })}
+              />
+            );
+          case "process":
+            return processesLoaded(index) && processes.length === 0 ? (
+              <span className="text-support text-ink-muted">{t.noProcessShort}</span>
+            ) : (
+              <Select
+                label={cell(t.colProcess)}
+                value={draft.process}
+                disabled={processes.length === 0}
+                onChange={(event) => patch({ process: (event.target as HTMLSelectElement).value })}
+              >
+                {processes.map((process) => (
+                  <SelectOption key={process.id} value={String(process.id)}>
+                    {process.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            );
+          case "mass":
+            return (
+              <NumberInput
+                label={cell(t.colUnitMass)}
+                unit={t.unitKg}
+                value={draft.mass}
+                min={0}
+                step="any"
+                onChange={(event) => patch({ mass: event.target.value })}
+              />
+            );
+          case "quantity":
+            return (
+              <NumberInput
+                label={cell(t.colQuantity)}
+                value={draft.quantity}
+                min={1}
+                step={1}
+                onChange={(event) => patch({ quantity: event.target.value })}
+              />
+            );
+          case "recycled":
+            return (
+              <NumberInput
+                label={cell(t.colRecycled)}
+                value={draft.recycled}
+                min={0}
+                max={1}
+                step="any"
+                onChange={(event) => patch({ recycled: event.target.value })}
+              />
+            );
+          default:
+            return (
+              <Select
+                label={cell(t.colEol)}
+                value={draft.endOfLife}
+                onChange={(event) =>
+                  patch({ endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute })
+                }
+              >
+                <RouteOptions routes={routes} />
+              </Select>
+            );
         }
-        onChange={onChange}
-      />
-      {canRemove ? (
-        <div className="sm:col-span-2">
-          <Button variant="ghost" size="sm" onClick={onRemove}>
-            {t.removeComponent(n)}
-          </Button>
-        </div>
-      ) : null}
-    </fieldset>
+      }}
+    />
+  );
+}
+
+/** D-218: what each column of the product table asks, one click away instead of under every field. */
+export function HowToFill() {
+  return (
+    <Disclosure summary={t.howToFill}>
+      <dl className="flex flex-col gap-2 pt-2 text-support">
+        {[
+          [t.colName, t.componentNameHint],
+          [t.colMaterial, t.materialHint],
+          [t.colProcess, t.processHint],
+          [t.colUnitMass, t.massHint],
+          [t.colRecycled, t.recycledHint],
+          [t.colEol, t.eolHint],
+        ].map(([term, help]) => (
+          <div key={term}>
+            <dt className="font-medium text-ink">{term}</dt>
+            <dd className="text-ink-muted">{help}</dd>
+          </div>
+        ))}
+      </dl>
+    </Disclosure>
   );
 }
 
@@ -254,41 +361,68 @@ export function ScenarioFields({
   );
 }
 
-export function LegFields({
-  index,
-  draft,
-  canRemove,
+const LEG_COLUMNS: InlineColumn[] = [
+  { id: "mode", header: t.colMode, minWidth: "10rem" },
+  { id: "distance", header: t.colDistance, hint: t.unitKm, numeric: true, minWidth: "8rem" },
+];
+
+/** D-218: the transport legs as a table edited in place, like the product. */
+export function LegsTable({
+  legs,
   modes,
-  onChange,
+  onPatch,
+  onAdd,
+  onDuplicate,
   onRemove,
+  onRestore,
 }: {
-  index: number;
-  draft: LegDraft;
-  canRemove: boolean;
+  /** Resolved: the mode on screen, defaults applied. */
+  legs: LegDraft[];
   modes: TransportMode[];
-  onChange: (patch: Partial<LegDraft>) => void;
-  onRemove: () => void;
+  onPatch: (index: number, patch: Partial<LegDraft>) => void;
+  onAdd: () => void;
+  onDuplicate: (index: number) => void;
+  onRemove: (index: number) => void;
+  onRestore: (draft: LegDraft, index: number) => void;
 }) {
-  const n = index + 1;
   return (
-    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-body font-medium text-ink">{t.legLegend(n)}</legend>
-      <TransportModeSelect modes={modes} value={draft.mode} onChange={(mode) => onChange({ mode })} />
-      <NumberInput
-        label={t.transportDistanceLabel}
-        value={draft.distance}
-        min={0}
-        step="any"
-        onChange={(event) => onChange({ distance: event.target.value })}
-      />
-      {canRemove ? (
-        <div className="sm:col-span-2">
-          <Button variant="ghost" size="sm" onClick={onRemove}>
-            {t.removeLeg(n)}
-          </Button>
-        </div>
-      ) : null}
-    </fieldset>
+    <InlineTable
+      label={t.legsTable}
+      columns={LEG_COLUMNS}
+      rows={legs}
+      rowKey={(_draft, index) => index}
+      rowName={(_draft, index) => t.legLegend(index + 1)}
+      onAdd={onAdd}
+      addLabel={t.addLeg}
+      onDuplicate={(_draft, index) => onDuplicate(index)}
+      onRemove={(_draft, index) => onRemove(index)}
+      onRestore={onRestore}
+      renderCell={(draft, column, index) => {
+        const row = t.legLegend(index + 1);
+        return column.id === "mode" ? (
+          <Select
+            label={t.cellLabel(t.colMode, row)}
+            value={draft.mode}
+            onChange={(event) => onPatch(index, { mode: (event.target as HTMLSelectElement).value })}
+          >
+            {modes.map((item) => (
+              <SelectOption key={item.slug} value={item.slug}>
+                {item.name}
+              </SelectOption>
+            ))}
+          </Select>
+        ) : (
+          <NumberInput
+            label={t.cellLabel(t.colDistance, row)}
+            unit={t.unitKm}
+            value={draft.distance}
+            min={0}
+            step="any"
+            onChange={(event) => onPatch(index, { distance: event.target.value })}
+          />
+        );
+      }}
+    />
   );
 }
 

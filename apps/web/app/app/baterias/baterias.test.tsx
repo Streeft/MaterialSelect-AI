@@ -244,7 +244,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     const user = userEvent.setup();
     const { unmount } = render(wrap(<BateriasPage />));
 
-    const energy = await screen.findByShadowRole("spinbutton", { name: t.targetEnergy });
+    const energy = await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` });
     await user.clear(energy);
     await user.type(energy, "75");
     await user.click(await screen.findByShadowRole("tab", { name: t.tabCompare }));
@@ -257,7 +257,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
 
     unmount();
     render(wrap(<BateriasPage />));
-    expect(await screen.findByShadowRole("spinbutton", { name: t.targetEnergy })).toHaveValue(75);
+    expect(await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` })).toHaveValue(75);
     expect(await screen.findByShadowRole("tab", { name: t.tabCompare })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -418,7 +418,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     });
     render(wrap(<BateriasPage />));
 
-    expect(await screen.findByShadowRole("spinbutton", { name: t.targetEnergy })).toHaveValue(33);
+    expect(await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` })).toHaveValue(33);
     expect(screen.getByText(t.premisesSummary(t.typicalCell, "0,8", "0,55", "0,9"))).toBeDefined();
     // The archetype the server names is a real option, so the select shows it.
     expect(

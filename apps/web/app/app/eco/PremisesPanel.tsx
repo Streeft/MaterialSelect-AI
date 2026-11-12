@@ -48,6 +48,7 @@ export function PremisesPanel({
         </Select>
         <NumberInput
           label={t.lifeLabel}
+          unit={t.unitYears}
           value={premises.life}
           min={0}
           step="any"
@@ -57,6 +58,7 @@ export function PremisesPanel({
           <>
             <NumberInput
               label={t.powerLabel}
+              unit={t.unitW}
               value={premises.power}
               min={0}
               step="any"
@@ -76,6 +78,7 @@ export function PremisesPanel({
           <>
             <NumberInput
               label={t.travelLabel}
+              unit={t.unitKm}
               value={premises.travel}
               min={0}
               step="any"

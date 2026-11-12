@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { useLiveResult } from "@/lib/useLiveResult";
+import { describeApiError } from "@/lib/errors";
 import type {
   DefaultsResult,
   EcoAuditRequest,
   EcoAuditResult,
+  EcoComparisonRequest,
   EcoComparisonResult,
 } from "@/lib/types";
 import {
@@ -41,8 +44,9 @@ import {
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import {
-  ComponentFields,
-  LegFields,
+  ComponentsTable,
+  HowToFill,
+  LegsTable,
   ScenarioFields,
   TransportModeSelect,
   type MaterialOption,
@@ -141,11 +145,6 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   const [brief, setBrief] = useUrlState(spec);
   const view = brief.view;
 
-  const [result, setResult] = useState<EcoAuditResult | null>(null);
-  // The brief `result` was computed from: the export sends this one, not what
-  // the inputs say now, so the file cannot disagree with the screen (D-172).
-  const [resultBrief, setResultBrief] = useState<EcoAuditRequest | null>(null);
-  const [compareResult, setCompareResult] = useState<EcoComparisonResult | null>(null);
 
   const premises: Premises = {
     useModel: brief.useModel,
@@ -224,27 +223,35 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
       );
   const ready = blocked === null;
 
-  const auditBrief = () => buildAuditBrief(resolvedComponents, resolvedLegs, premises);
-  const audit = useMutation({
-    onMutate: auditBrief,
-    mutationFn: () => runEcoAudit(auditBrief()),
-    onSuccess: (data, _variables, sent) => {
-      setResult(data);
-      setResultBrief(sent ?? null);
-    },
+  // D-218: both modes answer as the reader types; the numbers are the server's.
+  // The export sends the brief the shown result answers (D-172), never the inputs.
+  const comparisonBrief = () =>
+    buildComparisonBrief(
+      resolvedSides[0]!,
+      resolvedSides[1]!,
+      { mode: selectedMode, distance: brief.distance },
+      premises,
+    );
+  const liveAudit = useLiveResult<EcoAuditRequest, EcoAuditResult>({
+    key: "eco-ao-vivo",
+    request: individual && ready ? buildAuditBrief(resolvedComponents, resolvedLegs, premises) : null,
+    fetcher: runEcoAudit,
   });
-  const comparison = useMutation({
-    mutationFn: () =>
-      compareEcoAudits(
-        buildComparisonBrief(
-          resolvedSides[0]!,
-          resolvedSides[1]!,
-          { mode: selectedMode, distance: brief.distance },
-          premises,
-        ),
-      ),
-    onSuccess: setCompareResult,
+  const liveCompare = useLiveResult<EcoComparisonRequest, EcoComparisonResult>({
+    key: "eco-comparar-ao-vivo",
+    request: !individual && ready ? comparisonBrief() : null,
+    fetcher: compareEcoAudits,
   });
+  const result = liveAudit.data ?? null;
+  const resultBrief = liveAudit.dataRequest;
+  const compareResult = liveCompare.data ?? null;
+  const live = individual ? liveAudit : liveCompare;
+
+  // D-218: rows of the product and of the legs, edited in place.
+  const setComponents = (next: (list: ComponentDraft[]) => ComponentDraft[]) =>
+    setBrief((current) => ({ components: next(effectiveComponents(current, defaults)) }));
+  const setLegs = (next: (list: LegDraft[]) => LegDraft[]) =>
+    setBrief((current) => ({ legs: next(effectiveLegs(current, defaults)) }));
 
   const materialOptions: MaterialOption[] = useMemo(
     () =>
@@ -266,7 +273,6 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
   const routeList = routes.data ?? [];
   const modeList = modes.data ?? [];
-  const run = individual ? audit : comparison;
 
   return (
     <div className="flex flex-col gap-6">
@@ -291,81 +297,38 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
         <ParamsPanel>
           {individual ? (
             <div className="flex flex-col gap-6">
-              <StepCard
-                title={t.productStep}
-                description={t.productHint}
-                bodyClassName="flex flex-col gap-4"
-                footer={
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      setBrief((current) => ({
-                        components: [
-                          ...effectiveComponents(current, defaults),
-                          blankComponent(defaults),
-                        ],
-                      }))
-                    }
-                  >
-                    {t.addComponent}
-                  </Button>
-                }
-              >
-                {components.map((draft, index) => (
-                  <ComponentFields
-                    // The list is positional (it lives in the URL), so the index is the key.
-                    key={index}
-                    index={index}
-                    draft={resolvedComponents[index] ?? draft}
-                    canRemove={components.length > 1}
-                    materialOptions={materialOptions}
-                    processes={componentDetails[index]?.data?.processes ?? []}
-                    processesLoaded={Boolean(componentDetails[index]?.isSuccess)}
-                    routes={routeList}
-                    onChange={(patch) => patchComponent(index, patch)}
-                    onRemove={() =>
-                      setBrief((current) => ({
-                        components: effectiveComponents(current, defaults).filter(
-                          (_, i) => i !== index,
-                        ),
-                      }))
-                    }
-                  />
-                ))}
+              <StepCard title={t.productStep} description={t.productHint}>
+                <ComponentsTable
+                  components={resolvedComponents}
+                  materialOptions={materialOptions}
+                  processesOf={(index) => componentDetails[index]?.data?.processes ?? []}
+                  processesLoaded={(index) => Boolean(componentDetails[index]?.isSuccess)}
+                  routes={routeList}
+                  onPatch={patchComponent}
+                  onAdd={() => setComponents((list) => [...list, blankComponent(defaults)])}
+                  onDuplicate={(index) =>
+                    setComponents((list) => [...list, { ...list[index]! }])
+                  }
+                  onRemove={(index) => setComponents((list) => list.filter((_, i) => i !== index))}
+                  onRestore={(draft, index) =>
+                    setComponents((list) => [...list.slice(0, index), draft, ...list.slice(index)])
+                  }
+                />
+                <HowToFill />
               </StepCard>
 
-              <StepCard
-                title={t.transportStep}
-                description={t.legsHint}
-                bodyClassName="flex flex-col gap-4"
-                footer={
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      setBrief((current) => ({
-                        legs: [...effectiveLegs(current, defaults), blankLeg("0")],
-                      }))
-                    }
-                  >
-                    {t.addLeg}
-                  </Button>
-                }
-              >
-                {legs.map((draft, index) => (
-                  <LegFields
-                    key={index}
-                    index={index}
-                    draft={resolvedLegs[index] ?? draft}
-                    canRemove={legs.length > 1}
-                    modes={modeList}
-                    onChange={(patch) => patchLeg(index, patch)}
-                    onRemove={() =>
-                      setBrief((current) => ({
-                        legs: effectiveLegs(current, defaults).filter((_, i) => i !== index),
-                      }))
-                    }
-                  />
-                ))}
+              <StepCard title={t.transportStep} description={t.legsHint}>
+                <LegsTable
+                  legs={resolvedLegs}
+                  modes={modeList}
+                  onPatch={patchLeg}
+                  onAdd={() => setLegs((list) => [...list, blankLeg("0")])}
+                  onDuplicate={(index) => setLegs((list) => [...list, { ...list[index]! }])}
+                  onRemove={(index) => setLegs((list) => list.filter((_, i) => i !== index))}
+                  onRestore={(draft, index) =>
+                    setLegs((list) => [...list.slice(0, index), draft, ...list.slice(index)])
+                  }
+                />
               </StepCard>
             </div>
           ) : (
@@ -395,6 +358,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                 />
                 <NumberInput
                   label={t.transportDistanceLabel}
+                  unit={t.unitKm}
                   value={brief.distance}
                   min={0}
                   step="any"
@@ -407,39 +371,15 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
           <StepCard
             title={individual ? t.useStep : t.sharedPremises}
             description={t.useHint}
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => run.mutate()}
-                  disabled={!ready || run.isPending}
-                  aria-describedby={blocked ? "eco-motivo" : undefined}
-                >
-                  {individual
-                    ? audit.isPending
-                      ? t.running
-                      : t.run
-                    : comparison.isPending
-                      ? t.compareRunning
-                      : t.compareRun}
-                </Button>
-                {blocked ? (
-                  <p id="eco-motivo" className="text-support text-ink-muted">
-                    {blocked.reason}
-                  </p>
-                ) : null}
-              </div>
-            }
           >
             <PremisesPanel defaults={defaults} premises={premises} onChange={patchPremises} />
-            {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
-            {comparison.isError ? <Alert tone="danger">{String(comparison.error)}</Alert> : null}
           </StepCard>
         </ParamsPanel>
 
-        <ResultPanel>
+        <ResultPanel busy={live.updating}>
           {individual ? (
-            <StepCard title={t.resultStep}>
+            <StepCard title={t.resultStep} actions={live.updating ? <Updating /> : undefined}>
+              <LiveError error={live.error} />
               {result ? (
                 <>
                   <EcoExportMenu brief={resultBrief} />
@@ -470,12 +410,13 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                     </span>
                   </div>
                 </>
-              ) : (
-                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+              ) : live.error ? null : (
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           ) : (
-            <StepCard title={t.compareResultStep}>
+            <StepCard title={t.compareResultStep} actions={live.updating ? <Updating /> : undefined}>
+              <LiveError error={live.error} />
               {compareResult ? (
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -509,13 +450,8 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
                   <ComparisonTable result={compareResult} />
                   <PremisesSummary
-                    use={buildComparisonBrief(
-                      resolvedSides[0]!,
-                      resolvedSides[1]!,
-                      { mode: selectedMode, distance: brief.distance },
-                      premises,
-                    ).use}
-                    transportKm={Number(brief.distance)}
+                    use={(liveCompare.dataRequest ?? comparisonBrief()).use}
+                    transportKm={(liveCompare.dataRequest ?? comparisonBrief()).transport_distance_km}
                   />
 
                   <div className="flex flex-col gap-4">
@@ -545,8 +481,8 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                     </Disclosure>
                   ))}
                 </div>
-              ) : (
-                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+              ) : live.error ? null : (
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           )}
@@ -554,6 +490,14 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
       </ParamsResultLayout>
     </div>
   );
+}
+
+function LiveError({ error }: { error: unknown }) {
+  return error ? <Alert tone="danger">{describeApiError(error, t.title)}</Alert> : null;
+}
+
+function Updating() {
+  return <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>;
 }
 
 function Winner({
