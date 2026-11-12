@@ -251,7 +251,7 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   material oficial (D-116).
 
 **Glossário de propriedades (relatório de lacunas do EduPack, #7,
-[D-130](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
+[D-130b](DECISIONS.md), Sessão 84b).** ✔ Entregue: ~~verbetes conceituais e
 autorais para os 15 slugs de `seed.PROPERTIES`, em `app/glossary/entries.json`
 (sem migração), com fonte, licença e estado de revisão por verbete~~,
 ~~`GET /api/glossario` e `/{slug}` (404 escrito)~~, ~~dica "?" na ficha e na
@@ -1160,7 +1160,7 @@ Registrados para não voltarem por engano:
   universo de processos. Resíduo: ~~tolerância por propriedade~~ (feita:
   `tolerances` slug → %, sobrepõe a global só naquela propriedade; sem
   nenhuma das duas, sem faixa; 422 em pt-BR; campo por linha no painel, na
-  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115). Novo
+  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115b). Novo
   resíduo: desligar a tolerância global numa propriedade só (hoje, para isso,
   apaga-se a global e dá-se a cada outra propriedade a sua).
 
@@ -1806,6 +1806,12 @@ Registrados para não voltarem por engano:
 
 **Banco — pendências (D-227).**
 - Depois do Deploy da API, confirmar no painel do Neon que a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue`.
+**Fechamento da revisão das telas — pendências (D-226).**
+- Lighthouse: ver as medições no D-226; os limiares do `lighthouserc.json` só sobem até onde as medições sustentam.
+- Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
+- axe roda a 1280 e 390 px no tema claro; o tema escuro tem contraste medido em nível de token (D-29) mas não passa pelo axe do E2E. Acrescentar uma passada escura quando o tempo do E2E permitir.
+- ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
+- ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
 
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).

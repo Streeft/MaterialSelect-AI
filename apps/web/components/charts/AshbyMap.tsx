@@ -321,7 +321,7 @@ export function AshbyMap({
   // figure has to be rebuilt when the reader switches — not only recoloured.
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
-  const plotBox = usePlotlyResize<HTMLDivElement>();
+  const plotBox = usePlotlyResize<HTMLDivElement>(ptBR.chart.figureLabel(t.figure));
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
   // D-221: on a touch screen a drag on the figure is a pan, not a box — the
@@ -984,9 +984,11 @@ export function AshbyMap({
       {/* D-221: the legend sits above the drawing, inside the first screen —
           under a figure as tall as the viewport it was never seen. */}
       <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
-      {/* `role="img"` collapses Plotly's thousands of `<path>` and tick nodes
-          into one object for assistive technology. What replaces them is the
-          data table behind "Ver tabela de dados", not a longer label. */}
+      {/* `role="img"` (put on Plotly's `.svg-container` by `usePlotlyResize`, D-226)
+          collapses Plotly's thousands of `<path>` and tick nodes into one object
+          for assistive technology. What replaces them is the data table behind
+          "Ver tabela de dados", not a longer label. The wrapper is a `group`
+          because the modebar's buttons cannot live inside an image. */}
       <div
         ref={plotBox}
         className={cn(
@@ -996,7 +998,7 @@ export function AshbyMap({
           // square-ish one on a very tall screen.
           fillHeight ? "h-[clamp(26rem,calc(100dvh-17rem),54rem)]" : PLOTLY_HEIGHT.map,
         )}
-        role="img"
+        role="group"
         aria-label={ptBR.chart.figureLabel(t.figure)}
       >
         <Plot

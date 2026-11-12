@@ -103,7 +103,7 @@ export function FirstUseGuide() {
                     })
                   }
                 />
-                <Link href={step.href} className="text-caption text-accent underline">
+                <Link href={step.href} className="touch-target text-caption text-accent underline">
                   {t.guideOpen}
                   <span className="sr-only">: {step.label}</span>
                 </Link>

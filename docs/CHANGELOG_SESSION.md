@@ -127,6 +127,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 (5; dois precisam do `psycopg` instalado e pulam sem ele) e o teste do pool em `test_auth_callback_resilience.py` passou a pedir `queue`.
 
 **Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Conferir no Neon que a computação suspende.
+## Sessão 183 — 12/11/26 — Fechamento da revisão das telas (D-226)
+
+**O que mudou.** `e2e/a11y.spec.ts` (axe em toda rota de `e2e/rotas.ts`, a 1280 e 390 px, sem regra desligada) e
+`e2e/mobile.spec.ts` (390 px com toque: sem rolagem lateral e alvos de 44 px em 13 páginas e na ficha). Correções que o axe
+achou: barra do Plotly dentro de `role="img"` (agora `usePlotlyResize(figureLabel)` põe a imagem só na camada `.main-svg` e o
+contêiner é `group`), rolagem vertical invisível nas fórmulas (`MathTex`), região focável e contraste em `/app/estilo`. `globals.css`
+ganhou a área de toque de 44 px para todo botão e link fora de texto corrido, e altura mínima para campos, `summary`, abas e
+linhas de checkbox em ponteiro grosso. Numeração antiga desambiguada: glossário passou a D-130b, Sessões 84b, 98b e 115b, a cópia
+repetida da D-199 saiu; regra no D-226. `TCC_GUIA.md` ganhou a seção 4.6 (Fases 0 a 5 e assistente). Teste novo:
+`usePlotlyResize.test.tsx`; `RagoneChart.test.tsx` ajustado ao `group`.
+
+**Para quem retoma.** Sem migração e sem Deploy da API. A auditoria visual antes/depois e as medições do Lighthouse estão no
+relatório do scratchpad da sessão (não vai ao repositório); os números do Lighthouse entram no D-226.
 
 ---
 
@@ -712,7 +725,7 @@ documentação: nenhum código, migração ou seed.
 **O que mudou.** `lib/compare-link.ts` lê e escreve `materiais`, `referencia`, `limiar`, `calculadas` (slugs) e `indice` (repetido; uma expressão pode ter vírgula). A página escreve o endereço a cada mudança e traz um "Copiar link". Expressão que chega no link passa pelo mesmo validador de `POST /api/selection/index` antes de entrar no pedido (a tabela espera a resposta); recusada, fica de fora com a mensagem do servidor, escrita. Slug de catálogo que não existe mais é dito. Nada vai para o navegador.
 
 **Resíduos.** Propriedades e normalização fora do link; comparação salva com nome exige backend e decisão do autor.
-## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
+## Sessão 115b — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
 
 **O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
 cima de `tolerance_pct` só naquela propriedade; propriedade sem nenhuma das duas fica sem faixa. A validação está no schema com mensagem
@@ -963,7 +976,7 @@ verdadeiro). As mensagens de sintaxe e de construção não permitida do avaliad
 
 ## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
 
-**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130): cinco notas autorais, uma por família de
+**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130b): cinco notas autorais, uma por família de
 `seed.CLASSES`, em `apps/api/app/glossary/families.json` (o que a família é, por que se comporta assim, quando escolher, cuidados),
 validadas por `app/domain/family_notes.py` (sem algarismo no texto, campo desconhecido recusado, slug único, cobertura do seed) e
 servidas por `GET /api/familias/notas` e `/{slug}`. No frontend, `lib/familyNotes.ts`, `FamilyNote` dobrada sob a classe na ficha
@@ -1045,7 +1058,7 @@ origem (D-31) lista também os passos sem índice com o motivo. Erros 400/404/42
 `packages/shared-types`, `sweepSynthesis` em `lib/api.ts`. +14 de frontend (axe, tabela, passo sem
 índice, faixa, erros, estado vazio). Frontend em 1230. Pós-merge: só o frontend (Vercel).
 
-## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
+## Sessão 98b — 17/10/26 — Gráfico de Ragone das baterias (D-143)
 
 **O que mudou.** Backend: `ragone_iso_time_lines` e `ragone_bounds` em `calculations/battery.py`
 (linhas E = P·t recortadas à caixa do gráfico), `BatteryService.ragone`, `GET /api/baterias/ragone`
@@ -1232,7 +1245,7 @@ mesclado sem as linhas de documentação, que entram aqui.
 **Pendente (plano de 9 itens).** Tabelas ordenáveis com seleção em massa, home
 estilo Drive, rascunho salvo na Seleção, transições de tela, app instalável,
 Cadernos em grade, regressão visual — em `TODO.md`.
-## Sessão 84 — 15/10/26 — Glossário de propriedades (D-130)
+## Sessão 84b — 15/10/26 — Glossário de propriedades (D-130b)
 
 **O que mudou.** Lacuna nº 7 do relatório do EduPack. Verbetes **conceituais**
 (o que a grandeza significa e como se mede, nunca quanto vale) para os 15 slugs

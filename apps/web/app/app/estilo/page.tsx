@@ -671,7 +671,7 @@ function StyleGuide() {
           </Button>
           <Button variant="link">Ver no mapa</Button>
         </div>
-        <div className="scroll-x">
+        <div className="scroll-x" tabIndex={0} role="region" aria-label="Estados dos botões">
           <table className="w-full min-w-[40rem] border-collapse text-left">
             <caption className="sr-only">Estados de cada variante de botão</caption>
             <thead>
