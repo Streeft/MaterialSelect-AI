@@ -159,6 +159,15 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
+**Assistente em passos (D-210).** O estudo mora num `useReducer`
+(`app/app/selecao/wizardState.ts`) e cada passo em `app/app/selecao/steps/`; o
+instantâneo tem **os mesmos campos do rascunho** (D-139) — mudar um muda o formato
+salvo. O funil ao vivo pede `POST /api/selection/funnel` (contagens, sem
+candidatos). **Modelo pronto é só formulação** (`app/domain/study_templates.py`):
+limites `exists` nas propriedades do índice, nunca um limiar. Posições ganhas ou
+perdidas entre execuções vêm de `POST /api/selection/run-diff`, nunca da tela; a
+explicação por material só lê a resposta da execução.
+
 **Propriedade ordinal e nível mínimo aceito (D-126).** Uma propriedade
 ordinal de material é uma **escala ordenada** de níveis (pior primeiro), em
 tabelas próprias — nunca em `PropertyDefinition` — e o nível de um valor aponta a
@@ -438,7 +447,19 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81)
+## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212)
+
+**Padrões de página (D-212).** Ação de página vai no `PageHeader` por papel: `secondaryActions`, `overflow` (o "⋯", só
+`MenuItem`) e `primaryAction` (no máximo um `primary`), nessa ordem; trilha de detalhe em `breadcrumb`. Calculadora é
+`ParamsResultLayout` com `ParamsPanel` à esquerda e `ResultPanel` à direita (container query, 1200 px do bloco), nunca
+grade de colunas à mão. Entrada que o leitor digita e quer reabrir vai para a URL por `useUrlState` (`lib/urlState.ts`,
+especificação constante com parâmetro, codec e padrão); nunca `router.replace` por tecla, nunca `setState` no render para
+corrigir um valor da URL (derive). Carregamento de tabela, gráfico ou ficha usa `TableSkeleton`, `ChartSkeleton` ou
+`SheetSkeleton` com rótulo. Número digitado ecoado num resumo é `formatTyped`; figura com rótulo é `StatTile`. Código novo
+do MSDS vai no arquivo do componente em `lib/msds/` e se importa de `@/lib/msds`.
+
+
+**Moldura única (D-211).** Domínio de eixo, limite aberto da caixa de seleção e vencedor da rodada vêm da API (`domain`, `open_bounds`, `winner`); o componente não os calcula. `ChartFrame` oferece PNG, SVG e CSV (da tabela); `ChartLegend` isola série com Shift + clique e recolhe quando longa; número de tooltip passa por `tipValue` (pt-BR, unidade, "Ausente" por extenso).
 
 **D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
 ar** ([D-80](DECISIONS.md)): `msds.css` redefinia `--accent` em hex e

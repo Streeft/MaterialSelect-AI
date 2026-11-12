@@ -312,8 +312,7 @@ function ComparePageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-       
-        actions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
+        secondaryActions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
       />
 
       {ignoredByLink.length > 0 && (

@@ -120,6 +120,44 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 169 — 12/11/26 — Padrões de página (D-212)
+
+**O que mudou.** Etapa 2.2 (numerada D-209/Sessão 166 até o merge com a `main`, que usou esses números para a F2). `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;
+`ParamsResultLayout`/`ParamsPanel`/`ResultPanel` em Dimensionar, Custo, Eco, Baterias e Sintetizar; `useUrlState`
+(`lib/urlState.ts`) põe na URL Baterias, Dimensionar, Sintetizar e todo o Custo, e o Painel guarda a escala sem `setState`
+no render; "Copiar o link desta configuração" no "⋯"; `formatTyped` e `StatTile` únicos; `TableSkeleton`, `ChartSkeleton`
+e `SheetSkeleton` nos carregamentos; `lib/msds/msds.tsx` em 45 arquivos com reexport pelo mesmo caminho. Testes:
+`lib/urlState.test.tsx` (leitura, escrita, ida e volta, Voltar), `components/ui/pagePatterns.test.tsx` (cabeçalho, menu,
+trilha, layout, skeletons, `StatTile`, `formatTyped`, copiar link; com axe), e casos novos de URL e de regiões em
+`baterias`, `custo`, `dimensionar`, `sintetizar` e `painel`. Sem backend nem migração.
+
+## Sessão 168 — 12/11/26 — Gráficos uniformes (D-211)
+
+**O que mudou.** Etapa 2.3 (numerada D-206/Sessão 163 até o merge com a `main`, que usou esses números para a F1). O backend passou a calcular o domínio do box-plot (`DistributionOut.domain`), a extensão log-log
+da curva de custo (`CostResultOut.domain`, com `curve_domains`), os limites abertos da caixa de seleção do Ashby
+(`PropertyMapOut.open_bounds`, linear e log, material e processo) e o vencedor da rodada (`RunResultOut.winner`,
+`pick_winner`). `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` só leem. `ChartFrame` ganhou "CSV" no Exportar,
+`ChartLegend` ganhou Shift + clique para isolar e recolher a legenda longa, e `tipValue` padronizou o número do tooltip.
+Testes: `test_chart_domains.py` (funções puras e as quatro respostas), `uniformFrame.test.tsx` (isolar, recolher, CSV, axe,
+domínio do box-plot), `figureCsv.test.ts`, `seriesVisibility.test.ts`, e a lateral aberta do Ashby em `charts.test.tsx`.
+Fixtures de `RunResult` passaram a trazer `winner`. Depois do merge: **Deploy da API**.
+
+## Sessão 167 — 12/11/26 — Seleção em passos (D-210)
+
+**O que mudou.** Etapa 3.1. `app/app/selecao/page.tsx` (~1.900 linhas, ~31 `useState`) virou orquestração: o estudo num
+`useReducer` (`wizardState.ts`) e os passos em `steps/` (função, objetivo, limites, resultados, barra de progresso). Backend:
+`POST /selection/funnel` (contagens sem candidatos, para o funil ao vivo), `GET /selection/templates` (viga leve e rígida,
+mola leve, painel leve e rígido, trocador de calor — só formulação, limites `exists`, nenhum número de material) e
+`POST /selection/run-diff` (entrou/saiu/subiu/caiu entre duas execuções). Frontend: barra de progresso clicável, "Executar"
+desabilitado diz o que falta e leva ao campo, modelos prontos com Desfazer, aba "Por material" com explicação e "Abrir no
+mapa"/"Comparar selecionados", e "Execução anterior × atual" a partir da segunda execução. Comportamento preservado:
+`?etapa=`, rascunho (mesmo formato), foco no título, desfazer exclusão. Testes: `test_selection_wizard_d210.py` (funil,
+modelos — inclusive cada um rodando pelo pipeline real e o que falta no catálogo —, diferença de execuções e login),
+`wizardState.test.ts`, `runReadiness.test.ts`, `lib/selection/explain.test.ts`, `components/selection/wizardParts.test.tsx`
+(progresso, modelos, explicação, ações, comparação; com axe), casos novos em `selecao.test.tsx` e o E2E
+`e2e/selecao-modelos.spec.ts` (um estudo por modelo até os resultados). Sem migração nem seed. Depois do merge:
+**Deploy da API**.
+
 ## Sessão 166 — 12/11/26 — F2 da revisão das telas: bases de dados com visões salvas (D-209)
 
 **O que mudou.** Visões salvas na conta: tabela `saved_view` (migração `4947c5b5057d`) e `/api/saved-views` por usuário, com

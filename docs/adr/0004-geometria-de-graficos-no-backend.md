@@ -75,3 +75,9 @@ Em concreto:
   envelopes mudam; e o contrato da API fica mais largo do que um simples
   "devolva os pontos". Ambos são custos aceitáveis diante da rastreabilidade
   ganha.
+
+## Adendo (D-211)
+
+A mesma regra vale para o que não é um dado mas é um número de figura: a folga do eixo do box-plot, a extensão log-log da curva
+de custo, o alcance da lateral aberta da caixa de seleção do mapa e quem venceu uma rodada. Saem de `domain/axis_domain.py`,
+`calculations/part_cost.curve_domains` e `domain/winner.py`, e o componente só os desenha.

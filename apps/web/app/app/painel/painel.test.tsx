@@ -463,6 +463,34 @@ describe("painel", () => {
     expect(await screen.findByText(t.distributionFigure("Densidade"))).toBeInTheDocument();
   });
 
+  it("keeps the distribution's scale in the URL, both ways (D-212)", async () => {
+    at("aba=propriedades&escala=log");
+    render(wrap(<DashboardPage />));
+    const log = await screen.findByShadowRole("button", { name: t.log });
+    expect(log).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(screen.getByShadowRole("button", { name: t.linear }));
+    // Linear is the default, so it leaves the URL rather than being spelled out.
+    expect(nav.search.get("escala")).toBeNull();
+    await userEvent.click(screen.getByShadowRole("button", { name: t.log }));
+    expect(nav.search.get("escala")).toBe("log");
+  });
+
+  it("draws a property that refuses log linearly without rewriting the URL during render", async () => {
+    getDashboardDistribution.mockImplementation((slug: string) =>
+      Promise.resolve({ ...distributions[slug]!, allows_log_scale: false }),
+    );
+    at("aba=propriedades&escala=log");
+    render(wrap(<DashboardPage />));
+    await waitFor(() =>
+      expect(screen.getByShadowRole("button", { name: t.linear })).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(screen.getByShadowRole("button", { name: t.log })).toBeDisabled();
+    // The reader's choice stays where it was: it applies again to a property that allows it.
+    expect(nav.search.get("escala")).toBe("log");
+    getDashboardDistribution.mockImplementation((slug: string) => Promise.resolve(distributions[slug]));
+  });
+
   it("shows an empty state instead of zeroed cards when the catalogue has nothing", async () => {
     getDashboardOverview.mockResolvedValueOnce({
       ...overview,

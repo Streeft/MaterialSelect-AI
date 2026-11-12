@@ -1201,6 +1201,100 @@ export interface RunResult {
   stages: StageResult[];
   index: IndexResult | null;
   ranking: RankingResult | null;
+  /** Quem venceu, escolhido no backend (D-85, ADR 0004). */
+  winner: RunWinner;
+}
+
+/**
+ * O vencedor de uma rodada, lido dos números que o motor já produziu: `ranked`
+ * nomeia as linhas de posição 1 (empate é empate), `index` o melhor valor
+ * definido do índice, `none` ninguém e diz por quê em `reason`.
+ */
+export interface RunWinner {
+  kind: "ranked" | "index" | "none";
+  names: string[];
+  reason: "no_candidates" | "no_objective" | "no_defined_index" | null;
+  score: number | null;
+  method: string | null;
+  contributions: Contribution[];
+  index_value: number | null;
+  value: number | null;
+  maximize: boolean | null;
+}
+
+// --- D-210: live funnel, ready-made studies and run comparison --------------
+
+/** The funnel's counts while the limits are edited — no candidate list (D-210). */
+export interface FunnelPreview {
+  universe: SelectionUniverse;
+  initial_count: number;
+  combinator: string;
+  final_count: number;
+  funnel: FunnelStep[];
+  stages: StageResult[];
+}
+
+/** What `POST /selection/funnel` accepts: the constraints of a run, nothing else. */
+export interface FunnelPreviewRequest {
+  universe?: SelectionUniverse;
+  stages?: StageIn[] | null;
+}
+
+/**
+ * A classic formulation applied in one click (D-210): words and an index, no
+ * material number. `available` is false when the catalogue lacks a property
+ * the index reads, and `missing_properties` names it.
+ */
+export interface StudyTemplate {
+  slug: string;
+  name: string;
+  summary: string;
+  function_text: string;
+  objective_text: string;
+  design_constraint: string;
+  free_variables: string[];
+  universe: SelectionUniverse;
+  stages: StageIn[];
+  index: IndexIn;
+  index_slug: string | null;
+  criteria: CriterionIn[];
+  reference: string;
+  available: boolean;
+  missing_properties: string[];
+}
+
+export interface RunEntryIn {
+  record_id: number;
+  name: string;
+  rank: number | null;
+}
+
+export interface RunDiffRequest {
+  before: RunEntryIn[];
+  after: RunEntryIn[];
+}
+
+export type RunDiffChange = "up" | "down" | "same" | "entered" | "left" | "unranked";
+
+export interface RunDiffRow {
+  record_id: number;
+  name: string;
+  rank_before: number | null;
+  rank_after: number | null;
+  change: RunDiffChange;
+  /** Positions climbed (positive) or dropped (negative); null without two ranks. */
+  positions: number | null;
+}
+
+export interface RunDiff {
+  rows: RunDiffRow[];
+  entered: number;
+  left: number;
+  moved: number;
+  unchanged: number;
+  winners_before: string[];
+  winners_after: string[];
+  winner_changed: boolean;
 }
 
 export interface PerformanceIndex {
@@ -1419,6 +1513,18 @@ export interface PropertyMap {
   considered_count: number;
   plotted_count: number;
   notes: string[];
+  /** Onde se desenham as laterais abertas da caixa de seleção, por escala (ADR 0004). */
+  open_bounds?: OpenBounds | null;
+}
+
+export interface OpenSides {
+  x: [number, number];
+  y: [number, number];
+}
+
+export interface OpenBounds {
+  linear: OpenSides;
+  log: OpenSides;
 }
 
 export interface ComparisonRequest {
@@ -1714,7 +1820,15 @@ export interface PropertyDistribution {
   display_unit: string | null;
   allows_log_scale: boolean;
   boxes: DistributionBox[];
+  /** Domínio dos eixos, calculado no servidor (ADR 0004); nulo sem caixas. */
+  domain?: BoxDomain | null;
   classes_without_data: string[];
+}
+
+/** `log` é nulo quando o menor valor não é positivo: a figura fica linear. */
+export interface BoxDomain {
+  linear: [number, number];
+  log: [number, number] | null;
 }
 
 // --- Painel rico (D-193) ------------------------------------------------------
@@ -2366,6 +2480,15 @@ export interface CostResult {
   monetary_unit_note: string;
   costed: CostedProcess[];
   uncosted: UncostedProcess[];
+  /** Extensão log-log da figura C(n), calculada no servidor (ADR 0004). */
+  domain?: CostDomain | null;
+}
+
+export interface CostDomain {
+  x: [number, number];
+  y: [number, number];
+  /** Lotes das curvas mais o atual, em ordem: as linhas da tabela da figura. */
+  batch_sizes: number[];
 }
 
 // --- Eco Audit (P3) ----------------------------------------------------------

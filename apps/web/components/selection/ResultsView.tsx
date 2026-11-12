@@ -33,6 +33,8 @@ import { encodeIdList } from "@/lib/idList";
 import { CopyTableButton } from "./CopyTableButton";
 import { FunnelRow, percent } from "./FunnelRow";
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
+import { wizardText } from "@/lib/i18n-selection-wizard";
+import { CandidateExplorer } from "./CandidateExplorer";
 
 const t = ptBR.selection;
 
@@ -97,13 +99,10 @@ function ProvenanceItem({ term, children }: { term: string; children: ReactNode 
 
 
 /**
- * Who won, read off numbers the backend already computed (D-85).
- *
- * Nothing here scores anything: a ranked run names its rank-1 rows (all of
- * them — a tie is a tie), an index-only run names the best defined index value
- * in the direction the index declares, and a run with neither names nobody and
- * says why. Choosing the largest of numbers the server produced is a
- * comparison, not a computation (ADR 0004).
+ * Who won is picked by the backend (`RunResult.winner`, D-85, ADR 0004): the
+ * screen, an exported report and a saved study must name the same winner, so
+ * this view only reads it. The adapter below keeps the card's shape (camelCase,
+ * a closed union) and reads nothing but the response.
  */
 export type Winner =
   | {
@@ -117,39 +116,22 @@ export type Winner =
   | { kind: "index"; names: string[]; value: number; maximize: boolean }
   | { kind: "none"; reason: "no_candidates" | "no_objective" | "no_defined_index" };
 
-export function winnerOf(result: RunResult): Winner {
-  const { candidates, ranking, index } = result;
-  if (candidates.length === 0) return { kind: "none", reason: "no_candidates" };
-  const top = ranking?.ranked.filter((r) => r.rank === 1) ?? [];
-  const first = top[0];
-  if (ranking && first) {
+function readWinner(result: RunResult): Winner {
+  const w = result.winner;
+  if (w.kind === "ranked" && w.score !== null && w.method !== null) {
     return {
       kind: "ranked",
-      names: top.map((r) => r.name),
-      score: first.score,
-      method: ranking.method,
-      contributions: first.contributions,
-      indexValue: candidates.find((c) => c.record_id === first.record_id)?.index_value ?? null,
+      names: w.names,
+      score: w.score,
+      method: w.method,
+      contributions: w.contributions,
+      indexValue: w.index_value,
     };
   }
-  if (index) {
-    const defined = candidates.filter(
-      (c): c is Candidate & { index_value: number } => c.index_value !== null,
-    );
-    if (defined.length === 0) return { kind: "none", reason: "no_defined_index" };
-    const better = (a: number, b: number) => (index.goal === "minimize" ? a < b : a > b);
-    const best = defined.reduce(
-      (acc, c) => (better(c.index_value, acc) ? c.index_value : acc),
-      defined[0]!.index_value,
-    );
-    return {
-      kind: "index",
-      names: defined.filter((c) => c.index_value === best).map((c) => c.name),
-      value: best,
-      maximize: index.goal !== "minimize",
-    };
+  if (w.kind === "index" && w.value !== null && w.maximize !== null) {
+    return { kind: "index", names: w.names, value: w.value, maximize: w.maximize };
   }
-  return { kind: "none", reason: "no_objective" };
+  return { kind: "none", reason: w.reason ?? "no_objective" };
 }
 
 function WinnerCard({ result, winner }: { result: RunResult; winner: Winner }) {
@@ -286,7 +268,13 @@ function TopCandidates({
 }
 
 /** The tabs of the results screen (D-85), in reading order. */
-export type ResultsTab = "resumo" | "ranking" | "eliminados" | "sensibilidade" | "origem";
+export type ResultsTab =
+  | "resumo"
+  | "ranking"
+  | "material"
+  | "eliminados"
+  | "sensibilidade"
+  | "origem";
 
 /**
  * Where each old section address now lives. The blocks kept their ids, so a
@@ -298,6 +286,8 @@ const TAB_BY_HASH: Record<string, ResultsTab> = {
   vencedor: "resumo",
   candidatos: "ranking",
   contribuicoes: "ranking",
+  // D-210: why each material is standing, with map and comparator actions.
+  "por-material": "material",
   funil: "eliminados",
   excluidos: "eliminados",
   sensibilidade: "sensibilidade",
@@ -346,11 +336,12 @@ export function ResultsView({
   // reports them; the first one that has a breakdown at all is enough.
   const weightRows = withContributions[0]?.contributions ?? [];
 
-  const winner = winnerOf(result);
+  const winner = readWinner(result);
 
   const tabs: TabItem<ResultsTab>[] = [
     { id: "resumo", label: t.tabSummary },
     { id: "ranking", label: t.tabRanking, meta: candidates.length },
+    { id: "material", label: wizardText.explain.tab },
     { id: "eliminados", label: t.tabExcluded },
     { id: "sensibilidade", label: t.tabSensitivity },
     { id: "origem", label: t.tabProvenance },
@@ -493,6 +484,8 @@ export function ResultsView({
 
           </div>
         )}
+
+        {tab === "material" && <CandidateExplorer result={result} />}
 
         {tab === "eliminados" && (
           <div className="space-y-6">

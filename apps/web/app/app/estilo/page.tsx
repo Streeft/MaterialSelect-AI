@@ -1,6 +1,7 @@
 "use client";
 
 import { PaneScaffold } from "@/components/layout/PaneScaffold";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { M3Foundations } from "./M3Foundations";
@@ -20,6 +21,10 @@ import {
   ButtonGroup,
   ButtonGroupItem,
   Card,
+  ChartSkeleton,
+  SheetSkeleton,
+  StatTile,
+  TableSkeleton,
   CardBody,
   CardFooter,
   CardHeader,
@@ -888,6 +893,18 @@ function StyleGuide() {
             primary={<div className="well p-4 text-body">O trabalho (cerca de dois terços)</div>}
             secondary={<div className="well p-4 text-body">O que ajuda a ler o trabalho</div>}
           />
+          <p className="max-w-prose text-body text-ink-muted">
+            Parâmetros e resultado (D-212): o que se digita à esquerda e a resposta do servidor à
+            direita, a partir de 1200 px do bloco; abaixo disso o resultado desce para baixo.
+          </p>
+          <ParamsResultLayout>
+            <ParamsPanel label="Exemplo: parâmetros">
+              <div className="well p-4 text-body">Os campos da conta</div>
+            </ParamsPanel>
+            <ResultPanel label="Exemplo: resultado">
+              <div className="well p-4 text-body">A tabela que o servidor devolveu</div>
+            </ResultPanel>
+          </ParamsResultLayout>
         </div>
       </Section>
 
@@ -1126,6 +1143,21 @@ function StyleGuide() {
               <div className="mt-2 space-y-2">
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-4 w-3/4" />
+              </div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="flex flex-col gap-4">
+              <TableSkeleton rows={3} />
+              <SheetSkeleton tiles={2} />
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="flex flex-col gap-3">
+              <ChartSkeleton />
+              <div className="grid grid-cols-2 gap-3">
+                <StatTile size="compact" label="Energia útil" value="42,5" unit="kWh" tone="highlight" />
+                <StatTile size="compact" label="Massa do pack" value="310" unit="kg" />
               </div>
             </CardBody>
           </Card>

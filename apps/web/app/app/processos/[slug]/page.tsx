@@ -11,7 +11,6 @@ import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { formatNumber, valueUnit } from "@/lib/format";
 import {
   Badge,
-  Breadcrumb,
   Card,
   CardBody,
   DataQualityBadge,
@@ -64,23 +63,16 @@ export default function ProcessDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Breadcrumb
-        items={[
+      <PageHeader
+        breadcrumb={[
           { label: t.backToProcesses, href: "/app/processos" },
           { label: data.class_name, href: `/app/processos/familia/${data.class_slug}` },
           { label: data.name },
         ]}
-      />
-
-      <PageHeader
         title={data.name}
         description={data.description ?? undefined}
         eyebrow={false}
-        actions={
-          <span className="flex items-center gap-2">
-            <FavoriteButton universe="process" recordId={data.id} />
-          </span>
-        }
+        secondaryActions={<FavoriteButton universe="process" recordId={data.id} />}
       />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">

@@ -207,17 +207,16 @@ function CatalogPageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-       
-        actions={
-          <>
-            {/* D-108: a quiet door to a maintenance reading, not a second action. */}
-            <ButtonLink href="/app/catalogo/releases" variant="ghost" size="sm">
-              {t.releasesLink}
-            </ButtonLink>
-            <ButtonLink href="/app/materiais/novo" variant="primary" size="sm">
-              + {ptBR.actions.new}
-            </ButtonLink>
-          </>
+        secondaryActions={
+          // D-108: a quiet door to a maintenance reading, not a second action.
+          <ButtonLink href="/app/catalogo/releases" variant="ghost" size="sm">
+            {t.releasesLink}
+          </ButtonLink>
+        }
+        primaryAction={
+          <ButtonLink href="/app/materiais/novo" variant="primary" size="sm">
+            + {ptBR.actions.new}
+          </ButtonLink>
         }
       />
 

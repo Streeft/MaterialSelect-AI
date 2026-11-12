@@ -12105,6 +12105,36 @@ fixam as classes e os tokens que produzem o efeito); a causa exata da chave dupl
 
 ---
 
+## D-211 — Gráficos uniformes: domínio e vencedor vêm do backend, a moldura é uma só
+
+*Numeração.* Escrita como D-206/Sessão 163 no PR único #237; a `main` usou esses números para a F1/F2 (#236), e o merge renumerou esta decisão e todas as referências a ela.
+
+**Contexto.** A revisão das telas (etapa 2.3) achou quatro números que o front ainda derivava sozinho, contra o ADR 0004:
+o domínio do box-plot (folga de 5 %), a extensão log-log da curva de custo, até onde vai a lateral aberta da caixa de
+seleção do mapa de Ashby e quem venceu uma rodada. Em paralelo, a moldura `ChartFrame` já era uma só, mas legenda, exportação
+e tooltip variavam de figura para figura.
+
+**Decisão.**
+- **Backend** (funções puras, com teste): `domain/axis_domain.py` (`padded_domain`, `box_domains`, `open_selection_bounds`),
+  `domain/winner.py` (`pick_winner`) e `calculations/part_cost.curve_domains`. Os serviços anexam o resultado à resposta que
+  já alimenta a figura: `DistributionOut.domain` (linear e log; log nulo com mínimo não positivo, e a figura fica linear),
+  `CostResultOut.domain` (x, y e os lotes da tabela), `PropertyMapOut.open_bounds` (linear e log, nos dois universos, na
+  unidade de leitura dos pontos) e `RunResultOut.winner` (`ranked`, `index` ou `none` com o motivo; empate lista todos).
+- **Frontend** só lê: `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` perderam o cálculo; sem o campo (resposta
+  antiga) o mapa não desenha a lateral aberta em vez de adivinhar.
+- **Moldura única.** `ChartFrame` oferece "CSV" no menu Exportar a partir da tabela da própria figura (mesmo texto que o leitor vê,
+  `;` e BOM para planilha pt-BR, ausência continua texto); figura que já traz exportação de dados (D-106) mantém a sua.
+  `ChartLegend` ganha Shift + clique para **isolar** uma série (de novo, restaura todas; `isolateSeries`) e, na legenda longa
+  (D-187), um botão para recolher. `tipValue` é o único jeito de escrever número em tooltip: pt-BR, unidade depois, "Ausente"
+  por extenso. Radar com muitas séries segue sem limite (D-187): legenda rolável, destaque ao passar ou focar. Cor só por token.
+
+**Consequências.** Mexe em `apps/api`: depois do merge, **Deploy da API**. Sem migração nem seed. Os campos novos são
+opcionais nos tipos (exceto `winner`), então uma API antiga não derruba a tela. `winnerOf` saiu de `ResultsView`.
+
+**Numeração.** D-211 e Sessão 168 reservadas para a etapa 2.3 (D-207 e D-208 já estão na main).
+
+---
+
 ## D-208 — Acesso livre a todos os menus: login basta para curar o catálogo e ver o sistema de design
 
 **Contexto.** Com `ACCESS_MODE=open` (D-83) e um banco novo sem assinaturas, `can_edit_shared_catalog` era falso para todo
@@ -12153,6 +12183,120 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
+## D-212 — Padrões de página: cabeçalho com papéis, parâmetros e resultado, estado na URL, skeletons por tipo
+
+*Numeração.* Escrita como D-209/Sessão 166 no PR único #237; a `main` usou esses números para a F1/F2 (#236), e o merge renumerou esta decisão e todas as referências a ela.
+
+**Contexto.** Etapa 2.2 da revisão das telas. As páginas de `/app` repetiam à mão quatro desenhos: o cabeçalho (ações em
+qualquer ordem, às vezes dois botões fortes), as calculadoras (Dimensionar, Custo, Eco, Baterias, Sintetizar) com a grade
+de colunas de cada uma, o estado das entradas (só o mapa e o painel iam para a URL; Baterias, Dimensionar e Sintetizar
+perdiam tudo num recarregar, e Custo levava material, massa e lote mas não as premissas), e dois `printable()` e dois
+`StatTile` iguais em arquivos diferentes. O Painel ainda corrigia a escala com `setState` durante o render.
+`lib/msds/msds.tsx` tinha ~2.650 linhas num arquivo só. Referências: Stripe e Vercel (cabeçalho com uma ação primária e o
+resto num "⋯"), Onshape (parâmetros à esquerda, resultado à direita).
+
+**Decisão.**
+- **`PageHeader`** ganha papéis: `secondaryActions`, `overflow` (os `MenuItem`s de um `MenuButton` "⋯", "Mais ações") e
+  `primaryAction`, sempre nessa ordem, com o `primary` no fim; e `breadcrumb`, que leva a trilha do D-207 para dentro do
+  cabeçalho (catálogo, processo e família de processo). `actions` continua aceito, antes dos três. Aplicado em Painel,
+  Catálogo, Cadernos, Comparar, Mapas e releases; as demais páginas já usavam o componente e não têm ação de página.
+- **`ParamsResultLayout`** com **`ParamsPanel`** e **`ResultPanel`** (`components/layout/ParamsResult.tsx`): duas regiões
+  nomeadas ("Parâmetros", "Resultado"), lado a lado a partir de 1200 px **do bloco** (container query `.m3-scaffold`,
+  `data-layout="params-result"`, como o D-182), empilhadas abaixo, parâmetros antes na ordem de leitura. `sticky` é opcional
+  (só onde a resposta é curta; uma caixa grudada mais alta que a tela esconde o próprio fim). Só layout: nenhuma lógica mudou.
+- **`useUrlState`** (`lib/urlState.ts`) generaliza `app/app/mapas/url-state.ts`: uma especificação por tela (parâmetro,
+  codec, padrão), `location.search` como única fonte lida por `useSyncExternalStore` e escrita por `history.replaceState`
+  (síncrono: o campo controlado não perde tecla; `replace`, não `push`, porque cada tecla não é um passo do Voltar). Valor
+  igual ao padrão sai da URL; valor malformado é ignorado, nunca consertado. Codecs `textCodec`, `enumCodec`, `boolCodec` e
+  `jsonCodec` (base64url, o mesmo do mapa, que passou a usá-lo). Na URL agora: Baterias (arquétipo, química, requisitos,
+  premissas e aba), Dimensionar (`caso`, `entradas`, `objetivo`), Sintetizar (a receita; nome, classe e descrição ficam
+  fora, são do registro e não da pergunta) e o resto do Custo (`amortizacao`, `fator_carga`). O Painel guarda a escala
+  (`escala=log`) no estado que já tinha na URL (D-193), e a queda para linear de uma propriedade que recusa log é derivada no
+  render, sem escrever estado. As telas com estado na URL ganham "Copiar o link desta configuração" no "⋯".
+- **Um só utilitário e um só componente:** `formatTyped` (`lib/format.ts`) no lugar dos três `printable()`; `StatTile`
+  em `components/ui` com `size="hero"` (o do painel, contagem animada, valor final para o leitor de tela) e
+  `size="compact"` (o das baterias), e `tone` `default`/`highlight`/`inverted`.
+- **Skeletons por tipo:** `TableSkeleton`, `ChartSkeleton` e `SheetSkeleton`, com o rótulo escrito à vista e as caixas
+  mudas, nos carregamentos de Painel, Baterias, Custo, Dimensionar, Eco e Sintetizar.
+- **MSDS em arquivos:** `lib/msds/msds.tsx` virou 45 arquivos por componente ou família (`Button.tsx`, `Dialog.tsx`,
+  `motion.tsx`, `fields.tsx`…), cada um com só as exceções de lint que precisa; `msds.tsx` reexporta os mesmos nomes pelo
+  mesmo caminho e mantém o objeto `api`. Nenhuma linha de comportamento mudou (conferido linha a linha e por `tsc` sem
+  `@ts-nocheck`, só para nomes não definidos).
+
+**Consequências.** Só frontend: sem backend, migração nem seed. Testes de página que abriam a tela por `useSearchParams`
+simulado passaram a abrir por `history.replaceState`, porque a URL real é a fonte. Um link antigo continua abrindo (parâmetro
+ausente = padrão).
+
+**Rejeitado.** `router.replace` para cada tecla (é transição: o campo controlado pode perder caractere e o cursor); estado em
+`localStorage` (não vai num link); mover a correção de escala para um `useEffect` (a regra `set-state-in-effect` é erro).
+
+**Numeração.** D-212 e Sessão 169, conferidas livres em `origin/main` antes do commit.
+
+---
+
+## D-210 — Seleção em passos: estado num reducer, funil leve, modelos prontos, o que falta para executar e duas execuções lado a lado
+
+**Contexto.** Etapa 3.1 da revisão das telas. `app/app/selecao/page.tsx` tinha ~1.900 linhas e ~31 `useState` num só
+componente; carregar um estudo, o exemplo ou um rascunho exigia lembrar de cada setter à mão. O funil ao vivo (D-186)
+pedia `POST /selection/run` a cada edição e recebia a lista inteira de candidatos só para contar. "Executar" desabilitado
+dizia o motivo (D-86), mas não levava ao campo. Não havia modelo pronto além do exemplo da viga de bicicleta (com
+limiares), nem explicação por material, nem como comparar duas execuções. Inspiração: Ansys Granta Selector (funil ao vivo
+enquanto se edita), Stripe (checklist de progresso), Linear (atalhos).
+
+**Decisão.**
+- **Passos em arquivos e um reducer.** `app/app/selecao/steps/` (`FunctionStep`, `ObjectiveStep`, `ConstraintsStep`,
+  `ResultsStep`, `WizardProgress`, `chrome.tsx` com o contador e os painéis, `steps.ts` com a ordem, os slugs de `?etapa=`
+  e `focusField`) e `wizardState.ts` com `useReducer`: uma ação por mudança (`text`, `stages`, `criteria`, `universe`,
+  `restore`, `replace`, `suggestions`…), e funções puras `stateFromStudy`, `stateFromExample`, `stateFromTemplate`. O
+  instantâneo (`snapshotOf`) tem **exatamente** os campos do rascunho do D-139, na mesma ordem, então o formato salvo não
+  mudou. Preservados: `?etapa=` com Voltar/Avançar, rascunho por conta, foco no título do passo (D-146), desfazer exclusão
+  (D-130), exemplo com Desfazer. A página ficou com a orquestração (URL, consultas, execuções, rascunho).
+- **Funil leve no backend.** `POST /selection/funnel` (router → `SelectionService.funnel_preview`) devolve só
+  `initial_count`, `final_count`, `combinator`, `funnel` e `stages` — o mesmo pipeline do `/filter` (extraído para
+  `_filter_pipeline`), sem montar a lista de candidatos. O assistente chama com debounce de 300 ms sobre a requisição
+  serializada; o painel e o contador da barra leem a mesma resposta.
+- **Modelos prontos definidos no backend.** `app/domain/study_templates.py` (dados puros) e `GET /selection/templates`:
+  "Viga leve e rígida" (E^½/ρ), "Mola leve" (σy²/Eρ), "Painel leve e rígido" (E^⅓/ρ) e "Trocador de calor" (λσy), de Ashby.
+  Cada um é **só formulação**: função, objetivo, a restrição de projeto em palavras, variável livre e índice. Os limites são
+  `exists` nas propriedades que o índice lê ("Densidade definido"), sem nenhum número; o critério é o próprio índice com
+  peso 1. O índice é o do catálogo quando o slug existe (viga e painel) e, se faltar, a mesma expressão como índice
+  personalizado. O serviço confere cada modelo contra o catálogo vivo (propriedades e expressão válida) e devolve
+  `available`/`missing_properties`; a tela diz o que falta em vez de aplicar meio estudo. Aplicar é um clique, com
+  Desfazer (o mesmo instantâneo do exemplo) e "Ver os limites".
+- **O que falta para executar** (`runReadiness.ts`, puro): cada bloqueio tem a frase, o botão e o campo
+  (`FieldTarget`: passo + id). Pesos (a verdade continua sendo o `can_run` do backend, D-87) levam ao campo de peso ou de
+  critério da linha com problema; índice personalizado vazio passou a bloquear e leva à expressão; critério que pede um
+  índice inexistente reabre o bloco do índice. O botão "Corrigir pesos" foi mantido com o mesmo nome e agora foca o campo.
+- **Barra de progresso** (`WizardProgress`): "N de 3 etapas prontas" e um botão para a primeira que falta (ou "Ir para
+  Executar"). Os segmentos são clicáveis com o ponteiro e ficam fora da ordem de tabulação e da árvore de acessibilidade —
+  o teclado e o leitor de tela têm o Stepper, logo abaixo, com os mesmos passos como botões.
+- **Resultados por material.** Aba "Por material" no `ResultsView` (`CandidateExplorer`): "Por que X?" abre frases
+  montadas por `lib/selection/explain.ts` a partir do que a execução já devolve — rótulos do funil, etapas, valor do índice
+  ou o motivo de ele ser indefinido, posição e nota, as contribuições (ordenadas só para exibir, como no cartão do
+  vencedor), a exclusão do ranking por falta de dado e os cenários de sensibilidade em que segue em 1º. Nada é
+  recalculado. Caixas de seleção levam a "Abrir no mapa" (com destaque no 1º) e "Comparar selecionados" (dois ou mais),
+  na ordem da classificação; estudo de processos não oferece mapa nem comparador.
+- **Atalho** (à moda do Linear): Ctrl/⌘ + Enter executa no passo que tem "Executar" (e no Resultados ainda vazio), mesmo
+  com o foco num campo — o acorde não é digitação; a barra de ações escreve o atalho em telas largas.
+- **Duas execuções do mesmo estudo.** `POST /selection/run-diff` com `app/domain/run_diff.py` (puro): para cada registro,
+  entrou, saiu, subiu/caiu N posições, igual ou "sem posição" (sem ranking não se afirma "zero posições"), mais quantos
+  entraram/saíram/mudaram e se o vencedor mudou. O assistente guarda a execução anterior **desta sessão** e mostra
+  "Execução anterior × atual" a partir da segunda execução; carregar outro estudo, o exemplo, um modelo ou o rascunho
+  zera o par.
+
+**Consequências.** Toca `apps/api` (três endpoints, sem migração nem seed): depois do merge, **Deploy da API**. Até o deploy,
+o funil ao vivo e os modelos falham com a mensagem de erro de sempre (o resto do assistente funciona). Contrato novo em
+`packages/shared-types` (`FunnelPreview`, `StudyTemplate`, `RunDiff`). Textos novos em `lib/i18n-selection-wizard.ts`.
+
+**Rejeitado.** Guardar execuções no servidor para comparar entre sessões (exige tabela nova e migração: ficou no TODO);
+calcular a diferença de posições na tela (é número, vai para o backend, princípio 2); modelo com limiares "típicos"
+(inventaria número de material, princípio 1); deixar a explicação dizer qual limite eliminou cada material reprovado (a
+resposta só traz contagens por limite; dizer mais exigiria mudar o motor — a tela diz isso com todas as letras).
+
+**Numeração.** D-210 e Sessão 167, conferidas livres em `origin/main` e na branch antes do commit.
+
+---
+
 ## D-200 — Erros humanos e com saída: um só tradutor de falha, menu que sobrevive, 404 que não finge ser falha
 
 **Contexto.** Na auditoria visual, a falha de rede aparecia como "Failed to fetch" e o erro do servidor como "Internal

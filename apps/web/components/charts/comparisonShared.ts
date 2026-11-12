@@ -61,7 +61,7 @@ export function useHiddenSeries() {
   /** Hide every one of `series` (`true`) or show them all (`false`) — D-187, for a legend of hundreds. */
   const setAll = (hide: boolean, series: readonly CompareSeries[]) =>
     setHidden(hide ? new Set(series.map((s) => String(s.id))) : new Set());
-  return { hidden, toggle, setAll };
+  return { hidden, toggle, setAll, isolate: setHidden };
 }
 
 export function scoreWords(series: CompareSeries, axis: CompareAxisView, value: number | null) {

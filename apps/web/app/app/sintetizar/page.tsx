@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, type ReactNode } from "react";
+import { enumCodec, textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -28,10 +29,11 @@ import {
   EmptyState,
   ErrorState,
   Input,
-  LoadingState,
+  CopyLinkItem,
   MissingValue,
   NumberInput,
   PageHeader,
+  SheetSkeleton,
   RadioCard,
   Select,
   SelectOption,
@@ -47,9 +49,40 @@ import {
   type ComboboxOption,
   type QualityState,
 } from "@/components/ui";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import { SweepSection } from "./SweepSection";
 
 const t = ptBR.synthesis;
+
+interface Recipe {
+  kind: SynthesisKind;
+  /** "" means the first (or second) material the catalogue lists. */
+  parentA: string;
+  parentB: string;
+  fraction: string;
+  density: string;
+  faceThickness: string;
+  coreThickness: string;
+}
+
+/**
+ * The recipe in the URL (D-212): a link reopens the same composite, foam or
+ * panel. The identity (name, class, description) stays out of it — it names a
+ * record about to be written, not the question being asked.
+ */
+const RECIPE_URL: UrlSpec<Recipe> = {
+  kind: {
+    param: "tipo",
+    codec: enumCodec<SynthesisKind>(["composito", "espuma", "painel"]),
+    defaultValue: "composito",
+  },
+  parentA: { param: "a", codec: textCodec, defaultValue: "" },
+  parentB: { param: "b", codec: textCodec, defaultValue: "" },
+  fraction: { param: "fracao", codec: textCodec, defaultValue: "0.6" },
+  density: { param: "densidade", codec: textCodec, defaultValue: "0.1" },
+  faceThickness: { param: "face", codec: textCodec, defaultValue: "1" },
+  coreThickness: { param: "nucleo", codec: textCodec, defaultValue: "18" },
+};
 
 const QUALITY_STATES: readonly string[] = ["MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE"];
 
@@ -173,13 +206,8 @@ export default function SintetizarPage() {
   const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
 
   const kindName = useId();
-  const [kind, setKind] = useState<SynthesisKind>("composito");
-  const [parentA, setParentA] = useState("");
-  const [parentB, setParentB] = useState("");
-  const [fraction, setFraction] = useState("0.6");
-  const [density, setDensity] = useState("0.1");
-  const [faceThickness, setFaceThickness] = useState("1");
-  const [coreThickness, setCoreThickness] = useState("18");
+  const [recipe, setRecipe] = useUrlState(RECIPE_URL);
+  const { kind, parentA, parentB, fraction, density, faceThickness, coreThickness } = recipe;
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [description, setDescription] = useState("");
@@ -299,7 +327,7 @@ export default function SintetizarPage() {
   const canSave = saveBlocked === null;
 
   if (kinds.isLoading || materials.isLoading || classes.isLoading) {
-    return <LoadingState label={t.title} />;
+    return <SheetSkeleton label={t.title} />;
   }
   if (kinds.isError) return <ErrorState error={kinds.error} onRetry={() => void kinds.refetch()} />;
   if (materials.isError)
@@ -319,7 +347,7 @@ export default function SintetizarPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} />
+      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
       <Alert tone="info">{t.principle}</Alert>
 
@@ -339,7 +367,7 @@ export default function SintetizarPage() {
                     value={item.kind}
                     checked={kind === item.kind}
                     onChange={(value) => {
-                      setKind(value as SynthesisKind);
+                      setRecipe({ kind: value as SynthesisKind });
                       setPreview(null);
                       setSaved(null);
                     }}
@@ -357,8 +385,8 @@ export default function SintetizarPage() {
           </fieldset>
       </StepCard>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
+      <ParamsResultLayout>
+        <ParamsPanel>
           <StepCard
             title={t.recipeStep}
             bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
@@ -391,7 +419,7 @@ export default function SintetizarPage() {
                 hint={t.materialHint}
                 options={materialOptions}
                 value={selectedA}
-                onChange={setParentA}
+                onChange={(parentA) => setRecipe({ parentA })}
               />
               {kind === "espuma" ? (
                 <NumberInput
@@ -401,7 +429,7 @@ export default function SintetizarPage() {
                   min={0}
                   max={1}
                   step="any"
-                  onChange={(event) => setDensity(event.target.value)}
+                  onChange={(event) => setRecipe({ density: event.target.value })}
                 />
               ) : (
                 <Combobox
@@ -409,7 +437,7 @@ export default function SintetizarPage() {
                   hint={t.materialHint}
                   options={materialOptions}
                   value={selectedB}
-                  onChange={setParentB}
+                  onChange={(parentB) => setRecipe({ parentB })}
                 />
               )}
               {kind === "composito" ? (
@@ -421,7 +449,7 @@ export default function SintetizarPage() {
                     min={0}
                     max={1}
                     step="any"
-                    onChange={(event) => setFraction(event.target.value)}
+                    onChange={(event) => setRecipe({ fraction: event.target.value })}
                   />
                 </div>
               ) : null}
@@ -432,14 +460,14 @@ export default function SintetizarPage() {
                     value={faceThickness}
                     min={0}
                     step="any"
-                    onChange={(event) => setFaceThickness(event.target.value)}
+                    onChange={(event) => setRecipe({ faceThickness: event.target.value })}
                   />
                   <NumberInput
                     label={t.coreThicknessLabel}
                     value={coreThickness}
                     min={0}
                     step="any"
-                    onChange={(event) => setCoreThickness(event.target.value)}
+                    onChange={(event) => setRecipe({ coreThickness: event.target.value })}
                   />
                   <p className="text-caption text-ink-muted sm:col-span-2 xl:col-span-1">
                     {t.thicknessHint}
@@ -525,42 +553,43 @@ export default function SintetizarPage() {
               </span>
             </Alert>
           ) : null}
-        </div>
+        </ParamsPanel>
 
         {/* The result sits beside the recipe, not under it: changing a
             fraction and reading what moved should not cost a scroll. */}
-        <StepCard
-          className="xl:sticky xl:top-6"
-          title={t.previewStep}
-          description={
-            preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
-          }
-        >
-            {preview ? (
-              <>
-                <PreviewTable preview={preview} />
-                {preview.skipped.length > 0 ? (
-                  <div className="well flex flex-col gap-2">
-                    <span className="text-body font-medium text-ink">
-                      {t.skippedTitle}
-                    </span>
-                    <span className="text-caption text-ink-muted">{t.skippedHint}</span>
-                    <ul className="flex flex-col gap-1 text-body text-ink">
-                      {preview.skipped.map((item) => (
-                        <li key={item.slug}>
-                          <span className="font-medium">{item.name}</span> —{" "}
-                          {item.reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <EmptyState title={t.previewIdleTitle} description={t.previewIdleHint} />
-            )}
-        </StepCard>
-      </div>
+        <ResultPanel sticky>
+          <StepCard
+            title={t.previewStep}
+            description={
+              preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
+            }
+          >
+              {preview ? (
+                <>
+                  <PreviewTable preview={preview} />
+                  {preview.skipped.length > 0 ? (
+                    <div className="well flex flex-col gap-2">
+                      <span className="text-body font-medium text-ink">
+                        {t.skippedTitle}
+                      </span>
+                      <span className="text-caption text-ink-muted">{t.skippedHint}</span>
+                      <ul className="flex flex-col gap-1 text-body text-ink">
+                        {preview.skipped.map((item) => (
+                          <li key={item.slug}>
+                            <span className="font-medium">{item.name}</span> —{" "}
+                            {item.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <EmptyState title={t.previewIdleTitle} description={t.previewIdleHint} />
+              )}
+          </StepCard>
+        </ResultPanel>
+      </ParamsResultLayout>
 
       <SweepSection key={kind} kind={kind} parentA={selectedA} parentB={selectedB} />
     </div>

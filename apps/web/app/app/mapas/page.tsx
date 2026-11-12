@@ -688,8 +688,7 @@ function MapsPageContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-       
-        actions={
+        secondaryActions={
           <>
             <Button
               size="sm"

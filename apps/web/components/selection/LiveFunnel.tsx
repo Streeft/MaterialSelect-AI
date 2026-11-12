@@ -1,6 +1,6 @@
 "use client";
 
-import type { RunResult } from "@/lib/types";
+import type { FunnelPreview } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/ui";
 import { FunnelRow } from "./FunnelRow";
@@ -12,8 +12,9 @@ const t = ptBR.selection;
  * Foundations › Layout › Canonical layout examples › Supporting pane): the
  * funnel the constraints are cutting, beside the step that edits them.
  *
- * Every number is the live preview the page already asks the backend for —
- * the same run that feeds the action bar's counter, constraints only. This
+ * Every number is the live preview the page asks the backend for —
+ * `POST /selection/funnel` (D-210), the counts of the constraints alone, the
+ * same answer that feeds the action bar's counter. This
  * pane only lays it out: no count is derived here, and the bars are widths of
  * the backend's own ratios (ADR 0004). It is not a live region: the counter in
  * the action bar already announces the change, once.
@@ -23,7 +24,7 @@ export function LiveFunnel({
   pending,
   failed,
 }: {
-  result: RunResult | undefined;
+  result: Pick<FunnelPreview, "initial_count" | "final_count" | "funnel"> | undefined;
   pending: boolean;
   failed: boolean;
 }) {

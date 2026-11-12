@@ -1,6 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  enumCodec,
+  isStringRecord,
+  jsonCodec,
+  textCodec,
+  useUrlState,
+  type UrlSpec,
+} from "@/lib/urlState";
 import Link from "next/link";
 // D-205: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
@@ -19,9 +27,10 @@ import {
   ClassBadge,
   EmptyState,
   ErrorState,
-  LoadingState,
+  CopyLinkItem,
   NumberInput,
   PageHeader,
+  SheetSkeleton,
   Select,
   SelectOption,
   StepCard,
@@ -34,8 +43,27 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
 const t = ptBR.solver;
+
+interface SolverBrief {
+  /** "" means the first case the API lists (derived, never written by an effect). */
+  caseKey: string;
+  inputs: Record<string, string>;
+  objective: SolverObjective;
+}
+
+/** The brief in the URL (D-212): a link reopens the same case, numbers and objective. */
+const SOLVER_URL: UrlSpec<SolverBrief> = {
+  caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
+  inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
+  objective: {
+    param: "objetivo",
+    codec: enumCodec<SolverObjective>(["massa", "custo"]),
+    defaultValue: "massa",
+  },
+};
 
 /**
  * The starting numbers for a case.
@@ -251,9 +279,8 @@ function ResultTable({ result }: { result: SolveResult }) {
 
 export default function DimensionarPage() {
   const cases = useQuery({ queryKey: ["load-cases"], queryFn: listLoadCases });
-  const [chosenKey, setCaseKey] = useState<string>("");
-  const [typed, setInputs] = useState<Record<string, string>>({});
-  const [objective, setObjective] = useState<SolverObjective>("massa");
+  const [brief, setBrief] = useUrlState(SOLVER_URL);
+  const { caseKey: chosenKey, inputs: typed, objective } = brief;
   const [result, setResult] = useState<SolveResult | null>(null);
 
   // An empty choice *means* the first case: the <select> already shows it as
@@ -274,10 +301,15 @@ export default function DimensionarPage() {
   );
 
   function chooseCase(key: string) {
-    setCaseKey(key);
     setResult(null);
     const next = cases.data?.find((item) => item.key === key);
-    setInputs(next ? initialInputs(next) : {});
+    setBrief({ caseKey: key, inputs: next ? initialInputs(next) : {} });
+  }
+
+  // One variable typed: the rest of what is on screen (the case's starting
+  // numbers, when the case is still the implicit first one) goes with it.
+  function setInput(key: string, value: string) {
+    setBrief({ caseKey, inputs: { ...inputs, [key]: value } });
   }
 
   const solve = useMutation({
@@ -309,174 +341,167 @@ export default function DimensionarPage() {
     ? t.blockedVariable(`${missingVariable.label} (${missingVariable.unit})`)
     : null;
 
-  if (cases.isLoading) return <LoadingState label={t.title} />;
+  if (cases.isLoading) return <SheetSkeleton label={t.title} />;
   if (cases.isError) return <ErrorState error={cases.error} onRetry={() => void cases.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} />
+      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <StepCard title={t.caseStep} description={t.caseHint}>
-          <Select
-            label={t.caseLabel}
-            value={caseKey}
-            onChange={(event) =>
-              chooseCase((event.target as HTMLSelectElement).value)
-            }
-          >
-            {(cases.data ?? []).map((item) => (
-              <SelectOption key={item.key} value={item.key}>
-                {item.label}
-              </SelectOption>
-            ))}
-          </Select>
-          {selected ? <CaseFacts loadCase={selected} /> : null}
-        </StepCard>
-
-        {selected ? (
-          <StepCard
-            className="xl:sticky xl:top-6"
-            title={t.inputsStep}
-            description={t.inputsHint}
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => solve.mutate()}
-                  disabled={!ready || solve.isPending}
-                  aria-describedby={blockedReason ? "dimensionar-motivo" : undefined}
-                >
-                  {solve.isPending ? t.solving : t.solve}
-                </Button>
-                {blockedReason ? (
-                  <p id="dimensionar-motivo" className="text-support text-ink-muted">
-                    {blockedReason}
-                  </p>
-                ) : null}
-              </div>
-            }
-          >
-            {/* The support condition stays in view, never folded: it is the
-                constant that makes two identical briefs differ (D-64). */}
-            {selected.variables.map((variable) => {
-              const support = selected.supports.filter(
-                (s) => s.variable_key === variable.key,
-              );
-              if (support.length > 0) {
-                return (
-                  <Select
-                    key={variable.key}
-                    label={t.supportLabel}
-                    hint={variable.help_text}
-                    value={inputs[variable.key] ?? ""}
-                    onChange={(event) =>
-                      setInputs((current) => ({
-                        ...current,
-                        [variable.key]: (event.target as HTMLSelectElement)
-                          .value,
-                      }))
-                    }
-                  >
-                    {support.map((condition) => (
-                      <SelectOption
-                        key={condition.key}
-                        value={String(condition.value)}
-                      >
-                        {condition.note
-                          ? `${condition.label} — ${condition.note}`
-                          : condition.label}
-                      </SelectOption>
-                    ))}
-                  </Select>
-                );
-              }
-              return (
-                <NumberInput
-                  key={variable.key}
-                  label={`${variable.label} (${variable.unit})`}
-                  hint={variable.help_text}
-                  value={inputs[variable.key] ?? ""}
-                  min={0}
-                  step="any"
-                  onChange={(event) =>
-                    setInputs((current) => ({
-                      ...current,
-                      [variable.key]: event.target.value,
-                    }))
-                  }
-                />
-              );
-            })}
+      <ParamsResultLayout>
+        <ParamsPanel>
+          <StepCard title={t.caseStep} description={t.caseHint}>
             <Select
-              label={t.objectiveLabel}
-              hint={t.objectiveHint}
-              value={objective}
+              label={t.caseLabel}
+              value={caseKey}
               onChange={(event) =>
-                setObjective(
-                  (event.target as HTMLSelectElement)
-                    .value as SolverObjective,
-                )
+                chooseCase((event.target as HTMLSelectElement).value)
               }
             >
-              <SelectOption value="massa">{t.objectiveMass}</SelectOption>
-              <SelectOption value="custo">
-                {selected.cost_objective_label}
-              </SelectOption>
+              {(cases.data ?? []).map((item) => (
+                <SelectOption key={item.key} value={item.key}>
+                  {item.label}
+                </SelectOption>
+              ))}
             </Select>
-            {solve.isError ? (
-              <Alert tone="danger">{String(solve.error)}</Alert>
-            ) : null}
+            {selected ? <CaseFacts loadCase={selected} /> : null}
           </StepCard>
-        ) : null}
-      </div>
 
-      {/* The result card is on screen before there is a result (D-80): a card
-          that says what will appear reads as the next step. */}
-      <StepCard title={t.resultStep} description={result ? t.structuralFactorHint : undefined}>
-        {result ? (
-          <>
-            {/* Which index produced these numbers, on the result and not read
-                off the case: a case carries two, and showing the other one
-                would make the screen disagree with the column under it. */}
-            <p className="text-caption text-ink-muted">
-              {result.objective_label} · {t.indexRan}:{" "}
-              <Link
-                className="text-accent underline underline-offset-2"
-                href={`/app/mapas?indice=${encodeURIComponent(result.index_slug)}`}
+          {selected ? (
+            <StepCard
+              title={t.inputsStep}
+              description={t.inputsHint}
+              footer={
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="primary"
+                    onClick={() => solve.mutate()}
+                    disabled={!ready || solve.isPending}
+                    aria-describedby={blockedReason ? "dimensionar-motivo" : undefined}
+                  >
+                    {solve.isPending ? t.solving : t.solve}
+                  </Button>
+                  {blockedReason ? (
+                    <p id="dimensionar-motivo" className="text-support text-ink-muted">
+                      {blockedReason}
+                    </p>
+                  ) : null}
+                </div>
+              }
+            >
+              {/* The support condition stays in view, never folded: it is the
+                  constant that makes two identical briefs differ (D-64). */}
+              {selected.variables.map((variable) => {
+                const support = selected.supports.filter(
+                  (s) => s.variable_key === variable.key,
+                );
+                if (support.length > 0) {
+                  return (
+                    <Select
+                      key={variable.key}
+                      label={t.supportLabel}
+                      hint={variable.help_text}
+                      value={inputs[variable.key] ?? ""}
+                      onChange={(event) =>
+                        setInput(variable.key, (event.target as HTMLSelectElement).value)
+                      }
+                    >
+                      {support.map((condition) => (
+                        <SelectOption
+                          key={condition.key}
+                          value={String(condition.value)}
+                        >
+                          {condition.note
+                            ? `${condition.label} — ${condition.note}`
+                            : condition.label}
+                        </SelectOption>
+                      ))}
+                    </Select>
+                  );
+                }
+                return (
+                  <NumberInput
+                    key={variable.key}
+                    label={`${variable.label} (${variable.unit})`}
+                    hint={variable.help_text}
+                    value={inputs[variable.key] ?? ""}
+                    min={0}
+                    step="any"
+                    onChange={(event) => setInput(variable.key, event.target.value)}
+                  />
+                );
+              })}
+              <Select
+                label={t.objectiveLabel}
+                hint={t.objectiveHint}
+                value={objective}
+                onChange={(event) =>
+                  setBrief({
+                    objective: (event.target as HTMLSelectElement).value as SolverObjective,
+                  })
+                }
               >
-                {result.index_name ?? result.index_slug}
-              </Link>
-              {result.index_expression ? (
-                <ExpressionLabel expression={result.index_expression} className="ml-2 text-ink" />
+                <SelectOption value="massa">{t.objectiveMass}</SelectOption>
+                <SelectOption value="custo">
+                  {selected.cost_objective_label}
+                </SelectOption>
+              </Select>
+              {solve.isError ? (
+                <Alert tone="danger">{String(solve.error)}</Alert>
               ) : null}
-            </p>
-            <ResultTable result={result} />
-            {result.excluded.length > 0 ? (
-              <Card>
-                <CardBody className="flex flex-col gap-2">
-                  <span className="text-body font-medium text-ink">
-                    {t.excludedTitle}
-                  </span>
-                  <span className="text-caption text-ink-muted">{t.excludedHint}</span>
-                  <ul className="flex flex-col gap-1 text-body text-ink">
-                    {result.excluded.map((item) => (
-                      <li key={item.record_id}>
-                        {item.name}
-                        {item.missing_labels.length > 0
-                          ? ` — ${item.missing_labels.join(", ")}`
-                          : ` — ${item.reason}`}
-                      </li>
-                    ))}
-                  </ul>
-                </CardBody>
-              </Card>
-            ) : null}
-          </>
-        ) : (
-          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
-        )}
-      </StepCard>
+            </StepCard>
+          ) : null}
+        </ParamsPanel>
+
+        {/* The result card is on screen before there is a result (D-80): a card
+            that says what will appear reads as the next step. */}
+        <ResultPanel>
+          <StepCard title={t.resultStep} description={result ? t.structuralFactorHint : undefined}>
+            {result ? (
+              <>
+                {/* Which index produced these numbers, on the result and not read
+                    off the case: a case carries two, and showing the other one
+                    would make the screen disagree with the column under it. */}
+                <p className="text-caption text-ink-muted">
+                  {result.objective_label} · {t.indexRan}:{" "}
+                  <Link
+                    className="text-accent underline underline-offset-2"
+                    href={`/app/mapas?indice=${encodeURIComponent(result.index_slug)}`}
+                  >
+                    {result.index_name ?? result.index_slug}
+                  </Link>
+                  {result.index_expression ? (
+                    <ExpressionLabel expression={result.index_expression} className="ml-2 text-ink" />
+                  ) : null}
+                </p>
+                <ResultTable result={result} />
+                {result.excluded.length > 0 ? (
+                  <Card>
+                    <CardBody className="flex flex-col gap-2">
+                      <span className="text-body font-medium text-ink">
+                        {t.excludedTitle}
+                      </span>
+                      <span className="text-caption text-ink-muted">{t.excludedHint}</span>
+                      <ul className="flex flex-col gap-1 text-body text-ink">
+                        {result.excluded.map((item) => (
+                          <li key={item.record_id}>
+                            {item.name}
+                            {item.missing_labels.length > 0
+                              ? ` — ${item.missing_labels.join(", ")}`
+                              : ` — ${item.reason}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardBody>
+                  </Card>
+                ) : null}
+              </>
+            ) : (
+              <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+            )}
+          </StepCard>
+        </ResultPanel>
+      </ParamsResultLayout>
     </div>
   );
 }

@@ -653,6 +653,7 @@ export const IconGrip = (p: IconProps) => (
   </Svg>
 );
 
+/** "⋯": a row's or a block's menu, and the page header's overflow menu (D-212). */
 export const IconMoreHorizontal = (p: IconProps) => (
   <Svg {...p} fill="currentColor" stroke="none">
     <circle cx="6" cy="12" r="1.6" />

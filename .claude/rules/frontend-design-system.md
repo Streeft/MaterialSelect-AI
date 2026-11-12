@@ -184,6 +184,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".
 
+- **Padrões de página** ([D-212](docs/DECISIONS.md)): `PageHeader` com `secondaryActions`, `overflow` ("⋯") e `primaryAction`,
+  nessa ordem, e a trilha em `breadcrumb`; calculadora é `ParamsResultLayout` (`ParamsPanel` + `ResultPanel`); entrada que se
+  reabre vai para a URL por `useUrlState`, nunca `setState` no render; carregamento por tipo (`TableSkeleton`, `ChartSkeleton`,
+  `SheetSkeleton`); `StatTile` e `formatTyped` são um só. O MSDS é um arquivo por componente em `lib/msds/`, importado de `@/lib/msds`.
+
 E as proibições do §13 de [`docs/REDESIGN.md`](docs/REDESIGN.md), que continuam
 valendo depois da Fase 8: nenhuma biblioteca de componentes, **nenhum framework
 de animação** (a proibição vale igual quando a animação vem bonita), nenhum

@@ -2560,6 +2560,9 @@ export const ptBR = {
     exportPngHint: "Imagem, para slides e documentos",
     exportSvg: "SVG",
     exportSvgHint: "Vetor, editável sem perder nitidez",
+    // D-211: a tabela da figura como arquivo, para planilha em pt-BR.
+    exportCsv: "CSV",
+    exportCsvHint: "Os números da tabela, para planilha",
     exporting: "Exportando…",
     exportError: "Não foi possível exportar a imagem.",
     // The PNG is drawn on a canvas, and a browser can refuse it (tainted
@@ -2580,7 +2583,12 @@ export const ptBR = {
     figureLabel: (title: string) =>
       `${title}. Figura; a tabela de dados equivalente abre pela alternância “Tabela”.`,
     legend: "Legenda",
-    legendToggle: "Legenda — clique num item para mostrar ou ocultar a série",
+    legendToggle:
+      "Legenda — clique num item para mostrar ou ocultar a série; Shift e clique isolam a série",
+    // D-211: a legenda longa se recolhe e o clique com Shift isola uma série.
+    legendCollapse: (n: number) => `Ocultar a legenda (${n} séries)`,
+    legendExpand: (n: number) => `Mostrar a legenda (${n} séries)`,
+    legendIsolateHint: "Shift e clique isolam uma série; de novo, mostram todas.",
     // D-187: com centenas de séries a legenda rola e ganha atalhos para todas.
     legendScroll: "Legenda rolável; use as setas para percorrer os itens",
     legendHideAll: "Ocultar todos",
@@ -3047,6 +3055,18 @@ export const ptBR = {
     change: "Alterar",
     advancedOptions: "Opções avançadas",
     comboboxPlaceholder: "Digite para buscar…",
+    // D-212: os padrões de página.
+    moreActions: "Mais ações",
+    pageActions: "Ações da página",
+    paramsPanel: "Parâmetros",
+    resultPanel: "Resultado",
+    loadingTable: "Carregando a tabela…",
+    loadingChart: "Carregando o gráfico…",
+    loadingSheet: "Carregando a ficha…",
+    copyLink: "Copiar o link desta configuração",
+    copyLinkHint: "Quem abrir o link vê os mesmos parâmetros.",
+    copyLinkDone: "Link copiado.",
+    copyLinkFailed: "O navegador não permitiu copiar. O endereço da barra já é o link: copie-o de lá.",
     comboboxNoMatch: (query: string) =>
       query.trim() ? `Nada encontrado para “${query.trim()}”.` : "Nenhuma opção disponível.",
     theme: {

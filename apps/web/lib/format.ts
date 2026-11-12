@@ -145,3 +145,15 @@ export function valueUnit(unit: string | null): string {
   return unit === "dimensionless" ? "" : prettyUnit(unit);
 }
 
+
+/**
+ * A number as the reader typed it into a field, printed the pt-BR way for a
+ * summary line ("Premissas: amortização em 5 anos, fator de carga 0,5"). It is
+ * the typed value echoed back, never recomputed: what is not a finite number
+ * yet (half-typed, empty) shows as typed, and an empty field shows "…" —
+ * never 0 (D-24). One helper for Custo, Eco and Baterias (D-212).
+ */
+export function formatTyped(raw: string): string {
+  const value = Number(raw);
+  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
+}

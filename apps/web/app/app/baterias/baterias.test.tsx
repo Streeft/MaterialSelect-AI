@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type {
   ApplicationArchetype,
   BatteryChemistry,
@@ -232,6 +233,40 @@ const { default: BateriasPage } = await import("./page");
 describe("BateriasPage (dimensionamento de bateria)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The brief and the tab live in the URL (D-212): each test starts clean.
+    window.history.replaceState(null, "", "/app/baterias");
+  });
+
+  it("guarda o requisito e a aba na URL, e um link reabre o mesmo pack", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(wrap(<BateriasPage />));
+
+    const energy = await screen.findByShadowRole("spinbutton", { name: t.targetEnergy });
+    await user.clear(energy);
+    await user.type(energy, "75");
+    await user.click(await screen.findByShadowRole("tab", { name: t.tabCompare }));
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("energia")).toBe("75");
+    expect(params.get("aba")).toBe("compare");
+    // Typing a requirement by hand leaves the preset.
+    expect(params.get("arquetipo")).toBe("custom");
+
+    unmount();
+    render(wrap(<BateriasPage />));
+    expect(await screen.findByShadowRole("spinbutton", { name: t.targetEnergy })).toHaveValue(75);
+    expect(await screen.findByShadowRole("tab", { name: t.tabCompare })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("separa parâmetros e resultado em duas regiões nomeadas e passa no axe", async () => {
+    const { container } = render(wrap(<BateriasPage />));
+    expect(await screen.findByRole("region", { name: ptBR.ui.paramsPanel })).toBeDefined();
+    expect(screen.getByRole("region", { name: ptBR.ui.resultPanel })).toBeDefined();
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 
   it("renderiza cabeçalho, requisitos e as duas abas", async () => {

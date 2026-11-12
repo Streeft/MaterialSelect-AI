@@ -266,6 +266,22 @@ class IndexOverlayOut(BaseModel):
     undefined_count: int = 0
 
 
+class OpenSidesOut(BaseModel):
+    """Where an open side of the map selection box is drawn to, per axis."""
+
+    x: tuple[float, float]
+    y: tuple[float, float]
+
+
+class OpenBoundsOut(BaseModel):
+    """Open-side extents for both axis scales (the reader toggles the scale in
+    the browser; the server answers for each so the client never computes it).
+    Always in the coordinates the points are in, i.e. the reading unit."""
+
+    linear: OpenSidesOut
+    log: OpenSidesOut
+
+
 class PropertyMapOut(BaseModel):
     """A complete, self-describing property map."""
 
@@ -288,6 +304,9 @@ class PropertyMapOut(BaseModel):
     considered_count: int = Field(description="Registros avaliados após o filtro de classe/ids")
     plotted_count: int
     notes: list[str] = Field(default_factory=list)
+    open_bounds: OpenBoundsOut | None = Field(
+        default=None, description="Limites das laterais abertas da caixa de seleção (ADR 0004)"
+    )
 
 
 # --- Comparison ------------------------------------------------------------

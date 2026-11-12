@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { CostResult } from "@/lib/types";
 import { estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatTyped } from "@/lib/format";
+import { textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
 import {
   Alert,
   Button,
@@ -15,9 +15,10 @@ import {
   Disclosure,
   EmptyState,
   ErrorState,
-  LoadingState,
+  CopyLinkItem,
   NumberInput,
   PageHeader,
+  SheetSkeleton,
   StepCard,
   TBody,
   THead,
@@ -29,18 +30,31 @@ import {
   Tr,
 } from "@/components/ui";
 import { CostCurveChart } from "@/components/charts/CostCurveChart";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
 const t = ptBR.cost;
 
-/** Visible defaults, both overridable — see the note in the schema. */
-const DEFAULT_WRITE_OFF = "5";
-const DEFAULT_LOAD_FACTOR = "0.5";
-
-/** An assumption as the reader typed it, in the pt-BR form — never recomputed. */
-function printable(raw: string): string {
-  const value = Number(raw);
-  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
+interface CostBrief {
+  material: string;
+  mass: string;
+  batch: string;
+  writeOff: string;
+  loadFactor: string;
 }
+
+/**
+ * The whole brief in the URL (B1, D-212), so a link carries the question: the
+ * solver's result rows point here with the material and the mass it computed,
+ * and the two premises (write-off, load factor) travel too. Their defaults are
+ * visible and overridable — see the note in the schema.
+ */
+const COST_URL: UrlSpec<CostBrief> = {
+  material: { param: "material", codec: textCodec, defaultValue: "" },
+  mass: { param: "massa", codec: textCodec, defaultValue: "" },
+  batch: { param: "lote", codec: textCodec, defaultValue: "1000" },
+  writeOff: { param: "amortizacao", codec: textCodec, defaultValue: "5" },
+  loadFactor: { param: "fator_carga", codec: textCodec, defaultValue: "0.5" },
+};
 
 function ResultTable({ result }: { result: CostResult }) {
   if (result.costed.length === 0) {
@@ -89,16 +103,10 @@ function ResultTable({ result }: { result: CostResult }) {
 }
 
 export default function CustoPage() {
-  // The brief travels in the URL (B1), so a link carries the question: the
-  // solver's result rows point here with the material and the mass it computed.
-  const params = useSearchParams();
   const materials = useQuery({ queryKey: ["materials"], queryFn: () => listMaterials() });
 
-  const [materialId, setMaterialId] = useState(params.get("material") ?? "");
-  const [mass, setMass] = useState(params.get("massa") ?? "");
-  const [batch, setBatch] = useState(params.get("lote") ?? "1000");
-  const [writeOff, setWriteOff] = useState(DEFAULT_WRITE_OFF);
-  const [loadFactor, setLoadFactor] = useState(DEFAULT_LOAD_FACTOR);
+  const [brief, setBrief] = useUrlState(COST_URL);
+  const { material: materialId, mass, batch, writeOff, loadFactor } = brief;
   const [result, setResult] = useState<CostResult | null>(null);
 
   // With no material in the URL, the first of the catalogue is a starting point
@@ -155,122 +163,127 @@ export default function CustoPage() {
     [materials.data],
   );
 
-  if (materials.isLoading) return <LoadingState label={t.title} />;
+  if (materials.isLoading) return <SheetSkeleton label={t.title} />;
   if (materials.isError) return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} />
+      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Combobox
-              label={t.materialLabel}
-              hint={t.materialHint}
-              options={materialOptions}
-              value={selectedId}
-              onChange={setMaterialId}
+      <ParamsResultLayout>
+        <ParamsPanel>
+          <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Combobox
+                label={t.materialLabel}
+                hint={t.materialHint}
+                options={materialOptions}
+                value={selectedId}
+                onChange={(material) => setBrief({ material })}
+              />
+            </div>
+            <NumberInput
+              label={t.massLabel}
+              hint={t.massHint}
+              value={mass}
+              min={0}
+              step="any"
+              onChange={(event) => setBrief({ mass: event.target.value })}
             />
-          </div>
-          <NumberInput
-            label={t.massLabel}
-            hint={t.massHint}
-            value={mass}
-            min={0}
-            step="any"
-            onChange={(event) => setMass(event.target.value)}
-          />
-          <NumberInput
-            label={t.batchLabel}
-            hint={t.batchHint}
-            value={batch}
-            min={1}
-            step="any"
-            onChange={(event) => setBatch(event.target.value)}
-          />
-        </StepCard>
+            <NumberInput
+              label={t.batchLabel}
+              hint={t.batchHint}
+              value={batch}
+              min={1}
+              step="any"
+              onChange={(event) => setBrief({ batch: event.target.value })}
+            />
+          </StepCard>
 
-        <StepCard
-          title={t.assumptionsStep}
-          footer={
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="primary"
-                onClick={() => estimate.mutate()}
-                disabled={!ready || estimate.isPending}
-                aria-describedby={blockedReason ? "custo-motivo" : undefined}
-              >
-                {estimate.isPending ? t.estimating : t.estimate}
-              </Button>
-              {blockedReason ? (
-                <p id="custo-motivo" className="text-support text-ink-muted">
-                  {blockedReason}
-                </p>
-              ) : null}
-            </div>
-          }
-        >
-          {/* Folded, with every value in the summary: the premises are the
-              reader's to change, never hidden from them (D-65, D-86). */}
-          <Disclosure
-            summary={t.assumptionsSummary(
-              printable(writeOff),
-              printable(loadFactor),
-            )}
-            open={assumptionsOpen || assumptionBlocks}
-            onOpenChange={setAssumptionsOpen}
-          >
-            <div className="grid gap-4 pt-2 sm:grid-cols-2">
-              <p className="text-support text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
-              <NumberInput
-                label={t.writeOffLabel}
-                value={writeOff}
-                min={0}
-                step="any"
-                onChange={(event) => setWriteOff(event.target.value)}
-              />
-              <NumberInput
-                label={t.loadFactorLabel}
-                hint={t.loadFactorHint}
-                value={loadFactor}
-                min={0}
-                max={1}
-                step="any"
-                onChange={(event) => setLoadFactor(event.target.value)}
-              />
-            </div>
-          </Disclosure>
-          {estimate.isError ? <Alert tone="danger">{String(estimate.error)}</Alert> : null}
-        </StepCard>
-      </div>
-
-      {/* The result card is on screen before there is a result: an empty page
-          under two forms reads as "nothing here", a card that says what will
-          appear reads as the next step. */}
-      <StepCard title={t.resultStep}>
-        {result ? (
-          <>
-            <ResultTable result={result} />
-            <CostCurveChart result={result} />
-            {result.uncosted.length > 0 ? (
-              <div className="well flex flex-col gap-2">
-                <span className="text-body font-medium text-ink">{t.uncostedTitle}</span>
-                <span className="text-caption text-ink-muted">{t.uncostedHint}</span>
-                <ul className="flex flex-col gap-1 text-body text-ink">
-                  {result.uncosted.map((item) => (
-                    <li key={item.process_id}>
-                      {item.process_name} — {item.reason}
-                    </li>
-                  ))}
-                </ul>
+          <StepCard
+            title={t.assumptionsStep}
+            footer={
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="primary"
+                  onClick={() => estimate.mutate()}
+                  disabled={!ready || estimate.isPending}
+                  aria-describedby={blockedReason ? "custo-motivo" : undefined}
+                >
+                  {estimate.isPending ? t.estimating : t.estimate}
+                </Button>
+                {blockedReason ? (
+                  <p id="custo-motivo" className="text-support text-ink-muted">
+                    {blockedReason}
+                  </p>
+                ) : null}
               </div>
-            ) : null}
-          </>
-        ) : (
-          <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
-        )}
-      </StepCard>
+            }
+          >
+            {/* Folded, with every value in the summary: the premises are the
+                reader's to change, never hidden from them (D-65, D-86). */}
+            <Disclosure
+              summary={t.assumptionsSummary(
+                formatTyped(writeOff),
+                formatTyped(loadFactor),
+              )}
+              open={assumptionsOpen || assumptionBlocks}
+              onOpenChange={setAssumptionsOpen}
+            >
+              <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                <p className="text-support text-ink-muted sm:col-span-2">{t.assumptionsHint}</p>
+                <NumberInput
+                  label={t.writeOffLabel}
+                  value={writeOff}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setBrief({ writeOff: event.target.value })}
+                />
+                <NumberInput
+                  label={t.loadFactorLabel}
+                  hint={t.loadFactorHint}
+                  value={loadFactor}
+                  min={0}
+                  max={1}
+                  step="any"
+                  onChange={(event) => setBrief({ loadFactor: event.target.value })}
+                />
+              </div>
+            </Disclosure>
+            {estimate.isError ? <Alert tone="danger">{String(estimate.error)}</Alert> : null}
+          </StepCard>
+        </ParamsPanel>
+
+        <ResultPanel>
+
+          {/* The result card is on screen before there is a result: an empty page
+              under two forms reads as "nothing here", a card that says what will
+              appear reads as the next step. */}
+          <StepCard title={t.resultStep}>
+            {result ? (
+              <>
+                <ResultTable result={result} />
+                <CostCurveChart result={result} />
+                {result.uncosted.length > 0 ? (
+                  <div className="well flex flex-col gap-2">
+                    <span className="text-body font-medium text-ink">{t.uncostedTitle}</span>
+                    <span className="text-caption text-ink-muted">{t.uncostedHint}</span>
+                    <ul className="flex flex-col gap-1 text-body text-ink">
+                      {result.uncosted.map((item) => (
+                        <li key={item.process_id}>
+                          {item.process_name} — {item.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+            )}
+          </StepCard>
+        </ResultPanel>
+      </ParamsResultLayout>
     </div>
   );
 }

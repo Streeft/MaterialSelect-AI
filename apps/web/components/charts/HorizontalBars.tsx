@@ -429,6 +429,7 @@ export function HorizontalBars({
           items={segments.map((s) => ({ key: s.key, label: s.label, color: s.color, symbol: symbolOf.get(s.key) }))}
           hidden={hidden}
           onToggle={toggleable ? toggle : undefined}
+          onIsolate={toggleable ? setHidden : undefined}
         />
       ) : null}
     </div>

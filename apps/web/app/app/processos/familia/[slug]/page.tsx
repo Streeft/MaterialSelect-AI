@@ -7,7 +7,6 @@ import { getProcessClass } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import {
   Badge,
-  Breadcrumb,
   Card,
   CardBody,
   ErrorState,
@@ -53,8 +52,8 @@ export default function ProcessFamilyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Breadcrumb
-        items={[
+      <PageHeader
+        breadcrumb={[
           { label: t.backToProcesses, href: "/app/processos" },
           ...data.ancestors.map((a) => ({
             label: a.name,
@@ -62,9 +61,10 @@ export default function ProcessFamilyPage() {
           })),
           { label: data.name },
         ]}
+        title={data.name}
+        description={data.description ?? undefined}
+        eyebrow={false}
       />
-
-      <PageHeader title={data.name} description={data.description ?? undefined} eyebrow={false} />
 
       <FamilyProseCard
         applications={data.applications}

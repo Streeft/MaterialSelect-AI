@@ -188,6 +188,7 @@ export function CurveChart({
             return next;
           })
         }
+        onIsolate={(next) => setHidden(new Set(next))}
         onHover={setHovered}
       />
       {curve.series.some((series) => series.band) ? (

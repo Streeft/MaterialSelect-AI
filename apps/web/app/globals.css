@@ -1692,6 +1692,9 @@ div[data-surface="rail"] .msds-rail-item {
 }
 @container m3-scaffold (min-width: 1200px) {
   .m3-scaffold-grid[data-layout="list-detail"] { grid-template-columns: minmax(0, 412px) minmax(0, 1fr); }
+  /* D-212: parameters left, result right (`ParamsResultLayout`); stacked below "large". */
+  .m3-scaffold-grid[data-layout="params-result"] { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .m3-scaffold-grid[data-layout="params-result"] > .m3-pane-secondary[data-sticky] { position: sticky; top: 72px; }
 }
 @container m3-scaffold (min-width: 1600px) {
   .m3-scaffold-grid[data-layout="list-detail"] { grid-template-columns: minmax(0, 480px) minmax(0, 1fr); }

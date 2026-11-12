@@ -636,11 +636,41 @@ as entradas.
 restrições, índice e critérios. Reabrir e reexecutar reproduz exatamente o mesmo
 resultado, de forma determinística.
 
+## O assistente em passos (D-210)
+
+A tela `/app/selecao` é um assistente de quatro passos — Função, Objetivo, Limites e
+Resultados — com o estudo num só `useReducer` (`app/app/selecao/wizardState.ts`) e cada
+passo num arquivo de `app/app/selecao/steps/`. O que o assistente pede ao backend enquanto
+se edita:
+
+- **Funil ao vivo** — `POST /api/selection/funnel`, com debounce de 300 ms: as contagens do
+  mesmo pipeline do `/filter`, sem a lista de candidatos. O painel ao lado e o contador da
+  barra leem a mesma resposta.
+- **Modelos prontos** — `GET /api/selection/templates` (`app/domain/study_templates.py`):
+  viga leve e rígida (E^½/ρ), mola leve (σy²/Eρ), painel leve e rígido (E^⅓/ρ) e trocador de
+  calor (λσy), de Ashby. Só formulação: função, objetivo, restrição de projeto em palavras,
+  variável livre, índice e limites `exists` nas propriedades que o índice lê — **nenhum
+  número de material**. O serviço confere cada modelo contra o catálogo vivo e diz o que
+  falta (`available`, `missing_properties`).
+- **O que falta para executar** — calculado na tela só como *onde ir* (`runReadiness.ts`):
+  o veredito dos pesos continua sendo o `can_run` do `/weights-preview` (D-87); cada
+  bloqueio leva ao campo (peso, critério, expressão do índice).
+- **Explicação por material** — aba "Por material" dos resultados: frases montadas do que a
+  execução devolveu (limites, etapas, índice ou motivo de indefinição, posição, nota,
+  contribuições, exclusão por falta de dado, sensibilidade). Quem caiu num limite aparece
+  só em contagem no funil: a resposta não lista os eliminados um a um.
+- **Execução anterior × atual** — `POST /api/selection/run-diff` (`app/domain/run_diff.py`):
+  entrou, saiu, subiu/caiu N posições, igual ou sem posição, e se o vencedor mudou. A tela
+  guarda só a execução anterior da sessão; histórico salvo no servidor exige migração (TODO).
+
 ## Endpoints
 
 | Método | Rota | Função |
 |---|---|---|
 | POST | `/api/selection/filter` | aplica restrições, retorna funil + candidatos |
+| POST | `/api/selection/funnel` | só as contagens do funil, para a pré-visualização ao vivo (D-210) |
+| GET | `/api/selection/templates` | modelos prontos de estudo, só formulação (D-210) |
+| POST | `/api/selection/run-diff` | diferenças de classificação entre duas execuções (D-210) |
 | POST | `/api/selection/index` | valida e avalia uma expressão de índice |
 | POST | `/api/selection/run` | pipeline completo: filtro → índice → ranking |
 | GET/POST | `/api/selection/studies` | listar / criar estudos |

@@ -15,14 +15,18 @@ import type {
   PerformanceIndex,
   ProcessAttribute,
   PropertyDefinition,
+  RunDiff,
+  RunDiffRequest,
   RunRequest,
   RunResult,
   StudyIn,
+  StudyTemplate,
   WeightBudget,
   WeightsPreview,
   WeightsPreviewRequest,
 } from "@/lib/types";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+import { wizardText } from "@/lib/i18n-selection-wizard";
 
 // Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
 allowLoadedRunner();
@@ -34,6 +38,9 @@ const getStudy = vi.fn<(id: number) => Promise<unknown>>();
 const createStudy = vi.fn<(payload: StudyIn) => Promise<null>>();
 const listProcessAttributes = vi.fn<() => Promise<ProcessAttribute[]>>();
 const previewWeights = vi.fn<(payload: WeightsPreviewRequest) => Promise<WeightsPreview>>();
+const listStudyTemplates = vi.fn<() => Promise<StudyTemplate[]>>();
+const previewFunnel = vi.fn<(payload: RunRequest) => Promise<unknown>>();
+const diffRuns = vi.fn<(payload: RunDiffRequest) => Promise<RunDiff>>();
 
 /** A budget that closes: every row sound, `can_run` true — the backend's answer
  * to any well-formed set of criteria, unless a test says otherwise. */
@@ -100,6 +107,13 @@ vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
   getCurrentUser: () => Promise.resolve(currentUser),
   runSelection: (payload: RunRequest) => runSelection(payload),
+  // D-210: the live funnel has its own light endpoint. It answers here with the
+  // same story `runSelection` tells, constraints only, so the counter, the pane
+  // and the run read one source in every test.
+  previewFunnel: (payload: RunRequest) => previewFunnel(payload),
+  listStudyTemplates: () => listStudyTemplates(),
+  diffRuns: (payload: RunDiffRequest) => diffRuns(payload),
+  describeExpression: () => Promise.reject(new Error("sem descrição nos testes")),
   previewWeights: (payload: WeightsPreviewRequest) => previewWeights(payload),
   listProperties: () => Promise.resolve(propertiesMock),
   listClasses: () => Promise.resolve([]),
@@ -143,6 +157,17 @@ function result(overrides: Partial<RunResult> = {}): RunResult {
     candidates: [],
     index: null,
     ranking: null,
+    winner: {
+      kind: "none",
+      names: [],
+      reason: "no_objective",
+      score: null,
+      method: null,
+      contributions: [],
+      index_value: null,
+      value: null,
+      maximize: null,
+    },
     ...overrides,
   };
 }
@@ -176,6 +201,13 @@ beforeEach(() => {
   listProcessAttributes.mockResolvedValue([]);
   propertiesMock = [density];
   listPerformanceIndices.mockResolvedValue([]);
+  previewFunnel.mockReset();
+  previewFunnel.mockImplementation((payload) =>
+    runSelection({ universe: payload.universe, stages: payload.stages, index: null, ranking: null }),
+  );
+  listStudyTemplates.mockReset();
+  listStudyTemplates.mockResolvedValue([]);
+  diffRuns.mockReset();
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
   window.localStorage.clear();
@@ -969,5 +1001,190 @@ describe("resultados antes de executar (D-202)", () => {
     for (const line of results.querySelectorAll("span.block")) {
       expect(line.className).not.toContain("truncate");
     }
+  });
+});
+
+// --- D-210: steps, progress, what is missing, templates, funnel, two runs ----
+
+describe("assistente em passos (D-210)", () => {
+  const w = wizardText;
+  const prop = (slug: string, name: string): PropertyDefinition => ({ ...density, slug, name });
+  const springTemplate: StudyTemplate = {
+    slug: "mola-leve",
+    name: "Mola leve",
+    summary: "Mola que armazena o máximo de energia elástica por unidade de massa.",
+    function_text: "Mola (armazenar energia elástica)",
+    objective_text: "Minimizar a massa para a mesma energia armazenada",
+    design_constraint: "Não escoar",
+    free_variables: ["dimensões da mola"],
+    universe: "material",
+    stages: [
+      {
+        kind: "limit",
+        enabled: true,
+        root_group: {
+          operator: "AND",
+          constraints: [
+            { operator: "exists", property_slug: "limite_escoamento" },
+            { operator: "exists", property_slug: "modulo_young" },
+            { operator: "exists", property_slug: "densidade" },
+          ],
+          groups: [],
+        },
+      },
+    ],
+    index: {
+      name: "Mola leve (σy²/Eρ)",
+      expression: "limite_escoamento ** 2 / (modulo_young * densidade)",
+      goal: "maximize",
+    },
+    index_slug: null,
+    criteria: [{ key: "__index__", weight: 1, direction: null }],
+    reference: "Ashby",
+    available: true,
+    missing_properties: [],
+  };
+
+  it("asks the light funnel endpoint while editing, never a full run", async () => {
+    previewFunnel.mockResolvedValue({
+      universe: "material",
+      initial_count: 40,
+      combinator: "AND",
+      final_count: 31,
+      funnel: [{ label: "Densidade existe", operator: "exists", passed: 31, remaining: 31 }],
+      stages: [],
+    });
+    render(wrap(<SelectionPage />));
+    const pane = await screen.findByShadowRole("complementary", { name: t.live.region });
+    await waitFor(() => expect(within(pane).getByText("Densidade existe")).toBeInTheDocument());
+    expect(within(pane).getByText(t.live.remainOf(40))).toBeInTheDocument();
+    expect(previewFunnel.mock.calls[0]?.[0]).toMatchObject({ universe: "material" });
+    expect(runSelection).not.toHaveBeenCalled();
+  });
+
+  it("counts the steps that are ready in the progress bar", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    expect(screen.getByText(w.progress.count(0, 3))).toBeInTheDocument();
+    await user.type(screen.getByShadowRole("textbox", { name: t.studyName }), "Viga");
+    expect(screen.getByText(w.progress.count(1, 3))).toBeInTheDocument();
+    await user.click(screen.getByShadowRole("button", { name: w.progress.next(t.stepObjective) }));
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
+  });
+
+  it("applies a ready-made study in one click, and Desfazer puts back what was there", async () => {
+    const user = userEvent.setup();
+    propertiesMock = [
+      density,
+      prop("modulo_young", "Módulo de Young"),
+      prop("limite_escoamento", "Limite de escoamento"),
+    ];
+    listStudyTemplates.mockResolvedValue([springTemplate]);
+    render(wrap(<SelectionPage />));
+
+    const nameField = screen.getByShadowRole("textbox", { name: t.studyName });
+    await user.type(nameField, "Meu estudo");
+    await user.click(await screen.findByShadowRole("button", { name: w.templates.useAria("Mola leve") }));
+
+    expect(nameField).toHaveValue("Mola leve");
+    // On screen with its Desfazer, and said once through the live region.
+    expect(screen.getAllByText(w.templates.applied("Mola leve")).length).toBeGreaterThan(0);
+    expect(stepButton(t.stepConstraints)).toHaveTextContent("3 limites");
+    // No catalogue index with this formulation: the same expression, as a custom one.
+    expect(stepButton(t.stepObjective)).toHaveTextContent(t.customIndex);
+
+    await user.click(screen.getByShadowRole("button", { name: t.exampleUndo }));
+    expect(nameField).toHaveValue("Meu estudo");
+  });
+
+  it("runs a template straight to the results", async () => {
+    const user = userEvent.setup();
+    listStudyTemplates.mockResolvedValue([springTemplate]);
+    render(wrap(<SelectionPage />));
+    await user.click(await screen.findByShadowRole("button", { name: w.templates.useAria("Mola leve") }));
+    await user.click(screen.getByShadowRole("button", { name: w.templates.goToConstraints }));
+    await clickRun(user);
+    await waitFor(() => expect(runSelection).toHaveBeenCalled());
+    const request = runSelection.mock.calls.at(-1)![0];
+    expect(request.index?.expression).toBe(springTemplate.index.expression);
+    expect(request.ranking?.criteria).toEqual([{ key: "__index__", weight: 1, direction: null }]);
+  });
+
+  it("takes the reader from a disabled Run to the field that is missing", async () => {
+    previewWeights.mockImplementation(async (payload) =>
+      payload.criteria.some((c) => c.weight === null)
+        ? closedPreview(payload, { status: "incomplete", can_run: false })
+        : closedPreview(payload),
+    );
+    propertiesMock = [density, { ...density, id: 2, name: "Módulo de Young", slug: "modulo_young" }];
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("button", { name: t.continueToCriteria }));
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getAllByRole("combobox", { name: t.criterion })[0]!, "Densidade");
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByShadowRole("button", { name: t.addCriterion }));
+    await user.type(screen.getAllByRole("combobox", { name: t.criterion })[1]!, "Módulo");
+    await user.keyboard("{Enter}");
+
+    await user.click(stepButton(t.stepConstraints));
+    await screen.findByText(t.weights.issues.missing_weight, { selector: "#executar-motivo" });
+    await user.click(screen.getByShadowRole("button", { name: t.weights.fixWeights }));
+    const second = (screen.getAllByShadowLabelText(t.weight) as HTMLInputElement[])[1]!;
+    await waitFor(() => expect(document.activeElement).toBe(second));
+  });
+
+  it("names an empty custom index as what keeps Run disabled", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.click(stepButton(t.stepObjective));
+    await user.click(screen.getByShadowRole("radio", { name: new RegExp(t.customIndex) }));
+    await user.click(stepButton(t.stepConstraints));
+    expect(
+      await screen.findByText(w.blockers.indexExpressionMissing, { selector: "#executar-motivo" }),
+    ).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: t.run })).toBeDisabled();
+  });
+
+  it("runs with Ctrl + Enter on the step that holds Run, and nowhere else", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    // The funnel preview answers through the same mock, so the proof is the screen.
+    expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
+    expect(screen.queryByShadowRole("heading", { name: t.winnerNoneTitle })).toBeNull();
+
+    await user.click(stepButton(t.stepConstraints));
+    await waitFor(() => expect(screen.getByShadowRole("button", { name: t.run })).toBeEnabled());
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    await waitFor(() =>
+      expect(screen.getByShadowRole("heading", { name: t.winnerNoneTitle })).toBeInTheDocument(),
+    );
+  });
+
+  it("compares the second run of the study with the first, through the backend", async () => {
+    diffRuns.mockResolvedValue({
+      rows: [],
+      entered: 0,
+      left: 0,
+      moved: 0,
+      unchanged: 0,
+      winners_before: [],
+      winners_after: [],
+      winner_changed: false,
+    });
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    await clickRun(user);
+    await screen.findByShadowRole("heading", { name: t.winnerNoneTitle });
+    expect(screen.queryByText(w.runs.title)).toBeNull();
+
+    await user.click(screen.getByShadowRole("button", { name: t.back }));
+    await clickRun(user);
+    expect(await screen.findByText(w.runs.title)).toBeInTheDocument();
+    await waitFor(() => expect(diffRuns).toHaveBeenCalledTimes(1));
+    // The results now carry the per-material tab, with its own actions.
+    expect(screen.getByShadowRole("tab", { name: new RegExp(w.explain.tab) })).toBeInTheDocument();
   });
 });

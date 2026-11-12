@@ -66,6 +66,12 @@ const mockResult: CostResult = {
     },
   ],
   uncosted: [],
+  // Computed by the backend (`curve_domains`); the chart only draws it.
+  domain: {
+    x: [1, 1000000],
+    y: [20, 70000],
+    batch_sizes: [1, 10, 100, 1000, 10000, 100000, 1000000],
+  },
 };
 
 describe("CostCurveChart", () => {

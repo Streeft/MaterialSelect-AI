@@ -56,7 +56,7 @@ export default function NotebooksPage() {
         title={t.title}
         description={`${t.description} ${t.privateNote}`}
         // The empty state carries its own button: two identical ones on one screen is noise (D-156).
-        actions={notebooks.data?.length === 0 ? undefined : createButton}
+        primaryAction={notebooks.data?.length === 0 ? undefined : createButton}
       />
       {create.error ? (
         <Alert tone="danger" role="alert">
