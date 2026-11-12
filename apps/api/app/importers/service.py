@@ -271,9 +271,21 @@ class ImportService:
 
         for row_number, row in enumerate(table.rows, start=1):
             report = self._validate_row(mapping, index, row, row_number, seen_names)
+            if report.status != "ok":
+                report.cells = self._raw_cells(table.headers, row)
             counts[report.status] += 1
             reports.append(report)
         return reports, counts
+
+    @staticmethod
+    def _raw_cells(headers: list[str], row: list[object]) -> dict[str, str | None]:
+        """The row as the file had it, text only, long cells cut (empty stays ``None``)."""
+        cells: dict[str, str | None] = {}
+        for i, header in enumerate(headers):
+            raw = row[i] if i < len(row) else None
+            text = None if raw is None else str(raw).strip()
+            cells[header] = text[:120] if text else None
+        return cells
 
     def _validate_row(
         self,

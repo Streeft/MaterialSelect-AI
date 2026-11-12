@@ -22,7 +22,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app import __version__
 from app.ai.provider import AIUnavailableError
 from app.config import settings
-from app.dependencies import require_active_subscription
+from app.dependencies import rate_limit, require_active_subscription
 from app.domain.display_units import DisplayUnitError
 from app.domain.errors import (
     AuthenticationError,
@@ -31,10 +31,12 @@ from app.domain.errors import (
     ExportRefusedError,
     NotFoundError,
     QuotaExceededError,
+    RateLimitedError,
     ServiceUnavailableError,
     SubscriptionRequiredError,
     ValidationError,
 )
+from app.http_cache import StaticListCacheMiddleware
 from app.routers import (
     ai,
     audit,
@@ -91,11 +93,28 @@ def _configure_logging() -> None:
 _configure_logging()
 logger = logging.getLogger("app")
 
+
+def docs_routes(enabled: bool) -> dict[str, str | None]:
+    """Where FastAPI serves its docs: the usual paths, or nowhere (D-223).
+
+    In production the schema is not handed out: it lists every route and
+    parameter, which helps nobody using the product and helps whoever probes it.
+    """
+    if enabled:
+        return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
 app = FastAPI(
     title=settings.app_name,
     version=__version__,
     description="API determinística de apoio à seleção de materiais (metodologia Ashby).",
+    **docs_routes(settings.docs_enabled),
 )
+
+# D-223: ETag and private Cache-Control on the static lists. Added before CORS,
+# so CORS stays the outermost layer and still decorates every answer.
+app.add_middleware(StaticListCacheMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -161,6 +180,15 @@ async def _handle_export_refused(_: Request, exc: ExportRefusedError) -> JSONRes
 @app.exception_handler(ConflictError)
 async def _handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
     return _error_response(409, str(exc))
+
+
+@app.exception_handler(RateLimitedError)
+async def _handle_rate_limited(_: Request, exc: RateLimitedError) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": str(exc)},
+        headers={"Retry-After": str(exc.retry_after)},
+    )
 
 
 @app.exception_handler(AuthenticationError)
@@ -324,9 +352,17 @@ app.include_router(
 app.include_router(
     dashboard.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
-app.include_router(ai.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
+# D-223: AI, exports and notebook writes count against a per-minute limit,
+# after the gate, so an anonymous request is refused before it is counted.
 app.include_router(
-    exports.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+    ai.router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription), Depends(rate_limit("ai"))],
+)
+app.include_router(
+    exports.router,
+    prefix="/api",
+    dependencies=[Depends(require_active_subscription), Depends(rate_limit("exports"))],
 )
 app.include_router(audit.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
 app.include_router(
@@ -360,7 +396,12 @@ app.include_router(
 # (D-83) admits a student. A notebook is the student's own, never the shared
 # catalogue, so no route here needs `require_catalog_curator`.
 app.include_router(
-    notebooks.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+    notebooks.router,
+    prefix="/api",
+    dependencies=[
+        Depends(require_active_subscription),
+        Depends(rate_limit("notebooks", writes_only=True)),
+    ],
 )
 # Equivalência declarada entre designações (D-115): leitura para logados,
 # escrita só do curador (`require_catalog_curator` no próprio router).
@@ -372,4 +413,9 @@ app.include_router(
 @app.get("/", tags=["root"])
 def root() -> dict[str, str]:
     """Root pointer to the API docs."""
-    return {"app": settings.app_name, "docs": "/docs", "health": "/api/health"}
+    return {
+        "app": settings.app_name,
+        # D-223: no pointer to docs that are not served.
+        "docs": "/docs" if settings.docs_enabled else "",
+        "health": "/api/health",
+    }

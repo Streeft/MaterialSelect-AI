@@ -1793,3 +1793,13 @@ Registrados para não voltarem por engano:
   `403 — "Upgrade to GitHub Pro or make this repository public"`
   (ver [DECISIONS.md](DECISIONS.md) D-22). Reaplicável e auditável por
   `scripts/protect-main.ps1`, que é idempotente.
+
+**Importar, Admin, Início, Entrar e Assinatura — pendências (D-222).**
+- Árvore de classes editável no Admin: pede um `PATCH /api/classes/{id}` só de `parent_id` (o `PUT` apaga `applications` e `characteristics`).
+- Início: "Último mapa" com os filtros (guardar a URL completa, hoje só o caminho); editar propriedade no Admin.
+
+**Segurança, limite e cache — pendências (D-223).**
+- Limite por minuto em memória: com mais de uma máquina no Fly cada uma conta à parte; um contador compartilhado (Redis/Postgres) só se a escala pedir.
+- Importador (`app/importers/service.py`) ainda chama `_build_value_from_input` valor a valor (uma leitura de definição e de fonte por célula); levar para `_build_values`.
+- `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
+- Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.

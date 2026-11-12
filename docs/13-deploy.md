@@ -239,6 +239,12 @@ Os **segredos da aplicação** (`GOOGLE_*`, `BACKEND_BASE_URL`, `FRONTEND_URL`,
 
 Três detalhes que não são arbitrários:
 
+- **O deploy da API exige CI verde (D-223).** O primeiro passo recusa disparo
+  fora da `main` e lê, com o `GITHUB_TOKEN` do próprio run (permissão
+  `actions: read`, nenhum segredo novo), a execução do `ci.yml` naquele commit.
+  Verde, segue; ainda rodando, espera até 45 min; vermelha, cancelada ou
+  ausente, para sem implantar. Disparar logo depois do merge funciona: o job
+  espera o E2E.
 - **Só `workflow_dispatch`.** Um gatilho em `push` deixaria `main` vermelha
   enquanto os segredos não existissem, e um vermelho que não significa defeito
   é pior que sinal nenhum. Num repositório público isso também garante que
@@ -796,6 +802,9 @@ Nesta ordem, porque cada uma isola uma camada:
 # Direto na API, para saber se ela está viva:
 curl https://materialselect-ai.fly.dev/api/health
 
+# E o banco, de ponta a ponta (D-223): 200 com a latência, ou 503 em português.
+curl https://materialselect-ai.fly.dev/api/health/db
+
 # E através do proxy, que é o caminho que o navegador usa:
 curl https://material-select-ai-web.vercel.app/api/health
 curl -i https://material-select-ai-web.vercel.app/api/materiais   # deve dar 401, não 500
@@ -816,6 +825,23 @@ Depois, no navegador:
 5. Depois de rodar o §5, `/app/catalogo` deve listar os materiais do seed.
 6. Exporte um estudo e confirme que o arquivo abre com a fonte e a nota de
    reprodutibilidade (o aviso de limitação de uso foi retirado, D-138).
+
+### Segurança da superfície pública (D-223)
+
+- **`/docs`, `/redoc` e `/openapi.json` não existem em produção** (`ENVIRONMENT=production`
+  no `fly.toml`). Para abrir num ambiente de teste, `API_DOCS_ENABLED=true` nos
+  segredos do app.
+- **Limite por minuto, em memória, por máquina.** Os valores padrão são 20 logins
+  por IP, 30 pedidos à IA, 30 exportações e 60 escritas nos Cadernos, por sessão.
+  Quem passa recebe 429 com `Retry-After`. Ajuste com `RATE_LIMIT_*_PER_MINUTE`
+  (0 desliga um balde) ou desligue tudo com `RATE_LIMIT_ENABLED=false`. Com
+  duas máquinas, cada uma conta a sua.
+- **Token de sessão como hash.** O banco guarda o SHA-256 do cookie. As sessões
+  abertas antes do D-223 continuam valendo e são regravadas no primeiro uso. Não
+  há migração nem é preciso sair e entrar de novo.
+- **Cache das listas.** Propriedades, classes, processos, glossário e padrões
+  respondem com `ETag` e `Cache-Control: private, max-age=300`. Um 304 é o
+  esperado no log quando nada mudou.
 
 ## Falhas comuns
 

@@ -77,6 +77,9 @@ export default defineConfig({
         // the `msai_session` cookie before each spec's first navigation.
         ENVIRONMENT: "development",
         E2E_SESSION_TOKEN,
+        // D-223: the whole suite runs under one session and one IP, faster than
+        // any person; the per-minute limit has its own pytest file.
+        RATE_LIMIT_ENABLED: "false",
         // D-97: outside sources, pinned so a developer's `apps/api/.env` cannot
         // change what `e2e/cadernos.spec.ts` asserts. Article and web search
         // stay off (the spec asserts their written reasons, and an E2E run

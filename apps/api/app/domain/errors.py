@@ -78,3 +78,15 @@ class ServiceUnavailableError(DomainError):
     set), not for domain rule violations — those are ``ValidationError`` or
     ``ConflictError``.
     """
+
+
+class RateLimitedError(DomainError):
+    """Too many requests from one caller in the current window (D-223).
+
+    ``retry_after`` is whole seconds until the window opens again; the HTTP
+    layer sends it as ``Retry-After``.
+    """
+
+    def __init__(self, message: str, retry_after: int) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after

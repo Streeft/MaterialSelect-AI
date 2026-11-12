@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app import __version__
 from app.config import settings
+from app.db.base import get_db
 from app.knowledge.embeddings import EmbeddingClient
-from app.schemas.common import HealthResponse
+from app.schemas.common import DatabaseHealthResponse, HealthResponse
+from app.services.health_service import HealthService
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    """Return a simple liveness payload."""
+    """Liveness: settings only, never the database (Fly probes it; D-223)."""
     embeddings = EmbeddingClient(settings)
     embedding_model = embeddings.model if embeddings.configured else None
     return HealthResponse(
@@ -32,3 +35,9 @@ def health() -> HealthResponse:
             embeddings.dimensions if embedding_model and embeddings.dimensions > 0 else None
         ),
     )
+
+
+@router.get("/health/db", response_model=DatabaseHealthResponse)
+def health_db(db: Session = Depends(get_db)) -> DatabaseHealthResponse:
+    """Deep check: one ``SELECT 1``. 503 in Portuguese when it fails (D-223)."""
+    return HealthService(db).database()

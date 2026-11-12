@@ -128,6 +128,22 @@ def _uploads_stay_in_tmp(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "upload_dir", str(tmp_path / "uploads"))
 
 
+@pytest.fixture(autouse=True)
+def _rate_limit_off(monkeypatch) -> Generator[None, None, None]:
+    """The per-minute limit (D-223) is off in every test but its own.
+
+    The suite fires hundreds of requests a second from one client; a test that
+    wants the limit turns it on with ``monkeypatch`` and starts from zero.
+    """
+    from app.config import settings
+    from app.services.rate_limit_service import reset_rate_limits
+
+    monkeypatch.setattr(settings, "rate_limit_enabled", False)
+    reset_rate_limits()
+    yield
+    reset_rate_limits()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _create_and_seed_schema() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=_engine)

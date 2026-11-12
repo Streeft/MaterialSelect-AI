@@ -207,6 +207,13 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
   return fallback;
 }
 
+/**
+ * For the lists the API serves with an `ETag` (D-223): the browser keeps the
+ * body and asks again with `If-None-Match`; a 304 costs no download. When to
+ * ask is still React Query's call (`lib/queryClient.ts`), never the HTTP cache's.
+ */
+const REVALIDATE: RequestInit = { cache: "no-cache" };
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -218,7 +225,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         ...init?.headers,
       },
       credentials: "include",
-      cache: "no-store",
+      cache: init?.cache ?? "no-store",
     });
   } catch (cause) {
     // An aborted request (a cancelled query) is not a network failure: let it through.
@@ -587,7 +594,7 @@ export function deactivateMaterial(id: number): Promise<void> {
 // --- Classes --------------------------------------------------------------
 
 export function listClasses(): Promise<MaterialClass[]> {
-  return request<MaterialClass[]>(`/api/classes`);
+  return request<MaterialClass[]>(`/api/classes`, REVALIDATE);
 }
 
 export function createClass(payload: MaterialClassIn): Promise<MaterialClass> {
@@ -614,7 +621,7 @@ export function deleteClass(id: number): Promise<void> {
 // --- Processes (P0-2) -----------------------------------------------------
 
 export function listProcesses(): Promise<Process[]> {
-  return request<Process[]>(`/api/processes`);
+  return request<Process[]>(`/api/processes`, REVALIDATE);
 }
 
 export interface ProcessMatrixQuery {
@@ -650,7 +657,7 @@ export function getProcessMatrix(query: ProcessMatrixQuery = {}): Promise<Proces
 }
 
 export function listProcessClasses(): Promise<ProcessClass[]> {
-  return request<ProcessClass[]>(`/api/processes/classes`);
+  return request<ProcessClass[]>(`/api/processes/classes`, REVALIDATE);
 }
 
 /**
@@ -662,7 +669,7 @@ export function listProcessClasses(): Promise<ProcessClass[]> {
  * massa" and offer a process capability as a material property.
  */
 export function listProcessAttributes(): Promise<ProcessAttribute[]> {
-  return request<ProcessAttribute[]>(`/api/processes/attributes`);
+  return request<ProcessAttribute[]>(`/api/processes/attributes`, REVALIDATE);
 }
 
 /** One process with its attributes and their provenance — the datasheet (P1-4). */
@@ -690,7 +697,7 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 
 /** Os verbetes conceituais do glossário de propriedades. */
 export function listGlossary(): Promise<GlossaryEntry[]> {
-  return request<GlossaryEntry[]>(`/api/glossario`);
+  return request<GlossaryEntry[]>(`/api/glossario`, REVALIDATE);
 }
 
 // --- Notas de família (D-151) ---------------------------------------------------
@@ -701,7 +708,7 @@ export function listFamilyNotes(): Promise<FamilyNoteEntry[]> {
 }
 
 export function listProperties(): Promise<PropertyDefinition[]> {
-  return request<PropertyDefinition[]>(`/api/properties`);
+  return request<PropertyDefinition[]>(`/api/properties`, REVALIDATE);
 }
 
 /** The material's level on every ordinal property, absence written (D-126). */
@@ -711,7 +718,7 @@ export function getMaterialOrdinals(materialId: number): Promise<MaterialOrdinal
 
 /** Ordinal material properties and their scales, worst level first (D-126). */
 export function listOrdinalProperties(): Promise<OrdinalProperty[]> {
-  return request<OrdinalProperty[]>(`/api/properties/ordinais`);
+  return request<OrdinalProperty[]>(`/api/properties/ordinais`, REVALIDATE);
 }
 
 export function createProperty(
@@ -1411,7 +1418,7 @@ export function findSimilar(
  * requests, so no screen keeps a copy of them.
  */
 export function getDefaults(): Promise<DefaultsResult> {
-  return request<DefaultsResult>("/api/padroes");
+  return request<DefaultsResult>("/api/padroes", REVALIDATE);
 }
 
 export function listLoadCases(): Promise<LoadCase[]> {

@@ -120,6 +120,36 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 180 — 12/11/26 — Segurança, limite por minuto, cache das listas e escritas sem N+1 (D-223)
+
+**O que mudou.** Backend: o token de sessão é guardado como SHA-256 (`app/domain/session_token.py`), e as linhas antigas, com o token
+cru, são convertidas no primeiro uso, sem derrubar ninguém. Há um limite por minuto em memória para login, IA, exportações e escritas
+dos Cadernos (429 com `Retry-After`). `/docs`, `/redoc` e `/openapi.json` ficam desligados em produção, e há um `GET /api/health/db`
+separado do `/api/health`. As listas estáticas ganham `ETag` e `Cache-Control: private` (`app/http_cache.py`). `create_material` e
+`replace_property_values` leem definições e fontes uma vez. O `deploy-api.yml` exige a CI verde na `main`. Frontend:
+`lib/queryClient.ts` (5 min para as listas estáticas, sem `retry` em 4xx) e `cache: "no-cache"` nessas listas. Testes:
+`test_session_token_hash.py`, `test_rate_limit.py`, `test_docs_and_deep_health.py`, `test_http_cache.py`,
+`test_material_write_queries.py`, `queryClient.test.ts` e `api.revalidate.test.ts`.
+
+**Para quem retoma.** Não há migração. Depois do merge, só o **Deploy da API**, que agora espera a CI da `main` (até 45 min). Com mais
+de uma máquina no Fly, o limite conta por máquina. O importador ainda busca definição e fonte valor a valor (TODO).
+
+---
+
+## Sessão 179 — 12/11/26 — Importar, Admin, Início, Entrar e Assinatura (D-222)
+
+**O que mudou.** Etapa "Importar, Admin, Início, Entrar e Assinatura" (parte 6). Backend: `RowReport.cells` no relatório de validação.
+Frontend: grade "Células com problema" no Importar, "Voltar" entre os passos, checagem do arquivo antes de enviar, histórico com
+carregando e erro; Admin com validação no campo, exclusão com confirmação e "Desfazer" e classes em árvore; Início com "Continue de onde
+parou", guia de primeiros passos, atalhos de tarefa e novidades do catálogo; `/entrar`, `/assinatura` e `/` sem promessa de bloqueio.
+Testes: `test_imports_api.py` (células), `importar.test.tsx`, `inicio.test.tsx`, `admin/classes/page.test.tsx`,
+`admin/propriedades/page.test.tsx`, `entradaSemPromessa.test.tsx` e o E2E `importar-inicio.spec.ts`.
+
+**Para quem retoma.** Árvore de classes editável espera um `PATCH` de `parent_id` (o `PUT` apagaria `applications` e `characteristics`).
+Entrou como D-221/Sessão 178 e passou a D-222/Sessão 179 (a F5 tomou a D-221 na `main`). Depois do merge: **Deploy da API** (sem migração).
+
+---
+
 ## Sessão 178 — 12/11/26 — F5: o estudo como documento, o mapa com inspetor e o comparador com pontos de partida (D-221)
 
 **O que mudou.** Seleção: o nome do estudo é o título da página (`PageDoc` com `titlePlaceholder` e `headingLabel`), função,

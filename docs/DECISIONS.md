@@ -13033,3 +13033,86 @@ campo (o rascunho e o salvar leem o estado a cada tecla, D-139).
 176), nas decisões, no registro e nos comentários do código. Esta é a D-221, Sessão 177. Só frontend: nada a disparar depois do
 merge além da Vercel.
 
+## D-222 — Importar com erro por célula, Início que retoma o trabalho, Admin com validação e Entrar/Assinatura sem promessa
+
+**Contexto.** Etapa "Importar, Admin, Início, Entrar e Assinatura" da revisão das telas (parte 6). Já existiam e foram mantidos: o
+assistente em quatro passos com `Stepper` (D-212), o relatório por linha com severidade em palavra, tom e fundo, o histórico com
+reverter em `ConfirmDialog` (D-201), `ErrorState` com `describeApiError` (D-200), os `ConfirmDialog` do Admin, o composer, "Vistos
+recentemente" e "Retomar um estudo" do Início, o `LoginErrorNotice` do D-198 e o texto de acesso aberto da D-83/D-208.
+
+**Decisão.**
+1. **Importar.** O relatório ganha `RowReport.cells` (backend: as células do arquivo, por cabeçalho, só das linhas que não passaram;
+   célula vazia é `null`, nunca zero; texto cortado em 120 caracteres). A tela desenha "Células com problema": a linha como estava
+   no arquivo, a célula apontada por `issue.column` com borda, a mensagem sob o valor e "Problema nesta célula" para quem não vê cor;
+   problemas sem coluna e avisos vão numa coluna à parte; no máximo 50 linhas (o resto está na tabela de cima). "Voltar" em cada
+   passo (mapeamento volta ao arquivo, que continua enviado: "Continuar com este arquivo"); recusa antes de enviar o que não é
+   CSV/XLSX, vazio ou acima de 5 MB; estado de carregando no histórico (esqueleto), erro com "Tentar de novo" e falha do reverter dita.
+2. **Admin.** Validação no campo (nome vazio ou repetido, unidade canônica), sem a bolha nativa em inglês (`noValidate`). Exclusão:
+   `ConfirmDialog` (D-201) e depois `useUndoableDelete` (D-130): a linha sai, "Desfazer" segura a chamada. Classes em ordem de árvore,
+   com recuo e coluna "Classe pai". **Árvore editável não entrou:** `PUT /api/classes/{id}` regrava `applications` e `characteristics`,
+   que o front não conhece, e mover uma classe os apagaria; pede um `PATCH` só de `parent_id`.
+3. **Início.** `ResumeWork` ("Continue de onde parou"): rascunho da seleção (local, por conta, D-139), último mapa (das páginas
+   lembradas pelo menu, D-207 — só o caminho, não os filtros) e caderno de `updated_at` mais recente (a lista que já existe); sem nada, o bloco some.
+   `FirstUseGuide`: três passos marcáveis e dispensável, guardado em `localStorage` (`msai.home.guide`, com `useSyncExternalStore` e try/catch).
+   `TaskShortcuts`: seis tarefas; depois das novidades vêm os mapas fixados (D-221) e "Ou explore os dados", que ficam como estão na `main`. `CatalogNews`: a release importada mais recente (nunca a demonstração),
+   com link para as mudanças entre versões (D-108); some se não há nada ou não carrega.
+4. **Entrar e Assinatura.** `/entrar` diz que não é preciso assinar e volta à página inicial; `/assinatura` em acesso aberto diz que
+   não há assinatura nem cobrança e que a página só serve se o acesso for fechado; com o acesso fechado, "Esta instalação exige…".
+5. **`/`.** Três pontos do que o app faz e "Já tem acesso? Entrar", em uma tela.
+
+**Numeração.** Entrou no #245 como D-221/Sessão 178, número que a F5 (#244) tomou na `main`; passa a D-222/Sessão 179. A renumeração
+do Cadernos para D-220 feita nesta branch foi desfeita: vale a da `main` (Cadernos D-218/Sessão 175, F4 D-220/Sessão 177).
+
+**Fora.** Árvore de classes editável (acima). Mapa recente com os filtros (pede guardar a URL completa). Editar propriedade no Admin.
+Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.
+
+## D-223 — Token de sessão guardado como hash, limite por minuto, docs só fora de produção, saúde do banco à parte, cache das listas e escrita de valores sem N+1
+
+**Contexto.** Etapa "4.2 Cache HTTP, 4.3 Escritas em lote e 4.4 Segurança" do plano de revisão (parte 6, #245). Já existiam e foram
+mantidos: a sessão como linha no servidor, com revogação real (A5); o `/api/health` só de configuração, que o Fly sonda (D-101); o
+`release_command` do Fly com `alembic upgrade head`; e a cota diária das fontes externas dos Cadernos (D-97), que é outra regra.
+
+**Decisão.**
+1. **Hash do token.** O cookie `msai_session` leva o token (48 bytes aleatórios); `user_session.id` guarda só o SHA-256 dele, em hex
+   (`app/domain/session_token.py`). SHA-256 sem sal basta: o token não é senha, não há o que adivinhar. **Sem coluna nova e sem
+   migração**: o hex tem 64 caracteres, o tamanho que a coluna já tinha. O repositório recebe sempre o token do cookie e calcula o
+   hash ele mesmo, então um hash lido da tabela não serve de login. `AuthService.handle_callback` devolve `IssuedSession` (linha +
+   token) e o roteador põe o token no cookie. O seed do E2E grava o hash do token fixo de `e2e/session.ts`.
+2. **Transição sem derrubar ninguém.** Escolhido "aceitar o legado e converter no primeiro uso", e não "invalidar com aviso":
+   `AuthService.current_session` procura pelo hash. Se não achar, e o valor não tiver a forma de um hash, procura a linha antiga pelo
+   token cru e a regrava com o hash, com o mesmo usuário, criação e validade. Uma linha que ninguém usar vence no prazo de sempre
+   (`SESSION_TTL_HOURS`). O logout apaga as duas formas. Duas requisições da mesma página que acham a mesma linha antiga ao mesmo tempo não dão 500: a que perde a corrida volta ao hash que a outra gravou. Invalidar todo mundo derrubaria a turma no meio da aula; converter custa
+   uma escrita por sessão, uma vez.
+3. **Limite por minuto.** É um contador de janela fixa em memória (`app/domain/rate_limit.py`, puro e testável sem servidor) em
+   quatro baldes: login (`/auth/google/login` e `/callback`, por IP), IA, exportações e escritas dos Cadernos (as leituras não
+   contam, porque abrir um caderno dispara vários GET). A chave é o hash do cookie quando há sessão, para que uma escola atrás de um
+   IP não divida a cota. Sem sessão, vale o `Fly-Client-IP` ou o IP do socket. Ao estourar, a resposta é 429 com `Retry-After` e
+   `detail` "Muitas … em pouco tempo. Tente de novo em N s.". `/auth/me` e `/logout` nunca contam. Tudo é configurável (`RATE_LIMIT_*`,
+   0 desliga um balde) e fica desligado nos testes (`conftest._rate_limit_off`) e no E2E (`RATE_LIMIT_ENABLED=false`), salvo em
+   `test_rate_limit.py`. A dependência roda depois do portão, então o anônimo leva 401 antes de contar.
+4. **Docs.** `/docs`, `/redoc` e `/openapi.json` ficam ligados fora de `ENVIRONMENT=production` e desligados nela;
+   `API_DOCS_ENABLED` força. A raiz `/` deixa de apontar para docs que não existem.
+5. **Saúde do banco.** `GET /api/health/db` roda um `SELECT 1` (router → `HealthService` → `HealthRepository`) e devolve a latência.
+   Quando o banco falha, responde 503 "O banco de dados não respondeu.", e o texto do driver vai para o log. `/api/health` continua sem
+   tocar no banco (há teste que o prova), porque é o que o Fly sonda e o Neon dorme.
+6. **Deploy exige CI verde.** O primeiro passo do `deploy-api.yml` recusa disparo fora da `main`. Ele lê com `gh run list` (o
+   `GITHUB_TOKEN` do run, com `actions: read`, sem segredo novo) a execução do `ci.yml` no commit e espera até 45 min se ela ainda
+   estiver rodando. Se terminou de outro jeito que não verde, ou se não existe, o deploy para.
+7. **Escritas sem N+1.** `create_material` e `replace_property_values` liam a definição por slug e a fonte por rótulo dentro do laço,
+   duas consultas por valor. Agora `MaterialService._build_values` lê as definições (`get_properties_by_slugs`) e as fontes
+   (`get_sources_by_labels`) uma vez. Um rótulo novo é criado uma vez (`create_source`, sem perguntar de novo) e é compartilhado pelos
+   valores. Teste com `before_cursor_execute`: 2 ou 8 valores, o mesmo número de leituras dessas tabelas (antes, 8 contra 2).
+8. **Cache das listas.** `StaticListCacheMiddleware` (ASGI, só GET e só 200) põe `ETag` fraco (SHA-256 do corpo serializado) e
+   `Cache-Control: private, max-age=300, must-revalidate` em propriedades, ordinais, classes, processos (lista, famílias, atributos),
+   glossário e padrões, com `Vary: Cookie`, e responde 304 sem corpo quando o `If-None-Match` casa. Nunca `public`: toda rota
+   está atrás do login, e há listas que dependem de quem pede. No front, essas funções pedem com `cache: "no-cache"` (revalidam, sem
+   baixar de novo), o React Query as deixa frescas por 5 min (`lib/queryClient.ts`) e o `retry` não repete 4xx; 5xx e falha de rede
+   têm uma nova tentativa.
+
+**Alternativas recusadas.** Coluna `token_hash` nova com migração (o `id` já cabe o hash, e a migração exigiria o workflow de banco
+no merge). Invalidar todas as sessões (derruba quem está em aula). `slowapi`/Redis (dependência a mais. Uma máquina no Fly é um
+contador; com mais máquinas cada uma conta à parte, o que está registrado no TODO). ETag calculado em cada roteador (pediria lógica
+HTTP em cinco arquivos e poderia divergir do corpo).
+
+**Numeração.** D-223/Sessão 180 (a D-222/Sessão 179 é a etapa anterior do #245). Toca `apps/api` **sem migração**: depois do merge,
+**Deploy da API**, que agora espera a CI da `main` ficar verde.

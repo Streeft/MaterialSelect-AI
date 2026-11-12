@@ -23,7 +23,8 @@ test("uma linha sem nome é rejeitada, não importada como vazio", async ({ page
 
   await page.getByRole("button", { name: "Validar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Relatório de validação" })).toBeVisible();
-  await expect(page.getByText("Nome vazio.")).toBeVisible();
+  // The message is in the report table and, since D-222, on the marked cell too.
+  await expect(page.getByText("Nome vazio.").first()).toBeVisible();
 
   // Nothing is importable: the commit button carries the valid count in its
   // own label and must be disabled, not just discouraged.

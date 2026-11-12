@@ -5,6 +5,9 @@
 # dois, e o token do Fly fica num *secret* do repositório — nunca no histórico,
 # nunca numa conversa.
 #
+# **Exige CI verde (D-223).** O primeiro passo confere, com o `GITHUB_TOKEN` do
+# próprio run, que a `CI` do commit da `main` terminou com sucesso.
+#
 # **Só `workflow_dispatch`, de propósito.** Um gatilho em `push` deixaria todo
 # commit para `main` vermelho enquanto `FLY_API_TOKEN` não existisse, e um
 # vermelho que não significa defeito é pior que nenhum sinal. Quando quiser
@@ -35,12 +38,56 @@ concurrency:
   group: deploy-api
   cancel-in-progress: false
 
+# Ler o resultado da CI do commit (D-223). O GITHUB_TOKEN do próprio run basta:
+# nenhum segredo novo.
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   deploy:
     name: Deploy da API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # D-223: só se implanta o que a CI aprovou. O deploy sai da `main` e do
+      # commit em que a `CI` (ci.yml) terminou verde — a mesma barra do merge.
+      # Se a CI daquele commit ainda está rodando (o E2E leva até ~35 min),
+      # espera até 45 min; vermelha, cancelada ou ausente, o deploy para aqui.
+      - name: Exigir CI verde na main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::O deploy da API sai só da main (disparado de $REF)."
+            exit 1
+          fi
+          for tentativa in $(seq 1 90); do
+            linha="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main \
+              --commit "$SHA" --limit 1 --json status,conclusion,url \
+              --jq '.[0] | "\(.status) \(.conclusion) \(.url)"' || true)"
+            if [ -z "$linha" ] || [ "$linha" = "null null null" ]; then
+              echo "::error::Nenhuma execução da CI para $SHA na main. Dispare o deploy depois que a CI do merge rodar."
+              exit 1
+            fi
+            read -r estado conclusao url <<<"$linha"
+            if [ "$estado" = "completed" ]; then
+              if [ "$conclusao" = "success" ]; then
+                echo "CI verde em $SHA: $url"
+                exit 0
+              fi
+              echo "::error::A CI de $SHA terminou como '$conclusao' ($url). Nada é implantado."
+              exit 1
+            fi
+            echo "CI de $SHA ainda em '$estado' (tentativa $tentativa/90): $url"
+            sleep 30
+          done
+          echo "::error::A CI de $SHA não terminou em 45 min. Dispare o deploy de novo quando ela fechar."
+          exit 1
 
       # A referência que a própria Fly documenta. Fixar num SHA é o passo de
       # endurecimento se um dia isto passar a rodar sem supervisão.

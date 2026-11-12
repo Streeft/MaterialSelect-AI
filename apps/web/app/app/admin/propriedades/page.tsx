@@ -3,6 +3,7 @@
 import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import {
   createProperty,
   deleteProperty,
@@ -60,6 +61,8 @@ export default function PropertiesAdminPage() {
   const [acceptedUnits, setAcceptedUnits] = useState("");
   const [isInterval, setIsInterval] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const undoable = useUndoableDelete();
 
   const create = useMutation({
     mutationFn: () =>
@@ -83,16 +86,20 @@ export default function PropertiesAdminPage() {
       setAcceptedUnits("");
       setIsInterval(false);
       setError(null);
+      setSubmitted(false);
       qc.invalidateQueries({ queryKey: ["properties"] });
     },
     onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
   });
 
-  const remove = useMutation({
-    mutationFn: (id: number) => deleteProperty(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["properties"] }),
-    onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
-  });
+  // D-201 asks first; D-130's "Desfazer" holds the final call back for a few seconds.
+  function removeProperty(target: { id: number; name: string }) {
+    undoable({
+      what: ptBR.admin.deletedProperty,
+      hide: [{ queryKey: ["properties"], remove: withoutId(target.id) }],
+      commit: () => deleteProperty(target.id),
+    });
+  }
 
   // D-201: the row awaiting delete confirmation (MSDS dialog; deletion is permanent).
   const [pendingDelete, setPendingDelete] = useState<{
@@ -102,14 +109,26 @@ export default function PropertiesAdminPage() {
 
   const properties: PropertyDefinition[] = data ?? [];
 
+  const sameName = (a: string, b: string) =>
+    a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
+  const nameError = !name.trim()
+    ? ptBR.admin.errorNameRequired
+    : properties.some((p) => sameName(p.name, name))
+      ? ptBR.admin.errorPropertyDuplicate
+      : undefined;
+  const unitError = !canonicalUnit.trim() ? ptBR.admin.errorUnitRequired : undefined;
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title={ptBR.admin.propertiesTitle} />
       <CatalogReadOnlyNotice />
 
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
+          setSubmitted(true);
+          if (nameError || unitError) return;
           create.mutate();
         }}
       >
@@ -120,6 +139,7 @@ export default function PropertiesAdminPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              error={submitted ? nameError : undefined}
             />
             <Select
               label={ptBR.admin.category}
@@ -137,6 +157,7 @@ export default function PropertiesAdminPage() {
               value={canonicalUnit}
               onChange={(e) => setCanonicalUnit(e.target.value)}
               required
+              error={submitted ? unitError : undefined}
               placeholder="ex.: Pa"
             />
             <Input
@@ -186,10 +207,9 @@ export default function PropertiesAdminPage() {
         }
         message={ptBR.admin.confirmDeleteBody}
         confirmLabel={ptBR.actions.delete}
-        pending={remove.isPending}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
-          if (pendingDelete) remove.mutate(pendingDelete.id);
+          if (pendingDelete) removeProperty(pendingDelete);
           setPendingDelete(null);
         }}
       />

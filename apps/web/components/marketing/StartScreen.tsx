@@ -39,6 +39,16 @@ export function StartScreen() {
             <p className="max-w-md text-base text-rail-ink-muted">{ptBR.tagline}</p>
           </div>
 
+          <ul className="grid max-w-md gap-3 text-left">
+            {ptBR.auth.landingPoints.map((point) => (
+              <li key={point.title}>
+                <p className="text-base font-semibold">{point.title}</p>
+                <p className="text-caption text-rail-ink-muted">{point.text}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex flex-col items-center gap-3 lg:items-start">
           <Link
             href="/app/selecao"
             className="pressable inline-flex h-[52px] items-center justify-center gap-2.5 rounded-[0.875rem] bg-brand px-7 text-base font-semibold text-brand-fg shadow-glow"
@@ -46,6 +56,10 @@ export function StartScreen() {
             {ptBR.home.start}
             <IconArrowRight className="h-[18px] w-[18px]" />
           </Link>
+          <Link href="/entrar" className="text-caption text-rail-ink-muted underline">
+            {ptBR.auth.landingEnter}
+          </Link>
+          </div>
         </div>
         <AshbyPreview />
       </div>

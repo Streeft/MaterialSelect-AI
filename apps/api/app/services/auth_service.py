@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import secrets
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode
@@ -35,12 +36,14 @@ from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport import Request as GoogleAuthRequest
 from google.auth.transport import Response as GoogleAuthResponse
 from google.oauth2 import id_token as google_id_token
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.config import settings
 from app.domain.errors import AuthenticationError, ServiceUnavailableError
+from app.domain.session_token import new_session_token
 from app.models.project import Project
 from app.models.user import User, UserSession
 from app.repositories.project_repository import ProjectRepository
@@ -142,6 +145,22 @@ def _default_verify_id_token(id_token_jwt: str, client_id: str) -> dict[str, Any
     )
 
 
+@dataclass(frozen=True)
+class IssuedSession:
+    """A session just opened: the row, and the token only the cookie carries.
+
+    The row keeps the token's SHA-256 (D-223), so the token itself exists only
+    here, on its way to the ``Set-Cookie`` header — it is never stored.
+    """
+
+    session: UserSession
+    token: str
+
+    @property
+    def user_id(self) -> int:
+        return self.session.user_id
+
+
 class AuthService:
     """Orchestrates the Google login flow and session lifecycle."""
 
@@ -178,8 +197,8 @@ class AuthService:
         }
         return f"{GOOGLE_AUTHORIZE_URL}?{urlencode(params)}", state
 
-    def handle_callback(self, *, code: str, state: str, cookie_state: str | None) -> UserSession:
-        """Complete the OAuth handshake and return a new, committed UserSession."""
+    def handle_callback(self, *, code: str, state: str, cookie_state: str | None) -> IssuedSession:
+        """Complete the OAuth handshake and return a new, committed session."""
         if not settings.google_oauth_enabled:
             raise ServiceUnavailableError("Login com Google não está configurado.")
         # Bytes, not str: `compare_digest` raises TypeError on a non-ASCII str,
@@ -193,6 +212,33 @@ class AuthService:
         claims = self._verify_claims(id_token_jwt)
         return self._open_session(claims)
 
+    def current_session(self, token: str) -> UserSession | None:
+        """The live session for a cookie token, or ``None`` (D-223).
+
+        The lookup is by the token's digest. A row written before D-223 holds
+        the raw token: it is accepted once and rewritten to the digest right
+        here, keeping its expiry, so a deploy logs nobody out and the raw
+        tokens leave the table as their owners come back. Rows nobody returns
+        to expire as before (``SESSION_TTL_HOURS``).
+        """
+        session = self.sessions.get_valid(token)
+        if session is not None:
+            return session
+        legacy = self.sessions.get_legacy(token)
+        if legacy is None:
+            return None
+        user = legacy.user
+        try:
+            converted = self.sessions.rehash(legacy, token)
+            self.db.commit()
+        except (IntegrityError, StaleDataError):
+            # A page fires several requests at once: another one converted
+            # this row first. Its digest is there now; use it.
+            self.db.rollback()
+            return self.sessions.get_valid(token)
+        converted.user = user
+        return converted
+
     def logout(self, token: str) -> None:
         """Revoke a session. Idempotent — deleting an unknown token is a no-op."""
         self.sessions.delete(token)
@@ -200,7 +246,7 @@ class AuthService:
 
     # --- internals ----------------------------------------------------
 
-    def _open_session(self, claims: dict[str, Any]) -> UserSession:
+    def _open_session(self, claims: dict[str, Any]) -> IssuedSession:
         """Upsert the user and create the session, retrying a dropped connection once.
 
         Neon suspends an idle database, and the first query after that can
@@ -317,12 +363,13 @@ class AuthService:
     def _create_default_project(self, user: User) -> Project:
         return self.projects.create(name="Meu projeto", owner_id=user.id)
 
-    def _create_session(self, user: User) -> UserSession:
+    def _create_session(self, user: User) -> IssuedSession:
         now = datetime.now(UTC)
-        token = secrets.token_urlsafe(48)
-        return self.sessions.create(
+        token = new_session_token()
+        session = self.sessions.create(
             token=token,
             user_id=user.id,
             created_at=now,
             expires_at=now + timedelta(hours=settings.session_ttl_hours),
         )
+        return IssuedSession(session=session, token=token)

@@ -7,6 +7,10 @@ import { SavedStudies } from "@/components/home/SavedStudies";
 import { PinnedMaps } from "@/components/home/PinnedMaps";
 import { HomeComposer } from "@/components/home/HomeComposer";
 import { NewMenu } from "@/components/home/NewMenu";
+import { FirstUseGuide } from "@/components/home/FirstUseGuide";
+import { ResumeWork } from "@/components/home/ResumeWork";
+import { TaskShortcuts } from "@/components/home/TaskShortcuts";
+import { CatalogNews } from "@/components/home/CatalogNews";
 
 const t = ptBR.home;
 
@@ -42,9 +46,17 @@ export default function HomePage() {
         <HomeComposer />
       </section>
 
+      <FirstUseGuide />
+
+      <ResumeWork />
+
       <RecentRecords />
 
       <SavedStudies />
+
+      <TaskShortcuts />
+
+      <CatalogNews />
 
       <PinnedMaps />
 

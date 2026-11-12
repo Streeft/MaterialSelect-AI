@@ -132,11 +132,11 @@ def test_logout_deletes_the_session(db_session):
     service = _service(db_session)
     session = service.handle_callback(code="abc", state="s", cookie_state="s")
 
-    service.logout(session.id)
+    service.logout(session.token)
 
     from app.models.user import UserSession
 
-    assert db_session.get(UserSession, session.id) is None
+    assert db_session.get(UserSession, session.session.id) is None
 
 
 def test_logout_is_idempotent_for_an_unknown_token(db_session):
@@ -152,7 +152,7 @@ def test_session_repository_rejects_an_expired_session(db_session):
     service = _service(db_session)
     session = service.handle_callback(code="abc", state="s", cookie_state="s")
 
-    session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
     db_session.commit()
 
-    assert SessionRepository(db_session).get_valid(session.id) is None
+    assert SessionRepository(db_session).get_valid(session.token) is None

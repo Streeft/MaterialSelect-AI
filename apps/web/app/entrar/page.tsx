@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { googleLoginUrl } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -26,7 +27,11 @@ export default function LoginPage() {
           <ButtonLink href={googleLoginUrl()} variant="primary">
             {t.loginButton}
           </ButtonLink>
+          <p className="text-caption text-ink-muted">{t.loginAccess}</p>
           <p className="text-caption text-ink-subtle">{t.loginHint}</p>
+          <Link href="/" className="text-caption text-accent underline">
+            {t.loginBack}
+          </Link>
         </CardBody>
       </Card>
     </main>
