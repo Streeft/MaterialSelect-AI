@@ -262,6 +262,7 @@ vi.mock("@/lib/api", () => ({
   listTransportModes: () => Promise.resolve(modes),
   listEndOfLifeRoutes: () => Promise.resolve(routes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
+  compareEcoAudits: () => new Promise(() => {}),
   downloadEcoAudit: (payload: EcoAuditRequest, format: string) =>
     downloadEcoAudit(payload, format),
 }));
@@ -299,11 +300,11 @@ describe("Auditoria ambiental", () => {
     nav.query = "";
     await open();
 
-    expect(
-      await screen.findByShadowRole("button", { name: t.run }),
-    ).toBeDisabled();
-    // D-86: the disabled button says why.
+    // D-86/D-216: no button to press; the result card says what is missing.
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.run })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(runEcoAudit).not.toHaveBeenCalled();
   });
 
   it("recolhe as premissas do uso, com cada valor no resumo", async () => {
@@ -316,8 +317,6 @@ describe("Auditoria ambiental", () => {
   it("aceita material e massa pela URL, que é como o dimensionamento liga aqui", async () => {
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
     expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
@@ -333,9 +332,9 @@ describe("Auditoria ambiental", () => {
     nav.noProcess = true;
     await open();
 
-    expect(await screen.findByText(t.noProcess)).toBeInTheDocument();
-    expect(await screen.findByShadowRole("button", { name: t.run })).toBeDisabled();
+    expect(await screen.findByText(t.noProcessShort)).toBeInTheDocument();
     expect(screen.getByText(t.blocked.process)).toBeInTheDocument();
+    expect(runEcoAudit).not.toHaveBeenCalled();
   });
 
   it("só oferece processos que fazem este material", async () => {
@@ -358,8 +357,6 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
     const sent = runEcoAudit.mock.calls[0]![0]!.use;
     expect(sent.model).toBe("movel");
@@ -378,10 +375,11 @@ describe("Auditoria ambiental", () => {
     );
 
     expect(await screen.findByShadowLabelText(/Potência/)).toBeInTheDocument();
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
-    const sent = runEcoAudit.mock.calls[0]![0]!.use;
+    // The brief was complete from the link, so the mobile model was asked about
+    // first; the switch asks again, with the static fields only.
+    await waitFor(() => expect(runEcoAudit.mock.calls.at(-1)![0]!.use.model).toBe("estatico"));
+    const sent = runEcoAudit.mock.calls.at(-1)![0]!.use;
     expect(sent.model).toBe("estatico");
     expect(sent.power_watts).toBeDefined();
     expect(sent.distance_km).toBeUndefined();
@@ -391,15 +389,14 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
     // Scoped to the table, and read in order: "Material" is also the label of
     // the picker in step 1, so an unscoped query could pass on the wrong node —
     // and the order is itself the claim, since the phases are never sorted by
     // magnitude.
-    const table = screen.getAllByRole("table")[0]!;
+    // The result region's first table: the inputs are tables too now (D-216).
+    const table = within(screen.getByRole("region", { name: ptBR.ui.resultPanel })).getAllByRole("table")[0]!;
     const firstCells = within(table)
       .getAllByRole("row")
       .map((row) => within(row).queryAllByRole("cell")[0]?.textContent)
@@ -418,8 +415,6 @@ describe("Auditoria ambiental", () => {
     // A resposta não é o total: é qual fase domina.
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     await screen.findByText(t.dominanceTitle);
     expect(screen.getByText(t.dominanceEnergy)).toBeInTheDocument();
@@ -460,8 +455,6 @@ describe("Auditoria ambiental", () => {
     });
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
     // O motivo aparece tanto na célula da tabela quanto na barra proporcional do PhaseBars
@@ -482,8 +475,6 @@ describe("Auditoria ambiental", () => {
     });
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
     expect(
@@ -496,8 +487,6 @@ describe("Auditoria ambiental", () => {
     // é maior do que o leitor esperava.
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     await screen.findByText(`${t.massBought}:`);
     expect(screen.getByText(/2,5 kg/)).toBeInTheDocument();
@@ -512,26 +501,32 @@ describe("Auditoria ambiental", () => {
     expect(
       await screen.findByText(t.blocked.component(2, t.blocked.mass)),
     ).toBeInTheDocument();
-    const masses = await screen.findAllByShadowLabelText(t.unitMassLabel);
-    await user.type(masses[0]!, "0,5".replace(",", "."));
-    const quantities = await screen.findAllByShadowLabelText(t.quantityLabel);
-    await user.clear(quantities[1]!);
-    await user.type(quantities[1]!, "4");
+    const first = t.componentLegend(1);
+    const second = t.componentLegend(2);
+    await user.type(
+      await screen.findByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, second)}`)),
+      "0.5",
+    );
+    const quantity = await screen.findByShadowLabelText(t.cellLabel(t.colQuantity, second));
+    await user.clear(quantity);
+    await user.type(quantity, "4");
+    expect(screen.getByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, first)}`))).toHaveValue(2);
 
     await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
-    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
-    const sent = runEcoAudit.mock.calls[0]![0]!;
-    expect(sent.components).toHaveLength(2);
+    await waitFor(() => {
+      const sent = runEcoAudit.mock.calls.at(-1)![0]!;
+      expect(sent.components).toHaveLength(2);
+      expect(sent.transport_legs).toHaveLength(2);
+    });
+    const sent = runEcoAudit.mock.calls.at(-1)![0]!;
     expect(sent.components![1]).toMatchObject({ unit_mass: 0.5, quantity: 4 });
-    expect(sent.transport_legs).toHaveLength(2);
     expect(sent.transport_legs![1]).toMatchObject({ distance_km: 0 });
 
-    await user.click(
-      await screen.findByShadowRole("button", { name: t.removeComponent(2) }),
-    );
-    expect(screen.queryByText(t.componentLegend(2))).not.toBeInTheDocument();
+    // D-216: removed from the row's ⋯, as in any table edited in place.
+    await user.click(screen.getByRole("button", { name: ptBR.ds.rowActions(second) }));
+    await user.click(screen.getByRole("menuitem", { name: ptBR.ds.removeRow }));
+    expect(screen.queryByShadowLabelText(t.cellLabel(t.colQuantity, second))).toBeNull();
   });
 
   it("marca a rota sem fator no catálogo em vez de escondê-la", async () => {
@@ -565,7 +560,6 @@ describe("Auditoria ambiental", () => {
       ],
     });
     await open();
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     const table = await screen.findByRole("table", { name: t.componentsTitle });
     expect(within(table).getByText("Tampa")).toBeInTheDocument();
@@ -578,8 +572,6 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     expect(
       await screen.findByRole("link", { name: "Liga Alumínio Demo A" }),
     ).toHaveAttribute("href", "/app/materiais/7");
@@ -589,8 +581,6 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
-
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
     expect(screen.getByText(/adimensional no catálogo/)).toBeInTheDocument();
@@ -599,8 +589,6 @@ describe("Auditoria ambiental", () => {
   it("carrega a nota de que a reciclagem não é abatida do total", async () => {
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
 
     // The result card is always on screen; the podium is what the run adds.
     await screen.findByText(t.dominanceTitle);
@@ -619,8 +607,6 @@ describe("Auditoria ambiental", () => {
       .mockImplementation(() => {});
     const user = userEvent.setup();
     await open();
-
-    await user.click(await screen.findByShadowRole("button", { name: t.run }));
     await screen.findByText(t.dominanceTitle);
 
     const trigger = screen.getByRole("button", { name: ptBR.exports.title });

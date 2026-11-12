@@ -236,7 +236,7 @@ describe("Custo da peça", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 600));
     // Never asked with the refused value: the server would only answer a 422.
-    expect(estimatePartCost.mock.calls.some(([req]) => req.load_factor > 1)).toBe(false);
+    expect(estimatePartCost.mock.calls.some(([req]) => (req.load_factor ?? 0) > 1)).toBe(false);
     // The premise that blocks is never left folded away.
     expect(screen.getByText(t.blocked.loadFactor)).toBeInTheDocument();
     expect(

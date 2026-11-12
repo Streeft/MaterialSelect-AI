@@ -3,10 +3,13 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { useLiveResult } from "@/lib/useLiveResult";
+import { describeApiError } from "@/lib/errors";
 import type {
   EcoAuditRequest,
   EcoAuditResult,
+  EcoComparisonRequest,
   EcoComparisonResult,
   EcoDominance,
   EcoPhase,
@@ -31,11 +34,11 @@ import { EcoExportMenu } from "@/components/eco/EcoExportMenu";
 import {
   Alert,
   Badge,
-  Button,
   ButtonGroup,
   ButtonGroupItem,
   Combobox,
   Disclosure,
+  InlineTable,
   Input,
   EmptyState,
   ErrorState,
@@ -53,6 +56,7 @@ import {
   Td,
   Th,
   Tr,
+  type InlineColumn,
 } from "@/components/ui";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
@@ -87,6 +91,23 @@ interface LegDraft {
   distance: string;
 }
 
+function emptyComponent(key: number): ComponentDraft {
+  return {
+    key,
+    name: "",
+    materialId: "",
+    processId: "",
+    mass: "",
+    quantity: "1",
+    recycled: DEFAULTS.recycled,
+    endOfLife: "reciclagem",
+  };
+}
+
+function Updating() {
+  return <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>;
+}
+
 function routeOptionLabel(route: EndOfLifeRouteInfo): string {
   return route.materials_with_factor === 0 && route.energy_property !== null
     ? `${route.label} — ${t.eolNoFactor}`
@@ -105,162 +126,218 @@ function RouteOptions({ routes }: { routes: EndOfLifeRouteInfo[] }) {
   );
 }
 
-function ComponentFields({
-  index,
-  draft,
-  canRemove,
+const COMPONENT_COLUMNS: InlineColumn[] = [
+  { id: "name", header: t.colName, minWidth: "7rem" },
+  { id: "material", header: t.colMaterial, minWidth: "11rem" },
+  { id: "process", header: t.colProcess, minWidth: "9rem" },
+  { id: "mass", header: t.colUnitMass, hint: t.unitKg, numeric: true, minWidth: "6.5rem" },
+  { id: "quantity", header: t.colQuantity, numeric: true, minWidth: "4.5rem" },
+  { id: "recycled", header: t.colRecycled, hint: t.colRecycledHint, numeric: true, minWidth: "5.5rem" },
+  { id: "eol", header: t.colEol, minWidth: "8rem" },
+];
+
+/**
+ * D-216: the bill of materials as a table edited in place — one row per
+ * component, "+ Adicionar componente" under the last, ⋯ per row with Duplicar
+ * and Remover (Desfazer). Each control names itself by column and row, so a
+ * screen reader hears "Massa de uma unidade, Componente 2 (kg)".
+ */
+function ComponentsTable({
+  components,
+  resolved,
   materialOptions,
-  processes,
+  processesOf,
   processesLoaded,
   routes,
-  onChange,
+  onPatch,
+  onAdd,
+  onDuplicate,
   onRemove,
+  onRestore,
 }: {
-  index: number;
-  draft: ComponentDraft;
-  canRemove: boolean;
+  components: ComponentDraft[];
+  resolved: ComponentDraft[];
   materialOptions: { value: string; label: string; description: string; keywords: string[] }[];
-  processes: { id: number; name: string }[];
-  processesLoaded: boolean;
+  processesOf: (index: number) => { id: number; name: string }[];
+  processesLoaded: (index: number) => boolean;
   routes: EndOfLifeRouteInfo[];
-  onChange: (patch: Partial<ComponentDraft>) => void;
-  onRemove: () => void;
+  onPatch: (key: number, patch: Partial<ComponentDraft>) => void;
+  onAdd: () => void;
+  onDuplicate: (draft: ComponentDraft) => void;
+  onRemove: (draft: ComponentDraft) => void;
+  onRestore: (draft: ComponentDraft, index: number) => void;
 }) {
-  const n = index + 1;
-  const selectedProcess = draft.processId || String(processes[0]?.id ?? "");
   return (
-    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-body font-medium text-ink">{t.componentLegend(n)}</legend>
-      <div className="sm:col-span-2">
-        <Input
-          label={t.componentNameLabel}
-          hint={t.componentNameHint}
-          value={draft.name}
-          maxLength={120}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </div>
-      <Combobox
-        label={t.materialLabel}
-        hint={t.materialHint}
-        options={materialOptions}
-        value={draft.materialId}
-        onChange={(value) => onChange({ materialId: value, processId: "" })}
-      />
-      {processesLoaded && processes.length === 0 ? (
-        <div className="flex flex-col gap-1">
-          <span className="msds-field-label">{t.processLabel}</span>
-          <Alert tone="warning">{t.noProcess}</Alert>
-        </div>
-      ) : (
-        <Select
-          label={t.processLabel}
-          hint={t.processHint}
-          value={selectedProcess}
-          disabled={processes.length === 0}
-          onChange={(event) =>
-            onChange({ processId: (event.target as HTMLSelectElement).value })
-          }
-        >
-          {processes.map((process) => (
-            <SelectOption key={process.id} value={String(process.id)}>
-              {process.name}
-            </SelectOption>
-          ))}
-        </Select>
-      )}
-      <NumberInput
-        label={index === 0 ? t.massLabel : t.unitMassLabel}
-        hint={index === 0 ? t.massHint : undefined}
-        value={draft.mass}
-        min={0}
-        step="any"
-        onChange={(event) => onChange({ mass: event.target.value })}
-      />
-      <NumberInput
-        label={t.quantityLabel}
-        value={draft.quantity}
-        min={1}
-        step={1}
-        onChange={(event) => onChange({ quantity: event.target.value })}
-      />
-      <NumberInput
-        label={t.recycledLabel}
-        hint={t.recycledHint}
-        value={draft.recycled}
-        min={0}
-        max={1}
-        step="any"
-        onChange={(event) => onChange({ recycled: event.target.value })}
-      />
-      <Select
-        label={t.eolLabel}
-        hint={t.eolHint}
-        value={draft.endOfLife}
-        onChange={(event) =>
-          onChange({
-            endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute,
-          })
+    <InlineTable
+      label={t.componentsTable}
+      columns={COMPONENT_COLUMNS}
+      stackBelow="md"
+      rows={components}
+      rowKey={(draft) => draft.key}
+      rowName={(_draft, index) => t.componentLegend(index + 1)}
+      onAdd={onAdd}
+      addLabel={t.addComponent}
+      onDuplicate={(draft) => onDuplicate(draft)}
+      onRemove={(draft) => onRemove(draft)}
+      onRestore={onRestore}
+      renderCell={(draft, column, index) => {
+        const row = t.componentLegend(index + 1);
+        const cell = (header: string) => t.cellLabel(header, row);
+        const shown = resolved[index] ?? draft;
+        const processes = processesOf(index);
+        switch (column.id) {
+          case "name":
+            return (
+              <Input
+                label={cell(t.colName)}
+                placeholder={t.componentNameHint}
+                value={draft.name}
+                maxLength={120}
+                onChange={(event) => onPatch(draft.key, { name: event.target.value })}
+              />
+            );
+          case "material":
+            return (
+              <Combobox
+                label={cell(t.colMaterial)}
+                options={materialOptions}
+                value={shown.materialId}
+                onChange={(value) => onPatch(draft.key, { materialId: value, processId: "" })}
+              />
+            );
+          case "process":
+            return processesLoaded(index) && processes.length === 0 ? (
+              <span className="text-support text-ink-muted">{t.noProcessShort}</span>
+            ) : (
+              <Select
+                label={cell(t.colProcess)}
+                value={shown.processId}
+                disabled={processes.length === 0}
+                onChange={(event) =>
+                  onPatch(draft.key, { processId: (event.target as HTMLSelectElement).value })
+                }
+              >
+                {processes.map((process) => (
+                  <SelectOption key={process.id} value={String(process.id)}>
+                    {process.name}
+                  </SelectOption>
+                ))}
+              </Select>
+            );
+          case "mass":
+            return (
+              <NumberInput
+                label={cell(t.colUnitMass)}
+                unit={t.unitKg}
+                value={draft.mass}
+                min={0}
+                step="any"
+                onChange={(event) => onPatch(draft.key, { mass: event.target.value })}
+              />
+            );
+          case "quantity":
+            return (
+              <NumberInput
+                label={cell(t.colQuantity)}
+                value={draft.quantity}
+                min={1}
+                step={1}
+                onChange={(event) => onPatch(draft.key, { quantity: event.target.value })}
+              />
+            );
+          case "recycled":
+            return (
+              <NumberInput
+                label={cell(t.colRecycled)}
+                value={draft.recycled}
+                min={0}
+                max={1}
+                step="any"
+                onChange={(event) => onPatch(draft.key, { recycled: event.target.value })}
+              />
+            );
+          default:
+            return (
+              <Select
+                label={cell(t.colEol)}
+                value={draft.endOfLife}
+                onChange={(event) =>
+                  onPatch(draft.key, {
+                    endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute,
+                  })
+                }
+              >
+                <RouteOptions routes={routes} />
+              </Select>
+            );
         }
-      >
-        <RouteOptions routes={routes} />
-      </Select>
-      {canRemove ? (
-        <div className="sm:col-span-2">
-          <Button variant="ghost" size="sm" onClick={onRemove}>
-            {t.removeComponent(n)}
-          </Button>
-        </div>
-      ) : null}
-    </fieldset>
+      }}
+    />
   );
 }
 
-function LegFields({
-  index,
-  draft,
-  canRemove,
+const LEG_COLUMNS: InlineColumn[] = [
+  { id: "mode", header: t.colMode, minWidth: "10rem" },
+  { id: "distance", header: t.colDistance, hint: t.unitKm, numeric: true, minWidth: "8rem" },
+];
+
+function LegsTable({
+  legs,
+  resolved,
   modes,
-  onChange,
+  onPatch,
+  onAdd,
+  onDuplicate,
   onRemove,
+  onRestore,
 }: {
-  index: number;
-  draft: LegDraft;
-  canRemove: boolean;
+  legs: LegDraft[];
+  resolved: LegDraft[];
   modes: TransportMode[];
-  onChange: (patch: Partial<LegDraft>) => void;
-  onRemove: () => void;
+  onPatch: (key: number, patch: Partial<LegDraft>) => void;
+  onAdd: () => void;
+  onDuplicate: (draft: LegDraft) => void;
+  onRemove: (draft: LegDraft) => void;
+  onRestore: (draft: LegDraft, index: number) => void;
 }) {
-  const n = index + 1;
   return (
-    <fieldset className="subsection grid min-w-0 gap-4 sm:grid-cols-2">
-      <legend className="text-body font-medium text-ink">{t.legLegend(n)}</legend>
-      <Select
-        label={t.transportModeLabel}
-        value={draft.mode}
-        onChange={(event) => onChange({ mode: (event.target as HTMLSelectElement).value })}
-      >
-        {modes.map((item) => (
-          <SelectOption key={item.slug} value={item.slug}>
-            {item.name}
-          </SelectOption>
-        ))}
-      </Select>
-      <NumberInput
-        label={t.transportDistanceLabel}
-        value={draft.distance}
-        min={0}
-        step="any"
-        onChange={(event) => onChange({ distance: event.target.value })}
-      />
-      {canRemove ? (
-        <div className="sm:col-span-2">
-          <Button variant="ghost" size="sm" onClick={onRemove}>
-            {t.removeLeg(n)}
-          </Button>
-        </div>
-      ) : null}
-    </fieldset>
+    <InlineTable
+      label={t.legsTable}
+      columns={LEG_COLUMNS}
+      rows={legs}
+      rowKey={(draft) => draft.key}
+      rowName={(_draft, index) => t.legLegend(index + 1)}
+      onAdd={onAdd}
+      addLabel={t.addLeg}
+      onDuplicate={(draft) => onDuplicate(draft)}
+      onRemove={(draft) => onRemove(draft)}
+      onRestore={onRestore}
+      renderCell={(draft, column, index) => {
+        const row = t.legLegend(index + 1);
+        return column.id === "mode" ? (
+          <Select
+            label={t.cellLabel(t.colMode, row)}
+            value={resolved[index]?.mode ?? draft.mode}
+            onChange={(event) => onPatch(draft.key, { mode: (event.target as HTMLSelectElement).value })}
+          >
+            {modes.map((item) => (
+              <SelectOption key={item.slug} value={item.slug}>
+                {item.name}
+              </SelectOption>
+            ))}
+          </Select>
+        ) : (
+          <NumberInput
+            label={t.cellLabel(t.colDistance, row)}
+            unit={t.unitKm}
+            value={draft.distance}
+            min={0}
+            step="any"
+            onChange={(event) => onPatch(draft.key, { distance: event.target.value })}
+          />
+        );
+      }}
+    />
   );
 }
 
@@ -322,7 +399,7 @@ function LegTable({ result }: { result: EcoAuditResult }) {
         <THead>
           <Tr>
             <Th scope="col">{t.columnLeg}</Th>
-            <Th scope="col">{t.transportDistanceLabel}</Th>
+            <Th scope="col">{`${t.transportDistanceLabel} (${t.unitKm})`}</Th>
             <Th scope="col">{`${t.columnEnergy} (${result.energy_unit})`}</Th>
             <Th scope="col">{`${t.columnCarbon} (${result.carbon_unit})`}</Th>
           </Tr>
@@ -585,10 +662,6 @@ export default function EcoPage() {
   const [legs, setLegs] = useState<LegDraft[]>(() => [
     { key: 0, mode: "", distance: DEFAULTS.distance },
   ]);
-  const [result, setResult] = useState<EcoAuditResult | null>(null);
-  // The brief `result` was computed from: the export sends this one, not what
-  // the inputs say now, so the file cannot disagree with the screen (D-172).
-  const [resultBrief, setResultBrief] = useState<EcoAuditRequest | null>(null);
 
   // Compare mode state
   const [materialAId, setMaterialAId] = useState("");
@@ -602,7 +675,6 @@ export default function EcoPage() {
   const [recycledB, setRecycledB] = useState(DEFAULTS.recycled);
   const [processBId, setProcessBId] = useState("");
   const [endOfLifeB, setEndOfLifeB] = useState<EndOfLifeRoute>("reciclagem");
-  const [compareResult, setCompareResult] = useState<EcoComparisonResult | null>(null);
 
   // Shared premises state
   const [mode, setMode] = useState("");
@@ -694,18 +766,7 @@ export default function EcoPage() {
           },
   });
 
-  const audit = useMutation({
-    onMutate: briefFromScreen,
-    mutationFn: () => runEcoAudit(briefFromScreen()),
-    onSuccess: (data, _variables, brief) => {
-      setResult(data);
-      setResultBrief(brief ?? null);
-    },
-  });
-
-  const comparisonMutation = useMutation({
-    mutationFn: () =>
-      compareEcoAudits({
+  const compareFromScreen = (): EcoComparisonRequest => ({
         material_a: {
           material_id: Number(selectedMatA),
           process_id: Number(selectedProcA),
@@ -738,9 +799,8 @@ export default function EcoPage() {
                 life_years: Number(life),
                 carbon_per_energy: Number(carbonPerEnergy),
               },
-      }),
-    onSuccess: setCompareResult,
-  });
+      });
+
 
   // Plain function, not a memo: the resolved lists are rebuilt every render
   // and the check is a few comparisons.
@@ -824,6 +884,23 @@ export default function EcoPage() {
   const blocked = blockedReason();
 
   const ready = blocked === null;
+
+  // D-216: both modes answer as the reader types; the numbers are the server's.
+  // The export sends the brief the shown result answers (D-172), never the inputs.
+  const liveAudit = useLiveResult<EcoAuditRequest, EcoAuditResult>({
+    key: "eco-ao-vivo",
+    request: modeChoice === "individual" && ready ? briefFromScreen() : null,
+    fetcher: runEcoAudit,
+  });
+  const liveCompare = useLiveResult<EcoComparisonRequest, EcoComparisonResult>({
+    key: "eco-comparar-ao-vivo",
+    request: modeChoice === "compare" && ready ? compareFromScreen() : null,
+    fetcher: compareEcoAudits,
+  });
+  const result = liveAudit.data ?? null;
+  const resultBrief = liveAudit.dataRequest;
+  const compareResult = liveCompare.data ?? null;
+  const live = modeChoice === "individual" ? liveAudit : liveCompare;
 
   const materialOptions = useMemo(
     () =>
@@ -956,77 +1033,58 @@ export default function EcoPage() {
         <ParamsPanel>
           {modeChoice === "individual" ? (
             <div className="flex flex-col gap-6">
-              <StepCard
-                title={t.productStep}
-                description={t.productHint}
-                bodyClassName="flex flex-col gap-4"
-                footer={
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      setComponents((list) => [
-                        ...list,
-                        {
-                          key: newKey(),
-                          name: "",
-                          materialId: "",
-                          processId: "",
-                          mass: "",
-                          quantity: "1",
-                          recycled: DEFAULTS.recycled,
-                          endOfLife: "reciclagem",
-                        },
-                      ])
-                    }
-                  >
-                    {t.addComponent}
-                  </Button>
-                }
-              >
-                {components.map((draft, index) => (
-                  <ComponentFields
-                    key={draft.key}
-                    index={index}
-                    draft={{ ...draft, materialId: resolvedComponents[index]?.materialId ?? "" }}
-                    canRemove={components.length > 1}
-                    materialOptions={materialOptions}
-                    processes={componentProcesses[index] ?? []}
-                    processesLoaded={Boolean(details[index]?.isSuccess)}
-                    routes={routes.data ?? []}
-                    onChange={(patch) => patchComponent(draft.key, patch)}
-                    onRemove={() =>
-                      setComponents((list) => list.filter((c) => c.key !== draft.key))
-                    }
-                  />
-                ))}
+              <StepCard title={t.productStep} description={t.productHint}>
+                <ComponentsTable
+                  components={components}
+                  resolved={resolvedComponents}
+                  materialOptions={materialOptions}
+                  processesOf={(index) => componentProcesses[index] ?? []}
+                  processesLoaded={(index) => Boolean(details[index]?.isSuccess)}
+                  routes={routes.data ?? []}
+                  onPatch={patchComponent}
+                  onAdd={() => setComponents((list) => [...list, emptyComponent(newKey())])}
+                  onDuplicate={(draft) =>
+                    setComponents((list) => [...list, { ...draft, key: newKey() }])
+                  }
+                  onRemove={(draft) =>
+                    setComponents((list) => list.filter((c) => c.key !== draft.key))
+                  }
+                  onRestore={(draft, index) =>
+                    setComponents((list) => [...list.slice(0, index), draft, ...list.slice(index)])
+                  }
+                />
+                <Disclosure summary={t.howToFill}>
+                  <dl className="flex flex-col gap-2 pt-2 text-support">
+                    {[
+                      [t.colName, t.componentNameHint],
+                      [t.colMaterial, t.materialHint],
+                      [t.colProcess, t.processHint],
+                      [t.colUnitMass, t.massHint],
+                      [t.colRecycled, t.recycledHint],
+                      [t.colEol, t.eolHint],
+                    ].map(([term, help]) => (
+                      <div key={term}>
+                        <dt className="font-medium text-ink">{term}</dt>
+                        <dd className="text-ink-muted">{help}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Disclosure>
               </StepCard>
 
-              <StepCard
-                title={t.transportStep}
-                description={t.legsHint}
-                bodyClassName="flex flex-col gap-4"
-                footer={
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      setLegs((list) => [...list, { key: newKey(), mode: "", distance: "0" }])
-                    }
-                  >
-                    {t.addLeg}
-                  </Button>
-                }
-              >
-                {legs.map((draft, index) => (
-                  <LegFields
-                    key={draft.key}
-                    index={index}
-                    draft={{ ...draft, mode: resolvedLegs[index]?.mode ?? "" }}
-                    canRemove={legs.length > 1}
-                    modes={modes.data ?? []}
-                    onChange={(patch) => patchLeg(draft.key, patch)}
-                    onRemove={() => setLegs((list) => list.filter((leg) => leg.key !== draft.key))}
-                  />
-                ))}
+              <StepCard title={t.transportStep} description={t.legsHint}>
+                <LegsTable
+                  legs={legs}
+                  resolved={resolvedLegs}
+                  modes={modes.data ?? []}
+                  onPatch={patchLeg}
+                  onAdd={() => setLegs((list) => [...list, { key: newKey(), mode: "", distance: "0" }])}
+                  onDuplicate={(draft) => setLegs((list) => [...list, { ...draft, key: newKey() }])}
+                  onRemove={(draft) => setLegs((list) => list.filter((leg) => leg.key !== draft.key))}
+                  onRestore={(draft, index) =>
+                    setLegs((list) => [...list.slice(0, index), draft, ...list.slice(index)])
+                  }
+                />
               </StepCard>
             </div>
           ) : (
@@ -1066,6 +1124,7 @@ export default function EcoPage() {
                 )}
                 <NumberInput
                   label={t.massLabel}
+                  unit={t.unitKg}
                   hint={t.massHint}
                   value={massA}
                   min={0}
@@ -1130,6 +1189,7 @@ export default function EcoPage() {
                 )}
                 <NumberInput
                   label={t.massLabel}
+                  unit={t.unitKg}
                   hint={t.massHint}
                   value={massB}
                   min={0}
@@ -1164,34 +1224,6 @@ export default function EcoPage() {
           <StepCard
             title={modeChoice === "individual" ? t.useStep : t.sharedPremises}
             description={t.useHint}
-            footer={
-              <div className="flex flex-wrap items-center gap-3">
-                {modeChoice === "individual" ? (
-                  <Button
-                    variant="primary"
-                    onClick={() => audit.mutate()}
-                    disabled={!ready || audit.isPending}
-                    aria-describedby={blocked ? "eco-motivo" : undefined}
-                  >
-                    {audit.isPending ? t.running : t.run}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    onClick={() => comparisonMutation.mutate()}
-                    disabled={!ready || comparisonMutation.isPending}
-                    aria-describedby={blocked ? "eco-motivo" : undefined}
-                  >
-                    {comparisonMutation.isPending ? t.compareRunning : t.compareRun}
-                  </Button>
-                )}
-                {blocked ? (
-                  <p id="eco-motivo" className="text-support text-ink-muted">
-                    {blocked.reason}
-                  </p>
-                ) : null}
-              </div>
-            }
           >
             <div className="grid gap-4 sm:grid-cols-2">
               {modeChoice === "compare" && (
@@ -1211,6 +1243,7 @@ export default function EcoPage() {
                   </Select>
                   <NumberInput
                     label={t.transportDistanceLabel}
+                  unit={t.unitKm}
                     value={distance}
                     min={0}
                     step="any"
@@ -1251,6 +1284,7 @@ export default function EcoPage() {
               <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-3">
                 <NumberInput
                   label={t.lifeLabel}
+                  unit={t.unitYears}
                   value={life}
                   min={0}
                   step="any"
@@ -1260,6 +1294,7 @@ export default function EcoPage() {
                   <>
                     <NumberInput
                       label={t.powerLabel}
+                  unit={t.unitW}
                       value={power}
                       min={0}
                       step="any"
@@ -1279,6 +1314,7 @@ export default function EcoPage() {
                   <>
                     <NumberInput
                       label={t.travelLabel}
+                  unit={t.unitKm}
                       value={travel}
                       min={0}
                       step="any"
@@ -1303,16 +1339,15 @@ export default function EcoPage() {
                 />
               </div>
             </Disclosure>
-            {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
-            {comparisonMutation.isError ? (
-              <Alert tone="danger">{String(comparisonMutation.error)}</Alert>
-            ) : null}
           </StepCard>
         </ParamsPanel>
 
-        <ResultPanel>
+        <ResultPanel busy={live.updating}>
+          {live.error ? (
+            <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
+          ) : null}
           {modeChoice === "individual" ? (
-            <StepCard title={t.resultStep}>
+            <StepCard title={t.resultStep} actions={live.updating ? <Updating /> : undefined}>
               {result ? (
                 <>
                   <EcoExportMenu brief={resultBrief} />
@@ -1359,11 +1394,11 @@ export default function EcoPage() {
                   </div>
                 </>
               ) : (
-                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           ) : (
-            <StepCard title={t.compareResultStep}>
+            <StepCard title={t.compareResultStep} actions={live.updating ? <Updating /> : undefined}>
               {compareResult ? (
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -1420,7 +1455,7 @@ export default function EcoPage() {
                   </div>
                 </div>
               ) : (
-                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           )}

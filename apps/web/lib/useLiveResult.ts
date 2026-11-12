@@ -33,7 +33,12 @@ export function useLiveResult<Req, Res>({
   const settled = useDebounced(serialized, delayMs);
   const query = useQuery({
     queryKey: [key, settled],
-    queryFn: () => fetcher(JSON.parse(settled as string) as Req),
+    // The answer travels with the brief that produced it: while the next one is
+    // asked, the screen shows the previous answer *and* knows which brief it was.
+    queryFn: async () => {
+      const asked = JSON.parse(settled as string) as Req;
+      return { request: asked, response: await fetcher(asked) };
+    },
     enabled: settled !== null,
     placeholderData: keepPreviousData,
     retry: false,
@@ -41,7 +46,9 @@ export function useLiveResult<Req, Res>({
   const complete = serialized !== null;
   return {
     /** The answer for the brief on screen, or the last one while the next comes. */
-    data: complete ? query.data : undefined,
+    data: complete ? query.data?.response : undefined,
+    /** The brief `data` answers (D-172: an export sends this one, never the inputs). */
+    dataRequest: complete ? (query.data?.request ?? null) : null,
     /** Asking (or about to ask) about what is typed now. */
     updating: complete && (serialized !== settled || query.isFetching),
     error: complete && serialized === settled ? query.error : null,

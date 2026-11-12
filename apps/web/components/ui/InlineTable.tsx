@@ -50,6 +50,7 @@ export function InlineTable<Row>({
   onRemove,
   onRestore,
   minRows = 1,
+  stackBelow = "sm",
   className,
 }: {
   /** The table's accessible name (its caption). */
@@ -68,6 +69,8 @@ export function InlineTable<Row>({
   onRestore?: (row: Row, index: number) => void;
   /** Rows that cannot be removed below this count (a product has one component). */
   minRows?: number;
+  /** Stack the rows below 640 px ("sm") or, for a wide table, below 900 px ("md") of its own width. */
+  stackBelow?: "sm" | "md";
   className?: string;
 }) {
   const snackbar = useOptionalSnackbar();
@@ -90,7 +93,7 @@ export function InlineTable<Row>({
   }
 
   return (
-    <div className={cn("ds-inline-table", className)}>
+    <div className={cn("ds-inline-table", className)} data-stack={stackBelow}>
       <table className="ds-inline-grid">
         <caption className="sr-only">{label}</caption>
         <thead>
