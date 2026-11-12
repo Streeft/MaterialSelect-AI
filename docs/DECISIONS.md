@@ -12756,3 +12756,83 @@ nunca filtro de dado, e nenhum material pertence a um nível.
 **Fora.** Seleção marcada que sobrevive à troca de página (hoje vale para a página mostrada, como a regra do D-131 de nunca
 agir sobre o que não está na tela). A consulta continua lendo as linhas casadas com os valores para contar qualidade: se o
 catálogo crescer muito, mover filtros e contagens para SQL. Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+
+## D-216 — Padrões no backend e as quatro calculadoras: `GET /api/padroes`, Eco na URL com cascata por fase, Ragone com destaque, esquema e barras no Dimensionar, comparação no Custo
+
+**Contexto.** Etapa 4.5 da revisão das telas. Os números com que cada calculadora abre estavam copiados no front, e a cópia
+já tinha divergido: a tela de Baterias começava com fatores de empacotamento 0,65 / 0,50 / 0,70 enquanto o schema validava
+com 0,70 / 0,60 / 0,75 (`DEFAULT_*_PACKING_FACTOR`), e o arquétipo inicial era `ve-urbano` quando o catálogo se chama
+`ve_urbano` (a seleção não casava com opção nenhuma e a tela abria com 400 V / 50 kWh / 120 kW em vez dos 400 V / 48 kWh /
+100 kW do arquétipo). O Eco guardava no front as premissas de uso (60 W, ciclo 0,25, 10 anos, 200 000 km, 0,0025
+MJ/(kg·km), 0,07 kg CO₂/MJ, 1 500 km) que o backend não conhecia; o Custo, 1 000 peças, 5 anos e 0,5. O Eco tinha 1.431
+linhas num arquivo só, o estado (produto, cenários, premissas) só em `useState`, a diferença por fase calculada no
+navegador (`energyB − energyA`), e as premissas dobradas num `<details>`. Já estavam resolvidos e foram mantidos: o layout
+parâmetros/resultado, o `useUrlState`, os esqueletos, o `ChartFrame`, o marcador do lote atual na curva de Custo (linha
+tracejada e ponto maior em `CostCurveChart`) e o Ragone com linhas de iso-tempo calculadas no backend (D-145).
+
+**Decisão.**
+
+1. **Uma resposta só para os padrões.** `GET /api/padroes` (router fino → `DefaultsService`, sem banco) devolve
+   `custo`, `eco`, `baterias` e `dimensionar`, cada bloco com uma `note` que diz o que ele é: **premissa editável, não fato
+   de material** (princípio 1). Cada valor é lido da constante que o próprio pedido usa — `DEFAULT_WRITE_OFF_YEARS`,
+   `DEFAULT_LOAD_FACTOR`, `DEFAULT_BATCH_SIZE` (`schemas/part_cost`), `DEFAULT_*` de uso (`calculations/eco_audit`),
+   `DEFAULT_*_PACKING_FACTOR` e `DEFAULT_ARCHETYPE_SLUG` (`calculations/battery`), `DEFAULT_RESULT_LIMIT`
+   (`schemas/solver`). Os schemas de bateria passam a referenciar as constantes em vez de repetir `0.70`/`0.60`/`0.75`. O
+   requisito inicial das baterias sai do arquétipo (`APPLICATION_ARCHETYPES`), a primeira química é a primeira recomendada
+   dele, e a capacidade da célula fica `null` (ausência, não zero: vale a célula da química até alguém informar). Com o
+   backend como fonte única, **a divergência 0,65/0,50/0,70 × 0,70/0,60/0,75 se resolve a favor do schema.** Exige login e
+   assinatura como as demais calculadoras.
+2. **O front não copia número.** `useDefaults()` (uma busca por sessão, `staleTime` infinito) e `DefaultsGate` seguram a
+   tela até os padrões chegarem: esqueleto enquanto carrega, erro com "tentar de novo" quando falha — nunca um formulário
+   preenchido com números inventados pela página. A tela interna recebe os padrões e **monta o spec do `useUrlState` a
+   partir deles** (`costUrlSpec`, `ecoUrlSpec`, `briefUrlSpec`, `solverUrlSpec`), então um valor igual ao do servidor sai do
+   endereço e um link antigo continua abrindo com os padrões de hoje. `lib/defaults.fixture.ts` repete os números só para
+   os testes de tela; o contrato é fixado por `test_defaults_api.py`.
+3. **Eco: estado na URL.** `modo`, `componentes` e `trechos` (JSON base64url com guarda de forma e limite de 50 e 20),
+   `a` e `b` (um cenário cada), `modal`, `distancia` e as premissas (`uso`, `vida`, `potencia`, `ciclo`, `percurso`,
+   `intensidade`, `carbono`). O link do Dimensionar (`?material=&massa=`) semeia a primeira linha enquanto `componentes`
+   estiver vazio. Valor malformado volta ao padrão, nunca é consertado (regra do `useUrlState`). A lista é posicional: o
+   índice é a chave. Uma consulta de material por material **distinto**, porque o React Query recusa chaves duplicadas.
+4. **Eco: módulos e cenários.** `page.tsx` (1.431 linhas) vira `ecoBrief.ts` (tipos, spec, montagem do pedido e o
+   "por que o botão está desligado"), `EcoFields.tsx`, `PremisesPanel.tsx`, `EcoResults.tsx` e a tela. `PartFields` (material,
+   processo, massa, teor reciclado, fim de vida) é **um componente só** que serve às linhas do produto e aos dois cenários;
+   `ScenarioFields` renderiza A e B sem estado próprio — o cenário mora no endereço e chega como `draft`. As premissas de
+   uso deixaram o `<details>` e são um formulário sempre à vista, com "Restaurar padrões do servidor"; e o resultado traz
+   `PremisesSummary`, lido do pedido que **gerou** o resultado, para a lista nunca discordar dos números ao lado.
+5. **Cascata por fase, calculada no backend (ADR 0004).** `EcoAuditResultOut` ganha `energy_waterfall` e
+   `carbon_waterfall` (`build_waterfall` em `calculations/eco_audit`): cada degrau traz `value`, `start` e `end` em
+   coordenadas de dado, mais o degrau do total e o `domain` do eixo (sempre contém o 0, nunca degenerado). Fase sem dado
+   é `value: null` com o `reason` escrito, **fica no nível anterior sem mexê-lo** e o total é `null` — uma soma sobre
+   quatro das cinco fases não é um total. Crédito (valor negativo) desce. `PhaseWaterfall` só mapeia isso a pixels (o único
+   cálculo que uma figura faz no cliente), com tabela de dados, tooltip, teclado por seta e cores por token; a fase
+   ausente é um marcador tracejado "sem dado", não uma barra de altura zero. No modo individual substitui as barras por fase;
+   na comparação, cada cenário tem a sua cascata e as barras comparativas continuam.
+6. **Diferença por fase no servidor.** `EcoComparisonResultOut.phase_deltas` (B − A, `null` se qualquer lado não calculou). A
+   tabela de comparação imprime o que veio; o `energyB − energyA` do navegador acabou.
+7. **Baterias.** Padrões do servidor (acima). O Ragone recebe `highlightSlug`: um anel em volta do ponto da química
+   escolhida, **nas coordenadas do catálogo** (o destaque nunca mexe num número), a frase "Química escolhida: X" e a marca
+   "(escolhida)" na tabela de origem. Acessibilidade, que a auditoria dava como zero: a arquitetura Ns × Np é um `group` com
+   nome falado ("… 125 células em série por 2 ramos em paralelo, 250 no total"), os resultados são `region` nomeadas com
+   `aria-busy`, o pódio é lista, a linha da química escolhida na comparação leva `aria-current`.
+8. **Dimensionar.** `LoadCaseDiagram`: esquema SVG estático do caso (tirante, viga, placa, coluna) que **muda com o apoio
+   escolhido** (engastada-livre, biapoiada, biengastada, birrotulada…), com `role="img"`, nome falado e a legenda "sem escala"
+   — ilustração, nenhum valor desenhado. `SolveResultChart`: barras do resultado na ordem do ranking do servidor, cada barra
+   com o `objective_value` que a tabela imprime, tabela de origem e clique até a ficha. "Comparar os N melhores" abre
+   `/app/comparar?materiais=`. O pedido passa a mandar o `limit` do servidor.
+9. **Custo.** Compara **até 5 materiais** (o primeiro e mais quatro, `?comparar=` no endereço, lista de ids do D-187
+   limitada a quatro) com a mesma massa, lote e premissas: uma estimativa por material, em paralelo; o melhor processo de
+   cada um aparece lado a lado na ordem que o leitor escolheu — **nada é reordenado nem somado no navegador** —, material
+   sem processo com custo diz isso em palavras, e a falha de um não derruba os outros.
+
+**Alternativas descartadas.** Um endpoint por domínio (`/custo/padroes`, `/eco/padroes`…): são quatro buscas e quatro
+estados de carregamento para um conjunto que cabe numa resposta de poucas centenas de bytes. Deixar o front com um valor
+"de reserva" enquanto os padrões carregam (é exatamente a cópia que divergiu). Gráfico de cascata em Plotly (o bundle só
+registra `scatter`, D-80; as figuras são SVG MSDS com tabela e teclado). Somar degraus no componente (é cálculo; ADR 0004).
+Reordenar a tabela do Custo pelo total (ordenar é comparar números; a ordem escolhida pelo leitor é a que ele leu).
+
+**Fora.** **Enviar candidatos para a Seleção:** a Seleção parte de limites sobre o catálogo inteiro e não tem entrada por
+lista de identificadores; levar a lista até lá pede um filtro por id no funil e nos estágios, que é mais do que um atalho —
+o Dimensionar manda os candidatos para o Comparar, que já aceita `?materiais=`. A cascata na comparação é por cenário, não
+uma cascata das diferenças. O Custo compara o melhor processo, não a curva de cada material. Toca `apps/api` sem migração:
+depois do merge, **Deploy da API**.

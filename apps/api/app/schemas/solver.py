@@ -17,6 +17,10 @@ from app.calculations.load_cases import COST_OBJECTIVE, MASS_OBJECTIVE
 #: bound exists so an oversized payload is refused before it reaches the parser.
 MAX_DESIGN_VARIABLES = 12
 
+#: How many ranked records one run returns when the brief does not say (D-216:
+#: also what ``GET /api/padroes`` reports, so the screen keeps no copy).
+DEFAULT_RESULT_LIMIT = 10
+
 
 class DesignVariableOut(BaseModel):
     key: str
@@ -73,7 +77,7 @@ class SolveRequest(BaseModel):
     #: Which of the case's two indices to run. Defaults to the mass, which is
     #: what the endpoint answered before D-65 — an older client keeps its answer.
     objective: Literal[MASS_OBJECTIVE, COST_OBJECTIVE] = MASS_OBJECTIVE
-    limit: int = Field(default=10, ge=1, le=50)
+    limit: int = Field(default=DEFAULT_RESULT_LIMIT, ge=1, le=50)
 
     @field_validator("inputs")
     @classmethod

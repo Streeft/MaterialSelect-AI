@@ -13,10 +13,11 @@ import Link from "next/link";
 // D-205: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { LoadCase, SolveResult, SolverObjective } from "@/lib/types";
+import type { DefaultsResult, LoadCase, SolveResult, SolverObjective } from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
+import { encodeIdList } from "@/lib/idList";
 import { classVisual } from "@/lib/design/palette";
 import {
   Alert,
@@ -27,6 +28,7 @@ import {
   ClassBadge,
   EmptyState,
   ErrorState,
+  ButtonLink,
   CopyLinkItem,
   NumberInput,
   PageHeader,
@@ -43,7 +45,10 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
+import { LoadCaseDiagram } from "@/components/solver/LoadCaseDiagram";
+import { SolveResultChart } from "@/components/solver/SolveResultChart";
 
 const t = ptBR.solver;
 
@@ -54,16 +59,22 @@ interface SolverBrief {
   objective: SolverObjective;
 }
 
-/** The brief in the URL (D-212): a link reopens the same case, numbers and objective. */
-const SOLVER_URL: UrlSpec<SolverBrief> = {
-  caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
-  inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
-  objective: {
-    param: "objetivo",
-    codec: enumCodec<SolverObjective>(["massa", "custo"]),
-    defaultValue: "massa",
-  },
-};
+/**
+ * The brief in the URL (D-212): a link reopens the same case, numbers and
+ * objective. The objective a screen opens on is the server's (`GET /api/padroes`,
+ * D-216), not a literal here.
+ */
+function solverUrlSpec(defaults: DefaultsResult["dimensionar"]): UrlSpec<SolverBrief> {
+  return {
+    caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
+    inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
+    objective: {
+      param: "objetivo",
+      codec: enumCodec<SolverObjective>(["massa", "custo"]),
+      defaultValue: defaults.objective,
+    },
+  };
+}
 
 /**
  * The starting numbers for a case.
@@ -278,8 +289,17 @@ function ResultTable({ result }: { result: SolveResult }) {
 }
 
 export default function DimensionarPage() {
+  return (
+    <DefaultsGate label={t.title}>
+      {(defaults) => <DimensionarScreen defaults={defaults.dimensionar} />}
+    </DefaultsGate>
+  );
+}
+
+function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar"] }) {
   const cases = useQuery({ queryKey: ["load-cases"], queryFn: listLoadCases });
-  const [brief, setBrief] = useUrlState(SOLVER_URL);
+  const spec = useMemo(() => solverUrlSpec(defaults), [defaults]);
+  const [brief, setBrief] = useUrlState(spec);
   const { caseKey: chosenKey, inputs: typed, objective } = brief;
   const [result, setResult] = useState<SolveResult | null>(null);
 
@@ -299,6 +319,18 @@ export default function DimensionarPage() {
         : typed,
     [chosenKey, selected, typed],
   );
+
+  // The support the reader picked (a catalogued condition), so the sketch of
+  // the case shows it. Absent for cases that have none (the tie).
+  const supportChosen = useMemo(() => {
+    for (const variable of selected?.variables ?? []) {
+      const chosen = selected?.supports.find(
+        (s) => s.variable_key === variable.key && String(s.value) === inputs[variable.key],
+      );
+      if (chosen) return chosen;
+    }
+    return null;
+  }, [selected, inputs]);
 
   function chooseCase(key: string) {
     setResult(null);
@@ -320,6 +352,7 @@ export default function DimensionarPage() {
           Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
         ),
         objective,
+        limit: defaults.limit,
       }),
     onSuccess: setResult,
   });
@@ -364,6 +397,13 @@ export default function DimensionarPage() {
                 </SelectOption>
               ))}
             </Select>
+            {selected ? (
+              <LoadCaseDiagram
+                caseKey={selected.key}
+                supportKey={supportChosen?.key ?? null}
+                supportLabel={supportChosen?.label ?? null}
+              />
+            ) : null}
             {selected ? <CaseFacts loadCase={selected} /> : null}
           </StepCard>
 
@@ -475,6 +515,20 @@ export default function DimensionarPage() {
                   ) : null}
                 </p>
                 <ResultTable result={result} />
+                <SolveResultChart result={result} />
+                {result.solved.length > 1 ? (
+                  <div className="flex flex-col gap-1">
+                    <div>
+                      <ButtonLink
+                        variant="secondary"
+                        href={`/app/comparar?materiais=${encodeIdList(result.solved.map((r) => r.record_id))}`}
+                      >
+                        {t.compareBest(result.solved.length)}
+                      </ButtonLink>
+                    </div>
+                    <p className="text-caption text-ink-muted">{t.compareBestHint}</p>
+                  </div>
+                ) : null}
                 {result.excluded.length > 0 ? (
                   <Card>
                     <CardBody className="flex flex-col gap-2">

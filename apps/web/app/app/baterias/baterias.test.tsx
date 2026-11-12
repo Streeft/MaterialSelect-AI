@@ -71,7 +71,7 @@ const mockChemistries: BatteryChemistry[] = [lfp, nmc];
 
 const mockArchetypes: ApplicationArchetype[] = [
   {
-    slug: "ve-urbano",
+    slug: "ve_urbano",
     name: "Veículo elétrico urbano",
     description: "Automóvel de passeio para ciclo misto.",
     target_voltage: 400,
@@ -213,7 +213,10 @@ vi.mock("react-plotly.js", () => ({
   default: () => <div data-testid="plotly-mock" />,
 }));
 
+const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+
 vi.mock("@/lib/api", () => ({
+  getDefaults: () => getDefaults(),
   getBatteryRagone: () => Promise.resolve(mockRagone),
   listBatteryChemistries: () => Promise.resolve(mockChemistries),
   listBatteryArchetypes: () => Promise.resolve(mockArchetypes),
@@ -324,7 +327,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     expect(screen.getByShadowLabelText(t.volumePackingFactor)).toBeDefined();
     expect(screen.getByShadowLabelText(t.costPackingFactor)).toBeDefined();
     // D-86: folded, but every value stays on screen in the summary.
-    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "0,65", "0,5", "0,7"));
+    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "0,7", "0,6", "0,75"));
     expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
   });
 
@@ -339,7 +342,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     expect(
       await screen.findByText(t.blocked.fraction(t.massPackingFactor)),
     ).toBeDefined();
-    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "1,5", "0,5", "0,7"));
+    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "1,5", "0,6", "0,75"));
     expect((summary.closest("details") as HTMLDetailsElement).open).toBe(true);
   });
 
@@ -397,5 +400,72 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     expect(
       screen.getByRole("columnheader", { name: t.tableColMass }),
     ).toBeDefined();
+  });
+
+  it("abre com o arquétipo e os fatores de empacotamento que o servidor mandar (D-216)", async () => {
+    // O front já carregou 0,65 / 0,50 / 0,70 enquanto o schema validava com
+    // 0,70 / 0,60 / 0,75: a cópia divergiu e ninguém viu. Agora não há cópia.
+    const { defaultsFixture } = await import("@/lib/defaults.fixture");
+    getDefaults.mockResolvedValueOnce({
+      ...defaultsFixture,
+      baterias: {
+        ...defaultsFixture.baterias,
+        energy_kwh: 33,
+        mass_packing_factor: 0.8,
+        volume_packing_factor: 0.55,
+        cost_packing_factor: 0.9,
+      },
+    });
+    render(wrap(<BateriasPage />));
+
+    expect(await screen.findByShadowRole("spinbutton", { name: t.targetEnergy })).toHaveValue(33);
+    expect(screen.getByText(t.premisesSummary(t.typicalCell, "0,8", "0,55", "0,9"))).toBeDefined();
+    // The archetype the server names is a real option, so the select shows it.
+    expect(
+      await screen.findByShadowRole("combobox", { name: t.archetypesTitle }),
+    ).toHaveValue("ve_urbano");
+    // Server defaults leave the address clean.
+    expect(new URLSearchParams(window.location.search).has("emp_massa")).toBe(false);
+  });
+
+  it("espera os padrões do servidor: com falha, mostra o erro e deixa tentar de novo", async () => {
+    getDefaults.mockRejectedValueOnce(new Error("falhou"));
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+
+    const alert = await screen.findByRole("alert");
+    await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.retry }));
+
+    expect(await screen.findByRole("heading", { name: t.archetypesTitle })).toBeDefined();
+    expect(alert).toBeDefined();
+  });
+
+  it("a aba Ragone destaca a química escolhida e a nomeia em texto", async () => {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+
+    await user.click(await screen.findByShadowRole("tab", { name: t.tabRagone }));
+
+    expect(await screen.findByText(t.ragone.highlightNote("LFP (fosfato de ferro-lítio)"))).toBeDefined();
+  });
+
+  it("nomeia a arquitetura Ns × Np e as regiões de resultado para leitores de tela", async () => {
+    render(wrap(<BateriasPage />));
+
+    expect(
+      await screen.findByRole("group", { name: t.architectureAria(125, 2, 250) }),
+    ).toBeDefined();
+    expect(screen.getByRole("region", { name: t.designResultAria })).toBeDefined();
+  });
+
+  it("marca a química escolhida na tabela de comparação com aria-current", async () => {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+    await user.click(await screen.findByShadowRole("tab", { name: t.tabCompare }));
+
+    const row = (await screen.findAllByRole("row")).find((r) => r.getAttribute("aria-current") === "true");
+    expect(row).toBeDefined();
+    expect(row!.textContent).toContain(lfp.name);
+    expect(screen.getByRole("region", { name: t.compareResultAria })).toBeDefined();
   });
 });

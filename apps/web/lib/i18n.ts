@@ -1071,6 +1071,36 @@ export const ptBR = {
     // O aviso do custo não é o mesmo aviso: a dimensão sai como massa porque
     // custo por massa é adimensional. Quem lê merece a frase, não a dedução.
     indexRan: "Índice usado nesta execução",
+    // D-216: o esquema do caso e o gráfico do resultado.
+    diagram: {
+      caption: "Esquema do caso, sem escala: só mostra onde estão o vão, o apoio e a carga.",
+      aria: (kind: string, support: string | null) =>
+        support ? `Esquema de ${kind}, com apoio ${support}` : `Esquema de ${kind}`,
+      kinds: {
+        tie: "tirante em tração",
+        beam: "viga em flexão",
+        plate: "placa em flexão",
+        column: "coluna em compressão",
+      },
+      load: "F",
+      span: "L",
+      width: "b",
+    },
+    chart: {
+      title: "Quanto cada material pesa",
+      titleCost: "Quanto cada material custa",
+      hint: "Os materiais dimensionados, do melhor ao pior índice. Cada barra é o valor que a tabela traz, sem reescala de dado.",
+      figure: "Barras do resultado do dimensionamento",
+      columnRank: "Posição",
+      columnMaterial: "Material",
+      axis: (unit: string) => `Resultado (${unit})`,
+      tooltipRank: "Posição",
+      tooltipIndex: "Índice",
+      tooltipSection: "Seção necessária",
+    },
+    compareBest: (n: number) => `Comparar os ${n} melhores`,
+    compareBestHint:
+      "Abre o Comparar já com estes materiais. A Seleção parte de limites sobre o catálogo inteiro, não de uma lista de candidatos: levar a lista até lá exigiria um filtro por identificador que ela ainda não tem.",
   },
 
   cost: {
@@ -1095,6 +1125,19 @@ export const ptBR = {
     assumptionsSummary: (writeOff: string, loadFactor: string) =>
       `Amortização em ${writeOff} anos · fator de carga ${loadFactor}`,
     materialHint: "Digite parte do nome do material.",
+    // D-216: até cinco materiais lado a lado, com a mesma peça, lote e premissas.
+    compareLabel: "Comparar com outros materiais",
+    compareHint: "Até 4 além do primeiro, com a mesma massa, lote e premissas.",
+    compareLimit: "Limite de 5 materiais atingido.",
+    compareRemove: (name: string) => `Remover ${name} da comparação`,
+    compareTitle: "Comparação entre materiais",
+    compareCaption:
+      "O melhor processo de cada material, como o estimador o classificou. Mesma massa, lote e premissas nos materiais.",
+    columnComparedMaterial: "Material comparado",
+    columnBestProcess: "Melhor processo",
+    columnCompareTotal: "Custo total",
+    compareNoProcess: "Sem processo com custo calculado",
+    compareFailed: "Não foi possível estimar",
     blocked: {
       material: "Escolha um material no passo 1.",
       mass: "Informe a massa da peça, maior que zero.",
@@ -1271,7 +1314,14 @@ export const ptBR = {
     tabDesign: "Dimensionamento de Pack",
     tabCompare: "Equilíbrio entre químicas",
     tabRagone: "Ragone",
+    // D-216: nomes acessíveis das regiões de resultado e da arquitetura Ns × Np.
+    architectureAria: (series: number, parallel: number, cells: number) =>
+      `Arquitetura do pack: ${series} células em série por ${parallel} ramos em paralelo, ${cells} células no total`,
+    designResultAria: "Resultado do dimensionamento do pack",
+    compareResultAria: "Resultado da comparação entre químicas",
     ragone: {
+      highlightNote: (name: string) => `Química escolhida: ${name}, destacada no gráfico.`,
+      highlightBadge: "escolhida",
       title: "Ragone: energia × potência",
       figure: "Gráfico de Ragone",
       description:

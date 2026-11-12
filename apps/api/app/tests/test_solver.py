@@ -250,3 +250,27 @@ def test_a_material_without_a_catalogued_cost_is_excluded_and_named() -> None:
 def test_an_unknown_objective_is_refused_rather_than_treated_as_a_mass() -> None:
     with pytest.raises(SolverError, match="Objetivo desconhecido"):
         _solve_beam(objective="carbono")
+
+
+def test_every_catalogued_case_has_a_sketch_the_screen_can_draw() -> None:
+    """D-216: ``LoadCaseDiagram`` picks the geometry from the key's first word.
+
+    A new case with another prefix would simply have no sketch; this fails first
+    so the diagram (and its support variants) is extended on purpose.
+    """
+    from app.calculations.load_cases import LOAD_CASES
+
+    drawable = ("tirante", "placa", "viga", "coluna")
+    for case in LOAD_CASES:
+        assert case.key.startswith(drawable), case.key
+        # And the support keys the sketch draws, by name.
+        for support in case.supports:
+            assert support.key in {
+                "engastada-livre",
+                "biapoiada-central",
+                "biengastada-central",
+                "birrotulada",
+                "engastada-rotulada",
+                "biengastada",
+            }, support.key
+

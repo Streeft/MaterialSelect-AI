@@ -989,6 +989,48 @@ const ecoResult: EcoAuditResult = {
     refusal:
       "Sem fase dominante em carbono: Manufatura não pôde ser calculada.",
   },
+  // D-216: the waterfall, with the carbon of one phase absent on purpose — the
+  // dashed "sem dado" step is the state that deserves an axe pass.
+  energy_waterfall: {
+    quantity: "energy",
+    unit: "MJ",
+    steps: [
+      { phase: "material", label: "Material", value: 525, start: 0, end: 525, reason: null },
+      { phase: "manufatura", label: "Manufatura", value: 27.5, start: 525, end: 552.5, reason: null },
+      { phase: "transporte", label: "Transporte", value: 2.7, start: 552.5, end: 555.2, reason: null },
+      { phase: "uso", label: "Uso", value: 1000, start: 555.2, end: 1555.2, reason: null },
+      { phase: "fim-de-vida", label: "Fim de vida", value: 48, start: 1555.2, end: 1603.2, reason: null },
+    ],
+    total: { phase: "total", label: "Total", value: 1603.2, start: 0, end: 1603.2, reason: null },
+    domain: [0, 1603.2],
+  },
+  carbon_waterfall: {
+    quantity: "carbon",
+    unit: "kg de CO₂",
+    steps: [
+      { phase: "material", label: "Material", value: 31.25, start: 0, end: 31.25, reason: null },
+      {
+        phase: "manufatura",
+        label: "Manufatura",
+        value: null,
+        start: 31.25,
+        end: 31.25,
+        reason: "Dados ausentes: co2-processo",
+      },
+      { phase: "transporte", label: "Transporte", value: 0.204, start: 31.25, end: 31.454, reason: null },
+      { phase: "uso", label: "Uso", value: 70, start: 31.454, end: 101.454, reason: null },
+      { phase: "fim-de-vida", label: "Fim de vida", value: 3.2, start: 101.454, end: 104.654, reason: null },
+    ],
+    total: {
+      phase: "total",
+      label: "Total",
+      value: null,
+      start: null,
+      end: null,
+      reason: "Sem total: ao menos uma fase não pôde ser calculada.",
+    },
+    domain: [0, 104.654],
+  },
   energy_unit: "MJ",
   carbon_unit: "kg de CO₂",
   carbon_unit_note: "O carbono sai em kg de CO₂ por declaração.",
@@ -1105,7 +1147,7 @@ const batteryChemistries: BatteryChemistry[] = [
 
 const batteryArchetypes: ApplicationArchetype[] = [
   {
-    slug: "ve-urbano",
+    slug: "ve_urbano",
     name: "Veículo elétrico urbano",
     description: "Automóvel de passeio para ciclo misto.",
     target_voltage: 400,
@@ -1285,6 +1327,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
       material_id: 9,
       material_name: "Compósito",
     }),
+  getDefaults: async () => (await import("@/lib/defaults.fixture")).defaultsFixture,
   runEcoAudit: () => Promise.resolve(ecoResult),
   listBatteryChemistries: () => Promise.resolve(batteryChemistries),
   listBatteryArchetypes: () => Promise.resolve(batteryArchetypes),

@@ -46,6 +46,7 @@ from app.routers import (
     classes,
     curves,
     dashboard,
+    defaults,
     eco,
     equivalences,
     exports,
@@ -346,6 +347,10 @@ app.include_router(
 )
 app.include_router(
     battery.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# Starting numbers of the calculators (D-216): one answer for cost, eco, battery, solver.
+app.include_router(
+    defaults.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 # The palette's light search (D-207): id, name, class and kind only, limited per kind.
 app.include_router(

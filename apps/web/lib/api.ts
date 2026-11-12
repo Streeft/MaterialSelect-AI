@@ -30,6 +30,7 @@ import type {
   CostRequest,
   CostResult,
   CurrentUser,
+  DefaultsResult,
   Curve,
   CurveScale,
   CurveValue,
@@ -1371,6 +1372,15 @@ export function findSimilar(
  * A GET, because browsing cases by facet is a question about the catalogue and
  * nothing about the reader — so it caches, and two people asking get one answer.
  */
+/**
+ * The numbers the calculators open with (D-216). One answer for cost, eco,
+ * battery and solver, read from the backend constants that validate the
+ * requests, so no screen keeps a copy of them.
+ */
+export function getDefaults(): Promise<DefaultsResult> {
+  return request<DefaultsResult>("/api/padroes");
+}
+
 export function listLoadCases(): Promise<LoadCase[]> {
   return request<LoadCase[]>("/api/solver/casos");
 }

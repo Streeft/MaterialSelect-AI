@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor, within } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC roles live inside a
 // shadow root, invisible to plain @testing-library/react queries.
 import { screen } from "shadow-dom-testing-library";
@@ -119,7 +119,10 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
+const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+
 vi.mock("@/lib/api", () => ({
+  getDefaults: () => getDefaults(),
   listLoadCases: () => Promise.resolve([beam]),
   solveBrief: (payload: SolveRequest) => solveBrief(payload),
 }));
@@ -146,6 +149,7 @@ async function chooseBeam() {
 beforeEach(() => {
   // The brief lives in the URL (D-212): each test starts at a clean address.
   window.history.replaceState(null, "", "/app/dimensionar");
+  getDefaults.mockClear();
   solveBrief.mockReset();
   solveBrief.mockResolvedValue(result);
 });
@@ -229,8 +233,10 @@ describe("Dimensionar", () => {
     );
 
     await screen.findByRole("heading", { name: t.resultStep });
-    expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
-    expect(screen.getByText("0,402")).toBeInTheDocument();
+    // The result table is the first; the bar figure repeats the names.
+    const table = (await screen.findAllByRole("table"))[0]!;
+    expect(within(table).getByText("Alumínio 6061")).toBeInTheDocument();
+    expect(within(table).getByText("0,402")).toBeInTheDocument();
     // A ficha do registro, não a página de família (/app/catalogo/[slug]),
     // onde um id cairia numa família que não existe.
     expect(screen.getByRole("link", { name: "Alumínio 6061" })).toHaveAttribute(
@@ -279,6 +285,7 @@ describe("Dimensionar", () => {
       case_key: "viga-rigidez",
       inputs: { comprimento: 0.8, rigidez: 200000, constante_apoio: 48 },
       objective: "massa",
+      limit: 10,
     });
   });
 
@@ -432,5 +439,65 @@ describe("Dimensionar", () => {
     expect(
       screen.getByRole("link", { name: ptBR.cost.fromSolver }),
     ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402");
+  });
+
+  it("abre com o objetivo e o limite que o servidor mandar, sem cópia na tela (D-216)", async () => {
+    const { defaultsFixture } = await import("@/lib/defaults.fixture");
+    getDefaults.mockResolvedValueOnce({
+      ...defaultsFixture,
+      dimensionar: { objective: "custo", limit: 7 },
+    });
+    const user = userEvent.setup();
+    await chooseBeam();
+
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
+    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+
+    await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
+    expect(solveBrief.mock.calls[0]![0]).toMatchObject({ objective: "custo", limit: 7 });
+    expect(new URLSearchParams(window.location.search).has("objetivo")).toBe(false);
+  });
+
+  it("desenha o esquema do caso de carga e o redesenha com o apoio escolhido", async () => {
+    await chooseBeam();
+
+    const sketch = await screen.findByRole("img", {
+      name: t.diagram.aria(t.diagram.kinds.beam, "Biapoiada, carga no meio do vão"),
+    });
+    expect(sketch).toHaveAttribute("data-diagram", "beam");
+    // Honest about what it is: an illustration, not a drawing to scale.
+    expect(screen.getByText(t.diagram.caption)).toBeInTheDocument();
+  });
+
+  it("desenha o resultado em barras, com a tabela de origem e o link para comparar", async () => {
+    solveBrief.mockResolvedValue({
+      ...result,
+      solved: [
+        ...result.solved,
+        { ...result.solved[0]!, record_id: 3, name: "Aço 1020", rank: 2, objective_value: 0.9 },
+      ],
+    });
+    const user = userEvent.setup();
+    await chooseBeam();
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
+    await user.click(await screen.findByShadowRole("button", { name: t.solve }));
+
+    expect(
+      await screen.findByRole("figure", { name: ptBR.chart.figureLabel(t.chart.figure) }),
+    ).toBeInTheDocument();
+    // One bar per material, in the server's order — and the value it prints is the table's.
+    // The bars link to the record's sheet (D-193), so each mark is a link.
+    const marks = screen.getAllByRole("link", { name: /^[12]\. / });
+    expect(marks.map((m) => m.getAttribute("aria-label"))).toEqual([
+      "1. Alumínio 6061: 0,402 kg",
+      "2. Aço 1020: 0,9 kg",
+    ]);
+    // The candidates go to Comparar, which takes a list of ids (Seleção does not).
+    expect(screen.getByRole("link", { name: t.compareBest(2) })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/app\/comparar\?materiais=/),
+    );
   });
 });
