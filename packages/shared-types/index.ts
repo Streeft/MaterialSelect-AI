@@ -1866,6 +1866,150 @@ export interface Explanation {
   disclaimer: string;
 }
 
+// --- Project assistant (D-224) ---------------------------------------------
+// `POST /ai/plan` turns a plain request ("quero fazer uma roupa de esqui") into
+// a checked, executed proposal; `POST /ai/plan/run` runs it again with the
+// person's choices. Every limit says where its number came from (`origin`):
+// "usuario" (the person's text), "cenario:<id>" (the curated table, with
+// `source`), "sugestao_ia" (shown as "Sugestão da IA, revise", never run until
+// `confirmed`) or "indice" (the ranking reads the property; no number).
+
+export type PlanMode = "project" | "single";
+export type PlanOperator = "gt" | "gte" | "lt" | "lte" | "between" | "exists" | "level_at_least";
+export type PlanOrigin = "usuario" | "sugestao_ia" | "indice" | `cenario:${string}`;
+
+export interface PlanRequest {
+  text: string;
+  mode?: PlanMode;
+}
+
+export interface PlanScenario {
+  id: string;
+  name: string;
+  source: string;
+}
+
+export interface PlanConstraint {
+  property: string;
+  property_name: string;
+  operator: PlanOperator;
+  value: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  unit: string | null;
+  level: string | null;
+  origin: PlanOrigin;
+  source: string;
+  note: string;
+  label: string;
+  /** Whether the automatic run used it; an AI suggestion never is. */
+  applied: boolean;
+  needs_confirmation: boolean;
+  /** The same limit in the shape every selection endpoint accepts. */
+  constraint: ConstraintIn;
+}
+
+export interface PlanCriterion {
+  property: string;
+  property_name: string;
+  direction: "max" | "min";
+  origin: string;
+}
+
+export interface PlanIndex {
+  slug: string;
+  name: string;
+  expression: string;
+  goal: Goal;
+}
+
+export interface PlanMaterial {
+  record_id: number;
+  name: string;
+  class_name: string;
+  rank: number | null;
+  index_value: number | null;
+  score: number | null;
+  reason: string;
+}
+
+export interface PlanRun {
+  initial_count: number;
+  final_count: number;
+  funnel: { label: string; remaining: number }[];
+  materials: PlanMaterial[];
+  message: string | null;
+  error: string | null;
+}
+
+export interface PlanComponent {
+  key: string;
+  name: string;
+  role: string;
+  function_text: string;
+  objective_text: string;
+  index: PlanIndex | null;
+  criteria: PlanCriterion[];
+  constraints: PlanConstraint[];
+  scenarios: string[];
+  rejected: string[];
+  result: PlanRun | null;
+  /** Ready for `POST /selection/studies` or the wizard: applied limits only. */
+  study: StudyIn;
+}
+
+export interface ProjectPlan {
+  text: string;
+  mode: PlanMode;
+  summary: string;
+  assumptions: string[];
+  open_questions: string[];
+  scenarios_used: PlanScenario[];
+  components: PlanComponent[];
+  rejected: string[];
+  /** The local rules answered because the model did not (see `notice`). */
+  degraded: boolean;
+  /** The model's plan for the same text was reused; no quota spent. */
+  cached: boolean;
+  notice: string | null;
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+}
+
+export interface PlanConstraintIn {
+  property: string;
+  operator: PlanOperator;
+  value?: number | null;
+  value_min?: number | null;
+  value_max?: number | null;
+  unit?: string | null;
+  level?: string | null;
+  origin: PlanOrigin;
+  /** An AI suggestion runs only when true. */
+  confirmed?: boolean;
+  note?: string;
+}
+
+export interface PlanComponentRunIn {
+  key?: string | null;
+  name: string;
+  role?: string;
+  function_text?: string;
+  objective_text?: string;
+  index_slug?: string | null;
+  criteria?: { property: string; direction: "max" | "min" }[];
+  constraints?: PlanConstraintIn[];
+}
+
+export interface PlanRunRequest {
+  components: PlanComponentRunIn[];
+}
+
+export interface PlanRunResponse {
+  components: PlanComponent[];
+}
+
 // --- Dashboard ---------------------------------------------------------
 //
 // The panel's vocabulary is three-valued where `DataQuality` above is not:

@@ -129,6 +129,17 @@ def _uploads_stay_in_tmp(tmp_path, monkeypatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _ai_caches_start_empty() -> Generator[None, None, None]:
+    """The AI layer's catalogue summary and plan cache (D-224) are per process;
+    each test starts without what an earlier one left there."""
+    from app.services.ai_service import reset_ai_caches
+
+    reset_ai_caches()
+    yield
+    reset_ai_caches()
+
+
+@pytest.fixture(autouse=True)
 def _rate_limit_off(monkeypatch) -> Generator[None, None, None]:
     """The per-minute limit (D-223) is off in every test but its own.
 

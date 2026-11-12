@@ -1803,3 +1803,16 @@ Registrados para não voltarem por engano:
 - Importador (`app/importers/service.py`) ainda chama `_build_value_from_input` valor a valor (uma leitura de definição e de fonte por célula); levar para `_build_values`.
 - `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
 - Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
+
+**Assistente de projeto com IA — pendências (D-224).**
+- Etapa B (frontend): o `HomeComposer` do Início vira o assistente (`POST /api/ai/plan`, `mode: "project"`, estados de andamento,
+  cartão com as partes, chips de origem "Você" / "Cenário + fonte" / "Sugestão da IA, revise", materiais do servidor, "Abrir na
+  Seleção" com o `study`, "Ajustar" via `POST /api/ai/plan/run`); o `AIAssistPanel` da Seleção usa `mode: "single"`. Tipos já em
+  `packages/shared-types` (`ProjectPlan`, `PlanRunRequest`). E2E com o `mock` ("roupa de esqui", "prédio").
+- Princípio 2: o texto revisado (três origens, sugestão marcada e nunca aplicada sem confirmação, cenários de tabela com fonte)
+  precisa entrar no `CLAUDE.md`, em `docs/CLAUDE.md` §1.5 e em `.claude/rules/backend-ai-exporters.md`. São instruções de agente:
+  o PR traz o texto proposto, e quem aplica é o autor.
+- Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.
+- `claude-api` e `claude-cli` respondem o plano sem o teto próprio (tempo, saída, tentativas); só o `openai-compat` o aplica.
+- O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.
+- Cenários: ampliar a tabela (impacto, abrasão, chama) e trocar faixas didáticas por referência publicada quando houver uma certa.

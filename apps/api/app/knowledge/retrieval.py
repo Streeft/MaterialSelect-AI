@@ -27,6 +27,8 @@ feeds a prompt as reference text — it is never read by
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -49,6 +51,12 @@ _CANDIDATES = 20
 #: RRF's smoothing constant — the value the technique's literature settled on.
 _RRF_K = 60
 
+#: Where a budgeted query embedding runs (D-224). Only the network call goes
+#: here — the database session never leaves the request's thread — and a call
+#: that outlives its budget is simply not waited for: its answer is dropped
+#: and the embedding client's own timeout ends it.
+_EMBED_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="rag-embed")
+
 
 @dataclass(frozen=True)
 class RetrievedChunk:
@@ -63,12 +71,23 @@ class RetrievedChunk:
     score: float
 
 
-def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[RetrievedChunk]:
+def search(
+    db: Session,
+    query: str,
+    *,
+    top_k: int,
+    settings: Settings,
+    embed_budget: float | None = None,
+) -> list[RetrievedChunk]:
     """The ``top_k`` passages most relevant to ``query``, lexical + semantic.
 
     Ranked over the process-resident index (``app/knowledge/index.py``), which
     two small fingerprint queries keep in step with the database; only the
     passages returned are read in full, with their document.
+
+    ``embed_budget`` (seconds) bounds the wait for the query's embedding
+    (D-224): past it, the ranking goes on with the lexical half alone and the
+    miss is logged. ``None`` waits as long as the embedding client does.
     """
     query_tokens = tokenize(query)
     if not query_tokens:
@@ -77,7 +96,7 @@ def search(db: Session, query: str, *, top_k: int, settings: Settings) -> list[R
     repo = KnowledgeIndexRepository(db)
     cache = get_cache()
     lexical_ranked = cache.lexical(repo).rank(query_tokens, _CANDIDATES)
-    semantic_ranked = _semantic_rank(repo, query, settings)
+    semantic_ranked = _semantic_rank(repo, query, settings, embed_budget)
 
     fused = reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
     if not fused:
@@ -101,8 +120,27 @@ def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[
     return sorted(scores.items(), key=lambda item: -item[1])[:_CANDIDATES]
 
 
+def _embed_query(client: EmbeddingClient, query: str, budget: float | None) -> list[float] | None:
+    """The query's vector, or ``None`` when it did not arrive within ``budget``."""
+    if budget is None:
+        return client.embed([query])[0]
+    future = _EMBED_POOL.submit(client.embed, [query])
+    try:
+        return future.result(timeout=max(budget, 0.0))[0]
+    except FutureTimeout:
+        future.cancel()
+        logger.warning(
+            "Busca semântica passou do orçamento de %.1fs; usando só a léxica nesta consulta.",
+            budget,
+        )
+        return None
+
+
 def _semantic_rank(
-    repo: KnowledgeIndexRepository, query: str, settings: Settings
+    repo: KnowledgeIndexRepository,
+    query: str,
+    settings: Settings,
+    budget: float | None = None,
 ) -> list[tuple[int, float]]:
     client = EmbeddingClient(settings)
     if not client.configured:
@@ -123,7 +161,9 @@ def _semantic_rank(
         )
         return []
     try:
-        query_vector = client.embed([query])[0]
+        query_vector = _embed_query(client, query, budget)
+        if query_vector is None:
+            return []
         # Only vectors of this model *and* the query's own length are compared
         # (embedding_matches' rule, applied in SQL by the fingerprint and the
         # loader). The actual length, never the configured one: 0 there means

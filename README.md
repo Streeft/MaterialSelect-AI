@@ -185,8 +185,12 @@ motivo de cada um em [`CLAUDE.md`](CLAUDE.md) e [`docs/CLAUDE.md`](docs/CLAUDE.m
    importado, com fonte.
 2. **Todo cálculo numérico é determinístico e vive no backend** — inclusive o
    que parece apresentação, como a inclinação de uma linha de índice.
-3. **A IA nunca produz números.** Toda saída dela passa por guardrails que
-   recusam número sem âncora no enunciado ou no trecho citado.
+3. **A IA não calcula e não inventa número.** Toda saída dela passa por
+   guardrails. No assistente de projeto, cada limite diz de onde veio o número
+   ([D-224](docs/DECISIONS.md)): do texto do usuário, de um cenário de uso da
+   tabela curada (com fonte) ou, em último caso, de uma faixa sugerida pela IA,
+   conferida contra o catálogo, marcada "Sugestão da IA, revise" e nunca
+   aplicada sem confirmação.
 4. **Ausência nunca vira zero** — nem no banco (`is_missing=True`, campos
    `NULL`), nem na tela, onde ela tem rótulo escrito.
 5. **Rastreabilidade de unidades:** valor e unidade originais, valor
@@ -344,6 +348,12 @@ Roteiro completo, com o porquê de cada passo, em
   cota, a busca cai para as palavras, sem erro na tela. No plano gratuito o
   Google pode usar o texto enviado — o autor aceitou isso para os livros do
   Cérebro ([D-101](docs/DECISIONS.md)).
+- O **assistente de projeto** (`POST /api/ai/plan`, D-224) entende pedidos em
+  linguagem comum ("quero fazer uma roupa de esqui") e devolve as partes do
+  projeto, os limites de cada uma com a origem do número e os primeiros
+  materiais do catálogo pela seleção determinística. `POST /api/ai/plan/run`
+  roda de novo com as escolhas da pessoa. O mesmo pedido reaproveita a resposta
+  sem gastar a cota; se o modelo falhar, as regras locais respondem.
 - Outros provedores (`claude-api`, `claude-cli`, Groq, Ollama local) são troca
   de variável; serviço, guardrails e interface não mudam.
 

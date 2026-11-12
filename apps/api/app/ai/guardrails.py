@@ -280,3 +280,82 @@ def check_constraint(constraint, statement: str, catalogue: Catalogue) -> str | 
                 "limite manualmente."
             )
     return None
+
+
+# --- project assistant (D-224) ------------------------------------------------
+#
+# A plan limit has one of three origins, and each has its own rule. ``usuario``
+# goes through ``check_constraint`` above, unchanged: the number must be in the
+# person's text. The two below are new, and neither loosens that one.
+
+
+def check_scenario(scenario_id: str, known_ids: set[str]) -> str | None:
+    """A scenario limit is only as good as the curated table it comes from.
+
+    The model names scenarios by id; an id the table does not hold is refused,
+    never guessed at — the numbers would have nowhere to come from.
+    """
+    if scenario_id not in known_ids:
+        return f"Cenário de uso sugerido não existe na tabela curada: '{scenario_id}'."
+    return None
+
+
+def check_level(slug: str, level: str | None, scales: dict[str, tuple[str, ...]]) -> str | None:
+    """An ordinal limit names a level that is on the property's own scale."""
+    scale = scales.get(slug)
+    if scale is None:
+        return f"Propriedade ordinal não existe no catálogo: '{slug}'."
+    if not level or level not in scale:
+        return f"Nível '{level or ''}' não está na escala de '{slug}' " f"({' < '.join(scale)})."
+    return None
+
+
+def check_suggested_range(
+    slug: str,
+    values: list[float | None],
+    unit: str | None,
+    catalogue: Catalogue,
+    observed: dict[str, tuple[float, float]],
+) -> str | None:
+    """The last-resort origin, ``sugestao_ia``: plausible or refused.
+
+    A range the model proposes is never applied without the person confirming
+    it (the service's rule), and before it is even shown it must:
+
+    * name a numeric property of the catalogue;
+    * carry a unit that converts to the property's canonical one (Pint);
+    * fall inside the range the catalogue actually holds for that property —
+      a threshold outside it selects everything or nothing, which is the shape
+      of an invented number rather than of a requirement.
+    """
+    if slug not in catalogue.properties:
+        return f"Propriedade da sugestão não existe no catálogo: '{slug}'."
+    canonical = catalogue.properties[slug]
+    numbers = [v for v in values if v is not None]
+    if not numbers or len(numbers) != len(values):
+        return f"Sugestão sobre '{slug}' sem valor."
+    if not unit and not _is_dimensionless(canonical):
+        return f"Sugestão sobre '{slug}' sem unidade; a canônica é '{canonical}'."
+    unit = unit or canonical
+    if not units_compatible(unit, canonical):
+        return (
+            f"Unidade '{unit}' da sugestão é incompatível com '{slug}' "
+            f"(canônica: '{canonical}')."
+        )
+    span = observed.get(slug)
+    if span is None:
+        return (
+            f"Sugestão sobre '{slug}' recusada: o catálogo não tem valor dessa "
+            "propriedade para conferir se a faixa é plausível."
+        )
+    low, high = span
+    for value in numbers:
+        converted = to_canonical(float(value), unit, canonical)[0]
+        tolerance = 1e-9 * max(abs(low), abs(high), 1.0)
+        if converted < low - tolerance or converted > high + tolerance:
+            return (
+                f"Sugestão de {value:g} {unit} para '{slug}' recusada: fica fora da "
+                f"faixa que o catálogo tem para essa propriedade ({low:g} a {high:g} "
+                f"{canonical})."
+            )
+    return None

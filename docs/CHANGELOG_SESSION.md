@@ -120,6 +120,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 181 — 12/11/26 — Assistente de projeto com IA, etapa A: backend e desenho (D-224)
+
+**O que mudou.** Backend: `POST /api/ai/plan` transforma um pedido em linguagem comum ("quero fazer uma roupa de esqui", "um
+prédio que caiba 50 pessoas") numa proposta de projeto (`ProjectPlanOut`): partes, limites com a origem do número (`usuario`,
+`cenario:<id>`, `sugestao_ia`, `indice`), fonte e rótulo, e os 5 primeiros materiais do catálogo pela seleção determinística
+(`SelectionService.run`), com o motivo e um `StudyIn` pronto para a Seleção. `POST /api/ai/plan/run` roda de novo com as escolhas
+da pessoa (sugestão só com `confirmed`; números de cenário relidos da tabela), sem modelo e sem cota. Novos: a tabela curada
+`app/domain/use_scenarios.py` (16 cenários), `app/ai/plan.py` (prompt e schema sem `value`/`unit` obrigatórios),
+`app/ai/rule_plan.py` (o plano por regras do `mock` e da degradação), `app/services/ai_plan.py` (origens, precedência, execução),
+`check_scenario`/`check_level`/`check_suggested_range` em `guardrails.py`, `nearest_template` e palavras-chave nos modelos prontos.
+Desempenho: o contexto dos prompts deixou de ler `list_materials` (quatro consultas leves e cache por leitor), o embedding do
+Cérebro tem orçamento de 2 s e cai na léxica, o plano chama o modelo com 6000 tokens, 30 s e uma tentativa extra, e o mesmo pedido
+reaproveita o plano por 10 min sem gastar cota. `.env.example` da raiz: `AI_TIMEOUT_SECONDS` 20 → 90, como o código. Frontend: só
+os tipos em `packages/shared-types` (`ProjectPlan`, `PlanRunRequest`…). Testes: `test_use_scenarios.py` e `test_ai_plan.py`.
+
+**Para quem retoma.** Não há migração. Depois do merge, **Deploy da API**. A Etapa B (Início e Seleção) usa os tipos novos. O texto
+revisado do princípio 2 para `CLAUDE.md`, `docs/CLAUDE.md` e `.claude/rules/backend-ai-exporters.md` está no PR, para o autor
+aplicar (TODO).
+
+---
+
 ## Sessão 180 — 12/11/26 — Segurança, limite por minuto, cache das listas e escritas sem N+1 (D-223)
 
 **O que mudou.** Backend: o token de sessão é guardado como SHA-256 (`app/domain/session_token.py`), e as linhas antigas, com o token

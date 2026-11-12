@@ -12,6 +12,9 @@ left alone can only make a match stricter, never invent one).
 
 from __future__ import annotations
 
+import re
+from functools import lru_cache
+
 #: Accented letter → plain lowercase letter. Upper and lower case both listed:
 #: SQLite's ``lower()`` only folds ASCII, so "Ç" has to be mapped by hand.
 _PAIRS: dict[str, str] = {
@@ -39,3 +42,16 @@ def fold_accents(text: str) -> str:
     lines up with the same column folded in SQL.
     """
     return text.translate(_TABLE).lower()
+
+
+@lru_cache(maxsize=1024)
+def word_pattern(trigger: str) -> re.Pattern[str]:
+    """A folded word or phrase as a whole-word pattern (D-224).
+
+    A trailing ``*`` keeps the end open — ``"congel*"`` finds "congelado" and
+    "congelar" — otherwise the match stops at a word boundary, so "sol" does
+    not fire inside "solvente" nor "mar" inside "marmita".
+    """
+    if trigger.endswith("*"):
+        return re.compile(r"(?<![a-z0-9])" + re.escape(trigger[:-1]))
+    return re.compile(r"(?<![a-z0-9])" + re.escape(trigger) + r"(?![a-z0-9])")

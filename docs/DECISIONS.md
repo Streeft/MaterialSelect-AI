@@ -139,6 +139,11 @@ converter, o valor perde proveniência.
 **Alternativa descartada.** Confiar na instrução do prompt. Prompt não é
 verificação; um modelo diferente, ou o mesmo modelo em outro dia, ignora.
 
+**Revisada pela D-224** só no assistente de projeto (`/ai/plan`): ali um número
+pode vir também de um cenário de uso da tabela curada ou, como último recurso,
+de uma sugestão da IA marcada e nunca aplicada sem confirmação. Em `/ai/interpret`
+e em `/ai/explain` esta regra vale como está.
+
 ---
 
 ## D-09 — Limiar dimensionado tem de declarar a unidade
@@ -13116,3 +13121,67 @@ HTTP em cinco arquivos e poderia divergir do corpo).
 
 **Numeração.** D-223/Sessão 180 (a D-222/Sessão 179 é a etapa anterior do #245). Toca `apps/api` **sem migração**: depois do merge,
 **Deploy da API**, que agora espera a CI da `main` ficar verde.
+
+## D-224 — Assistente de projeto com IA: três origens para cada número (revisa o princípio 2)
+
+**Contexto.** Pessoas comuns e estudantes escrevem "quero fazer uma roupa de esqui" ou "quero construir um prédio que caiba
+algumas pessoas", com ou sem números, e o `/ai/interpret` devolvia vazio ou demorava. As causas estavam medidas: o
+`_context` lia o catálogo inteiro (`list_materials`) a cada chamada; o embedding do Cérebro rodava síncrono antes do modelo;
+16 000 tokens, 90 s e até três tentativas e uma refeita; o schema estrito exigia `value` e `unit` em toda restrição, os
+guardrails mandavam tudo para `rejected` quando o texto não tinha número, e o JSON falho duas vezes virava HTTP 400.
+
+**Decisão (do usuário).** Cada limite numérico de uma proposta tem uma origem, nesta ordem:
+
+1. **`usuario`** — o número está no texto. A ancoragem da D-08 vale sem mudança (`check_constraint`).
+2. **`cenario:<id>`** — a faixa vem de `app/domain/use_scenarios.py`, uma tabela curada de 16 cenários de uso (frio extremo,
+   calor moderado, calor alto/forno, uso externo com sol, água doce, água salgada, contato com alimento, contato com a pele,
+   estrutura que sustenta carga, estrutural leve, isolamento térmico, isolamento elétrico, baixo custo, ácidos e álcalis,
+   impermeável, flexível). Cada limite tem propriedade existente, operador e valor+unidade convertidos por `units.py`, ou um
+   nível ordinal (`level_at_least`, D-126), e cada cenário tem fonte. Só o isolamento elétrico cita publicação (Callister &
+   Rethwisch, cap. 18); os demais dizem "Referência didática do projeto (faixa típica de uso)". A IA escolhe cenários **pelo
+   id**: o prompt mostra o que cada um exige em palavras, sem número, e o servidor expande a partir da tabela. Um id fora da
+   tabela é recusado.
+3. **`sugestao_ia`** — último recurso, quando nenhum cenário cobre o caso. Exige unidade que o Pint converta para a canônica e
+   valor dentro da faixa que o catálogo tem para a propriedade (`ChartRepository.observed_ranges`); fora disso é recusada com o
+   motivo. Aparece como "Sugestão da IA, revise", fica **fora** da execução automática e do estudo pronto, e só roda quando a
+   pessoa a confirma em `POST /api/ai/plan/run` (`confirmed: true`), depois de passar de novo pela mesma checagem. Nível
+   ordinal e `exists` propostos pela IA também são sugestão.
+
+Há ainda `indice`: o servidor exige que exista dado da propriedade que o índice ou um critério lê (o que os modelos prontos da
+D-210 já fazem), sem número. No mesmo lado de uma propriedade fica a origem mais forte (texto > cenário > sugestão) e, entre
+iguais, o limite mais exigente; o que sai vai para `rejected` com o porquê.
+
+**Como funciona.** `POST /api/ai/plan` recebe `text` e `mode` (`project`, várias partes, para o Início; `single`, uma parte, para
+a Seleção) e devolve `ProjectPlanOut`: resumo, premissas, perguntas, cenários usados e componentes. Cada componente traz papel,
+função, objetivo, índice do catálogo ou critérios, limites com origem, fonte e rótulo, `rejected`, o resultado da seleção
+determinística (`SelectionService.run`, os 5 primeiros materiais com o motivo lido da execução e o funil) e um `StudyIn` pronto
+para a Seleção. O schema do modelo não força número: `value`/`unit` são anuláveis. A prosa do modelo (resumo, premissas,
+perguntas, nomes, notas) que traz número ausente do pedido é descartada (`ungrounded_numbers`). **Nunca vazio:** sem índice nem
+critério, o componente ordena pela melhor direção das propriedades que limita ou pelo modelo pronto mais próximo
+(`study_templates.nearest_template`). Se o modelo falhar (tempo, JSON, componente nenhum) ou a cota do dia acabar, responde a
+regra local (`app/ai/rule_plan.py`: palavras-gatilho → cenários, arquétipos de vestuário e de construção, números do texto pelas
+regras do mock, modelo pronto mais próximo), com `degraded: true` e `notice` dizendo por quê. Só a camada desligada continua 400.
+O provedor `mock` responde o plano com essas mesmas regras: "roupa de esqui" vira camada externa, camada isolante e forro;
+"prédio para 50 pessoas" vira estrutura, vedação e isolamento (os 50 ficam como premissa de dimensionamento, não filtram).
+
+**Desempenho.** O contexto dos prompts lê só propriedades, índices, classes dos materiais visíveis (`visible_class_names`, uma
+consulta) e escalas ordinais, e guarda isso por leitor por `AI_CONTEXT_CACHE_SECONDS` (60). O embedding da consulta ao Cérebro
+roda com orçamento (`KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS`, 2 s): estourou, a busca segue só com a léxica e o log registra. O
+plano chama o modelo com teto próprio (`AI_PLAN_MAX_OUTPUT_TOKENS` 6000, `AI_PLAN_TIMEOUT_SECONDS` 30, `AI_PLAN_MAX_RETRIES` 1:
+uma tentativa extra no total, somando sobrecarga e JSON fora do schema). O mesmo pedido (texto normalizado, modo, provedor e
+modelo) reaproveita o plano do modelo por `AI_PLAN_CACHE_SECONDS` (600) sem gastar cota; o plano degradado não entra no cache. O
+`.env.example` da raiz dizia `AI_TIMEOUT_SECONDS=20` e o código 90; ficou 90 nos dois.
+
+**Cota e limite.** A chamada ao modelo usa a cota diária da D-179 (`_spending`); o cache e o `/plan/run` não gastam. As duas
+rotas estão no balde "IA" do limite por minuto da D-223.
+
+**Alternativas recusadas.** Deixar a IA escrever as faixas dos cenários (número sem fonte, que é o que a D-08 existe para
+impedir). Aplicar a sugestão da IA e deixar a pessoa desfazer (o número entraria no resultado antes da revisão). Exigir número
+no texto e devolver pergunta (é o comportamento que deixava o leigo sem nada). Devolver 400 quando o JSON falha (havia o que
+entregar). Cache por usuário (o plano depende só do texto; o resultado da seleção, que depende do leitor, é recalculado a cada
+pedido).
+
+**Fora.** A interface (Etapa B: cartão de proposta no Início, chips de origem, "Abrir na Seleção", painel da Seleção com o mesmo
+plano). Os provedores `claude-api` e `claude-cli` usam o plano sem o teto próprio (só o `openai-compat`, o oficial, o aplica).
+
+**Numeração.** D-224/Sessão 181. Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.

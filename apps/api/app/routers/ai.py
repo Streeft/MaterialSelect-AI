@@ -21,6 +21,10 @@ from app.schemas.ai import (
     ExplanationOut,
     InterpretationOut,
     InterpretRequest,
+    PlanRequest,
+    PlanRunRequest,
+    PlanRunResponse,
+    ProjectPlanOut,
 )
 from app.services.ai_service import AIService
 
@@ -52,3 +56,23 @@ def explain(
 ) -> ExplanationOut:
     """Describe a saved study's already-computed result in prose."""
     return AIService(db, user=user).explain(payload.study_id, project.id)
+
+
+@router.post("/plan", response_model=ProjectPlanOut)
+def plan(
+    payload: PlanRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProjectPlanOut:
+    """Turn a plain-language request into a checked, executed project proposal (D-224)."""
+    return AIService(db, user=user).plan(payload)
+
+
+@router.post("/plan/run", response_model=PlanRunResponse)
+def run_plan(
+    payload: PlanRunRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PlanRunResponse:
+    """Run a plan again with the person's choices; no model call, no quota (D-224)."""
+    return AIService(db, user=user).run_plan(payload)
