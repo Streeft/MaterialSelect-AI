@@ -1049,7 +1049,7 @@ export const ptBR = {
     resultIdleHint:
       "Preencha os números do projeto: cada material aparece aqui com a massa (ou o custo) e a seção necessária, e o resultado acompanha o que você digita.",
     blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
-    // D-216: the workbench.
+    // D-218: the workbench.
     useExample: "Usar o exemplo",
     exampleHint:
       "Preenche os números do projeto com valores ilustrativos deste caso. Troque-os pelos do seu projeto.",
@@ -1076,6 +1076,36 @@ export const ptBR = {
     // O aviso do custo não é o mesmo aviso: a dimensão sai como massa porque
     // custo por massa é adimensional. Quem lê merece a frase, não a dedução.
     indexRan: "Índice usado nesta execução",
+    // D-216: o esquema do caso e o gráfico do resultado.
+    diagram: {
+      caption: "Esquema do caso, sem escala: só mostra onde estão o vão, o apoio e a carga.",
+      aria: (kind: string, support: string | null) =>
+        support ? `Esquema de ${kind}, com apoio ${support}` : `Esquema de ${kind}`,
+      kinds: {
+        tie: "tirante em tração",
+        beam: "viga em flexão",
+        plate: "placa em flexão",
+        column: "coluna em compressão",
+      },
+      load: "F",
+      span: "L",
+      width: "b",
+    },
+    chart: {
+      title: "Quanto cada material pesa",
+      titleCost: "Quanto cada material custa",
+      hint: "Os materiais dimensionados, do melhor ao pior índice. Cada barra é o valor que a tabela traz, sem reescala de dado.",
+      figure: "Barras do resultado do dimensionamento",
+      columnRank: "Posição",
+      columnMaterial: "Material",
+      axis: (unit: string) => `Resultado (${unit})`,
+      tooltipRank: "Posição",
+      tooltipIndex: "Índice",
+      tooltipSection: "Seção necessária",
+    },
+    compareBest: (n: number) => `Comparar os ${n} melhores`,
+    compareBestHint:
+      "Abre o Comparar já com estes materiais. A Seleção parte de limites sobre o catálogo inteiro, não de uma lista de candidatos: levar a lista até lá exigiria um filtro por identificador que ela ainda não tem.",
   },
 
   cost: {
@@ -1087,7 +1117,7 @@ export const ptBR = {
     massLabel: "Massa da peça",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
-    // D-216: the mass that came from Dimensionar, and the way there.
+    // D-218: the mass that came from Dimensionar, and the way there.
     massFromSolver: "Massa calculada no Dimensionar para este material.",
     massToSolver: "Calcular a massa no Dimensionar",
     unitKg: "kg",
@@ -1106,6 +1136,19 @@ export const ptBR = {
     assumptionsSummary: (writeOff: string, loadFactor: string) =>
       `Amortização em ${writeOff} anos · fator de carga ${loadFactor}`,
     materialHint: "Digite parte do nome do material.",
+    // D-216: até cinco materiais lado a lado, com a mesma peça, lote e premissas.
+    compareLabel: "Comparar com outros materiais",
+    compareHint: "Até 4 além do primeiro, com a mesma massa, lote e premissas.",
+    compareLimit: "Limite de 5 materiais atingido.",
+    compareRemove: (name: string) => `Remover ${name} da comparação`,
+    compareTitle: "Comparação entre materiais",
+    compareCaption:
+      "O melhor processo de cada material, como o estimador o classificou. Mesma massa, lote e premissas nos materiais.",
+    columnComparedMaterial: "Material comparado",
+    columnBestProcess: "Melhor processo",
+    columnCompareTotal: "Custo total",
+    compareNoProcess: "Sem processo com custo calculado",
+    compareFailed: "Não foi possível estimar",
     blocked: {
       material: "Escolha um material no passo 1.",
       mass: "Informe a massa da peça, maior que zero.",
@@ -1197,7 +1240,7 @@ export const ptBR = {
     legLegend: (n: number) => `Trecho ${n}`,
     addLeg: "Adicionar trecho",
     removeLeg: (n: number) => `Remover trecho ${n}`,
-    // D-216: the product and the legs as tables edited in place.
+    // D-218: the product and the legs as tables edited in place.
     componentsTable: "Componentes do produto",
     legsTable: "Trechos de transporte",
     colName: "Nome",
@@ -1305,7 +1348,14 @@ export const ptBR = {
     tabDesign: "Dimensionamento de Pack",
     tabCompare: "Equilíbrio entre químicas",
     tabRagone: "Ragone",
+    // D-216: nomes acessíveis das regiões de resultado e da arquitetura Ns × Np.
+    architectureAria: (series: number, parallel: number, cells: number) =>
+      `Arquitetura do pack: ${series} células em série por ${parallel} ramos em paralelo, ${cells} células no total`,
+    designResultAria: "Resultado do dimensionamento do pack",
+    compareResultAria: "Resultado da comparação entre químicas",
     ragone: {
+      highlightNote: (name: string) => `Química escolhida: ${name}, destacada no gráfico.`,
+      highlightBadge: "escolhida",
       title: "Ragone: energia × potência",
       figure: "Gráfico de Ragone",
       description:
@@ -1451,7 +1501,7 @@ export const ptBR = {
     kindComposite: "Compósito de dois constituintes",
     kindFoam: "Espuma de um sólido",
     kindPanel: "Painel sanduíche",
-    // D-216: one line per kind, under its drawing; the full note is one click away.
+    // D-218: one line per kind, under its drawing; the full note is one click away.
     kindLineComposite: "Fibras ou partículas de um material dentro de outro.",
     kindLineFoam: "Um sólido com células de ar, mais leve e menos rígido.",
     kindLinePanel: "Duas faces finas e rígidas sobre um núcleo leve.",
@@ -2175,6 +2225,26 @@ export const ptBR = {
     // The summary badge on a row/card. Absence is stated, never left blank.
     qualityBreakdown: "Composição dos dados",
     noValues: "Nenhuma propriedade cadastrada",
+    // D-217: páginas, chips com contagem, ordem, colunas e o valor ordenado.
+    filterDemo: "Demonstração",
+    demoOnly: "Só dados de demonstração",
+    demoNone: "Sem dados de demonstração",
+    orderLabel: "Ordenar por",
+    orderRelevance: "Relevância",
+    orderName: "Nome",
+    orderClass: "Classe",
+    orderPropertiesGroup: "Propriedade (sem valor por último)",
+    directionAsc: "Crescente",
+    directionDesc: "Decrescente",
+    directionLabel: "Direção da ordem",
+    columnsLabel: "Colunas",
+    columnsMenu: "Colunas visíveis da tabela",
+    columnDesignations: "Designações",
+    columnValue: (property: string) => property,
+    valueAbsent: "Ausente",
+    valueNotRegistered: "Sem valor",
+    pageRange: (from: number, to: number, total: number) =>
+      `${from.toLocaleString("pt-BR")}–${to.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")}`,
   },
   // D-127: perfis de profundidade. O nível é visão, nunca filtro de cálculo.
   depth: {
@@ -3099,11 +3169,19 @@ export const ptBR = {
     anyValue: "Qualquer",
     filterChip: (field: string, value: string) => `${field}: ${value}`,
     removeFilter: (field: string) => `Remover o filtro ${field}`,
+    // D-217: quantos materiais a opção deixaria, os outros filtros aplicados.
+    optionCount: (label: string, count: number) =>
+      `${label}, ${count.toLocaleString("pt-BR")} ${count === 1 ? "resultado" : "resultados"}`,
+    pagination: "Paginação",
+    previousPage: "Página anterior",
+    nextPage: "Próxima página",
+    pageOf: (page: number, pages: number) =>
+      `Página ${page.toLocaleString("pt-BR")} de ${pages.toLocaleString("pt-BR")}`,
     noMoreFilters: "Todos os filtros já estão na barra.",
     moreActions: "Mais ações",
     titleLabel: "Título",
     outline: "Nesta página",
-    // D-216: InlineTable.
+    // D-218: InlineTable.
     rowActions: (row: string) => `Ações de ${row}`,
     duplicateRow: "Duplicar",
     removeRow: "Remover",
@@ -3164,7 +3242,7 @@ export const ptBR = {
     // D-212: os padrões de página.
     moreActions: "Mais ações",
     pageActions: "Ações da página",
-    // D-216: a live result being asked about again.
+    // D-218: a live result being asked about again.
     updating: "Atualizando…",
     paramsPanel: "Parâmetros",
     resultPanel: "Resultado",

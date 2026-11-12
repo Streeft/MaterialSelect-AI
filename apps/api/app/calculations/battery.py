@@ -148,6 +148,12 @@ DEFAULT_MASS_PACKING_FACTOR = 0.70  # Cells represent 70% of total pack mass
 DEFAULT_VOLUME_PACKING_FACTOR = 0.60  # Cells represent 60% of total pack volume
 DEFAULT_COST_PACKING_FACTOR = 0.75  # Cells represent 75% of total pack cost
 
+#: The archetype the screen opens on (D-216). Its requirement (voltage, energy,
+#: power, depth of discharge) and its first recommended chemistry are read from
+#: ``APPLICATION_ARCHETYPES`` by ``GET /api/padroes`` — the numbers are written
+#: once, in the archetype table.
+DEFAULT_ARCHETYPE_SLUG = "ve_urbano"
+
 
 class BatteryDesignError(ValueError):
     """Raised when pack design inputs violate physical or mathematical limits."""

@@ -9,6 +9,7 @@ import type {
   BatteryComparisonRequest,
   BatteryComparisonResult,
   ChemistryComparisonItem,
+  DefaultsResult,
   PackDesignRequest,
   ThermalSafetyLevel,
 } from "@/lib/types";
@@ -55,6 +56,7 @@ import {
 } from "@/components/ui";
 import { IconBattery } from "@/components/ui/icons";
 import { RagoneChart } from "@/components/charts/RagoneChart";
+import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
 const t = ptBR.battery;
@@ -75,20 +77,48 @@ interface BatteryBrief {
   tab: TabView;
 }
 
-/** The brief's parameters in the URL (D-212); the defaults are the Urban EV's. */
-const BRIEF_URL: UrlSpec<BatteryBrief> = {
-  archetype: { param: "arquetipo", codec: textCodec, defaultValue: "ve-urbano" },
-  chemistry: { param: "quimica", codec: textCodec, defaultValue: "lfp" },
-  voltage: { param: "tensao", codec: textCodec, defaultValue: "400" },
-  energy: { param: "energia", codec: textCodec, defaultValue: "50" },
-  power: { param: "potencia", codec: textCodec, defaultValue: "120" },
-  dod: { param: "dod", codec: textCodec, defaultValue: "0.85" },
-  cellCapacity: { param: "celula", codec: textCodec, defaultValue: "" },
-  massPacking: { param: "emp_massa", codec: textCodec, defaultValue: "0.65" },
-  volPacking: { param: "emp_volume", codec: textCodec, defaultValue: "0.50" },
-  costPacking: { param: "emp_custo", codec: textCodec, defaultValue: "0.70" },
-  tab: { param: "aba", codec: enumCodec<TabView>(["design", "compare", "ragone"]), defaultValue: "design" },
-};
+/**
+ * The brief's parameters in the URL (D-212). Every starting value comes from the
+ * server (`GET /api/padroes`, D-216): the page used to carry its own copy, and
+ * the copy had drifted from the schema (packing factors 0,65 / 0,50 / 0,70 here
+ * against 0,70 / 0,60 / 0,75 there, and an archetype slug that matched none).
+ */
+function briefUrlSpec(defaults: DefaultsResult["baterias"]): UrlSpec<BatteryBrief> {
+  return {
+    archetype: { param: "arquetipo", codec: textCodec, defaultValue: defaults.archetype_slug },
+    chemistry: { param: "quimica", codec: textCodec, defaultValue: defaults.chemistry_slug },
+    voltage: { param: "tensao", codec: textCodec, defaultValue: String(defaults.voltage_v) },
+    energy: { param: "energia", codec: textCodec, defaultValue: String(defaults.energy_kwh) },
+    power: { param: "potencia", codec: textCodec, defaultValue: String(defaults.power_kw) },
+    dod: { param: "dod", codec: textCodec, defaultValue: String(defaults.dod) },
+    // `null` is an absence: the chemistry's own cell, until a capacity is typed.
+    cellCapacity: {
+      param: "celula",
+      codec: textCodec,
+      defaultValue: defaults.cell_capacity_ah === null ? "" : String(defaults.cell_capacity_ah),
+    },
+    massPacking: {
+      param: "emp_massa",
+      codec: textCodec,
+      defaultValue: String(defaults.mass_packing_factor),
+    },
+    volPacking: {
+      param: "emp_volume",
+      codec: textCodec,
+      defaultValue: String(defaults.volume_packing_factor),
+    },
+    costPacking: {
+      param: "emp_custo",
+      codec: textCodec,
+      defaultValue: String(defaults.cost_packing_factor),
+    },
+    tab: {
+      param: "aba",
+      codec: enumCodec<TabView>(["design", "compare", "ragone"]),
+      defaultValue: "design",
+    },
+  };
+}
 
 const TAB_ITEMS: readonly TabItem<TabView>[] = [
   { id: "design", label: t.tabDesign },
@@ -184,7 +214,7 @@ const PODIUM_FACETS: readonly {
  * arquétipo nem de energia alvo), então busca o próprio dado e trata os três
  * estados — carregando, erro e vazio — sem passar pelo bloqueio das outras abas.
  */
-function RagoneSection() {
+function RagoneSection({ highlightSlug }: { highlightSlug: string }) {
   const ragone = useQuery({
     queryKey: ["battery-ragone"],
     queryFn: getBatteryRagone,
@@ -197,10 +227,18 @@ function RagoneSection() {
     );
   }
   if (!ragone.data) return <EmptyState title={t.ragone.empty} />;
-  return <RagoneChart data={ragone.data} />;
+  return <RagoneChart data={ragone.data} highlightSlug={highlightSlug} />;
 }
 
 export default function BateriasPage() {
+  return (
+    <DefaultsGate label={t.loading}>
+      {(defaults) => <BateriasScreen defaults={defaults.baterias} />}
+    </DefaultsGate>
+  );
+}
+
+function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) {
   const chemistries = useQuery({
     queryKey: ["battery-chemistries"],
     queryFn: listBatteryChemistries,
@@ -213,7 +251,8 @@ export default function BateriasPage() {
 
   // The brief lives in the URL (D-212): a link reopens the same pack, and a
   // reload does not throw away what was typed. Defaults stay the Urban EV's.
-  const [brief, setBrief] = useUrlState(BRIEF_URL);
+  const spec = useMemo(() => briefUrlSpec(defaults), [defaults]);
+  const [brief, setBrief] = useUrlState(spec);
   const {
     archetype: archetypeSlug,
     chemistry: chemistrySlug,
@@ -539,7 +578,12 @@ export default function BateriasPage() {
                 )}
 
                 {design && (
-                  <div className="flex flex-col gap-6">
+                  <div
+                    className="flex flex-col gap-6"
+                    role="region"
+                    aria-label={t.designResultAria}
+                    aria-busy={designQuery.isFetching}
+                  >
                     {/* Hero Architecture Card */}
                     <Card>
                       <CardHeader
@@ -557,7 +601,15 @@ export default function BateriasPage() {
                       />
                       <CardBody className="flex flex-col gap-6">
                         {/* Big Ns x Np visual banner */}
-                        <div className="flex flex-wrap items-center justify-around gap-4 rounded-xl border border-edge bg-surface-sunken p-4 text-center">
+                        <div
+                          role="group"
+                          aria-label={t.architectureAria(
+                            design.series_cells_ns,
+                            design.parallel_strings_np,
+                            design.total_cells,
+                          )}
+                          className="flex flex-wrap items-center justify-around gap-4 rounded-xl border border-edge bg-surface-sunken p-4 text-center"
+                        >
                           <div className="flex flex-col">
                             <span className="text-caption font-medium text-ink-muted">
                               {t.seriesLabel}
@@ -570,7 +622,7 @@ export default function BateriasPage() {
                             </span>
                           </div>
 
-                          <span className="text-2xl font-light text-ink-subtle">
+                          <span className="text-2xl font-light text-ink-subtle" aria-hidden>
                             ×
                           </span>
 
@@ -587,7 +639,7 @@ export default function BateriasPage() {
                             </span>
                           </div>
 
-                          <span className="text-2xl font-light text-ink-subtle">
+                          <span className="text-2xl font-light text-ink-subtle" aria-hidden>
                             =
                           </span>
 
@@ -850,7 +902,7 @@ export default function BateriasPage() {
             )}
 
             {/* Tab 3: Ragone (energia × potência específicas) */}
-            {activeTab === "ragone" && <RagoneSection />}
+            {activeTab === "ragone" && <RagoneSection highlightSlug={chemistrySlug} />}
 
             {/* Tab 2: Chemistry Trade-offs */}
             {activeTab === "compare" && (
@@ -863,7 +915,12 @@ export default function BateriasPage() {
                 )}
 
                 {comparison && (
-                  <div className="flex flex-col gap-6">
+                  <div
+                    className="flex flex-col gap-6"
+                    role="region"
+                    aria-label={t.compareResultAria}
+                    aria-busy={comparisonQuery.isFetching}
+                  >
                     {/* Podiums / Dominance Badges */}
                     <Card>
                       <CardHeader
@@ -871,14 +928,17 @@ export default function BateriasPage() {
                         description={t.podiumHint}
                       />
                       <CardBody>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <ul
+                          aria-label={t.podiumTitle}
+                          className="grid list-none gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                        >
                           {PODIUM_FACETS.map((facet) => {
                             const winner = comparison.items.find(
                               (item) =>
                                 item.chemistry_slug === comparison[facet.slugKey],
                             );
                             return (
-                              <div
+                              <li
                                 key={facet.slugKey}
                                 className="well flex flex-col gap-1"
                               >
@@ -903,10 +963,10 @@ export default function BateriasPage() {
                                     {t.podiumMissing}
                                   </span>
                                 )}
-                              </div>
+                              </li>
                             );
                           })}
-                        </div>
+                        </ul>
                       </CardBody>
                     </Card>
 
@@ -939,6 +999,7 @@ export default function BateriasPage() {
                               return (
                                 <Tr
                                   key={item.chemistry_slug}
+                                  aria-current={isSelected ? "true" : undefined}
                                   className={
                                     isSelected
                                       ? "bg-brand-50/40 dark:bg-brand-950/20 font-medium"

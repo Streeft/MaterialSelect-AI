@@ -66,6 +66,17 @@ export function filtersDiffer(
 
 export type { SavedView };
 
+/** D-217: filters and kind kept by the screen (see `useDatabaseView`'s `store`). */
+export interface ViewStore<K extends string> {
+  filters: Record<K, string | null>;
+  /** Applies `update` to the filters as they are at write time. */
+  updateFilters: (
+    update: (current: Record<K, string | null>) => Record<K, string | null>,
+  ) => void;
+  kind: "table" | "gallery" | "list";
+  setKind: (next: "table" | "gallery" | "list") => void;
+}
+
 /**
  * D-209: the state of a database screen — its filters, its kind and the
  * active saved view — and everything `SavedViewsBar` needs to drive it.
@@ -79,17 +90,35 @@ export function useDatabaseView<K extends string>({
   initialFilters,
   defaultKind,
   onCreated,
+  store,
 }: {
   scope: SavedViewScope;
   initialFilters: Record<K, string | null>;
   defaultKind: "table" | "gallery" | "list";
   onCreated?: (view: SavedView) => void;
+  /**
+   * D-217: where the filters and the kind live when the screen keeps them
+   * elsewhere (the URL, `useUrlState`). Absent, this hook keeps them itself.
+   */
+  store?: ViewStore<K>;
 }) {
   const saved = useSavedViews(scope);
   const queryClient = useQueryClient();
   const snackbar = useOptionalSnackbar();
-  const [filters, setFilters] = useState<Record<K, string | null>>(initialFilters);
-  const [kind, setKind] = useState<"table" | "gallery" | "list">(defaultKind);
+  const [ownFilters, setOwnFilters] = useState<Record<K, string | null>>(initialFilters);
+  const [ownKind, setOwnKind] = useState<"table" | "gallery" | "list">(defaultKind);
+  const filters = store ? store.filters : ownFilters;
+  const kind = store ? store.kind : ownKind;
+  // An updater, not a value: two writes in one handler (a family chip that
+  // also clears the subfamily) must both land.
+  type Filters = Record<K, string | null>;
+  const setFilters = (update: Filters | ((current: Filters) => Filters)) => {
+    const fn = typeof update === "function" ? update : () => update;
+    if (store) store.updateFilters(fn);
+    else setOwnFilters(fn);
+  };
+  const setKind = (next: "table" | "gallery" | "list") =>
+    store ? store.setKind(next) : setOwnKind(next);
   const [activeId, setActiveId] = useState<number | null>(null);
   const active = saved.views.find((view) => view.id === activeId) ?? null;
 
@@ -128,7 +157,8 @@ export function useDatabaseView<K extends string>({
   return {
     saved,
     filters,
-    setFilter: (key: K, value: string | null) => setFilters((f) => ({ ...f, [key]: value })),
+    setFilter: (key: K, value: string | null) =>
+      setFilters((current) => ({ ...current, [key]: value })),
     clearFilters: () => setFilters(blank),
     kind,
     active,

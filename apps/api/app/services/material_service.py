@@ -13,6 +13,17 @@ from sqlalchemy.orm import Session
 
 from app.calculations.atomic_percent import DERIVED_LABEL, derive_atomic_percent
 from app.calculations.units import UnitError
+from app.domain.catalog_listing import (
+    Direction,
+    ListingFilters,
+    ListingRow,
+    Quality,
+    apply_filters,
+    facet_counts,
+    order_by_value,
+    order_rows,
+    page,
+)
 from app.domain.composition import (
     RULE_TEXT,
     CompositionError,
@@ -50,6 +61,7 @@ from app.repositories.material_repository import MaterialRepository, SearchFacts
 from app.schemas.material import (
     AtomicCompositionOut,
     AtomicEntryOut,
+    CatalogFacetsOut,
     ChartData,
     ChartPoint,
     CompositionConditionOut,
@@ -69,6 +81,7 @@ from app.schemas.material import (
     MaterialSearchOut,
     MaterialUpdate,
     PropertyValueIn,
+    SortValue,
     UndeterminedBreakdown,
 )
 from app.schemas.property import PropertyGroup, PropertyValueOut
@@ -105,6 +118,24 @@ def _summarise_quality(material: Material) -> DataQualitySummary:
         else:
             summary.estimado += 1
     return summary
+
+
+def _reference_count(material: Material) -> int:
+    """TM6: values that are present and cite a source."""
+    return sum(1 for v in material.property_values if v.source_id is not None and not v.is_missing)
+
+
+def _normalized_value(material: Material, slug: str) -> float | None:
+    """The canonical value of ``slug`` for ordering, or ``None`` when absent (never 0)."""
+    for value in material.property_values:
+        if value.property_definition.slug == slug:
+            return None if value.is_missing else value.normalized_value
+    return None
+
+
+def _subtree(slug: str, ancestors: Mapping[str, list[str]]) -> frozenset[str]:
+    """A class and every class under it. An unknown slug filters to itself (no rows)."""
+    return frozenset({slug} | {child for child, chain in ancestors.items() if slug in chain})
 
 
 #: Columns a row copy never carries over: the identity, and the creation stamp
@@ -279,12 +310,39 @@ class MaterialService:
         self.user = user
 
     def list_materials(
-        self, search: str | None = None, com_referencia: bool = False
-    ) -> list[MaterialListItem]:
-        return self.search(search, com_referencia=com_referencia).items
+        self,
+        search: str | None = None,
+        com_referencia: bool = False,
+        *,
+        offset: int = 0,
+        limit: int | None = None,
+    ) -> MaterialSearchOut:
+        """``GET /materials``: the search's rows, a page of them when asked (D-217)."""
+        return self.search(search, com_referencia=com_referencia, offset=offset, limit=limit)
 
-    def search(self, query: str | None = None, com_referencia: bool = False) -> MaterialSearchOut:
+    def search(
+        self,
+        query: str | None = None,
+        com_referencia: bool = False,
+        *,
+        class_slug: str | None = None,
+        subclass: str | None = None,
+        quality: Quality | None = None,
+        demo: bool | None = None,
+        order: str = "relevancia",
+        direction: Direction = "asc",
+        offset: int = 0,
+        limit: int | None = None,
+        with_facets: bool = False,
+    ) -> MaterialSearchOut:
         """The catalogue search (D-55), with the composition report when asked (D-105).
+
+        D-217: the chips (class with its subtree, subclass, quality, demo), the
+        order (relevance, name, class or a property's value) and the page
+        (``offset``/``limit``) are applied here, over the rows the repository
+        matched, by the pure rules in ``app.domain.catalog_listing``. ``total``
+        is every row that passed; without a ``limit`` every row comes back,
+        which is what the screens that predate pagination still read.
 
         A query the reader mistyped is their problem to fix, not a server
         fault: `SearchQueryError` already carries a message in Portuguese
@@ -296,10 +354,103 @@ class MaterialService:
             materials, facts = self.repo.search_materials(query, com_referencia=com_referencia)
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
-        items = [self.list_item(m) for m in materials]
-        return MaterialSearchOut(
-            items=items, total=len(items), composition=_composition_report(facts)
+
+        rows = [self._listing_row(m) for m in materials]
+        ancestors = self._class_ancestors() if (class_slug or with_facets) else {}
+        filters = ListingFilters(
+            class_slugs=_subtree(class_slug, ancestors) if class_slug else None,
+            subclass=subclass or None,
+            quality=quality,
+            demo=demo,
         )
+        passed = apply_filters(rows, filters)
+
+        sort_definition: PropertyDefinition | None = None
+        if order in ("relevancia", "nome", "classe"):
+            by = {"relevancia": "relevance", "nome": "name", "classe": "class"}[order]
+            ordered = order_rows(passed, by, direction)  # type: ignore[arg-type]
+        else:
+            sort_definition = self.repo.get_property_by_slug(order)
+            if sort_definition is None:
+                raise ValidationError(f"Não há propriedade '{order}' para ordenar o catálogo.")
+            slug = sort_definition.slug
+            ordered = order_by_value(
+                passed, lambda row: _normalized_value(row.ref, slug), direction
+            )
+
+        try:
+            sliced = page(ordered, offset, limit)
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        items = []
+        for row in sliced:
+            item = self.list_item(row.ref)
+            if sort_definition is not None:
+                item.sort_value = self._sort_value(row.ref, sort_definition)
+            items.append(item)
+
+        facets = None
+        if with_facets:
+            counts = facet_counts(rows, filters, ancestors)
+            facets = CatalogFacetsOut(
+                classe=counts.classe,
+                subclasse=counts.subclasse,
+                qualidade=counts.qualidade,
+                demo=counts.demo,
+            )
+        return MaterialSearchOut(
+            items=items,
+            total=len(passed),
+            offset=offset,
+            limit=limit,
+            facets=facets,
+            composition=_composition_report(facts),
+        )
+
+    @staticmethod
+    def _listing_row(material: Material) -> ListingRow[Material]:
+        quality = _summarise_quality(material)
+        return ListingRow(
+            name=material.name,
+            class_slug=material.material_class.slug,
+            subclass=material.subclass,
+            is_demo=material.is_demo,
+            measured=quality.medido,
+            imported=quality.importado,
+            estimated=quality.estimado,
+            missing=quality.missing,
+            reference_count=_reference_count(material),
+            ref=material,
+        )
+
+    def _class_ancestors(self) -> dict[str, list[str]]:
+        """Each class slug → the slugs above it, nearest first."""
+        parent_of = dict(self.repo.class_links())
+        out: dict[str, list[str]] = {}
+        for slug in parent_of:
+            chain: list[str] = []
+            current = parent_of.get(slug)
+            while current is not None and current not in chain and current != slug:
+                chain.append(current)
+                current = parent_of.get(current)
+            out[slug] = chain
+        return out
+
+    def _sort_value(self, material: Material, definition: PropertyDefinition) -> SortValue:
+        """The ordering value in this reader's unit (D-70); absence stays absence."""
+        reading = self.reading_for_definition(definition)
+        for value in material.property_values:
+            if value.property_definition.slug != definition.slug:
+                continue
+            if value.is_missing or value.normalized_value is None:
+                return SortValue(property_slug=definition.slug, unit=reading.label, is_missing=True)
+            return SortValue(
+                property_slug=definition.slug,
+                value=reading.value(value.normalized_value),
+                unit=reading.label,
+            )
+        return SortValue(property_slug=definition.slug, unit=reading.label)
 
     @staticmethod
     def list_item(material: Material) -> MaterialListItem:
@@ -310,9 +461,7 @@ class MaterialService:
         builders would let the catalogue and the favourites list disagree about
         what a material looks like.
         """
-        reference_count = sum(
-            1 for v in material.property_values if v.source_id is not None and not v.is_missing
-        )
+        reference_count = _reference_count(material)
         return MaterialListItem(
             id=material.id,
             name=material.name,

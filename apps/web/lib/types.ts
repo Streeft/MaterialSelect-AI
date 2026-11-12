@@ -32,4 +32,13 @@ export interface EcoComparisonResult {
   delta_carbon_percent: number | null;
   winner_energy: "material_a" | "material_b" | "tie" | null;
   winner_carbon: "material_a" | "material_b" | "tie" | null;
+  /** B minus A per phase, from the server; `null` when either side is absent. */
+  phase_deltas: EcoPhaseDelta[];
+}
+
+export interface EcoPhaseDelta {
+  phase: string;
+  label: string;
+  delta_energy: number | null;
+  delta_carbon: number | null;
 }

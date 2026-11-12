@@ -266,6 +266,32 @@ class TransportLegOut(BaseModel):
     carbon_reason: str | None = None
 
 
+class WaterfallStepOut(BaseModel):
+    """One step of the waterfall, in data coordinates (ADR 0004).
+
+    ``value`` is ``None`` when the phase could not be computed (with the written
+    ``reason``); such a step does not move the running total.
+    """
+
+    phase: str
+    label: str
+    value: float | None = None
+    start: float | None = None
+    end: float | None = None
+    reason: str | None = None
+
+
+class WaterfallOut(BaseModel):
+    """Contribution by phase as cumulative steps, plus the total bar and the axis."""
+
+    quantity: Literal["energy", "carbon"]
+    unit: str
+    steps: list[WaterfallStepOut]
+    total: WaterfallStepOut
+    #: (low, high) of the value axis; always contains the baseline 0.
+    domain: tuple[float, float]
+
+
 class EcoAuditResultOut(BaseModel):
     """A product's five phases, the two totals and the two podiums.
 
@@ -298,6 +324,8 @@ class EcoAuditResultOut(BaseModel):
     total_carbon: float | None = None
     energy_dominance: DominanceOut
     carbon_dominance: DominanceOut
+    energy_waterfall: WaterfallOut
+    carbon_waterfall: WaterfallOut
     energy_unit: str = ENERGY_UNIT
     carbon_unit: str = CARBON_UNIT
     carbon_unit_note: str = CARBON_UNIT_NOTE
@@ -326,6 +354,15 @@ class EcoComparisonRequest(BaseModel):
     use: UseIn
 
 
+class PhaseDeltaOut(BaseModel):
+    """B minus A for one phase; ``None`` when either side could not compute it."""
+
+    phase: str
+    label: str
+    delta_energy: float | None = None
+    delta_carbon: float | None = None
+
+
 class EcoComparisonResultOut(BaseModel):
     """Side-by-side comparison result with phase audits and calculated deltas."""
 
@@ -337,3 +374,4 @@ class EcoComparisonResultOut(BaseModel):
     delta_carbon_percent: float | None = None
     winner_energy: Literal["material_a", "material_b", "tie"] | None = None
     winner_carbon: Literal["material_a", "material_b", "tie"] | None = None
+    phase_deltas: list[PhaseDeltaOut] = Field(default_factory=list)

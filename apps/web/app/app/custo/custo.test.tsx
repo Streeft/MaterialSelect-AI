@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC roles live inside a
 // shadow root, invisible to plain @testing-library/react queries.
 import { screen, within } from "shadow-dom-testing-library";
@@ -19,6 +19,30 @@ const materials: MaterialListItem[] = [
     name: "Liga Alumínio Demo A",
     class_name: "Metais",
     class_slug: "metais",
+    subclass: null,
+    is_demo: true,
+    is_own_record: false,
+    keywords: [],
+    quality: { medido: 3, importado: 0, estimado: 1, missing: 0 },
+    designations: [],
+  },
+  {
+    id: 8,
+    name: "Aço Demo B",
+    class_name: "Metais",
+    class_slug: "metais",
+    subclass: null,
+    is_demo: true,
+    is_own_record: false,
+    keywords: [],
+    quality: { medido: 3, importado: 0, estimado: 1, missing: 0 },
+    designations: [],
+  },
+  {
+    id: 9,
+    name: "Polímero Demo C",
+    class_name: "Polímeros",
+    class_slug: "polimeros",
     subclass: null,
     is_demo: true,
     is_own_record: false,
@@ -89,7 +113,10 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
+const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+
 vi.mock("@/lib/api", () => ({
+  getDefaults: () => getDefaults(),
   listMaterials: () => Promise.resolve(materials),
   estimatePartCost: (payload: CostRequest) => estimatePartCost(payload),
 }));
@@ -108,6 +135,7 @@ async function open() {
 
 beforeEach(() => {
   setQuery("");
+  getDefaults.mockClear();
   estimatePartCost.mockReset();
   estimatePartCost.mockResolvedValue(result);
 });
@@ -117,16 +145,16 @@ describe("Custo da peça", () => {
     // Nem a massa nem o lote têm valor inventado: são os números que decidem.
     await open();
 
-    // D-86/D-216: no button to press; the result card says what is missing.
+    // D-86/D-218: no button to press; the result card says what is missing.
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
     expect(screen.queryByShadowRole("button", { name: t.estimate })).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(estimatePartCost).not.toHaveBeenCalled();
-    // The way to get the mass is one link away (D-216).
+    // The way to get the mass is one link away (D-218).
     expect(screen.getByRole("link", { name: t.massToSolver })).toHaveAttribute("href", "/app/dimensionar");
   });
 
-  it("diz quando a massa veio do Dimensionar (D-216)", async () => {
+  it("diz quando a massa veio do Dimensionar (D-218)", async () => {
     setQuery("material=7&massa=0.402&origem=dimensionar");
     await open();
     expect(screen.getByText(t.massFromSolver)).toBeInTheDocument();
@@ -252,5 +280,107 @@ describe("Custo da peça", () => {
 
     expect(await screen.findByRole("figure", { name: /Curva Custo/i })).toBeInTheDocument();
     expect(screen.getByShadowRole("button", { name: "Tabela" })).toBeInTheDocument();
+  });
+
+  it("abre com os padrões do servidor, sem número copiado na tela (D-216)", async () => {
+    const { defaultsFixture } = await import("@/lib/defaults.fixture");
+    getDefaults.mockResolvedValueOnce({
+      ...defaultsFixture,
+      custo: { ...defaultsFixture.custo, batch_size: 250, write_off_years: 7, load_factor: 0.8 },
+    });
+    setQuery("material=7&massa=2");
+    const user = userEvent.setup();
+    await open();
+
+    expect(screen.getByText(t.assumptionsSummary("7", "0,8"))).toBeInTheDocument();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
+    expect(estimatePartCost.mock.calls[0]![0]).toMatchObject({
+      batch_size: 250,
+      write_off_years: 7,
+      load_factor: 0.8,
+    });
+    // A default equal to the server's leaves the address clean.
+    expect(new URLSearchParams(window.location.search).has("lote")).toBe(false);
+  });
+
+  it("espera os padrões: carregando mostra esqueleto, falha mostra erro com nova tentativa", async () => {
+    getDefaults.mockRejectedValueOnce(new Error("falhou"));
+    const user = userEvent.setup();
+    render(wrap(<CustoPage />));
+
+    const alert = await screen.findByRole("alert");
+    expect(screen.queryByRole("heading", { name: t.briefStep })).not.toBeInTheDocument();
+    await user.click(within(alert).getByShadowRole("button", { name: ptBR.ui.retry }));
+
+    expect(await screen.findByRole("heading", { name: t.briefStep })).toBeInTheDocument();
+    expect(getDefaults).toHaveBeenCalledTimes(2);
+  });
+
+  it("compara até cinco materiais com a mesma peça, lote e premissas (D-216)", async () => {
+    setQuery("material=7&massa=2&comparar=8,9");
+    estimatePartCost.mockImplementation(async (payload) => ({
+      ...result,
+      material_id: payload.material_id,
+      material_name: materials.find((m) => m.id === payload.material_id)!.name,
+      // Material 9 has no process with a computable cost.
+      costed:
+        payload.material_id === 9
+          ? []
+          : result.costed.map((c) => ({
+              ...c,
+              terms: { ...c.terms, total: payload.material_id === 8 ? 55.5 : c.terms.total },
+            })),
+    }));
+    const user = userEvent.setup();
+    await open();
+
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(3));
+    const sent = estimatePartCost.mock.calls.map((call) => call[0]);
+    expect(sent.map((p) => p.material_id)).toEqual([7, 8, 9]);
+    // The same brief for all three: only the material changes.
+    for (const payload of sent) {
+      expect(payload).toMatchObject({
+        part_mass: 2,
+        batch_size: 1000,
+        write_off_years: 5,
+        load_factor: 0.5,
+      });
+    }
+    const table = await screen.findByRole("table", { name: t.compareCaption });
+    expect(within(table).getByText("Aço Demo B")).toBeInTheDocument();
+    expect(within(table).getByText("55,5")).toBeInTheDocument();
+    // A material with no costable process is said in words, never a zero.
+    expect(within(table).getByText(t.compareNoProcess)).toBeInTheDocument();
+  });
+
+  it("guarda os materiais comparados na URL e trava em cinco", async () => {
+    setQuery("material=7&massa=2&comparar=8");
+    const user = userEvent.setup();
+    await open();
+
+    expect(screen.getByRole("list", { name: t.compareLabel })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: t.compareRemove("Aço Demo B") }));
+    expect(new URLSearchParams(window.location.search).has("comparar")).toBe(false);
+
+    // More than four extras in a link are cut, not trusted.
+    cleanup();
+    setQuery("material=7&massa=2&comparar=1,2,3,4,5,6");
+    await open();
+    expect(screen.getAllByRole("button", { name: /^Remover .* da comparação$/ })).toHaveLength(4);
+  });
+
+  it("uma falha em um dos outros materiais aparece na linha dele e não derruba o resto", async () => {
+    setQuery("material=7&massa=2&comparar=8");
+    estimatePartCost.mockImplementation(async (payload) => {
+      if (payload.material_id === 8) throw new Error("falhou");
+      return result;
+    });
+    const user = userEvent.setup();
+    await open();
+
+    const table = await screen.findByRole("table", { name: t.compareCaption });
+    expect(within(table).getByText(new RegExp(t.compareFailed))).toBeInTheDocument();
+    // The first material's answer is still on screen.
+    expect(screen.getAllByRole("table")[0]).toBeInTheDocument();
   });
 });

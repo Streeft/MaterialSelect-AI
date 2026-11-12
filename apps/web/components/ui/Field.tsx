@@ -167,7 +167,7 @@ function FieldLabel({
   htmlFor: string;
   label?: string;
   required?: boolean;
-  /** D-216: the unit shown inside the field, kept in the name a reader hears. */
+  /** D-218: the unit shown inside the field, kept in the name a reader hears. */
   unit?: string;
 }) {
   if (!label) return null;
@@ -233,7 +233,7 @@ export const Input = forwardRef<
  * before) because material properties are not integers and a browser that
  * rejects `2.7` on a step-1 input rejects it silently.
  *
- * D-216: `unit` writes the unit inside the field, after the number ("1,2 m"),
+ * D-218: `unit` writes the unit inside the field, after the number ("1,2 m"),
  * the way Omni Calculator and the M3 text field's suffix do; the label stays
  * the quantity's name, and the unit is still in the name a screen reader says.
  */

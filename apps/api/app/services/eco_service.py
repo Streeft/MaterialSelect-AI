@@ -31,6 +31,7 @@ from app.calculations.eco_audit import (
     TransportLeg,
     UseAssumptions,
     audit_product,
+    build_waterfall,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.models.process import Process
@@ -46,10 +47,18 @@ from app.schemas.eco import (
     EcoComparisonResultOut,
     EcoComponentIn,
     EndOfLifeRouteOut,
+    PhaseDeltaOut,
     PhaseOut,
     TransportLegOut,
     TransportModeOut,
+    WaterfallOut,
+    WaterfallStepOut,
 )
+
+
+def _difference(a: float | None, b: float | None) -> float | None:
+    """B minus A, or ``None`` when either is unknown (an absence is not a zero)."""
+    return None if a is None or b is None else b - a
 
 
 class EcoService:
@@ -231,6 +240,12 @@ class EcoService:
             phases=[self._phase_out(phase) for phase in result.phases],
             total_energy=result.total_energy,
             total_carbon=result.total_carbon,
+            energy_waterfall=self._waterfall_out(
+                build_waterfall(result.phases, "energy", result.energy_unit)
+            ),
+            carbon_waterfall=self._waterfall_out(
+                build_waterfall(result.phases, "carbon", result.carbon_unit)
+            ),
             energy_dominance=DominanceOut(
                 phase=result.energy_dominance.phase,
                 label=result.energy_dominance.label,
@@ -243,6 +258,26 @@ class EcoService:
                 share=result.carbon_dominance.share,
                 refusal=result.carbon_dominance.refusal,
             ),
+        )
+
+    @staticmethod
+    def _waterfall_out(waterfall) -> WaterfallOut:
+        def step(item) -> WaterfallStepOut:
+            return WaterfallStepOut(
+                phase=item.phase,
+                label=item.label,
+                value=item.value,
+                start=item.start,
+                end=item.end,
+                reason=item.reason,
+            )
+
+        return WaterfallOut(
+            quantity=waterfall.quantity,
+            unit=waterfall.unit,
+            steps=[step(item) for item in waterfall.steps],
+            total=step(waterfall.total),
+            domain=waterfall.domain,
         )
 
     @staticmethod
@@ -321,6 +356,18 @@ class EcoService:
             else:
                 winner_carbon = "material_b"
 
+        # B minus A per phase, here and not in the browser (ADR 0004). A phase
+        # either side could not compute has no difference — never a zero.
+        phase_deltas = [
+            PhaseDeltaOut(
+                phase=pa.phase,
+                label=pa.label,
+                delta_energy=_difference(pa.energy, pb.energy),
+                delta_carbon=_difference(pa.carbon, pb.carbon),
+            )
+            for pa, pb in zip(res_a.phases, res_b.phases, strict=True)
+        ]
+
         return EcoComparisonResultOut(
             material_a=res_a,
             material_b=res_b,
@@ -330,6 +377,7 @@ class EcoService:
             delta_carbon_percent=delta_carbon_pct,
             winner_energy=winner_energy,
             winner_carbon=winner_carbon,
+            phase_deltas=phase_deltas,
         )
 
     # --- shaping ----------------------------------------------------------

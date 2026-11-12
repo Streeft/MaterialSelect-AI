@@ -253,7 +253,7 @@ discreto onde se exige magnitude. `material_id` virou `record_id` também em
 ranking e índice, como o D-58 anunciou que aconteceria quando os atributos
 chegassem.
 
-## Casos de carga, Solver, Custo, Eco Audit e Bateria (D-64 a D-66, D-69, D-172)
+## Casos de carga, Solver, Custo, Eco Audit e Bateria (D-64 a D-66, D-69, D-172, D-216)
 
 **O P2 restante fechou a faixa** ([D-64](DECISIONS.md)), e a primeira coisa
 que o desenho mostra é que **Engineering Solver e Performance Index Finder são
@@ -363,6 +363,16 @@ escrito.
 fonte, qualidade, licença e `is_demo`** (coluna de dado, nunca frase); **o escape é do formato** (apóstrofo nas planilhas, `html.escape` no HTML), não se troca um pelo
 outro; **transporte e uso ficam do produto**, sem repartir por componente; números com doze algarismos significativos, ainda numéricos. Na tela, "Exportar ▾" é
 `MenuButton` (D-91), exporta o briefing que gerou o resultado exibido, trata carregando e erro, e **salva** o HTML em vez de abri-lo de um *blob*.
+
+**Padrões e calculadoras ([D-216](DECISIONS.md)).** Os números com que Custo, Eco, Baterias e Dimensionar abrem vêm de
+`GET /api/padroes`, lidos das constantes que os pedidos validam (`DEFAULT_*`); **o front não guarda cópia**
+(`DefaultsGate` segura a tela, o spec do `useUrlState` nasce dos padrões). São premissas editáveis, não fatos de material:
+o bloco diz isso na `note`. Eco: produto, trechos, cenários A/B e premissas ficam no endereço (`componentes`, `trechos`, `a`,
+`b`, `modal`, `distancia`, `uso`, `vida`, `potencia`, `ciclo`, `percurso`, `intensidade`, `carbono`); `PartFields` é o
+formulário único de uma peça (linha do produto ou cenário). A **cascata por fase** e a **diferença B − A por fase**
+(`phase_deltas`) vêm do backend: `build_waterfall` dá `start`/`end` e o domínio; fase sem dado é `value: null` com motivo, não
+mexe no nível e o total vira `null`. O navegador só mapeia a pixels. Ragone destaca a química escolhida sem mexer em
+coordenada; o esquema do caso de carga é ilustração sem escala; o Custo compara até 5 materiais sem reordenar nem somar.
 
 ## Sintetizador e painéis sanduíche (D-67, D-68, D-144)
 
@@ -932,6 +942,14 @@ faixa é lida por **alcance** (`≥ x` quando o máximo chega a x; "≤ máx." a
 cópia em SQL; designação **não** declara equivalência (`code_key` só tira caixa
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
+
+**Catálogo em páginas ([D-217](DECISIONS.md)).** `GET /api/materials/busca` pagina (`limit` ≤ 200, `offset`), filtra
+(`classe` com a subárvore, `subclasse`, `qualidade`, `demo`), ordena (`relevancia`, `nome`, `classe` ou slug de propriedade)
+e conta (`facetas`). As regras são puras, em `app/domain/catalog_listing.py`: faceta conta **sem o próprio filtro**; ordem por
+propriedade põe **sem valor por último nos dois sentidos** e nunca lê ausência como 0 (`sort_value.value = null`,
+`is_missing`). Sem `limit`, devolve tudo (consumidores antigos). A busca dobra caixa e acento pelos dois lados com a tabela de
+`app/domain/text_fold.py` (`folded()` em `repositories/text_sql.py`; no SQLite a função `ms_fold` é registrada por conexão) e
+ranqueia exato > prefixo > palavra inteira > início de palavra > contém. "Nível" não é faceta: é visão (D-127).
 
 **Equivalência é declarada, nunca inferida** ([D-115](DECISIONS.md), TM1, Sessão
 70): `EquivalenceGroup` (tipo `EQUIVALENTE`/`APROXIMADA`/`SIMILAR` + `Source`

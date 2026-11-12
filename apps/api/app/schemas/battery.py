@@ -6,6 +6,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.calculations.battery import (
+    DEFAULT_COST_PACKING_FACTOR,
+    DEFAULT_MASS_PACKING_FACTOR,
+    DEFAULT_VOLUME_PACKING_FACTOR,
+)
+
 
 class BatteryChemistryOut(BaseModel):
     slug: str
@@ -53,9 +59,9 @@ class PackDesignRequest(BaseModel):
     target_power_kw: float = Field(ge=0.001, le=100000.0)
     dod: float = Field(default=0.85, ge=0.10, le=1.0)
     cell_capacity_ah: float | None = Field(default=None, gt=0.0, le=1000.0)
-    mass_packing_factor: float = Field(default=0.70, ge=0.20, le=0.95)
-    volume_packing_factor: float = Field(default=0.60, ge=0.20, le=0.95)
-    cost_packing_factor: float = Field(default=0.75, ge=0.20, le=0.99)
+    mass_packing_factor: float = Field(default=DEFAULT_MASS_PACKING_FACTOR, ge=0.20, le=0.95)
+    volume_packing_factor: float = Field(default=DEFAULT_VOLUME_PACKING_FACTOR, ge=0.20, le=0.95)
+    cost_packing_factor: float = Field(default=DEFAULT_COST_PACKING_FACTOR, ge=0.20, le=0.99)
 
     @field_validator(
         "target_voltage_v",
@@ -116,9 +122,9 @@ class BatteryComparisonRequest(BaseModel):
     target_power_kw: float = Field(ge=0.001, le=100000.0)
     dod: float = Field(default=0.85, ge=0.10, le=1.0)
     cell_capacity_ah: float | None = Field(default=None, gt=0.0, le=1000.0)
-    mass_packing_factor: float = Field(default=0.70, ge=0.20, le=0.95)
-    volume_packing_factor: float = Field(default=0.60, ge=0.20, le=0.95)
-    cost_packing_factor: float = Field(default=0.75, ge=0.20, le=0.99)
+    mass_packing_factor: float = Field(default=DEFAULT_MASS_PACKING_FACTOR, ge=0.20, le=0.95)
+    volume_packing_factor: float = Field(default=DEFAULT_VOLUME_PACKING_FACTOR, ge=0.20, le=0.95)
+    cost_packing_factor: float = Field(default=DEFAULT_COST_PACKING_FACTOR, ge=0.20, le=0.99)
 
     @field_validator(
         "target_voltage_v",

@@ -41,7 +41,20 @@ function axisTitle(axis: RagoneAxis): string {
  * cell chemistries would be worse than a small figure. It draws with the
  * `scatter` trace already registered in `lib/plotly-custom.ts`.
  */
-export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; headingLevel?: 2 | 3 | 4 }) {
+export function RagoneChart({
+  data,
+  headingLevel = 2,
+  highlightSlug,
+}: {
+  data: RagoneResult;
+  headingLevel?: 2 | 3 | 4;
+  /**
+   * The chemistry the reader chose (D-216): ringed on the plane and marked in
+   * the data table, so the figure answers "where is the one I am sizing?". It is
+   * only emphasis — the point is the catalogue's, drawn where the API put it.
+   */
+  highlightSlug?: string;
+}) {
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
   const plotBox = usePlotlyResize<HTMLDivElement>();
@@ -49,6 +62,7 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
 
   const { x_axis: xAxis, y_axis: yAxis } = data;
   const hasFigure = data.points.length > 0 && xAxis !== null && yAxis !== null;
+  const chosenPoint = data.points.find((p) => p.slug === highlightSlug);
 
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
@@ -81,7 +95,25 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
         hoverinfo: "skip",
       });
     }
-    // 3. The chemistries: the catalogue's values, named on the figure.
+    // 3. The chosen chemistry, ringed under its own marker (D-216).
+    const chosen = data.points.find((p) => p.slug === highlightSlug);
+    if (chosen) {
+      result.push({
+        x: [chosen.specific_energy],
+        y: [chosen.specific_power],
+        type: "scatter",
+        mode: "markers",
+        hoverinfo: "skip",
+        showlegend: false,
+        marker: {
+          size: 26,
+          color: paint.highlightFill,
+          symbol: "circle",
+          line: { width: 3, color: paint.highlight },
+        },
+      });
+    }
+    // 4. The chemistries: the catalogue's values, named on the figure.
     result.push({
       x: data.points.map((p) => p.specific_energy),
       y: data.points.map((p) => p.specific_power),
@@ -101,7 +133,7 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
       },
     });
     return result;
-  }, [data, paint]);
+  }, [data, paint, highlightSlug]);
 
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
@@ -210,12 +242,19 @@ export function RagoneChart({ data, headingLevel = 2 }: { data: RagoneResult; he
           caption={t.tableCaption}
           rows={data.points}
           rowKey={(point) => point.slug}
-          rowHeader={{ header: t.columnChemistry, cell: (point) => point.name }}
+          rowHeader={{
+            header: t.columnChemistry,
+            cell: (point) =>
+              point.slug === highlightSlug ? `${point.name} (${t.highlightBadge})` : point.name,
+          }}
           columns={columns}
         />
       }
       footer={
         <div className="flex flex-col gap-3">
+          {chosenPoint ? (
+            <p className="text-support text-ink">{t.highlightNote(chosenPoint.name)}</p>
+          ) : null}
           <p className="text-support text-ink-muted">{data.power_basis_note}</p>
           {data.excluded.length > 0 ? (
             <Alert tone="warning" title={t.excludedTitle}>

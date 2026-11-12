@@ -24,7 +24,7 @@ export interface InlineColumn {
 }
 
 /**
- * D-216: a table you edit in place — Airtable's grid, in the app's table look.
+ * D-218: a table you edit in place — Airtable's grid, in the app's table look.
  *
  * One row per item (a component of the product, a transport leg), the controls
  * in the cells, "+ Nova linha" under the last row, and a "⋯" per row with
@@ -57,7 +57,8 @@ export function InlineTable<Row>({
   label: string;
   columns: readonly InlineColumn[];
   rows: readonly Row[];
-  rowKey: (row: Row) => string | number;
+  /** A positional list (one that lives in the URL) passes the index. */
+  rowKey: (row: Row, index: number) => string | number;
   /** "Componente 2": names the row's menu and the removal notice. */
   rowName: (row: Row, index: number) => string;
   renderCell: (row: Row, column: InlineColumn, index: number) => ReactNode;
@@ -122,7 +123,7 @@ export function InlineTable<Row>({
           {rows.map((row, index) => {
             const name = rowName(row, index);
             return (
-              <tr key={rowKey(row)}>
+              <tr key={rowKey(row, index)}>
                 {columns.map((column) => (
                   <td
                     key={column.id}

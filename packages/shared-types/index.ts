@@ -281,12 +281,43 @@ export interface CompositionSearchReport {
   without_composition: number;
 }
 
+/**
+ * D-217: how many materials each chip value would leave, the other chips
+ * applied. `classe` counts a class and everything under it; a value no
+ * material has is absent, never zero.
+ */
+export interface CatalogFacets {
+  classe: Record<string, number>;
+  subclasse: Record<string, number>;
+  qualidade: Record<string, number>;
+  /** `"true"`/`"false"`. */
+  demo: Record<string, number>;
+}
+
 /** `GET /api/materials/busca` — the catalogue search with its report. */
 export interface MaterialSearch {
   items: MaterialListItem[];
+  /** Every material that matched the query and the chips (D-217). */
   total: number;
+  /** D-217: where the page starts and how long it is (`null`: all of them). */
+  offset?: number;
+  limit?: number | null;
+  /** D-217: only when asked with `facetas=true`. */
+  facets?: CatalogFacets | null;
   /** Present only when the query asked about composition. */
   composition: CompositionSearchReport | null;
+}
+
+/**
+ * D-217: the value the catalogue was ordered by, in the reader's unit.
+ * `value` is `null` when the material has none — `is_missing` says it was
+ * recorded as absent. Never 0.
+ */
+export interface SortValue {
+  property_slug: string;
+  value: number | null;
+  unit: string | null;
+  is_missing: boolean;
 }
 
 export interface MaterialListItem {
@@ -309,6 +340,8 @@ export interface MaterialListItem {
   designations: DesignationBrief[];
   /** TM6: contagem de propriedades com referência bibliográfica associada. */
   reference_count?: number;
+  /** D-217: only when the catalogue was ordered by a property. */
+  sort_value?: SortValue | null;
 }
 
 export interface MaterialDetail {
@@ -2338,7 +2371,7 @@ export interface DesignVariable {
   /** Canonical unit the value must already be in. */
   unit: string;
   help_text: string;
-  /** D-216: illustrative value, offered behind "Usar o exemplo"; null when a support fills it. */
+  /** D-218: illustrative value, offered behind "Usar o exemplo"; null when a support fills it. */
   example?: number | null;
 }
 
@@ -2699,6 +2732,30 @@ export interface EcoTransportLegOut {
   carbon_reason: string | null;
 }
 
+/**
+ * One step of the eco waterfall, in data coordinates (D-216, ADR 0004).
+ * `value` is `null` when the phase could not be computed (with `reason`); such a
+ * step does not move the running total, and is never drawn as zero.
+ */
+export interface EcoWaterfallStep {
+  phase: string;
+  label: string;
+  value: number | null;
+  start: number | null;
+  end: number | null;
+  reason: string | null;
+}
+
+export interface EcoWaterfall {
+  quantity: "energy" | "carbon";
+  unit: string;
+  steps: EcoWaterfallStep[];
+  /** `value: null` when any phase is absent: a total over four of five is a subtotal. */
+  total: EcoWaterfallStep;
+  /** `[low, high]` of the value axis; always contains the baseline 0. */
+  domain: [number, number];
+}
+
 export interface EcoAuditResult {
   components: EcoComponentOut[];
   transport_legs: EcoTransportLegOut[];
@@ -2723,10 +2780,56 @@ export interface EcoAuditResult {
   total_carbon: number | null;
   energy_dominance: EcoDominance;
   carbon_dominance: EcoDominance;
+  energy_waterfall: EcoWaterfall;
+  carbon_waterfall: EcoWaterfall;
   energy_unit: string;
   carbon_unit: string;
   carbon_unit_note: string;
   recycling_credit_note: string;
+}
+
+// --- Calculator defaults (D-216) ---------------------------------------------
+
+/**
+ * The numbers each calculator opens with, from `GET /api/padroes`. Premises the
+ * reader may change, not facts about any material; the front keeps no copy.
+ */
+export interface DefaultsResult {
+  custo: { batch_size: number; write_off_years: number; load_factor: number; note: string };
+  eco: {
+    use_model: UseModel;
+    recycled_fraction: number;
+    end_of_life: EndOfLifeRoute;
+    transport_distance_km: number;
+    static: {
+      power_watts: number;
+      duty_cycle: number;
+      life_years: number;
+      carbon_per_energy: number;
+    };
+    mobile: {
+      distance_km: number;
+      mobile_intensity: number;
+      life_years: number;
+      carbon_per_energy: number;
+    };
+    note: string;
+  };
+  baterias: {
+    archetype_slug: string;
+    chemistry_slug: string;
+    voltage_v: number;
+    energy_kwh: number;
+    power_kw: number;
+    dod: number;
+    /** `null`: the chemistry's own cell until the reader names a capacity. */
+    cell_capacity_ah: number | null;
+    mass_packing_factor: number;
+    volume_packing_factor: number;
+    cost_packing_factor: number;
+    note: string;
+  };
+  dimensionar: { objective: SolverObjective; limit: number };
 }
 
 // --- Synthesizer (P3) --------------------------------------------------------

@@ -78,6 +78,7 @@ export { CopyLinkItem } from "./CopyLinkItem";
 export { StatTile, type StatTileTone } from "./StatTile";
 export { RemovableChip } from "./RemovableChip";
 export { PageHeader } from "./PageHeader";
+export { Pagination } from "./Pagination";
 export { PanelHeader } from "./PanelHeader";
 export { RadioCard } from "./RadioCard";
 export { RichText } from "./RichText";

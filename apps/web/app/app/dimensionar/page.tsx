@@ -13,21 +13,24 @@ import Link from "next/link";
 // D-205: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { useQuery } from "@tanstack/react-query";
-import type { LoadCase, SolveRequest, SolveResult, SolverObjective } from "@/lib/types";
 import { useLiveResult } from "@/lib/useLiveResult";
 import { describeApiError } from "@/lib/errors";
+import type { DefaultsResult, LoadCase, SolveRequest, SolveResult, SolverObjective } from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
+import { encodeIdList } from "@/lib/idList";
 import { classVisual } from "@/lib/design/palette";
 import {
   Alert,
   Badge,
   Button,
+  Card,
+  CardBody,
   ClassBadge,
-  Disclosure,
   EmptyState,
   ErrorState,
+  ButtonLink,
   CopyLinkItem,
   NumberInput,
   PageHeader,
@@ -44,7 +47,10 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
+import { LoadCaseDiagram } from "@/components/solver/LoadCaseDiagram";
+import { SolveResultChart } from "@/components/solver/SolveResultChart";
 
 const t = ptBR.solver;
 
@@ -55,16 +61,22 @@ interface SolverBrief {
   objective: SolverObjective;
 }
 
-/** The brief in the URL (D-212): a link reopens the same case, numbers and objective. */
-const SOLVER_URL: UrlSpec<SolverBrief> = {
-  caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
-  inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
-  objective: {
-    param: "objetivo",
-    codec: enumCodec<SolverObjective>(["massa", "custo"]),
-    defaultValue: "massa",
-  },
-};
+/**
+ * The brief in the URL (D-212): a link reopens the same case, numbers and
+ * objective. The objective a screen opens on is the server's (`GET /api/padroes`,
+ * D-216), not a literal here.
+ */
+function solverUrlSpec(defaults: DefaultsResult["dimensionar"]): UrlSpec<SolverBrief> {
+  return {
+    caseKey: { param: "caso", codec: textCodec, defaultValue: "" },
+    inputs: { param: "entradas", codec: jsonCodec(isStringRecord), defaultValue: {} },
+    objective: {
+      param: "objetivo",
+      codec: enumCodec<SolverObjective>(["massa", "custo"]),
+      defaultValue: defaults.objective,
+    },
+  };
+}
 
 /**
  * The starting numbers for a case.
@@ -132,19 +144,6 @@ function CaseFacts({ loadCase }: { loadCase: LoadCase }) {
         </div>
       </div>
 
-    </div>
-  );
-}
-
-/**
- * D-216: "Como se calcula", folded under the result — the index the case
- * yields (and its cost twin) and the derivation, written to be redone by hand.
- * The numbers above it are the server's; this is how to check them.
- */
-function CaseMethod({ loadCase }: { loadCase: LoadCase }) {
-  return (
-    <Disclosure summary={t.methodTitle}>
-      <div className="flex flex-col gap-4 pt-2">
       {/* D-91: two readings side by side, split by a hairline — not two boxes
           inside the card. */}
       <div className="subsection grid gap-4 md:grid-cols-2 md:divide-x md:divide-line-divider md:[&>*+*]:pl-4">
@@ -188,8 +187,10 @@ function CaseMethod({ loadCase }: { loadCase: LoadCase }) {
         </div>
       </div>
 
-      <div className="flex flex-col">
-        <span className="text-body font-medium text-ink">{t.derivationTitle}</span>
+      <details className="group">
+        <summary className="cursor-pointer text-body font-medium text-ink">
+          {t.derivationTitle}
+        </summary>
         <p className="mt-2 text-caption text-ink-muted">{t.derivationHint}</p>
         <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-body text-ink">
           {loadCase.derivation.map((step) => (
@@ -197,9 +198,8 @@ function CaseMethod({ loadCase }: { loadCase: LoadCase }) {
           ))}
         </ol>
         <p className="mt-2 text-caption text-ink-muted">{loadCase.reference}</p>
-      </div>
-      </div>
-    </Disclosure>
+      </details>
+    </div>
   );
 }
 
@@ -291,8 +291,17 @@ function ResultTable({ result }: { result: SolveResult }) {
 }
 
 export default function DimensionarPage() {
+  return (
+    <DefaultsGate label={t.title}>
+      {(defaults) => <DimensionarScreen defaults={defaults.dimensionar} />}
+    </DefaultsGate>
+  );
+}
+
+function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar"] }) {
   const cases = useQuery({ queryKey: ["load-cases"], queryFn: listLoadCases });
-  const [brief, setBrief] = useUrlState(SOLVER_URL);
+  const spec = useMemo(() => solverUrlSpec(defaults), [defaults]);
+  const [brief, setBrief] = useUrlState(spec);
   const { caseKey: chosenKey, inputs: typed, objective } = brief;
 
   // An empty choice *means* the first case: the <select> already shows it as
@@ -311,6 +320,18 @@ export default function DimensionarPage() {
         : typed,
     [chosenKey, selected, typed],
   );
+
+  // The support the reader picked (a catalogued condition), so the sketch of
+  // the case shows it. Absent for cases that have none (the tie).
+  const supportChosen = useMemo(() => {
+    for (const variable of selected?.variables ?? []) {
+      const chosen = selected?.supports.find(
+        (s) => s.variable_key === variable.key && String(s.value) === inputs[variable.key],
+      );
+      if (chosen) return chosen;
+    }
+    return null;
+  }, [selected, inputs]);
 
   function chooseCase(key: string) {
     const next = cases.data?.find((item) => item.key === key);
@@ -340,7 +361,7 @@ export default function DimensionarPage() {
     ? t.blockedVariable(`${missingVariable.label} (${prettyUnit(missingVariable.unit)})`)
     : null;
 
-  // D-216: the result follows the brief — asked about a moment after the reader
+  // D-218: the result follows the brief — asked about a moment after the reader
   // stops typing. The sizing is still the server's.
   const live = useLiveResult<SolveRequest, SolveResult>({
     key: "dimensionar-ao-vivo",
@@ -351,13 +372,14 @@ export default function DimensionarPage() {
             Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
           ),
           objective,
+          limit: defaults.limit,
         }
       : null,
     fetcher: solveBrief,
   });
   const result = live.data ?? null;
 
-  // D-216: the case's declared example, only on the reader's click — a brief
+  // D-218: the case's declared example, only on the reader's click — a brief
   // pre-filled on its own would be the tool inventing a design.
   function applyExample() {
     if (!selected) return;
@@ -392,6 +414,13 @@ export default function DimensionarPage() {
                 </SelectOption>
               ))}
             </Select>
+            {selected ? (
+              <LoadCaseDiagram
+                caseKey={selected.key}
+                supportKey={supportChosen?.key ?? null}
+                supportLabel={supportChosen?.label ?? null}
+              />
+            ) : null}
             {selected ? <CaseFacts loadCase={selected} /> : null}
           </StepCard>
 
@@ -407,7 +436,8 @@ export default function DimensionarPage() {
                     </Button>
                     <span className="text-support text-ink-muted">{t.exampleHint}</span>
                   </div>
-                ) : undefined              }
+                ) : undefined
+              }
             >
               {/* The support condition stays in view, never folded: it is the
                   constant that makes two identical briefs differ (D-64). */}
@@ -504,30 +534,44 @@ export default function DimensionarPage() {
                   ) : null}
                 </p>
                 <ResultTable result={result} />
-                {result.excluded.length > 0 ? (
-                  <div className="well flex flex-col gap-2">
-                    <span className="text-body font-medium text-ink">{t.excludedTitle}</span>
-                    <span className="text-caption text-ink-muted">{t.excludedHint}</span>
-                    <ul className="flex flex-col gap-1 text-body text-ink">
-                      {result.excluded.map((item) => (
-                        <li key={item.record_id}>
-                          {item.name}
-                          {item.missing_labels.length > 0
-                            ? ` — ${item.missing_labels.join(", ")}`
-                            : ` — ${item.reason}`}
-                        </li>
-                      ))}
-                    </ul>
+                <SolveResultChart result={result} />
+                {result.solved.length > 1 ? (
+                  <div className="flex flex-col gap-1">
+                    <div>
+                      <ButtonLink
+                        variant="secondary"
+                        href={`/app/comparar?materiais=${encodeIdList(result.solved.map((r) => r.record_id))}`}
+                      >
+                        {t.compareBest(result.solved.length)}
+                      </ButtonLink>
+                    </div>
+                    <p className="text-caption text-ink-muted">{t.compareBestHint}</p>
                   </div>
+                ) : null}
+                {result.excluded.length > 0 ? (
+                  <Card>
+                    <CardBody className="flex flex-col gap-2">
+                      <span className="text-body font-medium text-ink">
+                        {t.excludedTitle}
+                      </span>
+                      <span className="text-caption text-ink-muted">{t.excludedHint}</span>
+                      <ul className="flex flex-col gap-1 text-body text-ink">
+                        {result.excluded.map((item) => (
+                          <li key={item.record_id}>
+                            {item.name}
+                            {item.missing_labels.length > 0
+                              ? ` — ${item.missing_labels.join(", ")}`
+                              : ` — ${item.reason}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardBody>
+                  </Card>
                 ) : null}
               </>
             ) : live.error ? null : (
-              <EmptyState
-                title={t.resultIdleTitle}
-                description={blockedReason ?? t.resultIdleHint}
-              />
+              <EmptyState title={t.resultIdleTitle} description={blockedReason ?? t.resultIdleHint} />
             )}
-            {selected ? <CaseMethod loadCase={selected} /> : null}
           </StepCard>
         </ResultPanel>
       </ParamsResultLayout>

@@ -44,8 +44,11 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   ver atalhos; D-207). Os registros vêm de `GET /api/search`, leve e ordenado por relevância ("aço" acha os aços antes de
   "Traço"), sem baixar o catálogo. O menu lateral recolhe grupos, guarda **Fixados** e **Recentes** neste aparelho, e a aba do
   navegador leva o nome da tela ou do registro; fichas de material e cadernos ganharam trilha. Excluir um estudo, uma fonte, uma nota ou um caderno mostra um aviso com
-  **Desfazer** (o servidor só apaga quando o aviso vence). A tabela do catálogo ordena por material ou
-  classe e permite marcar linhas para **Comparar selecionados**. A página inicial cumprimenta pelo nome e
+  **Desfazer** (o servidor só apaga quando o aviso vence). O catálogo vem em **páginas de 50** (D-217): busca sem
+  acento e por relevância, chips de classe, subclasse, qualidade e demonstração com a contagem que cada opção deixaria,
+  ordem por nome, classe ou valor de uma propriedade (sem valor por último), colunas escolhidas e tudo isso no endereço;
+  `GET /api/materials/busca` aceita `limit`/`offset`/`facetas` e `GET /api/materials` aceita `limit`/`offset` e responde
+  `X-Total-Count` (sem `limit`, ambos devolvem tudo, como antes). A tabela permite marcar linhas para **Comparar selecionados**. A página inicial cumprimenta pelo nome e
   mostra **Vistos recentemente**, os últimos materiais e processos abertos.
 - **Mapas** — mapas de Ashby com escala log, envelopes por classe e linhas de
   índice cuja inclinação é derivada da própria expressão (`E/ρ` → 1,
@@ -87,15 +90,20 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
 
 - **Dimensionar** — sete casos de carga padrão (tirante, viga, placa, coluna);
   a massa sai como `fator estrutural / índice`, e o objetivo custo reaproveita
-  a mesma derivação.
+  a mesma derivação. Mostra o esquema do caso (que muda com o apoio) e o
+  resultado em barras (D-216).
 - **Custo** — custo por peça sobre os processos compatíveis, termo a termo
-  (material, ferramental, operação, capital), com a curva custo × lote.
+  (material, ferramental, operação, capital), com a curva custo × lote e a
+  comparação de até 5 materiais (D-216).
 - **Eco** — auditoria ecológica em cinco fases (material, manufatura,
   transporte, uso, fim de vida), em energia e carbono, de um produto com vários
   componentes e vários trechos de transporte, e sete rotas de fim de vida
   (D-121). **Exportável** em CSV, XLSX, HTML, DOCX e PPTX (menu "Exportar"):
   por componente e por trecho, com a razão escrita de cada ausência e a fonte,
-  a qualidade e a licença de cada dado lido (D-172).
+  a qualidade e a licença de cada dado lido (D-172). Produto, cenários A × B e
+  premissas ficam no endereço, as premissas ficam sempre à vista, e a **cascata
+  por fase** (contribuição acumulada, fase sem dado como lacuna) vem do
+  servidor (D-216).
 - **Sintetizar** — compósito de dois constituintes, espuma e **painel
   sanduíche**, cada valor com a lei que o produziu e a sua base; e a
   **varredura de família** (seção "Varrer"), que mostra como um índice anda ao longo da
@@ -104,11 +112,12 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   catalogadas, cada uma com a sua fonte.
   Inclui o **gráfico de Ragone** (energia × potência específicas, com linhas
   de iso-tempo calculadas no servidor; a base da potência não é declarada no
-  catálogo e a figura avisa).
+  catálogo e a figura avisa), com a química escolhida em destaque (D-216).
 
 Nas cinco ferramentas os parâmetros ficam à esquerda e o resultado à direita (embaixo, no celular), e em
-Dimensionar, Custo, Sintetizar e Baterias o que se digitou vai para o endereço: recarregar não perde nada e
-"Copiar o link desta configuração", no menu "⋯" do cabeçalho, entrega a mesma conta a outra pessoa (D-212).
+Dimensionar, Custo, Eco, Sintetizar e Baterias o que se digitou vai para o endereço: recarregar não perde nada e
+"Copiar o link desta configuração", no menu "⋯" do cabeçalho, entrega a mesma conta a outra pessoa (D-212). Os
+números com que cada uma abre vêm do servidor (`GET /api/padroes`, D-216): a tela não guarda cópia deles.
 
 **Dados**
 

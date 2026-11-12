@@ -110,6 +110,21 @@ USE_STATIC = "estatico"
 USE_MOBILE = "movel"
 USE_MODELS = (USE_STATIC, USE_MOBILE)
 
+#: The screen's starting premises (D-216). They are inputs the reader overrides,
+#: not facts about any material: a 60 W product on a quarter duty cycle, a
+#: 200 000 km vehicle life at 0,0025 MJ/(kg·km) and a grid of 0,07 kg CO₂/MJ are
+#: round, mid-range figures that make the first run answerable. The front reads
+#: them from ``GET /api/padroes`` instead of keeping a copy.
+DEFAULT_USE_MODEL = USE_MOBILE
+DEFAULT_RECYCLED_FRACTION = 0.0
+DEFAULT_TRANSPORT_DISTANCE_KM = 1500.0
+DEFAULT_STATIC_POWER_WATTS = 60.0
+DEFAULT_STATIC_DUTY_CYCLE = 0.25
+DEFAULT_MOBILE_DISTANCE_KM = 200_000.0
+DEFAULT_MOBILE_INTENSITY = 0.0025
+DEFAULT_LIFE_YEARS = 10.0
+DEFAULT_CARBON_PER_ENERGY = 0.07
+
 #: End-of-life routes (D-121). Seven, in the order a designer weighs them from
 #: "throw away" to "keep using" — the vocabulary of the textbook method, which
 #: is a list of *names*: the route says what happens, never what it costs. What
@@ -345,6 +360,97 @@ class Dominance:
     label: str | None
     share: float | None
     refusal: str | None
+
+
+@dataclass(frozen=True)
+class WaterfallStep:
+    """One phase as a step of the waterfall, in data coordinates (ADR 0004).
+
+    ``value`` is the signed contribution; ``start``/``end`` are the running
+    total of the *known* phases before and after it. A phase nobody could
+    compute keeps ``value=None`` with its written reason, and sits at the running
+    total without moving it: it is neither added nor read as zero (principle 3).
+    """
+
+    phase: str
+    label: str
+    value: float | None
+    start: float | None
+    end: float | None
+    reason: str | None = None
+
+
+@dataclass(frozen=True)
+class Waterfall:
+    """The five steps, the total bar, and the frame that holds them all."""
+
+    quantity: str
+    unit: str
+    steps: tuple[WaterfallStep, ...]
+    total: WaterfallStep
+    #: (low, high) of the value axis. Always contains the baseline 0, because a
+    #: waterfall is read against it; never a degenerate interval.
+    domain: tuple[float, float]
+
+
+#: Why the total bar is empty when a phase is: a total over four of five phases
+#: is a subtotal that reads like one.
+WATERFALL_TOTAL_REFUSAL = (
+    "Sem total: ao menos uma fase não pôde ser calculada, e somar só as outras "
+    "seria um subtotal com cara de total."
+)
+
+
+def build_waterfall(phases: tuple[PhaseResult, ...], attribute: str, unit: str) -> Waterfall:
+    """Cumulative steps for ``attribute`` (``"energy"`` or ``"carbon"``).
+
+    The geometry of the chart — where each bar starts and ends and how tall the
+    axis must be — is a calculation, so it lives here and the screen only maps
+    these numbers to pixels.
+    """
+    reason_attribute = f"{attribute}_reason"
+    running = 0.0
+    low = high = 0.0
+    steps: list[WaterfallStep] = []
+    complete = True
+    for phase in phases:
+        value = getattr(phase, attribute)
+        if value is None:
+            complete = False
+            steps.append(
+                WaterfallStep(
+                    phase=phase.phase,
+                    label=phase.label,
+                    value=None,
+                    start=running,
+                    end=running,
+                    reason=getattr(phase, reason_attribute),
+                )
+            )
+            continue
+        start, running = running, running + value
+        low, high = min(low, start, running), max(high, start, running)
+        steps.append(
+            WaterfallStep(
+                phase=phase.phase, label=phase.label, value=value, start=start, end=running
+            )
+        )
+    if complete:
+        total = WaterfallStep(phase="total", label="Total", value=running, start=0.0, end=running)
+    else:
+        total = WaterfallStep(
+            phase="total",
+            label="Total",
+            value=None,
+            start=None,
+            end=None,
+            reason=WATERFALL_TOTAL_REFUSAL,
+        )
+    if not high > low:
+        high = low + 1.0
+    return Waterfall(
+        quantity=attribute, unit=unit, steps=tuple(steps), total=total, domain=(low, high)
+    )
 
 
 @dataclass(frozen=True)
