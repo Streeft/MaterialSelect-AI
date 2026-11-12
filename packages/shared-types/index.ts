@@ -567,6 +567,37 @@ export interface Process {
   material_count: number;
 }
 
+/** One column of the material × process matrix: a root material class (D-219). */
+export interface ProcessMatrixColumn {
+  slug: string;
+  name: string;
+  material_count: number;
+}
+
+/** A numeric capability in canonical units; null bounds are absence, never 0. */
+export interface ProcessCapability {
+  minimum: number | null;
+  maximum: number | null;
+  unit: string | null;
+}
+
+export interface ProcessMatrixRow {
+  process: Process;
+  /** Root class slug -> materials of it this process serves; a class not listed has none. */
+  counts: Record<string, number>;
+  mass: ProcessCapability;
+  thickness: ProcessCapability;
+  /** Economic batch (a count); null when nobody recorded it. */
+  batch: number | null;
+}
+
+export interface ProcessMatrix {
+  columns: ProcessMatrixColumn[];
+  rows: ProcessMatrixRow[];
+  /** Filter (`massa`, `espessura`, `lote`) -> processes left out for lack of data. */
+  without_data: Record<string, number>;
+}
+
 export interface MaterialClass {
   id: number;
   name: string;

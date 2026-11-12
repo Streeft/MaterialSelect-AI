@@ -172,7 +172,33 @@ export function SweepChart({ data, headingLevel = 3 }: { data: SweepResult; head
       }
       table={table}
       footer={
-        <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-3">
+          {/* D-219: what each mark is, written; the seat colour alone says nothing. */}
+          <ul aria-label={t.legendTitle} className="flex flex-col gap-1 text-support text-ink-muted">
+            {scalar.length > 0 ? (
+              <li className="flex items-center gap-2 break-words">
+                <svg width={18} height={10} aria-hidden className="shrink-0">
+                  <line x1={0} x2={18} y1={5} y2={5} stroke={seat.color} strokeWidth={2} />
+                </svg>
+                {t.legendLine(indexName)}
+              </li>
+            ) : null}
+            <li className="flex items-center gap-2 break-words">
+              <svg width={18} height={10} aria-hidden className="shrink-0">
+                <circle cx={9} cy={5} r={4} fill={seat.color} />
+              </svg>
+              {t.legendPoint}
+            </li>
+            {data.skipped.length > 0 ? (
+              <li className="flex items-center gap-2 break-words">
+                <svg width={18} height={10} aria-hidden className="shrink-0">
+                  <line x1={0} x2={6} y1={5} y2={5} stroke={seat.color} strokeWidth={2} />
+                  <line x1={12} x2={18} y1={5} y2={5} stroke={seat.color} strokeWidth={2} />
+                </svg>
+                {t.legendBreak}
+              </li>
+            ) : null}
+          </ul>
           {paired.length > 0 ? (
             <p className="flex items-center gap-2 text-support text-ink-muted">
               <svg width={18} height={10} aria-hidden>

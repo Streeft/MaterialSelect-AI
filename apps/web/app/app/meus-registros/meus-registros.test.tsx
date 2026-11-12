@@ -8,12 +8,15 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { MaterialListItem, MyRecords, Process } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 
 const t = ptBR.myRecords;
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/meus-registros",
   useParams: () => ({}),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const quality = { medido: 1, importado: 0, estimado: 0, missing: 0 };
@@ -68,7 +71,11 @@ vi.mock("@/lib/api", () => ({
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <SnackbarProvider>{node}</SnackbarProvider>
+    </QueryClientProvider>
+  );
 }
 
 const { default: MyRecordsPage } = await import("./page");
@@ -120,6 +127,78 @@ describe("meus registros", () => {
     expect(await screen.findByShadowText(t.favoritesEmpty)).toBeInTheDocument();
     expect(screen.getByShadowText(t.recentsEmpty)).toBeInTheDocument();
     expect(screen.getByShadowText(t.ownRecordsEmpty)).toBeInTheDocument();
+  });
+});
+
+describe("filtros e ações em lote (D-219)", () => {
+  const otherMaterial: MaterialListItem = {
+    ...ownMaterial,
+    id: 8,
+    name: "PET da Ana",
+    class_name: "Polímeros",
+    class_slug: "polimeros",
+  };
+  const many: MyRecords = {
+    favorites: [
+      { universe: "material", at: "2026-09-14T10:00:00Z", material: ownMaterial, process: null },
+      { universe: "material", at: "2026-09-14T11:00:00Z", material: otherMaterial, process: null },
+      { universe: "process", at: "2026-09-14T12:00:00Z", material: null, process },
+    ],
+    recents: [],
+    own_records: [ownMaterial, otherMaterial],
+  };
+
+  it("a busca vem do endereço, ignora acento e filtra as três listas", async () => {
+    state.data = many;
+    window.history.replaceState(null, "", "/app/meus-registros?q=fundicao");
+    render(wrap(<MyRecordsPage />));
+
+    await screen.findAllByShadowRole("link", { name: "Fundição" });
+    expect(screen.queryAllByShadowRole("link", { name: "Liga da Ana" })).toHaveLength(0);
+    expect(screen.getByShadowRole("searchbox")).toHaveValue("fundicao");
+    window.history.replaceState(null, "", "/app/meus-registros");
+  });
+
+  it("filtra por tipo pelo endereço e escreve a ausência", async () => {
+    state.data = many;
+    window.history.replaceState(null, "", "/app/meus-registros?tipo=processo");
+    render(wrap(<MyRecordsPage />));
+
+    await screen.findAllByShadowRole("link", { name: "Fundição" });
+    expect(screen.queryAllByShadowRole("link", { name: "PET da Ana" })).toHaveLength(0);
+    // Registros próprios são materiais: a seção diz que nada bate.
+    expect(screen.getAllByShadowText(t.noMatch).length).toBeGreaterThan(0);
+    window.history.replaceState(null, "", "/app/meus-registros");
+  });
+
+  it("compara os materiais marcados e desfavorita com confirmação e desfazer", async () => {
+    state.data = many;
+    const user = userEvent.setup();
+    render(wrap(<MyRecordsPage />));
+
+    await user.click(await screen.findByShadowLabelText(t.selectRow("Liga da Ana")));
+    expect(screen.getByShadowRole("button", { name: t.compareSelected })).toBeDisabled();
+    await user.click(screen.getByShadowLabelText(t.selectRow("PET da Ana")));
+
+    const compare = screen.getByShadowRole("link", { name: t.compareSelected });
+    expect(compare).toHaveAttribute("href", "/app/comparar?materiais=7,8");
+
+    await user.click(screen.getByShadowRole("button", { name: t.unfavoriteSelected }));
+    // Confirmação antes de qualquer coisa sair da lista.
+    expect(await screen.findByShadowText(t.confirmTitle(2))).toBeInTheDocument();
+    await user.click(screen.getAllByShadowRole("button", { name: t.unfavoriteSelected }).at(-1)!);
+
+    expect(await screen.findByShadowText(t.unfavorited(2))).toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: ptBR.snackbar.undo })).toBeInTheDocument();
+  });
+
+  it("não tem violações de acessibilidade com filtros e barra de lote", async () => {
+    state.data = many;
+    const user = userEvent.setup();
+    const { container } = render(wrap(<MyRecordsPage />));
+    await user.click(await screen.findByShadowLabelText(t.selectRow("Liga da Ana")));
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });
 

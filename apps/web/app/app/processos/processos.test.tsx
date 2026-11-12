@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { Process, ProcessClass, ProcessClassDetail, ProcessDetail } from "@/lib/types";
+import type {
+  Process,
+  ProcessClass,
+  ProcessClassDetail,
+  ProcessDetail,
+  ProcessMatrix,
+} from "@/lib/types";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 
 const t = ptBR.processes;
 const f = ptBR.family;
@@ -14,6 +21,7 @@ const route = { pathname: "/app/processos", slug: "fundicao" };
 vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
   useParams: () => ({ slug: route.slug }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 /**
@@ -200,7 +208,40 @@ const familyDetail: ProcessClassDetail = {
   processes: [],
 };
 
+const matrixCalls: unknown[] = [];
+const emptyCap = { minimum: null, maximum: null, unit: null };
+const matrixData: ProcessMatrix = {
+  columns: [
+    { slug: "metais", name: "Metais", material_count: 5 },
+    { slug: "polimeros", name: "Polímeros", material_count: 2 },
+  ],
+  rows: [
+    {
+      process: fundicao,
+      counts: { metais: 3 },
+      mass: { minimum: 0.2, maximum: 400, unit: "kg" },
+      thickness: emptyCap,
+      batch: null,
+    },
+    {
+      process: solda,
+      counts: { metais: 1, polimeros: 1 },
+      mass: emptyCap,
+      thickness: emptyCap,
+      batch: 20,
+    },
+  ],
+  without_data: { massa: 1 },
+};
+
 vi.mock("@/lib/api", () => ({
+  getProcessMatrix: (query: unknown) => {
+    matrixCalls.push(query);
+    const q = query as { massa?: string };
+    return Promise.resolve(
+      q.massa ? { ...matrixData, rows: [matrixData.rows[0]!] } : matrixData,
+    );
+  },
   listProcesses: () => Promise.resolve([fundicao, solda]),
   listProcessClasses: () => Promise.resolve(classes),
   getProcess: () => Promise.resolve(detail),
@@ -261,6 +302,65 @@ describe("a lista de processos", () => {
 
     await user.type(screen.getByShadowRole("searchbox", { name: t.searchLabel }), "fundi");
     expect(await screen.findByText(t.emptyFiltered)).toBeInTheDocument();
+  });
+});
+
+describe("matriz, capacidade e comparação (D-219)", () => {
+  const go = (search: string) => window.history.replaceState(null, "", `/app/processos${search}`);
+
+  it("abre a matriz pelo endereço, escreve a célula vazia e a ausência de dado", async () => {
+    route.pathname = "/app/processos";
+    go("?modo=matriz");
+    render(wrap(<ProcessesPage />));
+
+    expect(await screen.findByShadowRole("link", { name: "Fundição" })).toBeInTheDocument();
+    expect(screen.getByShadowRole("columnheader", { name: "Polímeros" })).toBeInTheDocument();
+    // Fundição não tem material de polímero: a célula diz "nenhum", e não 0.
+    expect(screen.getAllByShadowText(t.matrixNone).length).toBeGreaterThan(0);
+    // Solda não tem faixa de massa cadastrada: a ausência é escrita.
+    expect(screen.getAllByShadowText(ptBR.quality.AUSENTE).length).toBeGreaterThan(0);
+    go("");
+  });
+
+  it("manda o filtro de massa ao backend e só mostra o que ele devolveu", async () => {
+    route.pathname = "/app/processos";
+    go("?modo=matriz&massa=5&massa_un=g");
+    render(wrap(<ProcessesPage />));
+
+    await screen.findByShadowRole("link", { name: "Fundição" });
+    await waitFor(() => expect(screen.queryByShadowRole("link", { name: "Solda" })).toBeNull());
+    expect(matrixCalls.at(-1)).toMatchObject({ massa: "5", massaUnidade: "g" });
+    // Quem ficou sem dado é contado, não escondido.
+    expect(screen.getByShadowText(t.withoutData(t.capMass.toLocaleLowerCase("pt-BR"), 1))).toBeInTheDocument();
+    go("");
+  });
+
+  it("compara dois processos lado a lado e guarda a escolha no endereço", async () => {
+    const user = userEvent.setup();
+    route.pathname = "/app/processos";
+    go("?modo=matriz");
+    render(wrap(<ProcessesPage />));
+
+    await user.click(await screen.findByShadowLabelText(t.compareRow("Fundição")));
+    await user.click(screen.getByShadowLabelText(t.compareRow("Solda")));
+
+    expect(window.location.search).toContain("comparar=fundicao%2Csolda");
+    expect(await screen.findByShadowText(t.compareTitle)).toBeInTheDocument();
+    // O mock devolve a mesma ficha para os dois: a faixa de massa aparece com a unidade.
+    expect((await screen.findAllByShadowText(/0,2 – 400/)).length).toBeGreaterThan(0);
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+    go("");
+  });
+
+  it("filtra pela família vinda do endereço", async () => {
+    route.pathname = "/app/processos";
+    go("?familia=uniao");
+    render(wrap(<ProcessesPage />));
+
+    expect(await screen.findByShadowRole("link", { name: "Solda" })).toBeInTheDocument();
+    expect(screen.queryByShadowRole("link", { name: "Fundição" })).not.toBeInTheDocument();
+    go("");
   });
 });
 

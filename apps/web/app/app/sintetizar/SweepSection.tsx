@@ -9,6 +9,7 @@ import {
   Alert,
   Button,
   EmptyState,
+  ErrorState,
   NumberInput,
   Select,
   SelectOption,
@@ -188,9 +189,12 @@ export function SweepSection({
 
       <div className="flex flex-col gap-4 sm:col-span-2" aria-live="polite">
         {run.isError ? (
-          <Alert tone="danger" title={t.errorTitle}>
-            {sweepErrorMessage(run.error)}
-          </Alert>
+          // D-219: a failed sweep says why and offers the same request again.
+          <ErrorState
+            title={t.errorTitle}
+            description={sweepErrorMessage(run.error)}
+            onRetry={() => run.mutate()}
+          />
         ) : null}
         {result ? (
           <>

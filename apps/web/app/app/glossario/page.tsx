@@ -1,14 +1,23 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listProperties } from "@/lib/api";
 import { glossaryQuery, matchesFilter, reviewLabel } from "@/lib/glossary";
 import { ptBR } from "@/lib/i18n";
+import { mapHrefForAxis } from "@/app/app/mapas/mapUrl";
+import {
+  enumCodec,
+  textCodec,
+  useUrlState,
+  type UrlSpec,
+} from "@/lib/urlState";
+import { useDebounced } from "@/lib/useDebounced";
 import type { GlossaryEntry } from "@/lib/types";
 import { GlossaryNav } from "@/components/glossary/GlossaryNav";
 import {
   Badge,
+  ButtonLink,
   EmptyState,
   ErrorState,
   FilterBar,
@@ -24,9 +33,23 @@ const t = ptBR.glossary;
 type Row = { slug: string; name: string; entry: GlossaryEntry | null };
 type State = "revisado" | "rascunho" | "ausente";
 
+/** D-219: the search and the review-state chip live in the address, as the other screens' do. */
+const GLOSSARY_URL: UrlSpec<{ busca: string; estado: "" | State }> = {
+  busca: { param: "busca", codec: textCodec, defaultValue: "" },
+  estado: {
+    param: "estado",
+    codec: enumCodec(["", "revisado", "rascunho", "ausente"] as const),
+    defaultValue: "",
+  },
+};
+
 /** Letter of the index: accent and case folded, so "Á" files under "A". */
 function letterOf(name: string): string {
-  const first = name.normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+  const first = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .charAt(0)
+    .toUpperCase();
   return /[A-Z]/.test(first) ? first : "#";
 }
 
@@ -59,28 +82,48 @@ function setHash(slug: string | null) {
  * ausência escrita, nunca omitida nem preenchida com texto inventado.
  */
 export default function GlossaryPage() {
+  // `useSearchParams` (inside `useUrlState`) needs a boundary, or `next build` refuses the page.
+  return (
+    <Suspense fallback={<LoadingState label={t.loading} />}>
+      <GlossaryPageContent />
+    </Suspense>
+  );
+}
+
+function GlossaryPageContent() {
   const entries = useQuery(glossaryQuery);
   // Os nomes vêm do catálogo; sem eles a lista cai no slug, nunca some.
-  const properties = useQuery({ queryKey: ["properties"], queryFn: () => listProperties() });
-  const [filter, setFilter] = useState("");
-  const [state, setState] = useState<State | null>(null);
+  const properties = useQuery({
+    queryKey: ["properties"],
+    queryFn: () => listProperties(),
+  });
+  const [url, setUrl] = useUrlState(GLOSSARY_URL);
+  const filter = url.busca;
+  // The box answers every keystroke; the list of ~100 rows waits for a pause.
+  const settled = useDebounced(filter, 200);
+  const state: State | null = url.estado || null;
+  const setState = (next: State | null) => setUrl({ estado: next ?? "" });
   const openSlug = useSyncExternalStore(subscribeHash, readHash, noHash);
 
   const rows = useMemo(() => {
     const bySlug = new Map<string, Row>();
-    for (const e of entries.data ?? []) bySlug.set(e.slug, { slug: e.slug, name: e.slug, entry: e });
+    for (const e of entries.data ?? [])
+      bySlug.set(e.slug, { slug: e.slug, name: e.slug, entry: e });
     for (const p of properties.data ?? []) {
       const row = bySlug.get(p.slug);
       if (row) row.name = p.name;
       else bySlug.set(p.slug, { slug: p.slug, name: p.name, entry: null });
     }
-    return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    return [...bySlug.values()].sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-BR"),
+    );
   }, [entries.data, properties.data]);
 
   const shown = rows.filter(
     (r) =>
-      matchesFilter(r.name, r.slug, filter) &&
-      (state === null || (r.entry ? r.entry.review_status : "ausente") === state),
+      matchesFilter(r.name, r.slug, settled) &&
+      (state === null ||
+        (r.entry ? r.entry.review_status : "ausente") === state),
   );
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>();
@@ -97,8 +140,12 @@ export default function GlossaryPage() {
       <PageHeader title={t.title} description={t.subtitle} />
       <GlossaryNav current="propriedades" />
 
-      {(entries.isLoading || properties.isLoading) && <LoadingState label={t.loading} />}
-      {entries.isError && <ErrorState title={t.error} onRetry={() => void entries.refetch()} />}
+      {(entries.isLoading || properties.isLoading) && (
+        <LoadingState label={t.loading} />
+      )}
+      {entries.isError && (
+        <ErrorState title={t.error} onRetry={() => void entries.refetch()} />
+      )}
 
       {entries.data &&
         !properties.isLoading &&
@@ -114,7 +161,7 @@ export default function GlossaryPage() {
                   hint={t.filterHint}
                   className="w-full max-w-sm"
                   value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
+                  onChange={(e) => setUrl({ busca: e.target.value })}
                 />
                 <p className="text-body text-ink-muted" aria-live="polite">
                   {t.count(shown.length)}
@@ -138,7 +185,10 @@ export default function GlossaryPage() {
                 onClear={() => setState(null)}
               />
               {groups.length > 1 ? (
-                <nav aria-label={t.lettersLabel} className="flex flex-wrap gap-1">
+                <nav
+                  aria-label={t.lettersLabel}
+                  className="flex flex-wrap gap-1"
+                >
                   {groups.map(([letter]) => (
                     <a
                       key={letter}
@@ -149,7 +199,10 @@ export default function GlossaryPage() {
                         event.preventDefault();
                         document
                           .getElementById(`letra-${letter}`)
-                          ?.scrollIntoView({ block: "start", behavior: "smooth" });
+                          ?.scrollIntoView({
+                            block: "start",
+                            behavior: "smooth",
+                          });
                       }}
                       className="ds-letter m3-state"
                     >
@@ -161,12 +214,20 @@ export default function GlossaryPage() {
             </div>
 
             {shown.length === 0 ? (
-              <EmptyState title={t.noMatch(filter.trim())} />
+              <EmptyState title={t.noMatch(settled.trim())} />
             ) : (
               <div className="flex flex-col gap-6">
                 {groups.map(([letter, items]) => (
-                  <section key={letter} id={`letra-${letter}`} aria-labelledby={`letra-${letter}-t`} className="scroll-mt-24">
-                    <h2 id={`letra-${letter}-t`} className="mb-2 text-heading text-ink">
+                  <section
+                    key={letter}
+                    id={`letra-${letter}`}
+                    aria-labelledby={`letra-${letter}-t`}
+                    className="scroll-mt-24"
+                  >
+                    <h2
+                      id={`letra-${letter}-t`}
+                      className="mb-2 text-heading text-ink"
+                    >
                       {letter}
                     </h2>
                     <ul className="divide-y divide-line-divider rounded-card border border-line bg-panel">
@@ -198,7 +259,11 @@ export default function GlossaryPage() {
           </>
         ))}
 
-      <SidePeek open={open !== null} title={open?.name ?? ""} onClose={() => setHash(null)}>
+      <SidePeek
+        open={open !== null}
+        title={open?.name ?? ""}
+        onClose={() => setHash(null)}
+      >
         {open ? <EntryDetail row={open} /> : null}
       </SidePeek>
     </div>
@@ -209,9 +274,12 @@ function EntryDetail({ row }: { row: Row }) {
   const { entry } = row;
   if (!entry) {
     return (
-      <p className="text-body text-ink-muted">
-        <strong className="font-medium">{t.missing}.</strong> {t.missingHint}
-      </p>
+      <div className="flex flex-col gap-4">
+        <p className="text-body text-ink-muted">
+          <strong className="font-medium">{t.missing}.</strong> {t.missingHint}
+        </p>
+        <UseLinks slug={row.slug} />
+      </div>
     );
   }
   return (
@@ -221,13 +289,38 @@ function EntryDetail({ row }: { row: Row }) {
         dense
         items={[
           { label: t.definition, value: entry.definition },
-          { label: t.howMeasured, value: entry.how_measured ?? t.howMeasuredMissing },
+          {
+            label: t.howMeasured,
+            value: entry.how_measured ?? t.howMeasuredMissing,
+          },
           { label: t.reference, value: entry.reference ?? t.referenceMissing },
           { label: t.license, value: entry.license },
           { label: t.review, value: reviewLabel(entry.review_status) },
-          { label: t.identifier, value: <code className="font-mono text-caption">{row.slug}</code> },
+          {
+            label: t.identifier,
+            value: <code className="font-mono text-caption">{row.slug}</code>,
+          },
         ]}
       />
+      <UseLinks slug={row.slug} />
+    </div>
+  );
+}
+
+/** From the entry to the two places the property is used (D-219): as a map axis, as a limit. */
+function UseLinks({ slug }: { slug: string }) {
+  return (
+    <div role="group" aria-label={t.useTitle} className="flex flex-wrap gap-2">
+      <ButtonLink size="sm" variant="tonal" href={mapHrefForAxis(slug)}>
+        {t.useAsAxis}
+      </ButtonLink>
+      <ButtonLink
+        size="sm"
+        variant="tonal"
+        href={`/app/selecao?etapa=restricoes&restricao=${encodeURIComponent(slug)}`}
+      >
+        {t.useAsConstraint}
+      </ButtonLink>
     </div>
   );
 }

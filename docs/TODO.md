@@ -575,6 +575,15 @@ uso; as três primeiras são decisão ou conferência do autor.
   vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
   um quarto disso. Só vale se a memória do Fly apertar.
 
+**Processos e Meus registros — pendências deixadas pela revisão das telas (D-219).**
+
+- **Tolerância dimensional como atributo de processo.** O catálogo só tem massa, espessura de seção, lote econômico, forma e
+  características; a tolerância não está cadastrada e não se inventa. Quando entrar (com fonte e proveniência), o filtro de
+  capacidade ganha o quarto campo no mesmo `GET /api/processes/matrix`.
+- **Comparar processos fora da matriz.** A seleção para comparar só existe na matriz; levá-la às visões galeria, lista e tabela.
+- **Excluir registro próprio em lote.** Hoje a exclusão de material não é desfazível no servidor; "Desfazer" em lote pede um
+  caminho de arquivar material antes.
+
 **Cadernos — pendências deixadas pela revisão das telas (D-218).**
 
 - **Citação com a posição do trecho.** O backend copia o `excerpt` mas não onde ele está na fonte; o leitor o acha por
