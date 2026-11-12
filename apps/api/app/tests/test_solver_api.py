@@ -332,3 +332,40 @@ def test_someone_elses_record_appears_nowhere_in_the_answer(
     response = _solve(client, limit=50)
 
     assert material.name not in response.text
+
+
+# --- D-216: the example brief, offered behind an explicit click -------------
+
+
+def test_every_typed_variable_has_a_positive_example_and_a_support_none(
+    client: TestClient,
+) -> None:
+    # A variable a support condition fills is chosen by name, never typed, so it
+    # carries no example of its own; every other one has a positive number the
+    # screen can offer — and only offer: nothing on the page fills it unasked.
+    for case in client.get("/api/solver/casos").json():
+        supported = {support["variable_key"] for support in case["supports"]}
+        for variable in case["variables"]:
+            if variable["key"] in supported:
+                assert variable["example"] is None, (case["key"], variable["key"])
+            else:
+                assert variable["example"] is not None, (case["key"], variable["key"])
+                assert variable["example"] > 0
+
+
+def test_every_case_solves_with_its_example_brief(client: TestClient) -> None:
+    # The example is only worth offering if pressing it gives an answer: each
+    # case, filled with its examples and its first support condition, solves.
+    for case in client.get("/api/solver/casos").json():
+        inputs: dict[str, float] = {}
+        for variable in case["variables"]:
+            support = next(
+                (s for s in case["supports"] if s["variable_key"] == variable["key"]),
+                None,
+            )
+            inputs[variable["key"]] = support["value"] if support else variable["example"]
+        response = client.post(
+            "/api/solver/resolver",
+            json={"case_key": case["key"], "inputs": inputs, "objective": "massa"},
+        )
+        assert response.status_code == 200, (case["key"], response.text)

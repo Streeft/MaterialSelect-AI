@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   createContext,
   forwardRef,
   useContext,
@@ -161,15 +162,19 @@ function FieldLabel({
   htmlFor,
   label,
   required,
+  unit,
 }: {
   htmlFor: string;
   label?: string;
   required?: boolean;
+  /** D-216: the unit shown inside the field, kept in the name a reader hears. */
+  unit?: string;
 }) {
   if (!label) return null;
   return (
     <label htmlFor={htmlFor} className="msds-field-label">
       {label}
+      {unit ? <span className="sr-only">{` (${unit})`}</span> : null}
       {required ? (
         <span className="ml-0.5 text-danger" aria-hidden>
           *
@@ -227,29 +232,49 @@ export const Input = forwardRef<
  * Numeric entry. `step="any"` (passed by call sites via the rest spread, as
  * before) because material properties are not integers and a browser that
  * rejects `2.7` on a step-1 input rejects it silently.
+ *
+ * D-216: `unit` writes the unit inside the field, after the number ("1,2 m"),
+ * the way Omni Calculator and the M3 text field's suffix do; the label stays
+ * the quantity's name, and the unit is still in the name a screen reader says.
  */
 export const NumberInput = forwardRef<
   HTMLInputElement,
   Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "type"> &
-    FieldTextExtras & { onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"] }
->(function NumberInput({ label, hint, error, required, className, id, disabled, ...rest }, ref) {
+    FieldTextExtras & {
+      onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
+      /** Already readable ("kN/m", "°C"): the caller writes it, this only places it. */
+      unit?: string;
+    }
+>(function NumberInput({ label, hint, error, required, className, id, disabled, unit, ...rest }, ref) {
   const generated = useId();
   const inputId = id ?? generated;
   const hintId = hint || error ? `${inputId}-hint` : undefined;
+  const control = (
+    <input
+      ref={ref}
+      id={inputId}
+      type="number"
+      required={required}
+      disabled={disabled}
+      aria-invalid={Boolean(error) || undefined}
+      aria-describedby={hintId}
+      {...rest}
+      className="msds-control tabular-nums"
+    />
+  );
   return (
     <div className={cn("msds-field", className)}>
-      <FieldLabel htmlFor={inputId} label={label} required={required} />
-      <input
-        ref={ref}
-        id={inputId}
-        type="number"
-        required={required}
-        disabled={disabled}
-        aria-invalid={Boolean(error) || undefined}
-        aria-describedby={hintId}
-        {...rest}
-        className="msds-control tabular-nums"
-      />
+      <FieldLabel htmlFor={inputId} label={label} required={required} unit={unit} />
+      {unit ? (
+        <div className="msds-unit-wrap" style={{ "--unit-ch": unit.length } as CSSProperties}>
+          {control}
+          <span aria-hidden className="msds-unit">
+            {unit}
+          </span>
+        </div>
+      ) : (
+        control
+      )}
       <FieldFooter hintId={hintId} hint={hint} error={error} />
     </div>
   );

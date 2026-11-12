@@ -3066,6 +3066,12 @@ export const ptBR = {
     moreActions: "Mais ações",
     titleLabel: "Título",
     outline: "Nesta página",
+    // D-216: InlineTable.
+    rowActions: (row: string) => `Ações de ${row}`,
+    duplicateRow: "Duplicar",
+    removeRow: "Remover",
+    rowRemoved: (row: string) => `${row} removido.`,
+    undo: "Desfazer",
     expandSection: (title: string) => `Mostrar ${title}`,
     collapseSection: (title: string) => `Recolher ${title}`,
     templates: "Comece por um modelo",

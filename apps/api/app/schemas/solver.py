@@ -23,6 +23,9 @@ class DesignVariableOut(BaseModel):
     label: str
     unit: str
     help_text: str
+    #: D-216: illustrative value offered behind "Usar o exemplo"; ``None`` when
+    #: a support condition fills the variable.
+    example: float | None = None
 
 
 class SupportConditionOut(BaseModel):
