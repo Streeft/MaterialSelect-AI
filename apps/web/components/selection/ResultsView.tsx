@@ -33,6 +33,8 @@ import { encodeIdList } from "@/lib/idList";
 import { CopyTableButton } from "./CopyTableButton";
 import { FunnelRow, percent } from "./FunnelRow";
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
+import { wizardText } from "@/lib/i18n-selection-wizard";
+import { CandidateExplorer } from "./CandidateExplorer";
 
 const t = ptBR.selection;
 
@@ -266,7 +268,13 @@ function TopCandidates({
 }
 
 /** The tabs of the results screen (D-85), in reading order. */
-export type ResultsTab = "resumo" | "ranking" | "eliminados" | "sensibilidade" | "origem";
+export type ResultsTab =
+  | "resumo"
+  | "ranking"
+  | "material"
+  | "eliminados"
+  | "sensibilidade"
+  | "origem";
 
 /**
  * Where each old section address now lives. The blocks kept their ids, so a
@@ -278,6 +286,8 @@ const TAB_BY_HASH: Record<string, ResultsTab> = {
   vencedor: "resumo",
   candidatos: "ranking",
   contribuicoes: "ranking",
+  // D-210: why each material is standing, with map and comparator actions.
+  "por-material": "material",
   funil: "eliminados",
   excluidos: "eliminados",
   sensibilidade: "sensibilidade",
@@ -331,6 +341,7 @@ export function ResultsView({
   const tabs: TabItem<ResultsTab>[] = [
     { id: "resumo", label: t.tabSummary },
     { id: "ranking", label: t.tabRanking, meta: candidates.length },
+    { id: "material", label: wizardText.explain.tab },
     { id: "eliminados", label: t.tabExcluded },
     { id: "sensibilidade", label: t.tabSensitivity },
     { id: "origem", label: t.tabProvenance },
@@ -473,6 +484,8 @@ export function ResultsView({
 
           </div>
         )}
+
+        {tab === "material" && <CandidateExplorer result={result} />}
 
         {tab === "eliminados" && (
           <div className="space-y-6">

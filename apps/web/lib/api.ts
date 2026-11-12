@@ -2,6 +2,11 @@
 // Base URL comes from NEXT_PUBLIC_API_URL (default: http://localhost:8000).
 
 import type {
+  FunnelPreview,
+  FunnelPreviewRequest,
+  RunDiff,
+  RunDiffRequest,
+  StudyTemplate,
   ExpressionDescription,
   ExpressionPalette,
   ExpressionUniverse,
@@ -737,6 +742,27 @@ export function createImportTemplate(
 
 export function runSelection(payload: RunRequest): Promise<RunResult> {
   return request<RunResult>(`/api/selection/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** The funnel's counts only, for the live preview while limits are edited (D-210). */
+export function previewFunnel(payload: FunnelPreviewRequest): Promise<FunnelPreview> {
+  return request<FunnelPreview>(`/api/selection/funnel`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Classic formulations the wizard applies in one click (D-210). */
+export function listStudyTemplates(): Promise<StudyTemplate[]> {
+  return request<StudyTemplate[]>(`/api/selection/templates`);
+}
+
+/** What changed between two runs of the same study, computed in the backend (D-210). */
+export function diffRuns(payload: RunDiffRequest): Promise<RunDiff> {
+  return request<RunDiff>(`/api/selection/run-diff`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

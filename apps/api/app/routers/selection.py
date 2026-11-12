@@ -24,15 +24,19 @@ from app.schemas.selection import (
     AhpWeightsOut,
     FilterRequest,
     FilterResultOut,
+    FunnelPreviewOut,
     IndexRequest,
     IndexResultOut,
     PerformanceIndexIn,
     PerformanceIndexOut,
+    RunDiffOut,
+    RunDiffRequest,
     RunRequest,
     RunResultOut,
     StudyIn,
     StudyOut,
     StudySummaryOut,
+    StudyTemplateOut,
     WeightsPreviewOut,
     WeightsPreviewRequest,
 )
@@ -52,6 +56,17 @@ def filter_materials(
 ) -> FilterResultOut:
     """Apply constraints and return the elimination funnel plus candidates."""
     return SelectionService(db, project.id, user).filter(payload)
+
+
+@router.post("/funnel", response_model=FunnelPreviewOut)
+def preview_funnel(
+    payload: FilterRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> FunnelPreviewOut:
+    """The funnel's counts only, for the live preview while limits are edited (D-210)."""
+    return SelectionService(db, project.id, user).funnel_preview(payload)
 
 
 @router.post("/index", response_model=IndexResultOut)
@@ -117,6 +132,30 @@ def preview_weights(
     as ``/run``: whoever may run a selection may preview one.
     """
     return SelectionService(db, project.id, user).weights_preview(payload)
+
+
+@router.get("/templates", response_model=list[StudyTemplateOut])
+def list_templates(
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[StudyTemplateOut]:
+    """Classic formulations the wizard applies in one click (D-210). No material data."""
+    return SelectionService(db, project.id, user).list_templates()
+
+
+@router.post("/run-diff", response_model=RunDiffOut)
+def diff_two_runs(
+    payload: RunDiffRequest,
+    project: Project = Depends(get_current_project),
+) -> RunDiffOut:
+    """What changed between two runs of the same study (D-210).
+
+    Pure computation over the two rankings the caller already holds — no
+    persistence, so no project scoping; ``project`` only requires login, like
+    ``/ahp-weights``.
+    """
+    return SelectionService.run_diff(payload)
 
 
 # --- saved studies ---------------------------------------------------------

@@ -50,7 +50,9 @@ from app.domain.ranking import (
     rank_promethee,
     rank_topsis,
 )
+from app.domain.run_diff import RunEntry, diff_runs
 from app.domain.slug import slugify
+from app.domain.study_templates import INDEX_CRITERION_KEY, STUDY_TEMPLATES, StudyTemplate
 from app.domain.taxonomy import lineages
 from app.domain.weights import WeightEntry, weight_budget
 from app.domain.winner import pick_winner
@@ -89,6 +91,7 @@ from app.schemas.selection import (
     ExcludedMaterialOut,
     FilterRequest,
     FilterResultOut,
+    FunnelPreviewOut,
     FunnelStepOut,
     IndexIn,
     IndexRequest,
@@ -99,6 +102,9 @@ from app.schemas.selection import (
     RankedMaterialOut,
     RankingIn,
     RankingResultOut,
+    RunDiffOut,
+    RunDiffRequest,
+    RunDiffRowOut,
     RunRequest,
     RunResultOut,
     SensitivityScenarioOut,
@@ -108,6 +114,7 @@ from app.schemas.selection import (
     StudyIn,
     StudyOut,
     StudySummaryOut,
+    StudyTemplateOut,
     WeightBudgetOut,
     WeightsPreviewOut,
     WeightsPreviewRequest,
@@ -116,7 +123,7 @@ from app.schemas.selection import (
 from app.services.audit_service import record_change
 from app.services.study_file import build_study_file, parse_study_file
 
-INDEX_KEY = "__index__"
+INDEX_KEY = INDEX_CRITERION_KEY
 _NUMERIC_OPS = {
     Operator.GT,
     Operator.GTE,
@@ -1669,7 +1676,8 @@ class SelectionService:
 
     # --- filter -----------------------------------------------------------
 
-    def filter(self, request: FilterRequest) -> FilterResultOut:
+    def _filter_pipeline(self, request: FilterRequest):
+        """Run the constraints of ``request``; shared by ``filter`` and the funnel."""
         self._check_stage_conflict(request.constraints, request.root_group, request.stages)
         self._check_root_group_conflict(request.constraints, request.root_group)
         # A limit stage's constraints name attributes by slug, and which
@@ -1684,6 +1692,27 @@ class SelectionService:
             request.universe,
         )
         stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
+        return snapshots, stages, stage_outs, steps, candidate_snaps
+
+    def funnel_preview(self, request: FilterRequest) -> FunnelPreviewOut:
+        """The counts of the funnel, without the candidates (D-210).
+
+        Same pipeline as ``filter`` — one source for "how many pass" — but the
+        answer the live preview needs is a dozen integers, not every surviving
+        record, so this one never builds the candidate list.
+        """
+        snapshots, stages, stage_outs, steps, candidate_snaps = self._filter_pipeline(request)
+        return FunnelPreviewOut(
+            universe=request.universe,
+            initial_count=len(snapshots),
+            combinator=self._pipeline_combinator(stages),
+            final_count=len(candidate_snaps),
+            funnel=steps,
+            stages=stage_outs,
+        )
+
+    def filter(self, request: FilterRequest) -> FilterResultOut:
+        snapshots, stages, stage_outs, steps, candidate_snaps = self._filter_pipeline(request)
         candidates = [
             CandidateOut(record_id=m.id, name=m.name, class_name=m.class_name)
             for m in candidate_snaps
@@ -2241,6 +2270,95 @@ class SelectionService:
         )
         self.repo.commit()
         return self._index_to_out(index)
+
+    # --- ready-made studies (D-210) ----------------------------------------
+
+    def list_templates(self) -> list[StudyTemplateOut]:
+        """The classic formulations, checked against the live catalogue.
+
+        Only the property catalogue is read — never the materials — because a
+        template carries no data: what has to be true is that every property
+        its index names exists, and that the expression parses with a dimension.
+        """
+        self._props = {p.slug: p for p in self.repo.list_properties()}
+        self._universe = "material"
+        indices = {i.slug: i for i in self.repo.list_indices()}
+        return [self._template_to_out(t, indices) for t in STUDY_TEMPLATES]
+
+    def _template_to_out(self, template: StudyTemplate, indices: dict) -> StudyTemplateOut:
+        missing = [slug for slug in template.required_properties if slug not in self._props]
+        catalogue_index = indices.get(template.index_slug) if template.index_slug else None
+        index = IndexIn(
+            name=catalogue_index.name if catalogue_index else template.index_name,
+            expression=(
+                catalogue_index.expression if catalogue_index else template.index_expression
+            ),
+            goal=catalogue_index.goal if catalogue_index else template.index_goal,  # type: ignore[arg-type]
+        )
+        available = not missing
+        if available:
+            try:
+                self._validate_expression(index.expression)
+            except ValidationError:
+                available = False
+        return StudyTemplateOut(
+            slug=template.slug,
+            name=template.name,
+            summary=template.summary,
+            function_text=template.function_text,
+            objective_text=template.objective_text,
+            design_constraint=template.design_constraint,
+            free_variables=list(template.free_variables),
+            universe="material",
+            stages=[
+                StageIn(
+                    kind="limit",
+                    root_group=ConstraintGroupIn(
+                        operator="AND",
+                        constraints=[
+                            ConstraintIn(operator="exists", property_slug=slug)
+                            for slug in template.required_properties
+                        ],
+                    ),
+                )
+            ],
+            index=index,
+            index_slug=catalogue_index.slug if catalogue_index else None,
+            criteria=[CriterionIn(key=INDEX_CRITERION_KEY, weight=1)],
+            reference=template.reference,
+            available=available,
+            missing_properties=missing,
+        )
+
+    # --- comparing two runs (D-210) -------------------------------------------
+
+    @staticmethod
+    def run_diff(request: RunDiffRequest) -> RunDiffOut:
+        """Rank by rank, what changed between two runs. Pure; no catalogue read."""
+        diff = diff_runs(
+            [RunEntry(e.record_id, e.name, e.rank) for e in request.before],
+            [RunEntry(e.record_id, e.name, e.rank) for e in request.after],
+        )
+        return RunDiffOut(
+            rows=[
+                RunDiffRowOut(
+                    record_id=r.record_id,
+                    name=r.name,
+                    rank_before=r.rank_before,
+                    rank_after=r.rank_after,
+                    change=r.change,
+                    positions=r.positions,
+                )
+                for r in diff.rows
+            ],
+            entered=diff.entered,
+            left=diff.left,
+            moved=diff.moved,
+            unchanged=diff.unchanged,
+            winners_before=diff.winners_before,
+            winners_after=diff.winners_after,
+            winner_changed=diff.winner_changed,
+        )
 
     # --- saved studies ----------------------------------------------------
 

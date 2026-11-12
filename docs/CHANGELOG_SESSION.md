@@ -120,6 +120,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 167 — 12/11/26 — Seleção em passos (D-210)
+
+**O que mudou.** Etapa 3.1. `app/app/selecao/page.tsx` (~1.900 linhas, ~31 `useState`) virou orquestração: o estudo num
+`useReducer` (`wizardState.ts`) e os passos em `steps/` (função, objetivo, limites, resultados, barra de progresso). Backend:
+`POST /selection/funnel` (contagens sem candidatos, para o funil ao vivo), `GET /selection/templates` (viga leve e rígida,
+mola leve, painel leve e rígido, trocador de calor — só formulação, limites `exists`, nenhum número de material) e
+`POST /selection/run-diff` (entrou/saiu/subiu/caiu entre duas execuções). Frontend: barra de progresso clicável, "Executar"
+desabilitado diz o que falta e leva ao campo, modelos prontos com Desfazer, aba "Por material" com explicação e "Abrir no
+mapa"/"Comparar selecionados", e "Execução anterior × atual" a partir da segunda execução. Comportamento preservado:
+`?etapa=`, rascunho (mesmo formato), foco no título, desfazer exclusão. Testes: `test_selection_wizard_d210.py` (funil,
+modelos — inclusive cada um rodando pelo pipeline real e o que falta no catálogo —, diferença de execuções e login),
+`wizardState.test.ts`, `runReadiness.test.ts`, `lib/selection/explain.test.ts`, `components/selection/wizardParts.test.tsx`
+(progresso, modelos, explicação, ações, comparação; com axe), casos novos em `selecao.test.tsx` e o E2E
+`e2e/selecao-modelos.spec.ts` (um estudo por modelo até os resultados). Sem migração nem seed. Depois do merge:
+**Deploy da API**.
+
 ## Sessão 166 — 12/11/26 — Padrões de página (D-209)
 
 **O que mudou.** Etapa 2.2. `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;

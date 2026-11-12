@@ -12230,6 +12230,69 @@ ausente = padrão).
 
 ---
 
+## D-210 — Seleção em passos: estado num reducer, funil leve, modelos prontos, o que falta para executar e duas execuções lado a lado
+
+**Contexto.** Etapa 3.1 da revisão das telas. `app/app/selecao/page.tsx` tinha ~1.900 linhas e ~31 `useState` num só
+componente; carregar um estudo, o exemplo ou um rascunho exigia lembrar de cada setter à mão. O funil ao vivo (D-186)
+pedia `POST /selection/run` a cada edição e recebia a lista inteira de candidatos só para contar. "Executar" desabilitado
+dizia o motivo (D-86), mas não levava ao campo. Não havia modelo pronto além do exemplo da viga de bicicleta (com
+limiares), nem explicação por material, nem como comparar duas execuções. Inspiração: Ansys Granta Selector (funil ao vivo
+enquanto se edita), Stripe (checklist de progresso), Linear (atalhos).
+
+**Decisão.**
+- **Passos em arquivos e um reducer.** `app/app/selecao/steps/` (`FunctionStep`, `ObjectiveStep`, `ConstraintsStep`,
+  `ResultsStep`, `WizardProgress`, `chrome.tsx` com o contador e os painéis, `steps.ts` com a ordem, os slugs de `?etapa=`
+  e `focusField`) e `wizardState.ts` com `useReducer`: uma ação por mudança (`text`, `stages`, `criteria`, `universe`,
+  `restore`, `replace`, `suggestions`…), e funções puras `stateFromStudy`, `stateFromExample`, `stateFromTemplate`. O
+  instantâneo (`snapshotOf`) tem **exatamente** os campos do rascunho do D-139, na mesma ordem, então o formato salvo não
+  mudou. Preservados: `?etapa=` com Voltar/Avançar, rascunho por conta, foco no título do passo (D-146), desfazer exclusão
+  (D-130), exemplo com Desfazer. A página ficou com a orquestração (URL, consultas, execuções, rascunho).
+- **Funil leve no backend.** `POST /selection/funnel` (router → `SelectionService.funnel_preview`) devolve só
+  `initial_count`, `final_count`, `combinator`, `funnel` e `stages` — o mesmo pipeline do `/filter` (extraído para
+  `_filter_pipeline`), sem montar a lista de candidatos. O assistente chama com debounce de 300 ms sobre a requisição
+  serializada; o painel e o contador da barra leem a mesma resposta.
+- **Modelos prontos definidos no backend.** `app/domain/study_templates.py` (dados puros) e `GET /selection/templates`:
+  "Viga leve e rígida" (E^½/ρ), "Mola leve" (σy²/Eρ), "Painel leve e rígido" (E^⅓/ρ) e "Trocador de calor" (λσy), de Ashby.
+  Cada um é **só formulação**: função, objetivo, a restrição de projeto em palavras, variável livre e índice. Os limites são
+  `exists` nas propriedades que o índice lê ("Densidade definido"), sem nenhum número; o critério é o próprio índice com
+  peso 1. O índice é o do catálogo quando o slug existe (viga e painel) e, se faltar, a mesma expressão como índice
+  personalizado. O serviço confere cada modelo contra o catálogo vivo (propriedades e expressão válida) e devolve
+  `available`/`missing_properties`; a tela diz o que falta em vez de aplicar meio estudo. Aplicar é um clique, com
+  Desfazer (o mesmo instantâneo do exemplo) e "Ver os limites".
+- **O que falta para executar** (`runReadiness.ts`, puro): cada bloqueio tem a frase, o botão e o campo
+  (`FieldTarget`: passo + id). Pesos (a verdade continua sendo o `can_run` do backend, D-87) levam ao campo de peso ou de
+  critério da linha com problema; índice personalizado vazio passou a bloquear e leva à expressão; critério que pede um
+  índice inexistente reabre o bloco do índice. O botão "Corrigir pesos" foi mantido com o mesmo nome e agora foca o campo.
+- **Barra de progresso** (`WizardProgress`): "N de 3 etapas prontas" e um botão para a primeira que falta (ou "Ir para
+  Executar"). Os segmentos são clicáveis com o ponteiro e ficam fora da ordem de tabulação e da árvore de acessibilidade —
+  o teclado e o leitor de tela têm o Stepper, logo abaixo, com os mesmos passos como botões.
+- **Resultados por material.** Aba "Por material" no `ResultsView` (`CandidateExplorer`): "Por que X?" abre frases
+  montadas por `lib/selection/explain.ts` a partir do que a execução já devolve — rótulos do funil, etapas, valor do índice
+  ou o motivo de ele ser indefinido, posição e nota, as contribuições (ordenadas só para exibir, como no cartão do
+  vencedor), a exclusão do ranking por falta de dado e os cenários de sensibilidade em que segue em 1º. Nada é
+  recalculado. Caixas de seleção levam a "Abrir no mapa" (com destaque no 1º) e "Comparar selecionados" (dois ou mais),
+  na ordem da classificação; estudo de processos não oferece mapa nem comparador.
+- **Atalho** (à moda do Linear): Ctrl/⌘ + Enter executa no passo que tem "Executar" (e no Resultados ainda vazio), mesmo
+  com o foco num campo — o acorde não é digitação; a barra de ações escreve o atalho em telas largas.
+- **Duas execuções do mesmo estudo.** `POST /selection/run-diff` com `app/domain/run_diff.py` (puro): para cada registro,
+  entrou, saiu, subiu/caiu N posições, igual ou "sem posição" (sem ranking não se afirma "zero posições"), mais quantos
+  entraram/saíram/mudaram e se o vencedor mudou. O assistente guarda a execução anterior **desta sessão** e mostra
+  "Execução anterior × atual" a partir da segunda execução; carregar outro estudo, o exemplo, um modelo ou o rascunho
+  zera o par.
+
+**Consequências.** Toca `apps/api` (três endpoints, sem migração nem seed): depois do merge, **Deploy da API**. Até o deploy,
+o funil ao vivo e os modelos falham com a mensagem de erro de sempre (o resto do assistente funciona). Contrato novo em
+`packages/shared-types` (`FunnelPreview`, `StudyTemplate`, `RunDiff`). Textos novos em `lib/i18n-selection-wizard.ts`.
+
+**Rejeitado.** Guardar execuções no servidor para comparar entre sessões (exige tabela nova e migração: ficou no TODO);
+calcular a diferença de posições na tela (é número, vai para o backend, princípio 2); modelo com limiares "típicos"
+(inventaria número de material, princípio 1); deixar a explicação dizer qual limite eliminou cada material reprovado (a
+resposta só traz contagens por limite; dizer mais exigiria mudar o motor — a tela diz isso com todas as letras).
+
+**Numeração.** D-210 e Sessão 167, conferidas livres em `origin/main` e na branch antes do commit.
+
+---
+
 ## D-200 — Erros humanos e com saída: um só tradutor de falha, menu que sobrevive, 404 que não finge ser falha
 
 **Contexto.** Na auditoria visual, a falha de rede aparecia como "Failed to fetch" e o erro do servidor como "Internal

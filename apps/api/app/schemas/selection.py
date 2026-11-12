@@ -380,6 +380,22 @@ class FilterResultOut(BaseModel):
     stages: list[StageResultOut] = Field(default_factory=list)
 
 
+class FunnelPreviewOut(BaseModel):
+    """The live funnel while the constraints are edited (D-210).
+
+    The counts of ``FilterResultOut`` without the candidate list: the wizard
+    asks for this on every (debounced) edit, and shipping every surviving
+    record each time was the weight of the old preview, not its answer.
+    """
+
+    universe: UniverseLiteral = "material"
+    initial_count: int
+    combinator: str
+    final_count: int
+    funnel: list[FunnelStepOut]
+    stages: list[StageResultOut] = Field(default_factory=list)
+
+
 class IndexValueOut(BaseModel):
     # ``record_id`` and not ``material_id`` since P0-4, for the reason
     # ``CandidateOut`` gives: in a process study this is a process's id, and a
@@ -694,3 +710,68 @@ class WeightsPreviewOut(BaseModel):
         Literal["no_criteria", "no_candidates", "all_excluded", "pipeline_error"] | None
     ) = None
     unavailable_message: str | None = None
+
+
+# --- ready-made studies and run comparison (D-210) -------------------------
+
+#: Ceiling on the rows of one run sent for comparison: the largest catalogue
+#: with room to grow, never an unbounded list.
+MAX_RUN_DIFF_ENTRIES = 5000
+
+
+class StudyTemplateOut(BaseModel):
+    """A classic formulation the wizard applies in one click (D-210).
+
+    Words and an index expression only — no material number (principle 1).
+    ``available`` is false, with the slugs in ``missing_properties``, when the
+    live catalogue lacks a property the index reads; the wizard then says what
+    is missing instead of loading half a study.
+    """
+
+    slug: str
+    name: str
+    summary: str
+    function_text: str
+    objective_text: str
+    design_constraint: str
+    free_variables: list[str]
+    universe: UniverseLiteral = "material"
+    stages: list[StageIn]
+    index: IndexIn
+    #: The catalogue index with this formulation, when the catalogue has one.
+    index_slug: str | None = None
+    criteria: list[CriterionIn]
+    reference: str
+    available: bool
+    missing_properties: list[str] = Field(default_factory=list)
+
+
+class RunEntryIn(BaseModel):
+    record_id: int
+    name: str = Field(min_length=1, max_length=300)
+    rank: int | None = Field(default=None, ge=1)
+
+
+class RunDiffRequest(BaseModel):
+    before: list[RunEntryIn] = Field(max_length=MAX_RUN_DIFF_ENTRIES)
+    after: list[RunEntryIn] = Field(max_length=MAX_RUN_DIFF_ENTRIES)
+
+
+class RunDiffRowOut(BaseModel):
+    record_id: int
+    name: str
+    rank_before: int | None = None
+    rank_after: int | None = None
+    change: Literal["up", "down", "same", "entered", "left", "unranked"]
+    positions: int | None = None
+
+
+class RunDiffOut(BaseModel):
+    rows: list[RunDiffRowOut]
+    entered: int
+    left: int
+    moved: int
+    unchanged: int
+    winners_before: list[str]
+    winners_after: list[str]
+    winner_changed: bool

@@ -159,6 +159,15 @@ renormalizando**, porque o laudo reexecuta estudos antigos (D-87). Na tela,
 Objetivo é o passo 2 e Restrições o 3 — o motor não mudou (D-88). E a explicação
 por IA só pede `sources` quando há trecho para citar (D-89).
 
+**Assistente em passos (D-210).** O estudo mora num `useReducer`
+(`app/app/selecao/wizardState.ts`) e cada passo em `app/app/selecao/steps/`; o
+instantâneo tem **os mesmos campos do rascunho** (D-139) — mudar um muda o formato
+salvo. O funil ao vivo pede `POST /api/selection/funnel` (contagens, sem
+candidatos). **Modelo pronto é só formulação** (`app/domain/study_templates.py`):
+limites `exists` nas propriedades do índice, nunca um limiar. Posições ganhas ou
+perdidas entre execuções vêm de `POST /api/selection/run-diff`, nunca da tela; a
+explicação por material só lê a resposta da execução.
+
 **Propriedade ordinal e nível mínimo aceito (D-126).** Uma propriedade
 ordinal de material é uma **escala ordenada** de níveis (pior primeiro), em
 tabelas próprias — nunca em `PropertyDefinition` — e o nível de um valor aponta a
