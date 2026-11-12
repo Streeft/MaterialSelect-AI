@@ -252,6 +252,8 @@ uma figura: tabela, sem gráfico. Regras:
 | Método | Rota | Função |
 |---|---|---|
 | POST | `/api/charts/property-map` | pontos, envelopes, exclusões e linha de índice |
+| POST | `/api/charts/index-line` | a linha de índice móvel: segmento, alça, lados e passos do controle (D-213) |
+| GET | `/api/charts/presets` | os mapas clássicos de Ashby como dados: eixos, escala e índice (D-213) |
 | POST | `/api/charts/compare` | matriz normalizada para as cinco visualizações |
 | GET | `/api/dashboard/overview` | cobertura geral, por classe e por propriedade |
 | GET | `/api/dashboard/distribution/{property_slug}` | quartis por classe para uma propriedade |
@@ -277,12 +279,15 @@ slug ou nada.
 ## Interface
 
 - **`/mapas`** — eixos, escala linear/log, filtro por classe, envelopes, barras
-  de erro/intervalos, rótulos, linha de índice com nível por material e
-  exportação. Aceita `?materiais=1,2,3&destaque=1` para receber os candidatos de
-  uma seleção.
+  de erro/intervalos, rótulos, linha de índice com nível por material, linha
+  móvel, mapas clássicos, seleção por caixa, laço ou teclado, e exportação
+  (também "para relatório"). Aceita `?materiais=1,2,3&destaque=1` para receber
+  os candidatos de uma seleção; o resto do mapa vai e volta pelo endereço
+  (`estado`, `sel`, `caixa`, `linha`, D-213).
 - **`/comparar`** — seleção de materiais sem teto prático (D-187) e até 20 propriedades, alternância
   entre as cinco visualizações e escolha da normalização. Aceita
-  `?materiais=1,2,3`.
+  `?materiais=1,2,3`, `?visao=` e `?diferencas=1` (D-214). Sem material, explica o que fazer e oferece favoritos e
+  vistos recentemente; a tabela marca o melhor de cada propriedade (`best_material_ids`, do backend) e tem "Só diferenças".
 - A tela de **Resultados** da seleção leva para as duas, preservando os
   candidatos e destacando o 1º colocado.
 
@@ -320,3 +325,45 @@ Propriedade que o catálogo não tem mais, pedaço sem forma de slug, excesso so
 as 20 propriedades e normalização desconhecida são ditos no aviso "O que o link
 trazia e ficou de fora" e saem do pedido e do endereço; a tabela espera o catálogo
 de propriedades antes de pedir ao servidor.
+
+## Comparar: o melhor, só diferenças e o radar com muitos (D-214)
+
+`POST /api/charts/compare` devolve, por propriedade, `best_material_ids` (quem tem o melhor valor pela direção declarada,
+empates incluídos; vazio para neutra, para menos de dois valores e para todos iguais) e `all_equal`. A tabela só marca e só
+esconde; nenhuma comparação de "maior ou menor" acontece no componente. "Só diferenças" esconde as colunas com `all_equal` ou
+sem valor em nenhum material e escreve quais; o link leva `visao` e `diferencas`. Acima de 12 materiais completos o radar
+não desenha de entrada (`RADAR_READABLE_UP_TO`): sugere paralelas, heatmap ou tabela e oferece "Desenhar o radar mesmo
+assim", sem cortar a seleção (D-187). As quatro figuras vivem em `components/charts/figures/`; `ComparisonFigures.tsx` só as
+reexporta.
+
+## Mapas: seleção, linha móvel, mapas clássicos e figura para relatório (D-213)
+
+A página se divide em `AxesPanel` (universo, nível, mapas clássicos, eixos),
+`CustomizePanel` (sempre aberto a partir de 840 px; recolhível abaixo disso),
+`SelectionPanel`, `AshbyMap` e `PointList`. Tudo o que o leitor muda fica na
+URL (`app/app/mapas/mapUrl.ts`, sobre o `useUrlState` do D-212).
+
+- **Seleção.** Caixa, laço e a lista de pontos dão o mesmo conjunto de
+  registros. O laço é o teste de pertinência do Plotly (os pontos que o evento
+  devolve). "Comparar" leva os ids; "Mostrar só estes no mapa" restringe pelo
+  `?materiais=`; "Abrir na Seleção" vale só para a caixa, que vira estágio de
+  gráfico convertido para a canônica pelo backend (D-81).
+- **Linha móvel (`POST /api/charts/index-line`).** Entrada: os eixos e filtros
+  do mapa, o índice e *um* de `level` (M) ou `through` (ponto do mapa em
+  unidades de leitura); sem nenhum, a linha nasce no índice mediano. Saída: o
+  segmento em unidades de leitura, a alça (meio do segmento na escala do
+  mapa), `better_ids`/`worse_ids`/`undefined_ids` e os `steps` do controle
+  (geométricos entre o menor e o maior índice definido). O ponto vira M por
+  `IndexLine.level_at` depois de voltar à canônica pela mesma regra do
+  desenho. O cliente só lê o ponteiro em coordenadas de dado (`p2d` do eixo do
+  Plotly, `components/charts/plotlyPointer.ts`).
+- **Mapas clássicos (`GET /api/charts/presets`).** `domain/map_presets.py`:
+  E × ρ, σy × ρ, E × σy, E × Cv, λ × α e KIc × σy, cada um com o índice de
+  Ashby correspondente. Só eixos, escala e índice; o que o catálogo não define
+  aparece desabilitado, com as propriedades que faltam.
+- **Pontos pelo teclado.** `PointList` é uma tabela dos pontos visíveis com
+  uma só parada de Tab: setas, Home/End e Page Up/Down andam, Espaço marca, e
+  o ponto em foco ganha um anel no mapa e é anunciado com as duas coordenadas.
+- **Figura para relatório.** No Exportar: o Plotly redesenha em 1200 × 800, o
+  PNG sai em 3× e a descrição do cartão (cobertura) e o guia do índice entram
+  sob o título (`REPORT_FIGURE` em `lib/figureExport.ts`).

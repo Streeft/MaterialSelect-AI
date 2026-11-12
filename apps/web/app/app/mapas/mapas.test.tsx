@@ -1,0 +1,473 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+// MWC roles live inside a shadow root (see components/layout/layout.test.tsx).
+import { screen } from "shadow-dom-testing-library";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { ptBR } from "@/lib/i18n";
+import { installWideViewport } from "@/lib/testing/viewport";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+import type {
+  IndexLineOut,
+  IndexLineRequest,
+  MapPreset,
+  PerformanceIndex,
+  PropertyDefinition,
+  PropertyMap,
+  PropertyMapRequest,
+} from "@/lib/types";
+
+allowLoadedRunner();
+
+const t = ptBR.map;
+
+// D-213: what the page does with Plotly's selection events. The figure itself
+// never draws here; these buttons emit what Plotly emits.
+vi.mock("react-plotly.js", () => ({
+  default: (props: { onSelected?: (event: unknown) => void }) => (
+    <div data-testid="plotly-mock">
+      <button
+        type="button"
+        onClick={() =>
+          props.onSelected?.({
+            lassoPoints: { x: [1, 2, 3], y: [1, 2, 3] },
+            points: [{ customdata: 0 }, { customdata: 1 }],
+          })
+        }
+      >
+        simular laço
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onSelected?.({ range: { x: [2, 8], y: [150, 300] } })}
+      >
+        simular caixa
+      </button>
+    </div>
+  ),
+}));
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app/mapas",
+  useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
+function property(slug: string, name: string, unit: string): PropertyDefinition {
+  return {
+    display_unit: null,
+    id: slug.length,
+    name,
+    slug,
+    symbol: null,
+    description: null,
+    category: "MECANICA",
+    physical_dimension: "x",
+    canonical_unit: unit,
+    accepted_units: [unit],
+    is_interval: false,
+    better_direction: "HIGHER",
+    allows_log_scale: true,
+    value_count: 3,
+  };
+}
+
+const properties = [
+  property("densidade", "Densidade", "kg/m**3"),
+  property("modulo_young", "Módulo de Young", "Pa"),
+  property("limite_escoamento", "Limite de escoamento", "Pa"),
+];
+
+const indices: PerformanceIndex[] = [
+  {
+    id: 1,
+    name: "Viga leve limitada por rigidez",
+    slug: "viga-leve-rigidez",
+    expression: "sqrt(modulo_young) / densidade",
+    goal: "maximize",
+    description: null,
+    assumptions: {},
+    dimension: "Pa**0.5*m**3/kg",
+    is_demo: true,
+  },
+];
+
+const presets: MapPreset[] = [
+  {
+    slug: "modulo-densidade",
+    name: "Módulo de Young × Densidade",
+    description: "Leveza e rigidez.",
+    x: "densidade",
+    y: "modulo_young",
+    x_name: "Densidade",
+    y_name: "Módulo de Young",
+    scale: "log",
+    index: {
+      name: "Viga leve limitada por rigidez",
+      expression: "sqrt(modulo_young) / densidade",
+      goal: "maximize",
+      slug: "viga-leve-rigidez",
+    },
+    available: true,
+    missing_properties: [],
+  },
+  {
+    slug: "resistencia-densidade",
+    name: "Limite de escoamento × Densidade",
+    description: "Leveza e resistência.",
+    x: "densidade",
+    y: "limite_escoamento",
+    x_name: "Densidade",
+    y_name: "Limite de escoamento",
+    scale: "log",
+    index: {
+      name: "Viga leve limitada por resistência",
+      expression: "limite_escoamento ** (2 / 3) / densidade",
+      goal: "maximize",
+      slug: null,
+    },
+    available: true,
+    missing_properties: [],
+  },
+  {
+    slug: "modulo-custo",
+    name: "Módulo de Young × Custo por volume",
+    description: "Rigidez barata.",
+    x: "custo_volume",
+    y: "modulo_young",
+    x_name: null,
+    y_name: "Módulo de Young",
+    scale: "log",
+    index: null,
+    available: false,
+    missing_properties: ["custo_volume"],
+  },
+];
+
+function point(id: number, name: string, x: number, y: number) {
+  return {
+    material_id: id,
+    material_name: name,
+    class_name: "Metais",
+    class_slug: "metais",
+    is_demo: true,
+    x,
+    y,
+    x_min: null,
+    x_max: null,
+    y_min: null,
+    y_max: null,
+    x_uncertainty: null,
+    y_uncertainty: null,
+    x_is_interval: false,
+    y_is_interval: false,
+    x_quality: "MEDIDO" as const,
+    y_quality: "MEDIDO" as const,
+    index_value: null,
+    index_undefined_reason: null,
+  };
+}
+
+function mapFor(request: PropertyMapRequest): PropertyMap {
+  const axis = (slug: string) => ({
+    is_index: false,
+    property_slug: slug,
+    property_name: properties.find((p) => p.slug === slug)?.name ?? slug,
+    expression: null,
+    symbol: null,
+    unit: slug === "densidade" ? "g/cm**3" : "GPa",
+    category: null,
+    better_direction: "HIGHER" as const,
+    allows_log_scale: true,
+    min_value: null,
+    max_value: null,
+  });
+  const all = [point(1, "Aço 1020", 7.85, 200), point(2, "Liga de alumínio", 2.7, 69), point(3, "Titânio", 4.5, 110)];
+  const points = request.material_ids ? all.filter((p) => request.material_ids?.includes(p.material_id)) : all;
+  return {
+    scale: request.scale,
+    x_axis: axis(request.x ?? "densidade"),
+    y_axis: axis(request.y ?? "modulo_young"),
+    points,
+    envelopes: [],
+    envelopes_alt: [],
+    excluded: [],
+    index: null,
+    considered_count: points.length,
+    plotted_count: points.length,
+    notes: [],
+  };
+}
+
+const getPropertyMap = vi.fn((request: PropertyMapRequest) => Promise.resolve(mapFor(request)));
+const moveIndexLine = vi.fn<(request: IndexLineRequest) => Promise<IndexLineOut>>();
+const convertMapBox = vi.fn();
+
+vi.mock("@/lib/api", () => ({
+  listProperties: () => Promise.resolve(properties),
+  listClasses: () => Promise.resolve([]),
+  listPerformanceIndices: () => Promise.resolve(indices),
+  listMapPresets: () => Promise.resolve(presets),
+  listSavedCharts: () => Promise.resolve([]),
+  listProcessAttributes: () => Promise.resolve([]),
+  listProcessClasses: () => Promise.resolve([]),
+  getPropertyMap: (request: PropertyMapRequest) => getPropertyMap(request),
+  moveIndexLine: (request: IndexLineRequest) => moveIndexLine(request),
+  convertMapBox: (payload: unknown) => convertMapBox(payload),
+  createSavedChart: () => Promise.resolve(null),
+  getSavedChart: () => Promise.resolve(null),
+}));
+
+const { default: MapsPage } = await import("./page");
+
+function setQuery(query: string) {
+  window.history.replaceState(null, "", `/app/mapas${query ? `?${query}` : ""}`);
+}
+
+function query(): URLSearchParams {
+  return new URLSearchParams(window.location.search);
+}
+
+function wrap(node: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+}
+
+async function open() {
+  const view = render(wrap(<MapsPage />));
+  await screen.findByTestId("plotly-mock");
+  return view;
+}
+
+function line(overrides: Partial<IndexLineOut> = {}): IndexLineOut {
+  return {
+    available: true,
+    unavailable_reason: null,
+    value: 2,
+    dimension: "Pa**0.5*m**3/kg",
+    orientation: "oblique",
+    slope: 2,
+    points: [
+      [1, 1],
+      [10, 100],
+    ],
+    handle: [3.16, 10],
+    better_ids: [1],
+    worse_ids: [2, 3],
+    undefined_ids: [],
+    steps: [1, 2, 3],
+    step_index: 1,
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  setQuery("");
+  push.mockReset();
+  getPropertyMap.mockClear();
+  moveIndexLine.mockReset();
+  moveIndexLine.mockImplementation((request) =>
+    Promise.resolve(line(request.level ? { value: request.level, step_index: request.level - 1 } : {})),
+  );
+  convertMapBox.mockReset();
+});
+
+describe("Mapas — seleção que vira filtro (D-213)", () => {
+  it("o laço escolhe materiais, guarda na URL e oferece Comparar com esses ids", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    expect(screen.getByText(t.selectionEmpty)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "simular laço" }));
+
+    await waitFor(() => expect(query().get("sel")).toBe("1,2"));
+    expect(screen.getByText(t.selectionCount(2))).toBeInTheDocument();
+    const compare = screen.getByShadowRole("link", { name: `${t.compareSelection} →` });
+    expect(compare).toHaveAttribute("href", "/app/comparar?materiais=1,2");
+    // A lasso is a set of records, not a region: the Chart Stage needs a box.
+    expect(screen.getByText(t.openInSelectionNeedsBox)).toBeInTheDocument();
+  });
+
+  it("“Mostrar só estes no mapa” restringe o mapa pelos mesmos ids, e “Mostrar todos” desfaz", async () => {
+    const user = userEvent.setup();
+    setQuery("sel=1,2");
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.showOnlySelection }));
+    await waitFor(() => expect(query().get("materiais")).toBe("1,2"));
+    await waitFor(() =>
+      expect(getPropertyMap).toHaveBeenLastCalledWith(expect.objectContaining({ material_ids: [1, 2] })),
+    );
+    expect(query().get("sel")).toBeNull();
+    expect(await screen.findByText(t.restrictedNotice(2))).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: t.showAll }));
+    await waitFor(() => expect(query().get("materiais")).toBeNull());
+  });
+
+  it("uma caixa vai para a Seleção como estágio, convertida pelo servidor", async () => {
+    const user = userEvent.setup();
+    convertMapBox.mockResolvedValue({
+      box: { x_min: 2000, x_max: 8000, y_min: 1e11, y_max: 3e11 },
+      x_unit: "kg/m**3",
+      y_unit: "Pa",
+    });
+    await open();
+
+    await user.click(screen.getByRole("button", { name: "simular caixa" }));
+    await waitFor(() => expect(query().get("caixa")).not.toBeNull());
+    // Aço (7,85; 200) is inside; aluminium (69 GPa) and titanium (110 GPa) are below it.
+    expect(screen.getByText(t.selectionCount(1))).toBeInTheDocument();
+
+    await user.click(screen.getByShadowRole("button", { name: new RegExp(`^${t.openInSelection}`) }));
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(convertMapBox).toHaveBeenCalledWith(expect.objectContaining({ to: "canonical" }));
+    expect(push.mock.calls[0]?.[0]).toMatch(/^\/app\/selecao\?.*novo_estagio=chart.*x_min=2000/);
+  });
+
+  it("a lista de pontos anda pelo teclado, anuncia o destacado e marca com Espaço", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    const first = screen.getByRole("checkbox", { name: t.pointSelect("Aço 1020") });
+    const second = screen.getByRole("checkbox", { name: t.pointSelect("Liga de alumínio") });
+    // One tab stop for the whole list (roving tabindex).
+    expect(first).toHaveAttribute("tabindex", "0");
+    expect(second).toHaveAttribute("tabindex", "-1");
+
+    first.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(second).toHaveFocus();
+    expect(second).toHaveAttribute("tabindex", "0");
+    expect(
+      screen.getByText(/^Liga de alumínio, Metais\. Densidade 2,7 g\/cm³; Módulo de Young 69 GPa\.$/),
+    ).toBeInTheDocument();
+
+    await user.keyboard(" ");
+    await waitFor(() => expect(query().get("sel")).toBe("2"));
+    expect(second).toBeChecked();
+
+    await user.keyboard("{End}");
+    expect(screen.getByRole("checkbox", { name: t.pointSelect("Titânio") })).toHaveFocus();
+  });
+
+  // D-86 on a narrow window: the drawing options wait in the disclosure,
+  // unless the link already uses one of them.
+  it("em tela estreita “Personalizar o mapa” recolhe, a não ser que o link o use", async () => {
+    const { unmount } = await open();
+    const summary = screen.getByText(t.customize);
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
+    // An axis can become an index only from inside the panel.
+    expect(screen.queryByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeNull();
+    unmount();
+
+    const { encodeMapState } = await import("./url-state");
+    const { DEFAULT_MAP_STATE } = await import("./mapUrl");
+    setQuery(`estado=${encodeMapState({ ...DEFAULT_MAP_STATE, scale: "linear" })}`);
+    await open();
+    expect((screen.getByText(t.customize).closest("details") as HTMLDetailsElement).open).toBe(true);
+    expect(screen.getByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeInTheDocument();
+  });
+
+  it("a seleção vem do endereço: um link reabre o mapa com os mesmos registros", async () => {
+    setQuery("sel=3");
+    await open();
+    expect(screen.getByText(t.selectionCount(1))).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: t.pointSelect("Titânio") })).toBeChecked();
+  });
+});
+
+describe("Mapas — mapas clássicos e linha de índice móvel (D-213)", () => {
+  installWideViewport();
+
+  it("um mapa clássico troca eixos e índice com um clique; o indisponível diz o que falta", async () => {
+    const user = userEvent.setup();
+    await open();
+
+    const unavailable = await screen.findByRole("button", { name: "Módulo de Young × Custo por volume" });
+    expect(unavailable).toBeDisabled();
+    expect(unavailable).toHaveAccessibleDescription(t.presetUnavailable("custo_volume"));
+
+    await user.click(screen.getByRole("button", { name: "Limite de escoamento × Densidade" }));
+    await waitFor(() =>
+      expect(getPropertyMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          x: "densidade",
+          y: "limite_escoamento",
+          scale: "log",
+          index: expect.objectContaining({ expression: "limite_escoamento ** (2 / 3) / densidade" }),
+        }),
+      ),
+    );
+    expect(
+      screen.getByRole("button", { name: "Limite de escoamento × Densidade" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("o mapa segue o leitor no endereço, e o mapa de chegada não suja a URL", async () => {
+    const user = userEvent.setup();
+    await open();
+    expect(query().get("estado")).toBeNull();
+    await user.click(screen.getByShadowRole("button", { name: t.linear }));
+    await waitFor(() => expect(query().get("estado")).not.toBeNull());
+    const { decodeMapState } = await import("./url-state");
+    expect(decodeMapState(query().get("estado") ?? "")?.scale).toBe("linear");
+    await user.click(screen.getByShadowRole("button", { name: t.log }));
+    await waitFor(() => expect(query().get("estado")).toBeNull());
+  });
+
+  it("em tela larga “Personalizar o mapa” fica sempre aberto, sem recolher", async () => {
+    await open();
+    const heading = screen.getByRole("heading", { name: t.customize });
+    expect(heading.closest("details")).toBeNull();
+    // The axes can turn into an index from the always-open panel.
+    expect(screen.getByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeInTheDocument();
+  });
+
+  it("a linha móvel nasce no backend e o controle move o nível pelos passos que ele mandou", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole("button", { name: "Módulo de Young × Densidade" }));
+
+    await user.click(await screen.findByShadowRole("button", { name: t.lineAdd }));
+    await waitFor(() => expect(moveIndexLine).toHaveBeenCalled());
+    expect(moveIndexLine.mock.calls[0]?.[0]).toMatchObject({
+      x: "densidade",
+      y: "modulo_young",
+      level: null,
+      through: null,
+      index: expect.objectContaining({ expression: "sqrt(modulo_young) / densidade" }),
+    });
+    // The level the backend chose is now the one in the address.
+    await waitFor(() => expect(query().get("linha")).toBe("2"));
+    expect(screen.getByText(t.lineBetter(1))).toBeInTheDocument();
+
+    const slider = screen.getByRole("slider", { name: t.lineSlider });
+    expect(slider).toHaveValue("1");
+    fireEvent.change(slider, { target: { value: "2" } });
+    await waitFor(() => expect(query().get("linha")).toBe("3"));
+    await waitFor(() =>
+      expect(moveIndexLine).toHaveBeenLastCalledWith(expect.objectContaining({ level: 3 })),
+    );
+
+    await user.click(screen.getByShadowRole("button", { name: t.lineUseBetter }));
+    await waitFor(() => expect(query().get("sel")).toBe("1"));
+  });
+
+  it("passa no axe com seleção, mapas clássicos e a linha móvel na tela", async () => {
+    const user = userEvent.setup();
+    setQuery("sel=1,3");
+    const { container } = await open();
+    await user.click(await screen.findByRole("button", { name: "Módulo de Young × Densidade" }));
+    await user.click(await screen.findByShadowRole("button", { name: t.lineAdd }));
+    await screen.findByRole("slider", { name: t.lineSlider });
+    // The stand-in figure's buttons are this file's, not the page's: Plotly's
+    // own figure sits in the `role="img"` box, which the real page keeps.
+    screen.getByTestId("plotly-mock").setAttribute("hidden", "");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});

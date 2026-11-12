@@ -4,10 +4,16 @@ import { renderWithQuery as render } from "@/lib/testing/queryWrapper";
 import { screen } from "shadow-dom-testing-library";
 import { ComparisonView, type ComparisonMode } from "./ComparisonView";
 import { ptBR } from "@/lib/i18n";
+import { compareViewText } from "@/lib/i18n-compare-view";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
 import type { CompareAxis, CompareCell, CompareMaterial, Comparison } from "@/lib/types";
 
 allowLoadedRunner();
+
+/** D-214: past a dozen the radar waits for "desenhar mesmo assim"; the reader asks once. */
+function drawRadarAnyway() {
+  fireEvent.click(screen.getByRole("button", { name: compareViewText.radar.drawAnyway }));
+}
 
 /*
  * D-187: the comparator no longer refuses a figure for having "too many"
@@ -120,7 +126,10 @@ describe.each([200, 600])("ComparisonView with %i materials (D-187)", (count) =>
 
   it("draws every complete material on the radar", () => {
     const started = performance.now();
-    const { container } = render(<ComparisonView comparison={comparison} mode="radar" />);
+    const { container } = render(
+      <ComparisonView comparison={comparison} mode="radar" onModeChange={() => {}} />,
+    );
+    drawRadarAnyway();
     const elapsed = performance.now() - started;
     console.info(`[perf] radar ${count} materiais x ${PROPERTY_COUNT}: ${elapsed.toFixed(0)} ms`);
 
@@ -148,7 +157,10 @@ describe.each([200, 600])("ComparisonView with %i materials (D-187)", (count) =>
 
   it("still draws the heatmap, and no mode shows a refusal", () => {
     for (const mode of ["bars", "radar", "parallel", "heatmap"] as ComparisonMode[]) {
-      const { container, unmount } = render(<ComparisonView comparison={comparison} mode={mode} />);
+      const { container, unmount } = render(
+        <ComparisonView comparison={comparison} mode={mode} onModeChange={() => {}} />,
+      );
+      if (mode === "radar") drawRadarAnyway();
       expect(figureOf(container)).toBeTruthy();
       expect(container.textContent).not.toMatch(/só é desenhada com até/);
       unmount();

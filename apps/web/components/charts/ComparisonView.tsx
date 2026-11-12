@@ -27,7 +27,9 @@ import {
 } from "@/components/ui";
 import { PropertyHint } from "@/components/glossary/PropertyHint";
 import { ChartFrame } from "./ChartFrame";
-import { DENSE_FROM } from "./comparisonDensity";
+import { DENSE_FROM, RADAR_READABLE_UP_TO } from "./comparisonDensity";
+import { compareViewText } from "@/lib/i18n-compare-view";
+import type { CompareView } from "@/lib/compare-link";
 import { FigureData, type FigureColumn } from "./FigureData";
 import { CopyTableButton } from "@/components/selection/CopyTableButton";
 import { comparisonTsv } from "@/lib/copyTables";
@@ -49,12 +51,7 @@ const CLASS_VARIANTS_FROM = 12;
 /** Table rows drawn at first; the rest come with "Mostrar mais" (a 600-row table is 160 thousand nodes, D-187). */
 const TABLE_CHUNK = 100;
 
-export type ComparisonMode =
-  | "table"
-  | "bars"
-  | "radar"
-  | "parallel"
-  | "heatmap";
+export type ComparisonMode = CompareView;
 
 export const COMPARISON_MODES: { key: ComparisonMode; label: string }[] = [
   { key: "table", label: t.viewTable },
@@ -71,6 +68,10 @@ interface ComparisonViewProps {
       table is perfectly usable without one, and says so per cell. */
   referenceId?: number | null;
   onSetReference?: (materialId: number | null) => void;
+  /** D-214: hide the properties that separate nobody (equal in all, or absent in all). */
+  onlyDifferences?: boolean;
+  /** D-214: lets the radar's advice for a crowded selection switch the view. */
+  onModeChange?: (mode: ComparisonMode) => void;
 }
 
 /**
@@ -170,6 +171,8 @@ export function ComparisonView({
   mode,
   referenceId = null,
   onSetReference,
+  onlyDifferences = false,
+  onModeChange,
 }: ComparisonViewProps) {
   const { properties, materials } = comparison;
   const lookup = useMemo(
@@ -184,6 +187,8 @@ export function ComparisonView({
   );
 
   const [rowsShown, setRowsShown] = useState(TABLE_CHUNK);
+  // D-214: the reader's "draw it anyway" for a radar the view advised against.
+  const [drawCrowdedRadar, setDrawCrowdedRadar] = useState(false);
   const incomplete = materials.filter((m) => !m.complete);
 
   // What every figure draws: one series per material (class colour and marker
@@ -250,6 +255,21 @@ export function ComparisonView({
     }),
   );
 
+  // D-214: "só diferenças". Which columns separate nobody is the backend's call
+  // (`all_equal`, `present_count`); here they are only left out and named. An
+  // older payload without the fields hides nothing.
+  const equalEverywhere = onlyDifferences
+    ? properties.filter((p) => p.all_equal === true && p.present_count > 0)
+    : [];
+  const absentEverywhere = onlyDifferences ? properties.filter((p) => p.present_count === 0) : [];
+  const hiddenSlugs = new Set(
+    [...equalEverywhere, ...absentEverywhere].map((p) => p.property_slug),
+  );
+  const columns = properties.filter((p) => !hiddenSlugs.has(p.property_slug));
+  const bestOf = new Map(
+    properties.map((p) => [p.property_slug, new Set(p.best_material_ids ?? [])]),
+  );
+
   if (mode === "table") {
     // Many rows: the box gets a height so the header (sticky) and the material
     // column (sticky) stay in view while the reader scrolls both ways.
@@ -267,8 +287,32 @@ export function ComparisonView({
           />
         </div>
         <ThresholdSummary comparison={comparison} />
+        {hiddenSlugs.size > 0 && (
+          <div className="well flex flex-col gap-1 text-support text-ink-muted" role="status">
+            <p className="font-semibold text-ink">
+              {compareViewText.onlyDifferences.hidden(hiddenSlugs.size)}
+            </p>
+            {equalEverywhere.length > 0 && (
+              <p>
+                {compareViewText.onlyDifferences.equalIn(
+                  equalEverywhere.map((p) => p.property_name).join(", "),
+                )}
+              </p>
+            )}
+            {absentEverywhere.length > 0 && (
+              <p>
+                {compareViewText.onlyDifferences.absentIn(
+                  absentEverywhere.map((p) => p.property_name).join(", "),
+                )}
+              </p>
+            )}
+          </div>
+        )}
+        {onlyDifferences && columns.length === 0 ? (
+          <Alert tone="info">{compareViewText.onlyDifferences.nothingLeft}</Alert>
+        ) : (
         <TableScroll
-          label={t.tableRegion(materials.length, properties.length)}
+          label={t.tableRegion(materials.length, columns.length)}
           className={wide ? "max-h-[70vh] overflow-y-auto" : undefined}
         >
           <Table>
@@ -280,7 +324,7 @@ export function ComparisonView({
                 <Th className="sticky left-0 z-20 bg-well">
                   {t.columnMaterial}
                 </Th>
-                {properties.map((p) => (
+                {columns.map((p) => (
                   <Th
                     key={p.property_slug}
                     className={p.exceeds_threshold === true ? "bg-warning-soft text-warning-fg" : undefined}
@@ -355,7 +399,7 @@ export function ComparisonView({
                         </Button>
                       ))}
                   </RowHeader>
-                  {properties.map((p) => {
+                  {columns.map((p) => {
                     const cell = lookup
                       .get(material.material_id)
                       ?.get(p.property_slug);
@@ -382,8 +426,15 @@ export function ComparisonView({
                       );
                     }
                     const provenance = provenanceOfCell(cell, p.unit);
+                    // D-214: the backend named who holds the best value by the
+                    // property's own direction; the cell says so in words, and
+                    // the tint only echoes it.
+                    const isBest = bestOf.get(p.property_slug)?.has(material.material_id) === true;
                     return (
-                      <Td key={p.property_slug} className="text-ink">
+                      <Td
+                        key={p.property_slug}
+                        className={isBest ? "bg-success-soft text-ink" : "text-ink"}
+                      >
                         <span className="flex flex-wrap items-baseline gap-x-2">
                           {/* §3.2: the whole chain behind the number, one click
                             away, instead of grey micro-text nobody reads. */}
@@ -396,6 +447,14 @@ export function ComparisonView({
                             state={qualityState(provenance)}
                             showLabel={false}
                           />
+                          {isBest && (
+                            <Badge
+                              tone="success"
+                              title={compareViewText.bestHint(ptBR.direction[p.better_direction])}
+                            >
+                              {compareViewText.best}
+                            </Badge>
+                          )}
                         </span>
                         {cell.normalized !== null && (
                           <span className="mt-1 flex items-center gap-1">
@@ -428,6 +487,7 @@ export function ComparisonView({
             </TBody>
           </Table>
         </TableScroll>
+        )}
         {materials.length > rowsShown && (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-support text-ink-subtle">
@@ -442,6 +502,39 @@ export function ComparisonView({
           </div>
         )}
       </div>
+    );
+  }
+
+  const radarCrowded =
+    mode === "radar" &&
+    !drawCrowdedRadar &&
+    materials.filter((m) => m.complete).length > RADAR_READABLE_UP_TO;
+  if (radarCrowded) {
+    const go = (view: ComparisonMode) => onModeChange?.(view);
+    return (
+      <Alert tone="info" title={compareViewText.radar.crowdedTitle(materials.length)}>
+        <div className="flex flex-col gap-3">
+          <p>{compareViewText.radar.crowdedBody}</p>
+          <div className="flex flex-wrap gap-2">
+            {onModeChange && (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => go("parallel")}>
+                  {compareViewText.radar.goParallel}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => go("heatmap")}>
+                  {compareViewText.radar.goHeatmap}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => go("table")}>
+                  {compareViewText.radar.goTable}
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setDrawCrowdedRadar(true)}>
+              {compareViewText.radar.drawAnyway}
+            </Button>
+          </div>
+        </div>
+      </Alert>
     );
   }
 

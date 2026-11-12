@@ -66,4 +66,20 @@ export const fichaText = {
     seriesOrder: "percorrida do primeiro ao último ponto",
     columnOrder: "Ordem no caminho",
   },
+  /** D-214: the sheet's frame: outline, summary strip, folded sections. */
+  layout: {
+    outlineLabel: "Seções da ficha",
+    outlineTitle: "Nesta ficha",
+    quickLabel: "Resumo da ficha",
+    processesSummary: (n: number) => (n === 1 ? "1 processo compatível" : `${n} processos compatíveis`),
+    processesNone: "Nenhum processo cadastrado para este material",
+    goToProcesses: "Ver processos",
+    similarSummary: "Materiais parecidos pelas propriedades que você escolher",
+    goToSimilar: "Buscar materiais parecidos",
+    unitsSummary: (n: number) =>
+      `Ler os valores em outra unidade (${n} ${n === 1 ? "grandeza" : "grandezas"})`,
+    mapHint:
+      "O gráfico só é carregado quando você abre esta seção. O mapa completo tem todos os materiais e os outros eixos.",
+    foldedHint: "Seção dobrada: abra para carregar o conteúdo.",
+  },
 } as const;

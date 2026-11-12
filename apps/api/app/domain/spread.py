@@ -21,7 +21,7 @@ as a named state, never a blank or a zero (D-24).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Literal
 
 SpreadState = Literal[
@@ -58,3 +58,20 @@ def exceeds(value_pct: float | None, threshold_pct: float | None) -> bool | None
     if value_pct is None or threshold_pct is None:
         return None
     return abs(value_pct) > threshold_pct
+
+
+def best_ids(
+    values_by_id: Mapping[int, float], better: Literal["HIGHER", "LOWER", "NEUTRAL"]
+) -> list[int]:
+    """The ids holding the best value of one property, ties included (D-214).
+
+    "Best" is a fact of the property's declared direction, so it is settled here
+    and shipped to the screen: a component deciding "bigger or smaller wins" would
+    be calculating in presentation (ADR 0004). Nothing is declared best when the
+    property has no preferred direction, when fewer than two materials have a
+    value, or when all of them are equal: a badge on every row says nothing.
+    """
+    if better == "NEUTRAL" or len(values_by_id) < 2 or len(set(values_by_id.values())) == 1:
+        return []
+    target = (min if better == "LOWER" else max)(values_by_id.values())
+    return sorted(mid for mid, value in values_by_id.items() if value == target)

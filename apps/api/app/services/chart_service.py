@@ -22,9 +22,17 @@ from app.calculations.expressions import (
     result_dimension,
     safe_variable,
     validate_names,
+    variables_in,
 )
 from app.calculations.performance import IndexEvaluation, evaluate_index
-from app.calculations.powerlaw import IndexLine, index_line
+from app.calculations.powerlaw import (
+    IndexLine,
+    index_line,
+    level_steps,
+    median_level,
+    nearest_step,
+    segment_handle,
+)
 from app.calculations.units import (
     UnitError,
     is_ratio_scale,
@@ -36,8 +44,9 @@ from app.domain.axis_domain import open_selection_bounds
 from app.domain.display_units import Reading, reading_for, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
+from app.domain.map_presets import MAP_PRESETS
 from app.domain.ranking import Direction, Normalization, normalize_column
-from app.domain.spread import exceeds, spread_pct
+from app.domain.spread import best_ids, exceeds, spread_pct
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
@@ -57,12 +66,16 @@ from app.schemas.charts import (
     DifferenceState,
     ExcludedPointOut,
     IndexLevelOut,
+    IndexLineOut,
+    IndexLineRequest,
     IndexOverlayOut,
     MapAxisOut,
     MapBoxIn,
     MapBoxOut,
     MapBoxRequest,
     MapPointOut,
+    MapPresetIndexOut,
+    MapPresetOut,
     OpenBoundsOut,
     OpenSidesOut,
     PropertyMapOut,
@@ -153,6 +166,10 @@ class ChartService:
         )
 
     def _material_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
+        return self._read_map(self._material_map_canonical(request))
+
+    def _material_map_canonical(self, request: PropertyMapRequest) -> PropertyMapOut:
+        """The material map in canonical units, before :meth:`_read_map` rescales it."""
         if (request.x is None) == (request.x_index is None):
             raise ValidationError("Informe x ou x_index no eixo X — nunca os dois, nunca nenhum.")
         if (request.y is None) == (request.y_index is None):
@@ -262,20 +279,18 @@ class ChartService:
         )
         overlay = self._index_overlay(request, points, variables, notes)
 
-        return self._read_map(
-            PropertyMapOut(
-                scale=request.scale,
-                x_axis=x_meta.model_copy(update=self._range(points, "x")),
-                y_axis=y_meta.model_copy(update=self._range(points, "y")),
-                points=points,
-                envelopes=envelopes,
-                envelopes_alt=envelopes_alt,
-                excluded=excluded,
-                index=overlay,
-                considered_count=len(materials),
-                plotted_count=len(points),
-                notes=notes,
-            )
+        return PropertyMapOut(
+            scale=request.scale,
+            x_axis=x_meta.model_copy(update=self._range(points, "x")),
+            y_axis=y_meta.model_copy(update=self._range(points, "y")),
+            points=points,
+            envelopes=envelopes,
+            envelopes_alt=envelopes_alt,
+            excluded=excluded,
+            index=overlay,
+            considered_count=len(materials),
+            plotted_count=len(points),
+            notes=notes,
         )
 
     def _map_reading(self, slug: str | None) -> tuple[Reading | None, str | None]:
@@ -805,6 +820,139 @@ class ChartService:
             )
         return envelopes
 
+    # --- movable index line (D-211) --------------------------------------
+
+    def index_line(self, request: IndexLineRequest) -> IndexLineOut:
+        """Place one iso-index line where the reader moved it, and split the map by it.
+
+        The line is the map's own overlay (same evaluation, same
+        :meth:`_draw_levels`), computed over the same points the map plots —
+        so the segment drawn here and the "lado favorável" count of a level
+        typed on the map always agree. A ``through`` point arrives in reading
+        units and is taken back to canonical by the same rule the map was
+        drawn with (:meth:`_map_reading`) before the level is read off the
+        expression; the segment goes out in reading units again.
+        """
+        if request.level is not None and request.through is not None:
+            raise ValidationError("Informe o nível M ou um ponto do mapa — nunca os dois.")
+        chart = self._material_map_canonical(
+            PropertyMapRequest(
+                x=request.x,
+                y=request.y,
+                scale=request.scale,
+                class_slugs=request.class_slugs,
+                material_ids=request.material_ids,
+                include_envelopes=False,
+                index=request.index,
+            )
+        )
+        overlay = chart.index
+        assert overlay is not None  # the request always carries an index
+        defined = {p.material_id: p.index_value for p in chart.points if p.index_value is not None}
+        undefined = sorted(p.material_id for p in chart.points if p.index_value is None)
+        out = IndexLineOut(
+            available=False,
+            dimension=overlay.dimension,
+            orientation=overlay.orientation,
+            slope=overlay.slope,
+            undefined_ids=undefined,
+            steps=level_steps(list(defined.values())),
+        )
+        if not overlay.available:
+            out.unavailable_reason = overlay.unavailable_reason
+            return out
+        line = index_line(
+            request.index.expression, safe_variable(request.x), safe_variable(request.y)
+        )
+
+        rx, _ = self._map_reading(request.x)
+        ry, _ = self._map_reading(request.y)
+        if request.through is not None:
+            cx = self._canonical(request.through.x, rx)
+            cy = self._canonical(request.through.y, ry)
+            level = line.level_at(cx, cy)
+            if level is None:
+                raise ValidationError("O índice não tem valor definido neste ponto do mapa.")
+        elif request.level is not None:
+            level = request.level
+        else:
+            level = median_level(list(defined.values()))
+            if level is None:
+                out.unavailable_reason = "Nenhum material do mapa tem o índice definido."
+                return out
+
+        drawn = self._draw_levels(line, [(level, None, None)], chart.points, overlay.goal, defined)
+        out.value = level
+        out.step_index = nearest_step(out.steps, level)
+        if not drawn:
+            out.unavailable_reason = "Este nível não cruza o intervalo de dados do mapa."
+            return out
+        better = set(drawn[0].superior_material_ids)
+        out.available = True
+        out.better_ids = sorted(better)
+        out.worse_ids = sorted(mid for mid in defined if mid not in better)
+        out.points = [
+            [self._read(px, rx), self._read(py, ry)]  # type: ignore[misc]
+            for px, py in drawn[0].points
+        ]
+        out.handle = segment_handle(out.points, request.scale == "log")
+        return out
+
+    @staticmethod
+    def _canonical(value: float, reading: Reading | None) -> float:
+        if reading is None:
+            return value
+        converted, _method = to_canonical(value, reading.unit, reading.canonical_unit)
+        return converted
+
+    @staticmethod
+    def _read(value: float, reading: Reading | None) -> float:
+        return reading.value(value) if reading is not None else value  # type: ignore[return-value]
+
+    # --- classic map presets (D-211) -------------------------------------
+
+    def map_presets(self) -> list[MapPresetOut]:
+        """The classic Ashby charts, each marked available or not for this catalogue."""
+        properties = {p.slug: p for p in self.repo.list_properties()}
+        indices = {i.slug: i for i in self.repo.list_performance_indices()}
+        out: list[MapPresetOut] = []
+        for preset in MAP_PRESETS:
+            needed = [preset.x, preset.y]
+            index_out: MapPresetIndexOut | None = None
+            if preset.index is not None:
+                needed += [
+                    slug
+                    for slug in sorted(variables_in(preset.index.expression))
+                    if slug not in needed
+                ]
+                catalogued = indices.get(preset.index.slug) if preset.index.slug else None
+                same = catalogued is not None and _same_expression(
+                    catalogued.expression, preset.index.expression
+                )
+                index_out = MapPresetIndexOut(
+                    name=catalogued.name if same and catalogued else preset.index.name,
+                    expression=preset.index.expression,
+                    goal=preset.index.goal,
+                    slug=preset.index.slug if same else None,
+                )
+            missing = [slug for slug in needed if slug not in properties]
+            out.append(
+                MapPresetOut(
+                    slug=preset.slug,
+                    name=preset.name,
+                    description=preset.description,
+                    x=preset.x,
+                    y=preset.y,
+                    x_name=properties[preset.x].name if preset.x in properties else None,
+                    y_name=properties[preset.y].name if preset.y in properties else None,
+                    scale=preset.scale,
+                    index=index_out,
+                    available=not missing,
+                    missing_properties=missing,
+                )
+            )
+        return out
+
     # --- index overlay ----------------------------------------------------
 
     def _index_overlay(
@@ -1081,6 +1229,11 @@ class ChartService:
                     max_value=max(values) if values else None,  # type: ignore[type-var]
                     present_count=len(values),
                     missing_material_ids=missing_ids,
+                    best_material_ids=best_ids(
+                        {mid: float(column[mid].normalized_value) for mid in present_ids},  # type: ignore[arg-type]
+                        definition.better_direction.value,
+                    ),
+                    all_equal=len(values) > 1 and len(set(values)) == 1,
                 )
             )
 
@@ -1318,6 +1471,11 @@ class ChartService:
         unknown = sorted(set(slugs) - self.repo.existing_process_class_slugs(slugs))
         if unknown:
             raise NotFoundError(f"Classes de processo desconhecidas: {', '.join(unknown)}")
+
+
+def _same_expression(left: str, right: str) -> bool:
+    """Whether two index expressions are the same text once whitespace is ignored."""
+    return "".join(left.split()) == "".join(right.split())
 
 
 def _unique(items: Sequence[T]) -> list[T]:

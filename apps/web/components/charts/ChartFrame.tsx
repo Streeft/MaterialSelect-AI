@@ -53,6 +53,7 @@ export function ChartFrame({
   exportName,
   exportDisabled = false,
   exportItems,
+  reportExport = false,
   table,
   notice,
   empty,
@@ -84,6 +85,8 @@ export function ChartFrame({
   exportDisabled?: boolean;
   /** Further "Exportar" entries after PNG and SVG — the data as a file (D-106). */
   exportItems?: ReactNode;
+  /** D-213: also offer "PNG/SVG para relatório" (fixed layout, high resolution). */
+  reportExport?: boolean;
   /** The figure's data table (a `FigureData`). */
   table?: ReactNode;
   /** Above the figure: a picker, a warning. Shown in both views. */
@@ -149,11 +152,17 @@ export function ChartFrame({
             {title}
           </Heading>
           {description ? (
-            <p className="mt-1 max-w-prose text-support text-ink-muted">{description}</p>
+            <p data-chart-description className="mt-1 max-w-prose text-support text-ink-muted">
+              {description}
+            </p>
           ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          {meta ? <span className="mr-1 font-mono text-caption text-ink-subtle">{meta}</span> : null}
+          {meta ? (
+            <span data-chart-meta className="mr-1 font-mono text-caption text-ink-subtle">
+              {meta}
+            </span>
+          ) : null}
           {controls}
           {hasFigure && (table || (views && views.length > 1)) ? (
             // D-95: the AI Studio corner — round icon buttons, one per way to
@@ -210,6 +219,7 @@ export function ChartFrame({
             fileName={exportName}
             disabled={exportDisabled || !hasFigure}
             extraItems={exportItems ?? csvItem}
+            report={reportExport}
           />
         </div>
       </div>

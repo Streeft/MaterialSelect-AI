@@ -124,9 +124,10 @@ export async function downloadChartImage(
   container: HTMLElement | null,
   format: "png" | "svg",
   fileName: string,
+  options: { report?: boolean } = {},
 ): Promise<void> {
   const { exportFigure } = await import("./figureExport");
-  await exportFigure(container, format, fileName);
+  await exportFigure(container, format, fileName, undefined, options);
 }
 
 /**

@@ -12594,3 +12594,114 @@ existe, a barra fica para quando houver mais de um jeito de ler os verbetes.
 
 **Numeração.** A `main` recebeu a D-207 (paleta de comandos) e a D-208 (acesso livre) enquanto esta fase andava; a F2 ficou com a
 D-209 e a Sessão 166. Mexe em `apps/api` e traz migração: depois do merge, **Deploy da API** (o `release_command` aplica a migração).
+
+## D-213 — Mapas: painéis, seleção que vira filtro, linha de índice móvel, mapas clássicos e figura para relatório
+
+**Contexto.** Etapa 3.2 da revisão das telas (inspiração: Ansys Granta Selector). `app/app/mapas/page.tsx` tinha ~1.270
+linhas num componente só; a personalização ficava recolhida mesmo numa tela larga; a caixa desenhada no mapa só servia
+para criar um estágio na Seleção; a linha de índice só se movia digitando um M; os pontos só eram alcançáveis pelo teclado
+na tabela da figura (escondida atrás de "Tabela"); não havia atalho para os mapas clássicos de Ashby; e a exportação saía no
+tamanho da janela, sem a cobertura ("N de M materiais plotados") que a figura afirma.
+
+**Decisão.**
+
+1. **A página em peças, sem mudar comportamento.** `MapsPageContent` orquestra; `AxesPanel` (universo, nível, mapas
+   clássicos, eixos, mapas salvos), `CustomizePanel` (escala e envelope, camadas, classes, linha de índice),
+   `SelectionPanel`, `PointList`, `IndexLineControl`, `AxisControl` e `axisIndex.ts`. Em janela a partir de "expanded"
+   (840 px, D-182) a personalização é um painel sempre aberto; abaixo disso continua o `Disclosure` do D-86, aberto
+   sozinho quando o link já usa algo dele. O universo subiu para o painel de eixos: é parte da pergunta.
+2. **Tudo do mapa no endereço**, pelo `useUrlState` do D-212 (`mapas/mapUrl.ts`): o mapa inteiro em `estado` (o mesmo
+   codec do "Compartilhar", que agora só copia o endereço; o mapa de chegada fica fora da URL), a seleção (`caixa` ou
+   `sel`), a linha móvel (`linha`, o M) e a restrição (`materiais`/`processos`, o parâmetro que um estudo já usava).
+3. **Seleção que vira filtro.** Caixa, laço (novo modo do cursor) e marcação na lista de pontos chegam ao mesmo conjunto
+   de registros. O laço usa o teste de pertinência do próprio Plotly (os pontos que ele devolve no evento), não uma conta
+   nossa; a caixa continua contando sobre os pontos plotados, como antes. Ações: "Comparar" (ids no `?materiais=`),
+   "Mostrar só estes no mapa" (restringe pela URL, com "Mostrar todos") e "Abrir na Seleção" — só para a caixa, que vira
+   estágio de gráfico convertido pelo backend (D-81); um laço não é uma região, e a Seleção não recebe lista de ids.
+4. **Linha de índice móvel com geometria no backend (ADR 0004).** `POST /api/charts/index-line` (router → `ChartService.
+   index_line` → `calculations/powerlaw`): recebe eixos, filtros, índice e um nível M ou um ponto do mapa (em unidades de
+   leitura, D-70) e devolve o segmento (unidades de leitura), a alça (meio do segmento na escala do mapa), os ids do lado
+   favorável, do outro lado e sem índice, e os `steps` do controle deslizante (geométricos entre o menor e o maior índice
+   definido, três algarismos). Sem nível nem ponto, a linha nasce no índice mediano — o valor de um material, não uma
+   média. O ponto vira M pela própria expressão (`IndexLine.level_at`), depois da volta para a canônica pela mesma regra
+   do desenho (`_map_reading`). O cliente só converte o *ponteiro* de pixel para dado com o `p2d` do eixo do Plotly
+   (`plotlyPointer.ts`) — o inverso do desenho, não uma grandeza do índice. Teclado: o deslizante anda pelos `steps`.
+5. **Mapas clássicos como dados.** `GET /api/charts/presets` lê `domain/map_presets.py`: E × ρ (E^½/ρ), σy × ρ (σy^⅔/ρ),
+   E × σy (σy²/E), E × Cv (E/Cv), λ × α (λ/α), KIc × σy (KIc/σy) — eixos, escala e índice, nenhum número de material. O
+   preset que o catálogo não desenha aparece desabilitado com as propriedades que faltam; o índice usa o slug do catálogo
+   quando a expressão coincide.
+6. **Acessibilidade.** `PointList`: tabela dos pontos visíveis (respeita a legenda), uma parada de Tab só (tabindex
+   itinerante), ↑/↓/Home/End/PageUp/PageDown, Espaço marca, o ponto em foco ganha um anel no mapa e é anunciado com as
+   duas coordenadas; passar o ponteiro num ponto destaca a linha da tabela sem roubar o foco.
+7. **Figura para relatório.** "PNG/SVG para relatório" no Exportar do `ChartFrame` (`reportExport`): o Plotly redesenha
+   em 1200 × 800 (3:2), o PNG sai em 3× (3600 px), e a descrição e o guia do cartão entram sob o título.
+
+**Nível 2 (D-190) preservado.** `fillHeight` e o `ResizeObserver` do mapa ficam; os ids vindos da URL são memorizados pela
+string (`useStableIds`), para que mudar `sel` ou `linha` não redesenhe o mapa; os painéis do `aside` não encolhem
+(`shrink-0`), porque `.msds-card` esconde o excesso; o seletor do cursor tem rótulos curtos (Região, Laço, Mover linha,
+Navegar) e quebra linha dentro do cartão no celular — com quatro assentos ele empurrava a página a 375 px na CI.
+O `IndexPicker` passou a escolher uma ou duas colunas por consulta de contêiner (`.index-picker`, 30rem), não pela
+janela: a 1280 px o painel lateral (22rem) recebia duas colunas e um nome longo vazava 7 px do cartão com as fontes da CI;
+os cartões têm `min-w-0`/`break-words` e os chips dos mapas clássicos quebram linha, para não depender da métrica da fonte.
+`e2e/larguras.spec.ts` (mapas, Nível 2 e a troca de nível) passa.
+
+**Alternativas descartadas.** Arrastar uma `shape` editável do Plotly (coordenadas de shape em eixo log são ambíguas e a
+linha deixaria de ser a do backend). Calcular o M no cliente a partir do ponteiro (contraria o ADR 0004). Mandar o laço
+para a Seleção como a caixa envolvente (mudaria o conjunto em silêncio). Um `role="grid"` na lista (pede navegação por
+célula; a tabela com caixas de marcar nativas basta).
+
+**Fora.** A Seleção ainda não recebe uma lista de ids (o laço vai para o Comparar e para o filtro); a figura para relatório
+usa as cores do tema da tela (no escuro, sai escura); os botões da barra do Plotly continuam dentro do `role="img"` do
+mapa (axe `nested-interactive`, achado antigo da auditoria). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+
+## D-214 — Comparar e Ficha do material: o melhor por propriedade, só diferenças, estado vazio com atalhos e a ficha dobrada
+
+**Contexto.** Etapa 3.3 da revisão das telas. A auditoria achou o Comparar sem estado vazio útil ("Nenhum material escolhido
+ainda", sem caminho), o radar ilegível com dezenas de materiais e `ComparisonFigures.tsx` com 1.184 linhas; e a ficha com mais
+de 7.000 px: ~40 seletores "Ler em…" antes das propriedades, "Materiais semelhantes" aberto com 40+ caixas e pesos, o
+gráfico pedido a toda visita, sete ações no cabeçalho para um registro próprio. Já estavam resolvidos e foram mantidos:
+primeira coluna e cabeçalho fixos da tabela (D-187), estado do comparador no endereço (D-163/D-174), qualidade do dado ao
+lado de cada valor e faixa mínimo–máximo (`ProvenancePopover` + `DataQualityBadge`), 404 distinto de falha na ficha (D-200).
+
+**Decisão.**
+
+1. **O melhor é fato do backend (ADR 0004).** `CompareAxisOut` ganha `best_material_ids` (quem tem o melhor valor pela
+   direção declarada da propriedade, empates incluídos; vazio se a propriedade é neutra, se há menos de dois valores ou se
+   todos são iguais) e `all_equal` (dois ou mais valores, todos iguais). A regra é `domain/spread.best_ids`; o componente
+   só marca ("Melhor" em texto, com o `title` dizendo a direção, e um fundo `success-soft` que apenas ecoa). Payload sem os
+   campos (cache antigo) não marca ninguém: ausente nunca vira "ninguém ganhou" nem "todos ganharam".
+2. **"Só diferenças".** Esconde as colunas (propriedades) com `all_equal` ou `present_count === 0` e escreve quais e por quê
+   ("Iguais em todos os materiais: …", "Sem valor em nenhum material: …"); se não sobra nenhuma, diz isso em vez de uma
+   tabela vazia. A tabela tem materiais nas linhas e propriedades nas colunas, então "linha igual em todos" do plano é, aqui,
+   coluna. A cópia da tabela (TSV) continua levando tudo.
+3. **Visão e filtro no endereço.** `?visao=` (tabela, barras, radar, paralelas, heatmap) e `?diferencas=1`, pelo mesmo
+   `compareSearch`/`readCompareLink` do D-163; o padrão sai do endereço e valor desconhecido volta ao padrão sem erro.
+4. **Estado vazio com atalhos.** Sem material, `CompareSuggestions` explica por que precisa de 2 ou mais e oferece os
+   favoritos e os vistos recentemente, com "Comparar os favoritos (N)" e um botão por material. É o mesmo `GET /my-records`
+   (e a mesma chave de consulta) que a estrela da ficha e o início já leem: nenhum endpoint novo. Com um material só, uma
+   linha avisa que falta outro. "Top do último estudo" ficou fora: pediria rodar ou reler um estudo salvo para um atalho.
+5. **Radar com muitos materiais.** Acima de 12 materiais completos (`RADAR_READABLE_UP_TO`) o radar não desenha de entrada:
+   diz que fica ilegível e oferece coordenadas paralelas, heatmap e tabela, e "Desenhar o radar mesmo assim". A seleção
+   nunca é cortada (D-187): só muda a primeira visão. Os testes de 200/600 materiais passaram a pedir o radar com esse botão.
+6. **Figuras em arquivos.** `ComparisonFigures.tsx` virou um reexport de `charts/figures/{GroupedBars,Radar,Parallel,Heatmap}Figure.tsx`;
+   as props e os imports não mudaram. A espera do comparador usa `TableSkeleton`/`ChartSkeleton`.
+7. **Ficha curta.** Cabeçalho pelo `PageHeader` (trilha, título, favoritar e exportar como secundárias, **uma** primária:
+   Editar para quem pode editar, "Fazer cópia própria" para o oficial, Comparar para o resto) e o "⋯" com Comparar, Ver no mapa,
+   Duplicar e Desativar (a confirmação continua no `ConfirmDialog`, D-201). Faixa de resumo no topo (quantos processos
+   compatíveis, com link, e a busca de parecidos) e sumário (`SheetOutline`): coluna fixa quando o bloco da ficha tem 64 rem
+   (consulta de contêiner `.sheet-layout`, não a janela), fileira que quebra linha abaixo disso. Seções em `CollapsibleSection`
+   (um `<details>` com o `h2` no resumo): propriedades, processos, composição e designações abertas; parecidos, mapa,
+   equivalências, ordinais e curvas **dobrados e só montados quando abertos**, então não pedem dados que ninguém abriu. O sumário,
+   o resumo e um `#curvas` no endereço abrem a seção. O gráfico densidade × módulo só é pedido ao abrir "Onde este material
+   fica". Os seletores "Ler em…" viraram um só `Disclosure` ("Ler os valores em outra unidade (N grandezas)"), aberto quando o
+   link já traz `?unidades=` (D-70). `SimilarPanel` ganhou `embedded` para viver dentro da seção dobrada.
+
+**Alternativas descartadas.** Calcular o melhor no componente a partir de `normalized === 1` (o neutro e o empate sairiam
+errados e a regra ficaria na apresentação). Esconder o radar acima de N sem alternativa (seria o limite que o D-187 tirou).
+Um endpoint de sugestões do comparador (o `my-records` já tem favoritos e recentes).
+
+**Fora.** "Citar fonte (ABNT)": a ficha só recebe `source_label`; a referência da fonte (`Source.reference`, texto livre) não
+vai no contrato da ficha e não há autor/título/ano estruturados, então não há como montar uma citação sem inventar campos —
+pede campos de fonte no contrato e, para boa citação, no modelo. "Top do último estudo" como atalho (ver 4). Toca
+`apps/api` sem migração: depois do merge, **Deploy da API**.

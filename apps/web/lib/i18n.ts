@@ -2560,6 +2560,11 @@ export const ptBR = {
     exportPngHint: "Imagem, para slides e documentos",
     exportSvg: "SVG",
     exportSvgHint: "Vetor, editável sem perder nitidez",
+    // D-213: a figura pronta para relatório ou TCC.
+    exportReportPng: "PNG para relatório",
+    exportReportPngHint: "Alta resolução (3×), em 3:2, com título, descrição e legenda",
+    exportReportSvg: "SVG para relatório",
+    exportReportSvgHint: "Vetor em 3:2, com título, descrição e legenda",
     // D-211: a tabela da figura como arquivo, para planilha em pt-BR.
     exportCsv: "CSV",
     exportCsvHint: "Os números da tabela, para planilha",
@@ -2601,8 +2606,12 @@ export const ptBR = {
     columnClass: "Classe",
     thisMaterial: "Este material",
     dragMode: "Modo do cursor",
-    dragModeSelect: "Selecionar região",
-    dragModeZoom: "Navegar / Ampliar",
+    // D-213: short, so four seats fit a phone's figure card.
+    dragModeSelect: "Região",
+    dragModeZoom: "Navegar",
+    // D-213: o laço escolhe materiais; "Mover linha" arrasta a linha de índice.
+    dragModeLasso: "Laço",
+    dragModeLine: "Mover linha",
     selectedRegion: "Região selecionada",
     clearBoxSelection: "Limpar seleção",
   },
@@ -2677,11 +2686,8 @@ export const ptBR = {
     // The control panel, named group by group. Eleven controls in one row said
     // nothing about which of them change the question and which change only the
     // drawing.
-    controls: "Controles do mapa",
     axesHint: "Escolha o que vai em cada eixo. O mapa aparece logo abaixo.",
     customize: "Personalizar o mapa",
-    customizeHint:
-      "Universo, escala, forma do envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
     customizeInUse: (items: string[]) => `Em uso: ${items.join(" · ")}.`,
     customizationLabels: {
       universe: "universo de processos",
@@ -2691,7 +2697,6 @@ export const ptBR = {
       layers: "camadas alteradas",
       index: "linha de índice",
     },
-    groupUniverseScale: "Universo, escala e envelope",
     groupClasses: "Classes exibidas",
     groupDisplay: "O que desenhar",
     groupIndex: "Linha de índice",
@@ -2718,6 +2723,59 @@ export const ptBR = {
       `${n} ${n === 1 ? "material na região" : "materiais na região"}`,
     useInSelection: "Criar estágio na Seleção",
     clearSelection: "Limpar seleção",
+    // D-213: painéis, mapas clássicos, seleção que vira filtro, pontos e linha móvel.
+    axesTitle: "Eixos e universo",
+    groupScaleEnvelope: "Escala e envelope",
+    presetsTitle: "Mapas clássicos de Ashby",
+    presetsHint:
+      "Um clique troca os eixos, a escala e a linha de índice. Só a pergunta vem pronta: os pontos são os do catálogo.",
+    presetsError: "Não foi possível carregar os mapas clássicos.",
+    presetUnavailable: (names: string) => `O catálogo não define: ${names}.`,
+    presetApplied: (name: string) => `Mapa clássico aplicado: ${name}.`,
+    customizeAlwaysHint:
+      "Escala, envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
+    selectionTitle: "Seleção no mapa",
+    selectionEmpty:
+      "Desenhe uma caixa ou um laço no mapa, ou marque pontos na lista abaixo dele, para comparar ou levar à Seleção.",
+    selectionCount: (n: number) =>
+      `${n} ${n === 1 ? "registro selecionado" : "registros selecionados"}`,
+    selectionOutside: (n: number) =>
+      `${n} ${n === 1 ? "está fora" : "estão fora"} do mapa atual.`,
+    selectionKindBox: "Região retangular",
+    selectionKindPicked: "Escolhidos no laço ou na lista",
+    compareSelection: "Comparar",
+    openInSelection: "Abrir na Seleção",
+    openInSelectionNeedsBox:
+      "A Seleção recebe uma região retangular: desenhe uma caixa para criar o estágio. O laço e a lista servem para comparar e filtrar.",
+    showOnlySelection: "Mostrar só estes no mapa",
+    restrictedNotice: (n: number) =>
+      `Mapa restrito a ${n} ${n === 1 ? "registro" : "registros"}.`,
+    showAll: "Mostrar todos",
+    pointsTitle: "Pontos no mapa",
+    pointsHint:
+      "Setas para percorrer, Espaço para marcar. O ponto em foco é destacado no mapa e anunciado.",
+    pointsCaption: (n: number) => `Pontos visíveis no mapa (${n})`,
+    pointsEmpty: "Nenhum ponto visível: todas as classes estão ocultas na legenda.",
+    pointSelect: (name: string) => `Marcar ${name}`,
+    columnSelected: "Marcado",
+    pointAnnounce: (name: string, className: string, x: string, y: string) =>
+      `${name}, ${className}. ${x}; ${y}.`,
+    lineTitle: "Linha de índice móvel",
+    lineHint:
+      "Arraste a linha no mapa (cursor “Mover linha”) ou use o controle; o servidor recalcula a linha e os dois lados.",
+    lineAdd: "Pôr uma linha móvel",
+    lineRemove: "Remover a linha móvel",
+    lineSlider: "Nível M da linha móvel",
+    lineValue: (value: string) => `M = ${value}`,
+    lineBetter: (n: number) =>
+      `${n} ${n === 1 ? "material no lado favorável" : "materiais no lado favorável"}`,
+    lineWorse: (n: number) => `${n} do outro lado`,
+    lineUndefined: (n: number) =>
+      `${n} ${n === 1 ? "sem índice definido" : "sem índice definido"}`,
+    lineUseBetter: "Selecionar os do lado favorável",
+    lineLoading: "Recalculando a linha…",
+    lineError: "Não foi possível mover a linha.",
+    lineLegend: (value: string) => `M = ${value} (móvel)`,
   },
   dashboard: {
     title: "Painel do catálogo",
