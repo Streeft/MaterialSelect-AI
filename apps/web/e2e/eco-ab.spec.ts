@@ -51,9 +51,7 @@ test("eco: cenários A e B abrem pelo link, comparam e voltam do endereço", asy
   await expect(masses.nth(0)).toHaveValue("2");
   await expect(masses.nth(1)).toHaveValue("3");
 
-  await page.getByRole("button", { name: "Comparar alternativas" }).click();
-
-  // The server's answer: a table of phases with B − A, the winners, the premises
+  // D-218: no button — the comparison follows the scenarios. The server's answer: a table of phases with B − A, the winners, the premises
   // that fed both scenarios, and a waterfall for each scenario.
   const table = page.getByRole("table").first();
   await expect(table).toBeVisible({ timeout: 45_000 });
@@ -97,7 +95,8 @@ test("eco: o produto e as premissas também vão no endereço, e um valor igual 
 
   // The solver's seed fills the first line; the premise comes from the link.
   await expect(page.getByLabel("Vida em serviço (anos)")).toHaveValue("25", { timeout: 45_000 });
-  await expect(page.getByLabel("Massa da peça (kg)")).toHaveValue("2");
+  // D-218: the product is a table; the first line's mass names its column and row.
+  await expect(page.getByLabel("Massa de uma unidade, Componente 1 (kg)")).toHaveValue("2");
 
   // Restoring the server's defaults takes the premise out of the address.
   await page.getByRole("button", { name: "Restaurar padrões do servidor" }).click();

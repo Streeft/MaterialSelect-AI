@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   enumCodec,
   isStringRecord,
@@ -12,11 +12,13 @@ import {
 import Link from "next/link";
 // D-205: the index as a fraction (D-191), never the slug `modulo_young / densidade`.
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type { DefaultsResult, LoadCase, SolveResult, SolverObjective } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { useLiveResult } from "@/lib/useLiveResult";
+import { describeApiError } from "@/lib/errors";
+import type { DefaultsResult, LoadCase, SolveRequest, SolveResult, SolverObjective } from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, prettyUnit } from "@/lib/format";
 import { encodeIdList } from "@/lib/idList";
 import { classVisual } from "@/lib/design/palette";
 import {
@@ -267,7 +269,7 @@ function ResultTable({ result }: { result: SolveResult }) {
                   <div className="flex flex-wrap gap-3">
                     <Link
                       className="text-accent underline underline-offset-2"
-                      href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}`}
+                      href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}&origem=dimensionar`}
                     >
                       {ptBR.cost.fromSolver}
                     </Link>
@@ -301,7 +303,6 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
   const spec = useMemo(() => solverUrlSpec(defaults), [defaults]);
   const [brief, setBrief] = useUrlState(spec);
   const { caseKey: chosenKey, inputs: typed, objective } = brief;
-  const [result, setResult] = useState<SolveResult | null>(null);
 
   // An empty choice *means* the first case: the <select> already shows it as
   // chosen, and a screen that painted it selected while holding "" rendered
@@ -333,7 +334,6 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
   }, [selected, inputs]);
 
   function chooseCase(key: string) {
-    setResult(null);
     const next = cases.data?.find((item) => item.key === key);
     setBrief({ caseKey: key, inputs: next ? initialInputs(next) : {} });
   }
@@ -344,20 +344,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
     setBrief({ caseKey, inputs: { ...inputs, [key]: value } });
   }
 
-  const solve = useMutation({
-    mutationFn: () =>
-      solveBrief({
-        case_key: caseKey,
-        inputs: Object.fromEntries(
-          Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
-        ),
-        objective,
-        limit: defaults.limit,
-      }),
-    onSuccess: setResult,
-  });
-
-  // The first variable still missing, named: a disabled button with no reason
+  // The first variable still missing, named: a result panel with no reason
   // reads as broken (D-86). Input validation only — the sizing is the backend's.
   const missingVariable =
     selected?.variables.find((variable) => {
@@ -371,8 +358,38 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
     }) ?? null;
   const ready = selected !== null && missingVariable === null;
   const blockedReason = missingVariable
-    ? t.blockedVariable(`${missingVariable.label} (${missingVariable.unit})`)
+    ? t.blockedVariable(`${missingVariable.label} (${prettyUnit(missingVariable.unit)})`)
     : null;
+
+  // D-218: the result follows the brief — asked about a moment after the reader
+  // stops typing. The sizing is still the server's.
+  const live = useLiveResult<SolveRequest, SolveResult>({
+    key: "dimensionar-ao-vivo",
+    request: ready
+      ? {
+          case_key: caseKey,
+          inputs: Object.fromEntries(
+            Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
+          ),
+          objective,
+          limit: defaults.limit,
+        }
+      : null,
+    fetcher: solveBrief,
+  });
+  const result = live.data ?? null;
+
+  // D-218: the case's declared example, only on the reader's click — a brief
+  // pre-filled on its own would be the tool inventing a design.
+  function applyExample() {
+    if (!selected) return;
+    const next: Record<string, string> = { ...inputs };
+    for (const variable of selected.variables) {
+      if (variable.example != null) next[variable.key] = String(variable.example);
+    }
+    setBrief({ caseKey, inputs: next });
+  }
+  const hasExample = selected?.variables.some((variable) => variable.example != null) ?? false;
 
   if (cases.isLoading) return <SheetSkeleton label={t.title} />;
   if (cases.isError) return <ErrorState error={cases.error} onRetry={() => void cases.refetch()} />;
@@ -412,21 +429,14 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
               title={t.inputsStep}
               description={t.inputsHint}
               footer={
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    variant="primary"
-                    onClick={() => solve.mutate()}
-                    disabled={!ready || solve.isPending}
-                    aria-describedby={blockedReason ? "dimensionar-motivo" : undefined}
-                  >
-                    {solve.isPending ? t.solving : t.solve}
-                  </Button>
-                  {blockedReason ? (
-                    <p id="dimensionar-motivo" className="text-support text-ink-muted">
-                      {blockedReason}
-                    </p>
-                  ) : null}
-                </div>
+                hasExample ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="tonal" size="sm" onClick={applyExample}>
+                      {t.useExample}
+                    </Button>
+                    <span className="text-support text-ink-muted">{t.exampleHint}</span>
+                  </div>
+                ) : undefined
               }
             >
               {/* The support condition stays in view, never folded: it is the
@@ -462,7 +472,8 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                 return (
                   <NumberInput
                     key={variable.key}
-                    label={`${variable.label} (${variable.unit})`}
+                    label={variable.label}
+                    unit={prettyUnit(variable.unit)}
                     hint={variable.help_text}
                     value={inputs[variable.key] ?? ""}
                     min={0}
@@ -486,17 +497,25 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                   {selected.cost_objective_label}
                 </SelectOption>
               </Select>
-              {solve.isError ? (
-                <Alert tone="danger">{String(solve.error)}</Alert>
-              ) : null}
             </StepCard>
           ) : null}
         </ParamsPanel>
 
         {/* The result card is on screen before there is a result (D-80): a card
             that says what will appear reads as the next step. */}
-        <ResultPanel>
-          <StepCard title={t.resultStep} description={result ? t.structuralFactorHint : undefined}>
+        <ResultPanel busy={live.updating}>
+          <StepCard
+            title={t.resultStep}
+            description={result ? t.structuralFactorHint : undefined}
+            actions={
+              live.updating ? (
+                <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
+              ) : undefined
+            }
+          >
+            {live.error ? (
+              <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
+            ) : null}
             {result ? (
               <>
                 {/* Which index produced these numbers, on the result and not read
@@ -550,8 +569,8 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                   </Card>
                 ) : null}
               </>
-            ) : (
-              <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+            ) : live.error ? null : (
+              <EmptyState title={t.resultIdleTitle} description={blockedReason ?? t.resultIdleHint} />
             )}
           </StepCard>
         </ResultPanel>

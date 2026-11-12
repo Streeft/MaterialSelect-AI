@@ -42,6 +42,7 @@ export {
   type QualityState,
 } from "./DataQualityBadge";
 export { DensityToggle } from "./DensityToggle";
+export { InlineTable, type InlineColumn } from "./InlineTable";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export {

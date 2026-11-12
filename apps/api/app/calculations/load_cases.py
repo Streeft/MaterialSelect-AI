@@ -94,6 +94,12 @@ class DesignVariable:
     label: str
     unit: str
     help_text: str
+    #: D-218: an illustrative number, in ``unit``, that the screen offers behind
+    #: an explicit "Usar o exemplo" — never filled in on its own, because a
+    #: pre-filled load or span would be the tool inventing a design brief. It is
+    #: a design input, not a material property (principle 1 is about those).
+    #: ``None`` for a variable a support condition fills.
+    example: float | None = None
 
 
 @dataclass(frozen=True)
@@ -183,24 +189,28 @@ _COMPRIMENTO = DesignVariable(
     label="Comprimento",
     unit="m",
     help_text="Vão livre do componente, fixado pelo projeto.",
+    example=1.0,
 )
 _RIGIDEZ = DesignVariable(
     key="rigidez",
     label="Rigidez exigida",
     unit="N/m",
     help_text="Força por unidade de deslocamento que o componente precisa sustentar.",
+    example=100000.0,
 )
 _CARGA = DesignVariable(
     key="carga",
     label="Carga aplicada",
     unit="N",
     help_text="Força que o componente precisa suportar sem falhar.",
+    example=1000.0,
 )
 _MOMENTO = DesignVariable(
     key="momento",
     label="Momento fletor máximo",
     unit="N*m",
     help_text="Momento no ponto mais solicitado da viga.",
+    example=100.0,
 )
 _CONSTANTE_APOIO = DesignVariable(
     key="constante_apoio",
@@ -213,6 +223,7 @@ _LARGURA = DesignVariable(
     label="Largura da placa",
     unit="m",
     help_text="Largura fixada pelo projeto; na placa é a espessura que fica livre.",
+    example=0.1,
 )
 _CONSTANTE_FLAMBAGEM = DesignVariable(
     key="constante_flambagem",
