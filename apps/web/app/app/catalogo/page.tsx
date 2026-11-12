@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -11,6 +12,7 @@ import {
   type CatalogQuery,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import type { SuggestAction } from "@/lib/types";
 import { roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
 import { MaterialList } from "@/components/catalog/MaterialList";
@@ -52,6 +54,7 @@ import {
 import { useDatabaseView } from "@/lib/savedViews";
 import { enumCodec, textCodec, useUrlState, type UrlCodec, type UrlSpec } from "@/lib/urlState";
 import { useDebounced } from "@/lib/useDebounced";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 
 const t = ptBR.catalog;
 
@@ -137,6 +140,7 @@ export default function CatalogPage() {
 
 function CatalogPageContent() {
   const [url, setUrl] = useUrlState(CATALOG_URL);
+  const router = useRouter();
   // D-209: the filters still belong to the saved views (tabs in the reader's
   // account); D-217 only moves where they are kept, into the URL. Any change
   // of chip or of text goes back to page 1.
@@ -247,6 +251,27 @@ function CatalogPageContent() {
       }),
   };
 
+  /**
+   * D-229: a click on an AI suggestion goes through the same address state the
+   * chips, the order box and the search field write, so the list, the link and
+   * Back/Reload follow. A filter or a new question goes back to page 1.
+   */
+  function applyAiAction(action: SuggestAction) {
+    setPreviewId(null);
+    if (action.type === "add_filter") {
+      if (action.field === "classe") setUrl({ classe: action.value, subclasse: "", pagina: 1 });
+      else if (action.field === "qualidade")
+        setUrl({ qualidade: action.value as QualityFilter, pagina: 1 });
+      else if (action.field === "demo") setUrl({ demo: action.value as DemoFilter, pagina: 1 });
+    } else if (action.type === "sort") {
+      setUrl({ ordenar: action.prop, direcao: action.dir, pagina: 1 });
+    } else if (action.type === "search") {
+      setUrl({ busca: action.q, pagina: 1 });
+    } else if (action.type === "compare") {
+      router.push(`/app/comparar?materiais=${action.ids.join(",")}`);
+    }
+  }
+
   // Chip options carry the server's counts (the other chips applied). A
   // subclass is offered only where the result has it, so a chip never offers
   // a value that empties the screen.
@@ -331,6 +356,19 @@ function CatalogPageContent() {
             + {ptBR.actions.new}
           </ButtonLink>
         }
+      />
+
+      <AISuggestPanel
+        tool="catalogo"
+        context={{
+          busca: url.busca.slice(0, 200),
+          classe: url.classe,
+          qualidade: url.qualidade,
+          demo: url.demo,
+          ordenar: url.ordenar,
+        }}
+        actions={["add_filter", "sort", "search", "compare", "open_route"]}
+        onAction={applyAiAction}
       />
 
       <div className="flex min-w-0 flex-col gap-3">
