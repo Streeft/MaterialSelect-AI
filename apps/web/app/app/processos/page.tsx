@@ -18,6 +18,7 @@ import { matchesQuery } from "@/lib/search";
 import { useUrlState } from "@/lib/urlState";
 import type { Process, ProcessClass } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { useDatabaseView } from "@/lib/savedViews";
 import {
@@ -224,6 +225,15 @@ function ProcessesPageContent() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
+      <AISuggestPanel
+        tool="processos"
+        context={{ slug: null }}
+        actions={["search", "open_route"]}
+        // D-229: the family the AI proposes goes into the same box the reader types in.
+        onAction={(action) => {
+          if (action.type === "search") setUrl({ busca: action.q });
+        }}
+      />
 
       <div className="flex flex-col gap-3">
         <SavedViewsBar

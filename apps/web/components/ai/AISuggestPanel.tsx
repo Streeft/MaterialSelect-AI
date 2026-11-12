@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { ALL_ACTION_TYPES, visibleActions } from "@/lib/ai/suggest";
+import { ALL_ACTION_TYPES, isInternalPath, visibleActions } from "@/lib/ai/suggest";
 import { suggestText as t } from "@/lib/i18n-suggest";
 import { atLeast } from "@/lib/design/breakpoints";
 import { useWindowClass } from "@/lib/useWindowClass";
@@ -29,6 +29,13 @@ export interface AISuggestPanelProps {
   onAction: (action: SuggestAction) => void;
   /** The action types this screen can apply. Any other type is not shown. */
   actions?: readonly SuggestActionType[];
+  /**
+   * An action that is a plain navigation on this screen (a `search` on a page
+   * with no search box, a `compare` that opens another screen) answers with
+   * its internal path and is drawn as a link, with the keyboard and
+   * "open in a new tab" a link has. Return `null` to use `onAction` instead.
+   */
+  linkFor?: (action: SuggestAction) => string | null;
   /** The screen has nothing to ask about yet; the button is off and this says why. */
   disabledReason?: string;
   className?: string;
@@ -49,6 +56,7 @@ export function AISuggestPanel({
   context,
   onAction,
   actions = ALL_ACTION_TYPES,
+  linkFor,
   disabledReason,
   className,
 }: AISuggestPanelProps) {
@@ -151,6 +159,7 @@ export function AISuggestPanel({
                 data={state.data}
                 stale={stale}
                 supported={actions}
+                linkFor={linkFor}
                 applied={applied}
                 onAskAgain={again}
                 onApply={apply}
@@ -167,6 +176,7 @@ function Answer({
   data,
   stale,
   supported,
+  linkFor,
   applied,
   onAskAgain,
   onApply,
@@ -174,6 +184,7 @@ function Answer({
   data: SuggestionsOut;
   stale: boolean;
   supported: readonly SuggestActionType[];
+  linkFor?: (action: SuggestAction) => string | null;
   applied: ReadonlySet<string>;
   onAskAgain: () => void;
   onApply: (id: string, action: SuggestAction) => void;
@@ -211,6 +222,7 @@ function Answer({
                 card={card}
                 prefix={String(index)}
                 supported={supported}
+                linkFor={linkFor}
                 applied={applied}
                 onApply={onApply}
               />
@@ -244,12 +256,14 @@ function SuggestionCard({
   card,
   prefix,
   supported,
+  linkFor,
   applied,
   onApply,
 }: {
   card: Suggestion;
   prefix: string;
   supported: readonly SuggestActionType[];
+  linkFor?: (action: SuggestAction) => string | null;
   applied: ReadonlySet<string>;
   onApply: (id: string, action: SuggestAction) => void;
 }) {
@@ -262,11 +276,12 @@ function SuggestionCard({
         <div role="group" aria-label={t.actionsLabel(card.title)} className="mt-auto flex min-w-0 flex-wrap gap-2 pt-1">
           {actions.map((action, index) => {
             const id = `${prefix}:${index}`;
-            if (action.type === "open_route") {
+            const href = action.type === "open_route" ? action.path : (linkFor?.(action) ?? null);
+            if (href !== null && isInternalPath(href)) {
               return (
                 <Link
                   key={id}
-                  href={action.path}
+                  href={href}
                   className="msds-btn msds-btn-secondary msds-btn-sm min-w-0 max-w-full break-words"
                 >
                   {action.label}
