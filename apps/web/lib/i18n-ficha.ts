@@ -8,6 +8,21 @@
  * `i18n.test.ts` keeps the two copies equal.
  */
 export const fichaText = {
+  // D-214: the sheet as a document page.
+  doc: {
+    classLabel: "Classe",
+    recordLabel: "Registro",
+    referencesLabel: "Referências",
+    keywordsLabel: "Palavras-chave",
+    active: "Ativo",
+    mapTitle: "No mapa",
+    renamed: (name: string) => `Nome salvo: ${name}.`,
+    renameError: "Não foi possível salvar o novo nome.",
+    familyTitle: "Família",
+    processesLabel: "Processos",
+    materialsLabel: "Materiais",
+    subfamiliesLabel: "Subfamílias",
+  },
   ordinals: {
     title: "Propriedades ordinais",
     hint:

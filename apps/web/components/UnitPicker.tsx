@@ -6,7 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PropertyValueOut } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { prettyUnit } from "@/lib/format";
-import { Select, SelectOption } from "@/components/ui";
+import { Popover } from "@/components/ui";
+import { IconChevronDown } from "@/components/ui/icons";
 
 const t = ptBR.units;
 
@@ -36,21 +37,21 @@ export function parseUnitChoices(raw: string | null): Record<string, string> {
  * As opções saem de `accepted_units` da propriedade, que já é a lista curada de
  * unidades válidas para aquela grandeza — o mesmo conjunto que o backend
  * aceita, então não há escolha na tela que o servidor vá recusar.
+ *
+ * Este gancho lê e grava a escolha de uma grandeza; o servidor converte, e a
+ * escolha muda a pergunta, nunca o número no cliente (ADR 0004).
  */
-export function UnitPicker({
-  property,
-  acceptedUnits,
-}: {
-  property: PropertyValueOut;
-  acceptedUnits: string[];
-}) {
+export function useUnitChoice(
+  property: Pick<PropertyValueOut, "property_slug" | "display_unit">,
+  /** The quantity's own reading unit (its definition's `display_unit`). */
+  conventionUnit?: string | null,
+) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
 
   const choices = parseUnitChoices(search.get(UNITS_PARAM));
-  const current =
-    choices[property.property_slug] ?? property.display_unit ?? "";
+  const current = choices[property.property_slug] ?? property.display_unit ?? "";
 
   const choose = useCallback(
     (unit: string) => {
@@ -58,8 +59,8 @@ export function UnitPicker({
       // Voltar à convenção da grandeza é **retirar** a escolha, não gravar a
       // unidade convencional: assim a URL só carrega o que o leitor mudou, e
       // uma mudança de convenção no catálogo alcança links antigos.
-      if (unit === (property.display_unit ?? ""))
-        delete next[property.property_slug];
+      const convention = conventionUnit ?? property.display_unit ?? "";
+      if (unit === convention) delete next[property.property_slug];
       else next[property.property_slug] = unit;
 
       const params = new URLSearchParams(search.toString());
@@ -74,31 +75,66 @@ export function UnitPicker({
         scroll: false,
       });
     },
-    [
-      choices,
-      pathname,
-      property.display_unit,
-      property.property_slug,
-      router,
-      search,
-    ],
+    [choices, conventionUnit, pathname, property.display_unit, property.property_slug, router, search],
   );
 
-  // Uma grandeza com uma unidade só não tem escolha a oferecer, e um seletor de
-  // uma opção é ruído que sugere que existe alternativa.
-  if (acceptedUnits.length < 2) return null;
+  return { current, choose };
+}
+
+/**
+ * D-214: a unidade **no valor**. O "210 GPa" da ficha é o próprio controle:
+ * a unidade é um chip que abre as unidades aceitas daquela grandeza, e
+ * escolher uma relê só aquela propriedade (D-70, na URL; o servidor converte).
+ *
+ * Substitui a fileira de seletores "Ler em:" que vinha antes de qualquer valor
+ * — o leitor tinha de passar por controles antes de chegar aos números. Uma
+ * grandeza com uma unidade só não ganha chip: a unidade fica escrita, sem
+ * prometer escolha.
+ */
+export function UnitChip({
+  property,
+  acceptedUnits,
+  conventionUnit,
+}: {
+  property: PropertyValueOut;
+  acceptedUnits: readonly string[];
+  conventionUnit?: string | null;
+}) {
+  const { choose } = useUnitChoice(property, conventionUnit);
+  const shown = property.display_unit ?? property.original_unit ?? "";
+  const pretty = prettyUnit(shown);
 
   return (
-    <Select
-      label={`${t.readIn} ${property.property_name}`}
-      value={current}
-      onChange={(e) => choose((e.target as HTMLSelectElement).value)}
+    <Popover
+      label={t.chipLabel(property.property_name, pretty)}
+      title={t.chipTitle(property.property_name)}
+      triggerClassName="ds-unit-chip m3-state touch-target"
+      trigger={
+        <>
+          <span>{pretty}</span>
+          <IconChevronDown aria-hidden className="h-3.5 w-3.5" />
+        </>
+      }
     >
-      {acceptedUnits.map((unit) => (
-        <SelectOption key={unit} value={unit}>
-          {prettyUnit(unit)}
-        </SelectOption>
-      ))}
-    </Select>
+      {(close) => (
+        <div role="group" aria-label={t.chipTitle(property.property_name)} className="flex flex-col gap-1">
+          {acceptedUnits.map((unit) => (
+            <button
+              key={unit}
+              type="button"
+              aria-pressed={unit === shown}
+              className="ds-unit-option m3-state"
+              onClick={() => {
+                choose(unit);
+                close();
+              }}
+            >
+              {prettyUnit(unit)}
+            </button>
+          ))}
+          <p className="mt-1 text-caption text-ink-muted">{t.readingNote}</p>
+        </div>
+      )}
+    </Popover>
   );
 }

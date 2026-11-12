@@ -15,10 +15,14 @@ import {
   TableScroll,
 } from "@/components/ui";
 import { GlossaryHint } from "@/components/glossary/GlossaryHint";
+import { UnitChip } from "@/components/UnitPicker";
+
+/** D-214: what each quantity can be read in, from its definition. */
+export type UnitOptions = ReadonlyMap<string, { accepted: string[]; convention: string | null }>;
 
 /** The number itself. Everything around it — where it came from, what it was
  * converted from, who recorded it — is in the popover. */
-function ValueText({ p }: { p: PropertyValueOut }) {
+function ValueText({ p, hideUnit = false }: { p: PropertyValueOut; hideUnit?: boolean }) {
   // A **leitura** (D-70), e não o registro: o backend já converteu a medida para
   // a unidade em que a grandeza se lê — ninguém lê módulo de Young em pascal, e
   // esta ficha mostrava 210000000000. O que a fonte disse continua inteiro em
@@ -27,7 +31,8 @@ function ValueText({ p }: { p: PropertyValueOut }) {
   //
   // A queda para o registro cobre o caso de um payload antigo em cache, e não
   // um estado normal: o backend sempre manda os dois conjuntos.
-  const unit = valueUnit(p.display_unit ?? p.original_unit);
+  // D-214: with a unit chip beside the value, the chip writes the unit.
+  const unit = hideUnit ? null : valueUnit(p.display_unit ?? p.original_unit);
   const min = p.display_min ?? p.value_min;
   const max = p.display_max ?? p.value_max;
   const typical = p.display_typical ?? p.value_typical;
@@ -39,8 +44,8 @@ function ValueText({ p }: { p: PropertyValueOut }) {
       <span>
         <span className="font-medium tabular-nums">
           {formatNumber(min)} – {formatNumber(max)}
-        </span>{" "}
-        {unit}
+        </span>
+        {unit ? <> {unit}</> : null}
         {typical !== null && (
           <span className="ml-1 text-caption text-ink-subtle">
             ({ptBR.detail.typical}: {formatNumber(typical)})
@@ -53,8 +58,8 @@ function ValueText({ p }: { p: PropertyValueOut }) {
   if (scalar !== null) {
     return (
       <span>
-        <span className="font-medium tabular-nums">{formatNumber(scalar)}</span>{" "}
-        {unit}
+        <span className="font-medium tabular-nums">{formatNumber(scalar)}</span>
+        {unit ? <> {unit}</> : null}
         {uncertainty !== null && (
           <span className="ml-1 text-caption text-ink-subtle">
             ± {formatNumber(uncertainty)}
@@ -78,7 +83,9 @@ function ValueText({ p }: { p: PropertyValueOut }) {
  * value is now the trigger, the quality is a badge next to it, and absence gets
  * the same treatment as a value — a stated state, not a blank.
  */
-function ValueCell({ p }: { p: PropertyValueOut }) {
+function ValueCell({ p, units }: { p: PropertyValueOut; units?: UnitOptions }) {
+  const options = units?.get(p.property_slug);
+  const chip = options && options.accepted.length > 1;
   const provenance = provenanceOfProperty(p);
   const state = qualityState(provenance);
 
@@ -93,15 +100,30 @@ function ValueCell({ p }: { p: PropertyValueOut }) {
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <ProvenancePopover provenance={provenance} title={p.property_name}>
-        <ValueText p={p} />
+        <ValueText p={p} hideUnit={chip} />
       </ProvenancePopover>
+      {chip ? (
+        <UnitChip property={p} acceptedUnits={options.accepted} conventionUnit={options.convention} />
+      ) : null}
       <DataQualityBadge state={state} />
     </span>
   );
 }
 
-/** A category card listing its property values with units and provenance. */
-export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
+/**
+ * A category card listing its property values with units and provenance.
+ *
+ * With `units` (the sheet passes it), a quantity readable in more than one unit
+ * writes its unit as a `UnitChip` (D-214); the side panel of the catalogue
+ * passes none and keeps the plain unit.
+ */
+export function PropertyGroupCard({
+  group,
+  units,
+}: {
+  group: PropertyGroupType;
+  units?: UnitOptions;
+}) {
   return (
     <Card>
       <CardHeader title={ptBR.categories[group.category]} />
@@ -131,7 +153,7 @@ export function PropertyGroupCard({ group }: { group: PropertyGroupType }) {
                   />
                 </th>
                 <td className="px-4 py-2 text-ink">
-                  <ValueCell p={p} />
+                  <ValueCell p={p} units={units} />
                   {p.notes && (
                     <div className="mt-1 text-caption italic text-ink-subtle">
                       {p.notes}
