@@ -21,6 +21,9 @@ MONETARY_UNIT_NOTE = (
 #: inputs rather than constants (D-64's treatment of the support constant).
 DEFAULT_WRITE_OFF_YEARS = 5.0
 DEFAULT_LOAD_FACTOR = 0.5
+#: The batch the screen starts from. A starting point, not a recommendation: the
+#: reader still states the part mass, which is what decides anything.
+DEFAULT_BATCH_SIZE = 1000.0
 
 
 class CostRequest(BaseModel):

@@ -129,6 +129,30 @@ describe("RagoneChart (D-145)", () => {
     expect(table).toHaveTextContent("1.500");
   });
 
+  it("rings the chosen chemistry on the plane, at the catalogue's own coordinates (D-216)", async () => {
+    render(<RagoneChart data={fixture} highlightSlug="nmc" />);
+    const ring = traces().find((trace) => trace.mode === "markers")!;
+    // The ring sits exactly where the point is; emphasis never moves a number.
+    expect(ring.x).toEqual([250]);
+    expect(ring.y).toEqual([1000]);
+    // The catalogue's points are still all there.
+    expect(traces().find((trace) => trace.mode === "text+markers")!.x).toEqual([160, 250]);
+    // And the reader is told in words, and in the table, not only by colour.
+    expect(screen.getByText(t.highlightNote("NMC"))).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /tabela/i }));
+    expect(screen.getByRole("table", { name: t.tableCaption })).toHaveTextContent(
+      `NMC (${t.highlightBadge})`,
+    );
+  });
+
+  it("draws no ring without a chosen chemistry, or for one the plane does not hold", () => {
+    const { rerender } = render(<RagoneChart data={fixture} />);
+    expect(traces().some((trace) => trace.mode === "markers")).toBe(false);
+    rerender(<RagoneChart data={fixture} highlightSlug="xx" />);
+    expect(traces().some((trace) => trace.mode === "markers")).toBe(false);
+    expect(screen.queryByText(/Química escolhida/)).not.toBeInTheDocument();
+  });
+
   it("writes the reason for a chemistry left out instead of plotting zero", () => {
     render(<RagoneChart data={fixture} />);
     expect(screen.getByText(t.excludedTitle)).toBeInTheDocument();

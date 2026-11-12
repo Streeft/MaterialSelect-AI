@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from sqlalchemy import and_, case, delete, exists, false, func, not_, or_, select
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.domain.composition import (
@@ -32,6 +32,7 @@ from app.domain.search_query import (
     to_designation_pattern,
     to_like_pattern,
 )
+from app.domain.text_fold import fold_accents
 from app.models.catalog import CatalogRecordRef
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -41,6 +42,7 @@ from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+from app.repositories.text_sql import folded
 from app.repositories.visibility import visible_materials
 
 
@@ -93,16 +95,18 @@ def _matches(term: Term) -> ColumnElement[bool]:
     matches any of them matches the material; `NOT` then negates the whole
     disjunction, which is what "steel NOT alloy" means.
     """
-    pattern = to_like_pattern(term)
+    # D-217: accents and case folded on both sides, so "aco" finds "Aço" and
+    # "AÇO" finds "aço". The pattern keeps its wildcards; only letters change.
+    pattern = fold_accents(to_like_pattern(term))
     keyword_match = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(pattern, escape="\\"),
+            folded(MaterialKeyword.keyword).like(pattern, escape="\\"),
         )
     )
     return or_(
-        func.lower(Material.name).like(pattern, escape="\\"),
-        func.lower(MaterialClass.name).like(pattern, escape="\\"),
+        folded(Material.name).like(pattern, escape="\\"),
+        folded(MaterialClass.name).like(pattern, escape="\\"),
         keyword_match,
         _code_exists(func.lower(MaterialDesignation.code_key).like(pattern, escape="\\")),
     )
@@ -331,6 +335,14 @@ class MaterialRepository:
         )
         return self.db.execute(stmt).scalars().unique().one_or_none()
 
+    def class_links(self) -> list[tuple[str, str | None]]:
+        """Every class as ``(slug, parent slug)``: the tree the catalogue filters by (D-217)."""
+        parent = aliased(MaterialClass)
+        stmt = select(MaterialClass.slug, parent.slug).outerjoin(
+            parent, MaterialClass.parent_id == parent.id
+        )
+        return [(row[0], row[1]) for row in self.db.execute(stmt).all()]
+
     def get_property_by_slug(self, slug: str) -> PropertyDefinition | None:
         """Return a property definition by slug, or None."""
         stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
@@ -496,30 +508,48 @@ def _escape(term: str) -> str:
 
 
 def _term_score(term: str):
-    """Relevance of one positive bare term (exact > prefix > substring)."""
-    escaped = _escape(term)
+    """Relevance of one positive bare term (D-55, D-217).
+
+    Exact name > name prefix > the term as a whole word > a word starting with
+    it > anywhere in the name, so "aço" puts "Aço 1020" before "Liga de aço"
+    before "Argamassa traço" — the order the palette uses (D-207). Words are
+    told apart by spaces only, which is how material names are written.
+    Accents and case are folded on both sides.
+    """
+    folded_term = fold_accents(term)
+    escaped = _escape(folded_term)
     prefix_pat = f"{escaped}%"
     sub_pat = f"%{escaped}%"
+    word_prefix_pat = f"% {escaped}%"
+    name = folded(Material.name)
+    class_name = folded(MaterialClass.name)
+    whole_word = or_(
+        name.like(f"{escaped} %", escape="\\"),
+        name.like(f"% {escaped}", escape="\\"),
+        name.like(f"% {escaped} %", escape="\\"),
+    )
     kw_exact = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword) == term,
+            folded(MaterialKeyword.keyword) == folded_term,
         )
     )
     kw_sub = exists(
         select(MaterialKeyword.id).where(
             MaterialKeyword.material_id == Material.id,
-            func.lower(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
+            folded(MaterialKeyword.keyword).like(sub_pat, escape="\\"),
         )
     )
     code_exact = _code_exists(func.lower(MaterialDesignation.code_key) == term)
     code_sub = _code_exists(func.lower(MaterialDesignation.code_key).like(sub_pat, escape="\\"))
     return (
-        case((func.lower(Material.name) == term, 100), else_=0)
-        + case((func.lower(Material.name).like(prefix_pat, escape="\\"), 50), else_=0)
-        + case((func.lower(Material.name).like(sub_pat, escape="\\"), 25), else_=0)
-        + case((func.lower(MaterialClass.name) == term, 20), else_=0)
-        + case((func.lower(MaterialClass.name).like(sub_pat, escape="\\"), 10), else_=0)
+        case((name == folded_term, 100), else_=0)
+        + case((name.like(prefix_pat, escape="\\"), 50), else_=0)
+        + case((whole_word, 15), else_=0)
+        + case((name.like(word_prefix_pat, escape="\\"), 10), else_=0)
+        + case((name.like(sub_pat, escape="\\"), 25), else_=0)
+        + case((class_name == folded_term, 20), else_=0)
+        + case((class_name.like(sub_pat, escape="\\"), 10), else_=0)
         + case((kw_exact, 15), else_=0)
         + case((kw_sub, 5), else_=0)
         # D-105: a code typed exactly is as strong a signal as an exact name —

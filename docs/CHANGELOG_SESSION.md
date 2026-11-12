@@ -120,6 +120,48 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 174 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-217)
+
+**O que mudou.** Etapa 4.1. Backend: `GET /api/materials/busca` com `limit`/`offset`, chips (`classe` com a subárvore,
+`subclasse`, `qualidade`, `demo`), `ordenar` (relevância, nome, classe ou uma propriedade, sem valor por último), `direcao` e
+`facetas`; resposta com `total`, `offset`, `limit`, `facets` e `sort_value` por item. `GET /api/materials` com
+`limit`/`offset` e `X-Total-Count`. Regras em `domain/catalog_listing.py`; dobra de acento em `domain/text_fold.py` e
+`repositories/text_sql.py` (`folded()`: `translate` no PostgreSQL, função `ms_fold` no SQLite); relevância da busca do
+catálogo em degraus (exato > prefixo > palavra inteira > início de palavra > contém). Frontend: catálogo em páginas de 50
+com `Pagination` (novo no kit), chips com contagem e o chip "Demonstração", "Ordenar por" com propriedades e direção, coluna
+do valor ordenado (ausência escrita), menu "Colunas", cabeçalhos que ordenam no servidor, estado inteiro no endereço;
+`useDatabaseView` com `store` externo; família pela mesma `searchMaterials`, paginada. Testes: `test_catalog_pagination.py`
+(página e total, offset além do fim, limite máximo, cabeçalho `X-Total-Count`, "aço" antes de "argamassa", "aco"/"AÇO",
+subárvore, subclasse, demo, facetas sem o próprio filtro, ordem por nome/classe/propriedade com ausentes no fim, 400 para
+propriedade desconhecida, regras puras), `catalogo.test.tsx` (página de 50 e próxima pela URL, contagem nos chips, demo, ordem
+por propriedade com "Sem valor", colunas na URL, abrir por link, axe), `familia.test.tsx` (pede uma página da família,
+paginação) e o E2E `e2e/catalogo-paginado.spec.ts`. Fora: seleção que atravessa páginas; "nível" como faceta (é visão, D-127).
+Sem migração nem seed. Depois do merge: **Deploy da API**.
+
+## Sessão 173 — 12/11/26 — Padrões no backend e as calculadoras: Eco na URL com cascata, Ragone destacado, Dimensionar com esquema e barras, Custo comparando (D-216)
+
+**O que mudou.** Etapa 4.5. Backend: `GET /api/padroes` (router fino → `DefaultsService`) devolve os números iniciais de
+Custo, Eco, Baterias e Dimensionar, lidos das constantes que os próprios pedidos validam (`DEFAULT_*` em `schemas/part_cost`,
+`calculations/eco_audit`, `calculations/battery`, `schemas/solver`); os schemas de bateria passam a usar as constantes, e a
+divergência 0,65/0,50/0,70 × 0,70/0,60/0,75 se resolve a favor do schema. `EcoAuditResultOut` ganha `energy_waterfall` e
+`carbon_waterfall` (`build_waterfall`: degraus `start`/`end`, total e domínio, fase ausente sem mexer no nível e total
+`null`), e a comparação ganha `phase_deltas` (B − A por fase, `null` se faltar um lado). Frontend: `useDefaults` e
+`DefaultsGate` (esqueleto, erro com nova tentativa), spec do `useUrlState` montado a partir dos padrões nas quatro telas.
+Eco: `page.tsx` de 1.431 linhas em `ecoBrief.ts`, `EcoFields.tsx` (`PartFields` único para linhas e cenários, `ScenarioFields`
+para A e B), `PremisesPanel.tsx` (premissas sempre à vista, "Restaurar padrões"), `EcoResults.tsx` (com `PremisesSummary` e a
+diferença por fase do servidor) e a tela; produto, trechos, cenários A/B e premissas no endereço; `PhaseWaterfall` (cascata
+em SVG MSDS com tabela, tooltip e teclado). Baterias: padrões do servidor, `highlightSlug` no Ragone (anel, frase e marca na
+tabela), `group`/`region`/`aria-current`/lista no pódio. Dimensionar: `LoadCaseDiagram` (esquema que muda com o apoio),
+`SolveResultChart` (barras na ordem do ranking), "Comparar os N melhores". Custo: comparar até 5 materiais (`?comparar=`),
+um melhor processo por linha, falha de um não derruba os outros. Testes: `test_defaults_api.py` (cada padrão igual à
+constante que o pedido valida, arquétipo real, 401/403), `test_eco_waterfall.py` (degraus encadeados, ausente, crédito,
+carbono, domínio, API e `phase_deltas`), `ecoBrief.test.ts`, `eco.test.tsx` (padrões do servidor, restaurar, cascata com
+lacuna, produto ida e volta pela URL, cenários A/B, diferença do servidor sem subtração no navegador),
+`baterias.test.tsx`/`RagoneChart.test.tsx` (padrões, destaque, aria), `dimensionar.test.tsx` (padrões, esquema, barras,
+comparar), `custo.test.tsx` (padrões, erro dos padrões, comparação) e o E2E `e2e/eco-ab.spec.ts`. Fora: candidatos para a
+Seleção (sem entrada por lista de ids; vai para o Comparar), cascata das diferenças, curva inteira na comparação do Custo.
+Sem migração nem seed. Depois do merge: **Deploy da API**.
+
 ## Sessão 172 — 12/11/26 — F3 por cima da ficha da D-214: unidade no valor, sumário que acompanha, processo e famílias no molde (D-215)
 
 **O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar do bloco "Ler os valores em outra

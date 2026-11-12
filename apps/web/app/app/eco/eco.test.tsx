@@ -4,12 +4,17 @@ import { render, waitFor, within } from "@testing-library/react";
 // shadow root, invisible to plain @testing-library/react queries.
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
+import { encodeUrlJson } from "@/lib/urlState";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { ecoPhaseI18n } from "@/lib/i18n-extras";
 import type {
   EcoAuditRequest,
   EcoAuditResult,
+  EcoComparisonRequest,
+  EcoComparisonResult,
+  EcoWaterfall,
   EndOfLifeRouteInfo,
   MaterialDetail,
   MaterialListItem,
@@ -20,6 +25,9 @@ const t = ptBR.eco;
 
 const runEcoAudit =
   vi.fn<(payload: EcoAuditRequest) => Promise<EcoAuditResult>>();
+const compareEcoAudits =
+  vi.fn<(payload: EcoComparisonRequest) => Promise<EcoComparisonResult>>();
+const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
 const downloadEcoAudit =
   vi.fn<
     (
@@ -119,6 +127,43 @@ const componentPhase = (phase: string, label: string, energy: number | null, rea
   energy_reason: reason,
   carbon_reason: reason,
 });
+
+const PHASES: [string, string][] = [
+  ["material", "Material"],
+  ["manufatura", "Manufatura"],
+  ["transporte", "Transporte"],
+  ["uso", "Uso"],
+  ["fim-de-vida", "Fim de vida"],
+];
+
+/** The server's waterfall, written out by hand: `null` is an absent phase. */
+function waterfall(
+  quantity: "energy" | "carbon",
+  unit: string,
+  values: (number | null)[],
+): EcoWaterfall {
+  let running = 0;
+  let complete = true;
+  const steps = PHASES.map(([phase, label], index) => {
+    const value = values[index] ?? null;
+    if (value === null) {
+      complete = false;
+      return { phase, label, value, start: running, end: running, reason: "Dados ausentes: x" };
+    }
+    const start = running;
+    running += value;
+    return { phase, label, value, start, end: running, reason: null };
+  });
+  return {
+    quantity,
+    unit,
+    steps,
+    total: complete
+      ? { phase: "total", label: "Total", value: running, start: 0, end: running, reason: null }
+      : { phase: "total", label: "Total", value: null, start: null, end: null, reason: "Sem total" },
+    domain: [0, Math.max(running, 1)],
+  };
+}
 
 const result: EcoAuditResult = {
   components: [
@@ -238,6 +283,8 @@ const result: EcoAuditResult = {
     share: 0.6555,
     refusal: null,
   },
+  energy_waterfall: waterfall("energy", "MJ", [525, 27.5, 2.7, 1000, 48]),
+  carbon_waterfall: waterfall("carbon", "kg de CO₂", [31.25, 2.125, 0.204, 70, 3.2]),
   energy_unit: "MJ",
   carbon_unit: "kg de CO₂",
   carbon_unit_note:
@@ -246,17 +293,24 @@ const result: EcoAuditResult = {
     "A reciclagem aparece duas vezes e nunca se cancela. Este documento não abate crédito de reciclagem do total.",
 };
 
-const nav = vi.hoisted(() => ({ query: "", noProcess: false }));
+const nav = vi.hoisted(() => ({ noProcess: false }));
+
+// The brief lives in the URL (D-216): a test opens the page at an address.
+function setQuery(query: string) {
+  window.history.replaceState(null, "", `/app/eco${query ? `?${query}` : ""}`);
+}
 
 // `PageHeader` reads the pathname for the route palette (D-49); without this it
 // gets null and the header throws before anything renders.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/eco",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(nav.query),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("@/lib/api", () => ({
+  getDefaults: () => getDefaults(),
+  compareEcoAudits: (payload: EcoComparisonRequest) => compareEcoAudits(payload),
   listMaterials: () => Promise.resolve(materials),
   getMaterial: () => Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
   listTransportModes: () => Promise.resolve(modes),
@@ -282,7 +336,9 @@ async function open() {
 
 beforeEach(() => {
   nav.noProcess = false;
-  nav.query = "material=7&massa=2";
+  setQuery("material=7&massa=2");
+  getDefaults.mockClear();
+  compareEcoAudits.mockReset();
   runEcoAudit.mockReset();
   runEcoAudit.mockResolvedValue(result);
   downloadEcoAudit.mockReset();
@@ -296,7 +352,7 @@ describe("Auditoria ambiental", () => {
   it("não audita enquanto faltar a massa da peça", async () => {
     // A massa é o número que decide a resposta; inventá-la seria a ferramenta
     // escrevendo o briefing.
-    nav.query = "";
+    setQuery("");
     await open();
 
     expect(
@@ -306,11 +362,58 @@ describe("Auditoria ambiental", () => {
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
   });
 
-  it("recolhe as premissas do uso, com cada valor no resumo", async () => {
+  it("mostra as premissas do uso sempre abertas, com os padrões do servidor (D-216)", async () => {
     await open();
 
-    const summary = await screen.findByText(t.useSummaryMobile("10", "200.000", "0,0025", "0,07"));
-    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
+    // No disclosure: every premise is a field on screen, already filled.
+    expect(await screen.findByShadowLabelText(t.lifeLabel)).toHaveValue(10);
+    expect(screen.getByShadowLabelText(t.travelLabel)).toHaveValue(200000);
+    expect(screen.getByShadowLabelText(t.intensityLabel)).toHaveValue(0.0025);
+    expect(screen.getByShadowLabelText(t.carbonPerEnergyLabel)).toHaveValue(0.07);
+    expect(screen.getByText("Premissas iniciais da auditoria.")).toBeInTheDocument();
+  });
+
+  it("usa os padrões que o servidor mandar, sem número copiado na tela", async () => {
+    const { defaultsFixture } = await import("@/lib/defaults.fixture");
+    getDefaults.mockResolvedValueOnce({
+      ...defaultsFixture,
+      eco: {
+        ...defaultsFixture.eco,
+        transport_distance_km: 321,
+        mobile: { ...defaultsFixture.eco.mobile, distance_km: 123456 },
+      },
+    });
+    const user = userEvent.setup();
+    await open();
+
+    expect(await screen.findByShadowLabelText(t.travelLabel)).toHaveValue(123456);
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
+    expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
+      transport_legs: [{ distance_km: 321 }],
+      use: { distance_km: 123456 },
+    });
+    // At the server's value the premise leaves the address.
+    expect(new URLSearchParams(window.location.search).has("percurso")).toBe(false);
+  });
+
+  it("restaura os padrões do servidor com um botão", async () => {
+    setQuery("material=7&massa=2&vida=25&uso=estatico&potencia=90");
+    const user = userEvent.setup();
+    await open();
+
+    expect(await screen.findByShadowLabelText(t.lifeLabel)).toHaveValue(25);
+    const restore = await screen.findByShadowRole("button", {
+      name: ecoPhaseI18n.restoreDefaults,
+    });
+    expect(restore).toBeEnabled();
+    await user.click(restore);
+
+    await waitFor(() => expect(screen.getByShadowLabelText(t.lifeLabel)).toHaveValue(10));
+    const params = new URLSearchParams(window.location.search);
+    for (const key of ["vida", "uso", "potencia"]) expect(params.has(key)).toBe(false);
+    // The solver's seed is not a premise: it stays.
+    expect(params.get("massa")).toBe("2");
   });
 
   it("aceita material e massa pela URL, que é como o dimensionamento liga aqui", async () => {
@@ -623,7 +726,9 @@ describe("Auditoria ambiental", () => {
     await user.click(await screen.findByShadowRole("button", { name: t.run }));
     await screen.findByText(t.dominanceTitle);
 
-    const trigger = screen.getByRole("button", { name: ptBR.exports.title });
+    // Each waterfall has its own "Exportar" (the figure's, D-91); the audit's
+    // file menu is the first in reading order.
+    const trigger = screen.getAllByRole("button", { name: ptBR.exports.title })[0]!;
     expect(trigger).toBeEnabled();
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     await user.click(trigger);
@@ -646,5 +751,171 @@ describe("Auditoria ambiental", () => {
     await waitFor(() => expect(created).toHaveBeenCalled());
     expect(click).toHaveBeenCalled();
     click.mockRestore();
+  });
+
+  it("desenha a cascata por fase com os degraus do servidor, e a fase ausente como lacuna", async () => {
+    // D-216: a fase sem dado não é um degrau de altura zero — é um marcador
+    // tracejado com o motivo escrito, e o total é recusado.
+    runEcoAudit.mockResolvedValue({
+      ...result,
+      carbon_waterfall: waterfall("carbon", "kg de CO₂", [31.25, null, 0.204, 70, 3.2]),
+    });
+    const user = userEvent.setup();
+    await open();
+
+    await user.click(await screen.findByShadowRole("button", { name: t.run }));
+
+    const energy = await screen.findByRole("figure", {
+      name: ecoPhaseI18n.waterfall.figureLabel("energia"),
+    });
+    // Five phases and the total, each one a labelled mark.
+    expect(within(energy).getAllByRole("img")).toHaveLength(6);
+    expect(
+      within(energy).getByRole("img", {
+        name: ecoPhaseI18n.waterfall.stepAria("Material", "525 MJ", "525 MJ"),
+      }),
+    ).toBeInTheDocument();
+    expect(within(energy).getByRole("img", { name: /^Total: 1\.603,2 MJ$/ })).toBeInTheDocument();
+
+    const carbon = await screen.findByRole("figure", {
+      name: ecoPhaseI18n.waterfall.figureLabel("carbono"),
+    });
+    expect(
+      within(carbon).getByRole("img", {
+        name: ecoPhaseI18n.waterfall.absentAria("Manufatura", "Dados ausentes: x"),
+      }),
+    ).toBeInTheDocument();
+    expect(within(carbon).getByRole("img", { name: /^Total: sem dado\./ })).toBeInTheDocument();
+  });
+
+  it("guarda o produto na URL e o reabre igual", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.productStep });
+
+    await user.click(await screen.findByShadowRole("button", { name: t.addComponent }));
+    await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
+    // Only the second line asks for "massa de uma unidade"; the first says "da peça".
+    const second = await screen.findByShadowLabelText(t.unitMassLabel);
+    await user.clear(second);
+    await user.type(second, "0.5");
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("componentes")).not.toBeNull();
+    expect(params.get("trechos")).not.toBeNull();
+    unmount();
+
+    // A fresh render of the same address: the two components and two legs are back.
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.productStep });
+    expect(await screen.findAllByShadowLabelText(t.quantityLabel)).toHaveLength(2);
+    expect(screen.getByText(t.componentLegend(2))).toBeInTheDocument();
+    expect(screen.getByText(t.legLegend(2))).toBeInTheDocument();
+    // The first line keeps the solver's seed; the second holds what was typed.
+    expect(screen.getByShadowLabelText(t.massLabel)).toHaveValue(2);
+    expect(screen.getByShadowLabelText(t.unitMassLabel)).toHaveValue(0.5);
+  });
+
+  it("ignora na URL uma lista de componentes malformada, sem quebrar a tela", async () => {
+    setQuery("componentes=isto-nao-e-json&modo=outro");
+    await open();
+
+    // Back to the defaults: one blank component, individual view.
+    expect(await screen.findAllByShadowLabelText(t.quantityLabel)).toHaveLength(1);
+    expect(screen.getByText(t.blocked.mass)).toBeInTheDocument();
+  });
+});
+
+describe("Auditoria ambiental: cenários A e B (D-216)", () => {
+  const scenario = (material: string, mass: string) => ({
+    material,
+    process: "",
+    mass,
+    recycled: "0",
+    endOfLife: "reciclagem" as const,
+  });
+  const compared: EcoComparisonResult = {
+    material_a: { ...result, material_name: "Liga Alumínio Demo A" },
+    material_b: { ...result, material_name: "Aço Demo B", total_energy: 2000 },
+    delta_energy: 396.8,
+    delta_energy_percent: 24.75,
+    delta_carbon: 10,
+    delta_carbon_percent: 9.36,
+    winner_energy: "material_a",
+    winner_carbon: "material_a",
+    // Deliberately NOT B − A of the two audits above: the table must print what
+    // the server sent, never subtract on its own.
+    phase_deltas: PHASES.map(([phase, label], index) => ({
+      phase,
+      label,
+      delta_energy: index === 0 ? 4242 : null,
+      delta_carbon: null,
+    })),
+  };
+
+  beforeEach(() => {
+    compareEcoAudits.mockResolvedValue(compared);
+  });
+
+  it("abre os dois cenários pela URL e compara com o que ela descreve", async () => {
+    setQuery(
+      `modo=compare&a=${encodeUrlJson(scenario("7", "3"))}&b=${encodeUrlJson(scenario("7", "4"))}&modal=aereo&distancia=900`,
+    );
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.materialA });
+    expect(screen.getByRole("heading", { name: t.materialB })).toBeInTheDocument();
+
+    // The same component twice: two scenarios, two mass fields.
+    const masses = await screen.findAllByShadowLabelText(t.massLabel);
+    expect(masses).toHaveLength(2);
+    expect(masses[0]).toHaveValue(3);
+    expect(masses[1]).toHaveValue(4);
+
+    await user.click(await screen.findByShadowRole("button", { name: t.compareRun }));
+    await waitFor(() => expect(compareEcoAudits).toHaveBeenCalledTimes(1));
+    expect(compareEcoAudits.mock.calls[0]![0]).toMatchObject({
+      material_a: { material_id: 7, process_id: 1, part_mass: 3 },
+      material_b: { material_id: 7, process_id: 1, part_mass: 4 },
+      transport_mode: "aereo",
+      transport_distance_km: 900,
+    });
+    expect(runEcoAudit).not.toHaveBeenCalled();
+  });
+
+  it("escreve só o cenário editado na URL, sem tocar no outro", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    const masses = await screen.findAllByShadowLabelText(t.massLabel);
+
+    await user.clear(masses[1]!);
+    await user.type(masses[1]!, "6");
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("modo")).toBe("compare");
+    expect(JSON.parse(atob(params.get("b")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({
+      mass: "6",
+    });
+    expect(JSON.parse(atob(params.get("a")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({
+      mass: "3",
+    });
+  });
+
+  it("imprime a diferença por fase que o servidor mandou, sem subtrair no navegador", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    await user.click(await screen.findByShadowRole("button", { name: t.compareRun }));
+
+    await screen.findByText(t.winnerEnergy);
+    const table = screen.getAllByRole("table")[0]!;
+    // 4.242 is the server's delta; B − A of the two audits would be 0.
+    expect(within(table).getByText(/\+4\.242 MJ/)).toBeInTheDocument();
+    // A phase either side could not compute is a written absence, not a zero.
+    expect(within(table).getAllByText(t.noDelta).length).toBeGreaterThan(0);
+    // The winners and the premises that fed both scenarios are on screen.
+    expect(screen.getByText(t.winnerEnergy)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: ecoPhaseI18n.premises.title })).toBeInTheDocument();
   });
 });
