@@ -132,9 +132,12 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   // "Estudos salvos" list is populated from a clean page, not from wizard
   // state left over from the run above.
   await page.goto("/app/selecao");
-  // Saved studies live in "Meus estudos", collapsed at the top (D-85).
-  await page.getByText(/^Meus estudos \(/).click();
-  const savedRow = page.getByRole("row").filter({ hasText: STUDY_NAME });
+  // Saved studies live in "Meus estudos", a panel beside the study (D-221).
+  await page.getByRole("button", { name: /^Meus estudos \(/ }).click();
+  const savedRow = page
+    .getByRole("dialog", { name: "Estudos salvos" })
+    .getByRole("listitem")
+    .filter({ hasText: STUDY_NAME });
   await expect(savedRow).toBeVisible();
 
   // D-91: the four formats sit behind one "Exportar relatório" menu. The

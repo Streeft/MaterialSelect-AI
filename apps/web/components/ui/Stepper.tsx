@@ -79,6 +79,7 @@ export function Stepper<T extends string>({
   statusOf,
   current,
   onSelect,
+  compact = false,
   className,
 }: {
   label: string;
@@ -86,17 +87,36 @@ export function Stepper<T extends string>({
   statusOf: (step: Step<T>, index: number) => StepStatus;
   current: T;
   onSelect: (id: T) => void;
+  /**
+   * D-221: on a phone, one row — the other steps shrink to their numbered dot
+   * and only the current one keeps its words. Four stacked step buttons used
+   * half of a 390 px screen before the reader reached the step itself. The
+   * labels of the others stay in the button's name (`sr-only`), so nothing is
+   * lost to a screen reader.
+   */
+  compact?: boolean;
   className?: string;
 }) {
   return (
     <nav aria-label={label} className={className}>
-      <ol className="flex flex-col gap-1 sm:flex-row sm:items-stretch sm:gap-2">
+      <ol
+        className={cn(
+          "flex gap-1 sm:flex-row sm:items-stretch sm:gap-2",
+          compact ? "flex-row items-stretch" : "flex-col",
+        )}
+      >
         {steps.map((step, index) => {
           const status = statusOf(step, index);
           const isCurrent = step.id === current;
           const disabled = status === "blocked";
           return (
-            <li key={step.id} className="sm:min-w-0 sm:flex-1">
+            <li
+              key={step.id}
+              className={cn(
+                "sm:min-w-0 sm:flex-1",
+                compact && (isCurrent ? "min-w-0 flex-1" : "flex-none"),
+              )}
+            >
               <button
                 type="button"
                 onClick={() => onSelect(step.id)}
@@ -105,6 +125,7 @@ export function Stepper<T extends string>({
                 title={disabled ? step.blockedReason : undefined}
                 className={cn(
                   "flex w-full items-center gap-2 rounded-control border px-3 py-2 text-left text-body transition",
+                  compact && !isCurrent && "touch-target max-sm:px-2",
                   "disabled:cursor-not-allowed",
                   // A step is a button, so its outline is what says it can be
                   // pressed and owes 3:1 (WCAG 1.4.11). The blocked one is
@@ -122,7 +143,7 @@ export function Stepper<T extends string>({
                 <span className="msds-step-dot" style={stepDotStyle(status)} aria-hidden="true">
                   {status === "done" ? <IconCheck className="h-3.5 w-3.5" /> : index + 1}
                 </span>
-                <span className="min-w-0">
+                <span className={cn("min-w-0", compact && !isCurrent && "max-sm:sr-only")}>
                   <span className="msds-step-label block break-words">{step.label}</span>
                   {disabled && step.blockedReason ? (
                     <span className="block break-words text-2xs text-ink-muted">{step.blockedReason}</span>

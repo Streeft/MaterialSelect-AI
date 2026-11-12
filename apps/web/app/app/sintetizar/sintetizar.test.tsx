@@ -201,7 +201,7 @@ async function open() {
 }
 
 /**
- * D-218: the preview follows the recipe — nothing to press. What appears only
+ * D-220: the preview follows the recipe — nothing to press. What appears only
  * once it has arrived is the line naming the parents it was computed from.
  */
 async function runPreview(_user?: ReturnType<typeof userEvent.setup>) {
@@ -228,7 +228,7 @@ beforeEach(() => {
 });
 
 describe("Sintetizar material", () => {
-  it("diz que nada ali é inventado, uma vez, no rodapé (D-218)", async () => {
+  it("diz que nada ali é inventado, uma vez, no rodapé (D-220)", async () => {
     // É a frase que justifica a tela existir (princípio 1); dita uma vez, numa
     // linha, e não como faixa acima de todo campo.
     await open();
@@ -385,7 +385,7 @@ describe("Sintetizar material", () => {
     await user.clear(fraction);
     await user.type(fraction, "1");
 
-    // D-86/D-218: no preview button; the result card says what is wrong.
+    // D-86/D-220: no preview button; the result card says what is wrong.
     expect(await screen.findByText(t.blocked.fraction)).toBeInTheDocument();
     expect(screen.queryByShadowRole("button", { name: t.preview })).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -410,7 +410,7 @@ describe("Sintetizar material", () => {
     ).toHaveAttribute("href", "/app/materiais/77");
   });
 
-  it("mostra a nota do tipo escolhido, um clique abaixo do desenho (D-218)", async () => {
+  it("mostra a nota do tipo escolhido, um clique abaixo do desenho (D-220)", async () => {
     await open();
     // Each kind is a drawing and one line; the full rule is in "Sobre este tipo".
     expect(screen.getByText(t.kindLineComposite)).toBeInTheDocument();

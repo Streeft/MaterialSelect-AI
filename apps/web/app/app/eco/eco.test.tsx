@@ -355,7 +355,7 @@ describe("Auditoria ambiental", () => {
     setQuery("");
     await open();
 
-    // D-86/D-218: no button to press; the result card says what is missing.
+    // D-86/D-220: no button to press; the result card says what is missing.
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
     expect(screen.queryByShadowRole("button", { name: t.run })).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -478,7 +478,7 @@ describe("Auditoria ambiental", () => {
     expect(await screen.findByShadowLabelText(/Potência/)).toBeInTheDocument();
 
     // The brief was complete from the link, so the mobile model was asked about
-    // first; the switch asks again, with the static fields only (D-218).
+    // first; the switch asks again, with the static fields only (D-220).
     await waitFor(() => expect(runEcoAudit.mock.calls.at(-1)![0]!.use.model).toBe("estatico"));
     const sent = runEcoAudit.mock.calls.at(-1)![0]!.use;
     expect(sent.model).toBe("estatico");
@@ -496,7 +496,7 @@ describe("Auditoria ambiental", () => {
     // the picker in step 1, so an unscoped query could pass on the wrong node —
     // and the order is itself the claim, since the phases are never sorted by
     // magnitude.
-    // The result region's first table: the inputs are tables too now (D-218).
+    // The result region's first table: the inputs are tables too now (D-220).
     const table = within(screen.getByRole("region", { name: ptBR.ui.resultPanel })).getAllByRole("table")[0]!;
     const firstCells = within(table)
       .getAllByRole("row")
@@ -624,7 +624,7 @@ describe("Auditoria ambiental", () => {
     expect(sent.components![1]).toMatchObject({ unit_mass: 0.5, quantity: 4 });
     expect(sent.transport_legs![1]).toMatchObject({ distance_km: 0 });
 
-    // D-218: removed from the row's ⋯, as in any table edited in place.
+    // D-220: removed from the row's ⋯, as in any table edited in place.
     await user.click(screen.getByRole("button", { name: ptBR.ds.rowActions(second) }));
     await user.click(screen.getByRole("menuitem", { name: ptBR.ds.removeRow }));
     expect(screen.queryByShadowLabelText(t.cellLabel(t.colQuantity, second))).toBeNull();
@@ -777,7 +777,7 @@ describe("Auditoria ambiental", () => {
 
     await user.click(await screen.findByShadowRole("button", { name: t.addComponent }));
     await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
-    // D-218: each cell names its column and its row.
+    // D-220: each cell names its column and its row.
     const second = await screen.findByShadowLabelText(
       new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(2))}`),
     );

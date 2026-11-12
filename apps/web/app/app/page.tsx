@@ -4,6 +4,7 @@ import { Disclosure, Section } from "@/components/ui";
 import { Greeting } from "@/components/home/Greeting";
 import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
+import { PinnedMaps } from "@/components/home/PinnedMaps";
 import { HomeComposer } from "@/components/home/HomeComposer";
 import { NewMenu } from "@/components/home/NewMenu";
 
@@ -44,6 +45,8 @@ export default function HomePage() {
       <RecentRecords />
 
       <SavedStudies />
+
+      <PinnedMaps />
 
       <Section title={t.exploreTitle}>
         <ul className="grid gap-3 sm:grid-cols-3">

@@ -427,8 +427,22 @@ describe("navegação guiada (D-85)", () => {
   it("summarizes what each step holds under its name", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
-    await user.type(screen.getByShadowRole("textbox", { name: t.studyName }), "Viga de bicicleta");
-    expect(stepButton(t.stepFunction)).toHaveTextContent("Viga de bicicleta");
+    await user.type(screen.getByShadowRole("textbox", { name: t.functionText }), "viga em flexão");
+    expect(stepButton(t.stepFunction)).toHaveTextContent("viga em flexão");
+  });
+
+  it("é um documento: o nome é o título, e as propriedades levam ao passo (D-221)", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    const title = screen.getByRole("textbox", { name: t.studyName });
+    expect(title).toHaveAttribute("placeholder", wizardText.doc.untitled);
+    expect(screen.getByRole("heading", { level: 1 })).toContainElement(title);
+    await user.type(title, "Viga de bicicleta");
+    expect(title).toHaveValue("Viga de bicicleta");
+
+    expect(screen.getByRole("button", { name: wizardText.doc.noLimits })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: wizardText.doc.noLimits }));
+    expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
   });
 });
 

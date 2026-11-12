@@ -264,7 +264,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   }, [selectedId, mass, batch, writeOff, loadFactor]);
   const ready = blockedReason === null;
 
-  // D-218: the estimates follow the brief — one per material, all with the same
+  // D-220: the estimates follow the brief — one per material, all with the same
   // part, batch and premises (D-216). The first is the answer the page is about;
   // a failure of one of the others is written on its row and never sinks the rest.
   // The numbers are still the server's.
@@ -283,7 +283,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   });
   const result = live.data?.main ?? null;
   const compared = live.data?.others ?? [];
-  // D-218: the mass handed over by Dimensionar says where it came from.
+  // D-220: the mass handed over by Dimensionar says where it came from.
   const fromSolver = useSearchParams().get("origem") === "dimensionar";
   // An assumption that blocks the estimate is never left folded away.
   const assumptionBlocks =

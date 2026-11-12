@@ -45,7 +45,6 @@ import {
   Section,
   Select,
   SelectOption,
-  StepCard,
   TableSkeleton,
   Tabs,
   ToggleChip,
@@ -325,6 +324,25 @@ function ComparePageContent() {
       : []),
   ];
 
+  // D-221: the property search offers what is not chosen yet, at the reading
+  // level (D-165); the chosen ones are chips, each with its own way out.
+  const propertyBySlug = new Map((properties.data ?? []).map((p) => [p.slug, p]));
+  const propertyOptions: ComboboxOption[] = offeredProperties
+    .filter((p) => !selectedProperties.includes(p.slug))
+    .map((p) => ({
+      value: p.slug,
+      label: p.name,
+      description: `${ptBR.direction[p.better_direction]} · ${prettyUnit(p.canonical_unit)}`,
+    }));
+  const chosenPropertyItems = selectedProperties.map((slug) => {
+    const p = propertyBySlug.get(slug);
+    return {
+      slug,
+      name: p?.name ?? slug,
+      title: p ? `${ptBR.direction[p.better_direction]} · ${prettyUnit(p.canonical_unit)}` : undefined,
+    };
+  });
+
   const materialsFull = selectedMaterials.length >= MAX_MATERIALS;
   const propertiesFull = selectedProperties.length >= MAX_PROPERTIES;
 
@@ -347,7 +365,11 @@ function ComparePageContent() {
       )}
 
       {selectedMaterials.length === 0 && (
-        <CompareSuggestions chosen={selectedMaterials} onAdd={addMaterials} />
+        <CompareSuggestions
+          chosen={selectedMaterials}
+          onAdd={addMaterials}
+          catalogue={materials.data ?? []}
+        />
       )}
       {selectedMaterials.length === 1 && (
         <p role="status" className="text-support text-ink-muted">
@@ -355,113 +377,117 @@ function ComparePageContent() {
         </p>
       )}
 
-      {/* Three steps, each open once the one before it has something in it; a
-          link with `?materiais=` arrives with all three filled (D-86). */}
-      <div id="controles" className="grid items-start gap-4 lg:grid-cols-2">
-        <StepCard
-          title={t.stepMaterials}
-          description={t.pickMaterials}
-          actions={
-            <Badge tone={materialsFull ? "warning" : "neutral"}>
+      {/* D-221: what is compared is one bar — the materials and the
+          properties as chips, each added by search — instead of two step
+          cards; with two materials the result below takes the screen. A link
+          with `?materiais=` arrives with the bar filled (D-86). */}
+      <section id="controles" aria-label={compareViewText.bar.label} className="msds-card flex flex-col gap-4 p-4">
+        <div className="grid items-start gap-3 md:grid-cols-[8rem_minmax(0,1fr)]">
+          <div className="flex flex-col gap-1 pt-2">
+            <h2 className="text-body font-semibold text-ink">{compareViewText.bar.materials}</h2>
+            <Badge tone={materialsFull ? "warning" : "neutral"} className="self-start">
               {t.materialsCount(selectedMaterials.length)}
             </Badge>
-          }
-        >
-          {materials.isLoading ? (
-            <LoadingState label={ptBR.catalog.loading} />
-          ) : (
-            <Combobox
-              label={t.addMaterial}
-              hint={materialsFull ? t.limitReached : t.addMaterialHint}
-              options={materialOptions}
-              value=""
-              onChange={(value) => toggleMaterial(Number(value))}
-              clearOnSelect
-              disabled={materialsFull}
-              noMatchText={() => t.noMaterialsFound}
-            />
-          )}
-
-          {chosenMaterials.length === 0 ? (
-            <p className="text-body text-ink-muted">{t.noneChosen}</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {/* A whole-catalogue selection (D-187) is hundreds of chips: the
-                  list scrolls inside its card instead of pushing the figure away. */}
-              <ul
-                aria-label={t.chosenMaterials}
-                className={
-                  chosenMaterials.length > 40
-                    ? "flex max-h-56 flex-wrap gap-2 overflow-y-auto"
-                    : "flex flex-wrap gap-2"
-                }
-              >
-                {chosenMaterials.map((m) => (
-                  <li key={m.id}>
-                    <RemovableChip
-                      removeLabel={t.removeMaterial}
-                      onRemove={() => toggleMaterial(m.id)}
-                    >
-                      {m.name}
-                    </RemovableChip>
-                  </li>
-                ))}
-              </ul>
-              <div>
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            {materials.isLoading ? (
+              <LoadingState label={ptBR.catalog.loading} />
+            ) : (
+              <Combobox
+                label={t.addMaterial}
+                hint={materialsFull ? t.limitReached : t.addMaterialHint}
+                options={materialOptions}
+                value=""
+                onChange={(value) => toggleMaterial(Number(value))}
+                clearOnSelect
+                disabled={materialsFull}
+                noMatchText={() => t.noMaterialsFound}
+              />
+            )}
+            {chosenMaterials.length === 0 ? (
+              <p className="text-body text-ink-muted">{t.noneChosen}</p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* A whole-catalogue selection (D-187) is hundreds of chips: the
+                    list scrolls inside the bar instead of pushing the figure away. */}
+                <ul
+                  aria-label={t.chosenMaterials}
+                  className={
+                    chosenMaterials.length > 40
+                      ? "flex max-h-56 flex-wrap gap-2 overflow-y-auto"
+                      : "flex flex-wrap gap-2"
+                  }
+                >
+                  {chosenMaterials.map((m) => (
+                    <li key={m.id}>
+                      <RemovableChip removeLabel={t.removeMaterial} onRemove={() => toggleMaterial(m.id)}>
+                        {m.name}
+                      </RemovableChip>
+                    </li>
+                  ))}
+                </ul>
                 <Button size="sm" variant="ghost" onClick={() => setSelectedMaterials([])}>
                   {t.clear}
                 </Button>
               </div>
-            </div>
-          )}
-        </StepCard>
+            )}
+          </div>
+        </div>
 
-        <StepCard
-          title={t.stepProperties}
-          description={t.pickProperties}
-          actions={
-            <Badge tone={propertiesFull ? "warning" : "neutral"}>
+        <div className="grid items-start gap-3 border-t border-line-divider pt-4 md:grid-cols-[8rem_minmax(0,1fr)]">
+          <div className="flex flex-col gap-1 pt-2">
+            <h2 className="text-body font-semibold text-ink">{compareViewText.bar.properties}</h2>
+            <Badge tone={propertiesFull ? "warning" : "neutral"} className="self-start">
               {t.selectedCount(selectedProperties.length, MAX_PROPERTIES)}
             </Badge>
-          }
-        >
+          </div>
           {selectedMaterials.length === 0 ? (
-            <p className="text-body text-ink-muted">{t.lockedUntilMaterial}</p>
+            <p className="pt-2 text-body text-ink-muted">{t.lockedUntilMaterial}</p>
           ) : (
-            <>
-              {/* The cap is stated before it bites: a chip that simply stops
-                  responding reads as a broken button. */}
-              {propertiesFull && <p className="text-support text-ink-subtle">{t.limitReached}</p>}
-              {(properties.data ?? []).length > 0 && (
-                <DepthLevelPicker
-                  summary={depthSelectorsText.count(
-                    depthLevel,
-                    offeredProperties.length,
-                    (properties.data ?? []).length,
-                    depthSelectorsText.whereCompare,
-                  )}
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <Combobox
+                  className="min-w-0 flex-[1_1_16rem]"
+                  label={compareViewText.bar.addProperty}
+                  hint={propertiesFull ? t.limitReached : compareViewText.bar.addPropertyHint}
+                  options={propertyOptions}
+                  value=""
+                  onChange={(slug) => toggleProperty(slug)}
+                  clearOnSelect
+                  disabled={propertiesFull}
+                  noMatchText={() => compareViewText.bar.noPropertyFound}
                 />
-              )}
-              <div className="flex flex-wrap gap-2">
-                {offeredProperties.map((p) => {
-                  const chosen = selectedProperties.includes(p.slug);
-                  return (
-                    <ToggleChip
-                      key={p.slug}
-                      selected={chosen}
-                      disabled={!chosen && propertiesFull}
-                      onClick={() => toggleProperty(p.slug)}
-                      title={`${ptBR.direction[p.better_direction]} · ${prettyUnit(p.canonical_unit)}`}
-                    >
-                      {p.name}
-                    </ToggleChip>
-                  );
-                })}
+                {(properties.data ?? []).length > 0 && (
+                  <DepthLevelPicker
+                    summary={depthSelectorsText.count(
+                      depthLevel,
+                      offeredProperties.length,
+                      (properties.data ?? []).length,
+                      depthSelectorsText.whereCompare,
+                    )}
+                  />
+                )}
               </div>
-            </>
+              {chosenPropertyItems.length === 0 ? (
+                <p className="text-body text-ink-muted">{compareViewText.bar.noProperties}</p>
+              ) : (
+                <ul aria-label={compareViewText.bar.chosenProperties} className="flex flex-wrap gap-2">
+                  {chosenPropertyItems.map((p) => (
+                    <li key={p.slug} title={p.title}>
+                      <RemovableChip
+                        removeLabel={compareViewText.bar.removeProperty}
+                        onRemove={() => toggleProperty(p.slug)}
+                      >
+                        {p.name}
+                      </RemovableChip>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
-        </StepCard>
-      </div>
+        </div>
+      </section>
 
       <Section
         id="visualizacao"

@@ -4,7 +4,7 @@ import type { BoxSelection } from "@/components/charts/AshbyMap";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { encodeIdList } from "@/lib/idList";
-import { Alert, Button, ButtonLink, Card, CardBody, CardHeader } from "@/components/ui";
+import { Alert, Button, ButtonLink } from "@/components/ui";
 
 const t = ptBR.map;
 
@@ -50,15 +50,10 @@ export function SelectionPanel({
   const outside = selectedIds.filter((id) => !plottedIds.has(id)).length;
   const hasSelection = count > 0 || box !== null;
 
+  // D-221: the body of the inspector's "Seleção" section; the heading is the section's.
+  if (!hasSelection) return <p className="text-support text-ink-muted">{t.selectionEmpty}</p>;
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={<span id="selecao-mapa-titulo">{t.selectionTitle}</span>}
-        description={hasSelection ? undefined : t.selectionEmpty}
-      />
-      {hasSelection ? (
-        <CardBody className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1" role="status" aria-live="polite">
             <span className="text-caption font-semibold text-ink-muted">
               {box ? t.selectionKindBox : t.selectionKindPicked}
@@ -102,8 +97,6 @@ export function SelectionPanel({
           </div>
           {!box ? <p className="text-support text-ink-muted">{t.openInSelectionNeedsBox}</p> : null}
           {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
-        </CardBody>
-      ) : null}
-    </Card>
+        </div>
   );
 }

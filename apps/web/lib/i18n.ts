@@ -1049,7 +1049,7 @@ export const ptBR = {
     resultIdleHint:
       "Preencha os números do projeto: cada material aparece aqui com a massa (ou o custo) e a seção necessária, e o resultado acompanha o que você digita.",
     blockedVariable: (label: string) => `Informe ${label}, maior que zero.`,
-    // D-218: the workbench.
+    // D-220: the workbench.
     useExample: "Usar o exemplo",
     exampleHint:
       "Preenche os números do projeto com valores ilustrativos deste caso. Troque-os pelos do seu projeto.",
@@ -1117,7 +1117,7 @@ export const ptBR = {
     massLabel: "Massa da peça",
     massHint:
       "A massa acabada. O dimensionamento calcula esta massa para você.",
-    // D-218: the mass that came from Dimensionar, and the way there.
+    // D-220: the mass that came from Dimensionar, and the way there.
     massFromSolver: "Massa calculada no Dimensionar para este material.",
     massToSolver: "Calcular a massa no Dimensionar",
     unitKg: "kg",
@@ -1240,7 +1240,7 @@ export const ptBR = {
     legLegend: (n: number) => `Trecho ${n}`,
     addLeg: "Adicionar trecho",
     removeLeg: (n: number) => `Remover trecho ${n}`,
-    // D-218: the product and the legs as tables edited in place.
+    // D-220: the product and the legs as tables edited in place.
     componentsTable: "Componentes do produto",
     legsTable: "Trechos de transporte",
     colName: "Nome",
@@ -1501,7 +1501,7 @@ export const ptBR = {
     kindComposite: "Compósito de dois constituintes",
     kindFoam: "Espuma de um sólido",
     kindPanel: "Painel sanduíche",
-    // D-218: one line per kind, under its drawing; the full note is one click away.
+    // D-220: one line per kind, under its drawing; the full note is one click away.
     kindLineComposite: "Fibras ou partículas de um material dentro de outro.",
     kindLineFoam: "Um sólido com células de ar, mais leve e menos rígido.",
     kindLinePanel: "Duas faces finas e rígidas sobre um núcleo leve.",
@@ -2935,6 +2935,19 @@ export const ptBR = {
     lineLoading: "Recalculando a linha…",
     lineError: "Não foi possível mover a linha.",
     lineLegend: (value: string) => `M = ${value} (móvel)`,
+    // D-221: the inspector, the bottom sheet and the saved views.
+    inspectorTitle: "Inspetor do mapa",
+    inspectorOpen: "Controles do mapa",
+    inspectorClose: "Fechar os controles",
+    inspectorParts: { appearance: "Aparência", classes: "Classes", index: "Linha de índice" },
+    classesShown: (n: number) => (n === 1 ? "1 classe" : `${n} classes`),
+    viewsLabel: "Visões salvas",
+    viewOpen: (name: string) => `Abrir a visão ${name}`,
+    viewMenu: (name: string) => `Ações da visão ${name}`,
+    pinHome: "Fixar no Início",
+    unpinHome: "Tirar do Início",
+    pinned: (name: string) => `${name} fixada no Início.`,
+    unpinned: (name: string) => `${name} saiu do Início.`,
   },
   dashboard: {
     title: "Painel do catálogo",
@@ -3125,8 +3138,8 @@ export const ptBR = {
     chosenMaterials: "Materiais escolhidos",
     noneChosen: "Nenhum material escolhido ainda.",
     removeMaterial: "Remover da comparação",
-    lockedUntilMaterial: "Escolha ao menos um material no passo 1.",
-    lockedUntilProperty: "Escolha ao menos uma propriedade no passo 2.",
+    lockedUntilMaterial: "Escolha ao menos um material na barra acima.",
+    lockedUntilProperty: "Escolha ao menos uma propriedade na barra acima.",
     selectedCount: (chosen: number, max: number) => `${chosen} de ${max}`,
     materialsCount: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
     limitReached: "Limite atingido. Desmarque um item para escolher outro.",
@@ -3231,7 +3244,7 @@ export const ptBR = {
     moreActions: "Mais ações",
     titleLabel: "Título",
     outline: "Nesta página",
-    // D-218: InlineTable.
+    // D-220: InlineTable.
     rowActions: (row: string) => `Ações de ${row}`,
     duplicateRow: "Duplicar",
     removeRow: "Remover",
@@ -3292,7 +3305,7 @@ export const ptBR = {
     // D-212: os padrões de página.
     moreActions: "Mais ações",
     pageActions: "Ações da página",
-    // D-218: a live result being asked about again.
+    // D-220: a live result being asked about again.
     updating: "Atualizando…",
     paramsPanel: "Parâmetros",
     resultPanel: "Resultado",
@@ -3596,6 +3609,9 @@ export const ptBR = {
     fixedChart: "Paleta dos gráficos (Okabe–Ito)",
   },
   home: {
+    // D-221: the maps pinned from Mapas, on this device.
+    pinnedTitle: "Mapas fixados",
+    pinnedHint: "Fixados em Mapas, neste aparelho. Abrir pede o mapa salvo de novo ao servidor.",
     // D-132: a home que devolve o leitor ao que ele estava fazendo.
     greeting: (name: string) => `Olá, ${name}.`,
     recentTitle: "Vistos recentemente",

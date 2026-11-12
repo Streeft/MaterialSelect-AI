@@ -398,13 +398,25 @@ describe("StageList", () => {
     fireEvent.dragStart(dragHandle1, {
       dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
     });
-    expect(card2.className).not.toContain("ring-brand-500");
+    expect(card2).not.toHaveAttribute("data-drop-target");
 
     fireEvent.dragOver(card2, { dataTransfer: { dropEffect: "move" } });
-    expect(card2.className).toContain("ring-brand-500");
+    expect(card2).toHaveAttribute("data-drop-target");
 
     fireEvent.dragLeave(card2);
-    expect(card2.className).not.toContain("ring-brand-500");
+    expect(card2).not.toHaveAttribute("data-drop-target");
+  });
+
+  it("move o estágio com Alt+↓ na alça, como todo bloco do app (D-221)", () => {
+    let last: StageState[] = [];
+    const s1 = { ...emptyLimitStage(), label: "Primeiro" };
+    const s2 = { ...emptyTreeStage(), label: "Segundo" };
+    render(<Harness initial={[s1, s2]} onStages={(s) => (last = s)} />);
+    fireEvent.keyDown(screen.getByTitle(selectionExtras.stageDragHandle(1)), {
+      key: "ArrowDown",
+      altKey: true,
+    });
+    expect(last.map((s) => s.label)).toEqual(["Segundo", "Primeiro"]);
   });
 
   it("moves a stage and keeps the other one intact", async () => {

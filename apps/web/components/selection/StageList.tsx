@@ -1,7 +1,7 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { convertMapBox, getPropertyMap } from "@/lib/api";
 import { fromMapBox, toMapBox } from "@/lib/mapBox";
@@ -37,9 +37,11 @@ import {
   Select,
   SelectOption,
   Textarea,
+  useReorder,
   useWiring,
 } from "@/components/ui";
 import { flowText } from "@/lib/i18n-flow";
+import { IconGrip } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { prettyUnit } from "@/lib/format";
 import { DEFAULT_DEPTH_LEVEL, optionsAtLevel, type DepthLevel } from "@/lib/depth";
@@ -511,8 +513,13 @@ export function StageList({
   constraintAdvanced = true,
   depthLevel = DEFAULT_DEPTH_LEVEL,
 }: Props) {
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // D-221: the app's one reorder gesture (D-206) — the grip drags, Alt+↑/↓
+  // moves from the keyboard, and every move is announced.
+  const reorderGesture = useReorder({
+    items: stages,
+    onReorder: onChange,
+    nameOf: (stage, index) => stage.label.trim() || t.stageNumber(index + 1, stage.kind),
+  });
 
   const isProcessStudy = universe === "process";
   // What a limit stage of a material study selects on: the numeric properties
@@ -583,33 +590,8 @@ export function StageList({
         <Card
           key={stage.id}
           data-stage-index={index}
-          className={cn(
-            "transition-all duration-150",
-            dragOverIndex === index &&
-              draggedIndex !== null &&
-              draggedIndex !== index &&
-              "ring-2 ring-brand-500 shadow-lift",
-            draggedIndex === index && "opacity-60",
-          )}
-          onDragOver={(e: DragEvent<HTMLElement>) => {
-            if (draggedIndex !== null && draggedIndex !== index) {
-              e.preventDefault();
-              setDragOverIndex(index);
-            }
-          }}
-          onDragLeave={() => {
-            if (dragOverIndex === index) {
-              setDragOverIndex(null);
-            }
-          }}
-          onDrop={(e: DragEvent<HTMLElement>) => {
-            e.preventDefault();
-            if (draggedIndex !== null && draggedIndex !== index) {
-              onChange(reorderStages(stages, draggedIndex, index));
-            }
-            setDraggedIndex(null);
-            setDragOverIndex(null);
-          }}
+          {...reorderGesture.itemProps(index)}
+          className="transition-all duration-150 data-[drop-target]:shadow-lift data-[drop-target]:ring-2 data-[drop-target]:ring-brand-500 data-[dragged]:opacity-60"
         >
           <CardHeader
             headingLevel={3}
@@ -617,23 +599,13 @@ export function StageList({
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  draggable
-                  onDragStart={(e: DragEvent<HTMLSpanElement>) => {
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", String(index));
-                    setDraggedIndex(index);
-                  }}
-                  onDragEnd={() => {
-                    setDraggedIndex(null);
-                    setDragOverIndex(null);
-                  }}
-                  className="cursor-grab active:cursor-grabbing select-none text-ink-muted hover:text-ink px-1 text-base"
+                  {...reorderGesture.handleProps(index)}
                   title={selectionExtras.stageDragHandle(index + 1)}
                   aria-label={selectionExtras.stageDragHandle(index + 1)}
-                  role="button"
-                  tabIndex={0}
+                  className="ds-block-grip touch-target"
+                  data-visible=""
                 >
-                  ⠿
+                  <IconGrip className="h-4 w-4" aria-hidden />
                 </span>
                 <Badge tone={STAGE_TONES[stage.kind]}>{STAGE_BADGES[stage.kind]}</Badge>
                 {/* IconButton, not a Button with an aria-label: an arrow
