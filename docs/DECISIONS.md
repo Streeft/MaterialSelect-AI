@@ -139,6 +139,11 @@ converter, o valor perde proveniência.
 **Alternativa descartada.** Confiar na instrução do prompt. Prompt não é
 verificação; um modelo diferente, ou o mesmo modelo em outro dia, ignora.
 
+**Revisada pela D-224** só no assistente de projeto (`/ai/plan`): ali um número
+pode vir também de um cenário de uso da tabela curada ou, como último recurso,
+de uma sugestão da IA marcada e nunca aplicada sem confirmação. Em `/ai/interpret`
+e em `/ai/explain` esta regra vale como está.
+
 ---
 
 ## D-09 — Limiar dimensionado tem de declarar a unidade
@@ -13116,3 +13121,121 @@ HTTP em cinco arquivos e poderia divergir do corpo).
 
 **Numeração.** D-223/Sessão 180 (a D-222/Sessão 179 é a etapa anterior do #245). Toca `apps/api` **sem migração**: depois do merge,
 **Deploy da API**, que agora espera a CI da `main` ficar verde.
+
+## D-224 — Assistente de projeto com IA: três origens para cada número (revisa o princípio 2)
+
+**Contexto.** Pessoas comuns e estudantes escrevem "quero fazer uma roupa de esqui" ou "quero construir um prédio que caiba
+algumas pessoas", com ou sem números, e o `/ai/interpret` devolvia vazio ou demorava. As causas estavam medidas: o
+`_context` lia o catálogo inteiro (`list_materials`) a cada chamada; o embedding do Cérebro rodava síncrono antes do modelo;
+16 000 tokens, 90 s e até três tentativas e uma refeita; o schema estrito exigia `value` e `unit` em toda restrição, os
+guardrails mandavam tudo para `rejected` quando o texto não tinha número, e o JSON falho duas vezes virava HTTP 400.
+
+**Decisão (do usuário).** Cada limite numérico de uma proposta tem uma origem, nesta ordem:
+
+1. **`usuario`** — o número está no texto. A ancoragem da D-08 vale sem mudança (`check_constraint`).
+2. **`cenario:<id>`** — a faixa vem de `app/domain/use_scenarios.py`, uma tabela curada de 16 cenários de uso (frio extremo,
+   calor moderado, calor alto/forno, uso externo com sol, água doce, água salgada, contato com alimento, contato com a pele,
+   estrutura que sustenta carga, estrutural leve, isolamento térmico, isolamento elétrico, baixo custo, ácidos e álcalis,
+   impermeável, flexível). Cada limite tem propriedade existente, operador e valor+unidade convertidos por `units.py`, ou um
+   nível ordinal (`level_at_least`, D-126), e cada cenário tem fonte. Só o isolamento elétrico cita publicação (Callister &
+   Rethwisch, cap. 18); os demais dizem "Referência didática do projeto (faixa típica de uso)". A IA escolhe cenários **pelo
+   id**: o prompt mostra o que cada um exige em palavras, sem número, e o servidor expande a partir da tabela. Um id fora da
+   tabela é recusado.
+3. **`sugestao_ia`** — último recurso, quando nenhum cenário cobre o caso. Exige unidade que o Pint converta para a canônica e
+   valor dentro da faixa que o catálogo tem para a propriedade (`ChartRepository.observed_ranges`); fora disso é recusada com o
+   motivo. Aparece como "Sugestão da IA, revise", fica **fora** da execução automática e do estudo pronto, e só roda quando a
+   pessoa a confirma em `POST /api/ai/plan/run` (`confirmed: true`), depois de passar de novo pela mesma checagem. Nível
+   ordinal e `exists` propostos pela IA também são sugestão.
+
+Há ainda `indice`: o servidor exige que exista dado da propriedade que o índice ou um critério lê (o que os modelos prontos da
+D-210 já fazem), sem número. No mesmo lado de uma propriedade fica a origem mais forte (texto > cenário > sugestão) e, entre
+iguais, o limite mais exigente; o que sai vai para `rejected` com o porquê.
+
+**Como funciona.** `POST /api/ai/plan` recebe `text` e `mode` (`project`, várias partes, para o Início; `single`, uma parte, para
+a Seleção) e devolve `ProjectPlanOut`: resumo, premissas, perguntas, cenários usados e componentes. Cada componente traz papel,
+função, objetivo, índice do catálogo ou critérios, limites com origem, fonte e rótulo, `rejected`, o resultado da seleção
+determinística (`SelectionService.run`, os 5 primeiros materiais com o motivo lido da execução e o funil) e um `StudyIn` pronto
+para a Seleção. O schema do modelo não força número: `value`/`unit` são anuláveis. A prosa do modelo (resumo, premissas,
+perguntas, nomes, notas) que traz número ausente do pedido é descartada (`ungrounded_numbers`). **Nunca vazio:** sem índice nem
+critério, o componente ordena pela melhor direção das propriedades que limita ou pelo modelo pronto mais próximo
+(`study_templates.nearest_template`). Se o modelo falhar (tempo, JSON, componente nenhum) ou a cota do dia acabar, responde a
+regra local (`app/ai/rule_plan.py`: palavras-gatilho → cenários, arquétipos de vestuário e de construção, números do texto pelas
+regras do mock, modelo pronto mais próximo), com `degraded: true` e `notice` dizendo por quê. Só a camada desligada continua 400.
+O provedor `mock` responde o plano com essas mesmas regras: "roupa de esqui" vira camada externa, camada isolante e forro;
+"prédio para 50 pessoas" vira estrutura, vedação e isolamento (os 50 ficam como premissa de dimensionamento, não filtram).
+
+**Desempenho.** O contexto dos prompts lê só propriedades, índices, classes dos materiais visíveis (`visible_class_names`, uma
+consulta) e escalas ordinais, e guarda isso por leitor por `AI_CONTEXT_CACHE_SECONDS` (60). O embedding da consulta ao Cérebro
+roda com orçamento (`KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS`, 2 s): estourou, a busca segue só com a léxica e o log registra. O
+plano chama o modelo com teto próprio (`AI_PLAN_MAX_OUTPUT_TOKENS` 6000, `AI_PLAN_TIMEOUT_SECONDS` 30, `AI_PLAN_MAX_RETRIES` 1:
+uma tentativa extra no total, somando sobrecarga e JSON fora do schema). O mesmo pedido (texto normalizado, modo, provedor e
+modelo) reaproveita o plano do modelo por `AI_PLAN_CACHE_SECONDS` (600) sem gastar cota; o plano degradado não entra no cache. O
+`.env.example` da raiz dizia `AI_TIMEOUT_SECONDS=20` e o código 90; ficou 90 nos dois.
+
+**Cota e limite.** A chamada ao modelo usa a cota diária da D-179 (`_spending`); o cache e o `/plan/run` não gastam. As duas
+rotas estão no balde "IA" do limite por minuto da D-223.
+
+**Alternativas recusadas.** Deixar a IA escrever as faixas dos cenários (número sem fonte, que é o que a D-08 existe para
+impedir). Aplicar a sugestão da IA e deixar a pessoa desfazer (o número entraria no resultado antes da revisão). Exigir número
+no texto e devolver pergunta (é o comportamento que deixava o leigo sem nada). Devolver 400 quando o JSON falha (havia o que
+entregar). Cache por usuário (o plano depende só do texto; o resultado da seleção, que depende do leitor, é recalculado a cada
+pedido).
+
+**Fora.** A interface (Etapa B: cartão de proposta no Início, chips de origem, "Abrir na Seleção", painel da Seleção com o mesmo
+plano). Os provedores `claude-api` e `claude-cli` usam o plano sem o teto próprio (só o `openai-compat`, o oficial, o aplica).
+
+**Numeração.** D-224/Sessão 181. Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.
+
+---
+
+## D-225 — Assistente de projeto com IA, interface: cartão de proposta no Início, painel da Seleção e princípio 2 nos arquivos de instrução
+
+**Contexto.** A D-224 entregou o backend (`POST /ai/plan`, `POST /ai/plan/run`) e deixou a interface e a aplicação do texto
+revisado do princípio 2 como pendências. O Início só navegava para `/app/selecao?funcao=` com o texto digitado, e o painel da
+Seleção ainda usava `/ai/interpret` (resposta vazia sem número no texto, lenta).
+
+**Decisão.**
+
+1. **Início.** O `HomeComposer` é o "Assistente de projeto". Enviar (botão ou Ctrl/⌘+Enter; Enter sozinho quebra a linha, porque
+   o pedido agora tem várias frases e um Enter perdido gastaria uma chamada) chama `/ai/plan` com `mode: "project"`. Durante a
+   espera há três fases ("Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…", trocadas a cada ~2 s, a
+   última fica), um skeleton e `aria-live`. A proposta pega o foco ao chegar. Com a IA desligada (`/ai/status`) a caixa volta ao
+   que era (o texto vira a função do estudo). Erro de verdade usa `describeApiError` (o 429 já traz "Tente de novo em N s.", que
+   é o detalhe do servidor) com "Tentar de novo". Os chips de exemplo ganharam "Roupa de esqui" e "Prédio para 50 pessoas".
+2. **Componentes** em `components/ai/`, usados nas duas telas: `PlanView` (resumo, premissas, perguntas em aberto, cenários com
+   fonte, uma parte por cartão, recusadas recolhidas, aviso de `degraded`/`notice`, `cached` discreto), `PlanComponentCard`
+   (função, objetivo, índice ou ordenação, limites, até 5 materiais com link para a ficha e o motivo do servidor, funil em
+   palavras) e `ConstraintOriginChip`. Cada número mostra a origem num chip com palavras: **Você** (texto do usuário),
+   **Cenário: <nome>** (a fonte vai no tooltip e também escrita ao lado do limite, porque tooltip some no toque) e **Sugestão da
+   IA, revise** (tom de aviso por token); `indice` aparece como "Do índice" (sem número). O tom nunca é o único canal.
+3. **Sugestão da IA vem desmarcada.** É um checkbox cujo estado é `applied` do servidor. Marcar pede confirmação
+   (`ConfirmDialog`) e então chama `/ai/plan/run` com `confirmed: true` só para ela; desmarcar refaz sem perguntar. A resposta
+   substitui as partes (resumo, premissas e cenários, que são a leitura do texto, ficam). Nenhum número é calculado no cliente.
+4. **"Abrir na Seleção"** grava o `study` da parte (só limites aplicados; a sugestão não confirmada nunca está nele) no
+   **rascunho** da Seleção, no formato do D-139/D-210 (`stateFromStudy` do próprio assistente de seleção, com o índice do
+   catálogo por slug), e navega para `/app/selecao?etapa=restricoes&rascunho=assistente`. A Seleção continua esse rascunho sem
+   perguntar (o clique foi a revisão) e tira o marcador do endereço; sem o marcador pergunta como sempre. Já havendo rascunho no
+   navegador, o Início pergunta antes de substituí-lo. É rascunho local: nada vai ao servidor até a pessoa salvar. Também há
+   "Comparar estes materiais" (`/app/comparar?materiais=`, na ordem do ranking) e "Ajustar o pedido" (volta o foco à caixa).
+5. **Seleção.** O `AIAssistPanel` usa `mode: "single"`. Interpreta ao digitar: pausa de 1,5 s, mínimo de 15 caracteres,
+   `AbortController` cancelando a chamada anterior (`planProject(payload, signal)`; o `request` de `lib/api.ts` já repassava
+   `signal`), "interpretando…" discreto; o botão "Interpretar" pergunta na hora. A proposta usa o mesmo `PlanView`. "Aplicar ao
+   estudo" (ação `plan` do reducer) preenche função, objetivo, índice e limites aplicados (acrescenta, não substitui; tira a
+   linha em branco do estudo novo e não repete limite igual) e fica desligado enquanto o texto mudou depois da proposta. O
+   `interpretStatement` e o `/ai/interpret` continuam na API, mas nenhuma tela os usa mais.
+6. **Princípio 2 nos arquivos de instrução** (a pendência da D-224, aplicada por decisão do usuário em 12/11/2026, na conversa
+   com o coordenador): `CLAUDE.md` (princípio 2), `docs/CLAUDE.md` §1.5 e `.claude/rules/backend-ai-exporters.md` passam a dizer
+   que a IA não produz valor de propriedade nem resultado de cálculo e que um limite tem três origens, nesta ordem (texto,
+   cenário com fonte, sugestão da IA marcada e nunca aplicada sem confirmação). A ancoragem no texto e a unidade explícita
+   valem para `usuario`; `sugestao_ia` segue as salvaguardas da D-224 (unidade compatível, faixa observada, `confirmed`); o
+   modelo não escreve a origem `cenario`.
+
+**Alternativas recusadas.** Aplicar a sugestão e deixar desfazer (o número entraria antes da revisão, contra a D-224). Levar o
+estudo por endereço (um estudo não cabe num link; o rascunho do D-139 já é o formato que a Seleção sabe abrir). Perguntar
+"Continuar o rascunho?" também depois de "Abrir na Seleção" (um clique a mais depois de a pessoa já ter escolhido a parte).
+Enter envia (um pedido tem várias frases). Guardar a proposta entre navegações (o servidor já reaproveita o mesmo texto por 10
+min sem gastar cota).
+
+**Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
+
+**Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).

@@ -101,6 +101,21 @@ class Settings(BaseSettings):
     ai_max_output_tokens: int = 16000
     # Executable for claude-cli, resolved on PATH.
     ai_cli_command: str = "claude"
+    # The project assistant (/ai/plan, D-224) is answered while a person waits
+    # on the home page, so it gets a tighter call than the rest: a smaller
+    # ceiling, a shorter timeout and at most one extra attempt. When any of
+    # them runs out, the answer degrades to the rule-based plan instead of
+    # failing — waiting a minute and a half for an error is the worst outcome.
+    ai_plan_timeout_seconds: float = 30.0
+    ai_plan_max_output_tokens: int = 6000
+    ai_plan_max_retries: int = Field(default=1, ge=0, le=1)
+    # How long the same request (same text, same mode, same provider) reuses
+    # the model's last plan instead of asking again. A reused plan spends no
+    # daily quota; 0 turns the cache off.
+    ai_plan_cache_seconds: float = 600.0
+    # How long the catalogue summary the prompts carry (properties, indices,
+    # classes, ordinal scales) is reused before being read again.
+    ai_context_cache_seconds: float = 60.0
 
     # --- Knowledge base / Cérebro (optional) ------------------------------
     # Root directory of the curated reference corpus, relative to the repo root
@@ -121,6 +136,10 @@ class Settings(BaseSettings):
     # prompt already carries the catalogue, and an answer grounded in three
     # relevant passages is more checkable than one drowning in twenty.
     knowledge_retrieval_top_k: int = 5
+    # Seconds the AI layer waits for the query's embedding before ranking by
+    # the lexical search alone (D-224). The embedding is a network call; the
+    # person waiting on an answer should not pay for a slow provider.
+    knowledge_retrieval_budget_seconds: float = 2.0
 
     # Embeddings para busca semântica — estritamente opcional por cima da
     # busca léxica (que não depende de nenhum dos três). Sem padrão de

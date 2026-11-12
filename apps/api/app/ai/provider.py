@@ -80,6 +80,40 @@ class ProblemContext:
 
 
 @dataclass(frozen=True)
+class OrdinalFacts:
+    """An ordinal material property (D-126): its slug, name and scale, worst first."""
+
+    slug: str
+    name: str
+    levels: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ScenarioFacts:
+    """A curated use scenario as the model sees it (D-224): id, name and what it
+    asks for in words. **No numbers** — the model picks scenarios by id and the
+    server expands them from ``app/domain/use_scenarios.py``."""
+
+    id: str
+    name: str
+    summary: str
+
+
+@dataclass(frozen=True)
+class PlanContext(ProblemContext):
+    """What a provider may see when turning a plain request into a project plan.
+
+    The catalogue of :class:`ProblemContext` plus the ordinal scales (a limit may
+    be a level, not a number), the curated scenarios by id and the mode:
+    ``project`` asks for the parts of a product, ``single`` for one component.
+    """
+
+    mode: str = "project"
+    ordinals: tuple[OrdinalFacts, ...] = ()
+    scenarios: tuple[ScenarioFacts, ...] = ()
+
+
+@dataclass(frozen=True)
 class ResultContext:
     """An already-computed selection, for prose only.
 
@@ -154,6 +188,16 @@ class AIProvider(ABC):
     @abstractmethod
     def explain(self, context: ResultContext) -> dict:
         """Write prose about an already-computed result."""
+
+    # --- project assistant (D-224) -----------------------------------------
+    #
+    # Not abstract, for the reason the notebook methods below give. A provider
+    # that cannot plan says so; the service then answers with the rule-based
+    # plan instead of an error.
+
+    def plan(self, context: PlanContext) -> dict:
+        """Turn a plain-language request into a project plan. See ``app.ai.plan``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não monta propostas de projeto.")
 
     # --- Cadernos (D-92) ----------------------------------------------------
     #

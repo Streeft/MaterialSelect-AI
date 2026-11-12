@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.selection import ConstraintIn, GoalLiteral
+from app.schemas.selection import ConstraintIn, GoalLiteral, StudyIn
 
 # Longest problem statement accepted. Generous for a design brief, bounded so a
 # provider call cannot be driven by an arbitrarily large body.
@@ -140,3 +140,205 @@ class ExplanationOut(BaseModel):
     provider: str
     simulated: bool
     disclaimer: str
+
+
+# --- project assistant (D-224) ------------------------------------------------
+#
+# A plan is a proposal like everything above, with one difference stated in the
+# open: its limits carry numbers, and every number says where it came from.
+# ``origin`` is ``usuario`` (in the person's text), ``cenario:<id>`` (the curated
+# table in app/domain/use_scenarios.py, with its source), ``sugestao_ia`` (a
+# range the model proposed — "Sugestão da IA, revise" — never applied until the
+# person confirms it) or ``indice`` (a property the ranking reads must have data;
+# no number at all).
+
+PlanModeLiteral = Literal["project", "single"]
+PlanDirectionLiteral = Literal["max", "min"]
+PlanOperatorLiteral = Literal["gt", "gte", "lt", "lte", "between", "exists", "level_at_least"]
+#: The four origins, as a pattern: a scenario origin names its id.
+ORIGIN_PATTERN = r"^(usuario|sugestao_ia|indice|cenario:[a-z0-9-]+)$"
+#: Components a plan may carry, and limits one component may carry.
+MAX_PLAN_COMPONENTS = 6
+MAX_PLAN_CONSTRAINTS = 30
+MAX_PLAN_CRITERIA = 8
+
+
+class PlanRequest(BaseModel):
+    """A plain-language request: "quero fazer uma roupa de esqui"."""
+
+    text: str = Field(min_length=1, max_length=MAX_STATEMENT_LENGTH)
+    #: ``project`` asks for the parts of a product (home page); ``single`` for
+    #: one component (the Selection's assistant).
+    mode: PlanModeLiteral = "project"
+
+
+class PlanScenarioOut(BaseModel):
+    """A curated use scenario the plan used, with its source."""
+
+    id: str
+    name: str
+    source: str
+
+
+class PlanConstraintOut(BaseModel):
+    """One limit of a component, with where its number came from."""
+
+    property: str
+    property_name: str
+    operator: PlanOperatorLiteral
+    value: float | None = None
+    value_min: float | None = None
+    value_max: float | None = None
+    unit: str | None = None
+    #: The minimum level, for ``level_at_least`` over an ordinal property.
+    level: str | None = None
+    origin: str = Field(pattern=ORIGIN_PATTERN)
+    #: The person's own words, the scenario's source, or "Sugestão da IA, revise".
+    source: str
+    note: str = ""
+    #: How the limit reads, e.g. "Temperatura mínima de serviço ≤ −30 °C".
+    label: str
+    #: Whether the automatic run used it. ``sugestao_ia`` never is.
+    applied: bool
+    #: True for ``sugestao_ia``: shown for review, applied only once confirmed.
+    needs_confirmation: bool = False
+    #: The same limit in the shape every selection endpoint accepts.
+    constraint: ConstraintIn
+
+
+class PlanCriterionOut(BaseModel):
+    """A ranking criterion of a component (a numeric property and its direction)."""
+
+    property: str
+    property_name: str
+    direction: PlanDirectionLiteral
+    #: ``ia``, ``cenario:<id>`` or ``servidor`` (picked when nothing else ranked).
+    origin: str
+
+
+class PlanIndexOut(BaseModel):
+    """A catalogue index, read from the catalogue — never written by the model."""
+
+    slug: str
+    name: str
+    expression: str
+    goal: GoalLiteral
+
+
+class PlanMaterialOut(BaseModel):
+    """One of the first materials of a component's deterministic run."""
+
+    record_id: int
+    name: str
+    class_name: str
+    rank: int | None = None
+    index_value: float | None = None
+    score: float | None = None
+    #: Why it is here, read from the run (limits passed, position).
+    reason: str
+
+
+class PlanFunnelStepOut(BaseModel):
+    label: str
+    remaining: int
+
+
+class PlanRunOut(BaseModel):
+    """What the selection service returned for one component."""
+
+    initial_count: int = 0
+    final_count: int = 0
+    funnel: list[PlanFunnelStepOut] = Field(default_factory=list)
+    materials: list[PlanMaterialOut] = Field(default_factory=list)
+    #: Plain words when the list is empty or short, e.g. where the funnel zeroed.
+    message: str | None = None
+    #: The selection's own refusal, when the run could not happen at all.
+    error: str | None = None
+
+
+class PlanComponentOut(BaseModel):
+    """One part of the product, its limits, its ranking and its first materials."""
+
+    key: str
+    name: str
+    role: str = ""
+    function_text: str = ""
+    objective_text: str = ""
+    index: PlanIndexOut | None = None
+    criteria: list[PlanCriterionOut] = Field(default_factory=list)
+    constraints: list[PlanConstraintOut] = Field(default_factory=list)
+    scenarios: list[str] = Field(default_factory=list)
+    #: What the guardrails refused for this component, with the reason.
+    rejected: list[str] = Field(default_factory=list)
+    result: PlanRunOut | None = None
+    #: A ready study for the Selection: the applied limits (never an
+    #: unconfirmed suggestion), the index and the criteria.
+    study: StudyIn
+
+
+class ProjectPlanOut(BaseModel):
+    """A proposal for a whole project — never empty, never applied by itself."""
+
+    text: str
+    mode: PlanModeLiteral
+    summary: str
+    assumptions: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    scenarios_used: list[PlanScenarioOut] = Field(default_factory=list)
+    components: list[PlanComponentOut]
+    rejected: list[str] = Field(default_factory=list)
+    #: True when the proposal came from the local rules because the model did
+    #: not answer usefully (timeout, quota, malformed JSON); ``notice`` says why.
+    degraded: bool = False
+    #: True when the model's plan for this same text was reused (no quota spent).
+    cached: bool = False
+    notice: str | None = None
+    provider: str
+    simulated: bool
+    disclaimer: str
+
+
+class PlanConstraintIn(BaseModel):
+    """One limit as the person left it, sent back to run the plan again."""
+
+    property: str = Field(min_length=1, max_length=160)
+    operator: PlanOperatorLiteral
+    value: float | None = Field(default=None, allow_inf_nan=False)
+    value_min: float | None = Field(default=None, allow_inf_nan=False)
+    value_max: float | None = Field(default=None, allow_inf_nan=False)
+    unit: str | None = Field(default=None, max_length=60)
+    level: str | None = Field(default=None, max_length=80)
+    origin: str = Field(pattern=ORIGIN_PATTERN)
+    #: An ``sugestao_ia`` limit runs only when this is true.
+    confirmed: bool = False
+    note: str = Field(default="", max_length=300)
+
+
+class PlanCriterionIn(BaseModel):
+    property: str = Field(min_length=1, max_length=160)
+    direction: PlanDirectionLiteral
+
+
+class PlanComponentRunIn(BaseModel):
+    """One component with the person's choices: what to keep, what to confirm."""
+
+    key: str | None = Field(default=None, max_length=40)
+    name: str = Field(min_length=1, max_length=160)
+    role: str = Field(default="", max_length=300)
+    function_text: str = Field(default="", max_length=300)
+    objective_text: str = Field(default="", max_length=300)
+    index_slug: str | None = Field(default=None, max_length=160)
+    criteria: list[PlanCriterionIn] = Field(default_factory=list, max_length=MAX_PLAN_CRITERIA)
+    constraints: list[PlanConstraintIn] = Field(
+        default_factory=list, max_length=MAX_PLAN_CONSTRAINTS
+    )
+
+
+class PlanRunRequest(BaseModel):
+    """Run a plan again with the person's choices (no model call, no quota)."""
+
+    components: list[PlanComponentRunIn] = Field(min_length=1, max_length=MAX_PLAN_COMPONENTS)
+
+
+class PlanRunResponse(BaseModel):
+    components: list[PlanComponentOut]

@@ -54,7 +54,9 @@ canônica + método de conversão**. Conversão só via `app/calculations/units.
 > incertezas com `to_canonical_delta` (±5 °C é ±5 K, não ±278 K).
 
 ### 1.5 A IA nunca produz números
-Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
+Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe (as três
+regras abaixo valem para a origem `usuario`; no assistente de projeto, `/ai/plan`,
+há duas outras origens de número, com as salvaguardas do parágrafo seguinte):
 - **ancoragem numérica** — todo número de uma restrição proposta tem de aparecer
   no enunciado do usuário, *inclusive quando uma conversão estaria correta*;
 - **unidade explícita** — limiar sobre propriedade dimensionada não pode omitir
@@ -66,6 +68,15 @@ Ela interpreta, sugere e explica. Ao mexer em `app/ai/`, não afrouxe:
   e `guardrails.ungrounded_numbers` nunca lerem `context.retrieved` — nenhuma
   das duas sabe que o campo existe —, não por convenção de prompt nem por
   disciplina do provedor.
+
+**Assistente de projeto (`/ai/plan`, [D-224](DECISIONS.md), decisão do usuário em
+12/11/2026).** Além do texto do usuário, um número pode vir de um cenário de
+`use_scenarios.py` (o modelo escolhe o id; o servidor expande da tabela, que tem
+fonte) ou ser `sugestao_ia`, que exige unidade compatível e valor dentro de
+`observed_ranges`, aparece como "Sugestão da IA, revise" e não entra na execução
+sem `confirmed`. Não afrouxe nenhuma das três checagens e não deixe o modelo
+escrever a origem `cenario`. A interface (D-225) mostra a origem de cada número
+num chip e deixa a sugestão desmarcada até a pessoa confirmar.
 
 O provedor recebe só o catálogo e o texto. Nunca lhe passe uma sessão de banco
 nem o avaliador de expressões.

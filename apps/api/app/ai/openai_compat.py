@@ -37,7 +37,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app import __version__
-from app.ai.model_base import ModelProviderBase, parse_json_object
+from app.ai.model_base import CallLimits, ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
@@ -112,7 +112,7 @@ class OpenAICompatProvider(ModelProviderBase):
 
     # --- transport --------------------------------------------------------
 
-    def _complete(self, system: str, user: str, schema: dict) -> dict:
+    def _body(self, system: str, user: str, schema: dict, max_tokens: int) -> dict[str, Any]:
         mode = self._json_mode()
         # In every mode but "schema" the contract has to travel in words,
         # because the server will not enforce it.
@@ -130,7 +130,7 @@ class OpenAICompatProvider(ModelProviderBase):
             # `max_tokens` and not `max_completion_tokens`: it is the field every
             # compatible server still accepts. Recent OpenAI models are the
             # exception, and they are not why this provider exists.
-            "max_tokens": self.settings.ai_max_output_tokens,
+            "max_tokens": max_tokens,
         }
         if mode == "schema":
             body["response_format"] = {
@@ -139,7 +139,10 @@ class OpenAICompatProvider(ModelProviderBase):
             }
         elif mode == "object":
             body["response_format"] = {"type": "json_object"}
+        return body
 
+    def _complete(self, system: str, user: str, schema: dict) -> dict:
+        body = self._body(system, user, schema, self.settings.ai_max_output_tokens)
         try:
             payload = self._post(body)
         except _GenerationRejected:
@@ -151,14 +154,33 @@ class OpenAICompatProvider(ModelProviderBase):
             try:
                 payload = self._post(body)
             except _GenerationRejected as exc:
-                raise AIUnavailableError(
-                    (
-                        "O modelo gerou uma resposta fora do formato pedido, mesmo após "
-                        "uma nova tentativa. Não é configuração: tente de novo; se "
-                        f"persistir, AI_JSON_MODE=object é a alternativa. {exc.detail}"
-                    ).strip()
-                ) from exc
+                raise AIUnavailableError(_rejected_message(exc)) from exc
         return parse_json_object(_strip_fence(_answer_of(payload)))
+
+    def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
+        """One call under the plan's budget (D-224): its own output ceiling and
+        timeout, and **one** retry budget shared by every kind of retry — an
+        overloaded server and a generation that missed the schema both spend
+        from it, so the worst case is two requests, never four."""
+        body = self._body(system, user, schema, limits.max_output_tokens)
+        attempts = max(limits.max_retries, 0) + 1
+        failure: AIUnavailableError | None = None
+        for attempt in range(attempts):
+            try:
+                payload = self._post_once(body, timeout=limits.timeout_seconds)
+            except _GenerationRejected as exc:
+                failure = AIUnavailableError(_rejected_message(exc))
+                continue
+            except _Transient as exc:
+                failure = AIUnavailableError(self._transient_message(exc, retried=attempt))
+                if exc.retry_after > _MAX_RETRY_AFTER:
+                    break
+                if attempt < attempts - 1:
+                    self._sleep(max(_RETRY_DELAYS[0], exc.retry_after))
+                continue
+            return parse_json_object(_strip_fence(_answer_of(payload)))
+        assert failure is not None
+        raise failure
 
     def _json_mode(self) -> str:
         mode = self.settings.ai_json_mode.strip().lower() or "schema"
@@ -206,7 +228,7 @@ class OpenAICompatProvider(ModelProviderBase):
             f"passageiro: tente de novo em alguns minutos. {exc.detail}"
         ).strip()
 
-    def _post_once(self, body: dict) -> dict:
+    def _post_once(self, body: dict, timeout: float | None = None) -> dict:
         request = urllib.request.Request(
             self._endpoint(),
             data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
@@ -214,8 +236,9 @@ class OpenAICompatProvider(ModelProviderBase):
             method="POST",
         )
         opener = self._opener or urllib.request.urlopen
+        seconds = timeout if timeout is not None else self.settings.ai_timeout_seconds
         try:
-            with opener(request, timeout=self.settings.ai_timeout_seconds) as response:
+            with opener(request, timeout=seconds) as response:
                 payload = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
             # The body can be read once, so it is read here and handed on.
@@ -227,7 +250,7 @@ class OpenAICompatProvider(ModelProviderBase):
             raise AIUnavailableError(self._http_message(exc, detail)) from exc
         except TimeoutError as exc:
             raise AIUnavailableError(
-                f"O servidor não respondeu em {self.settings.ai_timeout_seconds:g}s. "
+                f"O servidor não respondeu em {seconds:g}s. "
                 "Aumente AI_TIMEOUT_SECONDS ou use AI_PROVIDER=mock."
             ) from exc
         except urllib.error.URLError as exc:
@@ -360,6 +383,14 @@ def _answer_of(payload: dict) -> str:
     if not isinstance(content, str) or not content.strip():
         raise AIUnavailableError("O modelo devolveu uma resposta vazia.")
     return content
+
+
+def _rejected_message(exc: _GenerationRejected) -> str:
+    return (
+        "O modelo gerou uma resposta fora do formato pedido, mesmo após "
+        "uma nova tentativa. Não é configuração: tente de novo; se "
+        f"persistir, AI_JSON_MODE=object é a alternativa. {exc.detail}"
+    ).strip()
 
 
 def _strip_fence(text: str) -> str:

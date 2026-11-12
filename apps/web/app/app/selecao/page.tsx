@@ -66,6 +66,7 @@ import {
   type StepStatus,
 } from "@/components/ui";
 import { useAnnounce } from "@/components/ui/Announcer";
+import { PLAN_DRAFT_PARAM, PLAN_DRAFT_VALUE } from "@/lib/selection/planDraft";
 import { IconArrowLeft, IconArrowRight, IconFilter } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { flowText } from "@/lib/i18n-flow";
@@ -636,6 +637,22 @@ function SelectionWizard() {
     if (draftUserKey) clearDraft(draftUserKey);
     setDraftAnswered(true);
   }
+
+  // D-225: "Abrir na Seleção" on the home wrote the part's study as the draft and
+  // asked for it by address. The reader's click was the review, so the draft
+  // opens without the "Continuar de onde parou" question — once, and the marker
+  // leaves the address so a reload asks as it always did.
+  const autoContinued = useRef(false);
+  const asksAssistantDraft = params.get(PLAN_DRAFT_PARAM) === PLAN_DRAFT_VALUE;
+  useEffect(() => {
+    if (!asksAssistantDraft || autoContinued.current || !recovered) return;
+    autoContinued.current = true;
+    continueDraft();
+    const query = new URLSearchParams(window.location.search);
+    query.delete(PLAN_DRAFT_PARAM);
+    window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- continueDraft reads `recovered`, which is in the list
+  }, [asksAssistantDraft, recovered]);
 
   // A tree or process stage narrows without carrying a constraint, so "has the
   // reader said anything yet" is not the constraint count alone.

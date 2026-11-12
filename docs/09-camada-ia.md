@@ -688,6 +688,102 @@ versões que recusam tudo, e reprova qualquer teste que tenha tentado sair,
 mesmo que o erro tenha sido engolido. Os clientes são testados com
 `httpx.MockTransport`.
 
+## Assistente de projeto (`/ai/plan`, [D-224](DECISIONS.md))
+
+Para quem não é engenheiro: "quero fazer uma roupa de esqui", "quero construir um
+prédio que caiba 50 pessoas". O pedido vira uma proposta com partes
+(`mode: "project"`, para o Início) ou com uma parte só (`mode: "single"`, para a
+Seleção), e cada parte já sai com os materiais do catálogo que a seleção
+determinística escolheu.
+
+**De onde vem cada número.** Esta é a revisão do princípio 2 que a D-224
+registra. Um limite tem uma origem (`origin`), nesta ordem:
+
+1. `usuario` — o número está no pedido; a ancoragem da seção acima vale sem
+   mudança (`check_constraint`).
+2. `cenario:<id>` — a faixa vem de `app/domain/use_scenarios.py`, a tabela curada
+   de cenários de uso, com fonte. O modelo escolhe o cenário **pelo id**; o prompt
+   descreve cada um em palavras, sem número, e o servidor expande os limites a
+   partir da tabela. Id fora da tabela é recusado (`check_scenario`).
+3. `sugestao_ia` — último recurso. Exige unidade que converta para a canônica e
+   valor dentro da faixa que o catálogo tem para a propriedade
+   (`check_suggested_range`, sobre `ChartRepository.observed_ranges`). Mostrada
+   como "Sugestão da IA, revise", nunca entra na execução automática nem no
+   estudo pronto; roda só em `/ai/plan/run` com `confirmed: true`.
+
+Há ainda `indice`: a propriedade que o índice ou um critério lê precisa ter dado
+(`exists`, sem número). Num mesmo lado de uma propriedade fica a origem mais
+forte e, entre iguais, o limite mais exigente; o resto vai para `rejected` com o
+porquê. A prosa do modelo com número ausente do pedido é descartada
+(`ungrounded_numbers`).
+
+| Cenário (`id`) | Limite | Fonte |
+|---|---|---|
+| `frio-extremo` | temperatura mínima de serviço ≤ −30 °C | didática |
+| `calor-moderado` | temperatura máxima de serviço ≥ 80 °C | didática |
+| `calor-alto` | temperatura máxima de serviço ≥ 250 °C | didática |
+| `externo-uv` | resistência à radiação UV ≥ "Bom" | didática |
+| `agua-doce` | resistência à água doce ≥ "Bom" | didática |
+| `agua-salgada` | resistência à água salgada ≥ "Bom" | didática |
+| `contato-alimento` | água doce ≥ "Bom"; ácidos fracos ≥ "Bom" | didática (nota sobre o Regulamento (CE) nº 1935/2004) |
+| `contato-pele` | biocompatibilidade ≥ "Contato superficial" | didática (nota sobre a ISO 10993) |
+| `estrutural` | módulo de Young ≥ 10 GPa | didática |
+| `estrutural-leve` | densidade ≤ 3 g/cm³; módulo de Young ≥ 1 GPa | didática |
+| `isolamento-termico` | condutividade térmica ≤ 0,1 W/(m·K) | didática |
+| `isolamento-eletrico` | resistividade ≥ 10¹⁰ Ω·m | Callister & Rethwisch, cap. 18 |
+| `baixo-custo` | custo por massa existe; ordena do mais barato | didática |
+| `acidos-alcalis` | ácidos fracos ≥ "Bom"; álcalis fracos ≥ "Bom" | didática |
+| `impermeavel` | absorção de água ≤ 0,5 % | didática |
+| `flexivel` | módulo de Young ≤ 3 GPa | didática |
+
+"Didática" é o texto "Referência didática do projeto (faixa típica de uso)": a
+tabela não empresta autoridade de norma que não usou. `test_use_scenarios.py`
+prende cada limite ao catálogo — propriedade existente, unidade que converte,
+valor dentro da faixa do catálogo demo, nível na escala e alcançado por algum
+material.
+
+**Nunca vazio.** Sem índice nem critério, a parte ordena pela melhor direção das
+propriedades que limita ou pelo modelo pronto mais próximo
+(`study_templates.nearest_template`). Modelo que estoura o tempo, devolve JSON
+inválido ou nenhuma parte, ou cota do dia esgotada: responde a regra local
+(`app/ai/rule_plan.py`) com `degraded: true` e `notice`, nunca um 400. A regra
+local é a mesma do provedor `mock`: palavras-gatilho → cenários, dois arquétipos
+(vestuário: camada externa, isolante e forro; construção: estrutura, vedação e
+isolamento), os números do texto pelas regras do `interpret` e o modelo pronto
+mais próximo.
+
+**Execução.** `AIService.plan` → `PlanBuilder` (`app/services/ai_plan.py`) →
+`SelectionService.run`, uma carga do catálogo para todas as partes. Cada parte
+devolve os 5 primeiros materiais com o motivo lido da execução ("Passou nos 4
+limites aplicados; 1º pelo índice …"), o funil, uma mensagem quando a lista zera
+(com o passo em que zerou) e um `StudyIn` pronto para `POST /selection/studies`.
+
+**Desempenho e cota.** O resumo do catálogo (propriedades, índices, classes dos
+materiais visíveis, escalas ordinais) é lido em quatro consultas leves e
+guardado por leitor; antes, cada chamada lia todos os materiais com todos os
+valores. O embedding da consulta tem orçamento de tempo. O plano chama o modelo
+com teto, tempo e tentativas próprios (tabela de configuração). O mesmo pedido
+reaproveita o plano do modelo sem gastar a cota diária da D-179; o `/plan/run`
+também não gasta. As duas rotas contam no balde "IA" do limite por minuto (D-223).
+
+### Interface do assistente de projeto ([D-225](DECISIONS.md))
+
+- **Início** (`components/home/HomeComposer.tsx`): chama `/ai/plan` com `mode: "project"` (botão ou Ctrl/⌘+Enter). A espera mostra
+  "Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…" com skeleton e `aria-live`. Com `/ai/status` desligado
+  a caixa só leva o texto à função do estudo, como antes.
+- **Proposta** (`components/ai/PlanView.tsx`, `PlanComponentCard.tsx`, `ConstraintOriginChip.tsx`): resumo, premissas, perguntas em
+  aberto, cenários com fonte e, por parte, os limites e os materiais do servidor (link para a ficha e o motivo). Cada número tem
+  um chip de origem: **Você**, **Cenário: <nome>** (fonte no tooltip e escrita ao lado) ou **Sugestão da IA, revise** (aviso). A
+  sugestão vem **desmarcada**; marcar pede confirmação e roda `/ai/plan/run` com `confirmed: true`. Recusadas ficam recolhidas.
+  `degraded` mostra "Proposta montada por regras locais porque a IA não respondeu"; `cached` aparece em letra pequena. Erro:
+  `describeApiError` e "Tentar de novo"; o 429 traz o tempo de espera que o servidor escreveu.
+- **Abrir na Seleção**: o `study` da parte (só limites aplicados) vira o rascunho da Seleção (D-139/D-210,
+  `lib/selection/planDraft.ts`) e a Seleção o continua sem perguntar (`?rascunho=assistente`). **Comparar** vai a
+  `/app/comparar?materiais=` na ordem do ranking.
+- **Seleção** (`components/ai/AIAssistPanel.tsx`): `mode: "single"`; interpreta ao digitar (pausa de 1,5 s, 15 caracteres, a chamada
+  anterior cancelada por `AbortController`) ou no botão "Interpretar". "Aplicar ao estudo" preenche função, objetivo, índice e
+  limites aplicados; nada entra sem esse clique, e a sugestão da IA só entra se foi marcada e confirmada.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
@@ -834,6 +930,12 @@ isso; o cálculo, esse não varia, porque não passa por aqui.
 | `AI_TIMEOUT_SECONDS` | `90` | o CLI precisa da ponta alta: ele sobe um processo antes de ter um modelo a quem perguntar |
 | `AI_MAX_OUTPUT_TOKENS` | `16000` | teto de uma resposta, raciocínio e texto juntos |
 | `AI_CLI_COMMAND` | `claude` | executável do `claude-cli`, resolvido no PATH |
+| `AI_PLAN_TIMEOUT_SECONDS` | `30` | tempo da chamada do assistente de projeto (`/ai/plan`, D-224) |
+| `AI_PLAN_MAX_OUTPUT_TOKENS` | `6000` | teto de saída do plano |
+| `AI_PLAN_MAX_RETRIES` | `1` | tentativas extras do plano, somando sobrecarga e JSON fora do schema (0 ou 1) |
+| `AI_PLAN_CACHE_SECONDS` | `600` | reuso do plano do modelo para o mesmo pedido, sem gastar cota (0 desliga) |
+| `AI_CONTEXT_CACHE_SECONDS` | `60` | reuso do resumo do catálogo que os prompts levam |
+| `KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS` | `2` | espera máxima pelo embedding da consulta ao Cérebro; passou, segue só a léxica |
 
 O pacote `anthropic` é um extra: `pip install -e ".[ai]"`. Nem `mock` nem
 `claude-cli` precisam dele, e o produto determinístico não precisa de nada.
@@ -850,6 +952,8 @@ alto, cada uma com a mensagem que diz qual botão girar.
 | GET | `/api/ai/status` | a camada está ligada? é simulada? |
 | POST | `/api/ai/interpret` | enunciado → proposta editável |
 | POST | `/api/ai/explain` | estudo salvo → prosa sobre o resultado calculado |
+| POST | `/api/ai/plan` | pedido em linguagem comum → proposta de projeto checada e executada (D-224) |
+| POST | `/api/ai/plan/run` | a proposta de novo, com as escolhas da pessoa; sem modelo, sem cota |
 
 `/status` responde mesmo com a camada desligada (dizendo isso); as demais rotas
 retornam 400 — estar desligada é um estado de configuração, não uma falha.
@@ -935,6 +1039,14 @@ sugestões perdidas, não para servir de garantia.
   na frente do usuário. Foi ele que revelou que nome de material é saída do
   pipeline como qualquer rótulo: escrever "Aço AISI 1020 lidera" não é inventar
   1020, e sem isso bastaria nomear o vencedor para perder a explicação inteira.
+- `test_ai_plan.py` — o assistente de projeto: proposta não vazia sem número,
+  arquétipos do `mock`, cada origem e seu guardrail (número fora do texto,
+  sugestão fora da faixa do catálogo, unidade incompatível, cenário inventado,
+  modelo tentando escrever a origem `cenario`), materiais reais e iguais aos de
+  `/selection/run`, sugestão não confirmada fora da execução, degradação sem 400,
+  cache sem cota, contexto sem `list_materials` (contando consultas), embedding
+  lento caindo na léxica e o teto da chamada no `openai-compat`.
+  `test_use_scenarios.py` prende a tabela de cenários ao catálogo.
 - `test_knowledge_retrieval.py` — BM25 sozinho, semântico sozinho (com fake de
   embeddings), fusão RRF, degradação para léxico puro quando o embedding falha
   ou quando só há vetor de outro tamanho, `top_k` respeitado.

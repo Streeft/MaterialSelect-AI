@@ -1803,3 +1803,14 @@ Registrados para não voltarem por engano:
 - Importador (`app/importers/service.py`) ainda chama `_build_value_from_input` valor a valor (uma leitura de definição e de fonte por célula); levar para `_build_values`.
 - `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
 - Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
+
+**Assistente de projeto com IA — pendências (D-224).**
+- ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
+- ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
+- `/ai/interpret` e `interpretStatement` ficaram sem uso na interface (D-225); remover o endpoint, o provedor `interpret` e os textos `ptBR.ai.*` do painel antigo numa limpeza própria, ou manter para clientes externos.
+- Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
+- Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
+- Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.
+- `claude-api` e `claude-cli` respondem o plano sem o teto próprio (tempo, saída, tentativas); só o `openai-compat` o aplica.
+- O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.
+- Cenários: ampliar a tabela (impacto, abrasão, chama) e trocar faixas didáticas por referência publicada quando houver uma certa.

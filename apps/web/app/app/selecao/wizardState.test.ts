@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { StudyDetail, StudyTemplate } from "@/lib/types";
+import { makeComponent } from "@/lib/testing/planFixtures";
 import {
   initialWizardState,
   snapshotOf,
+  stateFromPlanComponent,
   stateFromStudy,
   stateFromTemplate,
   wizardReducer,
@@ -110,26 +112,49 @@ describe("estado do assistente (D-210)", () => {
     expect(state.criteria[0]?.weight).toBe("0,5");
   });
 
-  it("appends accepted suggestions to the first limit stage, never replacing it", () => {
-    const state = wizardReducer(start(), {
-      type: "suggestions",
-      accepted: {
-        functionText: "Mola",
-        objectiveText: null,
-        freeVariables: ["diâmetro"],
-        constraints: [
-          { constraint: { operator: "gte", property_slug: "modulo_young", value: 70, unit: "GPa" } },
-        ] as never,
-        index: null,
-      },
-    });
-    expect(state.functionText).toBe("Mola");
-    expect(state.freeVariables).toBe("diâmetro");
+  it("applies a plan part (D-225): function, objective, index and applied limits, appended to the first limit stage", () => {
+    const component = makeComponent();
+    const state = wizardReducer(start(), { type: "plan", component });
+    expect(state.functionText).toBe("Camada externa de roupa de esqui");
+    expect(state.objectiveText).toBe("Mínima massa com resistência ao frio");
+    expect(state.indexMode).toBe("viga-leve-rigidez");
+    expect(state.indexGoal).toBe("maximize");
+    expect(state.criteria.map((c) => c.key)).toEqual(["__index__"]);
     const stage = state.stages[0];
+    // The blank row the new study opened with is dropped, the plan's limits stay.
     expect(stage?.kind === "limit" && stage.group.constraints.map((c) => c.property_slug)).toEqual([
-      "",
-      "modulo_young",
+      "temperatura_servico_min",
+      "temperatura_servico_max",
     ]);
+  });
+
+  it("never applies an AI suggestion the person did not confirm, and does not repeat a limit", () => {
+    const component = makeComponent();
+    const once = wizardReducer(start(), { type: "plan", component });
+    const twice = wizardReducer(once, { type: "plan", component });
+    const stage = twice.stages[0];
+    const slugs = stage?.kind === "limit" ? stage.group.constraints.map((c) => c.property_slug) : [];
+    expect(slugs).not.toContain("densidade");
+    expect(slugs).toHaveLength(2);
+  });
+
+  it("keeps what the reader already wrote when the part brings no text of its own", () => {
+    const written = wizardReducer(start(), { type: "text", field: "functionText", value: "Minha função" });
+    const state = wizardReducer(written, {
+      type: "plan",
+      component: makeComponent({ function_text: "", objective_text: "" }),
+    });
+    expect(state.functionText).toBe("Minha função");
+  });
+
+  it("opens a plan part as a whole study for the draft the home writes", () => {
+    const state = stateFromPlanComponent(start(), makeComponent());
+    expect(state.name).toBe("Camada externa");
+    expect(state.indexMode).toBe("viga-leve-rigidez");
+    expect(state.customExpression).toBe("");
+    expect(state.indexConfirmed).toBe(true);
+    const stage = state.stages[0];
+    expect(stage?.kind === "limit" && stage.group.constraints).toHaveLength(2);
   });
 
   it("restores a snapshot and reopens the advanced options that hide what is in use", () => {

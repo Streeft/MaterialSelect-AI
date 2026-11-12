@@ -9,7 +9,7 @@ queries.
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.material import Material
@@ -64,6 +64,54 @@ class ChartRepository:
         if class_slugs:
             stmt = stmt.where(MaterialClass.slug.in_(class_slugs))
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def visible_class_names(self) -> list[tuple[str, str]]:
+        """``(slug, name)`` of every class an active, visible material is in.
+
+        What the AI prompts need from the materials (D-224): two columns,
+        one query, instead of every material with every value — which is what
+        reading the classes through :meth:`list_materials` used to cost on
+        each call.
+        """
+        stmt = (
+            select(MaterialClass.slug, MaterialClass.name)
+            .join(Material, Material.class_id == MaterialClass.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .distinct()
+            .order_by(MaterialClass.slug)
+        )
+        return [(row[0], row[1]) for row in self.db.execute(stmt).all()]
+
+    def observed_ranges(self) -> dict[str, tuple[float, float]]:
+        """Lowest and highest canonical value held per property, over what the
+        viewer can see — declared absences never count (D-24).
+
+        The yardstick of an AI-suggested range (D-224): a suggestion outside
+        what the catalogue actually holds cannot select anything and is refused.
+        """
+        stmt = (
+            select(
+                PropertyDefinition.slug,
+                func.min(MaterialPropertyValue.normalized_value),
+                func.max(MaterialPropertyValue.normalized_value),
+            )
+            .join(
+                MaterialPropertyValue,
+                MaterialPropertyValue.property_id == PropertyDefinition.id,
+            )
+            .join(Material, Material.id == MaterialPropertyValue.material_id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .where(MaterialPropertyValue.is_missing.is_(False))
+            .where(MaterialPropertyValue.normalized_value.is_not(None))
+            .group_by(PropertyDefinition.slug)
+        )
+        return {
+            row[0]: (float(row[1]), float(row[2]))
+            for row in self.db.execute(stmt).all()
+            if row[1] is not None and row[2] is not None
+        }
 
     def list_processes(
         self,

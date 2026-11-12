@@ -20,7 +20,7 @@ import unicodedata
 
 from app.ai.caveats import standard_caveats
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion, Passage
-from app.ai.provider import AIProvider, ProblemContext, PropertyFacts, ResultContext
+from app.ai.provider import AIProvider, PlanContext, ProblemContext, PropertyFacts, ResultContext
 from app.ai.studio import (
     CATALOG,
     CUSTOM,
@@ -291,6 +291,14 @@ class MockAIProvider(AIProvider):
             "chart": chart,
             "open_questions": open_questions,
         }
+
+    # --- project plan (D-224) ---------------------------------------------
+
+    def plan(self, context: PlanContext) -> dict:
+        """The project plan by local rules — see ``app.ai.rule_plan``."""
+        from app.ai.rule_plan import rule_plan  # imports this module back
+
+        return rule_plan(context)
 
     @staticmethod
     def _match(

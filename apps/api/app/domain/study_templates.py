@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.domain.text_fold import fold_accents, word_pattern
+
 #: The criterion key that ranks by the study's own index (see
 #: ``SelectionService.INDEX_KEY``). Repeated here so this module stays pure.
 INDEX_CRITERION_KEY = "__index__"
@@ -49,6 +51,10 @@ class StudyTemplate:
     index_expression: str
     index_goal: str
     reference: str
+    #: Accent-folded words that point a plain-language request at this
+    #: formulation (D-224): the project assistant's rule-based fallback picks
+    #: the template whose words the text holds the most of.
+    keywords: tuple[str, ...] = ()
 
 
 _ASHBY = "Ashby, Materials Selection in Mechanical Design"
@@ -68,6 +74,21 @@ STUDY_TEMPLATES: tuple[StudyTemplate, ...] = (
         index_expression="sqrt(modulo_young) / densidade",
         index_goal="maximize",
         reference=_ASHBY,
+        keywords=(
+            "viga*",
+            "estrutura*",
+            "pilar*",
+            "prateleira*",
+            "suporte*",
+            "ponte*",
+            "predio*",
+            "edificio*",
+            "casa",
+            "casas",
+            "quadro*",
+            "haste*",
+            "barra*",
+        ),
     ),
     StudyTemplate(
         slug="mola-leve",
@@ -83,6 +104,7 @@ STUDY_TEMPLATES: tuple[StudyTemplate, ...] = (
         index_expression="limite_escoamento ** 2 / (modulo_young * densidade)",
         index_goal="maximize",
         reference=_ASHBY,
+        keywords=("mola*", "amortec*", "trampolim", "arco", "estilingue"),
     ),
     StudyTemplate(
         slug="painel-leve-rigido",
@@ -98,6 +120,22 @@ STUDY_TEMPLATES: tuple[StudyTemplate, ...] = (
         index_expression="cbrt(modulo_young) / densidade",
         index_goal="maximize",
         reference=_ASHBY,
+        keywords=(
+            "painel*",
+            "paineis",
+            "placa*",
+            "chapa*",
+            "parede*",
+            "tampa*",
+            "casco*",
+            "piso*",
+            "porta*",
+            "carenagem",
+            "capa*",
+            "roupa*",
+            "jaqueta*",
+            "tecido*",
+        ),
     ),
     StudyTemplate(
         slug="trocador-de-calor",
@@ -113,8 +151,34 @@ STUDY_TEMPLATES: tuple[StudyTemplate, ...] = (
         index_expression="condutividade_termica * limite_escoamento",
         index_goal="maximize",
         reference=_ASHBY,
+        keywords=(
+            "trocador*",
+            "radiador*",
+            "aquecedor*",
+            "dissipador*",
+            "panela*",
+            "serpentina*",
+            "caldeira*",
+            "conduzir calor",
+        ),
     ),
 )
+
+
+def nearest_template(text: str) -> StudyTemplate | None:
+    """The template whose keywords the text holds the most of, or ``None``.
+
+    Ties go to table order, so the answer never depends on anything but the
+    text. ``None`` when not one keyword appears — the caller then ranks by
+    the properties its limits name instead of guessing a formulation.
+    """
+    folded = fold_accents(text or "").lower()
+    best: tuple[int, StudyTemplate] | None = None
+    for template in STUDY_TEMPLATES:
+        hits = sum(1 for word in template.keywords if word_pattern(word).search(folded))
+        if hits and (best is None or hits > best[0]):
+            best = (hits, template)
+    return best[1] if best else None
 
 
 def template_by_slug(slug: str) -> StudyTemplate | None:
