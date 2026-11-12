@@ -12705,3 +12705,33 @@ Um endpoint de sugestões do comparador (o `my-records` já tem favoritos e rece
 vai no contrato da ficha e não há autor/título/ano estruturados, então não há como montar uma citação sem inventar campos —
 pede campos de fonte no contrato e, para boa citação, no modelo. "Top do último estudo" como atalho (ver 4). Toca
 `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+## D-215 — F3 da revisão das telas: unidade no valor e o molde da ficha em processo e famílias
+
+**Contexto.** A F3 do plano ("fichas como documento") correu em paralelo com a etapa 3.3 do #238, que redesenhou a ficha de material
+(D-214: cabeçalho com uma ação e "⋯", resumo no topo, sumário lateral, seções dobradas e montadas só ao abrir). O autor escolheu, em
+12/11/2026, ficar com a ficha da D-214 e pôr a F3 por cima dela.
+
+**Decisão.**
+- **A unidade fica no valor (`UnitChip`).** Ao lado de cada número de uma grandeza que se lê em mais de uma unidade, a unidade é um chip
+  que abre as `accepted_units` daquela grandeza; a escolhida relê só aquela propriedade. A D-70 continua inteira: a escolha vai para a
+  URL (`?unidades=slug:unidade`), voltar à convenção (`display_unit` da definição) **tira** a escolha do endereço, e quem converte é o
+  servidor (ADR 0004). Grandeza de uma unidade só e valor ausente não ganham chip. O bloco dobrado "Ler os valores em outra unidade"
+  da D-214 e o `UnitPicker` saíram; a nota de leitura foi para o rodapé da legenda e para o painel do chip. A prévia do catálogo
+  (D-184) segue sem chip.
+- **O sumário marca a seção lida.** `SheetOutline` (D-214) ganha `aria-current="location"` na seção cujo título passou da linha de
+  leitura, medida uma vez por quadro ao rolar; no fim da página, onde as últimas seções nunca chegam à linha, marca a última visível.
+- **No celular, nome sobre valor.** Cartão de propriedades com menos de 480 px empilha o nome sobre o valor (container query), em vez
+  de quebrar "Coeficiente de Poisson" palavra a palavra num terço da largura.
+- **O mesmo molde fora da ficha de material.** Ficha de processo (atributos numa `PropertyList`, com a regra de comparação — escalar,
+  envelope, discreto — na linha de baixo, D-59), família de material (com sumário) e família de processo usam trilha + `PageDoc` +
+  `CollapsibleSection`/`SheetOutline` da D-214, abertas por padrão. Novo e editar material abrem com a cabeça de documento e a trilha
+  até a ficha; o formulário é o mesmo.
+
+**Alternativas recusadas.** Manter as duas famílias de peças (`DocSection`/`Outline` da F3 e `CollapsibleSection`/`SheetOutline` da
+D-214): duas formas de dobrar uma seção no mesmo app; ficaram só as da D-214. Um `<select>` ao lado de cada valor (a coluna de números
+vira fileira de controles — o motivo do desenho de D-70). `IntersectionObserver` para o sumário (no fim da página marcava a seção
+anterior). Formulário inteiro dentro da ficha (fica para a F4, com a tabela editável).
+
+**Numeração.** D-215 e Sessão 172: a D-214/Sessão 171 é a do #238, sobre o qual esta branch foi mesclada. Só frontend: sem migração,
+seed nem Deploy da API (o #238, que vem junto se ainda não tiver entrado, pede o Deploy da API).

@@ -120,6 +120,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 172 — 12/11/26 — F3 por cima da ficha da D-214: unidade no valor, sumário que acompanha, processo e famílias no molde (D-215)
+
+**O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar do bloco "Ler os valores em outra
+unidade" e do `UnitPicker`; `SheetOutline` marca a seção lida; cartão de propriedades empilhado abaixo de 480 px; ficha de processo,
+família de material e família de processo em trilha + `PageDoc` + `CollapsibleSection`/`SheetOutline`; novo e editar material com a
+cabeça de documento. Branch mesclada sobre a do #238 (D-214), por escolha do autor. Testes: `components/ui/f3Pieces.test.tsx`
+(chip, URL, volta à convenção, grandeza de uma unidade, ausente, sumário que marca a seção; com axe), o teste de unidades de
+`ficha-layout` reescrito para o chip, e na suíte de larguras `/app/catalogo/metais`, `/app/materiais/novo`, as páginas de processo e
+de família de processo e "semelhantes" aberta na ficha. Frontend 1891 (+5 sobre o #238). Sem backend nem migração.
+
 ## Sessão 171 — 12/11/26 — Comparar e Ficha: melhor por propriedade, só diferenças, ficha dobrada (D-214)
 
 **O que mudou.** Etapa 3.3. Backend: `CompareAxisOut.best_material_ids` e `all_equal` (regra em `domain/spread.best_ids`:

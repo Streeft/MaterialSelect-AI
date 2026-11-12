@@ -5,7 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getMaterial, listClasses, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { MaterialForm } from "@/components/MaterialForm";
-import { Alert, ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import {
+  Alert,
+  Breadcrumb,
+  ButtonLink,
+  ErrorState,
+  LoadingState,
+  PageDoc,
+} from "@/components/ui";
+import { IconPencil } from "@/components/ui/icons";
 
 export default function EditMaterialPage() {
   const params = useParams<{ id: string }>();
@@ -26,11 +34,33 @@ export default function EditMaterialPage() {
   const error = material.isError || classes.isError || properties.isError;
 
   return (
-    <div className="flex flex-col gap-4">
-      <ButtonLink href={`/app/materiais/${id}`} variant="link" size="sm" className="self-start">
-        {ptBR.detail.back}
-      </ButtonLink>
-      <PageHeader title={ptBR.form.editTitle} />
+    <div className="flex flex-col gap-6">
+      {/* D-215: editing is the sheet's own page, one step further — the
+          trail leads back to it, and the head is the document's, so the form
+          reads as the sheet open for writing, not as another screen. */}
+      {material.data ? (
+        <Breadcrumb
+          items={[
+            { label: ptBR.nav.catalog, href: "/app/catalogo" },
+            { label: material.data.class_name, href: `/app/catalogo/${material.data.class_slug}` },
+            { label: material.data.name, href: `/app/materiais/${id}` },
+            { label: ptBR.form.editTitle },
+          ]}
+        />
+      ) : (
+        <ButtonLink href={`/app/materiais/${id}`} variant="link" size="sm" className="self-start">
+          {ptBR.detail.back}
+        </ButtonLink>
+      )}
+      <PageDoc
+        icon={<IconPencil className="h-5 w-5" />}
+        title={material.data?.name ?? ptBR.form.editTitle}
+        properties={
+          material.data ? (
+            <p className="text-body text-ink-muted">{ptBR.form.editTitle}</p>
+          ) : undefined
+        }
+      />
 
       {loading && <LoadingState label={ptBR.detail.loading} />}
       {error && (
