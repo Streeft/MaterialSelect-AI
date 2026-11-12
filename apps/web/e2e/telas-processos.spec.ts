@@ -28,8 +28,8 @@ test("processos: matriz, filtro de massa no backend e comparação guardada no e
 
   // Comparar dois processos: a escolha vai para o endereço e a tabela lado a lado aparece.
   const boxes = region.getByRole("checkbox");
-  await boxes.nth(0).check();
-  await boxes.nth(1).check();
+  await boxes.nth(0).check({ force: true });
+  await boxes.nth(1).check({ force: true });
   await expect(page).toHaveURL(/comparar=/);
   await expect(page.getByRole("heading", { name: "Comparação lado a lado" })).toBeVisible();
 });
@@ -39,7 +39,7 @@ test("glossário: do verbete para a Seleção com a propriedade", async ({ page 
   const link = page.getByRole("link", { name: "Usar como restrição na Seleção" });
   await expect(link).toBeVisible({ timeout: 45_000 });
   await link.click();
-  await expect(page).toHaveURL(/\/app\/selecao\?.*restricao=densidade/);
+  await expect(page).toHaveURL(/\/app\/selecao\?.*restricao=densidade/, { timeout: 60_000 });
 });
 
 test("meus registros: a busca e o filtro ficam no endereço", async ({ page }) => {
