@@ -3,6 +3,7 @@
 import type { NotebookAnswer, NotebookCitation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { Alert, CitationChip, RichText } from "@/components/ui";
+import { useOpenSource } from "./sourceOpen";
 
 const t = ptBR.notebooks;
 
@@ -31,6 +32,7 @@ export function CitationChips({
   byNumber: ReadonlyMap<number, NotebookCitation>;
   liveSourceIds: ReadonlySet<number>;
 }) {
+  const openSource = useOpenSource();
   return (
     <>
       {numbers.map((number) => {
@@ -44,6 +46,9 @@ export function CitationChips({
             number={number}
             label={t.citation(number, citation.source_title)}
             title={citation.source_title}
+            // A source that left the notebook has nothing to open (the passage is a copy).
+            onOpenSource={openSource && !gone ? () => openSource(citation) : undefined}
+            openSourceLabel={t.openAtPassageLabel(citation.source_title)}
             locator={gone ? t.citationGone : citationLocator(citation)}
             credit={
               attribution ? (

@@ -3,16 +3,23 @@
 import { describeApiError } from "@/lib/errors";
 import Link from "next/link";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteNotebook, updateNotebook } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { deleteNotebook } from "@/lib/api";
 import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
 import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import type { NotebookSummary } from "@/lib/types";
 import { Alert, Card, Input, MenuButton, MenuItem } from "@/components/ui";
-import { IconMoreVertical, IconPencil, IconTrash } from "@/components/ui/icons";
-import { NOTEBOOKS_KEY, notebookKey } from "./keys";
+import {
+  IconArchive,
+  IconCopy,
+  IconMoreVertical,
+  IconPencil,
+  IconTrash,
+} from "@/components/ui/icons";
+import { NOTEBOOKS_KEY } from "./keys";
+import { useNotebookActions } from "./useNotebookActions";
 
 const t = ptBR.notebooks;
 
@@ -33,13 +40,7 @@ export function NotebookCard({
   const [draft, setDraft] = useState<string | null>(null);
   const date = formatDate(notebook.updated_at);
 
-  const rename = useMutation({
-    mutationFn: (next: string) => updateNotebook(notebook.id, { title: next }),
-    onSuccess: (updated) => {
-      client.setQueryData(notebookKey(notebook.id), updated);
-      void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
-    },
-  });
+  const { rename, duplicate, archive } = useNotebookActions(notebook);
   const undoableDelete = useUndoableDelete();
   const remove = () =>
     undoableDelete({
@@ -115,6 +116,16 @@ export function NotebookCard({
               <IconPencil /> {t.rename}
             </span>
           </MenuItem>
+          <MenuItem onSelect={() => duplicate.mutate()}>
+            <span className="inline-flex items-center gap-2">
+              <IconCopy /> {t.duplicate}
+            </span>
+          </MenuItem>
+          <MenuItem onSelect={() => archive.mutate(!notebook.archived)}>
+            <span className="inline-flex items-center gap-2">
+              <IconArchive /> {notebook.archived ? t.unarchive : t.archive}
+            </span>
+          </MenuItem>
           <MenuItem onSelect={remove}>
             <span className="inline-flex items-center gap-2">
               <IconTrash /> {t.remove}
@@ -122,9 +133,9 @@ export function NotebookCard({
           </MenuItem>
         </MenuButton>
       </div>
-      {rename.error ? (
+      {rename.error ?? duplicate.error ?? archive.error ? (
         <Alert tone="danger" role="alert" className="m-4 mt-0">
-          {describeApiError(rename.error)}
+          {describeApiError(rename.error ?? duplicate.error ?? archive.error)}
         </Alert>
       ) : null}
     </Card>

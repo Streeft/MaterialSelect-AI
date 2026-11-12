@@ -25,6 +25,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/app/cadernos",
   useParams: () => ({ id: "4" }),
   useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const source = {
@@ -46,6 +47,7 @@ function notebook(overrides: Partial<Notebook> = {}): Notebook {
     id: 4,
     title: "Materiais estruturais",
     emoji: "📓",
+    archived: false,
     created_at: "2026-09-25T10:00:00Z",
     updated_at: "2026-09-25T10:00:00Z",
     chat_goal: "padrao",
@@ -167,6 +169,8 @@ function wrap(node: ReactNode) {
 }
 
 beforeEach(() => {
+  // The address is the notebook's state (D-218): one test's open item must not open the next.
+  window.history.replaceState(null, "", "/");
   vi.clearAllMocks();
   api.getNotebook.mockResolvedValue(notebook());
   api.listNotebookMessages.mockResolvedValue([]);
@@ -176,7 +180,7 @@ beforeEach(() => {
 describe("lista de cadernos", () => {
   it("shows each notebook with its number of sources", async () => {
     const list: NotebookSummary[] = [
-      { id: 4, title: "Materiais estruturais", emoji: "📓", source_count: 2, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+      { id: 4, title: "Materiais estruturais", emoji: "📓", archived: false, source_count: 2, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
     ];
     api.listNotebooks.mockResolvedValue(list);
     render(wrap(<NotebooksPage />));
@@ -193,7 +197,7 @@ describe("lista de cadernos", () => {
     unmount();
 
     api.listNotebooks.mockResolvedValue([
-      { id: 4, title: "Materiais estruturais", emoji: "📓", source_count: 0, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+      { id: 4, title: "Materiais estruturais", emoji: "📓", archived: false, source_count: 0, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
     ]);
     render(wrap(<NotebooksPage />));
     await screen.findByRole("link", { name: /Materiais estruturais/ });
@@ -213,7 +217,7 @@ describe("lista de cadernos", () => {
 
 describe("cartão do caderno", () => {
   const list: NotebookSummary[] = [
-    { id: 4, title: "Materiais estruturais", emoji: "📓", source_count: 2, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+    { id: 4, title: "Materiais estruturais", emoji: "📓", archived: false, source_count: 2, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
   ];
 
   it("renames in place from the menu and sends the trimmed title", async () => {

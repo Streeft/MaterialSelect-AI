@@ -54,6 +54,7 @@ const notebook: Notebook = {
   id: 4,
   title: "Aços",
   emoji: "📘",
+  archived: false,
   created_at: "2026-09-25T10:00:00Z",
   updated_at: "2026-09-25T10:00:00Z",
   chat_goal: "padrao",

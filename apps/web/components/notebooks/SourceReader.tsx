@@ -1,13 +1,14 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { NotebookSource } from "@/lib/types";
 import { getNotebookSource } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { Alert, Dialog, LoadingState } from "@/components/ui";
 import { notebookKey } from "./keys";
+import { locateExcerpt } from "./locateExcerpt";
 
 const t = ptBR.notebooks;
 
@@ -22,10 +23,13 @@ const t = ptBR.notebooks;
 export function SourceReader({
   notebookId,
   source,
+  excerpt = null,
   onClose,
 }: {
   notebookId: number;
   source: NotebookSource | null;
+  /** The cited passage to find and mark in the text (D-218); none opens the source from its top. */
+  excerpt?: string | null;
   onClose: () => void;
 }) {
   const detail = useQuery({
@@ -33,6 +37,16 @@ export function SourceReader({
     queryFn: () => getNotebookSource(notebookId, source!.id),
     enabled: source !== null,
   });
+  const content = detail.data?.content ?? "";
+  const span = useMemo(
+    () => (excerpt && content ? locateExcerpt(content, excerpt) : null),
+    [excerpt, content],
+  );
+  const mark = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // jsdom has no scrollIntoView; a browser always does.
+    if (span) mark.current?.scrollIntoView?.({ block: "center" });
+  }, [span, source?.id]);
   return (
     <Dialog open={source !== null} onClose={onClose} title={source?.title ?? t.readerTitle}>
       {source ? (
@@ -47,13 +61,35 @@ export function SourceReader({
           ) : detail.error ? (
             <Alert tone="danger">{describeApiError(detail.error)}</Alert>
           ) : (
-            <div
-              tabIndex={0}
-              aria-label={source.title}
-              className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-control bg-surface-sunken p-3 text-body text-ink"
-            >
-              {detail.data?.content}
-            </div>
+            <>
+              {excerpt && !span ? (
+                // The passage could not be found in the text (it is stored without its
+                // position): say so and show it, so the check is still possible.
+                <div className="flex flex-col gap-1 rounded-control border border-edge p-3">
+                  <p className="text-caption font-semibold text-ink">{t.reader.passageNotFound}</p>
+                  <blockquote className="whitespace-pre-line border-l-2 border-brand-300 pl-2 text-caption text-ink">
+                    {excerpt}
+                  </blockquote>
+                </div>
+              ) : null}
+              <div
+                tabIndex={0}
+                aria-label={source.title}
+                className="max-h-[60vh] min-w-0 overflow-y-auto whitespace-pre-wrap break-words rounded-control bg-surface-sunken p-3 text-body text-ink"
+              >
+                {span ? (
+                  <>
+                    {content.slice(0, span.start)}
+                    <mark ref={mark} className="rounded-sm bg-brand-100 px-0.5 text-brand-900 underline decoration-brand-500 underline-offset-2">
+                      {content.slice(span.start, span.end)}
+                    </mark>
+                    {content.slice(span.end)}
+                  </>
+                ) : (
+                  content
+                )}
+              </div>
+            </>
           )}
           <SourceOrigin source={source} />
         </div>

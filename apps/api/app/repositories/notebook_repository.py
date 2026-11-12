@@ -41,7 +41,7 @@ class NotebookRepository:
 
     # --- notebooks -----------------------------------------------------------
 
-    def list_notebooks(self) -> list[tuple[Notebook, int]]:
+    def list_notebooks(self, archived: bool = False) -> list[tuple[Notebook, int]]:
         counts = (
             select(NotebookSource.notebook_id, func.count(NotebookSource.id).label("n"))
             .group_by(NotebookSource.notebook_id)
@@ -50,7 +50,10 @@ class NotebookRepository:
         rows = self.db.execute(
             select(Notebook, func.coalesce(counts.c.n, 0))
             .outerjoin(counts, counts.c.notebook_id == Notebook.id)
-            .where(Notebook.owner_id == self.owner_id)
+            .where(
+                Notebook.owner_id == self.owner_id,
+                Notebook.archived_at.is_not(None) if archived else Notebook.archived_at.is_(None),
+            )
             .order_by(Notebook.updated_at.desc(), Notebook.id.desc())
         ).all()
         return [(notebook, int(count)) for notebook, count in rows]
@@ -119,6 +122,48 @@ class NotebookRepository:
                 NotebookSource.notebook_id == notebook_id, NotebookSource.checksum == checksum
             )
         ).scalar_one_or_none()
+
+    def copy_source(self, source: NotebookSource, into: Notebook) -> NotebookSource:
+        """The source, its passages and their vectors, as new rows of ``into``."""
+        clone = NotebookSource(
+            notebook_id=into.id,
+            kind=source.kind,
+            title=source.title,
+            origin=source.origin,
+            status=source.status,
+            error=source.error,
+            checksum=source.checksum,
+            char_count=source.char_count,
+            page_count=source.page_count,
+            selected=source.selected,
+            truncated=source.truncated,
+            content=source.content,
+            meta=dict(source.meta) if source.meta is not None else None,
+        )
+        self.db.add(clone)
+        self.db.flush()
+        for chunk in source.chunks:
+            new_chunk = NotebookChunk(
+                source_id=clone.id,
+                ordinal=chunk.ordinal,
+                page_start=chunk.page_start,
+                page_end=chunk.page_end,
+                heading=chunk.heading,
+                text=chunk.text,
+                search_text=chunk.search_text,
+            )
+            self.db.add(new_chunk)
+            self.db.flush()
+            if chunk.embedding is not None:
+                self.db.add(
+                    NotebookEmbedding(
+                        chunk_id=new_chunk.id,
+                        model=chunk.embedding.model,
+                        dimensions=chunk.embedding.dimensions,
+                        vector=chunk.embedding.vector,
+                    )
+                )
+        return clone
 
     def delete_source(self, source: NotebookSource) -> None:
         chunk_ids = select(NotebookChunk.id).where(NotebookChunk.source_id == source.id)

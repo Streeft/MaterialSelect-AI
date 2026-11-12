@@ -113,8 +113,10 @@ def source_capabilities() -> SourceCapabilitiesOut:
 
 
 @router.get("", response_model=list[NotebookSummaryOut])
-def list_notebooks(service: NotebookService = Depends(_service)) -> list[NotebookSummaryOut]:
-    return service.list_notebooks()
+def list_notebooks(
+    archived: bool = False, service: NotebookService = Depends(_service)
+) -> list[NotebookSummaryOut]:
+    return service.list_notebooks(archived=archived)
 
 
 @router.post("", response_model=NotebookOut, status_code=status.HTTP_201_CREATED)
@@ -122,6 +124,15 @@ def create_notebook(
     payload: NotebookIn, service: NotebookService = Depends(_service)
 ) -> NotebookOut:
     return service.create(payload)
+
+
+@router.post(
+    "/{notebook_id}/duplicate", response_model=NotebookOut, status_code=status.HTTP_201_CREATED
+)
+def duplicate_notebook(
+    notebook_id: int, service: NotebookService = Depends(_service)
+) -> NotebookOut:
+    return service.duplicate(notebook_id)
 
 
 @router.get("/{notebook_id}", response_model=NotebookOut)

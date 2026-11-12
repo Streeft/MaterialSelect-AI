@@ -4,18 +4,22 @@ import { describeApiError } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createNotebook, listNotebooks } from "@/lib/api";
+import { useUrlState } from "@/lib/urlState";
 import { ptBR } from "@/lib/i18n";
 import {
   Alert,
   Button,
   EmptyState,
   ErrorState,
+  ButtonGroup,
+  ButtonGroupItem,
   ListSkeleton,
   PageHeader,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
 import { NotebookCard } from "@/components/notebooks/NotebookCard";
 import { NOTEBOOKS_KEY, notebookKey } from "@/components/notebooks/keys";
+import { notebooksListUrlSpec } from "@/components/notebooks/urlState";
 
 const t = ptBR.notebooks;
 
@@ -26,9 +30,11 @@ const t = ptBR.notebooks;
 export default function NotebooksPage() {
   const client = useQueryClient();
   const router = useRouter();
+  // D-218: the archived ones are a view of the same list, kept in the address.
+  const [{ archived }, setView] = useUrlState(notebooksListUrlSpec);
   const notebooks = useQuery({
-    queryKey: NOTEBOOKS_KEY,
-    queryFn: listNotebooks,
+    queryKey: [...NOTEBOOKS_KEY, archived ? "arquivados" : "ativos"],
+    queryFn: () => listNotebooks(archived),
   });
   const create = useMutation({
     mutationFn: () => createNotebook(),
@@ -56,7 +62,23 @@ export default function NotebooksPage() {
         title={t.title}
         description={`${t.description} ${t.privateNote}`}
         // The empty state carries its own button: two identical ones on one screen is noise (D-156).
-        primaryAction={notebooks.data?.length === 0 ? undefined : createButton}
+        primaryAction={
+          notebooks.data?.length === 0 && !archived ? undefined : createButton
+        }
+        secondaryActions={
+          <ButtonGroup label={t.listViews}>
+            <ButtonGroupItem
+              selected={!archived}
+              label={t.viewActive}
+              onClick={() => setView({ archived: false })}
+            />
+            <ButtonGroupItem
+              selected={archived}
+              label={t.viewArchived}
+              onClick={() => setView({ archived: true })}
+            />
+          </ButtonGroup>
+        }
       />
       {create.error ? (
         <Alert tone="danger" role="alert">
@@ -71,9 +93,9 @@ export default function NotebooksPage() {
         />
       ) : notebooks.data.length === 0 ? (
         <EmptyState
-          title={t.emptyTitle}
-          description={t.emptyDescription}
-          action={createButton}
+          title={archived ? t.archivedEmptyTitle : t.emptyTitle}
+          description={archived ? t.archivedEmptyDescription : t.emptyDescription}
+          action={archived ? undefined : createButton}
         />
       ) : (
         <ul

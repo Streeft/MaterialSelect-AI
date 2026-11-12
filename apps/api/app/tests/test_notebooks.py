@@ -766,3 +766,77 @@ def test_notebooks_need_a_subscription_outside_open_mode(client_without_subscrip
 
 def test_notebooks_need_login(anon_client):
     assert anon_client.get("/api/notebooks").status_code == 401
+
+
+# --- arquivar e duplicar (D-218) ---------------------------------------------
+
+
+def test_archiving_hides_a_notebook_from_the_default_list_and_brings_it_back(client):
+    kept = _notebook(client, "Fica")
+    gone = _notebook(client, "Arquivado")
+    assert gone["archived"] is False
+
+    archived = client.patch(f"/api/notebooks/{gone['id']}", json={"archived": True})
+    assert archived.status_code == 200
+    assert archived.json()["archived"] is True
+
+    assert [n["id"] for n in client.get("/api/notebooks").json()] == [kept["id"]]
+    listed = client.get("/api/notebooks", params={"archived": "true"}).json()
+    assert [(n["id"], n["archived"]) for n in listed] == [(gone["id"], True)]
+    # Archived is not deleted: it still opens, with its content.
+    assert client.get(f"/api/notebooks/{gone['id']}").json()["archived"] is True
+
+    restored = client.patch(f"/api/notebooks/{gone['id']}", json={"archived": False})
+    assert restored.json()["archived"] is False
+    assert {n["id"] for n in client.get("/api/notebooks").json()} == {kept["id"], gone["id"]}
+
+
+def test_archiving_leaves_the_other_fields_alone(client):
+    notebook = _notebook(client, "Aços")
+    client.patch(f"/api/notebooks/{notebook['id']}", json={"archived": True})
+    again = client.get(f"/api/notebooks/{notebook['id']}").json()
+    assert again["title"] == "Aços"
+    assert again["archived"] is True
+
+
+def test_duplicate_copies_sources_passages_and_notes_but_not_the_chat(client):
+    notebook = _notebook(client, "Aços")
+    source = _text_source(client, notebook["id"])
+    client.patch(
+        f"/api/notebooks/{notebook['id']}/sources/{source['id']}", json={"selected": False}
+    )
+    client.post(
+        f"/api/notebooks/{notebook['id']}/notes", json={"title": "Minha nota", "body": "texto"}
+    )
+    client.post(f"/api/notebooks/{notebook['id']}/chat", json={"question": "densidade do aço"})
+
+    response = client.post(f"/api/notebooks/{notebook['id']}/duplicate")
+    assert response.status_code == 201, response.text
+    copy = response.json()
+    assert copy["id"] != notebook["id"]
+    assert copy["title"] == "Cópia de Aços"
+    assert copy["archived"] is False
+    assert [s["title"] for s in copy["sources"]] == ["Aula 1"]
+    assert copy["sources"][0]["id"] != source["id"]
+    assert copy["sources"][0]["selected"] is False
+    assert [n["title"] for n in copy["notes"]] == ["Minha nota"]
+    assert client.get(f"/api/notebooks/{copy['id']}/messages").json() == []
+
+    # The copy's passages are its own: the source reads, and deleting the
+    # original leaves the copy whole.
+    detail = client.get(f"/api/notebooks/{copy['id']}/sources/{copy['sources'][0]['id']}").json()
+    assert "7850 kg/m³" in detail["content"]
+    client.delete(f"/api/notebooks/{notebook['id']}")
+    after = client.get(f"/api/notebooks/{copy['id']}").json()
+    assert len(after["sources"]) == 1
+    client.put(f"/api/notebooks/{copy['id']}/sources/selection", json={"selected": True})
+    answer = client.post(f"/api/notebooks/{copy['id']}/chat", json={"question": "densidade do aço"})
+    assert answer.status_code == 200
+    assert answer.json()["answer"]["answer"]["citations"]
+
+
+def test_duplicate_of_a_stranger_or_a_missing_notebook_is_404(client, strangers_notebook):
+    notebook_id, _, _ = strangers_notebook
+    assert client.post(f"/api/notebooks/{notebook_id}/duplicate").status_code == 404
+    assert client.post("/api/notebooks/999999/duplicate").status_code == 404
+    assert client.patch(f"/api/notebooks/{notebook_id}", json={"archived": True}).status_code == 404

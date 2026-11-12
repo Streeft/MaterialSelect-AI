@@ -117,17 +117,18 @@ class NotebookService:
 
     # --- notebooks ---------------------------------------------------------
 
-    def list_notebooks(self) -> list[NotebookSummaryOut]:
+    def list_notebooks(self, archived: bool = False) -> list[NotebookSummaryOut]:
         return [
             NotebookSummaryOut(
                 id=notebook.id,
                 title=notebook.title,
                 emoji=notebook.emoji,
                 source_count=count,
+                archived=notebook.archived_at is not None,
                 created_at=notebook.created_at,
                 updated_at=notebook.updated_at,
             )
-            for notebook, count in self.repo.list_notebooks()
+            for notebook, count in self.repo.list_notebooks(archived=archived)
         ]
 
     def create(self, payload: NotebookIn) -> NotebookOut:
@@ -142,6 +143,7 @@ class NotebookService:
             id=notebook.id,
             title=notebook.title,
             emoji=notebook.emoji,
+            archived=notebook.archived_at is not None,
             created_at=notebook.created_at,
             updated_at=notebook.updated_at,
             chat_goal=notebook.chat_goal,  # type: ignore[arg-type]
@@ -171,6 +173,8 @@ class NotebookService:
             notebook.chat_instructions = payload.chat_instructions.strip() or None
         if payload.response_length is not None:
             notebook.response_length = payload.response_length
+        if payload.archived is not None:
+            notebook.archived_at = datetime.now(UTC) if payload.archived else None
         if notebook.chat_goal == "personalizado" and not notebook.chat_instructions:
             raise ValidationError(
                 "O objetivo personalizado precisa de instruções: descreva como o chat "
@@ -178,6 +182,41 @@ class NotebookService:
             )
         self.db.commit()
         return self.get(notebook_id)
+
+    def duplicate(self, notebook_id: int) -> NotebookOut:
+        """A copy of the notebook's sources, passages and notes (D-218).
+
+        Nothing is re-read, re-embedded or re-generated: the text and the
+        vectors are copied as stored, so a copy costs no daily quota and
+        cannot differ from what the original answers on. The chat and the
+        Studio's artifacts are *not* copied — an answer's citations point at
+        the original's passages, and an artifact spent a generation.
+        """
+        original = self.notebook(notebook_id)
+        title = f"Cópia de {original.title}"[:200]
+        copy = self.repo.add(
+            Notebook(
+                title=title,
+                emoji=original.emoji,
+                chat_goal=original.chat_goal,
+                chat_instructions=original.chat_instructions,
+                response_length=original.response_length,
+            )
+        )
+        for source in original.sources:
+            self.repo.copy_source(source, copy)
+        for note in original.notes:
+            self.db.add(
+                NotebookNote(
+                    notebook_id=copy.id,
+                    title=note.title,
+                    body=note.body,
+                    origin=note.origin,
+                    citations=None,
+                )
+            )
+        self.db.commit()
+        return self.get(copy.id)
 
     def delete(self, notebook_id: int) -> None:
         notebook = self.notebook(notebook_id)

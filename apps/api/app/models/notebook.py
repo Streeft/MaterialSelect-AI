@@ -71,6 +71,11 @@ class Notebook(Base):
     #: "curta", "padrao" or "longa".
     response_length: Mapped[str] = mapped_column(String(8), default="padrao", nullable=False)
 
+    #: Set when the student archives the notebook (D-218): it leaves the
+    #: default list but keeps everything, and comes back by clearing this.
+    #: NULL means active — a flag column would lose *when*.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow

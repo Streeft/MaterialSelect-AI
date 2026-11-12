@@ -40,6 +40,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/app/cadernos/4",
   useParams: () => ({ id: "4" }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const source = {
@@ -60,6 +61,7 @@ const notebook: Notebook = {
   id: 4,
   title: "Materiais estruturais",
   emoji: "📓",
+  archived: false,
   created_at: "2026-09-25T10:00:00Z",
   updated_at: "2026-09-25T10:00:00Z",
   chat_goal: "padrao",
@@ -140,6 +142,8 @@ function wrap(node: ReactNode) {
 }
 
 beforeEach(() => {
+  // The address is the notebook's state (D-218): one test's open item must not open the next.
+  window.history.replaceState(null, "", "/");
   vi.clearAllMocks();
   api.listStudio.mockResolvedValue({ artifacts: [], usage: { used: 0, limit: 10, remaining: 10 } });
   api.getStudioArtifact.mockImplementation((_id: number, artifactId: number) =>

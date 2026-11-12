@@ -120,6 +120,25 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 175 — 12/11/26 — Cadernos: endereço por painel, citação que abre a fonte no trecho, duplicar e arquivar (D-218)
+
+**O que mudou.** Etapa "Cadernos" (parte 4). Backend: `notebook.archived_at` (migração `d218a5c0a1b2`), `PATCH` com `archived`,
+`GET /api/notebooks?archived=true`, `POST /api/notebooks/{id}/duplicate` (fontes, trechos, vetores e notas copiados como
+estão; sem conversa nem itens do Estúdio; sem gastar cota). Frontend: o caderno ganha `?aba=`, `?fonte=` e `?artefato=` (e a
+lista `?arquivados=1`) pelo `useUrlState`; "Abrir a fonte no trecho" no chip de citação, com o trecho marcado no leitor
+(`locateExcerpt`); cabeçalho em `PageHeader` com primária, secundária e "⋯" (renomear, duplicar, arquivar, excluir); cartão com
+Duplicar e Arquivar; filtro Ativos/Arquivados; esqueleto das três colunas. Testes: `test_notebooks.py` (arquivar e voltar,
+lista padrão sem os arquivados, duplicar com fontes, trechos e notas, cópia independente do original e que responde com
+citação, 404 de estranho), `cadernosTela.test.tsx` (endereço, citação no trecho, trecho não achado, estados, ações, lista,
+axe), `locateExcerpt.test.ts` e um E2E que abre o caderno pelo endereço na aba certa, abre a citação no trecho, duplica e
+arquiva.
+
+**Para quem retoma.** O endereço é a fonte da verdade da aba, da fonte lida e do item do Estúdio: os testes de tela que
+renderizam o caderno precisam limpar `window.location` entre os casos, ou o item aberto de um abre o do seguinte. Depois do
+merge: **Deploy da API** e **Administração do banco** (migrar).
+
+---
+
 ## Sessão 174 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-217)
 
 **O que mudou.** Etapa 4.1. Backend: `GET /api/materials/busca` com `limit`/`offset`, chips (`classe` com a subárvore,

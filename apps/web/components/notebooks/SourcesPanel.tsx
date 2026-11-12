@@ -31,14 +31,24 @@ export function SourcesPanel({
   notebook,
   expanded,
   onToggle,
+  onAdd,
+  onRead,
 }: {
   notebook: Notebook;
   expanded: boolean;
   onToggle?: () => void;
+  /**
+   * D-218: the workspace owns the "Adicionar fontes" action (it is the page's
+   * primary) and the reader (its address is `?fonte=`). Left out, the panel
+   * keeps both itself, as it did before.
+   */
+  onAdd?: () => void;
+  onRead?: (source: NotebookSource) => void;
 }) {
   const client = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [reading, setReading] = useState<NotebookSource | null>(null);
+  const standalone = onAdd === undefined;
   const refresh = () => client.invalidateQueries({ queryKey: notebookKey(notebook.id) });
 
   const toggle = useMutation({
@@ -78,15 +88,17 @@ export function SourcesPanel({
       />
       {expanded ? (
         <div id="fontes-corpo" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-          <Button
-            variant="secondary"
-            icon={<IconPlus />}
-            onClick={() => setAdding(true)}
-            disabled={full}
-            className="w-full justify-center"
-          >
-            {t.addSources}
-          </Button>
+          {standalone ? (
+            <Button
+              variant="secondary"
+              icon={<IconPlus />}
+              onClick={() => setAdding(true)}
+              disabled={full}
+              className="w-full justify-center"
+            >
+              {t.addSources}
+            </Button>
+          ) : null}
 
           <SourceSearch notebook={notebook} />
 
@@ -119,7 +131,7 @@ export function SourcesPanel({
                     <SourceIcon kind={source.kind} className="text-brand-700" />
                     <button
                       type="button"
-                      onClick={() => setReading(source)}
+                      onClick={() => (onRead ? onRead(source) : setReading(source))}
                       aria-label={t.openSource(source.title)}
                       className="min-w-0 flex-1 truncate text-left text-body text-ink hover:text-brand-700"
                     >
@@ -146,8 +158,12 @@ export function SourcesPanel({
         </div>
       ) : null}
 
-      <AddSourcesDialog notebookId={notebook.id} open={adding} onClose={() => setAdding(false)} />
-      <SourceReader notebookId={notebook.id} source={reading} onClose={() => setReading(null)} />
+      {standalone ? (
+        <>
+          <AddSourcesDialog notebookId={notebook.id} open={adding} onClose={() => setAdding(false)} />
+          <SourceReader notebookId={notebook.id} source={reading} onClose={() => setReading(null)} />
+        </>
+      ) : null}
     </section>
   );
 }

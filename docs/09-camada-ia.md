@@ -436,6 +436,17 @@ As regras que pesam:
   **não conta**. Falha do provedor devolve a unidade. Não há aviso de limite na
   tela (D-138).
 
+### Endereço, citação no trecho, duplicar e arquivar ([D-218](DECISIONS.md))
+
+- **Endereço.** `/app/cadernos/{id}` com `?aba=` (`fontes`, `conversa`, `estudio`), `?fonte=` (fonte aberta) e `?artefato=`
+  (item do Estúdio aberto); a lista, `?arquivados=1`. Tudo pelo `useUrlState`, parâmetro inválido cai no padrão.
+- **Citação.** O chip abre o trecho e, abaixo dele, "Abrir a fonte no trecho": o leitor marca o `excerpt` no texto da fonte.
+  Texto localizado, nunca calculado: a IA continua sem produzir número nenhum, e o trecho marcado é o que o backend já tinha
+  checado. Sem posição guardada no servidor (ver TODO), a busca é por palavras.
+- **Duplicar** (`POST /api/notebooks/{id}/duplicate`): copia fontes, trechos, vetores e notas; não copia a conversa nem os itens
+  do Estúdio; não gasta a cota diária. **Arquivar** (`PATCH` com `archived`): `notebook.archived_at`; o caderno some da lista
+  padrão (`GET /api/notebooks?archived=true` lista os arquivados) e segue abrindo.
+
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 
 O terceiro método do provedor é `studio(request)` ([D-94](DECISIONS.md)): o

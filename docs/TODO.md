@@ -575,6 +575,16 @@ uso; as três primeiras são decisão ou conferência do autor.
   vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
   um quarto disso. Só vale se a memória do Fly apertar.
 
+**Cadernos — pendências deixadas pela revisão das telas (D-218).**
+
+- **Citação com a posição do trecho.** O backend copia o `excerpt` mas não onde ele está na fonte; o leitor o acha por
+  palavras (`locateExcerpt`) e, não achado, mostra o trecho à parte. Guardar `char_start`/`char_end` por trecho (migração em
+  `notebook_chunk`, preenchida em `chunk_text`) e devolvê-los na citação faria o link `?fonte=&trecho=` sobreviver ao recarregar
+  e dispensaria a busca. Sem pressa: hoje funciona para todo texto que passou pelo `chunk_text`.
+- **Duplicar leva a conversa e o Estúdio?** Hoje não (as citações apontam para trechos do original e cada item gastou uma
+  geração). Se pedirem, a cópia da conversa pede reescrever `chunk_id` e `source_id` das citações.
+- **Arquivar em lote** e "esvaziar o arquivo" na lista.
+
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
 - **A voz pt-BR depende do aparelho do aluno.** ▁ O áudio e o vídeo falam pelo

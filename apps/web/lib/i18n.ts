@@ -1648,6 +1648,29 @@ export const ptBR = {
     remove: "Excluir caderno",
     cardMenu: (title: string) => `Ações de “${title}”`,
     rename: "Renomear",
+    // D-218: duplicar, arquivar, endereço da aba, abrir a fonte no trecho.
+    duplicate: "Duplicar",
+    open: "Abrir",
+    duplicating: "Duplicando…",
+    duplicated: (title: string) => `Caderno “${title}” criado como cópia.`,
+    archive: "Arquivar",
+    unarchive: "Desarquivar",
+    archived: (title: string) => `Caderno “${title}” arquivado.`,
+    unarchived: (title: string) => `Caderno “${title}” de volta à lista.`,
+    archivedBanner:
+      "Este caderno está arquivado: sai da lista principal, mas nada foi apagado.",
+    listViews: "Cadernos mostrados",
+    viewActive: "Ativos",
+    viewArchived: "Arquivados",
+    archivedEmptyTitle: "Nenhum caderno arquivado",
+    archivedEmptyDescription:
+      "Os cadernos que você arquivar ficam aqui, com as fontes e a conversa de sempre.",
+    notebookActions: "Ações do caderno",
+    renameTitle: "Renomear caderno",
+    saveTitle: "Salvar",
+    loadingNotebook: "Carregando o caderno",
+    openAtPassage: "Abrir a fonte no trecho",
+    openAtPassageLabel: (title: string) => `Abrir “${title}” no trecho citado`,
     resizePanel: (panel: string) => `Redimensionar ${panel}`,
     cancel: "Cancelar",
     panelTabs: "Painéis do caderno",
@@ -1739,6 +1762,8 @@ export const ptBR = {
       suggestionsLabel: "Sugestões da Pesquisa Google",
     },
     reader: {
+      passageNotFound:
+        "Não achei este trecho no texto da fonte; ele é mostrado aqui como foi citado.",
       origin: "Origem",
       license: "Licença",
       attribution: "Atribuição",
