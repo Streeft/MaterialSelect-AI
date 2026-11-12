@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSavedView, deleteSavedView, listSavedViews, updateSavedView } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { useUndoableDelete } from "@/lib/useUndoableDelete";
+import { useOptionalSnackbar } from "@/components/ui/Snackbar";
 import type {
   SavedView,
   SavedViewConfig,
@@ -86,7 +86,8 @@ export function useDatabaseView<K extends string>({
   onCreated?: (view: SavedView) => void;
 }) {
   const saved = useSavedViews(scope);
-  const undoableDelete = useUndoableDelete();
+  const queryClient = useQueryClient();
+  const snackbar = useOptionalSnackbar();
   const [filters, setFilters] = useState<Record<K, string | null>>(initialFilters);
   const [kind, setKind] = useState<"table" | "gallery" | "list">(defaultKind);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -144,18 +145,32 @@ export function useDatabaseView<K extends string>({
     },
     rename: (view: SavedView, name: string) =>
       saved.update.mutate({ id: view.id, patch: { name } }),
-    // D-130: the tab goes at once and the deletion waits for the snackbar.
+    // D-130: the tab goes at once and the deletion waits for the snackbar,
+    // whose "Desfazer" brings it back. Outside the app shell (no snackbar) it
+    // is deleted straight away.
     remove: (view: SavedView) => {
       if (activeId === view.id) select(null);
-      undoableDelete({
-        what: ptBR.ds.viewWhat(view.name),
-        hide: [
-          {
-            queryKey: saved.queryKey,
-            remove: (old) => (Array.isArray(old) ? old.filter((v: SavedView) => v.id !== view.id) : old),
-          },
-        ],
-        commit: () => saved.remove(view.id),
+      const refresh = () => void queryClient.invalidateQueries({ queryKey: saved.queryKey });
+      void queryClient.cancelQueries({ queryKey: saved.queryKey });
+      queryClient.setQueryData<SavedView[]>(saved.queryKey, (old) =>
+        old?.filter((v) => v.id !== view.id),
+      );
+      const commit = () =>
+        saved
+          .remove(view.id)
+          .then(refresh)
+          .catch(() => {
+            refresh();
+            snackbar?.notify({ message: ptBR.snackbar.deleteFailed });
+          });
+      if (!snackbar) {
+        void commit();
+        return;
+      }
+      snackbar.notify({
+        message: ptBR.snackbar.removed(ptBR.ds.viewWhat(view.name)),
+        action: { label: ptBR.snackbar.undo, onAction: refresh },
+        onExpire: () => void commit(),
       });
     },
   };

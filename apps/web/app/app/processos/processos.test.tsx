@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
@@ -242,6 +243,24 @@ describe("a lista de processos", () => {
       "href",
       "/app/processos/fundicao",
     );
+  });
+
+  // D-207: a base of processes, filtered by chips and by name.
+  it("filtra pela família em chip e pelo nome, e diz quando nada sobra", async () => {
+    const user = userEvent.setup();
+    route.pathname = "/app/processos";
+    render(wrap(<ProcessesPage />));
+    await screen.findByShadowRole("link", { name: "Fundição" });
+
+    await user.click(
+      screen.getByShadowRole("button", { name: ptBR.ds.filterChip(t.filterFamily, ptBR.ds.anyValue) }),
+    );
+    await user.click(await screen.findByShadowRole("button", { name: "União" }));
+    expect(screen.queryByShadowRole("link", { name: "Fundição" })).not.toBeInTheDocument();
+    expect(screen.getByShadowRole("link", { name: "Solda" })).toBeInTheDocument();
+
+    await user.type(screen.getByShadowRole("searchbox", { name: t.searchLabel }), "fundi");
+    expect(await screen.findByText(t.emptyFiltered)).toBeInTheDocument();
   });
 });
 
