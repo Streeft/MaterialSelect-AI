@@ -4,6 +4,7 @@ import { Disclosure } from "@/components/ui";
 import { Greeting } from "@/components/home/Greeting";
 import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
+import { PinnedMaps } from "@/components/home/PinnedMaps";
 import { HomeComposer } from "@/components/home/HomeComposer";
 import { NewMenu } from "@/components/home/NewMenu";
 import { FirstUseGuide } from "@/components/home/FirstUseGuide";
@@ -56,6 +57,28 @@ export default function HomePage() {
       <TaskShortcuts />
 
       <CatalogNews />
+      <PinnedMaps />
+
+      <Section title={t.exploreTitle}>
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {[
+            { href: "/app/catalogo", label: ptBR.nav.catalog, hint: t.catalogHint },
+            { href: "/app/mapas", label: ptBR.nav.maps, hint: t.mapsHint },
+            { href: "/app/comparar", label: ptBR.nav.compare, hint: t.compareHint },
+          ].map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                data-interactive="true"
+                className="msds-card flex h-full flex-col gap-1 p-4"
+              >
+                <span className="text-body font-medium text-ink">{item.label}</span>
+                <span className="text-caption text-ink-muted">{item.hint}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
       {/* The method, one click away rather than the first thing on the page:
           each step is still a door into the wizard at that step. */}

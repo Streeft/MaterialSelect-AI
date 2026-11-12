@@ -5,6 +5,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
@@ -273,6 +274,23 @@ export function titled(axis: Partial<LayoutAxis> | undefined, text: string): Par
  * Hiding a class there sets `visible: false` on its traces; it never touches the
  * selection, which reads only `event.range` — the box, not the points in it.
  */
+const COARSE_POINTER = "(pointer: coarse)";
+
+function subscribePointer(onChange: () => void): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+  const query = window.matchMedia(COARSE_POINTER);
+  query.addEventListener?.("change", onChange);
+  return () => query.removeEventListener?.("change", onChange);
+}
+
+function readCoarsePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia(COARSE_POINTER).matches
+  );
+}
+
 export function AshbyMap({
   map,
   recordLabel,
@@ -306,7 +324,13 @@ export function AshbyMap({
   const plotBox = usePlotlyResize<HTMLDivElement>();
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
-  const [localDragMode, setLocalDragMode] = useState<CursorMode>("select");
+  // D-221: on a touch screen a drag on the figure is a pan, not a box — the
+  // region and lasso tools leave with the cursor-mode seats (CSS hides them on
+  // a coarse pointer), and the selection stays a tap on the points' list.
+  // Until the reader picks a mode, the pointer decides; read after hydration.
+  const coarsePointer = useSyncExternalStore(subscribePointer, readCoarsePointer, () => false);
+  const [pickedDragMode, setLocalDragMode] = useState<CursorMode | null>(null);
+  const localDragMode: CursorMode = pickedDragMode ?? (coarsePointer ? "zoom" : "select");
   const lineDragAvailable = Boolean(onDragLine && movableLine && movableLine.points.length >= 2);
   // A mode whose tool went away (the line was removed) falls back to the box.
   const requested: CursorMode = dragMode ?? localDragMode;
@@ -915,7 +939,7 @@ export function AshbyMap({
         enableBoxSelect ? (
           // On a phone the seats wrap inside the figure card instead of
           // pushing the page sideways (D-147).
-          <ButtonGroup label={ptBR.chart.dragMode} className="max-w-full flex-wrap">
+          <ButtonGroup label={ptBR.chart.dragMode} className="ds-fine-pointer-only max-w-full flex-wrap">
             <ButtonGroupItem
               selected={activeDragMode === "select"}
               label={ptBR.chart.dragModeSelect}
@@ -957,6 +981,9 @@ export function AshbyMap({
         />
       }
     >
+      {/* D-221: the legend sits above the drawing, inside the first screen —
+          under a figure as tall as the viewport it was never seen. */}
+      <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
       {/* `role="img"` collapses Plotly's thousands of `<path>` and tick nodes
           into one object for assistive technology. What replaces them is the
           data table behind "Ver tabela de dados", not a longer label. */}
@@ -1015,7 +1042,6 @@ export function AshbyMap({
           />
         ) : null}
       </div>
-      <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
     </ChartFrame>
   );
 }

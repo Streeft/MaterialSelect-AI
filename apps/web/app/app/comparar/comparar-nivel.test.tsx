@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { compareViewText } from "@/lib/i18n-compare-view";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -55,6 +57,18 @@ function mount() {
   );
 }
 
+/** D-221: what the property search offers, by opening it. */
+async function offered(): Promise<string[]> {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("combobox", { name: compareViewText.bar.addProperty }));
+  const names = screen.queryAllByRole("option").map((o) => o.textContent ?? "");
+  await user.keyboard("{Escape}");
+  return names;
+}
+
+const chosen = (name: string) =>
+  screen.findByRole("button", { name: `${compareViewText.bar.removeProperty}: ${name}` });
+
 describe("comparador: nível de profundidade nas colunas (D-165)", () => {
   beforeEach(() => {
     requests.length = 0;
@@ -65,8 +79,8 @@ describe("comparador: nível de profundidade nas colunas (D-165)", () => {
     nav.query = "materiais=1&nivel=1";
     mount();
 
-    expect(await screen.findByRole("button", { name: "Densidade" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Tenacidade à fratura" })).toBeNull();
+    const names = await offered();
+    expect(names.some((n) => n.includes("Tenacidade à fratura"))).toBe(false);
     // 2 of level 1 + the 2 already chosen by default (levels 2 and 3), of 5.
     expect(
       screen.getByText(
@@ -78,7 +92,9 @@ describe("comparador: nível de profundidade nas colunas (D-165)", () => {
   it("sem nível mostra tudo, como antes", async () => {
     nav.query = "materiais=1";
     mount();
-    expect(await screen.findByRole("button", { name: "Limite de fadiga" })).toBeInTheDocument();
+    // "Limite de fadiga" is among the four chosen by default; the search offers the rest.
+    expect(await chosen("Limite de fadiga")).toBeInTheDocument();
+    expect((await offered()).some((n) => n.includes("Tenacidade à fratura"))).toBe(true);
   });
 
   it("não tira da tela o que já estava escolhido, mesmo de nível maior", async () => {
@@ -88,7 +104,7 @@ describe("comparador: nível de profundidade nas colunas (D-165)", () => {
     const { container } = mount();
 
     for (const name of ["Coeficiente de Poisson", "Limite de fadiga"]) {
-      expect(await screen.findByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
+      expect(await chosen(name)).toBeInTheDocument();
     }
     expect(describeViolations(await findA11yViolations(container))).toBe("");
   });

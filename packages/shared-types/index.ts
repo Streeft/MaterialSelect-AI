@@ -2404,7 +2404,7 @@ export interface DesignVariable {
   /** Canonical unit the value must already be in. */
   unit: string;
   help_text: string;
-  /** D-218: illustrative value, offered behind "Usar o exemplo"; null when a support fills it. */
+  /** D-220: illustrative value, offered behind "Usar o exemplo"; null when a support fills it. */
   example?: number | null;
 }
 

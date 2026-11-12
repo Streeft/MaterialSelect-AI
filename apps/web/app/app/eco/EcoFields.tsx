@@ -161,7 +161,7 @@ const COMPONENT_COLUMNS: InlineColumn[] = [
 ];
 
 /**
- * D-218: the bill of materials as a table edited in place — one row per
+ * D-220: the bill of materials as a table edited in place — one row per
  * component, "+ Adicionar componente" under the last, ⋯ per row with Duplicar
  * and Remover (Desfazer). The list is positional (it lives in the URL, D-216),
  * so a row is its index. Each control names itself by column and row, so a
@@ -295,7 +295,7 @@ export function ComponentsTable({
   );
 }
 
-/** D-218: what each column of the product table asks, one click away instead of under every field. */
+/** D-220: what each column of the product table asks, one click away instead of under every field. */
 export function HowToFill() {
   return (
     <Disclosure summary={t.howToFill}>
@@ -366,7 +366,7 @@ const LEG_COLUMNS: InlineColumn[] = [
   { id: "distance", header: t.colDistance, hint: t.unitKm, numeric: true, minWidth: "8rem" },
 ];
 
-/** D-218: the transport legs as a table edited in place, like the product. */
+/** D-220: the transport legs as a table edited in place, like the product. */
 export function LegsTable({
   legs,
   modes,

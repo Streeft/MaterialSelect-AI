@@ -7,7 +7,7 @@ import { useDebounced } from "@/lib/useDebounced";
 export const LIVE_DELAY_MS = 450;
 
 /**
- * D-218: the result follows the inputs, as in Omni Calculator — but the number
+ * D-220: the result follows the inputs, as in Omni Calculator — but the number
  * is still the server's. The brief is asked about a moment after the reader
  * stops typing; the previous answer stays on screen while the next one comes,
  * marked as updating, and an invalid brief (`request === null`) asks nothing.

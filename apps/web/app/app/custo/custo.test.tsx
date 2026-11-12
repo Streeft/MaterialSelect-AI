@@ -145,16 +145,16 @@ describe("Custo da peça", () => {
     // Nem a massa nem o lote têm valor inventado: são os números que decidem.
     await open();
 
-    // D-86/D-218: no button to press; the result card says what is missing.
+    // D-86/D-220: no button to press; the result card says what is missing.
     expect(await screen.findByText(t.blocked.mass)).toBeInTheDocument();
     expect(screen.queryByShadowRole("button", { name: t.estimate })).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(estimatePartCost).not.toHaveBeenCalled();
-    // The way to get the mass is one link away (D-218).
+    // The way to get the mass is one link away (D-220).
     expect(screen.getByRole("link", { name: t.massToSolver })).toHaveAttribute("href", "/app/dimensionar");
   });
 
-  it("diz quando a massa veio do Dimensionar (D-218)", async () => {
+  it("diz quando a massa veio do Dimensionar (D-220)", async () => {
     setQuery("material=7&massa=0.402&origem=dimensionar");
     await open();
     expect(screen.getByText(t.massFromSolver)).toBeInTheDocument();

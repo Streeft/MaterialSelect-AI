@@ -25,8 +25,12 @@ const t = ptBR.ds;
  */
 export function PageDoc({
   icon,
+  eyebrow,
   title,
   onTitleChange,
+  titleLabel,
+  titlePlaceholder,
+  headingLabel,
   properties,
   primaryAction,
   menu,
@@ -35,9 +39,25 @@ export function PageDoc({
 }: {
   /** A glyph or a badge before the title. Decorative. */
   icon?: ReactNode;
+  /** D-221: the section line above the title, for a page that is a section and a document at once. */
+  eyebrow?: ReactNode;
   title: string;
   /** Present: the title is editable in place. */
   onTitleChange?: (title: string) => void;
+  /** D-221: the editable title's name, when "Título" is not what it is ("Nome do estudo"). */
+  titleLabel?: string;
+  /**
+   * D-221: shown while the title is empty ("Estudo sem título"). With it the
+   * title is a live field — every keystroke reaches `onTitleChange`, and empty
+   * is a real state (a study with no name yet), not a typo to restore.
+   */
+  titlePlaceholder?: string;
+  /**
+   * D-221: the heading's name when the title is a field that may be empty —
+   * the section the document is ("Seleção de materiais"). The field keeps its
+   * own name; the outline never shows a heading with no words.
+   */
+  headingLabel?: string;
   /** The line under the title: a `PropertyList`, badges, a description. */
   properties?: ReactNode;
   /** The page's one visible action. */
@@ -51,17 +71,45 @@ export function PageDoc({
   return (
     <article aria-labelledby={titleId} className={cn("flex flex-col gap-6", className)}>
       <header className="flex flex-col gap-3">
+        {eyebrow ? (
+          <span className="font-mono text-2xs uppercase tracking-eyebrow text-brand-700">{eyebrow}</span>
+        ) : null}
         <div className="flex flex-wrap items-start gap-3">
           {icon ? (
             <span aria-hidden className="ds-doc-icon">
               {icon}
             </span>
           ) : null}
-          <h1 id={titleId} className="min-w-0 flex-1 basis-48 text-display text-ink">
+          <h1 id={titleId} aria-label={headingLabel} className="min-w-0 flex-1 basis-48 text-display text-ink">
             {onTitleChange ? (
               // Keyed by the title: one changed elsewhere (a save that
               // normalised it) remounts the field with the new draft.
-              <EditableTitle key={title} value={title} onCommit={onTitleChange} />
+              titlePlaceholder !== undefined ? (
+                // D-221: a title that may be empty is the record's own field
+                // (a study's name), so it follows each keystroke like any field
+                // of the form — the draft and the save read it as it is typed.
+                <textarea
+                  aria-label={titleLabel ?? t.titleLabel}
+                  placeholder={titlePlaceholder}
+                  rows={1}
+                  value={title}
+                  onChange={(event) => onTitleChange(event.target.value.replace(/\n/g, " "))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      (event.target as HTMLTextAreaElement).blur();
+                    }
+                  }}
+                  className="ds-doc-title-input"
+                />
+              ) : (
+                <EditableTitle
+                  key={title}
+                  value={title}
+                  onCommit={onTitleChange}
+                  label={titleLabel}
+                />
+              )
             ) : (
               title
             )}
@@ -84,7 +132,15 @@ export function PageDoc({
   );
 }
 
-function EditableTitle({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
+function EditableTitle({
+  value,
+  onCommit,
+  label,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  label?: string;
+}) {
   const [draft, setDraft] = useState(value);
 
   function commit() {
@@ -101,7 +157,7 @@ function EditableTitle({ value, onCommit }: { value: string; onCommit: (value: s
   // Enter still commits; the title never takes a line break.
   return (
     <textarea
-      aria-label={t.titleLabel}
+      aria-label={label ?? t.titleLabel}
       rows={1}
       value={draft}
       onChange={(event) => setDraft(event.target.value.replace(/\n/g, " "))}

@@ -2,7 +2,7 @@
 
 import { describeApiError } from "@/lib/errors";
 import { Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useDebounced } from "@/lib/useDebounced";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,16 +56,26 @@ import {
   ButtonLink,
   LoadingState,
   MenuItem,
-  PageHeader,
+  PageDoc,
+  PropertyList,
+  type PropertyItem,
   SplitButton,
   Stepper,
+  Textarea,
   type Step as StepItem,
   type StepStatus,
 } from "@/components/ui";
 import { useAnnounce } from "@/components/ui/Announcer";
-import { IconArrowLeft, IconArrowRight } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconFilter } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
+import { flowText } from "@/lib/i18n-flow";
+import { groupForPath, labelForPath } from "@/lib/design/sections";
 import { reserveEditorIds } from "@/components/selection/ConstraintEditor";
-import { countStageConstraints, toStagePayload } from "@/components/selection/StageList";
+import {
+  MAX_NOTE_LENGTH,
+  countStageConstraints,
+  toStagePayload,
+} from "@/components/selection/StageList";
 import { describeCustomIndex, describeIndex, type IndexDescriptor } from "@/components/selection/IndexCard";
 import { LiveFunnel } from "@/components/selection/LiveFunnel";
 import { SavedStudiesPanel } from "@/components/selection/SavedStudiesPanel";
@@ -138,6 +148,7 @@ interface LoadNotice {
  */
 function SelectionWizard() {
   const qc = useQueryClient();
+  const pathname = usePathname();
   const params = useSearchParams();
   // D-139: the draft is kept per account (a shared machine must not mix students).
   const me = useCurrentUser();
@@ -809,7 +820,8 @@ function SelectionWizard() {
 
   /** What each step already holds, in a few words — the stepper's second line. */
   const stepSummaries: Record<Step, string | undefined> = {
-    function: state.name.trim() || state.functionText.trim() || undefined,
+    // D-221: the name is the page's title now; the step says the function.
+    function: state.functionText.trim() || undefined,
     objective: hasObjective
       ? t.summaryObjective(activeIndex?.name ?? null, criteriaPayload().length)
       : undefined,
@@ -820,10 +832,107 @@ function SelectionWizard() {
   };
   const stepsWithSummary = STEPS.map((s) => ({ ...s, summary: stepSummaries[s.id] }));
 
+  // D-221: a section and a document at once — the eyebrow PageHeader would
+  // write ("estudar · seleção"), above the study's own title.
+  const groupLabel = groupForPath(pathname)?.toLowerCase();
+  const sectionLabel = labelForPath(pathname).toLowerCase();
+  const eyebrow = groupLabel ? `${groupLabel} · ${sectionLabel}` : sectionLabel;
+
+  // D-221: the study is the page — its name the title, the problem its
+  // properties, each one a way back to the step that holds it.
+  const freeVariables = state.freeVariables
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const propertyLink = (text: string, empty: boolean, target: Step) => (
+    <button
+      type="button"
+      className={cn(
+        "m3-state rounded-control text-left text-body underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        empty ? "text-ink-muted" : "text-ink",
+      )}
+      title={w.doc.editIn(labelOf(target))}
+      onClick={() => goToStep(target)}
+    >
+      {text}
+    </button>
+  );
+  const docProperties: PropertyItem[] = [
+    {
+      id: "funcao",
+      label: w.doc.functionProp,
+      value: propertyLink(
+        state.functionText.trim() || w.doc.notDescribed,
+        !state.functionText.trim(),
+        "function",
+      ),
+    },
+    {
+      id: "objetivo",
+      label: w.doc.objectiveProp,
+      value: propertyLink(
+        stepSummaries.objective ?? (state.objectiveText.trim() || w.doc.notDescribedMasc),
+        !stepSummaries.objective && !state.objectiveText.trim(),
+        "objective",
+      ),
+    },
+    {
+      id: "limites",
+      label: w.doc.limitsProp,
+      value: propertyLink(
+        stepSummaries.constraints ?? w.doc.noLimits,
+        !stepSummaries.constraints,
+        "constraints",
+      ),
+    },
+    {
+      id: "variaveis",
+      label: w.doc.variablesProp,
+      value: propertyLink(
+        freeVariables.length > 0 ? freeVariables.join(", ") : w.doc.noVariables,
+        freeVariables.length === 0,
+        "function",
+      ),
+    },
+    ...(state.universe === "process"
+      ? [{ id: "universo", label: w.doc.universeProp, value: t.universeProcess }]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
+      <PageDoc
+        eyebrow={eyebrow}
+        icon={<IconFilter className="h-5 w-5" />}
+        title={state.name}
+        titleLabel={t.studyName}
+        titlePlaceholder={w.doc.untitled}
+        headingLabel={t.title}
+        onTitleChange={(value) => dispatch({ type: "text", field: "name", value })}
+        primaryAction={
+          <SavedStudiesPanel
+            studies={studies.data}
+            onRun={(id) => runSaved.mutate(id)}
+            onLoad={(id) => loadStudy.mutate(id)}
+            onDelete={removeStudy}
+          />
+        }
+        properties={
+          <div className="flex flex-col gap-3">
+            <PropertyList items={docProperties} />
+            <Textarea
+              label={flowText.notes.studyLabel}
+              hint={flowText.notes.studyHint}
+              rows={2}
+              maxLength={MAX_NOTE_LENGTH}
+              placeholder={flowText.notes.placeholder}
+              value={state.studyNotes}
+              onChange={(e) => dispatch({ type: "text", field: "studyNotes", value: e.target.value })}
+            />
+          </div>
+        }
+      >
       <div className="space-y-4">
-        <PageHeader title={t.title} description={t.subtitle} />
 
         {recovered && (
           <Alert tone="info" role="status">
@@ -850,13 +959,6 @@ function SelectionWizard() {
           </p>
         )}
 
-        <SavedStudiesPanel
-          studies={studies.data}
-          onRun={(id) => runSaved.mutate(id)}
-          onLoad={(id) => loadStudy.mutate(id)}
-          onDelete={removeStudy}
-        />
-
         <WizardProgress
           items={progressItems}
           current={step}
@@ -865,6 +967,7 @@ function SelectionWizard() {
         />
 
         <Stepper
+          compact
           label={ptBR.ui.steps}
           steps={stepsWithSummary}
           statusOf={statusOf}
@@ -1007,6 +1110,7 @@ function SelectionWizard() {
           </div>
         </div>
       </div>
+      </PageDoc>
     </div>
   );
 }
