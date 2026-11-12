@@ -97,7 +97,7 @@ type BarCursor = { series: number; slug: string; key: boolean };
  */
 export function DenseBarsFigure({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<BarCursor | null>(null);
   const [scrolled, setScrolled] = useState(0);
@@ -360,6 +360,7 @@ export function DenseBarsFigure({ figureLabel, series, axes, score }: FigureProp
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onIsolate={isolate}
         onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
       />
@@ -483,7 +484,7 @@ function useDenseSeries(visible: CompareSeries[]) {
 /** The radar for a whole selection: hairline polygons, the one in focus on top. */
 export function DenseRadarFigure({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const drawn = useMemo(() => series.filter((s) => s.complete), [series]);
   const visible = useMemo(() => drawn.filter((s) => !hidden.has(String(s.id))), [drawn, hidden]);
   const dense = useDenseSeries(visible);
@@ -608,6 +609,7 @@ export function DenseRadarFigure({ figureLabel, series, axes, score }: FigurePro
             items={legendItems(drawn)}
             hidden={hidden}
             onToggle={toggle}
+            onIsolate={isolate}
             onSetAll={(hide) => setAll(hide, drawn)}
             onHover={(key) => dense.setLegendHover(key === null ? null : Number(key))}
           />
@@ -647,7 +649,7 @@ function runsOf(
 /** Parallel coordinates for a whole selection: hairlines on a plot as tall as the count asks. */
 export function DenseParallelFigure({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const visible = useMemo(() => series.filter((s) => !hidden.has(String(s.id))), [series, hidden]);
   const dense = useDenseSeries(visible);
 
@@ -766,6 +768,7 @@ export function DenseParallelFigure({ figureLabel, series, axes, score }: Figure
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onIsolate={isolate}
         onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => dense.setLegendHover(key === null ? null : Number(key))}
       />

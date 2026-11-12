@@ -6,7 +6,7 @@ import { formatNumber } from "@/lib/format";
 import { paletteSeats } from "@/lib/design/palette";
 import { ChartFrame } from "./ChartFrame";
 import { ChartLegend, type LegendItem, MarkerSymbol } from "./ChartLegend";
-import { ChartTooltip } from "./ChartTooltip";
+import { ChartTooltip, tipValue } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
 import { logTicks, makeScale, useChartWidth, useRovingFocus } from "./figureKit";
 
@@ -59,47 +59,13 @@ export function CostCurveChart({
 
   const roving = useRovingFocus(visibleProcesses.length);
 
-  // Compute log-log domain over all visible curve points and the current batch size
-  const { domainX, domainY, allBatchSizes } = useMemo(() => {
-    let minX = result.batch_size > 0 ? result.batch_size : 1;
-    let maxX = result.batch_size > 0 ? result.batch_size : 1;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    const batchSet = new Set<number>();
-    if (result.batch_size > 0) batchSet.add(result.batch_size);
-
-    for (const p of costed) {
-      for (const pt of p.curve ?? []) {
-        if (pt.batch_size > 0 && Number.isFinite(pt.batch_size)) {
-          minX = Math.min(minX, pt.batch_size);
-          maxX = Math.max(maxX, pt.batch_size);
-          batchSet.add(pt.batch_size);
-        }
-        if (pt.cost > 0 && Number.isFinite(pt.cost)) {
-          minY = Math.min(minY, pt.cost);
-          maxY = Math.max(maxY, pt.cost);
-        }
-      }
-    }
-
-    if (!Number.isFinite(minY) || !Number.isFinite(maxY) || minY <= 0) {
-      minY = 1;
-      maxY = 1000;
-    }
-
-    // A little logarithmic air on y so extreme points don't clip the borders
-    const logMinY = Math.log10(minY);
-    const logMaxY = Math.log10(maxY);
-    const padY = Math.max((logMaxY - logMinY) * 0.08, 0.05);
-
-    const sortedBatches = Array.from(batchSet).sort((a, b) => a - b);
-
-    return {
-      domainX: [minX, maxX] as [number, number],
-      domainY: [10 ** (logMinY - padY), 10 ** (logMaxY + padY)] as [number, number],
-      allBatchSizes: sortedBatches,
-    };
-  }, [costed, result.batch_size]);
+  // The log-log extent and the tabulated batch sizes come from the server
+  // (`CostResult.domain`, ADR 0004); this component only draws them. Without a
+  // domain there is no curve to place (the empty state below already covers it).
+  const domain = result.domain;
+  const domainX = useMemo<[number, number]>(() => domain?.x ?? [1, 1], [domain]);
+  const domainY = useMemo<[number, number]>(() => domain?.y ?? [1, 1], [domain]);
+  const allBatchSizes = useMemo(() => domain?.batch_sizes ?? [], [domain]);
 
   // Legend items
   const legendItems: LegendItem[] = useMemo(() => {
@@ -205,6 +171,7 @@ export function CostCurveChart({
           items={legendItems}
           hidden={hidden}
           onToggle={handleToggle}
+          onIsolate={(next) => setHidden(new Set(next))}
           onHover={setHoveredKey}
         />
       }
@@ -432,11 +399,11 @@ export function CostCurveChart({
                 {
                   key: "batch",
                   label: t.chartTableBatch,
-                  value: `${formatNumber(activeMark.batchSize)} un`,
+                  value: tipValue(activeMark.batchSize, "un"),
                   color: seat?.color,
                   symbol: seat?.symbol,
                 },
-                { key: "cost", label: "Custo unitário", value: formatNumber(activeMark.cost) },
+                { key: "cost", label: "Custo unitário", value: tipValue(activeMark.cost) },
               ],
             };
           })()}

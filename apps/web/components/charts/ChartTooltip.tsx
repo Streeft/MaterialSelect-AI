@@ -2,7 +2,21 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ClassSymbol } from "@/lib/design/palette";
+import { ptBR } from "@/lib/i18n";
+import { formatNumber, prettyUnit } from "@/lib/format";
 import { MarkerSymbol } from "./ChartLegend";
+
+/**
+ * The one way a tooltip writes a number (D-206): pt-BR, with the unit after it
+ * and a written absence — never `0` or a dash — when there is no value.
+ */
+export function tipValue(value: number | null | undefined, unit?: string | null): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return ptBR.quality.AUSENTE;
+  }
+  const label = prettyUnit(unit ?? null);
+  return label ? `${formatNumber(value)} ${label}` : formatNumber(value);
+}
 
 /** One line of the readout: a key (marker), what it is, and its value. */
 export interface TooltipRow {

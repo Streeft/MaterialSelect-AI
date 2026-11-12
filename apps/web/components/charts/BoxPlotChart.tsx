@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import type { BoxDomain } from "@/lib/types";
 import type { ClassSymbol } from "@/lib/design/palette";
 import { formatNumber } from "@/lib/format";
 import { MarkerSymbol } from "./ChartLegend";
@@ -30,21 +31,25 @@ const TRACK = 22;
  *
  * The five numbers of every box arrive computed (`app/calculations/statistics.py`,
  * ADR 0004) — this component places them on an axis and never derives a
- * quantile. On a log scale the axis is base-10; the caller only offers log when
- * the backend says the property allows it (`allows_log_scale`), and a figure
- * that still meets a non-positive number falls back to linear rather than
- * dropping a class in silence.
+ * quantile, and the padded axis extent arrives computed too (`domains`). On a
+ * log scale the axis is base-10; the caller only offers log when the backend
+ * says the property allows it (`allows_log_scale`), and a figure whose backend
+ * withheld the log extent (a non-positive number) falls back to linear rather
+ * than dropping a class in silence.
  */
 export function BoxPlotChart({
   figureLabel,
   rows,
   scale,
+  domains,
   axisTitle,
   describe,
 }: {
   figureLabel: string;
   rows: BoxRow[];
   scale: "linear" | "log";
+  /** Axis extents computed by the backend (`DistributionOut.domain`). */
+  domains: BoxDomain | null | undefined;
   axisTitle: string;
   describe: (row: BoxRow) => { aria: string; info?: ReactNode; tip?: TooltipContent };
 }) {
@@ -52,34 +57,11 @@ export function BoxPlotChart({
   const [active, setActive] = useState<{ key: string; focus: boolean } | null>(null);
   const roving = useRovingFocus(rows.length);
 
-  const { lo, hi } = useMemo(() => {
-    let low = Infinity;
-    let high = -Infinity;
-    for (const row of rows) {
-      low = Math.min(low, row.minimum);
-      high = Math.max(high, row.maximum);
-    }
-    return { lo: low, hi: high };
-  }, [rows]);
-  const log = scale === "log" && lo > 0;
-
-  // A little air at both ends, in the space the axis is drawn in, so the
-  // extreme whiskers do not sit on the frame. Presentation, not a statistic.
-  const domain = useMemo<[number, number]>(() => {
-    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return [0, 1];
-    if (log) {
-      const a = Math.log10(lo);
-      const b = Math.log10(hi);
-      const pad = Math.max((b - a) * 0.05, 0.05);
-      return [10 ** (a - pad), 10 ** (b + pad)];
-    }
-    if (lo === hi) {
-      const pad = Math.abs(lo) * 0.1 || 1;
-      return [lo - pad, hi + pad];
-    }
-    const pad = (hi - lo) * 0.05;
-    return [lo - pad, hi + pad];
-  }, [lo, hi, log]);
+  // The padded extent arrives from the server (ADR 0004): the component picks
+  // the log one when asked and offered, and falls back to linear when the
+  // backend withheld it (a non-positive minimum) rather than dropping a class.
+  const log = scale === "log" && Boolean(domains?.log);
+  const domain: [number, number] = (log ? domains?.log : domains?.linear) ?? [0, 1];
 
   const W = width ?? 0;
   const labelWidth = Math.min(150, Math.max(80, W * 0.24));

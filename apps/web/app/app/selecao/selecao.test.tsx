@@ -143,6 +143,17 @@ function result(overrides: Partial<RunResult> = {}): RunResult {
     candidates: [],
     index: null,
     ranking: null,
+    winner: {
+      kind: "none",
+      names: [],
+      reason: "no_objective",
+      score: null,
+      method: null,
+      contributions: [],
+      index_value: null,
+      value: null,
+      maximize: null,
+    },
     ...overrides,
   };
 }

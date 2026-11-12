@@ -12105,6 +12105,34 @@ fixam as classes e os tokens que produzem o efeito); a causa exata da chave dupl
 
 ---
 
+## D-206 — Gráficos uniformes: domínio e vencedor vêm do backend, a moldura é uma só
+
+**Contexto.** A revisão das telas (etapa 2.3) achou quatro números que o front ainda derivava sozinho, contra o ADR 0004:
+o domínio do box-plot (folga de 5 %), a extensão log-log da curva de custo, até onde vai a lateral aberta da caixa de
+seleção do mapa de Ashby e quem venceu uma rodada. Em paralelo, a moldura `ChartFrame` já era uma só, mas legenda, exportação
+e tooltip variavam de figura para figura.
+
+**Decisão.**
+- **Backend** (funções puras, com teste): `domain/axis_domain.py` (`padded_domain`, `box_domains`, `open_selection_bounds`),
+  `domain/winner.py` (`pick_winner`) e `calculations/part_cost.curve_domains`. Os serviços anexam o resultado à resposta que
+  já alimenta a figura: `DistributionOut.domain` (linear e log; log nulo com mínimo não positivo, e a figura fica linear),
+  `CostResultOut.domain` (x, y e os lotes da tabela), `PropertyMapOut.open_bounds` (linear e log, nos dois universos, na
+  unidade de leitura dos pontos) e `RunResultOut.winner` (`ranked`, `index` ou `none` com o motivo; empate lista todos).
+- **Frontend** só lê: `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` perderam o cálculo; sem o campo (resposta
+  antiga) o mapa não desenha a lateral aberta em vez de adivinhar.
+- **Moldura única.** `ChartFrame` oferece "CSV" no menu Exportar a partir da tabela da própria figura (mesmo texto que o leitor vê,
+  `;` e BOM para planilha pt-BR, ausência continua texto); figura que já traz exportação de dados (D-106) mantém a sua.
+  `ChartLegend` ganha Shift + clique para **isolar** uma série (de novo, restaura todas; `isolateSeries`) e, na legenda longa
+  (D-187), um botão para recolher. `tipValue` é o único jeito de escrever número em tooltip: pt-BR, unidade depois, "Ausente"
+  por extenso. Radar com muitas séries segue sem limite (D-187): legenda rolável, destaque ao passar ou focar. Cor só por token.
+
+**Consequências.** Mexe em `apps/api`: depois do merge, **Deploy da API**. Sem migração nem seed. Os campos novos são
+opcionais nos tipos (exceto `winner`), então uma API antiga não derruba a tela. `winnerOf` saiu de `ResultsView`.
+
+**Numeração.** D-206 e Sessão 163 reservadas para a etapa 2.3 (D-207 e D-208 já estão na main).
+
+---
+
 ## D-208 — Acesso livre a todos os menus: login basta para curar o catálogo e ver o sistema de design
 
 **Contexto.** Com `ACCESS_MODE=open` (D-83) e um banco novo sem assinaturas, `can_edit_shared_catalog` era falso para todo

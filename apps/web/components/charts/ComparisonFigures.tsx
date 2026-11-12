@@ -64,7 +64,7 @@ export function GroupedBarsFigure(props: FigureProps) {
 
 function GroupedBars({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{
     series: number;
@@ -283,6 +283,7 @@ function GroupedBars({ figureLabel, series, axes, score }: FigureProps) {
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onIsolate={isolate}
         onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
       />
@@ -357,7 +358,7 @@ export function RadarFigure(props: FigureProps) {
 
 function Radar({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{ series: number; slug: string } | null>(
     null,
@@ -553,6 +554,7 @@ function Radar({ figureLabel, series, axes, score }: FigureProps) {
             items={legendItems(drawn)}
             hidden={hidden}
             onToggle={toggle}
+            onIsolate={isolate}
             onSetAll={(hide) => setAll(hide, drawn)}
             onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
           />
@@ -586,7 +588,7 @@ export function ParallelFigure(props: FigureProps) {
 
 function Parallel({ figureLabel, series, axes, score }: FigureProps) {
   const [measure, width] = useChartWidth();
-  const { hidden, toggle, setAll } = useHiddenSeries();
+  const { hidden, toggle, setAll, isolate } = useHiddenSeries();
   const [hoverSeries, setHoverSeries] = useState<number | null>(null);
   const [active, setActive] = useState<{ series: number; slug: string } | null>(
     null,
@@ -807,6 +809,7 @@ function Parallel({ figureLabel, series, axes, score }: FigureProps) {
         items={legendItems(series)}
         hidden={hidden}
         onToggle={toggle}
+        onIsolate={isolate}
         onSetAll={(hide) => setAll(hide, series)}
         onHover={(key) => setHoverSeries(key === null ? null : Number(key))}
       />

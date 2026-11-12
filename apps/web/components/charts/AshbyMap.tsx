@@ -393,34 +393,15 @@ export function AshbyMap({
     const hasAnyBound = xMin !== null || xMax !== null || yMin !== null || yMax !== null;
     if (!hasAnyBound) return [];
 
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    for (const p of map.points) {
-      if (p.x < minX) minX = p.x;
-      if (p.x > maxX) maxX = p.x;
-      if (p.y < minY) minY = p.y;
-      if (p.y > maxY) maxY = p.y;
-    }
-    if (!Number.isFinite(minX)) {
-      minX = 1;
-      maxX = 1000;
-      minY = 1;
-      maxY = 1000;
-    }
-
-    const axisScale = displayScale || map.scale;
-    const isLog = axisScale === "log";
-
-    const x0 =
-      xMin !== null ? xMin : isLog ? Math.max(1e-12, minX * 0.01) : minX - (maxX - minX) * 0.5;
-    const x1 =
-      xMax !== null ? xMax : isLog ? maxX * 100 : maxX + (maxX - minX) * 0.5;
-    const y0 =
-      yMin !== null ? yMin : isLog ? Math.max(1e-12, minY * 0.01) : minY - (maxY - minY) * 0.5;
-    const y1 =
-      yMax !== null ? yMax : isLog ? maxY * 100 : maxY + (maxY - minY) * 0.5;
+    // Where an open side reaches is computed by the backend, per scale
+    // (`open_bounds`, ADR 0004). Without it an open side is not drawn rather
+    // than guessed here.
+    const open = map.open_bounds?.[(displayScale || map.scale) === "log" ? "log" : "linear"];
+    const x0 = xMin ?? open?.x[0];
+    const x1 = xMax ?? open?.x[1];
+    const y0 = yMin ?? open?.y[0];
+    const y1 = yMax ?? open?.y[1];
+    if (x0 === undefined || x1 === undefined || y0 === undefined || y1 === undefined) return [];
 
     return [
       {
@@ -441,7 +422,7 @@ export function AshbyMap({
         fillcolor: paint.accentFill,
       },
     ];
-  }, [selectionBox, map.points, displayScale, map.scale, paint.accent, paint.accentFill]);
+  }, [selectionBox, map.open_bounds, displayScale, map.scale, paint.accent, paint.accentFill]);
 
   const traces = useMemo<Data[]>(() => {
     const result: Data[] = [];
@@ -799,7 +780,7 @@ export function AshbyMap({
         />
         <ChartTooltip content={tip} />
       </div>
-      <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} />
+      <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
     </ChartFrame>
   );
 }

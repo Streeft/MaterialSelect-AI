@@ -438,7 +438,9 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81)
+## Gráficos, figuras e MSDS (D-80, D-81, D-206)
+
+**Moldura única (D-206).** Domínio de eixo, limite aberto da caixa de seleção e vencedor da rodada vêm da API (`domain`, `open_bounds`, `winner`); o componente não os calcula. `ChartFrame` oferece PNG, SVG e CSV (da tabela); `ChartLegend` isola série com Shift + clique e recolhe quando longa; número de tooltip passa por `tipValue` (pt-BR, unidade, "Ausente" por extenso).
 
 **D-80 aplicou o MSDS de verdade depois de um relatório do autor com o app no
 ar** ([D-80](DECISIONS.md)): `msds.css` redefinia `--accent` em hex e

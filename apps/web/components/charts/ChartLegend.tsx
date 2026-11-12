@@ -4,6 +4,7 @@ import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { ClassSymbol } from "@/lib/design/palette";
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { isolateSeries } from "@/lib/seriesVisibility";
 
 const t = ptBR.chart;
 
@@ -160,6 +161,7 @@ export function ChartLegend({
   onToggle,
   onHover,
   onSetAll,
+  onIsolate,
   className,
 }: {
   items: LegendItem[];
@@ -168,9 +170,15 @@ export function ChartLegend({
   onHover?: (key: string | null) => void;
   /** Hide (`true`) or show (`false`) every series at once; offered on a long legend. */
   onSetAll?: (hide: boolean) => void;
+  /**
+   * D-206: Shift + click isolates a series. The legend works out which keys
+   * stay hidden (`isolateSeries`) and hands the whole set over.
+   */
+  onIsolate?: (hidden: ReadonlySet<string>) => void;
   className?: string;
 }) {
   const [rover, setRover] = useState(0);
+  const [collapsed, setCollapsed] = useState(false);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   if (items.length === 0) return null;
   if (!onToggle) {
@@ -238,7 +246,17 @@ export function ChartLegend({
             data-off={off ? "true" : "false"}
             aria-pressed={!off}
             tabIndex={long && index !== current ? -1 : undefined}
-            onClick={() => onToggle(item.key)}
+            onClick={(event) => {
+              if (event.shiftKey && onIsolate) {
+                onIsolate(
+                  isolateSeries(
+                    items.map((i) => i.key),
+                    hidden ?? new Set(),
+                    item.key,
+                  ),
+                );
+              } else onToggle(item.key);
+            }}
             onMouseEnter={onHover ? () => onHover(item.key) : undefined}
             onMouseLeave={onHover ? () => onHover(null) : undefined}
             onFocus={() => {
@@ -258,17 +276,30 @@ export function ChartLegend({
   if (!long) return group;
   return (
     <div className="chart-legend-box">
-      {onSetAll ? (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="chart-legend-all" onClick={() => onSetAll(true)}>
-            {t.legendHideAll}
-          </button>
-          <button type="button" className="chart-legend-all" onClick={() => onSetAll(false)}>
-            {t.legendShowAll}
-          </button>
-        </div>
-      ) : null}
-      {group}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* D-206: a legend of hundreds can be put away to give the figure the screen. */}
+        <button
+          type="button"
+          className="chart-legend-all"
+          aria-expanded={!collapsed}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          {collapsed ? t.legendExpand(items.length) : t.legendCollapse(items.length)}
+        </button>
+        {!collapsed && onSetAll ? (
+          <>
+            <button type="button" className="chart-legend-all" onClick={() => onSetAll(true)}>
+              {t.legendHideAll}
+            </button>
+            <button type="button" className="chart-legend-all" onClick={() => onSetAll(false)}>
+              {t.legendShowAll}
+            </button>
+          </>
+        ) : null}
+      </div>
+      {/* Kept mounted while collapsed: the group is the figure's keyboard route
+          to every series, and `hidden` takes it out of the tab order. */}
+      <div hidden={collapsed}>{group}</div>
     </div>
   );
 }

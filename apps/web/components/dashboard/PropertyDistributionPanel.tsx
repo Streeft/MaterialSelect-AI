@@ -18,6 +18,7 @@ import {
 } from "@/components/ui";
 import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData, type FigureColumn } from "../charts/FigureData";
+import { tipValue } from "../charts/ChartTooltip";
 import { BoxPlotChart, type BoxRow } from "../charts/BoxPlotChart";
 
 const t = ptBR.dashboard;
@@ -181,20 +182,21 @@ export function PropertyDistributionPanel({
             figureLabel={ptBR.chart.figureLabel(figureTitle)}
             rows={rows}
             scale={scale}
+            domains={distribution.domain}
             axisTitle={titleFor(distribution.property_name, unit)}
             describe={(row) => ({
               aria: `${row.label}: ${t.columnMin} ${withUnit(row.minimum)}, ${t.columnQ1} ${withUnit(row.q1)}, ${t.columnMedian} ${withUnit(row.median)}, ${t.columnQ3} ${withUnit(row.q3)}, ${t.columnMax} ${withUnit(row.maximum)}; ${row.count} ${t.columnCountBox.toLowerCase()}`,
-              // D-95: the class, then its five numbers — the median emphasised,
-              // the unit once in the title rather than on every row.
+              // D-95/D-206: the class, then its five numbers — the median
+              // emphasised, each with its unit, pt-BR (`tipValue`).
               tip: {
-                title: unitLabel ? `${row.label} · ${unitLabel}` : row.label,
+                title: row.label,
                 rows: [
                   { key: "max", label: t.columnMax, value: formatNumber(row.maximum) },
                   { key: "q3", label: t.columnQ3, value: formatNumber(row.q3) },
                   {
                     key: "median",
                     label: t.columnMedian,
-                    value: formatNumber(row.median),
+                    value: tipValue(row.median, unit),
                     color: row.color,
                     symbol: row.symbol,
                     emphasis: true,

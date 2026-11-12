@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 163 — 12/11/26 — Gráficos uniformes (D-206)
+
+**O que mudou.** Etapa 2.3. O backend passou a calcular o domínio do box-plot (`DistributionOut.domain`), a extensão log-log
+da curva de custo (`CostResultOut.domain`, com `curve_domains`), os limites abertos da caixa de seleção do Ashby
+(`PropertyMapOut.open_bounds`, linear e log, material e processo) e o vencedor da rodada (`RunResultOut.winner`,
+`pick_winner`). `BoxPlotChart`, `CostCurveChart`, `AshbyMap` e `ResultsView` só leem. `ChartFrame` ganhou "CSV" no Exportar,
+`ChartLegend` ganhou Shift + clique para isolar e recolher a legenda longa, e `tipValue` padronizou o número do tooltip.
+Testes: `test_chart_domains.py` (funções puras e as quatro respostas), `uniformFrame.test.tsx` (isolar, recolher, CSV, axe,
+domínio do box-plot), `figureCsv.test.ts`, `seriesVisibility.test.ts`, e a lateral aberta do Ashby em `charts.test.tsx`.
+Fixtures de `RunResult` passaram a trazer `winner`. Depois do merge: **Deploy da API**.
+
 ## Sessão 165 — 12/11/26 — Acesso livre a todos os menus (D-208)
 
 **O que mudou.** Etapa 1.7. `can_edit_shared_catalog` passou a ser verdadeiro para todo usuário logado, também no modo

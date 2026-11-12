@@ -620,6 +620,31 @@ describe("AshbyMap — seleção interativa e cursor", () => {
     expect(boxShape?.y1).toBe(300);
   });
 
+  it("desenha a lateral aberta da caixa até o limite que o backend mandou (ADR 0004)", async () => {
+    render(
+      <AshbyMap
+        map={{
+          ...makePropertyMap(),
+          open_bounds: {
+            linear: { x: [-111, 222], y: [-333, 444] },
+            log: { x: [1, 2], y: [3, 4] },
+          },
+        }}
+        displayScale="linear"
+        enableBoxSelect
+        selectionBox={{ xMin: 2000, xMax: null, yMin: null, yMax: 300 }}
+      />,
+    );
+    const mockPlotly = await screen.findByTestId("plotly-mock");
+    const shapes = JSON.parse(mockPlotly.getAttribute("data-shapes") ?? "[]") as Array<{
+      x0: number;
+      x1: number;
+      y0: number;
+      y1: number;
+    }>;
+    expect(shapes[0]).toMatchObject({ x0: 2000, x1: 222, y0: -333, y1: 300 });
+  });
+
   it("dispara onSelectBox ao simular evento onSelected com coordenadas lineares", async () => {
     const user = userEvent.setup();
     const onSelectBox = vi.fn();

@@ -6,7 +6,7 @@ import { ResultsView, type ResultsTab } from "./ResultsView";
 import { ptBR } from "@/lib/i18n";
 import { copyTablesText } from "@/lib/i18n-copy-tables";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
-import type { PerformanceIndex, RunResult } from "@/lib/types";
+import type { PerformanceIndex, RunResult, RunWinner } from "@/lib/types";
 
 function makeIndex(overrides: Partial<PerformanceIndex> = {}): PerformanceIndex {
   return {
@@ -124,6 +124,22 @@ describe("IndexPicker", () => {
 
 const s = ptBR.selection;
 
+/** The winner the backend sends (`RunResult.winner`): every field present. */
+function winner(overrides: Partial<RunWinner> = {}): RunWinner {
+  return {
+    kind: "none",
+    names: [],
+    reason: "no_objective",
+    score: null,
+    method: null,
+    contributions: [],
+    index_value: null,
+    value: null,
+    maximize: null,
+    ...overrides,
+  };
+}
+
 function makeResult(overrides: Partial<RunResult> = {}): RunResult {
   return {
     universe: "material",
@@ -176,6 +192,7 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
       undefined_count: 1,
     },
     ranking: null,
+    winner: winner({ kind: "index", reason: null, names: ["Liga A"], value: 12, maximize: true }),
     ...overrides,
   };
 }
@@ -269,6 +286,18 @@ describe("ResultsView", () => {
             excluded: [],
             sensitivity: [],
           },
+          winner: winner({
+            kind: "ranked",
+            reason: null,
+            names: ["Liga A"],
+            score: 0.9,
+            method: "weighted_sum",
+            contributions: [
+              { key: "densidade", label: "Densidade", raw: 2.7, normalized: 0.8, weight: 0.5, contribution: 0.4 },
+              { key: "modulo_young", label: "Módulo de Young", raw: 70, normalized: 1, weight: 0.5, contribution: 0.5 },
+            ],
+            index_value: 12,
+          }),
         })}
       />,
     );
@@ -296,6 +325,13 @@ describe("ResultsView", () => {
             excluded: [],
             sensitivity: [],
           },
+          winner: winner({
+            kind: "ranked",
+            reason: null,
+            names: ["Liga A", "Liga B"],
+            score: 0.5,
+            method: "topsis",
+          }),
         })}
       />,
     );
@@ -303,7 +339,7 @@ describe("ResultsView", () => {
   });
 
   it("declares no winner when the run only filtered, and says why", () => {
-    render(<ResultsView result={makeResult({ index: null, ranking: null })} />);
+    render(<ResultsView result={makeResult({ index: null, ranking: null, winner: winner() })} />);
     expect(screen.getByRole("heading", { name: s.winnerNoneTitle })).toBeInTheDocument();
     expect(screen.getByText(s.winnerNone.no_objective)).toBeInTheDocument();
   });

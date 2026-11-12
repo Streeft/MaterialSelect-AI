@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState, type ElementType, type ReactNode } 
 import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { ChartToolbar } from "./ChartToolbar";
+import { MenuItem } from "@/components/ui/Menu";
+import { downloadCsv, tableToCsv } from "@/lib/figureCsv";
 import { IconChartColumns, IconTable } from "@/components/ui/icons";
 import "./figures.css";
 
@@ -102,6 +104,22 @@ export function ChartFrame({
   const tableId = `${id}-table`;
   const Heading = `h${headingLevel}` as ElementType;
   const hasFigure = !empty;
+  const tableBox = useRef<HTMLDivElement>(null);
+
+  // D-206: every figure that has a table can hand it over as CSV. A figure that
+  // brings its own data export (`exportItems`, D-106) keeps that one instead.
+  const csvItem =
+    table && !exportItems ? (
+      <MenuItem
+        hint={t.exportCsvHint}
+        onSelect={() => {
+          const node = tableBox.current?.querySelector("table");
+          if (node) downloadCsv(tableToCsv(node), exportName);
+        }}
+      >
+        {t.exportCsv}
+      </MenuItem>
+    ) : null;
 
   // Plotly measures its container on window resize only. A map that was hidden
   // behind the table comes back at whatever size the window has now, so tell it
@@ -191,7 +209,7 @@ export function ChartFrame({
             target={figure}
             fileName={exportName}
             disabled={exportDisabled || !hasFigure}
-            extraItems={exportItems}
+            extraItems={exportItems ?? csvItem}
           />
         </div>
       </div>
@@ -204,7 +222,7 @@ export function ChartFrame({
             {children}
           </div>
           {table ? (
-            <div id={tableId} hidden={!showTable} className="min-w-0">
+            <div id={tableId} ref={tableBox} hidden={!showTable} className="min-w-0">
               {table}
             </div>
           ) : null}

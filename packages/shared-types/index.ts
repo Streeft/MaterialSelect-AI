@@ -1201,6 +1201,25 @@ export interface RunResult {
   stages: StageResult[];
   index: IndexResult | null;
   ranking: RankingResult | null;
+  /** Quem venceu, escolhido no backend (D-85, ADR 0004). */
+  winner: RunWinner;
+}
+
+/**
+ * O vencedor de uma rodada, lido dos números que o motor já produziu: `ranked`
+ * nomeia as linhas de posição 1 (empate é empate), `index` o melhor valor
+ * definido do índice, `none` ninguém e diz por quê em `reason`.
+ */
+export interface RunWinner {
+  kind: "ranked" | "index" | "none";
+  names: string[];
+  reason: "no_candidates" | "no_objective" | "no_defined_index" | null;
+  score: number | null;
+  method: string | null;
+  contributions: Contribution[];
+  index_value: number | null;
+  value: number | null;
+  maximize: boolean | null;
 }
 
 export interface PerformanceIndex {
@@ -1419,6 +1438,18 @@ export interface PropertyMap {
   considered_count: number;
   plotted_count: number;
   notes: string[];
+  /** Onde se desenham as laterais abertas da caixa de seleção, por escala (ADR 0004). */
+  open_bounds?: OpenBounds | null;
+}
+
+export interface OpenSides {
+  x: [number, number];
+  y: [number, number];
+}
+
+export interface OpenBounds {
+  linear: OpenSides;
+  log: OpenSides;
 }
 
 export interface ComparisonRequest {
@@ -1714,7 +1745,15 @@ export interface PropertyDistribution {
   display_unit: string | null;
   allows_log_scale: boolean;
   boxes: DistributionBox[];
+  /** Domínio dos eixos, calculado no servidor (ADR 0004); nulo sem caixas. */
+  domain?: BoxDomain | null;
   classes_without_data: string[];
+}
+
+/** `log` é nulo quando o menor valor não é positivo: a figura fica linear. */
+export interface BoxDomain {
+  linear: [number, number];
+  log: [number, number] | null;
 }
 
 // --- Painel rico (D-193) ------------------------------------------------------
@@ -2325,6 +2364,15 @@ export interface CostResult {
   monetary_unit_note: string;
   costed: CostedProcess[];
   uncosted: UncostedProcess[];
+  /** Extensão log-log da figura C(n), calculada no servidor (ADR 0004). */
+  domain?: CostDomain | null;
+}
+
+export interface CostDomain {
+  x: [number, number];
+  y: [number, number];
+  /** Lotes das curvas mais o atual, em ordem: as linhas da tabela da figura. */
+  batch_sizes: number[];
 }
 
 // --- Eco Audit (P3) ----------------------------------------------------------
