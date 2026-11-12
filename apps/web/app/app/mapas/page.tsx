@@ -69,6 +69,8 @@ import {
 import { MAP_LIVE_URL, isDefaultMapState } from "./mapUrl";
 import { resolveAxisIndex } from "./axisIndex";
 import { AxesPanel } from "./AxesPanel";
+import { InspectorSection } from "./Inspector";
+import { MapViews } from "./MapViews";
 import { CustomizePanel } from "./CustomizePanel";
 import { IndexLineControl } from "./IndexLineControl";
 import { SelectionPanel } from "./SelectionPanel";
@@ -126,7 +128,20 @@ function MapsPageContent() {
   const [customizeOpen, setCustomizeOpen] = useState(() =>
     mapUsesCustomization({ ...decodedState, universe }),
   );
+  // D-220: the inspector's folds. Selection and axes start open; the three
+  // drawing sections follow D-213 — open beside the map on a wide window, and
+  // on a narrow one open by themselves only when the link uses one of them.
+  const [openSections, setOpenSections] = useState<Partial<Record<InspectorPart, boolean>>>({});
+  const sectionOpen = (part: InspectorPart): boolean =>
+    openSections[part] ??
+    (part === "selection" || part === "axes" ? true : wide || customizeOpen);
+  const setSection = (part: InspectorPart, next: boolean) => {
+    setOpenSections((current) => ({ ...current, [part]: next }));
+    if (part !== "selection" && part !== "axes" && next) setCustomizeOpen(true);
+  };
   const customizeVisible = wide || customizeOpen;
+  // D-220: below lg the inspector is a bottom sheet; it starts folded to its head.
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const [xAxis, setXAxis] = useState<AxisState>(() => ({
     mode: decodedState?.xAxis?.mode ?? "property",
@@ -638,6 +653,9 @@ function MapsPageContent() {
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [chartNameDraft, setChartNameDraft] = useState("");
+  // D-220: the saved map last opened, for its chip; any later change keeps it
+  // marked until another view is opened — the chip says where the map came from.
+  const [activeChartId, setActiveChartId] = useState<number | null>(null);
   const savedCharts = useQuery({
     queryKey: ["saved-charts"],
     queryFn: listSavedCharts,
@@ -707,6 +725,7 @@ function MapsPageContent() {
    */
   async function handleLoadChart(chartId: number) {
     const chart = await getSavedChart(chartId);
+    setActiveChartId(chartId);
     const decoded = chart.configuration as Partial<MapUrlState>;
     const applied = applyMapState(decoded, getCurrentMapState());
 
@@ -734,6 +753,24 @@ function MapsPageContent() {
     if (mapUsesCustomization(applied)) setCustomizeOpen(true);
     setLive({ box: null, line: null });
   }
+
+  // D-220: a pinned map opens from the Início as `?grafico=<id>` — the saved
+  // map is asked for again, applied once, and the parameter leaves the address.
+  const openedFromLink = useRef(false);
+  const linkedChart = params.get("grafico");
+  useEffect(() => {
+    if (openedFromLink.current || !linkedChart) return;
+    const id = Number(linkedChart);
+    if (!Number.isInteger(id) || id <= 0) return;
+    openedFromLink.current = true;
+    // Applied after the effect (a microtask), as any other async load.
+    void Promise.resolve(id)
+      .then((chartId) => handleLoadChart(chartId))
+      .catch(() => {
+        // A pin whose map was deleted: the default map stays, nothing breaks.
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, [linkedChart]);
 
   /** Copy the address: it already carries the whole map (D-213). */
   async function shareMap() {
@@ -764,6 +801,56 @@ function MapsPageContent() {
   // collapsed panel hides is listed as "in use".
   const inUse = customizationsInUse(currentState).filter((key) => key !== "universe");
   const restrictedCount = restrictedIds.length;
+
+  const customizeActions = {
+    onScale: (option: ChartScale) => {
+      setDisplayScale(option);
+      setScale(option);
+    },
+    onEnvelopeShape: setEnvelopeShape,
+    onShowEnvelopes: setShowEnvelopes,
+    onShowIntervals: setShowIntervals,
+    onShowLabels: setShowLabels,
+    onClearClasses: () => setSelectedClasses([]),
+    onToggleClass: toggleClass,
+    onIndexMode: setIndexMode,
+    onCustomExpression: setCustomExpression,
+    onIndexGoal: setIndexGoal,
+    onAddLevelMaterial: (id: number) => {
+      if (!levelMaterialIds.includes(id)) setLevelMaterialIds([...levelMaterialIds, id]);
+    },
+    onLevelDraft: setLevelDraft,
+    onAddNumericLevel: addNumericLevel,
+    onRemoveLevel: removeLevel,
+  };
+  const movableLineControl = lineAxes ? (
+    <IndexLineControl
+      active={lineActive}
+      line={lineData}
+      loading={indexLine.isFetching}
+      error={indexLine.isError}
+      onActivate={() => setLineActive(true)}
+      onRemove={() => {
+        setLineActive(false);
+        setLive({ line: null });
+      }}
+      onStep={(value) => setLive({ line: value })}
+      onSelectBetter={(ids) => setLive({ box: null, selection: ids })}
+    />
+  ) : null;
+
+  // D-220: what a folded section holds, so closing it never hides what is in use.
+  const partSummary: Record<"appearance" | "classes" | "index", string | null> = {
+    appearance: inUse.some((k) => k === "scale" || k === "envelope" || k === "layers")
+      ? t.customizeInUse(
+          inUse
+            .filter((k) => k === "scale" || k === "envelope" || k === "layers")
+            .map((k) => t.customizationLabels[k]),
+        )
+      : null,
+    classes: selectedClasses.length > 0 ? t.classesShown(selectedClasses.length) : null,
+    index: indexDescriptor ? indexDescriptor.name : null,
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -861,6 +948,11 @@ function MapsPageContent() {
               </span>
             </Alert>
           ) : null}
+          <MapViews
+            charts={savedCharts.data}
+            activeId={activeChartId}
+            onOpen={(id) => void handleLoadChart(id)}
+          />
           {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
           {map.isError && (
             <ErrorState title={t.error} error={map.error} onRetry={() => void map.refetch()} />
@@ -951,135 +1043,137 @@ function MapsPageContent() {
           )}
         </div>
 
-        {/* The question and the selection stay in view; the drawing options
-            are a panel of their own (D-86, D-213). */}
+        {/* D-220: the inspector (Figma's right panel) — the question, the
+            axes and the drawing options as sections that fold, beside the map
+            on a wide screen; below lg the same inspector is a standard bottom
+            sheet whose head peeks over the map, so the map takes the width. */}
         <aside
           id="controles"
           aria-labelledby="controles-titulo"
+          data-open={sheetOpen ? "true" : "false"}
           // Below the sticky search bar (72 px, as the supporting pane of D-182),
-          // not under it (D-190). The panels keep their height (`shrink-0`): a
-          // `.msds-card` hides its overflow, so a squeezed one would cut its
-          // own controls instead of letting the aside scroll.
-          className="flex flex-col gap-4 [&>*]:shrink-0 lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
+          // not under it (D-190).
+          className="ds-map-sheet lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
         >
-          <SelectionPanel
-            universe={universe}
-            selectedIds={selectedIds}
-            plottedIds={plottedIds}
-            box={box}
-            xUnit={map.data?.x_axis.unit ?? ""}
-            yUnit={map.data?.y_axis.unit ?? ""}
-            handingOff={handingOff}
-            handoffError={handoffError}
-            onOpenInSelection={() => void openBoxInSelection()}
-            onRestrict={restrictToSelection}
-            onClear={() => setLive({ box: null, selection: [] })}
-          />
-          <AxesPanel
-            universe={universe}
-            onUniverse={handleUniverseChange}
-            depthSummary={
-              universe === "material"
-                ? ptBR.depth.optionsCount(
-                    depthLevel,
-                    optionsAtLevel(properties.data ?? [], depthLevel).length,
-                    properties.data?.length ?? 0,
-                  )
-                : null
-            }
-            presets={presets.data}
-            presetsError={presets.isError}
-            activePreset={activePreset}
-            onPreset={applyPreset}
-            xAxis={{ ...xAxis, property: effectiveXProperty }}
-            yAxis={{ ...yAxis, property: effectiveYProperty }}
-            onXAxis={handleXAxisChange}
-            onYAxis={handleYAxisChange}
-            allowIndex={{
-              x: universe === "material" && (customizeVisible || xAxis.mode === "index"),
-              y: universe === "material" && (customizeVisible || yAxis.mode === "index"),
-            }}
-            axisOptions={axisOptions}
-            indices={universe === "material" ? (indices.data ?? []) : []}
-            xDimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
-            yDimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
-            savedCharts={savedCharts.data}
-            onLoadChart={(id) => void handleLoadChart(id)}
-          />
-          <CustomizePanel
-            wide={wide}
-            open={customizeOpen}
-            onOpenChange={setCustomizeOpen}
-            inUseSummary={
-              inUse.length > 0
-                ? t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))
-                : null
-            }
-            state={{
-              universe,
-              displayScale,
-              envelopeShape,
-              showEnvelopes,
-              showIntervals,
-              showLabels,
-              selectedClasses,
-              indexMode,
-              customExpression,
-              indexGoal,
-              levelMaterialIds,
-              levelDraft,
-            }}
-            actions={{
-              onScale: (option) => {
-                setDisplayScale(option);
-                setScale(option);
-              },
-              onEnvelopeShape: setEnvelopeShape,
-              onShowEnvelopes: setShowEnvelopes,
-              onShowIntervals: setShowIntervals,
-              onShowLabels: setShowLabels,
-              onClearClasses: () => setSelectedClasses([]),
-              onToggleClass: toggleClass,
-              onIndexMode: setIndexMode,
-              onCustomExpression: setCustomExpression,
-              onIndexGoal: setIndexGoal,
-              onAddLevelMaterial: (id) => {
-                if (!levelMaterialIds.includes(id)) setLevelMaterialIds([...levelMaterialIds, id]);
-              },
-              onLevelDraft: setLevelDraft,
-              onAddNumericLevel: addNumericLevel,
-              onRemoveLevel: removeLevel,
-            }}
-            classes={availableClasses}
-            indices={indices.data ?? []}
-            anyAxisIsIndex={anyAxisIsIndex}
-            indexDescriptor={indexDescriptor}
-            overlay={overlay}
-            hasActiveIndex={activeIndex !== null}
-            points={map.data?.points ?? []}
-            movableLine={
-              lineAxes ? (
-                <IndexLineControl
-                  active={lineActive}
-                  line={lineData}
-                  loading={indexLine.isFetching}
-                  error={indexLine.isError}
-                  onActivate={() => setLineActive(true)}
-                  onRemove={() => {
-                    setLineActive(false);
-                    setLive({ line: null });
-                  }}
-                  onStep={(value) => setLive({ line: value })}
-                  onSelectBetter={(ids) => setLive({ box: null, selection: ids })}
+          <button
+            type="button"
+            className="ds-map-sheet-toggle m3-state"
+            aria-expanded={sheetOpen}
+            aria-controls="controles-corpo"
+            onClick={() => setSheetOpen((o) => !o)}
+          >
+            <span aria-hidden className="m3-bottom-sheet-handle" />
+            <span className="text-body font-medium text-ink">
+              {sheetOpen ? t.inspectorClose : t.inspectorOpen}
+            </span>
+          </button>
+          <div id="controles-corpo" className="ds-map-sheet-body">
+            <h2 id="controles-titulo" className="sr-only">
+              {t.inspectorTitle}
+            </h2>
+            <div className="ds-inspector">
+              <InspectorSection
+                title={t.selectionTitle}
+                headingId="selecao-mapa-titulo"
+                summary={selectedIds.length > 0 ? t.selectionCount(selectedIds.length) : null}
+                open={sectionOpen("selection")}
+                onOpenChange={(next) => setSection("selection", next)}
+              >
+                <SelectionPanel
+                  universe={universe}
+                  selectedIds={selectedIds}
+                  plottedIds={plottedIds}
+                  box={box}
+                  xUnit={map.data?.x_axis.unit ?? ""}
+                  yUnit={map.data?.y_axis.unit ?? ""}
+                  handingOff={handingOff}
+                  handoffError={handoffError}
+                  onOpenInSelection={() => void openBoxInSelection()}
+                  onRestrict={restrictToSelection}
+                  onClear={() => setLive({ box: null, selection: [] })}
                 />
-              ) : null
-            }
-          />
+              </InspectorSection>
+              <InspectorSection
+                title={t.axesTitle}
+                summary={map.data ? `${map.data.y_axis.property_name} × ${map.data.x_axis.property_name}` : null}
+                open={sectionOpen("axes")}
+                onOpenChange={(next) => setSection("axes", next)}
+              >
+                <AxesPanel
+                  universe={universe}
+                  onUniverse={handleUniverseChange}
+                  depthSummary={
+                    universe === "material"
+                      ? ptBR.depth.optionsCount(
+                          depthLevel,
+                          optionsAtLevel(properties.data ?? [], depthLevel).length,
+                          properties.data?.length ?? 0,
+                        )
+                      : null
+                  }
+                  presets={presets.data}
+                  presetsError={presets.isError}
+                  activePreset={activePreset}
+                  onPreset={applyPreset}
+                  xAxis={{ ...xAxis, property: effectiveXProperty }}
+                  yAxis={{ ...yAxis, property: effectiveYProperty }}
+                  onXAxis={handleXAxisChange}
+                  onYAxis={handleYAxisChange}
+                  allowIndex={{
+                    x: universe === "material" && (customizeVisible || xAxis.mode === "index"),
+                    y: universe === "material" && (customizeVisible || yAxis.mode === "index"),
+                  }}
+                  axisOptions={axisOptions}
+                  indices={universe === "material" ? (indices.data ?? []) : []}
+                  xDimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
+                  yDimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
+                />
+              </InspectorSection>
+              {(["appearance", "classes", "index"] as const).map((part) => (
+                <InspectorSection
+                  key={part}
+                  title={t.inspectorParts[part]}
+                  summary={partSummary[part]}
+                  open={sectionOpen(part)}
+                  onOpenChange={(next) => setSection(part, next)}
+                >
+                  <CustomizePanel
+                    part={part}
+                    state={{
+                      universe,
+                      displayScale,
+                      envelopeShape,
+                      showEnvelopes,
+                      showIntervals,
+                      showLabels,
+                      selectedClasses,
+                      indexMode,
+                      customExpression,
+                      indexGoal,
+                      levelMaterialIds,
+                      levelDraft,
+                    }}
+                    actions={customizeActions}
+                    classes={availableClasses}
+                    indices={indices.data ?? []}
+                    anyAxisIsIndex={anyAxisIsIndex}
+                    indexDescriptor={indexDescriptor}
+                    overlay={overlay}
+                    hasActiveIndex={activeIndex !== null}
+                    points={map.data?.points ?? []}
+                    movableLine={movableLineControl}
+                  />
+                </InspectorSection>
+              ))}
+            </div>
+          </div>
         </aside>
       </div>
     </div>
   );
 }
+
+type InspectorPart = "selection" | "axes" | "appearance" | "classes" | "index";
 
 export default function MapsPage() {
   // useSearchParams needs a Suspense boundary during prerendering.

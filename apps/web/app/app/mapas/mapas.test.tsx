@@ -205,20 +205,24 @@ function mapFor(request: PropertyMapRequest): PropertyMap {
 const getPropertyMap = vi.fn((request: PropertyMapRequest) => Promise.resolve(mapFor(request)));
 const moveIndexLine = vi.fn<(request: IndexLineRequest) => Promise<IndexLineOut>>();
 const convertMapBox = vi.fn();
+const listSavedCharts = vi.fn(() => Promise.resolve([] as { id: number; name: string; created_at: string }[]));
+const getSavedChart = vi.fn((id: number) =>
+  Promise.resolve({ id, name: "Metais leves", created_at: "2026-11-01", configuration: { scale: "linear" } }),
+);
 
 vi.mock("@/lib/api", () => ({
   listProperties: () => Promise.resolve(properties),
   listClasses: () => Promise.resolve([]),
   listPerformanceIndices: () => Promise.resolve(indices),
   listMapPresets: () => Promise.resolve(presets),
-  listSavedCharts: () => Promise.resolve([]),
+  listSavedCharts: () => listSavedCharts(),
   listProcessAttributes: () => Promise.resolve([]),
   listProcessClasses: () => Promise.resolve([]),
   getPropertyMap: (request: PropertyMapRequest) => getPropertyMap(request),
   moveIndexLine: (request: IndexLineRequest) => moveIndexLine(request),
   convertMapBox: (payload: unknown) => convertMapBox(payload),
   createSavedChart: () => Promise.resolve(null),
-  getSavedChart: () => Promise.resolve(null),
+  getSavedChart: (id: number) => getSavedChart(id),
 }));
 
 const { default: MapsPage } = await import("./page");
@@ -354,13 +358,17 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     expect(screen.getByRole("checkbox", { name: t.pointSelect("Titânio") })).toHaveFocus();
   });
 
-  // D-86 on a narrow window: the drawing options wait in the disclosure,
-  // unless the link already uses one of them.
-  it("em tela estreita “Personalizar o mapa” recolhe, a não ser que o link o use", async () => {
+  // D-220 (on D-86): on a narrow window the drawing sections of the inspector
+  // fold, unless the link already uses one of them.
+  it("em tela estreita as seções de desenho do inspetor recolhem, a não ser que o link as use", async () => {
     const { unmount } = await open();
-    const summary = screen.getByText(t.customize);
-    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
-    // An axis can become an index only from inside the panel.
+    const appearance = screen.getByRole("button", { name: t.inspectorParts.appearance });
+    expect(appearance).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: new RegExp(`^${t.axesTitle}`) })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    // An axis can become an index only with the drawing sections in view.
     expect(screen.queryByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeNull();
     unmount();
 
@@ -368,8 +376,47 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     const { DEFAULT_MAP_STATE } = await import("./mapUrl");
     setQuery(`estado=${encodeMapState({ ...DEFAULT_MAP_STATE, scale: "linear" })}`);
     await open();
-    expect((screen.getByText(t.customize).closest("details") as HTMLDetailsElement).open).toBe(true);
+    expect(screen.getByRole("button", { name: t.inspectorParts.appearance })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     expect(screen.getByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeInTheDocument();
+  });
+
+  it("um mapa salvo é uma visão: abre com um clique e se fixa no Início (D-220)", async () => {
+    const user = userEvent.setup();
+    window.localStorage.removeItem("msai:pinned-maps");
+    listSavedCharts.mockResolvedValueOnce([{ id: 7, name: "Metais leves", created_at: "2026-11-01" }]);
+    await open();
+    const view = await screen.findByRole("button", { name: "Metais leves" });
+    expect(view).toHaveAttribute("aria-pressed", "false");
+    await user.click(view);
+    await waitFor(() => expect(getSavedChart).toHaveBeenCalledWith(7));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Metais leves" })).toHaveAttribute("aria-pressed", "true"));
+
+    await user.click(screen.getByRole("button", { name: t.viewMenu("Metais leves") }));
+    await user.click(await screen.findByRole("menuitem", { name: t.pinHome }));
+    expect(JSON.parse(window.localStorage.getItem("msai:pinned-maps") ?? "[]")).toEqual([
+      { id: 7, name: "Metais leves" },
+    ]);
+    window.localStorage.removeItem("msai:pinned-maps");
+  });
+
+  it("abre o mapa fixado que chega pelo endereço (?grafico=) (D-220)", async () => {
+    setQuery("grafico=9");
+    await open();
+    await waitFor(() => expect(getSavedChart).toHaveBeenCalledWith(9));
+  });
+
+  it("no celular o inspetor é uma folha que começa recolhida à cabeça (D-220)", async () => {
+    const user = userEvent.setup();
+    await open();
+    const toggle = screen.getByRole("button", { name: t.inspectorOpen });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById("controles")).toHaveAttribute("data-open", "false");
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: t.inspectorClose })).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("controles")).toHaveAttribute("data-open", "true");
   });
 
   it("a seleção vem do endereço: um link reabre o mapa com os mesmos registros", async () => {
@@ -419,10 +466,14 @@ describe("Mapas — mapas clássicos e linha de índice móvel (D-213)", () => {
     await waitFor(() => expect(query().get("estado")).toBeNull());
   });
 
-  it("em tela larga “Personalizar o mapa” fica sempre aberto, sem recolher", async () => {
+  it("em tela larga as seções de desenho do inspetor começam abertas (D-220)", async () => {
     await open();
-    const heading = screen.getByRole("heading", { name: t.customize });
-    expect(heading.closest("details")).toBeNull();
+    for (const part of ["appearance", "classes", "index"] as const) {
+      expect(screen.getByRole("button", { name: t.inspectorParts[part] })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    }
     // The axes can turn into an index from the always-open panel.
     expect(screen.getByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeInTheDocument();
   });

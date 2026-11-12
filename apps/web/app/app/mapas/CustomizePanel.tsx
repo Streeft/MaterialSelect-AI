@@ -57,20 +57,12 @@ export interface CustomizeActions {
 }
 
 /**
- * "Personalizar o mapa" (D-86, D-213): what changes the drawing rather than
- * the question — scale and envelope, the layers, the classes, and the index
- * line with its levels and the movable line.
- *
- * On a wide window it is a panel that is always open beside the map (the
- * Granta Selector keeps its chart settings in view); on a narrow one it folds
- * into the disclosure it always was, open by itself when the link already
- * uses something inside it — collapsed never hides what is in use.
+ * D-220: three sections of the map's inspector — Aparência, Classes, Índice —
+ * from the one "Personalizar o mapa" card they used to share (D-213). Each is
+ * its own fold now, with the inspector's heading; `part` says which body.
  */
 export function CustomizePanel({
-  wide,
-  open,
-  onOpenChange,
-  inUseSummary,
+  part,
   state,
   actions,
   classes,
@@ -82,10 +74,7 @@ export function CustomizePanel({
   points,
   movableLine,
 }: {
-  wide: boolean;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  inUseSummary: string | null;
+  part: "appearance" | "classes" | "index";
   state: CustomizeState;
   actions: CustomizeActions;
   classes: { slug: string; name: string }[];
@@ -98,10 +87,10 @@ export function CustomizePanel({
   /** The movable-line control, already wired by the page. */
   movableLine: ReactNode;
 }) {
-  const body = (
+  const appearance = (
     <div className="flex flex-col gap-4">
-      <div className="subsection flex flex-col gap-3">
-        <h3 className="text-body font-semibold text-ink">{t.groupScaleEnvelope}</h3>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-caption font-semibold text-ink-muted">{t.groupScaleEnvelope}</h3>
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-caption font-medium text-ink-muted">{t.scale}</span>
@@ -132,8 +121,8 @@ export function CustomizePanel({
         </div>
       </div>
 
-      <div className="subsection flex flex-col gap-3">
-        <h3 className="text-body font-semibold text-ink">{t.groupDisplay}</h3>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-caption font-semibold text-ink-muted">{t.groupDisplay}</h3>
         <div className="flex flex-col gap-2">
           <Checkbox
             label={t.envelopes}
@@ -153,8 +142,10 @@ export function CustomizePanel({
         </div>
       </div>
 
-      <div className="subsection flex flex-col gap-3">
-        <h3 className="text-body font-semibold text-ink">{t.groupClasses}</h3>
+    </div>
+  );
+
+  const classChips = (
         <div className="flex flex-wrap gap-2">
           <ToggleChip selected={state.selectedClasses.length === 0} onClick={actions.onClearClasses}>
             {t.allClasses}
@@ -169,13 +160,11 @@ export function CustomizePanel({
             </ToggleChip>
           ))}
         </div>
-      </div>
+  );
 
-      <div className="subsection flex flex-col gap-3">
-        <div>
-          <h3 className="text-body font-semibold text-ink">{t.groupIndex}</h3>
-          <p className="text-support text-ink-muted">{t.indexHint}</p>
-        </div>
+  const index = (
+      <div className="flex flex-col gap-3">
+        <p className="text-support text-ink-muted">{t.indexHint}</p>
         <div className="flex flex-col gap-3">
           {state.universe === "process" ? (
             <Alert tone="info">{t.processIndexWarning}</Alert>
@@ -308,33 +297,9 @@ export function CustomizePanel({
           )}
         </div>
       </div>
-    </div>
   );
 
-  if (wide) {
-    return (
-      <Card>
-        <CardHeader headingLevel={2} title={t.customize} description={t.customizeAlwaysHint} />
-        <CardBody>{body}</CardBody>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardBody className="flex flex-col gap-2">
-        <Disclosure flush summary={t.customize} open={open} onOpenChange={onOpenChange}>
-          <div className="flex flex-col gap-4 pt-2">
-            <p className="text-support text-ink-muted">{t.customizeAlwaysHint}</p>
-            {body}
-          </div>
-        </Disclosure>
-        {!open && inUseSummary ? (
-          <p className="text-support text-ink-muted" role="status">
-            {inUseSummary}
-          </p>
-        ) : null}
-      </CardBody>
-    </Card>
-  );
+  if (part === "appearance") return appearance;
+  if (part === "classes") return classChips;
+  return index;
 }

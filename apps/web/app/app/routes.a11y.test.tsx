@@ -1618,12 +1618,12 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<MapsPage />, new RegExp(`^${ptBR.map.figure}\\b.*×`));
   });
 
-  // D-213: on a wide window "Personalizar o mapa" is a panel always open
-  // beside the map (the narrow-window disclosure is pinned in mapas.test.tsx).
-  it("mapas: personalização sempre visível em tela larga", async () => {
+  // D-220: on a wide window the inspector's drawing sections start open
+  // beside the map (the narrow-window folds are pinned in mapas.test.tsx).
+  it("mapas: inspetor com as seções de desenho abertas em tela larga", async () => {
     render(wrap(<MapsPage />, makeClient()));
-    const heading = await screen.findByRole("heading", { name: ptBR.map.customize });
-    expect(heading.closest("details")).toBeNull();
+    const appearance = await screen.findByRole("button", { name: ptBR.map.inspectorParts.appearance });
+    expect(appearance).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("combobox", { name: ptBR.map.axisX })).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) }),

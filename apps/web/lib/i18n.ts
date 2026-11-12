@@ -2910,6 +2910,19 @@ export const ptBR = {
     lineLoading: "Recalculando a linha…",
     lineError: "Não foi possível mover a linha.",
     lineLegend: (value: string) => `M = ${value} (móvel)`,
+    // D-220: the inspector, the bottom sheet and the saved views.
+    inspectorTitle: "Inspetor do mapa",
+    inspectorOpen: "Controles do mapa",
+    inspectorClose: "Fechar os controles",
+    inspectorParts: { appearance: "Aparência", classes: "Classes", index: "Linha de índice" },
+    classesShown: (n: number) => (n === 1 ? "1 classe" : `${n} classes`),
+    viewsLabel: "Visões salvas",
+    viewOpen: (name: string) => `Abrir a visão ${name}`,
+    viewMenu: (name: string) => `Ações da visão ${name}`,
+    pinHome: "Fixar no Início",
+    unpinHome: "Tirar do Início",
+    pinned: (name: string) => `${name} fixada no Início.`,
+    unpinned: (name: string) => `${name} saiu do Início.`,
   },
   dashboard: {
     title: "Painel do catálogo",
@@ -3528,6 +3541,9 @@ export const ptBR = {
     fixedChart: "Paleta dos gráficos (Okabe–Ito)",
   },
   home: {
+    // D-220: the maps pinned from Mapas, on this device.
+    pinnedTitle: "Mapas fixados",
+    pinnedHint: "Fixados em Mapas, neste aparelho. Abrir pede o mapa salvo de novo ao servidor.",
     // D-132: a home que devolve o leitor ao que ele estava fazendo.
     greeting: (name: string) => `Olá, ${name}.`,
     recentTitle: "Vistos recentemente",

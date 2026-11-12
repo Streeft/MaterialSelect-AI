@@ -1,15 +1,10 @@
 "use client";
 
-import type { MapPreset, PerformanceIndex, SavedChartListItem, SelectionUniverse } from "@/lib/types";
+import type { MapPreset, PerformanceIndex, SelectionUniverse } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import {
   ButtonGroup,
   ButtonGroupItem,
-  Card,
-  CardBody,
-  CardHeader,
-  Select,
-  SelectOption,
 } from "@/components/ui";
 import { DepthLevelPicker } from "@/components/DepthLevelPicker";
 import { AxisControl } from "./AxisControl";
@@ -43,8 +38,6 @@ export function AxesPanel({
   indices,
   xDimension,
   yDimension,
-  savedCharts,
-  onLoadChart,
 }: {
   universe: SelectionUniverse;
   onUniverse: (next: SelectionUniverse) => void;
@@ -62,17 +55,11 @@ export function AxesPanel({
   indices: PerformanceIndex[];
   xDimension?: string;
   yDimension?: string;
-  savedCharts: SavedChartListItem[] | undefined;
-  onLoadChart: (id: number) => void;
 }) {
   return (
-    <Card>
-      <CardHeader
-        headingLevel={2}
-        title={<span id="controles-titulo">{t.axesTitle}</span>}
-        description={t.axesHint}
-      />
-      <CardBody className="flex flex-col gap-4">
+    // D-220: the body of the inspector's "Eixos" section.
+    <div className="flex flex-col gap-4">
+      <p className="text-support text-ink-muted">{t.axesHint}</p>
         <div className="flex flex-col gap-1">
           <span className="text-caption font-medium text-ink-muted">{t.universeTitle}</span>
           <ButtonGroup label={t.universeTitle}>
@@ -119,26 +106,6 @@ export function AxesPanel({
           dimension={yDimension}
         />
 
-        {(savedCharts?.length ?? 0) > 0 && (
-          <div className="subsection flex flex-col gap-2">
-            <Select
-              label={t.savedCharts}
-              value=""
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                if (Number.isInteger(id) && id > 0) onLoadChart(id);
-              }}
-            >
-              <SelectOption value="">{t.savedCharts}</SelectOption>
-              {(savedCharts ?? []).map((chart) => (
-                <SelectOption key={chart.id} value={String(chart.id)}>
-                  {chart.name}
-                </SelectOption>
-              ))}
-            </Select>
-          </div>
-        )}
-      </CardBody>
-    </Card>
+    </div>
   );
 }

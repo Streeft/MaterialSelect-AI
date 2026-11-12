@@ -165,3 +165,18 @@ describe("RecentRecords (D-132)", () => {
     expect(violations, describeViolations(violations)).toEqual([]);
   });
 });
+
+describe("Mapas fixados no Início (D-220)", () => {
+  it("lista os mapas fixados, cada um reabrindo o mapa salvo, e some sem nenhum", async () => {
+    const { PinnedMaps } = await import("./PinnedMaps");
+    window.localStorage.removeItem("msai:pinned-maps");
+    const { unmount } = render(<PinnedMaps />);
+    expect(screen.queryByText(ptBR.home.pinnedTitle)).toBeNull();
+    unmount();
+
+    window.localStorage.setItem("msai:pinned-maps", JSON.stringify([{ id: 4, name: "E × ρ" }]));
+    render(<PinnedMaps />);
+    expect(screen.getByRole("link", { name: "E × ρ" })).toHaveAttribute("href", "/app/mapas?grafico=4");
+    window.localStorage.removeItem("msai:pinned-maps");
+  });
+});
