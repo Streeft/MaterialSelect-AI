@@ -29,7 +29,7 @@ export const compareViewText = {
   },
   empty: {
     title: "Escolha 2 ou mais materiais para comparar",
-    body: "A comparação põe os materiais lado a lado, propriedade por propriedade, e marca o melhor de cada uma. Comece por um destes atalhos ou busque pelo nome no passo 1.",
+    body: "A comparação põe os materiais lado a lado, propriedade por propriedade, e marca o melhor de cada uma. Comece por um destes atalhos ou busque pelo nome na barra abaixo.",
     needMore: "Falta pelo menos mais um material: a comparação só diferencia com 2 ou mais.",
     favorites: "Seus favoritos",
     recents: "Vistos recentemente",
@@ -39,7 +39,7 @@ export const compareViewText = {
     whatRecents: "os últimos vistos",
     addOne: (name: string) => `Adicionar ${name} à comparação`,
     nothingYet:
-      "Você ainda não favoritou nem abriu nenhum material. Abra uma ficha no catálogo e use a estrela, ou busque pelo nome no passo 1.",
+      "Você ainda não favoritou nem abriu nenhum material. Abra uma ficha no catálogo e use a estrela, ou busque pelo nome na barra abaixo.",
     browse: "Abrir o catálogo",
     // D-220: classic pairs, found in the catalogue by name — never invented.
     classics: "Pares clássicos",

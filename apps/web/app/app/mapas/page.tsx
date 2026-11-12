@@ -1169,6 +1169,8 @@ function MapsPageContent() {
           </div>
         </aside>
       </div>
+      {/* D-220: below lg, room for the inspector's head over the last row. */}
+      <div aria-hidden className="ds-map-sheet-spacer" />
     </div>
   );
 }
