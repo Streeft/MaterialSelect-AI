@@ -370,3 +370,81 @@ test("Estúdio: resumo em áudio — a voz lê e a fala destacada avança", asyn
   expect(new Set(spoken)).toEqual(new Set(["pt-BR"]));
   await page.screenshot({ path: "test-results/estudio-audio.png", fullPage: true });
 });
+
+/**
+ * D-218: a notebook has an address. The panel on a phone, the source being
+ * read and the cited passage survive a reload and open from a link; and the
+ * notebook can be duplicated and archived from its own header.
+ */
+test("abrir o caderno pelo endereço na aba certa, citar no trecho, duplicar e arquivar", async ({
+  page,
+}) => {
+  await page.goto("/app/cadernos");
+  await page.getByRole("button", { name: "Criar caderno" }).first().click();
+  await page.waitForURL(/\/app\/cadernos\/\d+/, { timeout: 20_000 });
+  const base = new URL(page.url()).pathname;
+
+  await page.getByRole("button", { name: "Adicionar fontes" }).click();
+  await page.getByRole("tab", { name: "Colar texto" }).click();
+  await page.getByLabel("Título", { exact: true }).fill("Aula de aços");
+  await page.getByRole("textbox", { name: "Texto" }).fill(SOURCE);
+  await page.getByRole("button", { name: "Adicionar texto" }).click();
+  await expect(page.getByRole("button", { name: "Ler a fonte “Aula de aços”" })).toBeVisible();
+
+  // A link to the sources tab opens it, on a phone, where one panel shows at a time.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${base}?aba=fontes`);
+  const panels = page.getByRole("group", { name: "Painéis do caderno" });
+  await expect(panels.getByRole("button", { name: "Fontes" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "Ler a fonte “Aula de aços”" })).toBeVisible();
+  await panels.getByRole("button", { name: "Estúdio" }).click();
+  await expect(page).toHaveURL(/\?aba=estudio$/);
+  await page.reload();
+  await expect(panels.getByRole("button", { name: "Estúdio" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  // A link to a source opens the reader; the citation opens it at the passage.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${base}?fonte=999999`); // not a source of this notebook: ignored
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.goto(base);
+  const box = page.getByRole("textbox", { name: "Pergunta às fontes" });
+  await box.fill("Qual a densidade do aço?");
+  await box.press("Enter");
+  const log = page.getByRole("log", { name: "Conversa com as fontes" });
+  await expect(log.getByText("Segundo as fontes", { exact: false })).toBeVisible({
+    timeout: 20_000,
+  });
+  await log.getByRole("button", { name: "Trecho 1, de “Aula de aços”" }).last().click();
+  await page.getByRole("button", { name: "Abrir “Aula de aços” no trecho citado" }).click();
+  const reader = page.getByRole("dialog", { name: "Aula de aços" });
+  await expect(reader.locator("mark")).toContainText("7850 kg/m³");
+  await expect(page).toHaveURL(/\?fonte=\d+$/);
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/fonte=/);
+
+  // Duplicate from the ⋯ menu: the copy opens with its sources.
+  await page.getByRole("button", { name: "Ações do caderno" }).click();
+  await page.getByRole("menuitem", { name: "Duplicar" }).click();
+  await page.waitForURL((url) => url.pathname !== base && /\/app\/cadernos\/\d+$/.test(url.pathname), {
+    timeout: 20_000,
+  });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Cópia de");
+  await expect(page.getByRole("button", { name: "Ler a fonte “Aula de aços”" })).toBeVisible();
+
+  // Archive the copy: it leaves the list and shows under "Arquivados".
+  await page.getByRole("button", { name: "Ações do caderno" }).click();
+  await page.getByRole("menuitem", { name: "Arquivar" }).click();
+  await expect(page.getByText("Este caderno está arquivado")).toBeVisible();
+  await page.goto("/app/cadernos?arquivados=1");
+  // The menu's "Recentes" lists it too: look in the page's own list.
+  const list = page.getByRole("list", { name: "Seus cadernos" });
+  await expect(list.getByRole("link", { name: /Cópia de/ })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Ativos" }).click();
+  await expect(list.getByRole("link", { name: /Cópia de/ })).toHaveCount(0);
+});

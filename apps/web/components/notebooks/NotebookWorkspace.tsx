@@ -2,35 +2,48 @@
 
 import { describeApiError } from "@/lib/errors";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type CSSProperties } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteNotebook, getNotebook, updateNotebook } from "@/lib/api";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { deleteNotebook, getNotebook } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { useUrlState } from "@/lib/urlState";
+import type { Notebook, NotebookCitation } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import {
   Alert,
-  Breadcrumb,
   Button,
   ButtonGroup,
   ButtonGroupItem,
+  Dialog,
   ErrorState,
-  IconButton,
   Input,
-  LoadingState,
+  MenuItem,
+  PageHeader,
+  Skeleton,
 } from "@/components/ui";
-import { IconGear, IconTrash } from "@/components/ui/icons";
+import {
+  IconArchive,
+  IconCopy,
+  IconGear,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from "@/components/ui/icons";
 import { usePageTitle } from "@/lib/pageTitle";
+import { AddSourcesDialog } from "./AddSourcesDialog";
 import { ChatPanel } from "./ChatPanel";
 import { NOTEBOOKS_KEY, notebookKey } from "./keys";
 import { PanelResizer } from "./PanelResizer";
 import { NotebookSettingsDialog } from "./NotebookSettingsDialog";
+import { OpenSourceProvider } from "./sourceOpen";
+import { SourceReader } from "./SourceReader";
 import { SourcesPanel } from "./SourcesPanel";
 import { StudioPanel } from "./StudioPanel";
+import { useNotebookActions } from "./useNotebookActions";
+import { notebookUrlSpec, type NotebookPanel as Panel } from "./urlState";
 
 const t = ptBR.notebooks;
-
-type Panel = "sources" | "chat" | "studio";
 
 // D-143: the widths a side panel starts at (the old xl breakpoint sizes) and the
 // range the handle may move it through. `null` in state means "not dragged yet",
@@ -55,12 +68,63 @@ export function NotebookWorkspace({ id }: { id: number }) {
     queryKey: notebookKey(id),
     queryFn: () => getNotebook(id),
   });
-  const [mobilePanel, setMobilePanel] = useState<Panel>("chat");
-  const [sourcesOpen, setSourcesOpen] = useState(true);
+  // D-207: the tab and the menu's "Recentes" carry the notebook's title.
+  usePageTitle(notebook.data?.title);
+
+  if (notebook.isPending) return <WorkspaceSkeleton />;
+  if (notebook.error || !notebook.data) {
+    return (
+      <ErrorState
+        error={notebook.error}
+        onRetry={() => void notebook.refetch()}
+      />
+    );
+  }
+  return <Workspace data={notebook.data} />;
+}
+
+/** The shape of the three panels while the notebook loads (D-218): the page does not jump on arrival. */
+function WorkspaceSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={t.loadingNotebook}
+      className="flex flex-col gap-3"
+    >
+      <span className="sr-only">{t.loadingNotebook}</span>
+      <div aria-hidden className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-9 w-72 max-w-full" />
+        <div className="flex min-h-[70vh] gap-3 lg:h-[calc(100vh-14rem)] lg:min-h-[32rem]">
+          <Skeleton className="hidden w-64 shrink-0 lg:block" />
+          <Skeleton className="min-w-0 flex-1" />
+          <Skeleton className="hidden w-72 shrink-0 lg:block" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Workspace({ data }: { data: Notebook }) {
+  const id = data.id;
+  // D-218: which panel, which source and which Studio item are in the address,
+  // so a link opens the notebook where it was shared and a reload keeps the place.
+  const [url, setUrl] = useUrlState(notebookUrlSpec);
+  const mobilePanel = url.panel;
+  const setMobilePanel = (panel: Panel) => setUrl({ panel });
+  // A link to the Studio, or to an item open in it, shows the Studio side by side; one to the
+  // sources keeps them open. An open item folds the sources, as `view` does below.
+  const [sourcesOpen, setSourcesOpen] = useState(
+    () => url.panel === "sources" || url.artifact === null,
+  );
   // Below `xl` the Studio starts folded to its rail: with the sidebar taking 256 px, the three
   // panels open side by side left the conversation 136 px at 1024 (measured). The reader can open it.
   const [studioOpen, setStudioOpen] = useState(
-    () => window.matchMedia?.("(min-width: 1280px)").matches ?? true,
+    () =>
+      url.panel === "studio" ||
+      url.artifact !== null ||
+      (window.matchMedia?.("(min-width: 1280px)").matches ?? true),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sourcesW, setSourcesW] = useState<number | null>(null);
@@ -87,8 +151,10 @@ export function NotebookWorkspace({ id }: { id: number }) {
   // and folds the sources to their rail meanwhile, as NotebookLM does, or the
   // conversation between them is squeezed to a column of single words. The
   // sources come back when the artifact closes, if it was this that folded them.
-  const [viewing, setViewing] = useState<number | null>(null);
-  const [foldedForViewer, setFoldedForViewer] = useState(false);
+  const viewing = url.artifact;
+  const [foldedForViewer, setFoldedForViewer] = useState(
+    () => url.artifact !== null && url.panel !== "sources",
+  );
   const view = (artifactId: number | null) => {
     if (artifactId !== null && viewing === null && sourcesOpen) {
       setSourcesOpen(false);
@@ -98,7 +164,7 @@ export function NotebookWorkspace({ id }: { id: number }) {
       setSourcesOpen(true);
       setFoldedForViewer(false);
     }
-    setViewing(artifactId);
+    setUrl({ artifact: artifactId });
   };
   // A question a mind map branch brought to the chat box; `nonce` lets the
   // same one be brought twice.
@@ -106,182 +172,186 @@ export function NotebookWorkspace({ id }: { id: number }) {
     null,
   );
 
-  // D-207: the tab and the menu's "Recentes" carry the notebook's title.
-  usePageTitle(notebook.data?.title);
-
-  if (notebook.isPending) return <LoadingState />;
-  if (notebook.error || !notebook.data) {
-    return (
-      <ErrorState error={notebook.error}
-        onRetry={() => void notebook.refetch()}
-      />
-    );
-  }
-  const data = notebook.data;
+  const [adding, setAdding] = useState(false);
+  const [excerpt, setExcerpt] = useState<string | null>(null);
+  const reading =
+    data.sources.find((source) => source.id === url.source) ?? null;
+  // A `?fonte=` that is no source of this notebook (removed, or someone else's link) is dropped.
+  useEffect(() => {
+    if (url.source !== null && reading === null) setUrl({ source: null });
+  }, [url.source, reading, setUrl]);
+  const readSource = (sourceId: number | null, passage: string | null) => {
+    setExcerpt(passage);
+    setUrl({ source: sourceId });
+  };
+  const openCited = (citation: NotebookCitation) =>
+    readSource(citation.source_id, citation.excerpt);
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* D-207: the trail replaces the lone "Todos os cadernos" link. */}
-      <Breadcrumb
-        items={[
-          { label: ptBR.nav.notebooks, href: "/app/cadernos" },
-          { label: data.title },
-        ]}
-      />
-      <Header
-        id={id}
-        title={data.title}
-        emoji={data.emoji}
-        onSettings={() => setSettingsOpen(true)}
-      />
+    <OpenSourceProvider value={openCited}>
+      <div className="flex flex-col gap-3">
+        <Header
+          notebook={data}
+          onSettings={() => setSettingsOpen(true)}
+          onAdd={() => setAdding(true)}
+        />
 
-      <Alert tone={data.ai_simulated ? "info" : "warning"}>
-        {data.ai_notice}
-      </Alert>
+        {data.archived ? <Alert tone="info">{t.archivedBanner}</Alert> : null}
+        <Alert tone={data.ai_simulated ? "info" : "warning"}>
+          {data.ai_notice}
+        </Alert>
 
-      <ButtonGroup label={t.panelTabs} className="lg:hidden">
-        {(["sources", "chat", "studio"] as const).map((panel) => (
-          <ButtonGroupItem
-            key={panel}
-            selected={mobilePanel === panel}
-            label={t.panels[panel]}
-            onClick={() => setMobilePanel(panel)}
-          />
-        ))}
-      </ButtonGroup>
+        <ButtonGroup label={t.panelTabs} className="lg:hidden">
+          {(["sources", "chat", "studio"] as const).map((panel) => (
+            <ButtonGroupItem
+              key={panel}
+              selected={mobilePanel === panel}
+              label={t.panels[panel]}
+              onClick={() => setMobilePanel(panel)}
+            />
+          ))}
+        </ButtonGroup>
 
-      <div
-        ref={rowRef}
-        className="flex min-h-[70vh] gap-3 lg:h-[calc(100vh-14rem)] lg:min-h-[32rem] lg:gap-0"
-      >
         <div
-          ref={sourcesRef}
-          className={cn(
-            "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
-            mobilePanel === "sources" ? "flex w-full" : "hidden",
-            !sourcesOpen
-              ? "lg:w-14 lg:shrink-0"
-              : sourcesW !== null
-                ? "lg:w-[var(--panel-w)] lg:shrink-0"
-                : "lg:w-64 lg:shrink-0 xl:w-[17rem]",
-          )}
-          style={
-            sourcesW !== null
-              ? ({ "--panel-w": `${sourcesW}px` } as CSSProperties)
-              : undefined
-          }
+          ref={rowRef}
+          className="flex min-h-[70vh] gap-3 lg:h-[calc(100vh-14rem)] lg:min-h-[32rem] lg:gap-0"
         >
-          <SourcesPanel
-            notebook={data}
-            expanded={sourcesOpen || mobilePanel === "sources"}
-            onToggle={() => {
-              setSourcesOpen((v) => !v);
-              setFoldedForViewer(false);
-            }}
-          />
-        </div>
-        {sourcesOpen ? (
-          <PanelResizer
-            label={t.resizePanel(t.panels.sources)}
-            value={sourcesW ?? SOURCES_WIDTH.initial}
-            min={SOURCES_WIDTH.min}
-            max={SOURCES_WIDTH.max}
-            direction={1}
-            onResize={(w) =>
-              setSourcesW(fit(w, SOURCES_WIDTH, studioRef.current))
+          <div
+            ref={sourcesRef}
+            className={cn(
+              "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
+              mobilePanel === "sources" ? "flex w-full" : "hidden",
+              !sourcesOpen
+                ? "lg:w-14 lg:shrink-0"
+                : sourcesW !== null
+                  ? "lg:w-[var(--panel-w)] lg:shrink-0"
+                  : "lg:w-64 lg:shrink-0 xl:w-[17rem]",
+            )}
+            style={
+              sourcesW !== null
+                ? ({ "--panel-w": `${sourcesW}px` } as CSSProperties)
+                : undefined
             }
-            onReset={() => setSourcesW(null)}
-          />
-        ) : (
-          <div className="hidden w-3 shrink-0 lg:block" />
-        )}
-        <div
-          className={cn(
-            "min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
-            mobilePanel === "chat" ? "flex" : "hidden",
+          >
+            <SourcesPanel
+              notebook={data}
+              onAdd={() => setAdding(true)}
+              onRead={(source) => readSource(source.id, null)}
+              expanded={sourcesOpen || mobilePanel === "sources"}
+              onToggle={() => {
+                setSourcesOpen((v) => !v);
+                setFoldedForViewer(false);
+              }}
+            />
+          </div>
+          {sourcesOpen ? (
+            <PanelResizer
+              label={t.resizePanel(t.panels.sources)}
+              value={sourcesW ?? SOURCES_WIDTH.initial}
+              min={SOURCES_WIDTH.min}
+              max={SOURCES_WIDTH.max}
+              direction={1}
+              onResize={(w) =>
+                setSourcesW(fit(w, SOURCES_WIDTH, studioRef.current))
+              }
+              onReset={() => setSourcesW(null)}
+            />
+          ) : (
+            <div className="hidden w-3 shrink-0 lg:block" />
           )}
-        >
-          <ChatPanel notebook={data} draft={draft} />
-        </div>
-        {studioOpen ? (
-          <PanelResizer
-            label={t.resizePanel(t.panels.studio)}
-            value={studioW ?? STUDIO_WIDTH.initial}
-            min={STUDIO_WIDTH.min}
-            max={STUDIO_WIDTH.max}
-            direction={-1}
-            onResize={(w) =>
-              setStudioW(fit(w, STUDIO_WIDTH, sourcesRef.current))
+          <div
+            className={cn(
+              "min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
+              mobilePanel === "chat" ? "flex" : "hidden",
+            )}
+          >
+            <ChatPanel notebook={data} draft={draft} />
+          </div>
+          {studioOpen ? (
+            <PanelResizer
+              label={t.resizePanel(t.panels.studio)}
+              value={studioW ?? STUDIO_WIDTH.initial}
+              min={STUDIO_WIDTH.min}
+              max={STUDIO_WIDTH.max}
+              direction={-1}
+              onResize={(w) =>
+                setStudioW(fit(w, STUDIO_WIDTH, sourcesRef.current))
+              }
+              onReset={() => setStudioW(null)}
+            />
+          ) : (
+            <div className="hidden w-3 shrink-0 lg:block" />
+          )}
+          <div
+            ref={studioRef}
+            className={cn(
+              "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
+              mobilePanel === "studio" ? "flex w-full" : "hidden",
+              !studioOpen
+                ? "lg:w-14 lg:shrink-0"
+                : studioW !== null
+                  ? "lg:w-[var(--panel-w)] lg:shrink-0"
+                  : viewing !== null
+                    ? "lg:w-[26rem] lg:shrink-0 xl:w-[32rem] 2xl:w-[40rem]"
+                    : "lg:w-72 lg:shrink-0 xl:w-[19rem]",
+            )}
+            style={
+              studioW !== null
+                ? ({ "--panel-w": `${studioW}px` } as CSSProperties)
+                : undefined
             }
-            onReset={() => setStudioW(null)}
-          />
-        ) : (
-          <div className="hidden w-3 shrink-0 lg:block" />
-        )}
-        <div
-          ref={studioRef}
-          className={cn(
-            "min-h-0 flex-col overflow-hidden rounded-panel border border-edge bg-surface lg:flex",
-            mobilePanel === "studio" ? "flex w-full" : "hidden",
-            !studioOpen
-              ? "lg:w-14 lg:shrink-0"
-              : studioW !== null
-                ? "lg:w-[var(--panel-w)] lg:shrink-0"
-                : viewing !== null
-                  ? "lg:w-[26rem] lg:shrink-0 xl:w-[32rem] 2xl:w-[40rem]"
-                  : "lg:w-72 lg:shrink-0 xl:w-[19rem]",
-          )}
-          style={
-            studioW !== null
-              ? ({ "--panel-w": `${studioW}px` } as CSSProperties)
-              : undefined
-          }
-        >
-          <StudioPanel
-            notebook={data}
-            expanded={studioOpen || mobilePanel === "studio"}
-            onToggle={() => setStudioOpen((v) => !v)}
-            viewing={viewing}
-            onView={view}
-            onAsk={(text) => {
-              setDraft({ text, nonce: Date.now() });
-              setMobilePanel("chat");
-            }}
-          />
+          >
+            <StudioPanel
+              notebook={data}
+              expanded={studioOpen || mobilePanel === "studio"}
+              onToggle={() => setStudioOpen((v) => !v)}
+              viewing={viewing}
+              onView={view}
+              onAsk={(text) => {
+                setDraft({ text, nonce: Date.now() });
+                setMobilePanel("chat");
+              }}
+            />
+          </div>
         </div>
+
+        <NotebookSettingsDialog
+          notebook={data}
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+        <AddSourcesDialog
+          notebookId={id}
+          open={adding}
+          onClose={() => setAdding(false)}
+        />
+        <SourceReader
+          notebookId={id}
+          source={reading}
+          excerpt={excerpt}
+          onClose={() => readSource(null, null)}
+        />
       </div>
-
-      <NotebookSettingsDialog
-        notebook={data}
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-    </div>
+    </OpenSourceProvider>
   );
 }
 
 function Header({
-  id,
-  title,
-  emoji,
+  notebook,
   onSettings,
+  onAdd,
 }: {
-  id: number;
-  title: string;
-  emoji: string;
+  notebook: Notebook;
   onSettings: () => void;
+  onAdd: () => void;
 }) {
-  const client = useQueryClient();
+  const { id, title, emoji } = notebook;
   const router = useRouter();
-  const [draft, setDraft] = useState<string | null>(null);
-
-  const rename = useMutation({
-    mutationFn: (next: string) => updateNotebook(id, { title: next }),
-    onSuccess: (updated) => {
-      client.setQueryData(notebookKey(id), updated);
-      void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
-    },
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const { rename, duplicate, archive } = useNotebookActions(notebook, {
+    openCopy: true,
   });
+
   // D-130: no confirmation dialog — the notebook leaves the list at once and the
   // reader is sent back to it, where "Desfazer" is on screen. The server keeps the
   // notebook (sources, chat, notes) until the snackbar goes away unused.
@@ -295,65 +365,101 @@ function Header({
     router.push("/app/cadernos");
   };
 
-  const commit = () => {
-    const next = draft?.trim();
-    setDraft(null);
-    if (next && next !== title) rename.mutate(next);
+  const commitRename = () => {
+    const next = renaming?.trim();
+    if (!next) return;
+    setRenaming(null);
+    if (next !== title) rename.mutate(next);
   };
+  const error = rename.error ?? duplicate.error ?? archive.error;
+  const full = notebook.sources.length >= notebook.max_sources;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span aria-hidden className="text-2xl">
-        {emoji}
-      </span>
-      <div className="min-w-0 flex-1">
-        {draft === null ? (
-          <h1>
-            <button
-              type="button"
-              onClick={() => setDraft(title)}
-              title={t.titleLabel}
-              className="max-w-full truncate rounded-control px-1 text-left text-xl font-bold text-ink hover:bg-surface-sunken"
-            >
-              {title}
-            </button>
-          </h1>
-        ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              commit();
-            }}
-          >
-            <Input
-              label=""
-              aria-label={t.titleLabel}
-              autoFocus
-              value={draft}
-              maxLength={200}
-              onChange={(event) => setDraft(event.target.value)}
-              onBlur={commit}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") setDraft(null);
-              }}
-            />
-          </form>
-        )}
-      </div>
-      <Button
-        variant="secondary"
-        size="sm"
-        icon={<IconGear />}
-        onClick={onSettings}
-      >
-        {t.settings}
-      </Button>
-      <IconButton label={t.remove} icon={<IconTrash />} onClick={remove} />
-      {rename.error ? (
-        <Alert tone="danger" role="alert" className="w-full">
-          {describeApiError(rename.error)}
+    <>
+      <PageHeader
+        eyebrow={false}
+        breadcrumb={[
+          { label: ptBR.nav.notebooks, href: "/app/cadernos" },
+          { label: title },
+        ]}
+        title={
+          <>
+            <span aria-hidden className="mr-2">
+              {emoji}
+            </span>
+            {title}
+          </>
+        }
+        primaryAction={
+          <Button icon={<IconPlus />} onClick={onAdd} disabled={full}>
+            {t.addSources}
+          </Button>
+        }
+        secondaryActions={
+          <Button variant="secondary" icon={<IconGear />} onClick={onSettings}>
+            {t.settings}
+          </Button>
+        }
+        overflowLabel={t.notebookActions}
+        overflow={
+          <>
+            <MenuItem onSelect={() => setRenaming(title)}>
+              <span className="inline-flex items-center gap-2">
+                <IconPencil /> {t.rename}
+              </span>
+            </MenuItem>
+            <MenuItem onSelect={() => duplicate.mutate()}>
+              <span className="inline-flex items-center gap-2">
+                <IconCopy /> {duplicate.isPending ? t.duplicating : t.duplicate}
+              </span>
+            </MenuItem>
+            <MenuItem onSelect={() => archive.mutate(!notebook.archived)}>
+              <span className="inline-flex items-center gap-2">
+                <IconArchive /> {notebook.archived ? t.unarchive : t.archive}
+              </span>
+            </MenuItem>
+            <MenuItem onSelect={remove}>
+              <span className="inline-flex items-center gap-2">
+                <IconTrash /> {t.remove}
+              </span>
+            </MenuItem>
+          </>
+        }
+      />
+      {error ? (
+        <Alert tone="danger" role="alert">
+          {describeApiError(error)}
         </Alert>
       ) : null}
-    </div>
+      <Dialog
+        open={renaming !== null}
+        onClose={() => setRenaming(null)}
+        title={t.renameTitle}
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            commitRename();
+          }}
+        >
+          <Input
+            label={t.titleLabel}
+            autoFocus
+            value={renaming ?? ""}
+            maxLength={200}
+            onChange={(event) => setRenaming(event.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setRenaming(null)}>
+              {t.cancel}
+            </Button>
+            <Button type="submit" disabled={!renaming?.trim()}>
+              {t.saveTitle}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+    </>
   );
 }

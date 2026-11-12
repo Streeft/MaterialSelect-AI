@@ -3301,6 +3301,8 @@ export interface NotebookSummary {
   title: string;
   emoji: string;
   source_count: number;
+  /** D-218: archived notebooks leave the default list. */
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -3309,6 +3311,7 @@ export interface Notebook {
   id: number;
   title: string;
   emoji: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
   chat_goal: NotebookChatGoal;
@@ -3334,6 +3337,8 @@ export interface NotebookUpdate {
   chat_goal?: NotebookChatGoal;
   chat_instructions?: string;
   response_length?: NotebookResponseLength;
+  /** `true` archives, `false` brings it back (D-218). */
+  archived?: boolean;
 }
 
 export interface NotebookChat {

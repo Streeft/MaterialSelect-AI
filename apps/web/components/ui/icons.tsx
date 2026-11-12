@@ -634,6 +634,14 @@ export const IconChartBox = (p: IconProps) => (
   </Svg>
 );
 
+export const IconArchive = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+    <path d="M10 12h4" />
+  </Svg>
+);
+
 export const IconCopy = (p: IconProps) => (
   <Svg {...p}>
     <rect x="9" y="9" width="11" height="11" rx="2" />

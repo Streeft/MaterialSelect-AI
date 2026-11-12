@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ptBR } from "@/lib/i18n";
 import { Popover } from "./Popover";
 
 /**
@@ -17,6 +18,8 @@ export function CitationChip({
   title,
   locator,
   credit,
+  onOpenSource,
+  openSourceLabel,
   children,
 }: {
   number: number;
@@ -30,6 +33,10 @@ export function CitationChip({
    * passage as secondary text. Optional metadata, not a data value: when there
    * is none, nothing is drawn — never a dash or an empty line. */
   credit?: ReactNode;
+  /** D-218: opens the source itself at this passage, from a button under it. */
+  onOpenSource?: () => void;
+  /** Its accessible name: "Abrir “Apostila” no trecho citado". */
+  openSourceLabel?: string;
   /** The passage itself. */
   children: ReactNode;
 }) {
@@ -44,6 +51,7 @@ export function CitationChip({
         </span>
       }
     >
+      {(close) => (
       <div className="flex flex-col gap-2">
         <p className="text-caption font-semibold text-ink">{title}</p>
         {locator ? <p className="text-2xs text-ink-muted">{locator}</p> : null}
@@ -51,7 +59,21 @@ export function CitationChip({
           {children}
         </blockquote>
         {credit ? <p className="text-caption text-ink-muted">{credit}</p> : null}
+        {onOpenSource ? (
+          <button
+            type="button"
+            aria-label={openSourceLabel}
+            onClick={() => {
+              close();
+              onOpenSource();
+            }}
+            className="self-start rounded-control text-caption font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          >
+            {ptBR.notebooks.openAtPassage}
+          </button>
+        ) : null}
       </div>
+      )}
     </Popover>
   );
 }

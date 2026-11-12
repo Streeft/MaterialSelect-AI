@@ -12866,6 +12866,45 @@ nunca filtro de dado, e nenhum material pertence a um nível.
 agir sobre o que não está na tela). A consulta continua lendo as linhas casadas com os valores para contar qualidade: se o
 catálogo crescer muito, mover filtros e contagens para SQL. Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
+
+## D-218 — Cadernos: endereço por painel, fonte aberta no trecho citado, duplicar e arquivar
+
+**Contexto.** Etapa "Cadernos" da revisão das telas (parte 4). Já existiam e foram mantidos: as três colunas Fontes | Conversa |
+Estúdio com alças de arrastar acessíveis e Estúdio dobrado abaixo de `xl` (D-143), abas por painel abaixo de `lg`, o menu "⋯" do
+cartão com renomear e excluir com "Desfazer" (D-130), a trilha e o título da aba (D-207), `ErrorState` com "tentar de novo" e
+`describeApiError` (D-92). Faltavam: o caderno não tinha endereço além do id (a aba, a fonte lida e o item do Estúdio se perdiam
+ao recarregar ou ao compartilhar o link), a citação mostrava o trecho mas não abria a fonte, não havia duplicar nem arquivar,
+o carregamento era um spinner e o cabeçalho tinha dois botões soltos sem hierarquia.
+
+**Decisão.**
+
+1. **Endereço estável.** `/app/cadernos/4` é o caderno; `?aba=` (`fontes`, `conversa`, `estudio`), `?fonte=` (a fonte aberta no
+   leitor) e `?artefato=` (o item aberto no Estúdio) vêm do `useUrlState` (D-212), em `components/notebooks/urlState.ts`. Valor
+   igual ao padrão sai do endereço; valor malformado cai no padrão; um `?fonte=` que não é fonte do caderno é descartado do
+   endereço. A lista tem `?arquivados=1`. Um link para `?aba=estudio` ou `?artefato=` já abre o Estúdio ao lado no largo.
+2. **Citação clicável.** O chip de citação ganha "Abrir a fonte no trecho" (contexto `OpenSourceProvider`, então vale no chat, no
+   guia, nas notas e nas telas do Estúdio). O leitor (`SourceReader`) acha o trecho no texto e o marca com `<mark>`, rolando até
+   ele. O backend **não devolve a posição**: a citação traz só o `excerpt` (os parágrafos do trecho unidos por espaço), então a
+   busca é por palavras, sem distinguir quebras de linha (`locateExcerpt.ts`), com recuo para as 12 primeiras palavras. Não
+   achado, o leitor diz e mostra o trecho como foi citado, nunca inventa uma posição. Fonte já removida do caderno não tem o botão
+   (o trecho é uma cópia). Posição guardada no servidor: ver TODO.
+3. **Duplicar e arquivar.** `POST /api/notebooks/{id}/duplicate` (201, "Cópia de …") copia fontes, trechos, vetores e notas como
+   estão: nada é relido nem reembutido, então não gasta cota diária. **Não copia** a conversa (suas citações apontam para os
+   trechos do original) nem os itens do Estúdio (cada um gastou uma geração). `PATCH` aceita `archived` (coluna nova
+   `notebook.archived_at`, NULL = ativo, migração `d218a5c0a1b2` gerada com `alembic --autogenerate` e testada subindo, descendo
+   e subindo de novo); `GET /api/notebooks?archived=true` lista os arquivados e a lista padrão não os traz. Arquivar não apaga:
+   o caderno abre normalmente, com um aviso. Mesmos filtros de dono de sempre (D-62: o de outro usuário é 404). O hook
+   `useNotebookActions` serve ao cartão e ao cabeçalho, com "Desfazer" no arquivar e "Abrir" no duplicar da lista.
+4. **Cabeçalho com papéis** (`PageHeader`, D-212): uma ação primária ("Adicionar fontes", que sai do painel para não haver dois
+   botões iguais; fica desabilitada no limite), a secundária "Configurar conversa" e o "⋯" com Renomear (diálogo, não campo
+   dentro do `h1`), Duplicar, Arquivar/Desarquivar e Excluir.
+5. **Estados.** Carregando: esqueleto com a forma das três colunas e um "Carregando o caderno" para leitor de tela. Erro: o
+   `ErrorState` com "Tentar novamente" (já havia; agora coberto por teste, sem texto cru de servidor ou de rede). Vazio: o
+   arquivo vazio tem texto próprio, sem botão de criar.
+
+**Fora.** Posição do trecho no servidor, para o link com trecho sobreviver ao recarregar. Mover a conversa e o Estúdio na
+duplicação. Arquivar em lote. Toca `apps/api` **com migração**: depois do merge, **Deploy da API** e a **Administração do
+banco** (migrar) antes de usar a lista de arquivados em produção.
 ## D-218 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
 
 **Contexto.** A F4 do plano ("bancadas de cálculo") correu em paralelo com a etapa 4.5 do #240 (D-216: padrões no backend, Eco

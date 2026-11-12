@@ -40,6 +40,8 @@ class NotebookUpdate(BaseModel):
     chat_goal: ChatGoal | None = None
     chat_instructions: str | None = Field(default=None, max_length=4000)
     response_length: ResponseLength | None = None
+    #: ``True`` archives the notebook, ``False`` brings it back (D-218).
+    archived: bool | None = None
 
 
 class CitationOut(BaseModel):
@@ -143,6 +145,7 @@ class NotebookSummaryOut(BaseModel):
     title: str
     emoji: str
     source_count: int
+    archived: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -151,6 +154,7 @@ class NotebookOut(BaseModel):
     id: int
     title: str
     emoji: str
+    archived: bool = False
     created_at: datetime
     updated_at: datetime
     chat_goal: ChatGoal

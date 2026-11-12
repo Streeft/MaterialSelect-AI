@@ -1561,8 +1561,8 @@ export function compareBatteries(
 
 const nb = (id: number) => `/api/notebooks/${id}`;
 
-export function listNotebooks(): Promise<NotebookSummary[]> {
-  return request<NotebookSummary[]>("/api/notebooks");
+export function listNotebooks(archived = false): Promise<NotebookSummary[]> {
+  return request<NotebookSummary[]>(archived ? "/api/notebooks?archived=true" : "/api/notebooks");
 }
 
 export function createNotebook(title?: string): Promise<Notebook> {
@@ -1578,6 +1578,10 @@ export function getNotebook(id: number): Promise<Notebook> {
 
 export function updateNotebook(id: number, patch: NotebookUpdate): Promise<Notebook> {
   return request<Notebook>(nb(id), { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+export function duplicateNotebook(id: number): Promise<Notebook> {
+  return request<Notebook>(`${nb(id)}/duplicate`, { method: "POST" });
 }
 
 export function deleteNotebook(id: number): Promise<void> {
