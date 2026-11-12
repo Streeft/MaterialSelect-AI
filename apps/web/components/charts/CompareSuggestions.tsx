@@ -6,6 +6,7 @@ import { compareViewText } from "@/lib/i18n-compare-view";
 import type { Bookmark } from "@/lib/types";
 import { MY_RECORDS_KEY } from "@/components/my-records/FavoriteButton";
 import { Button, ButtonLink, Card, CardBody, ErrorState, ListSkeleton } from "@/components/ui";
+import { resolveClassicPairs } from "@/lib/compareClassics";
 
 const t = compareViewText.empty;
 
@@ -88,10 +89,14 @@ function Shelf({
 export function CompareSuggestions({
   chosen,
   onAdd,
+  catalogue = [],
 }: {
   chosen: readonly number[];
   onAdd: (ids: number[]) => void;
+  /** D-220: the catalogue the classic pairs are looked up in, by name. */
+  catalogue?: readonly { id: number; name: string }[];
 }) {
+  const classics = resolveClassicPairs(catalogue);
   const records = useQuery({ queryKey: MY_RECORDS_KEY, queryFn: getMyRecords });
   const skip = new Set(chosen);
   const seen = new Set<number>();
@@ -115,6 +120,33 @@ export function CompareSuggestions({
             <Shelf title={t.favorites} what={t.whatFavorites} items={favorites} onAdd={onAdd} />
             <Shelf title={t.recents} what={t.whatRecents} items={recents} onAdd={onAdd} />
           </>
+        )}
+
+        {/* D-220: the third way in — pairs every course compares first, each
+            found in this catalogue by name; a pair it lacks is not offered. */}
+        {classics.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-body font-semibold text-ink">{t.classics}</h3>
+              <p className="text-caption text-ink-muted">{t.classicsHint}</p>
+            </div>
+            <ul className="flex flex-wrap gap-2">
+              {classics.map((pair) => (
+                <li key={pair.ids.join("-")} className="min-w-0 max-w-full">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="max-w-full break-words"
+                    aria-label={t.comparePair(pair.names[0], pair.names[1])}
+                    title={`${pair.names[0]} × ${pair.names[1]}`}
+                    onClick={() => onAdd([...pair.ids])}
+                  >
+                    {pair.labels[0]} × {pair.labels[1]}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {nothing && (

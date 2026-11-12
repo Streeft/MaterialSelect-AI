@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ptBR } from "@/lib/i18n";
+import { compareViewText } from "@/lib/i18n-compare-view";
 import { compareLinkText } from "@/lib/i18n-compare-link";
 import { MAX_COMPARE_PROPERTIES } from "@/lib/compareLimits";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -118,7 +119,9 @@ describe("comparador: o link leva propriedades e normalização (D-174)", () => 
     expect(requests.every((r) => r.normalization === "vector")).toBe(true);
     expect(requests.every((r) => r.property_slugs.join() === "modulo_young,densidade")).toBe(true);
     expect(screen.getByLabelText(ptBR.compare.normalization)).toHaveValue("vector");
-    expect(screen.getByRole("button", { name: "Módulo de Young" })).toHaveAttribute("aria-pressed", "true");
+    // D-220: the chosen properties are chips, in the order the link gave.
+    const chips = screen.getByRole("list", { name: compareViewText.bar.chosenProperties });
+    expect(chips).toHaveTextContent(/Módulo de Young.*Densidade/);
   });
 
   it("propriedade que não existe, pedaço malformado e normalização inválida são ditos e saem do pedido e do endereço", async () => {
@@ -157,7 +160,9 @@ describe("comparador: o link leva propriedades e normalização (D-174)", () => 
     );
     expect(writtenLink().searchParams.has("normalizacao")).toBe(false);
 
-    await user.click(screen.getByRole("button", { name: "Módulo de Young" }));
+    await user.click(
+      screen.getByRole("button", { name: `${compareViewText.bar.removeProperty}: Módulo de Young` }),
+    );
     await waitFor(() => expect(writtenLink().searchParams.get("propriedades")).toBe("densidade"));
 
     await user.selectOptions(screen.getByLabelText(ptBR.compare.normalization), "vector");

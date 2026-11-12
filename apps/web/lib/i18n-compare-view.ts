@@ -41,5 +41,21 @@ export const compareViewText = {
     nothingYet:
       "Você ainda não favoritou nem abriu nenhum material. Abra uma ficha no catálogo e use a estrela, ou busque pelo nome no passo 1.",
     browse: "Abrir o catálogo",
+    // D-220: classic pairs, found in the catalogue by name — never invented.
+    classics: "Pares clássicos",
+    classicsHint: "Achados no catálogo pelo nome; só aparece o par que o catálogo tem.",
+    comparePair: (a: string, b: string) => `Comparar ${a} com ${b}`,
+  },
+  // D-220: one bar for what is compared, instead of two step cards.
+  bar: {
+    label: "O que comparar",
+    materials: "Materiais",
+    properties: "Propriedades",
+    addProperty: "Buscar e adicionar propriedade",
+    addPropertyHint: "Digite parte do nome; a escolha entra ao lado.",
+    chosenProperties: "Propriedades escolhidas",
+    removeProperty: "Tirar da comparação",
+    noProperties: "Nenhuma propriedade escolhida.",
+    noPropertyFound: "Nenhuma propriedade com esse nome.",
   },
 } as const;

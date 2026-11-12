@@ -120,3 +120,23 @@ describe("comparador: estado vazio e visão no link (D-214)", () => {
     await waitFor(() => expect(window.location.search).not.toContain("visao="));
   });
 });
+
+describe("comparador: pares clássicos como ponto de partida (D-220)", () => {
+  beforeEach(() => {
+    requests.length = 0;
+    nav.query = "";
+    window.history.replaceState(null, "", "/app/comparar");
+  });
+
+  it("oferece o par que o catálogo tem, e um clique compara os dois", async () => {
+    mount();
+    const pair = await screen.findByRole("button", {
+      name: compareViewText.empty.comparePair("Aço 1020", "Alumínio 6061"),
+    });
+    expect(pair).toHaveTextContent("Aço × Alumínio");
+    // A pair the catalogue cannot answer is not offered.
+    expect(screen.queryByText(/PEAD × PP/)).toBeNull();
+    fireEvent.click(pair);
+    await waitFor(() => expect(requests.at(-1)?.material_ids).toEqual([1, 2]));
+  });
+});
