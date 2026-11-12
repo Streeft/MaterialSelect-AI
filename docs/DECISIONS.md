@@ -13081,7 +13081,7 @@ mantidos: a sessão como linha no servidor, com revogação real (A5); o `/api/h
 2. **Transição sem derrubar ninguém.** Escolhido "aceitar o legado e converter no primeiro uso", e não "invalidar com aviso":
    `AuthService.current_session` procura pelo hash. Se não achar, e o valor não tiver a forma de um hash, procura a linha antiga pelo
    token cru e a regrava com o hash, com o mesmo usuário, criação e validade. Uma linha que ninguém usar vence no prazo de sempre
-   (`SESSION_TTL_HOURS`). O logout apaga as duas formas. Invalidar todo mundo derrubaria a turma no meio da aula; converter custa
+   (`SESSION_TTL_HOURS`). O logout apaga as duas formas. Duas requisições da mesma página que acham a mesma linha antiga ao mesmo tempo não dão 500: a que perde a corrida volta ao hash que a outra gravou. Invalidar todo mundo derrubaria a turma no meio da aula; converter custa
    uma escrita por sessão, uma vez.
 3. **Limite por minuto.** É um contador de janela fixa em memória (`app/domain/rate_limit.py`, puro e testável sem servidor) em
    quatro baldes: login (`/auth/google/login` e `/callback`, por IP), IA, exportações e escritas dos Cadernos (as leituras não

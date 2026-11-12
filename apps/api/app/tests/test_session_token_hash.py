@@ -185,3 +185,36 @@ def test_the_e2e_seed_stores_the_digest_of_its_fixed_token(db_session, monkeypat
     row = db_session.get(UserSession, hash_session_token(token))
     assert row is not None
     assert AuthService(db_session).current_session(token) is not None
+
+
+def test_two_requests_converting_the_same_legacy_row_both_get_in(db_session, monkeypatch):
+    """A page fires several requests at once; after the deploy, two of them can
+    find the same raw-token row. The second one's rewrite collides with the
+    first's — it must fall back to the digest the first one wrote, not 500.
+    """
+    token = "token-legado-corrida-0123456789abcdefghijklmnopqrstuvwxyz01"
+    user = _legacy_row(db_session, token)
+    # The other request already wrote the digest (and has not yet deleted the
+    # raw row, as seen from this one).
+    db_session.add(
+        UserSession(
+            id=hash_session_token(token),
+            user_id=user.id,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+    )
+    db_session.commit()
+
+    real_get_valid = SessionRepository.get_valid
+    calls = {"n": 0}
+
+    def _first_miss(self, cookie_token):
+        calls["n"] += 1
+        return None if calls["n"] == 1 else real_get_valid(self, cookie_token)
+
+    monkeypatch.setattr(SessionRepository, "get_valid", _first_miss)
+
+    session = AuthService(db_session).current_session(token)
+
+    assert session is not None
+    assert session.user_id == user.id

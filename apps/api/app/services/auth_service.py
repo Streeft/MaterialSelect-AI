@@ -36,9 +36,10 @@ from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport import Request as GoogleAuthRequest
 from google.auth.transport import Response as GoogleAuthResponse
 from google.oauth2 import id_token as google_id_token
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.config import settings
 from app.domain.errors import AuthenticationError, ServiceUnavailableError
@@ -227,8 +228,14 @@ class AuthService:
         if legacy is None:
             return None
         user = legacy.user
-        converted = self.sessions.rehash(legacy, token)
-        self.db.commit()
+        try:
+            converted = self.sessions.rehash(legacy, token)
+            self.db.commit()
+        except (IntegrityError, StaleDataError):
+            # A page fires several requests at once: another one converted
+            # this row first. Its digest is there now; use it.
+            self.db.rollback()
+            return self.sessions.get_valid(token)
         converted.user = user
         return converted
 
