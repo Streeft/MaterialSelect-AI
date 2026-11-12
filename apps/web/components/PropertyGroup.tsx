@@ -17,7 +17,7 @@ import {
 import { GlossaryHint } from "@/components/glossary/GlossaryHint";
 import { UnitChip } from "@/components/UnitPicker";
 
-/** D-214: what each quantity can be read in, from its definition. */
+/** D-215: what each quantity can be read in, from its definition. */
 export type UnitOptions = ReadonlyMap<string, { accepted: string[]; convention: string | null }>;
 
 /** The number itself. Everything around it — where it came from, what it was
@@ -31,7 +31,7 @@ function ValueText({ p, hideUnit = false }: { p: PropertyValueOut; hideUnit?: bo
   //
   // A queda para o registro cobre o caso de um payload antigo em cache, e não
   // um estado normal: o backend sempre manda os dois conjuntos.
-  // D-214: with a unit chip beside the value, the chip writes the unit.
+  // D-215: with a unit chip beside the value, the chip writes the unit.
   const unit = hideUnit ? null : valueUnit(p.display_unit ?? p.original_unit);
   const min = p.display_min ?? p.value_min;
   const max = p.display_max ?? p.value_max;
@@ -114,7 +114,7 @@ function ValueCell({ p, units }: { p: PropertyValueOut; units?: UnitOptions }) {
  * A category card listing its property values with units and provenance.
  *
  * With `units` (the sheet passes it), a quantity readable in more than one unit
- * writes its unit as a `UnitChip` (D-214); the side panel of the catalogue
+ * writes its unit as a `UnitChip` (D-215); the side panel of the catalogue
  * passes none and keeps the plain unit.
  */
 export function PropertyGroupCard({

@@ -120,17 +120,49 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 171 — 12/11/26 — F3 da revisão das telas: fichas como documento (D-214)
+## Sessão 172 — 12/11/26 — F3 por cima da ficha da D-214: unidade no valor, sumário que acompanha, processo e famílias no molde (D-215)
 
-**O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar da fileira "Ler em:" e do
-`UnitPicker`; `Outline` (índice lateral que acompanha a leitura) e `DocSection` (seção recolhível com o botão no título) em
-`components/ui/Outline.tsx`; ficha de material como `PageDoc` com `PropertyList`, uma ação visível, o resto no "⋯" e o nome
-editável no lugar; "Materiais semelhantes" recolhida por padrão; cartão de propriedades empilhado abaixo de 480 px; ficha de
-processo, família de material e família de processo no mesmo molde; novo e editar material com a cabeça da ficha. Testes:
-`components/ui/f3Pieces.test.tsx` (chip, URL, volta à convenção, grandeza de uma unidade, ausente, seção recolhível e índice
-que abre a seção; com axe), `duplicar` e `familia` da ficha ajustados ao "⋯" e ao cabeçalho, e na suíte de larguras
-`/app/catalogo/metais`, `/app/materiais/novo` e as páginas de processo e de família de processo. Ficha no celular:
-13 494 → 12 938 px com "semelhantes" recolhida. Frontend 1829 (+7). Sem backend nem migração.
+**O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar do bloco "Ler os valores em outra
+unidade" e do `UnitPicker`; `SheetOutline` marca a seção lida; cartão de propriedades empilhado abaixo de 480 px; ficha de processo,
+família de material e família de processo em trilha + `PageDoc` + `CollapsibleSection`/`SheetOutline`; novo e editar material com a
+cabeça de documento. Branch mesclada sobre a do #238 (D-214), por escolha do autor. Testes: `components/ui/f3Pieces.test.tsx`
+(chip, URL, volta à convenção, grandeza de uma unidade, ausente, sumário que marca a seção; com axe), o teste de unidades de
+`ficha-layout` reescrito para o chip, e na suíte de larguras `/app/catalogo/metais`, `/app/materiais/novo`, as páginas de processo e
+de família de processo e "semelhantes" aberta na ficha. Frontend 1891 (+5 sobre o #238). Sem backend nem migração.
+
+## Sessão 171 — 12/11/26 — Comparar e Ficha: melhor por propriedade, só diferenças, ficha dobrada (D-214)
+
+**O que mudou.** Etapa 3.3. Backend: `CompareAxisOut.best_material_ids` e `all_equal` (regra em `domain/spread.best_ids`:
+direção declarada da propriedade, empates incluídos, nada para neutra, para menos de dois valores ou para todos iguais).
+Comparar: "Melhor" na célula, "Só diferenças" (esconde e nomeia as colunas iguais ou ausentes em todos), `?visao=` e
+`?diferencas=1` no endereço, estado vazio com favoritos e vistos recentemente (`CompareSuggestions`, o mesmo `my-records`),
+radar que acima de 12 materiais sugere paralelas, heatmap ou tabela e deixa "desenhar mesmo assim", `TableSkeleton` e
+`ChartSkeleton` na espera, e `ComparisonFigures.tsx` (1.187 linhas) dividido em `charts/figures/*` com reexport. Ficha:
+`PageHeader` com uma primária e o "⋯", faixa de resumo (processos e parecidos), sumário lateral por consulta de contêiner,
+seções em `CollapsibleSection` (parecidos, mapa, equivalências, ordinais e curvas dobrados e só montados ao abrir), gráfico
+sob demanda e os seletores de unidade num só `Disclosure`. Testes: `test_compare_threshold_computed.py` (best_ids, eixo com
+`best_material_ids`/`all_equal`), `ComparisonView.reading.test.tsx`, `CompareSuggestions.test.tsx`, `compare-link.view.test.ts`,
+`comparar-vazio.test.tsx`, `ficha-layout.test.tsx` (dobrado/aberto, sumário, hash, resumo, ações, 404 × falha, axe), a
+auditoria axe da ficha com tudo aberto em `routes.a11y.test.tsx`, ajustes em `duplicar`, `familia` e nos testes de 200/600
+materiais, e o E2E `e2e/ficha-comparar.spec.ts`. Fora: citação ABNT (a ficha não recebe os campos da fonte) e "top do último
+estudo". Sem migração nem seed. Depois do merge: **Deploy da API**.
+
+## Sessão 170 — 12/11/26 — Mapas: seleção que vira filtro, linha móvel, mapas clássicos (D-213)
+
+**O que mudou.** Etapa 3.2 (inspiração: Ansys Granta Selector). `app/app/mapas/page.tsx` virou orquestração com
+`AxesPanel`, `CustomizePanel` (sempre aberto a partir de 840 px, recolhível abaixo), `SelectionPanel`, `PointList`,
+`IndexLineControl`, `AxisControl` e `axisIndex.ts`; o mapa inteiro, a seleção, a linha móvel e a restrição vão para a URL
+(`mapUrl.ts` sobre o `useUrlState`). Seleção por caixa, laço ou teclado vira filtro ("Comparar", "Mostrar só estes no
+mapa", "Abrir na Seleção" para a caixa). Backend: `POST /api/charts/index-line` (linha num nível ou por um ponto
+arrastado, lados e passos, geometria em `calculations/powerlaw`) e `GET /api/charts/presets` (seis mapas clássicos de
+Ashby como dados, `domain/map_presets.py`). `AshbyMap` ganhou laço, anéis de seleção e de foco, a linha móvel com alça e o
+modo "Mover linha"; `ChartFrame`/`ChartToolbar` ganharam "PNG/SVG para relatório" (1200 × 800, PNG 3×, descrição e guia
+sob o título). Nível 2 preservado (`fillHeight`, `ResizeObserver`, ids memorizados pela string, painéis que não
+encolhem). Testes: `test_map_index_line.py` (cálculo, endpoint, presets), `mapas.test.tsx` (laço → URL → Comparar,
+restringir e desfazer, caixa → Seleção, lista pelo teclado com anúncio, presets, linha móvel pelos passos, URL que segue
+o mapa, painel recolhível no estreito e sempre aberto no largo, axe), `ashbyInteractions.test.tsx` (laço, modos, arrasto,
+camadas, exportar para relatório, ponteiro, codecs da URL, figura 3×) e o E2E `e2e/mapas.spec.ts` (mapa clássico, caixa
+no Plotly real, Comparar). Sem migração nem seed. Depois do merge: **Deploy da API**.
 
 ## Sessão 169 — 12/11/26 — Padrões de página (D-212)
 

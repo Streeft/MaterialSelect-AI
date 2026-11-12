@@ -62,7 +62,7 @@ vi.mock("@/components/material/EquivalenceSection", () => ({ EquivalenceSection:
 const { default: MaterialPage } = await import("./page");
 
 describe("nota da família na ficha do material (D-151)", () => {
-  it("aparece dobrada logo abaixo da classe, no cartão do cabeçalho do documento", async () => {
+  it("aparece dobrada logo abaixo da classe, no cartão do cabeçalho", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
@@ -72,13 +72,12 @@ describe("nota da família na ficha do material (D-151)", () => {
     const summary = await screen.findByText(ptBR.familyNotes.about("Metais"));
     const details = summary.closest("details");
     expect(details?.open).toBe(false);
-    // D-214: in the document's header, with the material's name and class.
-    const header = screen.getByRole("heading", { level: 1, name: "Liga X" }).closest("article");
-    expect(header).not.toBeNull();
-    expect(header!.contains(details)).toBe(true);
-    expect(screen.getByText(ptBR.familyNotes.about("Metais")).compareDocumentPosition(
-      screen.getByText("Liga leve"),
-    ) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
-    expect(screen.getByText("Liga leve")).toBeInTheDocument();
+    // D-214: the name is the page header's h1 now; the note stays in the card
+    // that holds the class and the description, right under the class.
+    expect(screen.getByRole("heading", { level: 1, name: "Liga X" })).toBeInTheDocument();
+    const card = details!.closest(".msds-card");
+    expect(card).not.toBeNull();
+    expect(card).toHaveTextContent("Metais");
+    expect(card).toHaveTextContent("Liga leve");
   });
 });

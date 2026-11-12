@@ -114,7 +114,7 @@ const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["painel-qualidade", "/app/painel?aba=qualidade"],
   ["painel-atividade", "/app/painel?aba=atividade"],
   ["painel-filtrado", "/app/painel?classe=metais&nivel=1"],
-  // D-214: the document pages that open without an id of their own.
+  // D-215: the document pages that open without an id of their own.
   ["catalogo-familia", "/app/catalogo/metais"],
   ["material-novo", "/app/materiais/novo"],
 ];
@@ -158,10 +158,10 @@ test("a ficha de um material não corta nada em nenhuma das quatro larguras", as
     await page.goto(href!);
     await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
     // "Materiais semelhantes" draws its weight rows once a basis is chosen.
-    // D-214: it starts folded on the sheet; open it, so its rows are measured.
+    // D-214: it starts folded on the sheet; open it, so its rows are measured too.
     await expect(page.locator("#semelhantes")).toBeVisible({ timeout: 45_000 });
-    await page.locator("#semelhantes h2 button").click();
-    await expect(page.locator("#semelhantes h2 button")).toHaveAttribute("aria-expanded", "true");
+    await page.locator("#semelhantes summary").first().click();
+    await expect(page.locator("#semelhantes details").first()).toHaveAttribute("open", "");
     await page.waitForLoadState("networkidle");
     await page.screenshot({ path: `test-results/larguras/material-${name}.png`, fullPage: true });
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -170,7 +170,7 @@ test("a ficha de um material não corta nada em nenhuma das quatro larguras", as
   }
 });
 
-test("a ficha de um processo e a página da família não cortam nada (D-214)", async ({ page }) => {
+test("a ficha de um processo e a página da família não cortam nada (D-215)", async ({ page }) => {
   await page.goto("/app/processos");
   const familyLink = page.locator('main a[href^="/app/processos/familia/"]').first();
   await expect(familyLink).toBeVisible({ timeout: 45_000 });

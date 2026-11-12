@@ -139,6 +139,40 @@ interface Band {
   height: number;
 }
 
+/**
+ * D-213: "Figura para relatório". A figure that leaves the page for a report
+ * or a thesis is laid out at a fixed size (3:2, the proportion of a figure
+ * across a page) instead of whatever the window happened to be, rasterised at
+ * 3× (3600 px wide, about 300 dpi across 30 cm), and carries the card's
+ * description and guide line under its title — the coverage ("12 de 14
+ * materiais plotados") is part of what the figure claims.
+ */
+export const REPORT_FIGURE = { width: 1200, height: 800, pngScale: 3 } as const;
+
+export interface FigureExportOptions {
+  report?: boolean;
+}
+
+/** The card's description and guide (`data-chart-description`/`-meta`), as one line under the title. */
+function subtitleBand(doc: Document, container: HTMLElement): Band | null {
+  const card = container.closest(".msds-chart-card");
+  const parts = ["[data-chart-description]", "[data-chart-meta]"]
+    .map((selector) => card?.querySelector<HTMLElement>(selector)?.textContent?.trim())
+    .filter((text): text is string => Boolean(text));
+  if (parts.length === 0) return null;
+  const source = card?.querySelector<HTMLElement>("[data-chart-description]") ?? container;
+  const style = window.getComputedStyle(source);
+  const group = svgEl(doc, "g", { "data-export": "subtitle" });
+  const node = svgEl(doc, "text", { x: 16, y: 14 });
+  node.setAttribute(
+    "style",
+    `fill:${style.color};font-family:${style.fontFamily};font-size:12px;font-weight:400`,
+  );
+  node.textContent = parts.join(" · ");
+  group.appendChild(node);
+  return { node: group, height: 22 };
+}
+
 /** The figure's title, as a band above it — the card title the page shows. */
 function titleBand(doc: Document, container: HTMLElement): Band | null {
   const card = container.closest(".msds-chart-card");
@@ -278,12 +312,15 @@ function compose(
   width: number,
   height: number,
   fontCss: string,
+  report = false,
 ): { markup: string; width: number; height: number } {
   const doc = document.implementation.createDocument(SVG_NS, "svg", null);
   const root = doc.documentElement as unknown as SVGSVGElement;
   const title = titleBand(doc, container);
+  const subtitle = report ? subtitleBand(doc, container) : null;
   const legend = legendBand(doc, container, width);
-  const top = title?.height ?? 8;
+  const titleHeight = title?.height ?? 8;
+  const top = titleHeight + (subtitle?.height ?? 0);
   const total = top + height + (legend ? legend.height + 8 : 8);
 
   // No explicit `xmlns` attribute: the root is created in the SVG namespace, so
@@ -299,6 +336,10 @@ function compose(
   }
   root.appendChild(svgEl(doc, "rect", { x: 0, y: 0, width, height: total, fill: backgroundOf(container) }));
   if (title) root.appendChild(title.node);
+  if (subtitle) {
+    subtitle.node.setAttribute("transform", `translate(0 ${titleHeight})`);
+    root.appendChild(subtitle.node);
+  }
 
   const placed = doc.importNode(figure, true) as SVGSVGElement;
   placed.setAttribute("x", "0");
@@ -401,15 +442,19 @@ async function embeddedFontCss(markup: string): Promise<string> {
  */
 export async function figureMarkup(
   container: HTMLElement,
+  options: FigureExportOptions = {},
 ): Promise<{ markup: string; width: number; height: number }> {
+  const report = options.report === true;
   const graph = container.querySelector<HTMLElement>(".js-plotly-plot");
   let figure: SVGSVGElement;
   let width: number;
   let height: number;
 
   if (graph) {
-    width = graph.clientWidth || 1100;
-    height = graph.clientHeight || 640;
+    // A report figure is laid out by Plotly at its own fixed size, not the
+    // window's: the same file whatever screen it was exported from.
+    width = report ? REPORT_FIGURE.width : graph.clientWidth || 1100;
+    height = report ? REPORT_FIGURE.height : graph.clientHeight || 640;
     const plotly = (await import("@/lib/plotly-custom")).default;
     const dataUrl = await plotly.toImage(graph, { format: "svg", width, height, scale: 1 });
     const comma = dataUrl.indexOf(",");
@@ -434,9 +479,9 @@ export async function figureMarkup(
     figure.removeAttribute("aria-label");
   }
 
-  const draft = compose(container, figure, width, height, "");
+  const draft = compose(container, figure, width, height, "", report);
   const fontCss = await embeddedFontCss(draft.markup);
-  return fontCss ? compose(container, figure, width, height, fontCss) : draft;
+  return fontCss ? compose(container, figure, width, height, fontCss, report) : draft;
 }
 
 /**
@@ -451,9 +496,10 @@ export async function exportFigure(
   format: "png" | "svg",
   fileName: string,
   deps?: Partial<RasterizeDeps>,
+  options: FigureExportOptions = {},
 ): Promise<void> {
   if (!container) throw new Error("Figure not rendered yet.");
-  const { markup } = await figureMarkup(container);
+  const { markup } = await figureMarkup(container, options);
   if (format === "svg") {
     const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n${markup}`], {
       type: "image/svg+xml;charset=utf-8",
@@ -461,5 +507,6 @@ export async function exportFigure(
     downloadBlob(blob, `${fileName}.svg`, deps);
     return;
   }
-  downloadBlob(await svgToPngBlob(markup, 2, deps), `${fileName}.png`, deps);
+  const scale = options.report ? REPORT_FIGURE.pngScale : 2;
+  downloadBlob(await svgToPngBlob(markup, scale, deps), `${fileName}.png`, deps);
 }

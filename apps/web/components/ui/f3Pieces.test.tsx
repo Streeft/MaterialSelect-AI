@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import type { PropertyValueOut } from "@/lib/types";
-import { DocSection, Outline } from "./Outline";
+import { fichaText } from "@/lib/i18n-ficha";
+import { SheetOutline } from "@/components/material/SheetOutline";
 
 const replace = vi.hoisted(() => vi.fn());
 const search = vi.hoisted(() => ({ current: "" }));
@@ -16,8 +17,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/useWindowClass", () => ({ useWindowClass: () => "expanded" }));
 
 const { PropertyGroupCard } = await import("@/components/PropertyGroup");
-
-const t = ptBR.ds;
 
 async function expectAccessible(container: Element) {
   const violations = await findA11yViolations(container);
@@ -62,7 +61,7 @@ beforeEach(() => {
   search.current = "";
 });
 
-describe("UnitChip — a unidade no valor (D-214)", () => {
+describe("UnitChip — a unidade no valor (D-215)", () => {
   it("writes the unit as a chip beside the number, and the number stays the server's", async () => {
     const { container } = render(
       <PropertyGroupCard group={{ category: "MECANICA", properties: [young()] }} units={UNITS} />,
@@ -119,44 +118,26 @@ describe("UnitChip — a unidade no valor (D-214)", () => {
   });
 });
 
-describe("DocSection e Outline (D-214)", () => {
-  function Page() {
-    return (
+describe("SheetOutline marca a seção lida (D-215)", () => {
+  it("clicking an entry marks it as the one being read and opens it", async () => {
+    const opened: string[] = [];
+    render(
       <div>
-        <Outline
+        <SheetOutline
           items={[
             { id: "a", label: "Propriedades" },
             { id: "b", label: "Curvas" },
           ]}
+          onNavigate={(id) => opened.push(id)}
         />
-        <DocSection id="a" title="Propriedades" description="Os valores.">
-          <p>Conteúdo A</p>
-        </DocSection>
-        <DocSection id="b" title="Curvas" defaultOpen={false}>
-          <p>Conteúdo B</p>
-        </DocSection>
-      </div>
+        <section id="a" />
+        <section id="b" />
+      </div>,
     );
-  }
-
-  it("folds and unfolds with the heading's button, the heading staying a heading", async () => {
-    const { container } = render(<Page />);
-    const toggle = screen.getByRole("button", { name: "Propriedades" });
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("heading", { level: 2, name: "Propriedades" })).toContainElement(toggle);
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Conteúdo A")).not.toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Propriedades" })).toBeInTheDocument();
-    await expectAccessible(container);
-  });
-
-  it("the index opens a folded section before it jumps there", async () => {
-    render(<Page />);
-    expect(screen.getByText("Conteúdo B")).not.toBeVisible();
-    const nav = screen.getByRole("navigation", { name: t.outline });
+    const nav = screen.getByRole("navigation", { name: fichaText.layout.outlineLabel });
     await userEvent.click(within(nav).getByRole("link", { name: "Curvas" }));
-    expect(screen.getByRole("button", { name: "Curvas" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Conteúdo B")).toBeVisible();
+    expect(opened).toEqual(["b"]);
+    expect(within(nav).getByRole("link", { name: "Curvas" })).toHaveAttribute("aria-current", "location");
+    expect(within(nav).getByRole("link", { name: "Propriedades" })).not.toHaveAttribute("aria-current");
   });
 });

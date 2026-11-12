@@ -180,10 +180,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   validado, sem número de material); escopo novo entra em `SavedViewScope` no backend e no `shared-types`. O layout do Painel é a
   linha `kind="layout"`. Glossário é wiki: verbete aberto no `SidePeek` pelo hash.
 
-- **Ficha é documento** ([D-214](docs/DECISIONS.md)): trilha + `PageDoc` (uma ação visível, o resto no "⋯") + `PropertyList` +
-  `DocSection` (botão `aria-expanded` dentro do `h2`, corpo `hidden`, nunca desmontado) e, em página longa, `Outline` na `.ds-doc-grid`.
-  Unidade de leitura é `UnitChip` no próprio valor (escolha na URL, D-70; quem converte é o servidor); nunca uma fileira de seletores
-  antes dos números. Grandeza de uma unidade e valor ausente não ganham chip.
+- **Ficha é documento** ([D-214](docs/DECISIONS.md), [D-215](docs/DECISIONS.md)): trilha + cabeça com uma ação visível e o resto no
+  "⋯" + seções em `CollapsibleSection` (montadas só ao abrir) com `SheetOutline` na `.sheet-layout`, que marca a seção lida; processo
+  e famílias seguem o mesmo molde. Unidade de leitura é `UnitChip` no próprio valor (escolha na URL, D-70; quem converte é o servidor);
+  nunca uma fileira de seletores antes dos números. Grandeza de uma unidade e valor ausente não ganham chip.
 
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de

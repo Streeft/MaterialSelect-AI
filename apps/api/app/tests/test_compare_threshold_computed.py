@@ -8,7 +8,7 @@ from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domain.spread import exceeds, spread_pct
+from app.domain.spread import best_ids, exceeds, spread_pct
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
@@ -294,3 +294,38 @@ def test_ceiling_is_unchanged() -> None:
     from app.schemas.charts import MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES
 
     assert (MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES) == (5000, 20)
+
+
+# --- best per property and "all equal" (D-214) -----------------------------
+
+
+def test_best_ids_follow_the_declared_direction_and_keep_ties() -> None:
+    values = {1: 10.0, 2: 30.0, 3: 30.0}
+    assert best_ids(values, "HIGHER") == [2, 3]
+    assert best_ids(values, "LOWER") == [1]
+
+
+def test_best_ids_name_nobody_when_a_badge_would_say_nothing() -> None:
+    assert best_ids({1: 10.0, 2: 30.0}, "NEUTRAL") == []
+    assert best_ids({1: 10.0}, "HIGHER") == []
+    assert best_ids({}, "LOWER") == []
+    assert best_ids({1: 5.0, 2: 5.0}, "HIGHER") == []
+
+
+def test_axis_carries_best_ids_and_all_equal(client: TestClient, db_session: Session) -> None:
+    ids = _ids(db_session)
+    body = _post(client, material_ids=ids).json()
+    by_slug = {axis["property_slug"]: axis for axis in body["properties"]}
+    definitions = {d.slug: d for d in db_session.execute(select(PropertyDefinition)).scalars()}
+    for slug, axis in by_slug.items():
+        assert isinstance(axis["best_material_ids"], list)
+        assert isinstance(axis["all_equal"], bool)
+        # Every id named best is one of the compared materials that has a value.
+        missing = set(axis["missing_material_ids"])
+        assert set(axis["best_material_ids"]) <= set(ids) - missing
+        # A neutral property never names a best.
+        if definitions[slug].better_direction.value == "NEUTRAL":
+            assert axis["best_material_ids"] == []
+        # "All equal" and "a best exists" exclude each other.
+        if axis["all_equal"]:
+            assert axis["best_material_ids"] == []

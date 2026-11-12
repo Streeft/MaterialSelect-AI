@@ -82,7 +82,7 @@ export function useUnitChoice(
 }
 
 /**
- * D-214: a unidade **no valor**. O "210 GPa" da ficha é o próprio controle:
+ * D-215: a unidade **no valor**. O "210 GPa" da ficha é o próprio controle:
  * a unidade é um chip que abre as unidades aceitas daquela grandeza, e
  * escolher uma relê só aquela propriedade (D-70, na URL; o servidor converte).
  *

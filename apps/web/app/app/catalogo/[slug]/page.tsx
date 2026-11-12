@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getClass, listClasses, listMaterials } from "@/lib/api";
 import { isNotFound } from "@/lib/errors";
@@ -17,16 +17,15 @@ import {
   Card,
   CardBody,
   DataQualityLegend,
-  DocSection,
   ErrorState,
   LoadingState,
-  Outline,
   PageDoc,
   PropertyList,
-  type OutlineItem,
 } from "@/components/ui";
 import { IconLayers } from "@/components/ui/icons";
 import { fichaText } from "@/lib/i18n-ficha";
+import { CollapsibleSection } from "@/components/material/CollapsibleSection";
+import { SheetOutline, type OutlineItem } from "@/components/material/SheetOutline";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.catalog;
@@ -62,6 +61,9 @@ export default function MaterialFamilyPage() {
     () => (materials.data ?? []).filter((m) => subtree.has(m.class_slug)),
     [materials.data, subtree],
   );
+
+  // D-215: which of the folding sections (D-215) are open; all start open.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   // D-207: the tab and the menu's "Recentes" carry the record's own name.
   usePageTitle(family.data?.name);
@@ -104,7 +106,7 @@ export default function MaterialFamilyPage() {
         ]}
       />
 
-      {/* D-214: a family is a document page in the sheets' mould — its counts
+      {/* D-215: a family is a document page in the sheets' mould — its counts
           as properties, then the sections that fold, with the side index. */}
       <PageDoc
         icon={<IconLayers className="h-5 w-5" />}
@@ -143,11 +145,22 @@ export default function MaterialFamilyPage() {
           characteristics={data.characteristics}
         />
 
-        <div className="ds-doc-grid">
-          <Outline items={outline} />
-          <div className="ds-doc-main">
+        <div className="sheet-layout">
+          <div className="sheet-grid">
+          <SheetOutline
+            items={outline}
+            label={fichaText.doc.familyOutline}
+            title={fichaText.doc.familyOutlineTitle}
+            onNavigate={(id) => setOpen((o) => ({ ...o, [id]: true }))}
+          />
+          <div className="flex min-w-0 flex-col gap-6">
             {hasChildren && (
-              <DocSection id="subclasses" title={f.subclasses}>
+              <CollapsibleSection
+                id="subclasses"
+                title={f.subclasses}
+                open={open.subclasses !== false}
+                onOpenChange={(next) => setOpen((o) => ({ ...o, subclasses: next }))}
+              >
                 <div className="flex flex-wrap gap-2">
                   {data.children.map((child) => (
                     <Link
@@ -163,12 +176,14 @@ export default function MaterialFamilyPage() {
                     </Link>
                   ))}
                 </div>
-              </DocSection>
+              </CollapsibleSection>
             )}
 
-            <DocSection
+            <CollapsibleSection
               id="materiais"
               title={f.inThisFamily}
+              open={open.materiais !== false}
+              onOpenChange={(next) => setOpen((o) => ({ ...o, materiais: next }))}
             >
               {materials.isLoading && <LoadingState label={t.loading} />}
               {materials.isError || classes.isError ? (
@@ -196,8 +211,9 @@ export default function MaterialFamilyPage() {
                   <DataQualityLegend />
                 </CardBody>
               </Card>
-            </DocSection>
+            </CollapsibleSection>
 
+          </div>
           </div>
         </div>
       </PageDoc>

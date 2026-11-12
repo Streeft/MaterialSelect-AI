@@ -1,28 +1,29 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   convertMapBox,
   createSavedChart,
-  deleteSavedChart,
   getPropertyMap,
   getSavedChart,
   listClasses,
+  listMapPresets,
   listPerformanceIndices,
   listProcessAttributes,
   listProcessClasses,
   listProperties,
   listSavedCharts,
+  moveIndexLine,
 } from "@/lib/api";
 import type {
   ChartScale,
   Goal,
   IndexIn,
-  PerformanceIndex,
-  PropertyDefinition,
+  IndexLineRequest,
+  MapPreset,
   PropertyMapRequest,
   SavedChartIn,
   SelectionUniverse,
@@ -30,36 +31,29 @@ import type {
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
 import { optionsAtLevel } from "@/lib/depth";
-import { encodeIdList } from "@/lib/idList";
-import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
-import { formatNumber, prettyUnit } from "@/lib/format";
-import { PropertyHint } from "@/components/glossary/PropertyHint";
+import { encodeIdList, parseIdList } from "@/lib/idList";
+import { formatNumber } from "@/lib/format";
+import { useUrlState } from "@/lib/urlState";
+import { useDebounced } from "@/lib/useDebounced";
+import { useWindowClass } from "@/lib/useWindowClass";
+import { atLeast } from "@/lib/design/breakpoints";
+import { useDepthLevel } from "@/components/DepthLevelPicker";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
   Alert,
   Button,
-  ButtonGroup,
-  ButtonGroupItem,
   ButtonLink,
   Card,
   CardBody,
-  CardHeader,
-  Checkbox,
   Dialog,
-  Disclosure,
   ErrorState,
   Input,
   LoadingState,
   PageHeader,
   Section,
-  Select,
-  SelectOption,
-  ToggleChip,
 } from "@/components/ui";
-import { ExpressionBuilder } from "@/components/expression/ExpressionBuilder";
+import { useAnnounce } from "@/components/ui/Announcer";
 import {
-  IndexCard,
-  IndexPicker,
   describeCustomIndex,
   describeIndex,
   type IndexDescriptor,
@@ -68,178 +62,71 @@ import {
   applyMapState,
   customizationsInUse,
   decodeMapState,
-  encodeMapState,
   mapUsesCustomization,
   type AxisState,
   type MapUrlState,
 } from "./url-state";
+import { MAP_LIVE_URL, isDefaultMapState } from "./mapUrl";
+import { resolveAxisIndex } from "./axisIndex";
+import { AxesPanel } from "./AxesPanel";
+import { CustomizePanel } from "./CustomizePanel";
+import { IndexLineControl } from "./IndexLineControl";
+import { SelectionPanel } from "./SelectionPanel";
+import { PointList } from "./PointList";
+import { activePresetSlug } from "./MapPresets";
 
 const t = ptBR.map;
 
-/** Comma-separated numeric ids from a query string, ignoring junk. */
-function parseIds(raw: string | null): number[] {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((part) => Number.parseInt(part.trim(), 10))
-    .filter((id) => Number.isInteger(id) && id > 0);
+/** Same ids, same array: a URL change elsewhere must not redraw the map (D-190). */
+function useStableIds(ids: number[]): number[] {
+  const key = ids.join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => ids, [key]);
 }
 
-/** The axis's index, resolved to a request-ready `IndexIn` — or null while incomplete. */
-function resolveAxisIndex(axis: AxisState, indices: PerformanceIndex[]): IndexIn | null {
-  if (axis.mode !== "index") return null;
-  if (axis.indexSlug === "custom") {
-    const expression = axis.customExpression.trim();
-    return expression ? { name: t.indexCustom, expression, goal: axis.goal } : null;
-  }
-  const chosen = indices.find((i) => i.slug === axis.indexSlug);
-  return chosen ? { name: chosen.name, expression: chosen.expression, goal: chosen.goal } : null;
-}
+const EMPTY_AXIS: AxisState = {
+  mode: "property",
+  property: "",
+  indexSlug: "",
+  customExpression: "",
+  goal: "maximize",
+};
 
-/** Same choice as `resolveAxisIndex`, kept whole so the card can explain the index. */
-function describeAxisIndex(axis: AxisState, indices: PerformanceIndex[]): IndexDescriptor | null {
-  if (axis.mode !== "index") return null;
-  if (axis.indexSlug === "custom") {
-    const expression = axis.customExpression.trim();
-    return expression ? describeCustomIndex(expression, axis.goal) : null;
-  }
-  const chosen = indices.find((i) => i.slug === axis.indexSlug);
-  return chosen ? describeIndex(chosen) : null;
-}
-
-/** One axis's controls: property picker, or index picker (predefined/custom). */
-function AxisControl({
-  label,
-  axis,
-  onChange,
-  properties,
-  indices,
-  dimension,
-  allowIndex = true,
-}: {
-  label: string;
-  axis: AxisState;
-  onChange: (next: AxisState) => void;
-  properties: { slug: string; name: string; canonical_unit?: string | null }[];
-  indices: PerformanceIndex[];
-  /** Dimension of the resolved index, once the map has computed it (ADR 0004). */
-  dimension?: string | null;
-  allowIndex?: boolean;
-}) {
-  const descriptor = describeAxisIndex(axis, indices);
-  const selectedProperty = properties.find((p) => p.slug === axis.property);
-
-  return (
-    <div className="flex min-w-[min(16rem,100%)] flex-1 flex-col gap-2">
-      {allowIndex && (
-        <ButtonGroup label={`${label} — ${t.axisTypeProperty.toLowerCase()}/${t.axisTypeIndex.toLowerCase()}`}>
-          <ButtonGroupItem
-            selected={axis.mode === "property"}
-            label={t.axisTypeProperty}
-            onClick={() => onChange({ ...axis, mode: "property" })}
-          />
-          <ButtonGroupItem
-            selected={axis.mode === "index"}
-            label={t.axisTypeIndex}
-            onClick={() => onChange({ ...axis, mode: "index" })}
-          />
-        </ButtonGroup>
-      )}
-
-      {axis.mode === "property" || !allowIndex ? (
-        <div className="flex items-end gap-2">
-        <Select
-          label={label}
-          className="min-w-0 flex-1"
-          value={axis.property}
-          onChange={(e) => onChange({ ...axis, property: e.target.value })}
-        >
-          {/* D-91: no unit in the option. The map reads in D-70 units
-              (g/cm³, GPa) and an offset unit stays canonical, so the stored
-              unit here ("[kg/m³]") contradicted the axis beside it. The
-              axis title, drawn from the map itself, is the one place the
-              unit is stated. */}
-          {properties.map((p) => (
-            <SelectOption key={p.slug} value={p.slug}>
-              {p.name}
-            </SelectOption>
-          ))}
-        </Select>
-        {/* GL-b: an <option> cannot hold a button, so the hint sits beside the
-            picker and follows the chosen property. Silent without an entry. */}
-        {selectedProperty && (
-          <PropertyHint
-            slug={selectedProperty.slug}
-            name={selectedProperty.name}
-            className="mb-2.5"
-          />
-        )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <p className="text-support text-ink-muted">{t.axisIndexHint}</p>
-          <Select
-            label={label}
-            className="min-w-0"
-            value={axis.indexSlug}
-            onChange={(e) => onChange({ ...axis, indexSlug: e.target.value })}
-          >
-            <SelectOption value="">{t.axisIndexChoose}</SelectOption>
-            {indices.map((i) => (
-              <SelectOption key={i.slug} value={i.slug}>
-                {i.name}
-              </SelectOption>
-            ))}
-            <SelectOption value="custom">{t.indexCustom}</SelectOption>
-          </Select>
-
-          {axis.indexSlug === "custom" && (
-            <div className="flex flex-col gap-2">
-              <ExpressionBuilder
-                label={t.expression}
-                value={axis.customExpression}
-                onChange={(next) => onChange({ ...axis, customExpression: next })}
-              />
-              <Select
-                label={t.goal}
-                value={axis.goal}
-                onChange={(e) => onChange({ ...axis, goal: e.target.value as Goal })}
-              >
-                <SelectOption value="maximize">{t.maximize}</SelectOption>
-                <SelectOption value="minimize">{t.minimize}</SelectOption>
-              </Select>
-            </div>
-          )}
-
-          {descriptor && <IndexCard index={descriptor} dimension={dimension} className="mt-1" />}
-        </div>
-      )}
-    </div>
-  );
-}
-
+/**
+ * `/app/mapas` (D-91, D-213): the map is the screen. This component holds the
+ * question and orchestrates; the pieces are `AxesPanel` (universe, axes,
+ * classic charts), `CustomizePanel` (drawing), `SelectionPanel` (what is
+ * selected and where it goes), `AshbyMap` (the figure) and `PointList` (the
+ * figure's points for the keyboard). Everything a reader sets lives in the
+ * address (`mapUrl.ts`), so a reload or a pasted link opens the same map.
+ */
 function MapsPageContent() {
   const params = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const announce = useAnnounce();
+  const [live, setLive] = useUrlState(MAP_LIVE_URL);
+  const wide = atLeast(useWindowClass(), "expanded");
 
-  // Decode URL state once on mount; read it only once, since the URL should not
-  // keep re-driving state after the user starts interacting.
-  const decodedState = useMemo(() => {
+  // Decode URL state once on mount; the URL should not keep re-driving state
+  // after the reader starts interacting (it follows the state instead).
+  const [decodedState] = useState(() => {
     const estado = params.get("estado");
     return estado ? decodeMapState(estado) : null;
-  }, [params]);
+  });
 
   const [universe, setUniverse] = useState<SelectionUniverse>(() => {
     if (decodedState?.universe) return decodedState.universe;
     return params.get("universo") === "process" ? "process" : "material";
   });
 
-  // Collapsed by default, open by itself when the link already customises
-  // something: collapsed hides the ways to add complexity, never what is in use
-  // (D-85, D-86).
+  // On a narrow window "Personalizar o mapa" stays a disclosure, collapsed
+  // unless the link already customises something (D-85, D-86); on a wide one
+  // it is always open beside the map (D-213).
   const [customizeOpen, setCustomizeOpen] = useState(() =>
     mapUsesCustomization({ ...decodedState, universe }),
   );
+  const customizeVisible = wide || customizeOpen;
 
   const [xAxis, setXAxis] = useState<AxisState>(() => ({
     mode: decodedState?.xAxis?.mode ?? "property",
@@ -274,20 +161,30 @@ function MapsPageContent() {
   const [showEnvelopes, setShowEnvelopes] = useState(decodedState?.showEnvelopes ?? true);
   const [showIntervals, setShowIntervals] = useState(decodedState?.showIntervals ?? true);
   const [showLabels, setShowLabels] = useState(decodedState?.showLabels ?? false);
+  const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
+  const [customExpression, setCustomExpression] = useState(decodedState?.customExpression ?? "");
+  const [indexGoal, setIndexGoal] = useState<Goal>(decodedState?.indexGoal ?? "maximize");
+  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(
+    decodedState?.levelMaterialIds ?? [],
+  );
+  const [numericLevels, setNumericLevels] = useState<number[]>(decodedState?.numericLevels ?? []);
+  const [levelDraft, setLevelDraft] = useState("");
 
-  // Selection box state for interactive region dragging (P1-2)
-  const [selectedBox, setSelectedBox] = useState<BoxSelection | null>(null);
+  // The selection and the movable line live in the address (D-213).
+  const box = live.box;
   const [handingOff, setHandingOff] = useState(false);
   const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<string>>(new Set());
+  const [focusId, setFocusId] = useState<number | null>(null);
+  const [hoverId, setHoverId] = useState<number | null>(null);
 
-  // Records carried over from a selection run, so a study can be read on the map.
-  // Memoised on the strings, not on `params` (D-190): every URL change (a
-  // level, a unit) gives `params` a new identity, and a new array here redraws
-  // the whole map for nothing.
-  const restrictedRaw = params.get(universe === "process" ? "processos" : "materiais");
-  const highlightRaw = params.get("destaque");
-  const restrictedIds = useMemo(() => parseIds(restrictedRaw), [restrictedRaw]);
-  const highlightIds = useMemo(() => parseIds(highlightRaw), [highlightRaw]);
+  // Records carried over from a selection run, so a study can be read on the
+  // map, and the map's own "Mostrar só estes" filter — the same parameter.
+  const restrictedIds = useStableIds(
+    universe === "process" ? live.restrictProcesses : live.restrictMaterials,
+  );
+  const highlightIds = useStableIds(parseIdList(params.get("destaque")));
+  const explicitSelection = useStableIds(live.selection);
 
   const properties = useQuery({
     queryKey: ["properties"],
@@ -303,6 +200,12 @@ function MapsPageContent() {
     queryKey: ["performance-indices"],
     queryFn: listPerformanceIndices,
     enabled: universe === "material",
+  });
+  const presets = useQuery({
+    queryKey: ["map-presets"],
+    queryFn: listMapPresets,
+    enabled: universe === "material",
+    staleTime: Infinity,
   });
   const processAttributes = useQuery({
     queryKey: ["process-attributes"],
@@ -384,27 +287,11 @@ function MapsPageContent() {
     if (next === universe) return;
     setUniverse(next);
     setSelectedClasses([]);
-    setSelectedBox(null);
-    setXAxis({
-      mode: "property",
-      property: "",
-      indexSlug: "",
-      customExpression: "",
-      goal: "maximize",
-    });
-    setYAxis({
-      mode: "property",
-      property: "",
-      indexSlug: "",
-      customExpression: "",
-      goal: "maximize",
-    });
+    setLive({ box: null, selection: [], line: null });
+    setXAxis(EMPTY_AXIS);
+    setYAxis(EMPTY_AXIS);
     setIndexMode("none");
   }
-
-  const [indexMode, setIndexMode] = useState(decodedState?.indexMode ?? "none"); // "none" | slug | "custom"
-  const [customExpression, setCustomExpression] = useState(decodedState?.customExpression ?? "");
-  const [indexGoal, setIndexGoal] = useState<Goal>(decodedState?.indexGoal ?? "maximize");
 
   const xResolvedIndex = useMemo(
     () => resolveAxisIndex(xAxis, indices.data ?? []),
@@ -415,8 +302,8 @@ function MapsPageContent() {
     [yAxis, indices.data],
   );
   // The overlay line needs two property axes (ChartService.property_map
-  // rejects the combination) — so it is unavailable, not属 redundant,
-  // the moment either axis becomes an index.
+  // rejects the combination) — so it is unavailable, not redundant, the
+  // moment either axis becomes an index.
   const anyAxisIsIndex = xAxis.mode === "index" || yAxis.mode === "index";
 
   const activeIndex = useMemo<IndexIn | null>(() => {
@@ -443,12 +330,6 @@ function MapsPageContent() {
     const chosen = indices.data?.find((i) => i.slug === indexMode);
     return chosen ? describeIndex(chosen) : null;
   }, [anyAxisIsIndex, indexMode, customExpression, indexGoal, indices.data]);
-
-  const [levelMaterialIds, setLevelMaterialIds] = useState<number[]>(
-    decodedState?.levelMaterialIds ?? [],
-  );
-  const [numericLevels, setNumericLevels] = useState<number[]>(decodedState?.numericLevels ?? []);
-  const [levelDraft, setLevelDraft] = useState("");
 
   const request = useMemo<PropertyMapRequest>(
     () => ({
@@ -518,27 +399,48 @@ function MapsPageContent() {
   });
 
   const overlay = map.data?.index ?? null;
-
   const mapPoints = map.data?.points;
+
+  // --- selection (D-213) -------------------------------------------------
+
   const pointsInBox = useMemo(() => {
-    if (!selectedBox || !mapPoints) return [];
-    const { xMin, xMax, yMin, yMax } = selectedBox;
-    return mapPoints.filter((p) => {
-      if (xMin !== null && p.x < xMin) return false;
-      if (xMax !== null && p.x > xMax) return false;
-      if (yMin !== null && p.y < yMin) return false;
-      if (yMax !== null && p.y > yMax) return false;
-      return true;
-    });
-  }, [selectedBox, mapPoints]);
+    if (!box || !mapPoints) return [];
+    const { xMin, xMax, yMin, yMax } = box;
+    return mapPoints
+      .filter((p) => {
+        if (xMin !== null && p.x < xMin) return false;
+        if (xMax !== null && p.x > xMax) return false;
+        if (yMin !== null && p.y < yMin) return false;
+        if (yMax !== null && p.y > yMax) return false;
+        return true;
+      })
+      .map((p) => p.material_id);
+  }, [box, mapPoints]);
+  const selectedIds = box ? pointsInBox : explicitSelection;
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const plottedIds = useMemo(
+    () => new Set((mapPoints ?? []).map((p) => p.material_id)),
+    [mapPoints],
+  );
+  const visiblePoints = useMemo(
+    () => (mapPoints ?? []).filter((p) => !hiddenSeries.has(`class:${p.class_slug}`)),
+    [mapPoints, hiddenSeries],
+  );
+
+  function togglePoint(id: number) {
+    const next = selectedSet.has(id)
+      ? selectedIds.filter((other) => other !== id)
+      : [...selectedIds, id];
+    setLive({ box: null, selection: next });
+  }
 
   function handleXAxisChange(next: AxisState) {
-    setSelectedBox(null);
+    setLive({ box: null });
     setXAxis(next);
   }
 
   function handleYAxisChange(next: AxisState) {
-    setSelectedBox(null);
+    setLive({ box: null });
     setYAxis(next);
   }
 
@@ -548,8 +450,192 @@ function MapsPageContent() {
     );
   }
 
-  // Save/load chart configuration state and handlers.
-  const queryClient = useQueryClient();
+  async function openBoxInSelection() {
+    if (!box) return;
+    // D-81: the box on screen is in reading units (g/cm³, GPa); the stage
+    // stores canonical ones. The backend converts it by the same rule the map
+    // was drawn with.
+    setHandoffError(null);
+    setHandingOff(true);
+    let stored;
+    try {
+      stored = (
+        await convertMapBox({
+          universe,
+          x: xAxis.mode === "property" ? effectiveXProperty : null,
+          y: yAxis.mode === "property" ? effectiveYProperty : null,
+          box: toMapBox(box),
+          to: "canonical",
+        })
+      ).box;
+    } catch (error) {
+      setHandoffError(describeApiError(error));
+      return;
+    } finally {
+      setHandingOff(false);
+    }
+    const query = new URLSearchParams();
+    query.set("etapa", "restricoes");
+    query.set("novo_estagio", "chart");
+    if (universe === "process") query.set("universo", "process");
+    if (xAxis.mode === "property") {
+      query.set("x_prop", effectiveXProperty);
+    } else if (xResolvedIndex) {
+      query.set("x_expr", xResolvedIndex.expression);
+    }
+    if (yAxis.mode === "property") {
+      query.set("y_prop", effectiveYProperty);
+    } else if (yResolvedIndex) {
+      query.set("y_expr", yResolvedIndex.expression);
+    }
+    if (stored.x_min !== null) query.set("x_min", String(stored.x_min));
+    if (stored.x_max !== null) query.set("x_max", String(stored.x_max));
+    if (stored.y_min !== null) query.set("y_min", String(stored.y_min));
+    if (stored.y_max !== null) query.set("y_max", String(stored.y_max));
+    router.push(`/app/selecao?${query.toString()}`);
+  }
+
+  function restrictToSelection() {
+    const ids = selectedIds;
+    setLive({
+      box: null,
+      selection: [],
+      ...(universe === "process" ? { restrictProcesses: ids } : { restrictMaterials: ids }),
+    });
+  }
+
+  // --- movable index line (D-213) ----------------------------------------
+
+  const lineAxes =
+    universe === "material" &&
+    xAxis.mode === "property" &&
+    yAxis.mode === "property" &&
+    Boolean(effectiveXProperty) &&
+    Boolean(effectiveYProperty) &&
+    !axisConflict;
+  const [lineActive, setLineActive] = useState(() => live.line !== null);
+  const [dragThrough, setDragThrough] = useState<{ x: number; y: number } | null>(null);
+  const debouncedThrough = useDebounced(dragThrough ? JSON.stringify(dragThrough) : null, 90);
+  const lineEnabled = lineActive && lineAxes && activeIndex !== null;
+
+  const lineRequest = useMemo<IndexLineRequest | null>(() => {
+    if (!lineEnabled || !activeIndex) return null;
+    const through = debouncedThrough
+      ? (JSON.parse(debouncedThrough) as { x: number; y: number })
+      : null;
+    return {
+      x: effectiveXProperty,
+      y: effectiveYProperty,
+      scale,
+      class_slugs: selectedClasses,
+      material_ids: restrictedIds.length > 0 ? restrictedIds : null,
+      index: activeIndex,
+      level: through ? null : live.line,
+      through,
+    };
+  }, [
+    lineEnabled,
+    activeIndex,
+    debouncedThrough,
+    effectiveXProperty,
+    effectiveYProperty,
+    scale,
+    selectedClasses,
+    restrictedIds,
+    live.line,
+  ]);
+
+  const indexLine = useQuery({
+    queryKey: ["index-line", JSON.stringify(lineRequest)],
+    queryFn: () => moveIndexLine(lineRequest as IndexLineRequest),
+    enabled: lineRequest !== null,
+    placeholderData: (previous) => previous,
+  });
+
+  // A fresh line starts where the backend put it (the median material); that
+  // level is then the one in the address.
+  useEffect(() => {
+    if (!lineEnabled || live.line !== null || dragThrough) return;
+    const value = indexLine.data?.value;
+    if (value !== null && value !== undefined && !indexLine.isPlaceholderData) {
+      setLive({ line: value });
+    }
+  }, [lineEnabled, live.line, dragThrough, indexLine.data, indexLine.isPlaceholderData, setLive]);
+
+  // A level belongs to its index and axes: when they change, the line starts over.
+  const lineContext = `${effectiveXProperty}|${effectiveYProperty}|${activeIndex?.expression ?? ""}|${activeIndex?.goal ?? ""}`;
+  const previousContext = useRef(lineContext);
+  useEffect(() => {
+    if (previousContext.current === lineContext) return;
+    previousContext.current = lineContext;
+    setLive({ line: null });
+  }, [lineContext, setLive]);
+
+  async function handleDragLine(point: { x: number; y: number }, phase: "move" | "end") {
+    setDragThrough(point);
+    if (phase !== "end" || !lineRequest) return;
+    const dropped: IndexLineRequest = { ...lineRequest, level: null, through: point };
+    try {
+      const result = await queryClient.fetchQuery({
+        queryKey: ["index-line", JSON.stringify(dropped)],
+        queryFn: () => moveIndexLine(dropped),
+      });
+      if (result.value !== null) setLive({ line: result.value });
+    } catch {
+      // The line query reports the failure; the line stays where it was.
+    } finally {
+      setDragThrough(null);
+    }
+  }
+
+  const lineData = lineEnabled ? indexLine.data : undefined;
+  const movableLine =
+    lineData && lineData.available && lineData.value !== null
+      ? {
+          points: lineData.points,
+          handle: lineData.handle,
+          label: t.lineLegend(formatNumber(lineData.value)),
+        }
+      : null;
+
+  // --- presets (D-213) -----------------------------------------------------
+
+  const activePreset =
+    universe === "material" && xAxis.mode === "property" && yAxis.mode === "property"
+      ? activePresetSlug(
+          presets.data,
+          effectiveXProperty,
+          effectiveYProperty,
+          activeIndex?.expression ?? null,
+        )
+      : null;
+
+  function applyPreset(preset: MapPreset) {
+    setXAxis({ ...EMPTY_AXIS, property: preset.x });
+    setYAxis({ ...EMPTY_AXIS, property: preset.y });
+    setScale(preset.scale);
+    setDisplayScale(preset.scale);
+    setLevelMaterialIds([]);
+    setNumericLevels([]);
+    const index = preset.index;
+    if (index) {
+      const catalogued = index.slug !== null && (indices.data ?? []).some((i) => i.slug === index.slug);
+      if (catalogued && index.slug) {
+        setIndexMode(index.slug);
+      } else {
+        setIndexMode("custom");
+        setCustomExpression(index.expression);
+        setIndexGoal(index.goal);
+      }
+    } else {
+      setIndexMode("none");
+    }
+    setLive({ box: null, line: null });
+    announce(t.presetApplied(preset.name));
+  }
+
+  // --- saved and shared maps ---------------------------------------------
+
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [chartNameDraft, setChartNameDraft] = useState("");
   const savedCharts = useQuery({
@@ -562,13 +648,6 @@ function MapsPageContent() {
     onSuccess: () => {
       setSaveDialogOpen(false);
       setChartNameDraft("");
-      queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (chartId: number) => deleteSavedChart(chartId),
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["saved-charts"] });
     },
   });
@@ -599,14 +678,22 @@ function MapsPageContent() {
     };
   }
 
+  // D-213: the map follows the reader into the address — not only when
+  // "Compartilhar" is pressed. The landing map stays out of it (a clean URL).
+  const currentState = getCurrentMapState();
+  const serializedState = JSON.stringify(currentState);
+  useEffect(() => {
+    const state = JSON.parse(serializedState) as MapUrlState;
+    setLive({ state: isDefaultMapState(state) ? null : state });
+  }, [serializedState, setLive]);
+
   /** Save the current configuration with the user-supplied name. */
   async function handleSaveChart() {
     const name = chartNameDraft.trim();
     if (!name) return;
-    const state = getCurrentMapState();
     await createMutation.mutateAsync({
       name,
-      configuration: state as unknown as Record<string, unknown>,
+      configuration: getCurrentMapState() as unknown as Record<string, unknown>,
     });
   }
 
@@ -621,8 +708,7 @@ function MapsPageContent() {
   async function handleLoadChart(chartId: number) {
     const chart = await getSavedChart(chartId);
     const decoded = chart.configuration as Partial<MapUrlState>;
-    const defaults = getCurrentMapState();
-    const applied = applyMapState(decoded, defaults);
+    const applied = applyMapState(decoded, getCurrentMapState());
 
     if (applied.universe) setUniverse(applied.universe);
     if (applied.xAxis) setXAxis(applied.xAxis as AxisState);
@@ -646,20 +732,13 @@ function MapsPageContent() {
     if (applied.levelMaterialIds) setLevelMaterialIds(applied.levelMaterialIds);
     if (applied.numericLevels) setNumericLevels(applied.numericLevels);
     if (mapUsesCustomization(applied)) setCustomizeOpen(true);
+    setLive({ box: null, line: null });
   }
 
-  /** Build and share the current map state as a URL. */
+  /** Copy the address: it already carries the whole map (D-213). */
   async function shareMap() {
     try {
-      const state = getCurrentMapState();
-      const encoded = encodeMapState(state);
-      const url = `${window.location.origin}${window.location.pathname}?estado=${encoded}`;
-
-      // Update URL without adding to history.
-      router.replace(`?estado=${encoded}`);
-
-      // Copy to clipboard.
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(window.location.href);
     } catch (err) {
       console.error("Failed to share:", err);
     }
@@ -681,7 +760,10 @@ function MapsPageContent() {
     }
   }
 
-  const inUse = customizationsInUse(getCurrentMapState());
+  // The universe is in the axes panel now, always in view: only what the
+  // collapsed panel hides is listed as "in use".
+  const inUse = customizationsInUse(currentState).filter((key) => key !== "universe");
+  const restrictedCount = restrictedIds.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -698,19 +780,13 @@ function MapsPageContent() {
             >
               {t.save}
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => void shareMap()}
-              title={t.shareTooltip}
-            >
+            <Button size="sm" variant="ghost" onClick={() => void shareMap()} title={t.shareTooltip}>
               {t.share}
             </Button>
           </>
         }
       />
 
-      {/* Save chart dialog */}
       <Dialog
         open={saveDialogOpen}
         onClose={() => {
@@ -757,111 +833,41 @@ function MapsPageContent() {
       </Dialog>
 
       {/* D-91: the map is the screen. It takes the main column at the
-          viewport's height; the axes and "Personalizar" live in a panel
-          beside it on wide screens, and under it on a phone — where the map
-          still comes first, because the default axes already draw one. */}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+          viewport's height; the panels live beside it on wide screens, and
+          under it on a phone — where the map still comes first, because the
+          default axes already draw one. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
         <div className="flex min-w-0 flex-col gap-4">
           {axisConflict && (
             <Alert tone="warning" role="alert">
               {sameExpression ? t.sameExpressionAxis : t.sameAxis}
             </Alert>
           )}
+          {restrictedCount > 0 ? (
+            <Alert tone="info">
+              <span className="flex flex-wrap items-center gap-2">
+                {t.restrictedNotice(restrictedCount)}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setLive(
+                      universe === "process" ? { restrictProcesses: [] } : { restrictMaterials: [] },
+                    )
+                  }
+                >
+                  {t.showAll}
+                </Button>
+              </span>
+            </Alert>
+          ) : null}
           {map.isLoading && !axisConflict && <LoadingState label={t.loading} />}
           {map.isError && (
-            <ErrorState
-              title={t.error} error={map.error}
-              onRetry={() => void map.refetch()}
-            />
+            <ErrorState title={t.error} error={map.error} onRetry={() => void map.refetch()} />
           )}
 
           {map.data && (
             <>
-              {selectedBox && (
-                <Card className="border-brand-300 bg-brand-50/40 dark:border-brand-800 dark:bg-brand-950/20">
-                  <CardBody className="flex flex-wrap items-center justify-between gap-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-caption font-semibold text-brand-700 dark:text-brand-300">
-                        {t.selectedRegionTitle}
-                      </span>
-                      <span className="text-body text-ink">
-                        {t.selectedRegionBounds(
-                          `${selectedBox.xMin !== null ? formatNumber(selectedBox.xMin) : "—"} a ${selectedBox.xMax !== null ? formatNumber(selectedBox.xMax) : "—"} ${prettyUnit(map.data.x_axis.unit)}`,
-                          `${selectedBox.yMin !== null ? formatNumber(selectedBox.yMin) : "—"} a ${selectedBox.yMax !== null ? formatNumber(selectedBox.yMax) : "—"} ${prettyUnit(map.data.y_axis.unit)}`,
-                        )}
-                      </span>
-                      <span className="text-caption text-ink-muted">
-                        {t.selectedCount(pointsInBox.length)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setSelectedBox(null)}
-                      >
-                        {t.clearSelection}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        loading={handingOff}
-                        onClick={async () => {
-                          // D-81: the box on screen is in reading units (g/cm³, GPa);
-                          // the stage stores canonical ones. The backend converts it
-                          // by the same rule the map was drawn with.
-                          setHandoffError(null);
-                          setHandingOff(true);
-                          let stored;
-                          try {
-                            stored = (
-                              await convertMapBox({
-                                universe,
-                                x: xAxis.mode === "property" ? effectiveXProperty : null,
-                                y: yAxis.mode === "property" ? effectiveYProperty : null,
-                                box: toMapBox(selectedBox),
-                                to: "canonical",
-                              })
-                            ).box;
-                          } catch (error) {
-                            setHandoffError(describeApiError(error));
-                            return;
-                          } finally {
-                            setHandingOff(false);
-                          }
-                          const query = new URLSearchParams();
-                          query.set("etapa", "restricoes");
-                          query.set("novo_estagio", "chart");
-                          if (universe === "process") {
-                            query.set("universo", "process");
-                          }
-                          if (xAxis.mode === "property") {
-                            query.set("x_prop", effectiveXProperty);
-                          } else if (xAxis.mode === "index") {
-                            const res = resolveAxisIndex(xAxis, indices.data ?? []);
-                            if (res) query.set("x_expr", res.expression);
-                          }
-                          if (yAxis.mode === "property") {
-                            query.set("y_prop", effectiveYProperty);
-                          } else if (yAxis.mode === "index") {
-                            const res = resolveAxisIndex(yAxis, indices.data ?? []);
-                            if (res) query.set("y_expr", res.expression);
-                          }
-                          if (stored.x_min !== null) query.set("x_min", String(stored.x_min));
-                          if (stored.x_max !== null) query.set("x_max", String(stored.x_max));
-                          if (stored.y_min !== null) query.set("y_min", String(stored.y_min));
-                          if (stored.y_max !== null) query.set("y_max", String(stored.y_max));
-                          router.push(`/app/selecao?${query.toString()}`);
-                        }}
-                      >
-                        {t.useInSelection} →
-                      </Button>
-                    </div>
-                    {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
-                  </CardBody>
-                </Card>
-              )}
-
               <AshbyMap
                 map={map.data}
                 displayScale={displayScale}
@@ -872,8 +878,29 @@ function MapsPageContent() {
                 showIntervals={showIntervals}
                 showLabels={showLabels}
                 enableBoxSelect
-                selectionBox={selectedBox}
-                onSelectBox={setSelectedBox}
+                enableLasso
+                selectionBox={box}
+                onSelectBox={(next: BoxSelection | null) => setLive({ box: next, selection: [] })}
+                onSelectPoints={(ids) => setLive({ box: null, selection: ids })}
+                selectedIds={selectedIds}
+                activeId={focusId}
+                onHoverPoint={setHoverId}
+                hiddenSeries={hiddenSeries}
+                onHiddenSeriesChange={setHiddenSeries}
+                movableLine={movableLine}
+                onDragLine={(point, phase) => void handleDragLine(point, phase)}
+                reportExport
+                recordLabel={universe === "process" ? t.columnProcess : undefined}
+              />
+
+              <PointList
+                points={visiblePoints}
+                xAxis={map.data.x_axis}
+                yAxis={map.data.y_axis}
+                selected={selectedSet}
+                hoverId={hoverId}
+                onFocusPoint={setFocusId}
+                onToggle={togglePoint}
                 recordLabel={universe === "process" ? t.columnProcess : undefined}
               />
 
@@ -924,334 +951,130 @@ function MapsPageContent() {
           )}
         </div>
 
-        {/* The axes are the question and stay in view; everything else only
-            changes the drawing and waits in "Personalizar o mapa" (D-86). */}
+        {/* The question and the selection stay in view; the drawing options
+            are a panel of their own (D-86, D-213). */}
         <aside
           id="controles"
           aria-labelledby="controles-titulo"
           // Below the sticky search bar (72 px, as the supporting pane of D-182),
-          // not under it (D-190).
-          className="lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
+          // not under it (D-190). The panels keep their height (`shrink-0`): a
+          // `.msds-card` hides its overflow, so a squeezed one would cut its
+          // own controls instead of letting the aside scroll.
+          className="flex flex-col gap-4 [&>*]:shrink-0 lg:sticky lg:top-[72px] lg:max-h-[calc(100dvh-72px-1.5rem)] lg:overflow-y-auto lg:overscroll-contain"
         >
-          <Card>
-            <CardHeader
-              headingLevel={2}
-              title={<span id="controles-titulo">{t.controls}</span>}
-              description={t.axesHint}
-            />
-            <CardBody className="flex flex-col gap-4">
-              {universe === "material" && (
-                <DepthLevelPicker
-                  summary={ptBR.depth.optionsCount(
+          <SelectionPanel
+            universe={universe}
+            selectedIds={selectedIds}
+            plottedIds={plottedIds}
+            box={box}
+            xUnit={map.data?.x_axis.unit ?? ""}
+            yUnit={map.data?.y_axis.unit ?? ""}
+            handingOff={handingOff}
+            handoffError={handoffError}
+            onOpenInSelection={() => void openBoxInSelection()}
+            onRestrict={restrictToSelection}
+            onClear={() => setLive({ box: null, selection: [] })}
+          />
+          <AxesPanel
+            universe={universe}
+            onUniverse={handleUniverseChange}
+            depthSummary={
+              universe === "material"
+                ? ptBR.depth.optionsCount(
                     depthLevel,
                     optionsAtLevel(properties.data ?? [], depthLevel).length,
                     properties.data?.length ?? 0,
-                  )}
+                  )
+                : null
+            }
+            presets={presets.data}
+            presetsError={presets.isError}
+            activePreset={activePreset}
+            onPreset={applyPreset}
+            xAxis={{ ...xAxis, property: effectiveXProperty }}
+            yAxis={{ ...yAxis, property: effectiveYProperty }}
+            onXAxis={handleXAxisChange}
+            onYAxis={handleYAxisChange}
+            allowIndex={{
+              x: universe === "material" && (customizeVisible || xAxis.mode === "index"),
+              y: universe === "material" && (customizeVisible || yAxis.mode === "index"),
+            }}
+            axisOptions={axisOptions}
+            indices={universe === "material" ? (indices.data ?? []) : []}
+            xDimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
+            yDimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
+            savedCharts={savedCharts.data}
+            onLoadChart={(id) => void handleLoadChart(id)}
+          />
+          <CustomizePanel
+            wide={wide}
+            open={customizeOpen}
+            onOpenChange={setCustomizeOpen}
+            inUseSummary={
+              inUse.length > 0
+                ? t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))
+                : null
+            }
+            state={{
+              universe,
+              displayScale,
+              envelopeShape,
+              showEnvelopes,
+              showIntervals,
+              showLabels,
+              selectedClasses,
+              indexMode,
+              customExpression,
+              indexGoal,
+              levelMaterialIds,
+              levelDraft,
+            }}
+            actions={{
+              onScale: (option) => {
+                setDisplayScale(option);
+                setScale(option);
+              },
+              onEnvelopeShape: setEnvelopeShape,
+              onShowEnvelopes: setShowEnvelopes,
+              onShowIntervals: setShowIntervals,
+              onShowLabels: setShowLabels,
+              onClearClasses: () => setSelectedClasses([]),
+              onToggleClass: toggleClass,
+              onIndexMode: setIndexMode,
+              onCustomExpression: setCustomExpression,
+              onIndexGoal: setIndexGoal,
+              onAddLevelMaterial: (id) => {
+                if (!levelMaterialIds.includes(id)) setLevelMaterialIds([...levelMaterialIds, id]);
+              },
+              onLevelDraft: setLevelDraft,
+              onAddNumericLevel: addNumericLevel,
+              onRemoveLevel: removeLevel,
+            }}
+            classes={availableClasses}
+            indices={indices.data ?? []}
+            anyAxisIsIndex={anyAxisIsIndex}
+            indexDescriptor={indexDescriptor}
+            overlay={overlay}
+            hasActiveIndex={activeIndex !== null}
+            points={map.data?.points ?? []}
+            movableLine={
+              lineAxes ? (
+                <IndexLineControl
+                  active={lineActive}
+                  line={lineData}
+                  loading={indexLine.isFetching}
+                  error={indexLine.isError}
+                  onActivate={() => setLineActive(true)}
+                  onRemove={() => {
+                    setLineActive(false);
+                    setLive({ line: null });
+                  }}
+                  onStep={(value) => setLive({ line: value })}
+                  onSelectBetter={(ids) => setLive({ box: null, selection: ids })}
                 />
-              )}
-              <AxisControl
-                label={t.axisX}
-                axis={{
-                  ...xAxis,
-                  property: effectiveXProperty,
-                }}
-                onChange={handleXAxisChange}
-                allowIndex={
-                  universe === "material" && (customizeOpen || xAxis.mode === "index")
-                }
-                properties={axisOptions}
-                indices={universe === "material" ? (indices.data ?? []) : []}
-                dimension={map.data?.x_axis.is_index ? map.data.x_axis.unit : undefined}
-              />
-
-              <AxisControl
-                label={t.axisY}
-                axis={{
-                  ...yAxis,
-                  property: effectiveYProperty,
-                }}
-                onChange={handleYAxisChange}
-                allowIndex={
-                  universe === "material" && (customizeOpen || yAxis.mode === "index")
-                }
-                properties={axisOptions}
-                indices={universe === "material" ? (indices.data ?? []) : []}
-                dimension={map.data?.y_axis.is_index ? map.data.y_axis.unit : undefined}
-              />
-              {/* Saved charts picker */}
-              {(savedCharts.data?.length ?? 0) > 0 && (
-                <div className="subsection flex flex-col gap-2">
-                  <Select
-                    label={t.savedCharts}
-                    value=""
-                    onChange={(e) => {
-                      const id = Number(e.target.value);
-                      if (Number.isInteger(id) && id > 0) {
-                        void handleLoadChart(id);
-                      }
-                    }}
-                  >
-                    <SelectOption value="">{t.savedCharts}</SelectOption>
-                    {(savedCharts.data ?? []).map((chart) => (
-                      <SelectOption key={chart.id} value={String(chart.id)}>
-                        {chart.name}
-                      </SelectOption>
-                    ))}
-                  </Select>
-                </div>
-              )}
-
-              <Disclosure
-                flush
-                summary={t.customize}
-                open={customizeOpen}
-                onOpenChange={setCustomizeOpen}
-              >
-                <div className="flex flex-col gap-4 pt-2">
-                  <p className="text-support text-ink-muted">{t.customizeHint}</p>
-                  <div className="flex flex-col gap-4">
-                    <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-body font-semibold text-ink">{t.groupUniverseScale}</h3>
-                      <div className="flex flex-wrap items-start gap-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-caption font-medium text-ink-muted">{t.universeTitle}</span>
-                          <ButtonGroup label={t.universeTitle}>
-                            <ButtonGroupItem
-                              selected={universe === "material"}
-                              label={t.universeMaterials}
-                              onClick={() => handleUniverseChange("material")}
-                            />
-                            <ButtonGroupItem
-                              selected={universe === "process"}
-                              label={t.universeProcesses}
-                              onClick={() => handleUniverseChange("process")}
-                            />
-                          </ButtonGroup>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <span className="text-caption font-medium text-ink-muted">{t.scale}</span>
-                          <ButtonGroup label={t.scale}>
-                            {(["linear", "log"] as ChartScale[]).map((option) => (
-                              <ButtonGroupItem
-                                key={option}
-                                selected={displayScale === option}
-                                label={option === "linear" ? t.linear : t.log}
-                                onClick={() => {
-                                  setDisplayScale(option);
-                                  setScale(option);
-                                }}
-                              />
-                            ))}
-                          </ButtonGroup>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <span className="text-caption font-medium text-ink-muted">{t.envelope}</span>
-                          <ButtonGroup label={t.envelope}>
-                            {(["hull", "ellipse"] as const).map((option) => (
-                              <ButtonGroupItem
-                                key={option}
-                                selected={envelopeShape === option}
-                                label={option === "hull" ? t.convexHull : t.adjustedEllipse}
-                                onClick={() => setEnvelopeShape(option)}
-                              />
-                            ))}
-                          </ButtonGroup>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-body font-semibold text-ink">{t.groupDisplay}</h3>
-                      <div className="flex flex-col gap-2">
-                        <Checkbox
-                          label={t.envelopes}
-                          checked={showEnvelopes}
-                          onChange={(e) => setShowEnvelopes(e.target.checked)}
-                        />
-                        <Checkbox
-                          label={t.intervals}
-                          checked={showIntervals}
-                          onChange={(e) => setShowIntervals(e.target.checked)}
-                        />
-                        <Checkbox
-                          label={t.labels}
-                          checked={showLabels}
-                          onChange={(e) => setShowLabels(e.target.checked)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="subsection flex flex-col gap-3">
-                      <h3 className="text-body font-semibold text-ink">{t.groupClasses}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <ToggleChip
-                          selected={selectedClasses.length === 0}
-                          onClick={() => setSelectedClasses([])}
-                        >
-                          {t.allClasses}
-                        </ToggleChip>
-                        {availableClasses.map((c) => (
-                          <ToggleChip
-                            key={c.slug}
-                            selected={selectedClasses.includes(c.slug)}
-                            onClick={() => toggleClass(c.slug)}
-                          >
-                            {c.name}
-                          </ToggleChip>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="subsection flex flex-col gap-3">
-                      <div>
-                        <h3 className="text-body font-semibold text-ink">{t.groupIndex}</h3>
-                        <p className="text-support text-ink-muted">{t.indexHint}</p>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        {universe === "process" ? (
-                          <Alert tone="info">{t.processIndexWarning}</Alert>
-                        ) : anyAxisIsIndex ? (
-                          <Alert tone="info">{t.indexAxisConflict}</Alert>
-                        ) : (
-                          <>
-                            <IndexPicker
-                              indices={indices.data ?? []}
-                              value={indexMode}
-                              onChange={setIndexMode}
-                              customSlot={
-                                <div className="flex flex-col gap-3">
-                                  <ExpressionBuilder
-                                    label={t.expression}
-                                    value={customExpression}
-                                    onChange={setCustomExpression}
-                                  />
-                                  <Select
-                                    label={t.goal}
-                                    value={indexGoal}
-                                    onChange={(e) => setIndexGoal(e.target.value as Goal)}
-                                  >
-                                    <SelectOption value="maximize">{t.maximize}</SelectOption>
-                                    <SelectOption value="minimize">{t.minimize}</SelectOption>
-                                  </Select>
-                                </div>
-                              }
-                            />
-
-                            {/* The slope shown here is the one the backend computed for these
-                                two axes — the card never derives it (ADR 0004). */}
-                            {indexDescriptor && (
-                              <IndexCard
-                                index={indexDescriptor}
-                                dimension={overlay?.dimension}
-                                indexLine={
-                                  overlay
-                                    ? {
-                                        available: overlay.available,
-                                        orientation: overlay.orientation,
-                                        slope: overlay.slope,
-                                        unavailableReason: overlay.unavailable_reason,
-                                      }
-                                    : null
-                                }
-                              />
-                            )}
-
-                            {activeIndex && (
-                              <div className="flex flex-col gap-2">
-                                <div className="flex flex-wrap items-end gap-3">
-                                  <Select
-                                    label={t.levelThrough}
-                                    hint={t.levelsHint}
-                                    className="min-w-[min(14rem,100%)]"
-                                    value=""
-                                    onChange={(e) => {
-                                      const id = Number(e.target.value);
-                                      if (Number.isInteger(id) && !levelMaterialIds.includes(id)) {
-                                        setLevelMaterialIds([...levelMaterialIds, id]);
-                                      }
-                                    }}
-                                  >
-                                    <SelectOption value="">{t.levelNone}</SelectOption>
-                                    {(map.data?.points ?? [])
-                                      .filter(
-                                        (p) =>
-                                          p.index_value !== null &&
-                                          !levelMaterialIds.includes(p.material_id),
-                                      )
-                                      .map((p) => (
-                                        <SelectOption key={p.material_id} value={String(p.material_id)}>
-                                          {p.material_name}
-                                        </SelectOption>
-                                      ))}
-                                  </Select>
-
-                                  {/* Text with a decimal keypad, not `type="number"`: a
-                                      pt-BR reader types "2,7" and a number input drops what
-                                      it cannot parse, without saying so. */}
-                                  <Input
-                                    label={t.levelValue}
-                                    className="w-40"
-                                    value={levelDraft}
-                                    inputMode="decimal"
-                                    onChange={(e) => setLevelDraft(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        addNumericLevel();
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    size="sm"
-                                    onClick={addNumericLevel}
-                                    disabled={!Number.isFinite(Number(levelDraft.replace(",", ".")))}
-                                  >
-                                    {t.levelAdd}
-                                  </Button>
-                                </div>
-
-                                {overlay && overlay.levels.length > 0 && (
-                                  <ul className="flex flex-col gap-1">
-                                    {overlay.levels.map((level) => (
-                                      <li
-                                        key={`${level.value}-${level.material_id ?? "n"}`}
-                                        className="flex flex-wrap items-center gap-2 text-caption text-ink-muted"
-                                      >
-                                        <span>
-                                          M = {formatNumber(level.value)}
-                                          {level.material_name ? ` (${level.material_name})` : ""} —{" "}
-                                          {t.superior(level.superior_material_ids.length)}
-                                        </span>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => removeLevel(level.material_id, level.value)}
-                                          aria-label={`${ptBR.actions.remove}: M = ${formatNumber(level.value)}`}
-                                        >
-                                          {ptBR.actions.remove}
-                                        </Button>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Disclosure>
-
-              {!customizeOpen && inUse.length > 0 ? (
-                <p className="text-support text-ink-muted" role="status">
-                  {t.customizeInUse(inUse.map((key) => t.customizationLabels[key]))}
-                </p>
-              ) : null}
-            </CardBody>
-          </Card>
+              ) : null
+            }
+          />
         </aside>
       </div>
     </div>

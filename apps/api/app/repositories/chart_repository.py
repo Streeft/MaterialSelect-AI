@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
+from app.models.performance_index import PerformanceIndex
 from app.models.process import Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
@@ -97,6 +98,10 @@ class ChartRepository:
 
     def list_properties(self) -> list[PropertyDefinition]:
         stmt = select(PropertyDefinition).order_by(PropertyDefinition.slug)
+        return list(self.db.execute(stmt).scalars().all())
+
+    def list_performance_indices(self) -> list[PerformanceIndex]:
+        stmt = select(PerformanceIndex).order_by(PerformanceIndex.slug)
         return list(self.db.execute(stmt).scalars().all())
 
     def get_process_attribute(self, slug: str) -> ProcessAttributeDefinition | None:

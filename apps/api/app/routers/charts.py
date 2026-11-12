@@ -20,8 +20,11 @@ from app.models.user import User
 from app.schemas.charts import (
     CompareOut,
     CompareRequest,
+    IndexLineOut,
+    IndexLineRequest,
     MapBoxOut,
     MapBoxRequest,
+    MapPresetOut,
     PropertyMapOut,
     PropertyMapRequest,
 )
@@ -50,6 +53,26 @@ def map_box(
 ) -> MapBoxOut:
     """Convert a Chart Stage region between map reading units and canonical units (D-81)."""
     return ChartService(db, user.id, unit_choices).map_box(payload)
+
+
+@router.get("/presets", response_model=list[MapPresetOut])
+def map_presets(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[MapPresetOut]:
+    """The classic Ashby charts (axes, scale, index) and whether this catalogue can draw each."""
+    return ChartService(db, user.id).map_presets()
+
+
+@router.post("/index-line", response_model=IndexLineOut)
+def move_index_line(
+    payload: IndexLineRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> IndexLineOut:
+    """Place an iso-index line at a level or through a map point; split the map by it (D-211)."""
+    return ChartService(db, user.id, unit_choices).index_line(payload)
 
 
 @router.post("/compare", response_model=CompareOut)

@@ -38,7 +38,7 @@ function NewMaterialContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* D-214: a new record opens as the document it will be — the same head
+      {/* D-215: a new record opens as the document it will be — the same head
           as a sheet, under the catalogue it joins. */}
       <Breadcrumb
         items={[

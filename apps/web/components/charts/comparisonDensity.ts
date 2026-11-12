@@ -12,6 +12,14 @@
 /** Series count past which a figure draws in its dense form. */
 export const DENSE_FROM = 30;
 
+/**
+ * Complete materials up to which a radar is still readable (D-214). Past it the
+ * polygons overlap into one blot and the legend outgrows the figure, so the view
+ * advises parallel coordinates or the heatmap and offers "draw it anyway": the
+ * selection is never cut (D-187), only the reader's first view of it.
+ */
+export const RADAR_READABLE_UP_TO = 12;
+
 /** Rows the shared tooltip lists before it shows only the series under the pointer. */
 export const TOOLTIP_ROWS = 8;
 

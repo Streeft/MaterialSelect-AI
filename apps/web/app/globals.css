@@ -1706,6 +1706,32 @@ div[data-surface="rail"] .msds-rail-item {
    the rows' own width, not the window's: fixed tracks (`lg:grid-cols-[1fr_8rem_14rem_11rem]`)
    asked for ~40rem inside a ~29rem column and `.msds-card { overflow: hidden }`
    cut the excess off. Every track is `minmax(0, …)`, so nothing can force it wider. */
+/* D-213: the index picker's cards in two columns only when the picker itself
+   has room for them — not when the window does (the map's side panel). */
+.index-picker { container-type: inline-size; container-name: index-picker; min-width: 0; }
+.index-picker-grid { grid-template-columns: minmax(0, 1fr); }
+@container index-picker (min-width: 30rem) {
+  .index-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* D-214: the material sheet's frame. The outline sits beside the sections only
+   when the sheet's own box has room for it (the dark sidebar already took its
+   share of the window); below that it is a wrapping row above them. The pair of
+   composition/designations splits by its own width for the same reason. */
+.sheet-layout { container-type: inline-size; container-name: sheet-layout; min-width: 0; }
+.sheet-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sheet-outline-title { display: none; }
+.sheet-outline-list { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+@container sheet-layout (min-width: 64rem) {
+  .sheet-grid { grid-template-columns: 11rem minmax(0, 1fr); gap: 24px; }
+  .sheet-outline { position: sticky; top: 72px; }
+  .sheet-outline-title { display: block; margin-bottom: 4px; }
+  .sheet-outline-list { flex-direction: column; flex-wrap: nowrap; gap: 0; }
+}
+.sheet-pair { container-type: inline-size; container-name: sheet-pair; min-width: 0; }
+.sheet-pair-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+@container sheet-pair (min-width: 48rem) {
+  .sheet-pair-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .similar-weights { container-type: inline-size; container-name: similar-weights; min-width: 0; }
 .similar-weight-row { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 @container similar-weights (min-width: 30rem) {
@@ -2155,7 +2181,7 @@ div[data-surface="rail"] .msds-rail-item {
   font-size: 1rem; font-weight: 600; color: rgb(var(--rail-ink));
 }
 
-/* D-214: the unit on the value — a quiet assist chip that opens the units. */
+/* D-215: the unit on the value — a quiet assist chip that opens the units. */
 .ds-unit-chip {
   display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 4px 0 6px;
   border: 1px solid rgb(var(--m3-outline-variant)); border-radius: var(--shape-small);
@@ -2172,7 +2198,7 @@ div[data-surface="rail"] .msds-rail-item {
 .ds-unit-option:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: -2px; }
 @media (pointer: coarse) { .ds-unit-option { min-height: var(--target-min); } }
 
-/* D-214: a property card narrower than 480 px stacks the name over the value,
+/* D-215: a property card narrower than 480 px stacks the name over the value,
    instead of wrapping "Coeficiente de Poisson" one word per line in a third. */
 .ds-prop-table-box { container-type: inline-size; }
 @container (max-width: 480px) {
@@ -2180,41 +2206,6 @@ div[data-surface="rail"] .msds-rail-item {
   .ds-prop-table th { width: auto; padding-bottom: 0; }
   .ds-prop-table td { padding-top: 4px; }
 }
-
-/* D-214: a document page — the content and, from lg, the side index in view. */
-.ds-doc-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
-.ds-doc-main { display: flex; min-width: 0; flex-direction: column; gap: 32px; }
-.ds-outline-list { display: flex; flex-wrap: wrap; gap: 4px; }
-.ds-outline-title { margin-bottom: 4px; }
-.ds-outline-link {
-  display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: var(--shape-full);
-  border: 1px solid rgb(var(--m3-outline-variant)); color: rgb(var(--ink-muted));
-}
-.ds-outline-link[aria-current="location"] { color: rgb(var(--m3-primary)); font-weight: 600; }
-.ds-outline-link:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 1px; }
-@media (min-width: 1024px) {
-  .ds-doc-grid { grid-template-columns: minmax(0, 1fr) 13rem; gap: 40px; }
-  .ds-doc-grid > .ds-outline { grid-column: 2; grid-row: 1; position: sticky; top: 80px; align-self: start; max-height: calc(100vh - 96px); overflow-y: auto; }
-  .ds-doc-grid > .ds-doc-main { grid-column: 1; grid-row: 1; }
-  .ds-doc-grid .ds-outline-list { flex-direction: column; flex-wrap: nowrap; gap: 0; border-left: 1px solid rgb(var(--border-divider)); }
-  .ds-doc-grid .ds-outline-link {
-    display: flex; min-height: 32px; margin-left: -1px; padding: 0 12px; border: 0; border-left: 2px solid transparent;
-    border-radius: 0 var(--shape-small) var(--shape-small) 0;
-  }
-  .ds-doc-grid .ds-outline-link[aria-current="location"] { border-left-color: rgb(var(--m3-primary)); }
-}
-/* A jump lands the heading under the app bar, not behind it. */
-.ds-doc-section { scroll-margin-top: 80px; }
-
-/* D-214: a toggle heading — the chevron folds the section, Notion's toggle. */
-.ds-toggle-heading {
-  display: inline-flex; align-items: center; gap: 6px; margin-left: -6px; padding: 2px 6px;
-  border-radius: var(--shape-small); color: inherit; font: inherit; text-align: left;
-}
-.ds-toggle-heading:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 1px; }
-.ds-toggle-chevron { flex: none; color: rgb(var(--ink-muted)); transition: transform var(--motion-effects-fast-dur) var(--motion-effects-fast); }
-@media (prefers-reduced-motion: reduce) { .ds-toggle-chevron { transition: none; } }
-:root[data-motion="reduced"] .ds-toggle-chevron { transition: none; }
 
 /* m3-roles:begin (generated by lib/design/m3Roles.test.ts, npm run tokens:m3; do not edit) */
 :root {

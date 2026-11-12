@@ -8,17 +8,10 @@
  * `i18n.test.ts` keeps the two copies equal.
  */
 export const fichaText = {
-  // D-214: the sheet as a document page.
+  // D-215: the process and family pages in the sheets' mould.
   doc: {
-    classLabel: "Classe",
-    recordLabel: "Registro",
-    referencesLabel: "Referências",
-    keywordsLabel: "Palavras-chave",
-    active: "Ativo",
-    mapTitle: "No mapa",
-    renamed: (name: string) => `Nome salvo: ${name}.`,
-    renameError: "Não foi possível salvar o novo nome.",
-    familyTitle: "Família",
+    familyOutline: "Seções da família",
+    familyOutlineTitle: "Nesta família",
     processesLabel: "Processos",
     materialsLabel: "Materiais",
     subfamiliesLabel: "Subfamílias",
@@ -80,5 +73,19 @@ export const fichaText = {
       `${title}. Trajetória, percorrida do primeiro ao último ponto de cada série. A tabela de pontos equivalente abre pelo botão “Tabela”.`,
     seriesOrder: "percorrida do primeiro ao último ponto",
     columnOrder: "Ordem no caminho",
+  },
+  /** D-214: the sheet's frame: outline, summary strip, folded sections. */
+  layout: {
+    outlineLabel: "Seções da ficha",
+    outlineTitle: "Nesta ficha",
+    quickLabel: "Resumo da ficha",
+    processesSummary: (n: number) => (n === 1 ? "1 processo compatível" : `${n} processos compatíveis`),
+    processesNone: "Nenhum processo cadastrado para este material",
+    goToProcesses: "Ver processos",
+    similarSummary: "Materiais parecidos pelas propriedades que você escolher",
+    goToSimilar: "Buscar materiais parecidos",
+    mapHint:
+      "O gráfico só é carregado quando você abre esta seção. O mapa completo tem todos os materiais e os outros eixos.",
+    foldedHint: "Seção dobrada: abra para carregar o conteúdo.",
   },
 } as const;

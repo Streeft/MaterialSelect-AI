@@ -42,7 +42,6 @@ export {
   type QualityState,
 } from "./DataQualityBadge";
 export { DensityToggle } from "./DensityToggle";
-export { DocSection, Outline, OPEN_SECTION_EVENT, type OutlineItem } from "./Outline";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export {

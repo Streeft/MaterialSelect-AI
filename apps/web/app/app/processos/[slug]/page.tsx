@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProcess } from "@/lib/api";
 import type { ProcessAttributeValue } from "@/lib/types";
@@ -16,7 +17,6 @@ import {
   CardBody,
   DataQualityBadge,
   DataQualityLegend,
-  DocSection,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui";
 import { IconGear } from "@/components/ui/icons";
 import { fichaText } from "@/lib/i18n-ficha";
+import { CollapsibleSection } from "@/components/material/CollapsibleSection";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.processes;
@@ -54,6 +55,8 @@ export default function ProcessDetailPage() {
   });
 
   useRecordVisit("process", process.data?.id);
+  // D-215: the sheets' folding section (D-215), open: it is what the page is for.
+  const [attributesOpen, setAttributesOpen] = useState(true);
 
   // D-207: the tab and the menu's "Recentes" carry the record's own name.
   usePageTitle(process.data?.name);
@@ -76,7 +79,7 @@ export default function ProcessDetailPage() {
         ]}
       />
 
-      {/* D-214: the process sheet in the material sheet's mould — a document
+      {/* D-215: the process sheet in the material sheet's mould — a document
           page whose properties sit in one aligned list, with the attributes
           below in a section that folds. */}
       <PageDoc
@@ -114,7 +117,13 @@ export default function ProcessDetailPage() {
           <p className="max-w-prose text-body text-ink">{data.description}</p>
         ) : null}
 
-        <DocSection id="atributos" title={t.attributes} description={t.attributesHint}>
+        <CollapsibleSection
+          id="atributos"
+          title={t.attributes}
+          description={t.attributesHint}
+          open={attributesOpen}
+          onOpenChange={setAttributesOpen}
+        >
           {data.attributes.length === 0 ? (
             <EmptyState title={t.noAttributes} />
           ) : (
@@ -127,7 +136,7 @@ export default function ProcessDetailPage() {
               <DataQualityLegend />
             </CardBody>
           </Card>
-        </DocSection>
+        </CollapsibleSection>
       </PageDoc>
     </div>
   );

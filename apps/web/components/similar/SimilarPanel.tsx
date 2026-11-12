@@ -35,7 +35,7 @@ import {
   ErrorState,
   Input,
   RowHeader,
-  DocSection,
+  Section,
   Select,
   SelectOption,
   TBody,
@@ -101,13 +101,16 @@ function NamedList({
 export function SimilarPanel({
   material,
   unitChoices,
-  defaultOpen = true,
+  embedded = false,
 }: {
   material: MaterialDetail;
   /** The reader's units (D-70): they only print the tolerance bands. */
   unitChoices?: Record<string, string>;
-  /** D-214: a section of the sheet that folds; the sheet starts it folded. */
-  defaultOpen?: boolean;
+  /**
+   * D-214: inside a folded section of the sheet, which already has the heading,
+   * the description and the anchor. Without it the panel is its own `Section`.
+   */
+  embedded?: boolean;
 }) {
   const [basis, setBasis] = useState<string[]>(() => proposedBasis(material));
   const properties = useQuery({
@@ -245,8 +248,7 @@ export function SimilarPanel({
 
   const result = search.data;
 
-  return (
-    <DocSection id="semelhantes" title={t.title} description={t.hint} defaultOpen={defaultOpen}>
+  const body = (
       <Card>
         <CardBody className="flex flex-col gap-4">
           <fieldset className="flex min-w-0 flex-col gap-2">
@@ -516,7 +518,14 @@ export function SimilarPanel({
           )}
         </CardBody>
       </Card>
-    </DocSection>
+  );
+
+  return embedded ? (
+    body
+  ) : (
+    <Section id="semelhantes" title={t.title} description={t.hint}>
+      {body}
+    </Section>
   );
 }
 

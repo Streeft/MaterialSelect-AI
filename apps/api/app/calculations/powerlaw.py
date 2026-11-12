@@ -91,6 +91,24 @@ class IndexLine:
             return None
         return float(value)
 
+    def level_at(self, x: float, y: float) -> float | None:
+        """Return the index value ``M`` of the contour that passes through ``(x, y)``.
+
+        The inverse of :meth:`y_for_x`: a reader drags the line to a point of the
+        map and the level is read off the expression itself (D-211). ``None`` when
+        the point is not in the positive quadrant or the arithmetic fails — never
+        a clamped or invented level.
+        """
+        if x <= 0 or y <= 0:
+            return None
+        try:
+            value = self.coefficient * x**self.x_exponent * y**self.y_exponent
+        except (ZeroDivisionError, OverflowError, ValueError):
+            return None
+        if isinstance(value, complex) or not math.isfinite(value):
+            return None
+        return float(value)
+
     def x_for_level(self, level: float) -> float | None:
         """Return the abscissa of a vertical contour at ``level``."""
         if self.orientation != "vertical":
@@ -102,6 +120,93 @@ class IndexLine:
         if isinstance(value, complex) or not math.isfinite(value) or value <= 0:
             return None
         return float(value)
+
+
+#: How many positions the "move the index line" slider offers (D-211).
+LEVEL_STEP_COUNT = 41
+
+
+def _three_figures(value: float) -> float:
+    """``value`` to three significant figures — a level a reader can type back."""
+    if value == 0 or not math.isfinite(value):
+        return value
+    return float(f"{value:.3g}")
+
+
+def level_steps(values: list[float], count: int = LEVEL_STEP_COUNT) -> list[float]:
+    """Candidate index levels between the smallest and largest defined value.
+
+    The positions of the slider that moves an index line (D-211): the client
+    only picks one of them and never interpolates a level itself (ADR 0004).
+    Geometric spacing when every value is positive — on a log map equal steps
+    of ``log M`` are equal shifts of the line —, arithmetic otherwise. A single
+    value is widened by half a decade each way so the line still has somewhere
+    to go. Rounded to three significant figures and deduplicated, ascending.
+    """
+    finite = sorted(v for v in values if math.isfinite(v))
+    if not finite or count < 2:
+        return []
+    low, high = finite[0], finite[-1]
+    geometric = low > 0
+    if low == high:
+        if not geometric:
+            return [_three_figures(low)]
+        low, high = low / 10**0.5, high * 10**0.5
+    if geometric:
+        ratio = (high / low) ** (1.0 / (count - 1))
+        raw = [low * ratio**i for i in range(count)]
+    else:
+        step = (high - low) / (count - 1)
+        raw = [low + step * i for i in range(count)]
+    steps: list[float] = []
+    for value in raw:
+        rounded = _three_figures(value)
+        if not steps or rounded > steps[-1]:
+            steps.append(rounded)
+    return steps
+
+
+def median_level(values: list[float]) -> float | None:
+    """The middle defined index value — where a fresh movable line starts.
+
+    A material's own value (the lower middle for an even count), so the line
+    first passes through something the catalogue states, not through an
+    average nobody measured.
+    """
+    finite = sorted(v for v in values if math.isfinite(v))
+    if not finite:
+        return None
+    return finite[(len(finite) - 1) // 2]
+
+
+def nearest_step(steps: list[float], level: float) -> int | None:
+    """Index of the slider position nearest to ``level``.
+
+    Measured in ``log M`` when everything is positive (the spacing the steps
+    were built with), in ``M`` otherwise.
+    """
+    if not steps:
+        return None
+    if level > 0 and steps[0] > 0:
+        target = math.log(level)
+        return min(range(len(steps)), key=lambda i: abs(math.log(steps[i]) - target))
+    return min(range(len(steps)), key=lambda i: abs(steps[i] - level))
+
+
+def segment_handle(segment: list[list[float]], log: bool) -> list[float] | None:
+    """The middle of a drawn index segment, in the map's own scale.
+
+    Where the drag handle sits: the geometric mean of the endpoints on a log
+    map (the visual middle there), the arithmetic mean on a linear one.
+    """
+    if len(segment) != 2:
+        return None
+    (x0, y0), (x1, y1) = segment
+    if log:
+        if min(x0, y0, x1, y1) <= 0:
+            return None
+        return [math.sqrt(x0 * x1), math.sqrt(y0 * y1)]
+    return [(x0 + x1) / 2, (y0 + y1) / 2]
 
 
 def as_monomial(expression: str) -> Monomial:

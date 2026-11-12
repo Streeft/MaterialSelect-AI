@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProcessClass } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import {
   Breadcrumb,
-  DocSection,
   ErrorState,
   LoadingState,
   PageDoc,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import { IconLayers } from "@/components/ui/icons";
 import { fichaText } from "@/lib/i18n-ficha";
+import { CollapsibleSection } from "@/components/material/CollapsibleSection";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { usePageTitle } from "@/lib/pageTitle";
 
@@ -38,6 +39,9 @@ export default function ProcessFamilyPage() {
     queryFn: () => getProcessClass(slug),
     enabled: Boolean(slug),
   });
+
+  // D-215: which of the folding sections (D-215) are open; both start open.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   // D-207: the tab and the menu's "Recentes" carry the record's own name.
   usePageTitle(family.data?.name);
@@ -64,7 +68,7 @@ export default function ProcessFamilyPage() {
         ]}
       />
 
-      {/* D-214: the family in the sheets' mould — counts as properties, the
+      {/* D-215: the family in the sheets' mould — counts as properties, the
           processes and sub-families in sections that fold. */}
       <PageDoc
         icon={<IconLayers className="h-5 w-5" />}
@@ -99,9 +103,11 @@ export default function ProcessFamilyPage() {
           characteristics={data.characteristics}
         />
 
-        <DocSection
+        <CollapsibleSection
           id="processos"
           title={fichaText.doc.processesLabel}
+          open={open.processos !== false}
+          onOpenChange={(next) => setOpen((o) => ({ ...o, processos: next }))}
         >
           {data.processes.length === 0 ? (
             // Absence written out, and the two absences are not the same: a folder
@@ -126,10 +132,15 @@ export default function ProcessFamilyPage() {
               ))}
             </ul>
           )}
-        </DocSection>
+        </CollapsibleSection>
 
         {hasChildren && (
-          <DocSection id="subfamilias" title={t.subfamilies}>
+          <CollapsibleSection
+            id="subfamilias"
+            title={t.subfamilies}
+            open={open.subfamilias !== false}
+            onOpenChange={(next) => setOpen((o) => ({ ...o, subfamilias: next }))}
+          >
             <div className="flex flex-wrap gap-2">
               {data.children.map((child) => (
                 <Link
@@ -145,7 +156,7 @@ export default function ProcessFamilyPage() {
                 </Link>
               ))}
             </div>
-          </DocSection>
+          </CollapsibleSection>
         )}
       </PageDoc>
     </div>

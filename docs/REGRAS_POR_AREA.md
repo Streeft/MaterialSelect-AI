@@ -435,7 +435,7 @@ e tração compartilham dimensão e se leem em GPa, MPa e MPa. A escolha do leit
 vive na **URL** (D-63), restrita a `accepted_units`, e unidade fora do conjunto é
 recusada com as admitidas escritas. Na ficha, a escolha se faz **no próprio valor**:
 a unidade é um `UnitChip` que abre as unidades aceitas daquela grandeza
-([D-214](DECISIONS.md)); voltar à convenção tira a escolha da URL.
+([D-215](DECISIONS.md)); voltar à convenção tira a escolha da URL.
 
 **A leitura é acrescentada, nunca substitui:** `value_scalar` guarda o que a
 fonte disse, os campos `display_*` saem ao lado, e um documento exportado carrega
@@ -449,7 +449,20 @@ elipse, a linha de índice e a comparação do Chart Stage continuam canônicos 
 D-60 fica de pé —, e uma unidade que não é puro fator de escala **não entra num
 mapa**, com a razão escrita.
 
-## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212)
+## Gráficos, figuras e MSDS (D-80, D-81, D-211, D-212, D-213, D-214)
+
+**Comparar e Ficha (D-214).** "Melhor" de uma propriedade e "todos iguais" vêm do backend (`best_material_ids`, `all_equal`,
+`domain/spread.best_ids`); o componente não decide se maior ou menor ganha. Seção longa da ficha usa `CollapsibleSection`
+(heading no resumo de um `<details>`, `<section id>` sempre renderizada, corpo montado só depois de aberto), e dado que só
+ela usa é pedido ao abrir (`enabled` pela seção aberta). Largura do sumário e do par composição/designações decide por
+consulta de contêiner (`.sheet-layout`, `.sheet-pair`), nunca pela janela. A ficha tem uma ação primária no `PageHeader` e o
+resto no "⋯". Radar acima de 12 materiais completos sugere outra visão e pede confirmação para desenhar; a seleção nunca é cortada.
+
+**Mapas (D-213).** A linha de índice móvel vem de `POST /api/charts/index-line` (segmento, alça, lados, passos); o
+cliente só manda o nível escolhido entre os `steps` ou o ponto do ponteiro em coordenadas de dado (`p2d` do Plotly), nunca
+calcula um M. Mapas clássicos são dados do backend (`domain/map_presets.py`: eixos, escala, índice; nenhum número de
+material). Seleção (caixa, laço, lista) e linha móvel vão para a URL pelo `useUrlState` (`mapas/mapUrl.ts`); ids vindos
+da URL são memorizados pela string para não redesenhar o mapa (D-190). Painel no `aside` com `.msds-card` não encolhe.
 
 **Padrões de página (D-212).** Ação de página vai no `PageHeader` por papel: `secondaryActions`, `overflow` (o "⋯", só
 `MenuItem`) e `primaryAction` (no máximo um `primary`), nessa ordem; trilha de detalhe em `breadcrumb`. Calculadora é

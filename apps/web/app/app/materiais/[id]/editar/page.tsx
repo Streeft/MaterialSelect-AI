@@ -35,7 +35,7 @@ export default function EditMaterialPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* D-214: editing is the sheet's own page, one step further — the
+      {/* D-215: editing is the sheet's own page, one step further — the
           trail leads back to it, and the head is the document's, so the form
           reads as the sheet open for writing, not as another screen. */}
       {material.data ? (
