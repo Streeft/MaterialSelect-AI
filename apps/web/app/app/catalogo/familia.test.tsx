@@ -101,7 +101,7 @@ const note: FamilyNoteEntry = {
 const notesMock = vi.fn(() => Promise.resolve([note]));
 
 /**
- * D-215: the page asks the catalogue search, and the server resolves the
+ * D-217: the page asks the catalogue search, and the server resolves the
  * subtree; this stand-in does what the server does for the fixture tree.
  * `extraTotal` pretends the family holds more than one page.
  */
@@ -160,7 +160,7 @@ describe("a ficha da família de material", () => {
     expect(within(table).queryByShadowRole("link", { name: /Polipropileno/ })).toBeNull();
   });
 
-  it("pede ao servidor uma página da família, não o catálogo inteiro (D-215)", async () => {
+  it("pede ao servidor uma página da família, não o catálogo inteiro (D-217)", async () => {
     searchMock.mockClear();
     render(wrap(<MaterialFamilyPage />));
     await screen.findByShadowRole("table");
@@ -171,7 +171,7 @@ describe("a ficha da família de material", () => {
     expect(screen.queryByShadowRole("navigation", { name: ptBR.ds.pagination })).toBeNull();
   });
 
-  it("mostra a paginação quando a família passa de uma página (D-215)", async () => {
+  it("mostra a paginação quando a família passa de uma página (D-217)", async () => {
     searchState.extraTotal = 120;
     render(wrap(<MaterialFamilyPage />));
     const nav = await screen.findByShadowRole("navigation", { name: ptBR.ds.pagination });

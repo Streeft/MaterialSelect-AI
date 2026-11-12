@@ -66,7 +66,7 @@ export function filtersDiffer(
 
 export type { SavedView };
 
-/** D-215: filters and kind kept by the screen (see `useDatabaseView`'s `store`). */
+/** D-217: filters and kind kept by the screen (see `useDatabaseView`'s `store`). */
 export interface ViewStore<K extends string> {
   filters: Record<K, string | null>;
   /** Applies `update` to the filters as they are at write time. */
@@ -97,7 +97,7 @@ export function useDatabaseView<K extends string>({
   defaultKind: "table" | "gallery" | "list";
   onCreated?: (view: SavedView) => void;
   /**
-   * D-215: where the filters and the kind live when the screen keeps them
+   * D-217: where the filters and the kind live when the screen keeps them
    * elsewhere (the URL, `useUrlState`). Absent, this hook keeps them itself.
    */
   store?: ViewStore<K>;

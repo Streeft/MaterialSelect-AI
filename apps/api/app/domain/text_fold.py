@@ -1,4 +1,4 @@
-"""Accent- and case-folding shared by Python and SQL (D-215).
+"""Accent- and case-folding shared by Python and SQL (D-217).
 
 The catalogue search compares text in the database, the palette compares it in
 Python (D-207). Both must agree that "aco", "AÇO" and "aço" are the same word,

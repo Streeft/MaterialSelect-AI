@@ -1299,7 +1299,9 @@ export const ptBR = {
 
   // D-70: a unidade em que o leitor lê.
   units: {
-    readIn: "Ler em:",
+    // D-215: the unit is the control, on the value itself.
+    chipLabel: (name: string, unit: string) => `Unidade de ${name}: ${unit}. Trocar a unidade de leitura`,
+    chipTitle: (name: string) => `Ler ${name} em`,
     readingNote:
       "Os valores estão na unidade em que cada grandeza se lê. O que a fonte registrou, e a unidade canônica em que o valor é guardado, continuam na proveniência de cada número.",
     canonicalNote: "Unidade canônica:",
@@ -2186,7 +2188,7 @@ export const ptBR = {
     // The summary badge on a row/card. Absence is stated, never left blank.
     qualityBreakdown: "Composição dos dados",
     noValues: "Nenhuma propriedade cadastrada",
-    // D-215: páginas, chips com contagem, ordem, colunas e o valor ordenado.
+    // D-217: páginas, chips com contagem, ordem, colunas e o valor ordenado.
     filterDemo: "Demonstração",
     demoOnly: "Só dados de demonstração",
     demoNone: "Sem dados de demonstração",
@@ -3130,7 +3132,7 @@ export const ptBR = {
     anyValue: "Qualquer",
     filterChip: (field: string, value: string) => `${field}: ${value}`,
     removeFilter: (field: string) => `Remover o filtro ${field}`,
-    // D-215: quantos materiais a opção deixaria, os outros filtros aplicados.
+    // D-217: quantos materiais a opção deixaria, os outros filtros aplicados.
     optionCount: (label: string, count: number) =>
       `${label}, ${count.toLocaleString("pt-BR")} ${count === 1 ? "resultado" : "resultados"}`,
     pagination: "Paginação",
@@ -3141,6 +3143,9 @@ export const ptBR = {
     noMoreFilters: "Todos os filtros já estão na barra.",
     moreActions: "Mais ações",
     titleLabel: "Título",
+    outline: "Nesta página",
+    expandSection: (title: string) => `Mostrar ${title}`,
+    collapseSection: (title: string) => `Recolher ${title}`,
     templates: "Comece por um modelo",
     sidePeekOpen: "Abrir página",
     close: "Fechar",

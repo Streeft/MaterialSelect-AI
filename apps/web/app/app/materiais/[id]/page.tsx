@@ -12,12 +12,7 @@ import {
   getMaterial,
   listProperties,
 } from "@/lib/api";
-import {
-  UNITS_PARAM,
-  UnitPicker,
-  parseUnitChoices,
-} from "@/components/UnitPicker";
-import type { MaterialDetail, PropertyGroup } from "@/lib/types";
+import { UNITS_PARAM, parseUnitChoices } from "@/components/UnitPicker";
 import { errorsText } from "@/lib/i18n-errors";
 import { ptBR } from "@/lib/i18n";
 import { flowText } from "@/lib/i18n-flow";
@@ -28,7 +23,7 @@ import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { useKeepOfflineSheet } from "@/components/material/useKeepOfflineSheet";
 import { classVisual } from "@/lib/design/palette";
-import { PropertyGroupCard } from "@/components/PropertyGroup";
+import { PropertyGroupCard, type UnitOptions } from "@/components/PropertyGroup";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
 import { PropertyChart } from "@/components/PropertyChart";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
@@ -127,8 +122,12 @@ export default function MaterialDetailPage() {
     queryKey: ["properties"],
     queryFn: listProperties,
   });
-  const acceptedBySlug = new Map(
-    (properties.data ?? []).map((d) => [d.slug, d.accepted_units ?? []]),
+  // D-215: what each quantity can be read in, for the unit chip on its value.
+  const unitOptions: UnitOptions = new Map(
+    (properties.data ?? []).map((d) => [
+      d.slug,
+      { accepted: d.accepted_units ?? [], convention: d.display_unit },
+    ]),
   );
 
   // Density × Young's modulus is the demonstrative Ashby-style map for the MVP.
@@ -433,19 +432,17 @@ export default function MaterialDetailPage() {
                       {atLevel.groups.length === 0 && (
                         <EmptyState title={ptBR.depth.noneAtLevel(depthLevel)} />
                       )}
-                      <UnitChoices
-                        groups={atLevel.groups}
-                        acceptedBySlug={acceptedBySlug}
-                        startOpen={unitChoices !== undefined && Object.keys(unitChoices).length > 0}
-                      />
+                      {/* D-215: the unit is chosen on the value itself (UnitChip),
+                          not in a block of selectors before the numbers. */}
                       {atLevel.groups.map((g) => (
-                        <PropertyGroupCard key={g.category} group={g} />
+                        <PropertyGroupCard key={g.category} group={g} units={unitOptions} />
                       ))}
                       {/* The legend, once per sheet: the badges next to each value
                           are only readable if the vocabulary is within reach. */}
                       <Card>
-                        <CardBody>
+                        <CardBody className="flex flex-col gap-2">
                           <DataQualityLegend />
+                          <p className="text-caption text-ink-muted">{ptBR.units.readingNote}</p>
                         </CardBody>
                       </Card>
                     </>
@@ -639,53 +636,5 @@ export default function MaterialDetailPage() {
         </>
       )}
     </div>
-  );
-}
-
-/**
- * Em que unidade esta ficha está sendo lida (D-70).
- *
- * Um seletor por grandeza que tem alternativa, num lugar só: um `<select>` ao
- * lado de cada valor transformaria a coluna de números — que é o que a ficha
- * existe para mostrar — numa fileira de controles. As grandezas com uma unidade
- * só não aparecem, porque um seletor de uma opção afirma que existe escolha.
- *
- * A nota diz o que não mudou: a proveniência de cada número continua guardando
- * o que a fonte registrou e a unidade canônica. Sem ela, um leitor poderia
- * concluir que trocar a unidade reescreveu o dado.
- */
-function UnitChoices({
-  groups,
-  acceptedBySlug,
-  startOpen,
-}: {
-  groups: MaterialDetail["property_groups"];
-  acceptedBySlug: Map<string, string[]>;
-  /** The link already carries a unit choice (D-70): hiding it would hide what changed the numbers. */
-  startOpen: boolean;
-}) {
-  const choosable = (groups as PropertyGroup[])
-    .flatMap((g) => g.properties)
-    .filter((p) => (acceptedBySlug.get(p.property_slug) ?? []).length > 1);
-
-  if (choosable.length === 0) return null;
-
-  // D-214: dozens of selectors in a row were the first thing a reader met on the
-  // sheet; folded, they are one line that says how many there are.
-  return (
-    <Disclosure summary={fichaText.layout.unitsSummary(choosable.length)} defaultOpen={startOpen}>
-      <div className="flex flex-col gap-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {choosable.map((p) => (
-            <UnitPicker
-              key={p.property_slug}
-              property={p}
-              acceptedUnits={acceptedBySlug.get(p.property_slug) ?? []}
-            />
-          ))}
-        </div>
-        <p className="text-caption text-ink-muted">{ptBR.units.readingNote}</p>
-      </div>
-    </Disclosure>
   );
 }

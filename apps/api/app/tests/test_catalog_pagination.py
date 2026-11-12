@@ -1,4 +1,4 @@
-"""The catalogue as pages (D-215): limit/offset/total, chips with counts, order, relevance.
+"""The catalogue as pages (D-217): limit/offset/total, chips with counts, order, relevance.
 
 The seed has five demo materials; the fixtures below add a small family with a
 child class so the subtree rule and the relevance tiers each have a witness.

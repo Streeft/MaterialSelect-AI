@@ -272,7 +272,7 @@ export function searchMaterials(query?: string | CatalogQuery): Promise<Material
 }
 
 /**
- * D-215: one catalogue question — the text, the chips, the order and the page.
+ * D-217: one catalogue question — the text, the chips, the order and the page.
  * Every field is optional; an omitted `limit` brings every match, as before.
  */
 export interface CatalogQuery {

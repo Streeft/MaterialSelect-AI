@@ -65,7 +65,7 @@ const savedViews = vi.hoisted(() => ({ list: [] as unknown[] }));
 const search = vi.hoisted(() => ({
   composition: null as unknown,
   reject: null as null | { message: string; status: number },
-  // D-215: more materials, to make the catalogue longer than one page.
+  // D-217: more materials, to make the catalogue longer than one page.
   extra: [] as MaterialListItem[],
 }));
 
@@ -80,7 +80,7 @@ interface Question {
 }
 
 /**
- * D-215: what the server does with the chips, for this fixture — the filters,
+ * D-217: what the server does with the chips, for this fixture — the filters,
  * the counts per chip (the other chips applied) and the page. The screen sends
  * the question; it no longer filters anything itself.
  */
@@ -195,7 +195,7 @@ function wrap(node: ReactNode) {
 const { default: CatalogPage } = await import("./page");
 
 // D-209: the filters are chips ("Campo: valor ▾") that open their options.
-// D-215: an option's name also carries its count ("Cerâmicas, 1 resultado").
+// D-217: an option's name also carries its count ("Cerâmicas, 1 resultado").
 async function pick(field: string, option: string) {
   await userEvent.click(
     screen.getByShadowRole("button", { name: new RegExp(`^${field}: `) }),
@@ -228,7 +228,7 @@ describe("catálogo", () => {
     search.extra = [];
     searchSpy.calls = [];
     savedViews.list = [];
-    // D-215: the screen's state lives in the URL; each test starts clean.
+    // D-217: the screen's state lives in the URL; each test starts clean.
     window.history.replaceState(null, "", "/app/catalogo");
   });
 
@@ -301,7 +301,7 @@ describe("catálogo", () => {
     });
     expect(within(table).getByShadowRole("link", { name: /Alumina/ })).toBeInTheDocument();
     expect(screen.getByShadowRole("heading", { name: t.count(1) })).toBeInTheDocument();
-    // The chip asked the server; the screen filtered nothing itself (D-215).
+    // The chip asked the server; the screen filtered nothing itself (D-217).
     expect(searchSpy.calls.at(-1)).toMatchObject({ qualidade: "gaps", offset: 0 });
     expect(window.location.search).toContain("qualidade=gaps");
   });
@@ -356,7 +356,7 @@ function many(n: number): MaterialListItem[] {
   }));
 }
 
-describe("páginas, contagens e ordem (D-215)", () => {
+describe("páginas, contagens e ordem (D-217)", () => {
   beforeEach(() => {
     search.composition = null;
     search.reject = null;

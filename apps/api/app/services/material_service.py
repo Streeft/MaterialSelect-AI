@@ -317,7 +317,7 @@ class MaterialService:
         offset: int = 0,
         limit: int | None = None,
     ) -> MaterialSearchOut:
-        """``GET /materials``: the search's rows, a page of them when asked (D-215)."""
+        """``GET /materials``: the search's rows, a page of them when asked (D-217)."""
         return self.search(search, com_referencia=com_referencia, offset=offset, limit=limit)
 
     def search(
@@ -337,7 +337,7 @@ class MaterialService:
     ) -> MaterialSearchOut:
         """The catalogue search (D-55), with the composition report when asked (D-105).
 
-        D-215: the chips (class with its subtree, subclass, quality, demo), the
+        D-217: the chips (class with its subtree, subclass, quality, demo), the
         order (relevance, name, class or a property's value) and the page
         (``offset``/``limit``) are applied here, over the rows the repository
         matched, by the pure rules in ``app.domain.catalog_listing``. ``total``

@@ -128,7 +128,7 @@ function MaterialName({
 
 type SortKey = "name" | "class";
 
-/** D-215: the columns a reader may hide; the material's name always stays. */
+/** D-217: the columns a reader may hide; the material's name always stays. */
 export type CatalogColumn = "class" | "quality" | "keywords" | "designations";
 export const CATALOG_COLUMNS: readonly CatalogColumn[] = [
   "class",
@@ -138,7 +138,7 @@ export const CATALOG_COLUMNS: readonly CatalogColumn[] = [
 ];
 
 /**
- * D-215: the order lives with the server when the list is a page — sorting the
+ * D-217: the order lives with the server when the list is a page — sorting the
  * fifty rows on screen would say nothing about the other six hundred. The
  * screen passes the order it asked for and hears the header clicks back.
  */
@@ -199,11 +199,11 @@ export function MaterialTable({
   previewId?: number;
   /** Beside the detail pane: designations and keywords stay on the sheet. */
   compact?: boolean;
-  /** D-215: the order is the server's (a paged list); absent, the rows sort here. */
+  /** D-217: the order is the server's (a paged list); absent, the rows sort here. */
   serverSort?: ServerSort;
-  /** D-215: the optional columns shown; all of them when absent. */
+  /** D-217: the optional columns shown; all of them when absent. */
   columns?: ReadonlySet<CatalogColumn>;
-  /** D-215: the property the list is ordered by, shown as its own column. */
+  /** D-217: the property the list is ordered by, shown as its own column. */
   valueColumn?: string;
 }) {
   const [localSort, setLocalSort] = useState<SortState<SortKey> | null>(null);

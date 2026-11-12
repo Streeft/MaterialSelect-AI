@@ -55,7 +55,7 @@ import { useDebounced } from "@/lib/useDebounced";
 
 const t = ptBR.catalog;
 
-/** D-215: one page of the catalogue; the phone used to get all ~680 cards at once. */
+/** D-217: one page of the catalogue; the phone used to get all ~680 cards at once. */
 const CATALOG_PAGE_SIZE = 50;
 
 type QualityFilter = "" | "complete" | "gaps" | "measured" | "referenced";
@@ -92,7 +92,7 @@ interface CatalogUrl {
 }
 
 /**
- * D-215: the whole question in the address — text, chips, page, view, order
+ * D-217: the whole question in the address — text, chips, page, view, order
  * and columns — so a link reopens the same page and Back/Reload keep it. The
  * names of `busca`, `classe` and `subclasse` are the ones the panel already
  * links with (D-193).
@@ -138,7 +138,7 @@ export default function CatalogPage() {
 function CatalogPageContent() {
   const [url, setUrl] = useUrlState(CATALOG_URL);
   // D-209: the filters still belong to the saved views (tabs in the reader's
-  // account); D-215 only moves where they are kept, into the URL. Any change
+  // account); D-217 only moves where they are kept, into the URL. Any change
   // of chip or of text goes back to page 1.
   const view = useDatabaseView<FilterKey>({
     scope: "catalogo",
@@ -190,7 +190,7 @@ function CatalogPageContent() {
     offset: (url.pagina - 1) * CATALOG_PAGE_SIZE,
     facetas: true,
   };
-  // D-105/D-215: one endpoint answers the rows, the total, the chip counts and
+  // D-105/D-217: one endpoint answers the rows, the total, the chip counts and
   // the composition report. The key keeps the "materials" prefix every
   // invalidation already targets.
   const materials = useQuery({
@@ -365,7 +365,7 @@ function CatalogPageContent() {
       {/* P1-4: the way *into* the taxonomy, next to (not instead of) the filter
           above. The two answer different questions — the chip narrows the list
           on this screen, a family card leaves for that family's own page. The
-          count is the server's (D-215): the family and everything under it,
+          count is the server's (D-217): the family and everything under it,
           for the current text and the other chips. */}
       <Section id="familias" title={ptBR.family.families} description={t.browseHint}>
         <div className="flex flex-wrap gap-2">

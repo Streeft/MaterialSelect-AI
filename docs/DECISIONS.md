@@ -12706,57 +12706,35 @@ vai no contrato da ficha e não há autor/título/ano estruturados, então não 
 pede campos de fonte no contrato e, para boa citação, no modelo. "Top do último estudo" como atalho (ver 4). Toca
 `apps/api` sem migração: depois do merge, **Deploy da API**.
 
-## D-215 — Catálogo em páginas: busca por relevância sem acento, chips com contagem do servidor, ordem por propriedade e estado no endereço
+## D-215 — F3 da revisão das telas: unidade no valor e o molde da ficha em processo e famílias
 
-**Contexto.** Etapa 4.1 da revisão das telas. A auditoria mediu o catálogo no celular renderizando os 678 cartões de uma vez
-(7.000+ px, ~13.500 nós de texto) e a página de família listando a família inteira; `GET /api/materials` e
-`GET /api/materials/busca` devolviam sempre tudo. Na busca do catálogo, "aço" empatava "Liga de aço" com "Argamassa traço"
-(ambos "contém", ordem alfabética) e "aco"/"AÇO" não achavam "Aço" (SQL `lower()` não dobra acento). Já estavam resolvidos e
-foram mantidos: a rota leve da paleta (`GET /api/search`, D-207, `id`, nome, classe, com `limit` e relevância própria em
-Python), os chips (`FilterBar`, D-206), as visões salvas Tabela/Galeria/Lista (D-209), a seleção com "Comparar selecionados"
-via `?materiais=` (D-131/D-184) e o `useUrlState` (D-212).
+**Contexto.** A F3 do plano ("fichas como documento") correu em paralelo com a etapa 3.3 do #238, que redesenhou a ficha de material
+(D-214: cabeçalho com uma ação e "⋯", resumo no topo, sumário lateral, seções dobradas e montadas só ao abrir). O autor escolheu, em
+12/11/2026, ficar com a ficha da D-214 e pôr a F3 por cima dela.
 
 **Decisão.**
+- **A unidade fica no valor (`UnitChip`).** Ao lado de cada número de uma grandeza que se lê em mais de uma unidade, a unidade é um chip
+  que abre as `accepted_units` daquela grandeza; a escolhida relê só aquela propriedade. A D-70 continua inteira: a escolha vai para a
+  URL (`?unidades=slug:unidade`), voltar à convenção (`display_unit` da definição) **tira** a escolha do endereço, e quem converte é o
+  servidor (ADR 0004). Grandeza de uma unidade só e valor ausente não ganham chip. O bloco dobrado "Ler os valores em outra unidade"
+  da D-214 e o `UnitPicker` saíram; a nota de leitura foi para o rodapé da legenda e para o painel do chip. A prévia do catálogo
+  (D-184) segue sem chip.
+- **O sumário marca a seção lida.** `SheetOutline` (D-214) ganha `aria-current="location"` na seção cujo título passou da linha de
+  leitura, medida uma vez por quadro ao rolar; no fim da página, onde as últimas seções nunca chegam à linha, marca a última visível.
+- **No celular, nome sobre valor.** Cartão de propriedades com menos de 480 px empilha o nome sobre o valor (container query), em vez
+  de quebrar "Coeficiente de Poisson" palavra a palavra num terço da largura.
+- **O mesmo molde fora da ficha de material.** Ficha de processo (atributos numa `PropertyList`, com a regra de comparação — escalar,
+  envelope, discreto — na linha de baixo, D-59), família de material (com sumário) e família de processo usam trilha + `PageDoc` +
+  `CollapsibleSection`/`SheetOutline` da D-214, abertas por padrão. Novo e editar material abrem com a cabeça de documento e a trilha
+  até a ficha; o formulário é o mesmo.
 
-1. **Página no contrato, compatível.** `GET /api/materials/busca` ganha `limit` (1 a 200, `MAX_PAGE_SIZE`), `offset`, os chips
-   `classe` (a classe **e tudo abaixo dela**), `subclasse`, `qualidade` (`complete`, `gaps`, `measured`, `referenced`) e `demo`,
-   `ordenar` (`relevancia`, `nome`, `classe` ou o slug de uma propriedade), `direcao` e `facetas`; a resposta traz `total`
-   (tudo que passou), `offset`, `limit` e `facets`. `GET /api/materials` ganha `limit`/`offset` e o cabeçalho `X-Total-Count`,
-   sem mudar o corpo (lista). Sem `limit`, os dois devolvem tudo: Seleção, Comparar, Custo, Eco, Sintetizar e Cadernos, que
-   leem a lista inteira para montar seletores, seguem iguais.
-2. **Regras puras em `domain/catalog_listing.py`.** Filtros, contagens, ordem e corte são funções sobre as linhas que o
-   repositório casou e ranqueou; o router só repassa, o serviço monta `ListingRow` e aplica. **Faceta conta sem o próprio
-   filtro** ("Classe: Metais (12)" é o que escolher Metais mostraria) e a de classe soma a subárvore; valor que ninguém tem
-   fica de fora em vez de aparecer com zero.
-3. **Ordem por propriedade sem inventar zero.** Ordena pelo valor normalizado; material sem valor (ausente ou não cadastrado)
-   vai **por último nos dois sentidos**, por nome. Cada item traz `sort_value` (valor na unidade de leitura do D-70, unidade
-   escrita e `is_missing`); a tela mostra a coluna e escreve "Ausente" ou "Sem valor", nunca 0. Slug desconhecido é 400.
-4. **Relevância e acento na busca do catálogo.** `_term_score` passa a seguir os degraus da paleta: nome exato > começa com o
-   termo > termo como palavra inteira > palavra que começa com o termo > contém. "aço" põe "Aço 1020" antes de "Liga de aço",
-   antes de "Liga açoforte", antes de "Argamassa traço". Termo e colunas são dobrados (caixa e acento) pela mesma tabela de
-   `domain/text_fold.py`: no PostgreSQL `lower(translate(...))` com a tabela em parâmetros; no SQLite, onde uma cadeia de
-   `replace` estoura o parser, uma função `ms_fold` registrada em cada conexão. Sem coluna nova nem migração.
-5. **Tela.** `/app/catalogo` pede uma página de 50 com as facetas; `Pagination` (componente novo do kit, "51–100 de 678",
-   anterior/próxima) abaixo da lista; os chips mostram a contagem do servidor (com o número no nome acessível da opção) e
-   ganham "Demonstração"; seletor "Ordenar por" com relevância, nome, classe e as propriedades que têm valor, e direção; menu
-   "Colunas" na tabela (classe, dados, palavras-chave, designações); cabeçalhos Material/Classe ordenam o catálogo inteiro no
-   servidor, não a página. Busca, chips, página, visão, ordem e colunas ficam no endereço (`useUrlState`), com os nomes
-   `busca`/`classe`/`subclasse` que o painel já usava (D-193); `useDatabaseView` aceita um `store` externo (com atualizador,
-   para duas escritas no mesmo clique) e as visões salvas continuam aplicando filtros e tipo. A família
-   (`/app/catalogo/[slug]`) usa a **mesma** `searchMaterials` com `classe`, ordem por nome e páginas, em vez de baixar o
-   catálogo e filtrar no navegador. As contagens das famílias vêm de `facets.classe`.
+**Alternativas recusadas.** Manter as duas famílias de peças (`DocSection`/`Outline` da F3 e `CollapsibleSection`/`SheetOutline` da
+D-214): duas formas de dobrar uma seção no mesmo app; ficaram só as da D-214. Um `<select>` ao lado de cada valor (a coluna de números
+vira fileira de controles — o motivo do desenho de D-70). `IntersectionObserver` para o sumário (no fim da página marcava a seção
+anterior). Formulário inteiro dentro da ficha (fica para a F4, com a tabela editável).
 
-**Alternativas descartadas.** Cursor em vez de `offset` (o catálogo tem centenas de linhas e muda pouco; `offset` deixa ir
-direto a uma página pelo endereço). Virtualização (exige medir alturas de cartões de tamanho variável e esconde do Ctrl+F do
-navegador o que não está na tela; a página de 50 resolve o peso). Filtrar e contar em SQL com `GROUP BY` por faceta (a
-qualidade depende de contagens por material; com centenas de linhas a regra pura é mais simples e testável). Coluna
-normalizada indexada para o acento (pede migração; ver TODO). "Nível" (D-127) como faceta: o nível é visão de propriedades,
-nunca filtro de dado, e nenhum material pertence a um nível.
-
-**Fora.** Seleção marcada que sobrevive à troca de página (hoje vale para a página mostrada, como a regra do D-131 de nunca
-agir sobre o que não está na tela). A consulta continua lendo as linhas casadas com os valores para contar qualidade: se o
-catálogo crescer muito, mover filtros e contagens para SQL. Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
-
+**Numeração.** D-215 e Sessão 172: a D-214/Sessão 171 é a do #238, sobre o qual esta branch foi mesclada. Só frontend: sem migração,
+seed nem Deploy da API (o #238, que vem junto se ainda não tiver entrado, pede o Deploy da API).
 
 ## D-216 — Padrões no backend e as quatro calculadoras: `GET /api/padroes`, Eco na URL com cascata por fase, Ragone com destaque, esquema e barras no Dimensionar, comparação no Custo
 
@@ -12836,3 +12814,54 @@ lista de identificadores; levar a lista até lá pede um filtro por id no funil 
 o Dimensionar manda os candidatos para o Comparar, que já aceita `?materiais=`. A cascata na comparação é por cenário, não
 uma cascata das diferenças. O Custo compara o melhor processo, não a curva de cada material. Toca `apps/api` sem migração:
 depois do merge, **Deploy da API**.
+
+## D-217 — Catálogo em páginas: busca por relevância sem acento, chips com contagem do servidor, ordem por propriedade e estado no endereço
+
+**Contexto.** Etapa 4.1 da revisão das telas. A auditoria mediu o catálogo no celular renderizando os 678 cartões de uma vez
+(7.000+ px, ~13.500 nós de texto) e a página de família listando a família inteira; `GET /api/materials` e
+`GET /api/materials/busca` devolviam sempre tudo. Na busca do catálogo, "aço" empatava "Liga de aço" com "Argamassa traço"
+(ambos "contém", ordem alfabética) e "aco"/"AÇO" não achavam "Aço" (SQL `lower()` não dobra acento). Já estavam resolvidos e
+foram mantidos: a rota leve da paleta (`GET /api/search`, D-207, `id`, nome, classe, com `limit` e relevância própria em
+Python), os chips (`FilterBar`, D-206), as visões salvas Tabela/Galeria/Lista (D-209), a seleção com "Comparar selecionados"
+via `?materiais=` (D-131/D-184) e o `useUrlState` (D-212).
+
+**Decisão.**
+
+1. **Página no contrato, compatível.** `GET /api/materials/busca` ganha `limit` (1 a 200, `MAX_PAGE_SIZE`), `offset`, os chips
+   `classe` (a classe **e tudo abaixo dela**), `subclasse`, `qualidade` (`complete`, `gaps`, `measured`, `referenced`) e `demo`,
+   `ordenar` (`relevancia`, `nome`, `classe` ou o slug de uma propriedade), `direcao` e `facetas`; a resposta traz `total`
+   (tudo que passou), `offset`, `limit` e `facets`. `GET /api/materials` ganha `limit`/`offset` e o cabeçalho `X-Total-Count`,
+   sem mudar o corpo (lista). Sem `limit`, os dois devolvem tudo: Seleção, Comparar, Custo, Eco, Sintetizar e Cadernos, que
+   leem a lista inteira para montar seletores, seguem iguais.
+2. **Regras puras em `domain/catalog_listing.py`.** Filtros, contagens, ordem e corte são funções sobre as linhas que o
+   repositório casou e ranqueou; o router só repassa, o serviço monta `ListingRow` e aplica. **Faceta conta sem o próprio
+   filtro** ("Classe: Metais (12)" é o que escolher Metais mostraria) e a de classe soma a subárvore; valor que ninguém tem
+   fica de fora em vez de aparecer com zero.
+3. **Ordem por propriedade sem inventar zero.** Ordena pelo valor normalizado; material sem valor (ausente ou não cadastrado)
+   vai **por último nos dois sentidos**, por nome. Cada item traz `sort_value` (valor na unidade de leitura do D-70, unidade
+   escrita e `is_missing`); a tela mostra a coluna e escreve "Ausente" ou "Sem valor", nunca 0. Slug desconhecido é 400.
+4. **Relevância e acento na busca do catálogo.** `_term_score` passa a seguir os degraus da paleta: nome exato > começa com o
+   termo > termo como palavra inteira > palavra que começa com o termo > contém. "aço" põe "Aço 1020" antes de "Liga de aço",
+   antes de "Liga açoforte", antes de "Argamassa traço". Termo e colunas são dobrados (caixa e acento) pela mesma tabela de
+   `domain/text_fold.py`: no PostgreSQL `lower(translate(...))` com a tabela em parâmetros; no SQLite, onde uma cadeia de
+   `replace` estoura o parser, uma função `ms_fold` registrada em cada conexão. Sem coluna nova nem migração.
+5. **Tela.** `/app/catalogo` pede uma página de 50 com as facetas; `Pagination` (componente novo do kit, "51–100 de 678",
+   anterior/próxima) abaixo da lista; os chips mostram a contagem do servidor (com o número no nome acessível da opção) e
+   ganham "Demonstração"; seletor "Ordenar por" com relevância, nome, classe e as propriedades que têm valor, e direção; menu
+   "Colunas" na tabela (classe, dados, palavras-chave, designações); cabeçalhos Material/Classe ordenam o catálogo inteiro no
+   servidor, não a página. Busca, chips, página, visão, ordem e colunas ficam no endereço (`useUrlState`), com os nomes
+   `busca`/`classe`/`subclasse` que o painel já usava (D-193); `useDatabaseView` aceita um `store` externo (com atualizador,
+   para duas escritas no mesmo clique) e as visões salvas continuam aplicando filtros e tipo. A família
+   (`/app/catalogo/[slug]`) usa a **mesma** `searchMaterials` com `classe`, ordem por nome e páginas, em vez de baixar o
+   catálogo e filtrar no navegador. As contagens das famílias vêm de `facets.classe`.
+
+**Alternativas descartadas.** Cursor em vez de `offset` (o catálogo tem centenas de linhas e muda pouco; `offset` deixa ir
+direto a uma página pelo endereço). Virtualização (exige medir alturas de cartões de tamanho variável e esconde do Ctrl+F do
+navegador o que não está na tela; a página de 50 resolve o peso). Filtrar e contar em SQL com `GROUP BY` por faceta (a
+qualidade depende de contagens por material; com centenas de linhas a regra pura é mais simples e testável). Coluna
+normalizada indexada para o acento (pede migração; ver TODO). "Nível" (D-127) como faceta: o nível é visão de propriedades,
+nunca filtro de dado, e nenhum material pertence a um nível.
+
+**Fora.** Seleção marcada que sobrevive à troca de página (hoje vale para a página mostrada, como a regra do D-131 de nunca
+agir sobre o que não está na tela). A consulta continua lendo as linhas casadas com os valores para contar qualidade: se o
+catálogo crescer muito, mover filtros e contagens para SQL. Toca `apps/api` sem migração: depois do merge, **Deploy da API**.

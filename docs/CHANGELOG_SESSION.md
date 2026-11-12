@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 174 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-217)
+
+**O que mudou.** Etapa 4.1. Backend: `GET /api/materials/busca` com `limit`/`offset`, chips (`classe` com a subárvore,
+`subclasse`, `qualidade`, `demo`), `ordenar` (relevância, nome, classe ou uma propriedade, sem valor por último), `direcao` e
+`facetas`; resposta com `total`, `offset`, `limit`, `facets` e `sort_value` por item. `GET /api/materials` com
+`limit`/`offset` e `X-Total-Count`. Regras em `domain/catalog_listing.py`; dobra de acento em `domain/text_fold.py` e
+`repositories/text_sql.py` (`folded()`: `translate` no PostgreSQL, função `ms_fold` no SQLite); relevância da busca do
+catálogo em degraus (exato > prefixo > palavra inteira > início de palavra > contém). Frontend: catálogo em páginas de 50
+com `Pagination` (novo no kit), chips com contagem e o chip "Demonstração", "Ordenar por" com propriedades e direção, coluna
+do valor ordenado (ausência escrita), menu "Colunas", cabeçalhos que ordenam no servidor, estado inteiro no endereço;
+`useDatabaseView` com `store` externo; família pela mesma `searchMaterials`, paginada. Testes: `test_catalog_pagination.py`
+(página e total, offset além do fim, limite máximo, cabeçalho `X-Total-Count`, "aço" antes de "argamassa", "aco"/"AÇO",
+subárvore, subclasse, demo, facetas sem o próprio filtro, ordem por nome/classe/propriedade com ausentes no fim, 400 para
+propriedade desconhecida, regras puras), `catalogo.test.tsx` (página de 50 e próxima pela URL, contagem nos chips, demo, ordem
+por propriedade com "Sem valor", colunas na URL, abrir por link, axe), `familia.test.tsx` (pede uma página da família,
+paginação) e o E2E `e2e/catalogo-paginado.spec.ts`. Fora: seleção que atravessa páginas; "nível" como faceta (é visão, D-127).
+Sem migração nem seed. Depois do merge: **Deploy da API**.
+
 ## Sessão 173 — 12/11/26 — Padrões no backend e as calculadoras: Eco na URL com cascata, Ragone destacado, Dimensionar com esquema e barras, Custo comparando (D-216)
 
 **O que mudou.** Etapa 4.5. Backend: `GET /api/padroes` (router fino → `DefaultsService`) devolve os números iniciais de
@@ -144,23 +162,15 @@ comparar), `custo.test.tsx` (padrões, erro dos padrões, comparação) e o E2E 
 Seleção (sem entrada por lista de ids; vai para o Comparar), cascata das diferenças, curva inteira na comparação do Custo.
 Sem migração nem seed. Depois do merge: **Deploy da API**.
 
-## Sessão 172 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-215)
+## Sessão 172 — 12/11/26 — F3 por cima da ficha da D-214: unidade no valor, sumário que acompanha, processo e famílias no molde (D-215)
 
-**O que mudou.** Etapa 4.1. Backend: `GET /api/materials/busca` com `limit`/`offset`, chips (`classe` com a subárvore,
-`subclasse`, `qualidade`, `demo`), `ordenar` (relevância, nome, classe ou uma propriedade, sem valor por último), `direcao` e
-`facetas`; resposta com `total`, `offset`, `limit`, `facets` e `sort_value` por item. `GET /api/materials` com
-`limit`/`offset` e `X-Total-Count`. Regras em `domain/catalog_listing.py`; dobra de acento em `domain/text_fold.py` e
-`repositories/text_sql.py` (`folded()`: `translate` no PostgreSQL, função `ms_fold` no SQLite); relevância da busca do
-catálogo em degraus (exato > prefixo > palavra inteira > início de palavra > contém). Frontend: catálogo em páginas de 50
-com `Pagination` (novo no kit), chips com contagem e o chip "Demonstração", "Ordenar por" com propriedades e direção, coluna
-do valor ordenado (ausência escrita), menu "Colunas", cabeçalhos que ordenam no servidor, estado inteiro no endereço;
-`useDatabaseView` com `store` externo; família pela mesma `searchMaterials`, paginada. Testes: `test_catalog_pagination.py`
-(página e total, offset além do fim, limite máximo, cabeçalho `X-Total-Count`, "aço" antes de "argamassa", "aco"/"AÇO",
-subárvore, subclasse, demo, facetas sem o próprio filtro, ordem por nome/classe/propriedade com ausentes no fim, 400 para
-propriedade desconhecida, regras puras), `catalogo.test.tsx` (página de 50 e próxima pela URL, contagem nos chips, demo, ordem
-por propriedade com "Sem valor", colunas na URL, abrir por link, axe), `familia.test.tsx` (pede uma página da família,
-paginação) e o E2E `e2e/catalogo-paginado.spec.ts`. Fora: seleção que atravessa páginas; "nível" como faceta (é visão, D-127).
-Sem migração nem seed. Depois do merge: **Deploy da API**.
+**O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar do bloco "Ler os valores em outra
+unidade" e do `UnitPicker`; `SheetOutline` marca a seção lida; cartão de propriedades empilhado abaixo de 480 px; ficha de processo,
+família de material e família de processo em trilha + `PageDoc` + `CollapsibleSection`/`SheetOutline`; novo e editar material com a
+cabeça de documento. Branch mesclada sobre a do #238 (D-214), por escolha do autor. Testes: `components/ui/f3Pieces.test.tsx`
+(chip, URL, volta à convenção, grandeza de uma unidade, ausente, sumário que marca a seção; com axe), o teste de unidades de
+`ficha-layout` reescrito para o chip, e na suíte de larguras `/app/catalogo/metais`, `/app/materiais/novo`, as páginas de processo e
+de família de processo e "semelhantes" aberta na ficha. Frontend 1891 (+5 sobre o #238). Sem backend nem migração.
 
 ## Sessão 171 — 12/11/26 — Comparar e Ficha: melhor por propriedade, só diferenças, ficha dobrada (D-214)
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getClass, searchMaterials, type CatalogQuery } from "@/lib/api";
 import { isNotFound } from "@/lib/errors";
@@ -12,22 +12,27 @@ import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
 import {
+  Breadcrumb,
   ButtonLink,
   Card,
   CardBody,
   DataQualityLegend,
   ErrorState,
   LoadingState,
-  PageHeader,
   Pagination,
-  Section,
+  PageDoc,
+  PropertyList,
 } from "@/components/ui";
+import { IconLayers } from "@/components/ui/icons";
+import { fichaText } from "@/lib/i18n-ficha";
+import { CollapsibleSection } from "@/components/material/CollapsibleSection";
+import { SheetOutline, type OutlineItem } from "@/components/material/SheetOutline";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.catalog;
 const f = ptBR.family;
 
-/** D-215: the same page size as the catalogue. */
+/** D-217: the same page size as the catalogue. */
 const FAMILY_PAGE_SIZE = 50;
 
 const pageCodec: UrlCodec<number> = {
@@ -67,7 +72,7 @@ function MaterialFamilyContent() {
     enabled: Boolean(slug),
   });
   const [url, setUrl] = useUrlState(FAMILY_URL);
-  // D-215: the catalogue's own search is the one source — the class chip
+  // D-217: the catalogue's own search is the one source — the class chip
   // already means "this class and everything under it" on the server, and
   // the page is a page, not the whole family.
   const question: CatalogQuery = {
@@ -83,6 +88,9 @@ function MaterialFamilyContent() {
     placeholderData: (previous) => previous,
   });
   const shown = materials.data?.items ?? [];
+
+  // D-215: which of the folding sections (D-215) are open; all start open.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   // D-207: the tab and the menu's "Recentes" carry the record's own name.
   usePageTitle(family.data?.name);
@@ -110,91 +118,135 @@ function MaterialFamilyContent() {
   const data = family.data;
   const hasChildren = data.children.length > 0;
 
+  const outline: OutlineItem[] = [
+    ...(hasChildren ? [{ id: "subclasses", label: f.subclasses }] : []),
+    { id: "materiais", label: f.inThisFamily },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumb={[
+      <Breadcrumb
+        items={[
           { label: f.allClasses, href: "/app/catalogo" },
           ...data.ancestors.map((a) => ({ label: a.name, href: `/app/catalogo/${a.slug}` })),
           { label: data.name },
         ]}
+      />
+
+      {/* D-215: a family is a document page in the sheets' mould — its counts
+          as properties, then the sections that fold, with the side index. */}
+      <PageDoc
+        icon={<IconLayers className="h-5 w-5" />}
         title={data.name}
-        description={data.description ?? undefined}
-        eyebrow={false}
-      />
-
-      <FamilyProseCard
-        applications={data.applications}
-        characteristics={data.characteristics}
-      />
-
-      {/* D-151: the conceptual note for this class, keyed by its slug. The query
-          is the same one the material sheet and the glossary use, so a reader
-          moving between them pays one request. */}
-      <Card>
-        <CardBody>
-          <FamilyNote slug={data.slug} name={data.name} />
-        </CardBody>
-      </Card>
-
-      {hasChildren && (
-        <Section id="subclasses" title={f.subclasses}>
-          <div className="flex flex-wrap gap-2">
-            {data.children.map((child) => (
-              <Link
-                key={child.slug}
-                href={`/app/catalogo/${child.slug}`}
-                className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <Card className="pressable">
-                  <CardBody className="flex flex-col gap-0.5 px-4 py-3">
-                    <span className="font-medium text-ink">{child.name}</span>
-                    <span className="text-caption text-ink-muted">
-                      {f.countDirect(child.material_count)}
-                    </span>
-                  </CardBody>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <Section
-        id="materiais"
-        title={f.inThisFamily}
-        description={countLine(data.material_count, data.descendant_material_count)}
+        properties={
+          <PropertyList
+            items={[
+              {
+                id: "materiais",
+                label: fichaText.doc.materialsLabel,
+                value: countLine(data.material_count, data.descendant_material_count),
+              },
+              ...(hasChildren
+                ? [
+                    {
+                      id: "subclasses",
+                      label: f.subclasses,
+                      value: String(data.children.length),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        }
       >
-        {materials.isLoading && <LoadingState label={t.loading} />}
-        {materials.isError ? (
-          // D-200: a failed query is not an empty folder. Saying "nenhum material"
-          // here would be data absence invented out of a network error.
-          <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />
-        ) : shown.length === 0 && !materials.isLoading ? (
-          // Two absences, and they are not the same sentence: a folder whose
-          // contents are one level down is not an empty folder.
-          <p className="text-body text-ink-muted">
-            {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
-          </p>
-        ) : (
-          <div className="flex min-w-0 flex-col gap-3">
-            <MaterialList materials={shown} />
-            <Pagination
-              page={url.pagina}
-              pageSize={FAMILY_PAGE_SIZE}
-              total={materials.data?.total ?? 0}
-              onPage={(pagina) => setUrl({ pagina })}
-              rangeLabel={t.pageRange}
-            />
-          </div>
-        )}
+        {data.description ? (
+          <p className="max-w-prose text-body text-ink">{data.description}</p>
+        ) : null}
 
-        <Card>
-          <CardBody>
-            <DataQualityLegend />
-          </CardBody>
-        </Card>
-      </Section>
+        {/* D-151: the conceptual note for this class, folded, as on the
+            material sheet; the same query the sheet and the glossary use. */}
+        <FamilyNote slug={data.slug} name={data.name} className="max-w-prose" />
+
+        <FamilyProseCard
+          applications={data.applications}
+          characteristics={data.characteristics}
+        />
+
+        <div className="sheet-layout">
+          <div className="sheet-grid">
+          <SheetOutline
+            items={outline}
+            label={fichaText.doc.familyOutline}
+            title={fichaText.doc.familyOutlineTitle}
+            onNavigate={(id) => setOpen((o) => ({ ...o, [id]: true }))}
+          />
+          <div className="flex min-w-0 flex-col gap-6">
+            {hasChildren && (
+              <CollapsibleSection
+                id="subclasses"
+                title={f.subclasses}
+                open={open.subclasses !== false}
+                onOpenChange={(next) => setOpen((o) => ({ ...o, subclasses: next }))}
+              >
+                <div className="flex flex-wrap gap-2">
+                  {data.children.map((child) => (
+                    <Link
+                      key={child.slug}
+                      href={`/app/catalogo/${child.slug}`}
+                      className="msds-card m3-state flex flex-col gap-0.5 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      data-interactive="true"
+                    >
+                      <span className="font-medium text-ink">{child.name}</span>
+                      <span className="text-caption text-ink-muted">
+                        {f.countDirect(child.material_count)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </CollapsibleSection>
+            )}
+
+            <CollapsibleSection
+              id="materiais"
+              title={f.inThisFamily}
+              open={open.materiais !== false}
+              onOpenChange={(next) => setOpen((o) => ({ ...o, materiais: next }))}
+            >
+              {materials.isLoading && <LoadingState label={t.loading} />}
+              {materials.isError ? (
+                // D-200: a failed query is not an empty folder. Saying "nenhum material"
+                // here would be data absence invented out of a network error.
+                <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />
+              ) : shown.length === 0 && !materials.isLoading ? (
+                // Two absences, and they are not the same sentence: a folder whose
+                // contents are one level down is not an empty folder.
+                <p className="text-body text-ink-muted">
+                  {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
+                </p>
+              ) : (
+                <div className="flex min-w-0 flex-col gap-3">
+                  <MaterialList materials={shown} />
+                  <Pagination
+                    page={url.pagina}
+                    pageSize={FAMILY_PAGE_SIZE}
+                    total={materials.data?.total ?? 0}
+                    onPage={(pagina) => setUrl({ pagina })}
+                    rangeLabel={t.pageRange}
+                  />
+                </div>
+              )}
+
+              <Card>
+                <CardBody>
+                  <DataQualityLegend />
+                </CardBody>
+              </Card>
+            </CollapsibleSection>
+
+          </div>
+          </div>
+        </div>
+      </PageDoc>
     </div>
   );
 }

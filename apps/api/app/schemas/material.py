@@ -240,7 +240,7 @@ class DesignationsReplaceIn(BaseModel):
 
 
 class SortValue(BaseModel):
-    """The value the catalogue was ordered by, as this reader reads it (D-215).
+    """The value the catalogue was ordered by, as this reader reads it (D-217).
 
     ``value`` is ``None`` when the material has no value for the property —
     absent or never registered — and then ``is_missing`` says which. Never 0.
@@ -277,7 +277,7 @@ class MaterialListItem(BaseModel):
     designations: list[DesignationBrief] = []
     # TM6: contagem de propriedades com referência bibliográfica (source_id não nulo e não ausente)
     reference_count: int = 0
-    #: D-215: only when the catalogue was ordered by a property.
+    #: D-217: only when the catalogue was ordered by a property.
     sort_value: SortValue | None = None
 
 
@@ -369,7 +369,7 @@ class CompositionSearchOut(BaseModel):
 
 
 class CatalogFacetsOut(BaseModel):
-    """How many materials each chip value would leave, the other chips applied (D-215).
+    """How many materials each chip value would leave, the other chips applied (D-217).
 
     ``classe`` counts a class and everything under it. A value no material has
     is left out instead of listed with zero.
@@ -382,7 +382,7 @@ class CatalogFacetsOut(BaseModel):
 
 
 class MaterialSearchOut(BaseModel):
-    """The catalogue search, with what it knows besides the rows (D-105, D-215).
+    """The catalogue search, with what it knows besides the rows (D-105, D-217).
 
     ``total`` counts every material that matched the query and the filters;
     ``items`` is the page from ``offset`` (all of them when ``limit`` is null).

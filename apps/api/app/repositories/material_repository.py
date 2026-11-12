@@ -95,7 +95,7 @@ def _matches(term: Term) -> ColumnElement[bool]:
     matches any of them matches the material; `NOT` then negates the whole
     disjunction, which is what "steel NOT alloy" means.
     """
-    # D-215: accents and case folded on both sides, so "aco" finds "Aço" and
+    # D-217: accents and case folded on both sides, so "aco" finds "Aço" and
     # "AÇO" finds "aço". The pattern keeps its wildcards; only letters change.
     pattern = fold_accents(to_like_pattern(term))
     keyword_match = exists(
@@ -336,7 +336,7 @@ class MaterialRepository:
         return self.db.execute(stmt).scalars().unique().one_or_none()
 
     def class_links(self) -> list[tuple[str, str | None]]:
-        """Every class as ``(slug, parent slug)``: the tree the catalogue filters by (D-215)."""
+        """Every class as ``(slug, parent slug)``: the tree the catalogue filters by (D-217)."""
         parent = aliased(MaterialClass)
         stmt = select(MaterialClass.slug, parent.slug).outerjoin(
             parent, MaterialClass.parent_id == parent.id
@@ -508,7 +508,7 @@ def _escape(term: str) -> str:
 
 
 def _term_score(term: str):
-    """Relevance of one positive bare term (D-55, D-215).
+    """Relevance of one positive bare term (D-55, D-217).
 
     Exact name > name prefix > the term as a whole word > a word starting with
     it > anywhere in the name, so "aço" puts "Aço 1020" before "Liga de aço"

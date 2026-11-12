@@ -8,6 +8,14 @@
  * `i18n.test.ts` keeps the two copies equal.
  */
 export const fichaText = {
+  // D-215: the process and family pages in the sheets' mould.
+  doc: {
+    familyOutline: "Seções da família",
+    familyOutlineTitle: "Nesta família",
+    processesLabel: "Processos",
+    materialsLabel: "Materiais",
+    subfamiliesLabel: "Subfamílias",
+  },
   ordinals: {
     title: "Propriedades ordinais",
     hint:
@@ -76,8 +84,6 @@ export const fichaText = {
     goToProcesses: "Ver processos",
     similarSummary: "Materiais parecidos pelas propriedades que você escolher",
     goToSimilar: "Buscar materiais parecidos",
-    unitsSummary: (n: number) =>
-      `Ler os valores em outra unidade (${n} ${n === 1 ? "grandeza" : "grandezas"})`,
     mapHint:
       "O gráfico só é carregado quando você abre esta seção. O mapa completo tem todos os materiais e os outros eixos.",
     foldedHint: "Seção dobrada: abra para carregar o conteúdo.",

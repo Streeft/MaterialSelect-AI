@@ -12,7 +12,7 @@ export interface FilterOption {
   value: string;
   label: string;
   /**
-   * D-215: how many results choosing this option would leave, as the server
+   * D-217: how many results choosing this option would leave, as the server
    * counted them (the other filters applied). Omitted, no number is shown.
    */
   count?: number;

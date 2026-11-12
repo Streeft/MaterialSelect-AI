@@ -1,4 +1,4 @@
-"""The catalogue as pages: filters, facet counts, order and slicing (D-215).
+"""The catalogue as pages: filters, facet counts, order and slicing (D-217).
 
 Pure rules over rows the repository already matched and ranked — no database,
 no HTTP. The service turns materials into ``ListingRow`` and asks this module

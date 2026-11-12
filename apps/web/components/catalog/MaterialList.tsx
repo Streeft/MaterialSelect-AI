@@ -4,7 +4,7 @@ import { MaterialTable, type CatalogColumn, type PreviewRequest, type ServerSort
 
 /**
  * A list of materials — stacked cards on a phone, the table from `sm` up.
- * Both render; the breakpoint picks one (D-50). D-215: the list is a page
+ * Both render; the breakpoint picks one (D-50). D-217: the list is a page
  * (at most a few dozen rows), so rendering both costs little.
  */
 export function MaterialList({

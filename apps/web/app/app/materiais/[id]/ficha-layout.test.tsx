@@ -212,21 +212,16 @@ describe("ficha: o que abre e o que fica dobrado (D-214)", () => {
     expect(state.getChart).toHaveBeenCalledWith("densidade", "modulo_young");
   });
 
-  it("os seletores 'Ler em…' ficam numa seção dobrada com a contagem, e abrem sozinhos se o link já escolheu unidade", async () => {
+  it("a unidade se escolhe no próprio valor, sem bloco de seletores antes dos números (D-215)", async () => {
     mount();
     await loaded();
-    const summary = await screen.findByText(t.unitsSummary(2));
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-    expect(within(details).getAllByRole("combobox", { hidden: true })).toHaveLength(2);
-  });
-
-  it("com ?unidades= no link a seção de unidades já vem aberta", async () => {
-    nav.search = "unidades=modulo_young:MPa";
-    mount();
-    await loaded();
-    const summary = await screen.findByText(t.unitsSummary(2));
-    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(true);
+    // Each quantity with more than one accepted unit writes its unit as a chip.
+    expect(
+      screen.getByRole("button", { name: ptBR.units.chipLabel("Módulo de Young", "GPa") }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Unidade de Dureza/ })).toHaveLength(1);
+    // No select row before the values.
+    expect(screen.queryByRole("combobox", { hidden: true })).toBeNull();
   });
 });
 

@@ -31,7 +31,7 @@ function MaterialCard({
   material: MaterialListItem;
   index: number;
   searchQuery?: string;
-  /** D-215: the property the list is ordered by; its value is shown on the card. */
+  /** D-217: the property the list is ordered by; its value is shown on the card. */
   valueLabel?: string;
 }) {
   const { quality } = material;
@@ -122,7 +122,7 @@ function MaterialCard({
  * to behave like a list via CSS.
  *
  * This duplicates the DOM nodes. Acceptable because the catalog is paginated
- * (D-215: a page of 50 at most); before that it rendered all ~680 at once.
+ * (D-217: a page of 50 at most); before that it rendered all ~680 at once.
  */
 /**
  * D-209: `responsive` is the phone's stand-in for the table (hidden from `sm`

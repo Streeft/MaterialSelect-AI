@@ -114,6 +114,9 @@ const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["painel-qualidade", "/app/painel?aba=qualidade"],
   ["painel-atividade", "/app/painel?aba=atividade"],
   ["painel-filtrado", "/app/painel?classe=metais&nivel=1"],
+  // D-215: the document pages that open without an id of their own.
+  ["catalogo-familia", "/app/catalogo/metais"],
+  ["material-novo", "/app/materiais/novo"],
 ];
 
 for (const [slug, path] of ROUTES) {
@@ -155,12 +158,41 @@ test("a ficha de um material não corta nada em nenhuma das quatro larguras", as
     await page.goto(href!);
     await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
     // "Materiais semelhantes" draws its weight rows once a basis is chosen.
+    // D-214: it starts folded on the sheet; open it, so its rows are measured too.
     await expect(page.locator("#semelhantes")).toBeVisible({ timeout: 45_000 });
+    await page.locator("#semelhantes summary").first().click();
+    await expect(page.locator("#semelhantes details").first()).toHaveAttribute("open", "");
     await page.waitForLoadState("networkidle");
     await page.screenshot({ path: `test-results/larguras/material-${name}.png`, fullPage: true });
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollWidth, `${href} a ${width}px`).toBeLessThanOrEqual(width);
     await expectNothingCut(page, `${href} a ${width}px`);
+  }
+});
+
+test("a ficha de um processo e a página da família não cortam nada (D-215)", async ({ page }) => {
+  await page.goto("/app/processos");
+  const familyLink = page.locator('main a[href^="/app/processos/familia/"]').first();
+  await expect(familyLink).toBeVisible({ timeout: 45_000 });
+  const processLink = page
+    .locator('main a[href^="/app/processos/"]:not([href^="/app/processos/familia/"])')
+    .first();
+  const hrefs = [await familyLink.getAttribute("href"), await processLink.getAttribute("href")];
+  for (const href of hrefs) {
+    expect(href).toBeTruthy();
+    for (const { name, width, height } of WIDTHS) {
+      await page.setViewportSize({ width, height });
+      await page.goto(href!);
+      await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
+      await page.waitForLoadState("networkidle");
+      await page.screenshot({
+        path: `test-results/larguras/processo-${href!.split("/").pop()}-${name}.png`,
+        fullPage: true,
+      });
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth, `${href} a ${width}px`).toBeLessThanOrEqual(width);
+      await expectNothingCut(page, `${href} a ${width}px`);
+    }
   }
 });
 

@@ -1,4 +1,4 @@
-"""``folded(column)``: the column lowercased and without accents, in SQL (D-215).
+"""``folded(column)``: the column lowercased and without accents, in SQL (D-217).
 
 PostgreSQL has ``translate``, and the table of letters is bound to it as
 parameters. SQLite (tests, local development) has neither ``translate`` nor a

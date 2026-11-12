@@ -44,7 +44,7 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   ver atalhos; D-207). Os registros vêm de `GET /api/search`, leve e ordenado por relevância ("aço" acha os aços antes de
   "Traço"), sem baixar o catálogo. O menu lateral recolhe grupos, guarda **Fixados** e **Recentes** neste aparelho, e a aba do
   navegador leva o nome da tela ou do registro; fichas de material e cadernos ganharam trilha. Excluir um estudo, uma fonte, uma nota ou um caderno mostra um aviso com
-  **Desfazer** (o servidor só apaga quando o aviso vence). O catálogo vem em **páginas de 50** (D-215): busca sem
+  **Desfazer** (o servidor só apaga quando o aviso vence). O catálogo vem em **páginas de 50** (D-217): busca sem
   acento e por relevância, chips de classe, subclasse, qualidade e demonstração com a contagem que cada opção deixaria,
   ordem por nome, classe ou valor de uma propriedade (sem valor por último), colunas escolhidas e tudo isso no endereço;
   `GET /api/materials/busca` aceita `limit`/`offset`/`facetas` e `GET /api/materials` aceita `limit`/`offset` e responde

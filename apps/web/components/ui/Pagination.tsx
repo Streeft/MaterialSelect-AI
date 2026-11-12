@@ -7,7 +7,7 @@ import { Button } from "./Button";
 const t = ptBR.ds;
 
 /**
- * D-215: a list's pages — "anterior", where the reader is, "próxima".
+ * D-217: a list's pages — "anterior", where the reader is, "próxima".
  *
  * Numbers in pt-BR, and the range in words ("51–100 de 678") so a reader
  * knows how much is left without counting pages. Nothing is computed beyond

@@ -1,7 +1,7 @@
 import { test, expect } from "./session";
 
 /**
- * D-215: the catalogue as pages, against the real API. The seed has only a
+ * D-217: the catalogue as pages, against the real API. The seed has only a
  * handful of materials, so the spec files 55 records of the reader's own
  * (named "Liga paginada <run> NNN"), reads them 50 at a time, walks to page 2 by the
  * button and by the address, and checks a chip carries the server's count.

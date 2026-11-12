@@ -50,9 +50,9 @@ _PAGE_LIMIT = Query(
     default=None,
     ge=1,
     le=MAX_PAGE_SIZE,
-    description=f"Tamanho da página (1 a {MAX_PAGE_SIZE}); omitido, vêm todos (D-215)",
+    description=f"Tamanho da página (1 a {MAX_PAGE_SIZE}); omitido, vêm todos (D-217)",
 )
-_PAGE_OFFSET = Query(default=0, ge=0, description="Quantos materiais pular (D-215)")
+_PAGE_OFFSET = Query(default=0, ge=0, description="Quantos materiais pular (D-217)")
 
 
 @router.get("", response_model=list[MaterialListItem])
@@ -77,7 +77,7 @@ def list_materials(
 ) -> list[MaterialListItem]:
     """List active materials, optionally filtered by a search term.
 
-    D-215: a page when ``limit`` is given; ``X-Total-Count`` always says how
+    D-217: a page when ``limit`` is given; ``X-Total-Count`` always says how
     many matched, so a caller can page without changing the body's shape.
     """
     result = MaterialService(db, user, unit_choices).list_materials(
@@ -118,7 +118,7 @@ def search_materials(
     direcao: Literal["asc", "desc"] = Query(default="asc"),
     limit: int | None = _PAGE_LIMIT,
     offset: int = _PAGE_OFFSET,
-    facetas: bool = Query(default=False, description="Inclui as contagens por filtro (D-215)"),
+    facetas: bool = Query(default=False, description="Inclui as contagens por filtro (D-217)"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
@@ -127,7 +127,7 @@ def search_materials(
 
     Same matching as ``GET /materials?search=``; this one also says, when the
     query asks about composition, which rule ran and how many materials were
-    left out for lack of data. D-215 adds the chips, the order, the page and
+    left out for lack of data. D-217 adds the chips, the order, the page and
     the facet counts. Declared before ``/{material_id}``.
     """
     return MaterialService(db, user, unit_choices).search(

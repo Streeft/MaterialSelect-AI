@@ -443,7 +443,9 @@ número. `PropertyDefinition.display_unit` dá a convenção de leitura de cada
 grandeza — e é **por propriedade e não por dimensão**, porque módulo, escoamento
 e tração compartilham dimensão e se leem em GPa, MPa e MPa. A escolha do leitor
 vive na **URL** (D-63), restrita a `accepted_units`, e unidade fora do conjunto é
-recusada com as admitidas escritas.
+recusada com as admitidas escritas. Na ficha, a escolha se faz **no próprio valor**:
+a unidade é um `UnitChip` que abre as unidades aceitas daquela grandeza
+([D-215](DECISIONS.md)); voltar à convenção tira a escolha da URL.
 
 **A leitura é acrescentada, nunca substitui:** `value_scalar` guarda o que a
 fonte disse, os campos `display_*` saem ao lado, e um documento exportado carrega
@@ -941,7 +943,7 @@ cópia em SQL; designação **não** declara equivalência (`code_key` só tira 
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
-**Catálogo em páginas ([D-215](DECISIONS.md)).** `GET /api/materials/busca` pagina (`limit` ≤ 200, `offset`), filtra
+**Catálogo em páginas ([D-217](DECISIONS.md)).** `GET /api/materials/busca` pagina (`limit` ≤ 200, `offset`), filtra
 (`classe` com a subárvore, `subclasse`, `qualidade`, `demo`), ordena (`relevancia`, `nome`, `classe` ou slug de propriedade)
 e conta (`facetas`). As regras são puras, em `app/domain/catalog_listing.py`: faceta conta **sem o próprio filtro**; ordem por
 propriedade põe **sem valor por último nos dois sentidos** e nunca lê ausência como 0 (`sort_value.value = null`,
