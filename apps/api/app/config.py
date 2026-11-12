@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "sqlite:///./materialselect.db"
+    # D-227: how the API holds connections to a server database. "null" opens one
+    # per checkout and closes it on release (no idle connection, so Neon can
+    # suspend its compute); "queue" keeps the old pool of 5 + 5.
+    db_pool_mode: str = "null"
     cors_origins: str = "http://localhost:3000"
     app_name: str = "MaterialSelect AI"
     environment: str = "development"

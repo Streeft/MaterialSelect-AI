@@ -205,8 +205,8 @@ def test_long_name_and_avatar_fit_their_columns(db_session, google):
     assert user.avatar_url is None
 
 
-def test_postgres_pool_pings_and_recycles_connections():
-    kwargs = engine_kwargs("postgresql+psycopg://u:p@host/db")
+def test_postgres_queue_pool_pings_and_recycles_connections():
+    kwargs = engine_kwargs("postgresql+psycopg://u:p@host/db", pool_mode="queue")
     assert kwargs["pool_pre_ping"] is True
     assert kwargs["pool_recycle"] == 300
     assert kwargs["pool_timeout"] == 10

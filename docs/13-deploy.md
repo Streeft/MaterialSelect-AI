@@ -69,6 +69,15 @@ domínio — o `rewrites()` é condicional, então basta não definir
 Não rode as migrações à mão: o passo de release do Fly faz isso (§2), e é bom
 que seja sempre pelo mesmo caminho.
 
+**Conexões ociosas (D-227).** Fora do SQLite a API usa `NullPool` por padrão
+(`DB_POOL_MODE=null`): cada requisição abre a conexão e a fecha ao terminar, então
+nenhuma fica parada e o Neon consegue suspender a computação. Antes, o pool mantinha
+até cinco conexões abertas numa API sempre ligada e o Neon nunca dormia (a cota de
+computação acabou). O custo é um *connect* por requisição, aceitável nesta escala;
+`DB_POOL_MODE=queue` volta ao pool de 5 + 5. A pré-checagem de conexão e a repetição
+de `OperationalError` do D-195 continuam valendo. É variável do app: `fly secrets
+set DB_POOL_MODE=queue`, se um dia for preciso.
+
 ## 2. Fly.io (API)
 
 > **Sem terminal?** O §5-bis faz este passo e o `fly deploy` abaixo por dois

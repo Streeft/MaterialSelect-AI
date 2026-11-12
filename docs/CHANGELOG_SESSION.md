@@ -120,6 +120,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 184 — 12/11/26 — Banco sem conexões ociosas (D-227)
+
+**O que mudou.** `app/db/base.py`: banco de servidor usa `NullPool` (padrão), `DB_POOL_MODE=queue` volta ao pool de 5 + 5; novo
+`db_pool_mode` em `config.py`; `.env.example` (raiz e `apps/api`); nota em `docs/13-deploy.md`. Testes: `test_db_pool_mode.py`
+(5; dois precisam do `psycopg` instalado e pulam sem ele) e o teste do pool em `test_auth_callback_resilience.py` passou a pedir `queue`.
+
+**Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Conferir no Neon que a computação suspende.
+
+---
+
 ## Sessão 182 — 12/11/26 — Assistente de projeto com IA, etapa B: interface (D-225)
 
 **O que mudou.** Início: o `HomeComposer` virou o "Assistente de projeto" (`/ai/plan`, `mode: "project"`, Ctrl/⌘+Enter, fases

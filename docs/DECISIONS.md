@@ -13239,3 +13239,21 @@ min sem gastar cota).
 **Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
 
 **Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).
+
+## D-227 — Banco sem conexões ociosas: `NullPool` por padrão fora do SQLite
+
+**Contexto.** A API roda sempre ligada no Fly e o `engine` (D-198) mantinha um pool de 5 + 5 conexões com o Neon. Conexões ociosas
+abertas impedem o Neon de suspender a computação; a cota gratuita de computação estourou.
+
+**Decisão.** `engine_kwargs` usa `poolclass=NullPool` para banco de servidor, controlado por `DB_POOL_MODE=null|queue` (padrão
+`null`; qualquer outro valor é erro na subida). Mantêm-se `pool_pre_ping` e a repetição de `OperationalError` do D-195. `queue`
+preserva o pool antigo (`pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`, que não existem para `NullPool`). SQLite não muda.
+
+**Alternativas recusadas.** Encolher o pool para 1 (ainda deixa uma conexão aberta). `pool_recycle` curto (a conexão continua
+aberta entre as requisições). Trocar para o endpoint com pooler do Neon (o D-198/§1 do deploy já explica por que o endpoint é o
+direto: o mesmo valor serve a migração).
+
+**Consequências.** Um *connect* a cada requisição (e cada sessão de job em segundo plano). Só backend; **Deploy da API** depois do
+merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que a computação volta a suspender nos intervalos sem uso.
+
+**Numeração.** D-227/Sessão 184 (D-226/Sessão 183 ficaram com o fechamento da revisão das telas, em outro PR).
