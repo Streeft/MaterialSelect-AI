@@ -46,7 +46,7 @@ from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
 from app.domain.map_presets import MAP_PRESETS
 from app.domain.ranking import Direction, Normalization, normalize_column
-from app.domain.spread import exceeds, spread_pct
+from app.domain.spread import best_ids, exceeds, spread_pct
 from app.models.enums import BetterDirection, DataQuality, ProcessAttributeKind
 from app.models.material import Material
 from app.models.material_property_value import MaterialPropertyValue
@@ -1229,6 +1229,11 @@ class ChartService:
                     max_value=max(values) if values else None,  # type: ignore[type-var]
                     present_count=len(values),
                     missing_material_ids=missing_ids,
+                    best_material_ids=best_ids(
+                        {mid: float(column[mid].normalized_value) for mid in present_ids},  # type: ignore[arg-type]
+                        definition.better_direction.value,
+                    ),
+                    all_equal=len(values) > 1 and len(set(values)) == 1,
                 )
             )
 

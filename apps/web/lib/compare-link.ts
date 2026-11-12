@@ -27,7 +27,19 @@ export const LINK_KEYS = {
   expression: "indice",
   properties: "propriedades",
   normalization: "normalizacao",
+  view: "visao",
+  onlyDifferences: "diferencas",
 } as const;
+
+/** The five views of the comparison; `table` is the one it opens on (D-214). */
+export const COMPARE_VIEWS = ["table", "bars", "radar", "parallel", "heatmap"] as const;
+export type CompareView = (typeof COMPARE_VIEWS)[number];
+export const DEFAULT_VIEW: CompareView = "table";
+
+/** The view named by `visao=`; anything else is the default, never an error. */
+export function parseView(raw: string | null | undefined): CompareView {
+  return COMPARE_VIEWS.find((view) => view === raw) ?? DEFAULT_VIEW;
+}
 
 /** The normalization a comparison starts with; the link only writes another one. */
 export const DEFAULT_NORMALIZATION: NormalizationMethod = "minmax";
@@ -125,6 +137,9 @@ export interface CompareLinkState {
   /** The properties on the table, in order; written only with materials to compare. */
   properties: readonly string[];
   normalization: NormalizationMethod;
+  /** D-214: the open view and "só diferenças"; written only when not the default. */
+  view?: CompareView;
+  onlyDifferences?: boolean;
 }
 
 /**
@@ -150,6 +165,10 @@ export function compareSearch(current: string, state: CompareLinkState): string 
     if (state.normalization !== DEFAULT_NORMALIZATION) {
       params.set(LINK_KEYS.normalization, state.normalization);
     }
+    if (state.view !== undefined && state.view !== DEFAULT_VIEW) {
+      params.set(LINK_KEYS.view, state.view);
+    }
+    if (state.onlyDifferences === true) params.set(LINK_KEYS.onlyDifferences, "1");
   }
 
   const text = params.toString();
@@ -163,10 +182,14 @@ export function readCompareLink(search: URLSearchParams): {
   expressions: string[];
   properties: ParsedProperties;
   normalization: ReturnType<typeof parseNormalization>;
+  view: CompareView;
+  onlyDifferences: boolean;
 } {
   return {
     properties: parseProperties(search.get(LINK_KEYS.properties)),
     normalization: parseNormalization(search.get(LINK_KEYS.normalization)),
+    view: parseView(search.get(LINK_KEYS.view)),
+    onlyDifferences: search.get(LINK_KEYS.onlyDifferences) === "1",
     threshold: parseThreshold(search.get(LINK_KEYS.threshold)),
     catalogue: parseCatalogueSlugs(search.get(LINK_KEYS.catalogue)),
     expressions: parseExpressions(search.getAll(LINK_KEYS.expression)),

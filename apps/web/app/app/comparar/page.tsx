@@ -7,6 +7,8 @@ import { getComparison, listMaterials, listPerformanceIndices, listProperties } 
 import { parseThreshold } from "@/lib/compare-threshold";
 import { DEFAULT_NORMALIZATION, compareSearch, readCompareLink } from "@/lib/compare-link";
 import { compareLinkText } from "@/lib/i18n-compare-link";
+import { compareViewText } from "@/lib/i18n-compare-view";
+import { CompareSuggestions } from "@/components/charts/CompareSuggestions";
 import { ComputedTable } from "@/components/charts/ComputedSection";
 import { CopyCompareLink } from "@/components/charts/CopyCompareLink";
 import { CustomIndexForm } from "@/components/charts/CustomIndexForm";
@@ -31,6 +33,8 @@ import {
   Button,
   Card,
   CardBody,
+  ChartSkeleton,
+  Checkbox,
   Combobox,
   DensityToggle,
   ErrorState,
@@ -42,6 +46,7 @@ import {
   Select,
   SelectOption,
   StepCard,
+  TableSkeleton,
   Tabs,
   ToggleChip,
   type ComboboxOption,
@@ -102,7 +107,10 @@ function ComparePageContent() {
   const [normalization, setNormalization] = useState<NormalizationMethod>(
     fromLink.normalization.value ?? DEFAULT_NORMALIZATION,
   );
-  const [mode, setMode] = useState<ComparisonMode>("table");
+  // D-214: the open view and "só diferenças" are in the link too, so a shared
+  // address opens on the figure the sender was looking at.
+  const [mode, setMode] = useState<ComparisonMode>(fromLink.view);
+  const [onlyDifferences, setOnlyDifferences] = useState(fromLink.onlyDifferences);
 
   const materials = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials() });
   const properties = useQuery({ queryKey: ["properties"], queryFn: listProperties });
@@ -221,6 +229,8 @@ function ComparePageContent() {
     expressions: shownExpressions,
     properties: selectedProperties,
     normalization,
+    view: mode,
+    onlyDifferences,
   };
   const linkSearch = compareSearch(
     typeof window === "undefined" ? "" : window.location.search,
@@ -264,6 +274,17 @@ function ComparePageContent() {
     setComputedSlugs((current) =>
       current.includes(slug) ? current.filter((x) => x !== slug) : [...current, slug],
     );
+  }
+
+  // D-214: a shortcut of the empty state adds without ever cutting the selection.
+  function addMaterials(ids: number[]) {
+    setSelectedMaterials((current) => {
+      const next = [...current];
+      for (const id of ids) {
+        if (!next.includes(id) && next.length < MAX_MATERIALS) next.push(id);
+      }
+      return next;
+    });
   }
 
   function toggleMaterial(id: number) {
@@ -323,6 +344,15 @@ function ComparePageContent() {
             ))}
           </ul>
         </Alert>
+      )}
+
+      {selectedMaterials.length === 0 && (
+        <CompareSuggestions chosen={selectedMaterials} onAdd={addMaterials} />
+      )}
+      {selectedMaterials.length === 1 && (
+        <p role="status" className="text-support text-ink-muted">
+          {compareViewText.empty.needMore}
+        </p>
       )}
 
       {/* Three steps, each open once the one before it has something in it; a
@@ -493,13 +523,26 @@ function ComparePageContent() {
             panelClassName="flex flex-col gap-3 pt-3"
           >
             {mode === "table" && comparison.data ? (
-              <div className="flex justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Checkbox
+                  label={compareViewText.onlyDifferences.label}
+                  hint={compareViewText.onlyDifferences.hint}
+                  checked={onlyDifferences}
+                  onChange={(event) => setOnlyDifferences(event.target.checked)}
+                />
                 <DensityToggle />
               </div>
             ) : null}
             {checkingLink && <LoadingState label={compareLinkText.checking} />}
             {properties.isLoading && <LoadingState label={t.loading} />}
-            {comparison.isLoading && <LoadingState label={t.loading} />}
+            {/* The wait has the shape of what is coming, so the page does not
+                jump when the table or the figure arrives (D-206). */}
+            {comparison.isLoading &&
+              (mode === "table" ? (
+                <TableSkeleton label={t.loading} rows={Math.min(6, selectedMaterials.length + 1)} columns={Math.min(6, selectedProperties.length + 1)} />
+              ) : (
+                <ChartSkeleton label={t.loading} />
+              ))}
             {comparison.isError && (
               <ErrorState
                 title={t.error} error={comparison.error}
@@ -513,6 +556,8 @@ function ComparePageContent() {
                 mode={mode}
                 referenceId={activeReference}
                 onSetReference={setReferenceId}
+                onlyDifferences={onlyDifferences}
+                onModeChange={setMode}
               />
             )}
           </Tabs>

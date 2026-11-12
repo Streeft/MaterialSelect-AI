@@ -1640,6 +1640,10 @@ export interface CompareAxis {
   spread_state?: SpreadState;
   /** Null without a threshold or without a spread to compare. */
   exceeds_threshold?: boolean | null;
+  /** D-214: who holds the best value by the property's own direction; empty when none can be named. */
+  best_material_ids?: number[];
+  /** D-214: two or more values, all the same. */
+  all_equal?: boolean;
 }
 
 export interface CompareCell {

@@ -464,6 +464,13 @@ class CompareAxisOut(BaseModel):
     spread_state: SpreadState = "valores_insuficientes"
     #: ``None`` when no threshold was asked or there is no spread to compare.
     exceeds_threshold: bool | None = None
+    #: D-214: the materials holding the best value of this property, by its
+    #: declared direction (ties included). Empty when none can be named: a
+    #: neutral property, fewer than two values, or all of them equal.
+    best_material_ids: list[int] = Field(default_factory=list)
+    #: D-214: two or more materials have a value and all of them are the same.
+    #: Drives "só diferenças": such a column separates nobody.
+    all_equal: bool = False
 
 
 class CompareCellOut(BaseModel):
