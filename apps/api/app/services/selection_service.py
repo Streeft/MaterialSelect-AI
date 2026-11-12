@@ -53,6 +53,7 @@ from app.domain.ranking import (
 from app.domain.slug import slugify
 from app.domain.taxonomy import lineages
 from app.domain.weights import WeightEntry, weight_budget
+from app.domain.winner import pick_winner
 
 # The one number formatter in the codebase, and the same one the report and the
 # laudo print with — `describe_pipeline` and the chart-stage sentence below feed
@@ -110,6 +111,7 @@ from app.schemas.selection import (
     WeightBudgetOut,
     WeightsPreviewOut,
     WeightsPreviewRequest,
+    WinnerOut,
 )
 from app.services.audit_service import record_change
 from app.services.study_file import build_study_file, parse_study_file
@@ -2006,6 +2008,39 @@ class SelectionService:
             stages=stage_outs,
             index=index_out,
             ranking=ranking_out,
+            winner=self._winner(candidates, ranking_out, index_out),
+        )
+
+    @staticmethod
+    def _winner(candidates: list[CandidateOut], ranking_out, index_out) -> WinnerOut:
+        """Name the winner from the numbers the run produced (D-85)."""
+        picked = pick_winner(
+            candidate_count=len(candidates),
+            ranked=[
+                {
+                    "record_id": r.record_id,
+                    "name": r.name,
+                    "score": r.score,
+                    "rank": r.rank,
+                    "contributions": r.contributions,
+                }
+                for r in (ranking_out.ranked if ranking_out is not None else [])
+            ],
+            method=ranking_out.method if ranking_out is not None else None,
+            index_goal=index_out.goal if index_out is not None else None,
+            index_values=[(c.record_id, c.index_value) for c in candidates],
+            names={c.record_id: c.name for c in candidates},
+        )
+        return WinnerOut(
+            kind=picked.kind,
+            names=picked.names,
+            reason=picked.reason,
+            score=picked.score,
+            method=picked.method,
+            contributions=picked.contributions,
+            index_value=picked.index_value,
+            value=picked.value,
+            maximize=picked.maximize,
         )
 
     # --- weight budget and top-N preview (D-87) ---------------------------

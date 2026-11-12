@@ -32,6 +32,7 @@ from app.calculations.units import (
     to_canonical,
     to_canonical_delta,
 )
+from app.domain.axis_domain import open_selection_bounds
 from app.domain.display_units import Reading, reading_for, readings_for
 from app.domain.errors import NotFoundError, ValidationError
 from app.domain.geometry import Point, convex_hull, fitted_ellipse
@@ -62,6 +63,8 @@ from app.schemas.charts import (
     MapBoxOut,
     MapBoxRequest,
     MapPointOut,
+    OpenBoundsOut,
+    OpenSidesOut,
     PropertyMapOut,
     PropertyMapRequest,
 )
@@ -131,8 +134,23 @@ class ChartService:
 
     def property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         if request.universe == "process":
-            return self._process_property_map(request)
-        return self._material_property_map(request)
+            chart = self._process_property_map(request)
+        else:
+            chart = self._material_property_map(request)
+        chart.open_bounds = self._open_bounds(chart)
+        return chart
+
+    @staticmethod
+    def _open_bounds(chart: PropertyMapOut) -> OpenBoundsOut:
+        """Extents for the open sides of a selection box, in the points' own units."""
+        xs = [p.x for p in chart.points]
+        ys = [p.y for p in chart.points]
+        linear = open_selection_bounds(xs, ys, log=False)
+        log = open_selection_bounds(xs, ys, log=True)
+        return OpenBoundsOut(
+            linear=OpenSidesOut(x=linear.x, y=linear.y),
+            log=OpenSidesOut(x=log.x, y=log.y),
+        )
 
     def _material_property_map(self, request: PropertyMapRequest) -> PropertyMapOut:
         if (request.x is None) == (request.x_index is None):

@@ -22,10 +22,12 @@ from app.calculations.part_cost import (
     REQUIRED_PROCESS_ATTRIBUTES,
     SCRAP_FRACTION,
     TOOLING_COST,
+    CostCurvePoint,
     PartCostError,
     ShopAssumptions,
     cost_curve,
     cost_terms,
+    curve_domains,
 )
 from app.domain.errors import NotFoundError, ValidationError
 from app.models.process import Process
@@ -33,6 +35,7 @@ from app.repositories.chart_repository import ChartRepository
 from app.repositories.process_repository import ProcessRepository
 from app.schemas.part_cost import (
     CostCurvePointOut,
+    CostDomainOut,
     CostedProcessOut,
     CostRequest,
     CostResultOut,
@@ -170,7 +173,20 @@ class PartCostService:
             material_cost_per_mass=cost_per_mass,
             costed=ranked,
             uncosted=uncosted,
+            domain=self._domain(ranked, request.batch_size),
         )
+
+    @staticmethod
+    def _domain(costed: list[CostedProcessOut], batch_size: float) -> CostDomainOut | None:
+        curves = [
+            [CostCurvePoint(batch_size=pt.batch_size, cost=pt.cost) for pt in item.curve]
+            for item in costed
+            if item.curve
+        ]
+        if not curves:
+            return None
+        domains = curve_domains(curves, current_batch=batch_size)
+        return CostDomainOut(x=domains.x, y=domains.y, batch_sizes=domains.batch_sizes)
 
     @staticmethod
     def _material_cost(material) -> float | None:

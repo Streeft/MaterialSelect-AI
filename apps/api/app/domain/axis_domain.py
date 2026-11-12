@@ -93,9 +93,7 @@ def _open_interval(values: Sequence[float], log: bool) -> Interval:
     return (low - span * 0.5, high + span * 0.5)
 
 
-def open_selection_bounds(
-    xs: Sequence[float], ys: Sequence[float], *, log: bool
-) -> OpenBounds:
+def open_selection_bounds(xs: Sequence[float], ys: Sequence[float], *, log: bool) -> OpenBounds:
     """Extent used for a side of the map selection the reader left open.
 
     A box limited only on the right still has to be drawn as a rectangle: its

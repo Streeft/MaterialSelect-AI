@@ -443,6 +443,25 @@ class RankingResultOut(BaseModel):
     sensitivity: list[SensitivityScenarioOut]
 
 
+class WinnerOut(BaseModel):
+    """Who won the run, picked on the server (D-85, ADR 0004).
+
+    ``ranked``: the rank-1 rows (a tie lists them all) with the method, the
+    score and the contributions of the first. ``index``: the best defined index
+    value in the index's own direction. ``none``: nobody, and ``reason`` says why.
+    """
+
+    kind: Literal["ranked", "index", "none"]
+    names: list[str] = Field(default_factory=list)
+    reason: Literal["no_candidates", "no_objective", "no_defined_index"] | None = None
+    score: float | None = None
+    method: str | None = None
+    contributions: list[ContributionOut] = Field(default_factory=list)
+    index_value: float | None = None
+    value: float | None = None
+    maximize: bool | None = None
+
+
 class RunResultOut(BaseModel):
     universe: UniverseLiteral = "material"
     initial_count: int
@@ -461,6 +480,7 @@ class RunResultOut(BaseModel):
     stages: list[StageResultOut] = Field(default_factory=list)
     index: IndexResultOut | None = None
     ranking: RankingResultOut | None = None
+    winner: WinnerOut | None = None
 
 
 # --- Performance-index catalogue -------------------------------------------

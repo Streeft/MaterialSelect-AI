@@ -70,6 +70,15 @@ class UncostedProcessOut(BaseModel):
     reason: str
 
 
+class CostDomainOut(BaseModel):
+    """Log-log extents of the C(n) figure, computed on the server (ADR 0004)."""
+
+    x: tuple[float, float]
+    y: tuple[float, float]
+    #: Sorted batch sizes of the curves plus the current one (rows of the table).
+    batch_sizes: list[float]
+
+
 class CostResultOut(BaseModel):
     material_id: int
     material_name: str
@@ -82,3 +91,4 @@ class CostResultOut(BaseModel):
     monetary_unit_note: str = MONETARY_UNIT_NOTE
     costed: list[CostedProcessOut]
     uncosted: list[UncostedProcessOut]
+    domain: CostDomainOut | None = None

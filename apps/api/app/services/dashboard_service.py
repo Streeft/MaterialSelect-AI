@@ -44,6 +44,7 @@ from app.calculations.statistics import (
 )
 from app.calculations.treemap import Rect, squarify
 from app.config import settings as app_settings
+from app.domain.axis_domain import box_domains
 from app.domain.dashboard_filters import DashboardFilters
 from app.domain.depth_profile import property_min_level
 from app.domain.display_units import reading_for
@@ -57,6 +58,7 @@ from app.schemas.dashboard import (
     AIDayOut,
     AIUsageOut,
     AuditEventOut,
+    BoxDomainOut,
     BoxOut,
     ClassCoverageOut,
     CompositionOut,
@@ -309,8 +311,16 @@ class DashboardService:
             display_unit=reading.unit,
             allows_log_scale=definition.allows_log_scale,
             boxes=boxes,
+            domain=self._box_domain(boxes),
             classes_without_data=without,
         )
+
+    @staticmethod
+    def _box_domain(boxes: list[BoxOut]) -> BoxDomainOut | None:
+        domains = box_domains([b.minimum for b in boxes], [b.maximum for b in boxes])
+        if domains is None:
+            return None
+        return BoxDomainOut(linear=domains.linear, log=domains.log)
 
     # --- Painel rico (D-193) ----------------------------------------------
 

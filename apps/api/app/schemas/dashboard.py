@@ -107,6 +107,17 @@ class BoxOut(BaseModel):
     maximum: float
 
 
+class BoxDomainOut(BaseModel):
+    """Axis extent of the box plot, padded on the server (ADR 0004).
+
+    `log` is null when the smallest value is not positive: the figure then
+    stays linear instead of dropping a class.
+    """
+
+    linear: tuple[float, float]
+    log: tuple[float, float] | None = None
+
+
 class DistributionOut(BaseModel):
     """How one property is distributed across the classes that have it."""
 
@@ -122,6 +133,8 @@ class DistributionOut(BaseModel):
     # and the definition already knows which of its own axes is honest.
     allows_log_scale: bool = True
     boxes: list[BoxOut]
+    #: Domínio dos eixos, calculado no servidor; nulo quando não há caixas.
+    domain: BoxDomainOut | None = None
     # Named, not dropped. A class that vanishes from the figure looks like a
     # class that does not exist; a class listed as having no data for this
     # property is the honest version of the same fact.

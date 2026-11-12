@@ -41,6 +41,8 @@ cost would make the most capital-intensive process look free.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 #: Attribute slugs the model reads from a process, and what each one is.
@@ -168,6 +170,53 @@ class UncostedProcess:
     process_name: str
     missing_keys: list[str]
     reason: str
+
+
+@dataclass(frozen=True)
+class CurveDomains:
+    """Log-log extents of the C(n) figure, and the batch sizes it tabulates."""
+
+    x: tuple[float, float]
+    y: tuple[float, float]
+    batch_sizes: list[float]
+
+
+#: Decades of air above and below the cost range (at least) on the y axis.
+CURVE_Y_PAD_FRACTION = 0.08
+CURVE_Y_MIN_PAD_DECADES = 0.05
+#: Used when no curve has a positive cost to measure.
+CURVE_EMPTY_Y: tuple[float, float] = (1.0, 1000.0)
+
+
+def curve_domains(
+    curves: Sequence[Sequence[CostCurvePoint]], *, current_batch: float
+) -> CurveDomains:
+    """Axis extents for the cost-vs-batch figure (ADR 0004: not React's job).
+
+    ``x`` spans every curve point and the current batch; ``y`` spans the
+    positive costs with a little logarithmic air so extreme points do not
+    clip the frame, or a stated default when there is none. ``batch_sizes`` is
+    the sorted union of the curve sizes and the current batch, one row of the
+    table that accompanies the figure.
+    """
+    min_x = max_x = current_batch if current_batch > 0 else 1.0
+    batches: set[float] = {current_batch} if current_batch > 0 else set()
+    costs: list[float] = []
+    for curve in curves:
+        for point in curve:
+            if point.batch_size > 0 and math.isfinite(point.batch_size):
+                min_x = min(min_x, point.batch_size)
+                max_x = max(max_x, point.batch_size)
+                batches.add(point.batch_size)
+            if point.cost > 0 and math.isfinite(point.cost):
+                costs.append(point.cost)
+    if not costs:
+        y = CURVE_EMPTY_Y
+    else:
+        low, high = math.log10(min(costs)), math.log10(max(costs))
+        pad = max((high - low) * CURVE_Y_PAD_FRACTION, CURVE_Y_MIN_PAD_DECADES)
+        y = (10 ** (low - pad), 10 ** (high + pad))
+    return CurveDomains(x=(min_x, max_x), y=y, batch_sizes=sorted(batches))
 
 
 #: Wall-clock hours in a year. Written once because two modules need the same
