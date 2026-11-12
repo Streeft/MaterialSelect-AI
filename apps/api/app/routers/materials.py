@@ -10,11 +10,14 @@ work (see ``app.dependencies``).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import can_edit_shared_catalog, get_current_user, get_unit_choices
+from app.domain.catalog_listing import MAX_PAGE_SIZE
 from app.models.user import User
 from app.schemas.curve import (
     CurveIn,
@@ -43,8 +46,18 @@ from app.services.similarity_service import SimilarityService
 router = APIRouter(prefix="/materials", tags=["materials"])
 
 
+_PAGE_LIMIT = Query(
+    default=None,
+    ge=1,
+    le=MAX_PAGE_SIZE,
+    description=f"Tamanho da página (1 a {MAX_PAGE_SIZE}); omitido, vêm todos (D-215)",
+)
+_PAGE_OFFSET = Query(default=0, ge=0, description="Quantos materiais pular (D-215)")
+
+
 @router.get("", response_model=list[MaterialListItem])
 def list_materials(
+    response: Response,
     search: str | None = Query(
         default=None,
         description=(
@@ -56,14 +69,22 @@ def list_materials(
         default=False,
         description="Filtra apenas materiais que possuem ao menos uma propriedade com referência bibliográfica (TM6).",
     ),
+    limit: int | None = _PAGE_LIMIT,
+    offset: int = _PAGE_OFFSET,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> list[MaterialListItem]:
-    """List active materials, optionally filtered by a search term."""
-    return MaterialService(db, user, unit_choices).list_materials(
-        search, com_referencia=com_referencia
+    """List active materials, optionally filtered by a search term.
+
+    D-215: a page when ``limit`` is given; ``X-Total-Count`` always says how
+    many matched, so a caller can page without changing the body's shape.
+    """
+    result = MaterialService(db, user, unit_choices).list_materials(
+        search, com_referencia=com_referencia, offset=offset, limit=limit
     )
+    response.headers["X-Total-Count"] = str(result.total)
+    return result.items
 
 
 @router.get("/busca", response_model=MaterialSearchOut)
@@ -79,6 +100,25 @@ def search_materials(
         default=False,
         description="Filtra apenas materiais que possuem ao menos uma propriedade com referência bibliográfica (TM6).",
     ),
+    classe: str | None = Query(
+        default=None, max_length=120, description="Slug da classe; inclui as classes abaixo dela"
+    ),
+    subclasse: str | None = Query(default=None, max_length=200, description="Subclasse exata"),
+    qualidade: Literal["complete", "gaps", "measured", "referenced"] | None = Query(
+        default=None, description="complete, gaps, measured ou referenced"
+    ),
+    demo: bool | None = Query(
+        default=None, description="Só dados de demonstração (true) ou só os outros (false)"
+    ),
+    ordenar: str = Query(
+        default="relevancia",
+        max_length=120,
+        description="relevancia, nome, classe ou o slug de uma propriedade (ausentes por último)",
+    ),
+    direcao: Literal["asc", "desc"] = Query(default="asc"),
+    limit: int | None = _PAGE_LIMIT,
+    offset: int = _PAGE_OFFSET,
+    facetas: bool = Query(default=False, description="Inclui as contagens por filtro (D-215)"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
@@ -87,9 +127,22 @@ def search_materials(
 
     Same matching as ``GET /materials?search=``; this one also says, when the
     query asks about composition, which rule ran and how many materials were
-    left out for lack of data. Declared before ``/{material_id}``.
+    left out for lack of data. D-215 adds the chips, the order, the page and
+    the facet counts. Declared before ``/{material_id}``.
     """
-    return MaterialService(db, user, unit_choices).search(q, com_referencia=com_referencia)
+    return MaterialService(db, user, unit_choices).search(
+        q,
+        com_referencia=com_referencia,
+        class_slug=classe,
+        subclass=subclasse,
+        quality=qualidade,
+        demo=demo,
+        order=ordenar,
+        direction=direcao,
+        offset=offset,
+        limit=limit,
+        with_facets=facetas,
+    )
 
 
 @router.post("", response_model=MaterialDetail, status_code=status.HTTP_201_CREATED)

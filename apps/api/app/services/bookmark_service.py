@@ -76,7 +76,7 @@ class BookmarkService:
             favorites=bookmarks(self.repo.favorite_materials(), self.repo.favorite_processes()),
             recents=bookmarks(self.repo.recent_materials(), self.repo.recent_processes()),
             own_records=[
-                item for item in material_service.list_materials(None) if item.is_own_record
+                item for item in material_service.list_materials(None).items if item.is_own_record
             ],
         )
 

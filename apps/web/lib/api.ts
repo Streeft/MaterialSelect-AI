@@ -266,9 +266,45 @@ export function listMaterials(search?: string): Promise<MaterialListItem[]> {
  * about composition (`comp:`), the rule that ran and how many materials were
  * left out for lack of data — the catalogue screen states both.
  */
-export function searchMaterials(query?: string): Promise<MaterialSearch> {
-  const q = query && query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
-  return request<MaterialSearch>(`/api/materials/busca${q}`);
+export function searchMaterials(query?: string | CatalogQuery): Promise<MaterialSearch> {
+  return request<MaterialSearch>(`/api/materials/busca${catalogQueryString(query)}`);
+}
+
+/**
+ * D-215: one catalogue question — the text, the chips, the order and the page.
+ * Every field is optional; an omitted `limit` brings every match, as before.
+ */
+export interface CatalogQuery {
+  q?: string;
+  classe?: string | null;
+  subclasse?: string | null;
+  qualidade?: "complete" | "gaps" | "measured" | "referenced" | null;
+  demo?: boolean | null;
+  /** `relevancia`, `nome`, `classe` or a property slug (absent values last). */
+  ordenar?: string;
+  direcao?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+  facetas?: boolean;
+}
+
+/** The query string of a `CatalogQuery`; a plain string is the old `q` alone. */
+export function catalogQueryString(query?: string | CatalogQuery): string {
+  const spec: CatalogQuery = typeof query === "string" ? { q: query } : (query ?? {});
+  const params = new URLSearchParams();
+  const text = spec.q?.trim();
+  if (text) params.set("q", text);
+  if (spec.classe) params.set("classe", spec.classe);
+  if (spec.subclasse) params.set("subclasse", spec.subclasse);
+  if (spec.qualidade) params.set("qualidade", spec.qualidade);
+  if (spec.demo !== undefined && spec.demo !== null) params.set("demo", String(spec.demo));
+  if (spec.ordenar && spec.ordenar !== "relevancia") params.set("ordenar", spec.ordenar);
+  if (spec.direcao === "desc") params.set("direcao", "desc");
+  if (spec.limit !== undefined) params.set("limit", String(spec.limit));
+  if (spec.offset) params.set("offset", String(spec.offset));
+  if (spec.facetas) params.set("facetas", "true");
+  const out = params.toString();
+  return out ? `?${out}` : "";
 }
 
 /**

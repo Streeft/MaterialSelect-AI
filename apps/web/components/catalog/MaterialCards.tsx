@@ -4,7 +4,7 @@ import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { Badge, Bar, Card, CardBody } from "@/components/ui";
-import { QualityBar } from "@/components/catalog/MaterialRows";
+import { QualityBar, SortValueCell } from "@/components/catalog/MaterialRows";
 import { DesignationCodes } from "./DesignationCodes";
 import { HighlightText } from "./HighlightText";
 
@@ -26,10 +26,13 @@ function MaterialCard({
   material,
   index,
   searchQuery,
+  valueLabel,
 }: {
   material: MaterialListItem;
   index: number;
   searchQuery?: string;
+  /** D-215: the property the list is ordered by; its value is shown on the card. */
+  valueLabel?: string;
 }) {
   const { quality } = material;
   const filled = quality.medido + quality.importado + quality.estimado;
@@ -44,7 +47,7 @@ function MaterialCard({
               <Link
                 href={`/app/materiais/${material.id}`}
                 onClick={markContainerOrigin}
-                className="text-[0.9375rem] font-semibold text-brand-700"
+                className="break-words text-[0.9375rem] font-semibold text-brand-700"
               >
                 <HighlightText text={material.name} query={searchQuery} />
               </Link>
@@ -57,7 +60,7 @@ function MaterialCard({
             <DesignationCodes designations={material.designations} searchQuery={searchQuery} />
           </div>
           <span
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-seat bg-surface-sunken px-2 py-1 text-2xs text-ink-muted"
+            className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-1.5 break-words rounded-seat bg-surface-sunken px-2 py-1 text-2xs text-ink-muted"
             title={material.class_name}
           >
             <span
@@ -68,6 +71,13 @@ function MaterialCard({
             {material.class_name}
           </span>
         </div>
+
+        {valueLabel ? (
+          <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-caption">
+            <span className="text-ink-muted">{valueLabel}</span>
+            <SortValueCell material={material} />
+          </p>
+        ) : null}
 
         <div className="flex items-center gap-2.5">
           <Bar
@@ -111,9 +121,8 @@ function MaterialCard({
  * markup semantically correct at each width, instead of forcing a `<table>`
  * to behave like a list via CSS.
  *
- * This duplicates the DOM nodes. Acceptable because the catalog is paginated;
- * if the page ever shows hundreds of rows, switch to a `useMediaQuery` that
- * renders only one of the two.
+ * This duplicates the DOM nodes. Acceptable because the catalog is paginated
+ * (D-215: a page of 50 at most); before that it rendered all ~680 at once.
  */
 /**
  * D-209: `responsive` is the phone's stand-in for the table (hidden from `sm`
@@ -124,10 +133,12 @@ export function MaterialCards({
   materials,
   searchQuery,
   layout = "responsive",
+  valueLabel,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
   layout?: "responsive" | "gallery";
+  valueLabel?: string;
 }) {
   return (
     <ul
@@ -139,7 +150,12 @@ export function MaterialCards({
     >
       {materials.map((material, index) => (
         <li key={material.id}>
-          <MaterialCard material={material} index={index} searchQuery={searchQuery} />
+          <MaterialCard
+            material={material}
+            index={index}
+            searchQuery={searchQuery}
+            valueLabel={valueLabel}
+          />
         </li>
       ))}
     </ul>

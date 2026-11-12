@@ -931,6 +931,14 @@ cópia em SQL; designação **não** declara equivalência (`code_key` só tira 
 e espaço). O bundle do D-102 aceita `material_designations.ndjson` e
 `material_compositions.ndjson`. Só o demo (códigos `DEMO-`) tem esses dados — desde o D-107, os 75 materiais demo.
 
+**Catálogo em páginas ([D-215](DECISIONS.md)).** `GET /api/materials/busca` pagina (`limit` ≤ 200, `offset`), filtra
+(`classe` com a subárvore, `subclasse`, `qualidade`, `demo`), ordena (`relevancia`, `nome`, `classe` ou slug de propriedade)
+e conta (`facetas`). As regras são puras, em `app/domain/catalog_listing.py`: faceta conta **sem o próprio filtro**; ordem por
+propriedade põe **sem valor por último nos dois sentidos** e nunca lê ausência como 0 (`sort_value.value = null`,
+`is_missing`). Sem `limit`, devolve tudo (consumidores antigos). A busca dobra caixa e acento pelos dois lados com a tabela de
+`app/domain/text_fold.py` (`folded()` em `repositories/text_sql.py`; no SQLite a função `ms_fold` é registrada por conexão) e
+ranqueia exato > prefixo > palavra inteira > início de palavra > contém. "Nível" não é faceta: é visão (D-127).
+
 **Equivalência é declarada, nunca inferida** ([D-115](DECISIONS.md), TM1, Sessão
 70): `EquivalenceGroup` (tipo `EQUIVALENTE`/`APROXIMADA`/`SIMILAR` + `Source`
 obrigatória, com licença para dado real) liga `EquivalenceMember`s, que apontam

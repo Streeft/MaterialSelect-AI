@@ -9,6 +9,7 @@ import { classVisual } from "@/lib/design/palette";
 import { MAX_COMPARE_MATERIALS, MIN_COMPARE_MATERIALS } from "@/lib/compareLimits";
 import { encodeIdList } from "@/lib/idList";
 import { ariaSort, nextSort, sortRows, type SortState } from "@/lib/tableSort";
+import { formatNumber } from "@/lib/format";
 import {
   Badge,
   Button,
@@ -127,6 +128,46 @@ function MaterialName({
 
 type SortKey = "name" | "class";
 
+/** D-215: the columns a reader may hide; the material's name always stays. */
+export type CatalogColumn = "class" | "quality" | "keywords" | "designations";
+export const CATALOG_COLUMNS: readonly CatalogColumn[] = [
+  "class",
+  "quality",
+  "keywords",
+  "designations",
+];
+
+/**
+ * D-215: the order lives with the server when the list is a page — sorting the
+ * fifty rows on screen would say nothing about the other six hundred. The
+ * screen passes the order it asked for and hears the header clicks back.
+ */
+export interface ServerSort {
+  state: SortState<SortKey> | null;
+  onChange: (next: SortState<SortKey> | null) => void;
+}
+
+/**
+ * The value the catalogue was ordered by, in the reader's unit. Absence is a
+ * word, never a blank or a zero (D-24).
+ */
+export function SortValueCell({ material }: { material: MaterialListItem }) {
+  const sv = material.sort_value;
+  if (!sv || sv.value === null) {
+    return (
+      <span className="text-2xs italic text-ink-subtle">
+        {sv?.is_missing ? t.valueAbsent : t.valueNotRegistered}
+      </span>
+    );
+  }
+  return (
+    <span className="tabular-nums text-ink">
+      {formatNumber(sv.value)}
+      {sv.unit ? <span className="ml-1 text-caption text-ink-muted">{sv.unit}</span> : null}
+    </span>
+  );
+}
+
 /**
  * The catalogue as a table (D-131, after the M3 data-table pattern).
  *
@@ -146,6 +187,9 @@ export function MaterialTable({
   onPreview,
   previewId,
   compact = false,
+  serverSort,
+  columns,
+  valueColumn,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
@@ -155,19 +199,28 @@ export function MaterialTable({
   previewId?: number;
   /** Beside the detail pane: designations and keywords stay on the sheet. */
   compact?: boolean;
+  /** D-215: the order is the server's (a paged list); absent, the rows sort here. */
+  serverSort?: ServerSort;
+  /** D-215: the optional columns shown; all of them when absent. */
+  columns?: ReadonlySet<CatalogColumn>;
+  /** D-215: the property the list is ordered by, shown as its own column. */
+  valueColumn?: string;
 }) {
-  const [sort, setSort] = useState<SortState<SortKey> | null>(null);
+  const [localSort, setLocalSort] = useState<SortState<SortKey> | null>(null);
+  const sort = serverSort ? serverSort.state : localSort;
+  const setSort = serverSort ? serverSort.onChange : setLocalSort;
+  const show = (column: CatalogColumn) => !columns || columns.has(column);
   const [picked, setPicked] = useState<ReadonlySet<number>>(new Set());
   const allRef = useRef<HTMLInputElement>(null);
 
   const rows = useMemo(() => {
-    if (!sort) return materials;
+    if (!sort || serverSort) return materials;
     return sortRows(
       materials,
       (m) => (sort.key === "name" ? m.name : m.class_name),
       sort.dir,
     );
-  }, [materials, sort]);
+  }, [materials, sort, serverSort]);
 
   const selected = useMemo(() => materials.filter((m) => picked.has(m.id)), [materials, picked]);
   const allSelected = materials.length > 0 && selected.length === materials.length;
@@ -252,15 +305,16 @@ export function MaterialTable({
                 sort={ariaSort(sort, "name")}
                 onSort={() => setSort(nextSort(sort, "name"))}
               />
-              {compact ? null : (
+              {valueColumn ? <Th>{t.columnValue(valueColumn)}</Th> : null}
+              {compact || !show("class") ? null : (
                 <SortTh
                   label={t.columnClass}
                   sort={ariaSort(sort, "class")}
                   onSort={() => setSort(nextSort(sort, "class"))}
                 />
               )}
-              <Th>{t.columnQuality}</Th>
-              {compact ? null : <Th>{t.columnKeywords}</Th>}
+              {show("quality") ? <Th>{t.columnQuality}</Th> : null}
+              {compact || !show("keywords") ? null : <Th>{t.columnKeywords}</Th>}
             </Tr>
           </THead>
           <TBody>
@@ -294,23 +348,30 @@ export function MaterialTable({
                     <span className="mt-1 block">
                       <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
                     </span>
-                  ) : (
+                  ) : show("designations") ? (
                     <DesignationCodes designations={m.designations} searchQuery={searchQuery} />
-                  )}
+                  ) : null}
                 </RowHeader>
-                {compact ? null : (
+                {valueColumn ? (
+                  <Td>
+                    <SortValueCell material={m} />
+                  </Td>
+                ) : null}
+                {compact || !show("class") ? null : (
                   <Td>
                     <ClassBadge name={m.class_name} color={classVisual(m.class_slug).color} />
                   </Td>
                 )}
-                <Td>
-                  {/* Beside the sheet the reference count is on the sheet itself. */}
-                  <QualityBar
-                    quality={m.quality}
-                    referenceCount={compact ? undefined : m.reference_count}
-                  />
-                </Td>
-                {compact ? null : (
+                {show("quality") ? (
+                  <Td>
+                    {/* Beside the sheet the reference count is on the sheet itself. */}
+                    <QualityBar
+                      quality={m.quality}
+                      referenceCount={compact ? undefined : m.reference_count}
+                    />
+                  </Td>
+                ) : null}
+                {compact || !show("keywords") ? null : (
                   <Td>
                     <span className="flex flex-wrap gap-1">
                       {m.keywords.map((kw, i) => (

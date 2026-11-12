@@ -281,12 +281,43 @@ export interface CompositionSearchReport {
   without_composition: number;
 }
 
+/**
+ * D-215: how many materials each chip value would leave, the other chips
+ * applied. `classe` counts a class and everything under it; a value no
+ * material has is absent, never zero.
+ */
+export interface CatalogFacets {
+  classe: Record<string, number>;
+  subclasse: Record<string, number>;
+  qualidade: Record<string, number>;
+  /** `"true"`/`"false"`. */
+  demo: Record<string, number>;
+}
+
 /** `GET /api/materials/busca` — the catalogue search with its report. */
 export interface MaterialSearch {
   items: MaterialListItem[];
+  /** Every material that matched the query and the chips (D-215). */
   total: number;
+  /** D-215: where the page starts and how long it is (`null`: all of them). */
+  offset?: number;
+  limit?: number | null;
+  /** D-215: only when asked with `facetas=true`. */
+  facets?: CatalogFacets | null;
   /** Present only when the query asked about composition. */
   composition: CompositionSearchReport | null;
+}
+
+/**
+ * D-215: the value the catalogue was ordered by, in the reader's unit.
+ * `value` is `null` when the material has none — `is_missing` says it was
+ * recorded as absent. Never 0.
+ */
+export interface SortValue {
+  property_slug: string;
+  value: number | null;
+  unit: string | null;
+  is_missing: boolean;
 }
 
 export interface MaterialListItem {
@@ -309,6 +340,8 @@ export interface MaterialListItem {
   designations: DesignationBrief[];
   /** TM6: contagem de propriedades com referência bibliográfica associada. */
   reference_count?: number;
+  /** D-215: only when the catalogue was ordered by a property. */
+  sort_value?: SortValue | null;
 }
 
 export interface MaterialDetail {

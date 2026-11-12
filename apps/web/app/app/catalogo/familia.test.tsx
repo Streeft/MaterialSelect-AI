@@ -18,6 +18,7 @@ const route = { slug: "metais" };
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/catalogo",
   useParams: () => ({ slug: route.slug }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 /**
@@ -98,12 +99,34 @@ const note: FamilyNoteEntry = {
 };
 
 const notesMock = vi.fn(() => Promise.resolve([note]));
+
+/**
+ * D-215: the page asks the catalogue search, and the server resolves the
+ * subtree; this stand-in does what the server does for the fixture tree.
+ * `extraTotal` pretends the family holds more than one page.
+ */
+const searchState = vi.hoisted(() => ({ extraTotal: 0 }));
+const searchMock = vi.fn((query: { classe?: string; limit?: number; offset?: number }) => {
+  const subtree: Record<string, string[]> = {
+    metais: ["metais", "ferrosos"],
+    ferrosos: ["ferrosos"],
+    polimeros: ["polimeros"],
+  };
+  const items = materials.filter((m) => (subtree[query.classe ?? ""] ?? []).includes(m.class_slug));
+  return Promise.resolve({
+    items,
+    total: items.length + searchState.extraTotal,
+    offset: query.offset ?? 0,
+    limit: query.limit ?? null,
+    composition: null,
+  });
+});
 const classMock = vi.fn(() => Promise.resolve(detail));
 
 vi.mock("@/lib/api", () => ({
   getClass: (...a: unknown[]) => (classMock as (...x: unknown[]) => unknown)(...a),
   listClasses: () => Promise.resolve(classes),
-  listMaterials: () => Promise.resolve(materials),
+  searchMaterials: (q: { classe?: string; limit?: number; offset?: number }) => searchMock(q),
   listFamilyNotes: () => notesMock(),
 }));
 
@@ -135,6 +158,26 @@ describe("a ficha da família de material", () => {
     expect(within(table).getByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
     // E não traz o que está noutra raiz.
     expect(within(table).queryByShadowRole("link", { name: /Polipropileno/ })).toBeNull();
+  });
+
+  it("pede ao servidor uma página da família, não o catálogo inteiro (D-215)", async () => {
+    searchMock.mockClear();
+    render(wrap(<MaterialFamilyPage />));
+    await screen.findByShadowRole("table");
+    expect(searchMock).toHaveBeenCalledWith(
+      expect.objectContaining({ classe: "metais", limit: 50, offset: 0 }),
+    );
+    // One page holds everything: no pagination bar.
+    expect(screen.queryByShadowRole("navigation", { name: ptBR.ds.pagination })).toBeNull();
+  });
+
+  it("mostra a paginação quando a família passa de uma página (D-215)", async () => {
+    searchState.extraTotal = 120;
+    render(wrap(<MaterialFamilyPage />));
+    const nav = await screen.findByShadowRole("navigation", { name: ptBR.ds.pagination });
+    expect(within(nav).getByText(ptBR.ds.pageOf(1, 3))).toBeInTheDocument();
+    expect(within(nav).getByText(ptBR.catalog.pageRange(1, 50, 121))).toBeInTheDocument();
+    searchState.extraTotal = 0;
   });
 
   it("diz as duas contagens quando o galho é puro", async () => {

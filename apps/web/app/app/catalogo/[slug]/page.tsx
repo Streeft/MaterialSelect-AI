@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo } from "react";
+import { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getClass, listClasses, listMaterials } from "@/lib/api";
+import { getClass, searchMaterials, type CatalogQuery } from "@/lib/api";
 import { isNotFound } from "@/lib/errors";
 import { ptBR } from "@/lib/i18n";
-import { descendantSlugs } from "@/lib/taxonomy";
+import { useUrlState, type UrlCodec, type UrlSpec } from "@/lib/urlState";
 import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
@@ -19,12 +19,24 @@ import {
   ErrorState,
   LoadingState,
   PageHeader,
+  Pagination,
   Section,
 } from "@/components/ui";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.catalog;
 const f = ptBR.family;
+
+/** D-215: the same page size as the catalogue. */
+const FAMILY_PAGE_SIZE = 50;
+
+const pageCodec: UrlCodec<number> = {
+  parse: (raw) => (/^[1-9]\d{0,5}$/.test(raw) ? Number(raw) : undefined),
+  serialize: (value) => String(value),
+};
+const FAMILY_URL: UrlSpec<{ pagina: number }> = {
+  pagina: { param: "pagina", codec: pageCodec, defaultValue: 1 },
+};
 
 /**
  * One material family, read as a record (P1-4).
@@ -37,6 +49,15 @@ const f = ptBR.family;
  * numbers so neither reading is hidden.
  */
 export default function MaterialFamilyPage() {
+  // `useSearchParams` (inside `useUrlState`) needs a boundary.
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <MaterialFamilyContent />
+    </Suspense>
+  );
+}
+
+function MaterialFamilyContent() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
 
@@ -45,17 +66,23 @@ export default function MaterialFamilyPage() {
     queryFn: () => getClass(slug),
     enabled: Boolean(slug),
   });
-  const classes = useQuery({ queryKey: ["classes"], queryFn: listClasses });
-  const materials = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials("") });
-
-  const subtree = useMemo(
-    () => descendantSlugs(slug, classes.data ?? []),
-    [slug, classes.data],
-  );
-  const shown = useMemo(
-    () => (materials.data ?? []).filter((m) => subtree.has(m.class_slug)),
-    [materials.data, subtree],
-  );
+  const [url, setUrl] = useUrlState(FAMILY_URL);
+  // D-215: the catalogue's own search is the one source — the class chip
+  // already means "this class and everything under it" on the server, and
+  // the page is a page, not the whole family.
+  const question: CatalogQuery = {
+    classe: slug,
+    ordenar: "nome",
+    limit: FAMILY_PAGE_SIZE,
+    offset: (url.pagina - 1) * FAMILY_PAGE_SIZE,
+  };
+  const materials = useQuery({
+    queryKey: ["materials", "busca", question],
+    queryFn: () => searchMaterials(question),
+    enabled: Boolean(slug),
+    placeholderData: (previous) => previous,
+  });
+  const shown = materials.data?.items ?? [];
 
   // D-207: the tab and the menu's "Recentes" carry the record's own name.
   usePageTitle(family.data?.name);
@@ -139,16 +166,10 @@ export default function MaterialFamilyPage() {
         description={countLine(data.material_count, data.descendant_material_count)}
       >
         {materials.isLoading && <LoadingState label={t.loading} />}
-        {materials.isError || classes.isError ? (
+        {materials.isError ? (
           // D-200: a failed query is not an empty folder. Saying "nenhum material"
           // here would be data absence invented out of a network error.
-          <ErrorState
-            error={materials.error ?? classes.error}
-            onRetry={() => {
-              void materials.refetch();
-              void classes.refetch();
-            }}
-          />
+          <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />
         ) : shown.length === 0 && !materials.isLoading ? (
           // Two absences, and they are not the same sentence: a folder whose
           // contents are one level down is not an empty folder.
@@ -156,7 +177,16 @@ export default function MaterialFamilyPage() {
             {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
           </p>
         ) : (
-          <MaterialList materials={shown} />
+          <div className="flex min-w-0 flex-col gap-3">
+            <MaterialList materials={shown} />
+            <Pagination
+              page={url.pagina}
+              pageSize={FAMILY_PAGE_SIZE}
+              total={materials.data?.total ?? 0}
+              onPage={(pagina) => setUrl({ pagina })}
+              rangeLabel={t.pageRange}
+            />
+          </div>
         )}
 
         <Card>

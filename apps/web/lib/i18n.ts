@@ -2136,6 +2136,26 @@ export const ptBR = {
     // The summary badge on a row/card. Absence is stated, never left blank.
     qualityBreakdown: "Composição dos dados",
     noValues: "Nenhuma propriedade cadastrada",
+    // D-215: páginas, chips com contagem, ordem, colunas e o valor ordenado.
+    filterDemo: "Demonstração",
+    demoOnly: "Só dados de demonstração",
+    demoNone: "Sem dados de demonstração",
+    orderLabel: "Ordenar por",
+    orderRelevance: "Relevância",
+    orderName: "Nome",
+    orderClass: "Classe",
+    orderPropertiesGroup: "Propriedade (sem valor por último)",
+    directionAsc: "Crescente",
+    directionDesc: "Decrescente",
+    directionLabel: "Direção da ordem",
+    columnsLabel: "Colunas",
+    columnsMenu: "Colunas visíveis da tabela",
+    columnDesignations: "Designações",
+    columnValue: (property: string) => property,
+    valueAbsent: "Ausente",
+    valueNotRegistered: "Sem valor",
+    pageRange: (from: number, to: number, total: number) =>
+      `${from.toLocaleString("pt-BR")}–${to.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")}`,
   },
   // D-127: perfis de profundidade. O nível é visão, nunca filtro de cálculo.
   depth: {
@@ -3060,6 +3080,14 @@ export const ptBR = {
     anyValue: "Qualquer",
     filterChip: (field: string, value: string) => `${field}: ${value}`,
     removeFilter: (field: string) => `Remover o filtro ${field}`,
+    // D-215: quantos materiais a opção deixaria, os outros filtros aplicados.
+    optionCount: (label: string, count: number) =>
+      `${label}, ${count.toLocaleString("pt-BR")} ${count === 1 ? "resultado" : "resultados"}`,
+    pagination: "Paginação",
+    previousPage: "Página anterior",
+    nextPage: "Próxima página",
+    pageOf: (page: number, pages: number) =>
+      `Página ${page.toLocaleString("pt-BR")} de ${pages.toLocaleString("pt-BR")}`,
     noMoreFilters: "Todos os filtros já estão na barra.",
     moreActions: "Mais ações",
     titleLabel: "Título",

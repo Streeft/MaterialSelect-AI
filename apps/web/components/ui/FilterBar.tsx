@@ -11,6 +11,11 @@ const t = ptBR.ds;
 export interface FilterOption {
   value: string;
   label: string;
+  /**
+   * D-215: how many results choosing this option would leave, as the server
+   * counted them (the other filters applied). Omitted, no number is shown.
+   */
+  count?: number;
 }
 
 export interface FilterField {
@@ -182,7 +187,7 @@ function OptionList({
   field: FilterField;
   onPick: (value: string | null) => void;
 }) {
-  const options: { value: string | null; label: string }[] = [
+  const options: { value: string | null; label: string; count?: number }[] = [
     { value: null, label: t.anyValue },
     ...field.options,
   ];
@@ -195,10 +200,20 @@ function OptionList({
             <button
               type="button"
               aria-pressed={selected}
+              aria-label={
+                "count" in option && typeof option.count === "number"
+                  ? t.optionCount(option.label, option.count)
+                  : undefined
+              }
               className="ds-option m3-state"
               onClick={() => onPick(option.value)}
             >
-              <span className="flex-1 text-left">{option.label}</span>
+              <span className="min-w-0 flex-1 break-words text-left">{option.label}</span>
+              {"count" in option && typeof option.count === "number" ? (
+                <span aria-hidden className="shrink-0 text-caption tabular-nums text-ink-muted">
+                  {option.count.toLocaleString("pt-BR")}
+                </span>
+              ) : null}
               {selected ? <IconCheck className="h-4 w-4 shrink-0 text-brand-700" aria-hidden /> : null}
             </button>
           </li>

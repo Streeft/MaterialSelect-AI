@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 172 — 12/11/26 — Catálogo em páginas, chips com contagem e busca sem acento (D-215)
+
+**O que mudou.** Etapa 4.1. Backend: `GET /api/materials/busca` com `limit`/`offset`, chips (`classe` com a subárvore,
+`subclasse`, `qualidade`, `demo`), `ordenar` (relevância, nome, classe ou uma propriedade, sem valor por último), `direcao` e
+`facetas`; resposta com `total`, `offset`, `limit`, `facets` e `sort_value` por item. `GET /api/materials` com
+`limit`/`offset` e `X-Total-Count`. Regras em `domain/catalog_listing.py`; dobra de acento em `domain/text_fold.py` e
+`repositories/text_sql.py` (`folded()`: `translate` no PostgreSQL, função `ms_fold` no SQLite); relevância da busca do
+catálogo em degraus (exato > prefixo > palavra inteira > início de palavra > contém). Frontend: catálogo em páginas de 50
+com `Pagination` (novo no kit), chips com contagem e o chip "Demonstração", "Ordenar por" com propriedades e direção, coluna
+do valor ordenado (ausência escrita), menu "Colunas", cabeçalhos que ordenam no servidor, estado inteiro no endereço;
+`useDatabaseView` com `store` externo; família pela mesma `searchMaterials`, paginada. Testes: `test_catalog_pagination.py`
+(página e total, offset além do fim, limite máximo, cabeçalho `X-Total-Count`, "aço" antes de "argamassa", "aco"/"AÇO",
+subárvore, subclasse, demo, facetas sem o próprio filtro, ordem por nome/classe/propriedade com ausentes no fim, 400 para
+propriedade desconhecida, regras puras), `catalogo.test.tsx` (página de 50 e próxima pela URL, contagem nos chips, demo, ordem
+por propriedade com "Sem valor", colunas na URL, abrir por link, axe), `familia.test.tsx` (pede uma página da família,
+paginação) e o E2E `e2e/catalogo-paginado.spec.ts`. Fora: seleção que atravessa páginas; "nível" como faceta (é visão, D-127).
+Sem migração nem seed. Depois do merge: **Deploy da API**.
+
 ## Sessão 171 — 12/11/26 — Comparar e Ficha: melhor por propriedade, só diferenças, ficha dobrada (D-214)
 
 **O que mudou.** Etapa 3.3. Backend: `CompareAxisOut.best_material_ids` e `all_equal` (regra em `domain/spread.best_ids`:
