@@ -16,6 +16,7 @@ from app.dependencies import get_current_project, get_current_user
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.ai import (
+    AIDiagnosticoOut,
     AIStatusOut,
     ExplainRequest,
     ExplanationOut,
@@ -25,6 +26,8 @@ from app.schemas.ai import (
     PlanRunRequest,
     PlanRunResponse,
     ProjectPlanOut,
+    SuggestionsOut,
+    SuggestRequest,
 )
 from app.services.ai_service import AIService
 
@@ -33,8 +36,30 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.get("/status", response_model=AIStatusOut)
 def ai_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> AIStatusOut:
-    """Report whether the layer is on, and whether it is the simulated provider."""
+    """Report whether the layer is on, which model and host answer (never the
+    key) and each capability configured or not (D-228)."""
     return AIService(db, user=user).status()
+
+
+@router.post("/diagnostico", response_model=AIDiagnosticoOut)
+def diagnose(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> AIDiagnosticoOut:
+    """Try the model (a small JSON), the embedding and the web search once each (D-228).
+
+    Spends no daily quota; limited per person per hour on its own counter.
+    """
+    return AIService(db, user=user).diagnose()
+
+
+@router.post("/suggest", response_model=SuggestionsOut)
+def suggest(
+    payload: SuggestRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SuggestionsOut:
+    """Up to three checked next steps for one tool's screen (D-228). Never applied here."""
+    return AIService(db, user=user).suggest(payload)
 
 
 @router.post("/interpret", response_model=InterpretationOut)

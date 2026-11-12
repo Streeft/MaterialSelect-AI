@@ -55,6 +55,14 @@ class FixedWindowLimiter:
             remaining = self.window_seconds - (now - window.started_at)
             return max(1, math.ceil(remaining))
 
+    def count(self, key: str, now: float) -> int:
+        """Hits of ``key`` in its current window (0 when it has none)."""
+        with self._lock:
+            window = self._windows.get(key)
+            if window is None or now - window.started_at >= self.window_seconds:
+                return 0
+            return window.count
+
     def reset(self) -> None:
         """Forget every window (tests, and a settings change at runtime)."""
         with self._lock:

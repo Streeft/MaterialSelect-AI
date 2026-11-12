@@ -784,6 +784,81 @@ também não gasta. As duas rotas contam no balde "IA" do limite por minuto (D-2
   anterior cancelada por `AbortController`) ou no botão "Interpretar". "Aplicar ao estudo" preenche função, objetivo, índice e
   limites aplicados; nada entra sem esse clique, e a sugestão da IA só entra se foi marcada e confirmada.
 
+## Todas as funções de IA e o provedor ([D-228](DECISIONS.md))
+
+Toda função passa pela mesma fábrica (`app/ai/factory.py`). Em produção o provedor é o **Gemini gratuito** pelo
+`openai-compat` (`gemini-flash-lite-latest`; embeddings `gemini-embedding-001`, 768 dimensões); nos testes e no padrão do
+código, o `mock`.
+
+| Função | Rota / onde | Método do provedor | Gemini (produção) | `mock` | Se o modelo falhar |
+|---|---|---|---|---|---|
+| Interpretar enunciado | `POST /ai/interpret` | `interpret` | JSON estrito | regras léxicas | 503 com a mensagem |
+| Assistente de projeto | `POST /ai/plan` (Início, Seleção) | `plan` (teto próprio) | JSON estrito | `rule_plan` | regras locais, `degraded` |
+| Rodar o plano de novo | `POST /ai/plan/run` | — (sem modelo) | — | — | — |
+| Explicar estudo / laudo | `POST /ai/explain`, relatórios | `explain` | JSON estrito | prosa determinística | 503 / laudo sem narrativa |
+| Chat do Caderno | `POST /notebooks/{id}/chat` | `answer` | JSON estrito + embeddings (orçamento 2 s) | trechos citados | 503 com a mensagem |
+| Guia do Caderno | `POST /notebooks/{id}/guia` | `digest` | JSON estrito | aberturas das fontes | 503 com a mensagem |
+| Estúdio | jobs do Estúdio | `studio` | JSON estrito (SVG por código; áudio/vídeo como roteiro) | montagem determinística | job com erro |
+| Busca na web dos Cadernos | fontes externas | — (grounding do Gemini, `WEB_SEARCH_*`) | `generateContent` com Google Search | desligada | mensagem em PT-BR |
+| Sugestões de 16 ferramentas | `POST /ai/suggest` | `suggest` (teto próprio) | JSON estrito | regras da ferramenta | regras locais, `degraded` |
+| Diagnóstico | `POST /ai/diagnostico` | `probe` + embedding + busca | os três ao vivo | sem rede | erro por capacidade |
+| Cérebro (RAG) | dentro de interpret/plan/explain | — | embeddings (orçamento 2 s) | não roda | só léxica |
+
+**JSON estrito e o Gemini.** Tudo sai em `json_schema` com `strict`. Se o servidor recusar o **pedido de formato** (um 400
+que fala de `additionalProperties`, `response_schema`, `response_format`…), o `openai-compat` desce sozinho para `object` e
+depois `prompt` — os modos do `AI_JSON_MODE` —, uma vez, e lembra disso enquanto o processo vive; a leitura, a coerção e os
+guardrails são os mesmos. Uma geração que erra o schema segue o D-89 (repete uma vez).
+
+**Cota gratuita.** Um 429 do Google vira "A cota gratuita do Google acabou por agora; tente em X", com X tirado do próprio
+Google (`RetryInfo`, `Retry-After` ou "retry in") ou "amanhã" quando a cota estourada é a diária
+(`app/ai/google_quota.py`). Outros hosts mantêm a mensagem genérica do 429.
+
+### Diagnóstico (`/ai/status`, `/ai/diagnostico`)
+
+`/ai/status` só lê a configuração: provedor, `model`, `host` (só o host), `json_mode`, `embedding_model` e as quatro
+`capabilities` — texto, JSON estrito, embeddings, busca na web —, cada uma com o que está configurado ou o que falta.
+`/ai/diagnostico` faz as chamadas mínimas: o `probe()` do provedor (um JSON `{"ok": true, "palavra": "material"}`, 64
+tokens, sem repetição), o embedding da palavra "material" e, se ligada, uma busca na web; cada uma volta com `ok`, `erro` ou
+`nao_configurado`, latência e mensagem em PT-BR. Não gasta a cota diária; tem contador próprio por pessoa e hora. Na
+interface: **Aparência → Diagnóstico da IA → "Testar a IA agora"**.
+
+### Sugestões em todas as ferramentas (`/ai/suggest`)
+
+O contexto que a tela manda é **validado e enriquecido no servidor** (`app/services/ai_suggest.py`); a resposta passa pelos
+guardrails de `app/ai/suggest.py`; nada é aplicado pela API.
+
+| Ferramenta (`tool`) | Contexto que a tela manda | O servidor acrescenta | Ações |
+|---|---|---|---|
+| `mapas` | `x`, `y`, `index_slug` | propriedades com dados, índices, mapas clássicos disponíveis | `set_axes`, `apply_preset`, `set_index`, `open_route` |
+| `comparar` | `material_ids`, `property_slugs` | a tabela de valores (`ChartService.compare`) | `compare`, `set_axes`, `open_route` |
+| `catalogo` | `busca`, `classe`, `qualidade`, `demo`, `ordenar` | classes com contagem, total, primeira página | `add_filter`, `sort`, `search`, `compare`, `open_route` |
+| `ficha` | `material_id` | ficha, ausentes, processos, materiais da mesma classe | `compare`, `open_route` |
+| `processos` | `slug` | processo, família, irmãos | `search`, `open_route` |
+| `glossario` | `q`, `slug` | verbetes encontrados e relacionados | `search`, `open_route` |
+| `sintetizar` | `request` (como `/sintetizar/previa`) | a prévia recalculada | `set_param`, `open_route` |
+| `painel` | — | os agregados e a cobertura | `open_route` |
+| `registros` | — | favoritos, recentes, registros próprios | `compare`, `open_route` |
+| `importar` | `columns` | propriedades do catálogo e o casamento por nome/símbolo | `map_column`, `open_route` |
+| `dimensionar` | `request` (como `/solver/resolver`) | o resultado recalculado e os exemplos do caso | `set_param`, `compare`, `open_route` |
+| `custo` | `request` (como `/custo/estimar`) | o custo recalculado e os padrões (D-216) | `set_param`, `open_route` |
+| `eco` | `request` (como `/eco/auditar`) | a auditoria recalculada e os padrões | `set_param`, `open_route` |
+| `baterias` | `request` (como `/baterias/dimensionar`) | o pacote recalculado, a comparação das químicas e os padrões | `set_param`, `open_route` |
+| `admin_classes` | `name`, `slug`, `description` | classes existentes | `fill_text`, `open_route` |
+| `admin_propriedades` | `name`, `slug`, `symbol`, `canonical_unit`, `description` | propriedades existentes e o verbete do glossário | `fill_text`, `open_route` |
+
+Formatos das ações (todas com `label`, o texto do botão escrito pelo servidor): `set_axes{x,y}`, `apply_preset{id}`,
+`set_index{slug}`, `add_filter{field,value}`, `sort{prop,dir}`, `search{q}`, `open_route{path}`, `compare{ids}`,
+`set_param{name,value}`, `map_column{col,prop}`, `fill_text{field,text}`. Para o modelo, a ação é plana (`type`, `target`,
+`value`, `ids`) — um modelo pequeno preenche um formato fixo com muito mais acerto que uma união de onze.
+
+**Guardrails.** Entidade que não existe (propriedade, índice, mapa, material fora do contexto, rota fora da lista), ação de
+outra ferramenta e `set_param` com valor que não vem do contexto, de um cenário ou de um padrão (D-224) → a ação sai, com o
+motivo em `rejected`. Prosa com número fora do contexto (`ungrounded_numbers`; os arredondamentos e o percentual de um número
+do servidor contam como dele) → o cartão inteiro sai. **Nunca vazio**: falha do modelo, cota esgotada ou nenhuma sugestão
+válida → as regras locais da ferramenta, com `degraded: true` e `notice`; com a camada desligada, as mesmas regras (provedor
+`regras-locais`). Cache de 10 minutos por (ferramenta, hash do contexto enriquecido, provedor, modelo), sem gastar cota;
+prompts curtos (contexto até 2 500 caracteres) para caber no plano gratuito.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com
@@ -936,6 +1011,11 @@ isso; o cálculo, esse não varia, porque não passa por aqui.
 | `AI_PLAN_CACHE_SECONDS` | `600` | reuso do plano do modelo para o mesmo pedido, sem gastar cota (0 desliga) |
 | `AI_CONTEXT_CACHE_SECONDS` | `60` | reuso do resumo do catálogo que os prompts levam |
 | `KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS` | `2` | espera máxima pelo embedding da consulta ao Cérebro; passou, segue só a léxica |
+| `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS` | `2` | o mesmo para a pergunta de um Caderno (D-228) |
+| `AI_SUGGEST_TIMEOUT_SECONDS` | `20` | tempo da chamada de sugestões (`/ai/suggest`, D-228) |
+| `AI_SUGGEST_MAX_OUTPUT_TOKENS` | `1500` | teto de saída das sugestões |
+| `AI_SUGGEST_CACHE_SECONDS` | `600` | reuso das sugestões para o mesmo contexto enriquecido, sem gastar cota (0 desliga) |
+| `AI_DIAGNOSTIC_PER_HOUR` | `6` | diagnósticos por pessoa e hora (`/ai/diagnostico`); 0 tira o limite |
 
 O pacote `anthropic` é um extra: `pip install -e ".[ai]"`. Nem `mock` nem
 `claude-cli` precisam dele, e o produto determinístico não precisa de nada.
@@ -949,7 +1029,9 @@ alto, cada uma com a mensagem que diz qual botão girar.
 
 | Método | Rota | Função |
 |---|---|---|
-| GET | `/api/ai/status` | a camada está ligada? é simulada? |
+| GET | `/api/ai/status` | a camada está ligada? é simulada? qual modelo e host, e cada capacidade configurada (D-228) |
+| POST | `/api/ai/diagnostico` | testa ao vivo o JSON, o embedding e a busca na web, com latência; sem gastar cota (D-228) |
+| POST | `/api/ai/suggest` | `{tool, context}` → até 3 sugestões com ações tipadas e checadas para a tela (D-228) |
 | POST | `/api/ai/interpret` | enunciado → proposta editável |
 | POST | `/api/ai/explain` | estudo salvo → prosa sobre o resultado calculado |
 | POST | `/api/ai/plan` | pedido em linguagem comum → proposta de projeto checada e executada (D-224) |

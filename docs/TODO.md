@@ -1813,6 +1813,14 @@ Registrados para não voltarem por engano:
 - ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
 - ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
 
+**IA em todas as ferramentas — pendências (D-228).**
+- Etapa IA-2a (frontend): painel "Sugestão da IA" reutilizável, ligado em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações (`set_axes`, `apply_preset`, `set_index`, `add_filter`, `sort`, `search`, `compare`, `map_column`, `open_route`) só no clique.
+- Etapa IA-2b (frontend): Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin (`set_param`, `fill_text`, `compare`, `open_route`).
+- Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
+- A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
+- `claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída; só o `openai-compat` o aplica.
+- O 429 dos embeddings fora do diagnóstico ainda usa a mensagem genérica de `EmbeddingClient` (a busca cai para a léxica sem aviso na tela, como antes).
+
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.

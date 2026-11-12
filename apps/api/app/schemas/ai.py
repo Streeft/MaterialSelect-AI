@@ -9,9 +9,11 @@ invent one — the other half is enforced in ``app/ai/guardrails.py``.
 
 from __future__ import annotations
 
-from typing import Literal
+import json
+from datetime import datetime
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.selection import ConstraintIn, GoalLiteral, StudyIn
 
@@ -20,8 +22,24 @@ from app.schemas.selection import ConstraintIn, GoalLiteral, StudyIn
 MAX_STATEMENT_LENGTH = 4000
 
 
+CapabilityKey = Literal["texto", "json_estrito", "embeddings", "busca_web"]
+
+
+class AICapabilityOut(BaseModel):
+    """One capability of the layer and whether this server has it configured (D-228)."""
+
+    key: CapabilityKey
+    label: str
+    configured: bool
+    detail: str
+
+
 class AIStatusOut(BaseModel):
-    """Whether the layer is available, and under what terms."""
+    """Whether the layer is available, and under what terms.
+
+    D-228: also *which* model and host answer, and each capability configured or
+    not. The host only — never the path or the key, which can travel in a URL.
+    """
 
     enabled: bool
     provider: str
@@ -29,6 +47,38 @@ class AIStatusOut(BaseModel):
         description="True quando o provedor é a implementação simulada, sem serviço externo"
     )
     disclaimer: str
+    model: str = Field(default="", description="Modelo de texto; vazio no simulado")
+    host: str = Field(default="", description="Só o host do provedor, nunca a chave")
+    json_mode: str = Field(default="", description="schema, object ou prompt")
+    embedding_model: str = ""
+    capabilities: list[AICapabilityOut] = Field(default_factory=list)
+
+
+DiagnosticKey = Literal["json", "embeddings", "busca_web"]
+DiagnosticStatus = Literal["ok", "erro", "nao_configurado"]
+
+
+class AIDiagnosticCheckOut(BaseModel):
+    """One live check of the diagnosis: a JSON answer, an embedding, a web search."""
+
+    key: DiagnosticKey
+    label: str
+    status: DiagnosticStatus
+    latency_ms: int | None = None
+    message: str
+
+
+class AIDiagnosticoOut(BaseModel):
+    """The result of ``POST /ai/diagnostico`` (D-228)."""
+
+    ok: bool = Field(description="True quando o texto/JSON respondeu e nada configurado falhou")
+    provider: str
+    simulated: bool
+    model: str
+    host: str
+    checked_at: datetime
+    checks: list[AIDiagnosticCheckOut]
+    remaining: int = Field(description="Diagnósticos que esta pessoa ainda pode rodar nesta hora")
 
 
 class InterpretRequest(BaseModel):
@@ -342,3 +392,162 @@ class PlanRunRequest(BaseModel):
 
 class PlanRunResponse(BaseModel):
     components: list[PlanComponentOut]
+
+
+# --- suggestions of every tool (D-228) ---------------------------------------
+
+SuggestTool = Literal[
+    "mapas",
+    "comparar",
+    "catalogo",
+    "ficha",
+    "processos",
+    "glossario",
+    "sintetizar",
+    "painel",
+    "registros",
+    "importar",
+    "dimensionar",
+    "custo",
+    "eco",
+    "baterias",
+    "admin_classes",
+    "admin_propriedades",
+]
+
+#: Largest context a screen may send, as JSON text. A context carries ids,
+#: slugs and the screen's parameters — never a table of values.
+MAX_SUGGEST_CONTEXT_CHARS = 20_000
+
+
+class SuggestRequest(BaseModel):
+    """One screen asking "what could I do next?".
+
+    ``context`` is what the screen shows (ids, slugs, parameters). The server
+    validates it per tool and enriches it from the database or its own
+    calculation; numbers a client sends as a "result" are never read.
+    """
+
+    tool: SuggestTool
+    context: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("context")
+    @classmethod
+    def _bounded(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if len(json.dumps(value, ensure_ascii=False, default=str)) > MAX_SUGGEST_CONTEXT_CHARS:
+            raise ValueError(
+                f"O contexto da sugestão passa de {MAX_SUGGEST_CONTEXT_CHARS} caracteres."
+            )
+        return value
+
+
+class _ActionBase(BaseModel):
+    #: The button's text, written by the server from the catalogue's names.
+    label: str
+
+
+class SetAxesAction(_ActionBase):
+    type: Literal["set_axes"] = "set_axes"
+    x: str
+    y: str
+
+
+class ApplyPresetAction(_ActionBase):
+    type: Literal["apply_preset"] = "apply_preset"
+    id: str
+
+
+class SetIndexAction(_ActionBase):
+    type: Literal["set_index"] = "set_index"
+    slug: str
+
+
+class AddFilterAction(_ActionBase):
+    type: Literal["add_filter"] = "add_filter"
+    field: str
+    value: str
+
+
+class SortAction(_ActionBase):
+    type: Literal["sort"] = "sort"
+    prop: str
+    dir: Literal["asc", "desc"]
+
+
+class SearchAction(_ActionBase):
+    type: Literal["search"] = "search"
+    q: str
+
+
+class OpenRouteAction(_ActionBase):
+    type: Literal["open_route"] = "open_route"
+    path: str
+
+
+class CompareAction(_ActionBase):
+    type: Literal["compare"] = "compare"
+    ids: list[int]
+
+
+class SetParamAction(_ActionBase):
+    """A parameter of the screen set to a value the context or a scenario holds
+    (D-224) — never one the model chose."""
+
+    type: Literal["set_param"] = "set_param"
+    name: str
+    value: float | str
+
+
+class MapColumnAction(_ActionBase):
+    type: Literal["map_column"] = "map_column"
+    col: str
+    prop: str
+
+
+class FillTextAction(_ActionBase):
+    type: Literal["fill_text"] = "fill_text"
+    field: str
+    text: str
+
+
+SuggestAction = Annotated[
+    SetAxesAction
+    | ApplyPresetAction
+    | SetIndexAction
+    | AddFilterAction
+    | SortAction
+    | SearchAction
+    | OpenRouteAction
+    | CompareAction
+    | SetParamAction
+    | MapColumnAction
+    | FillTextAction,
+    Field(discriminator="type"),
+]
+
+
+class SuggestionOut(BaseModel):
+    title: str
+    body: str
+    actions: list[SuggestAction] = Field(default_factory=list)
+
+
+class SuggestionsOut(BaseModel):
+    """Up to three next steps for one screen, each with checked actions.
+
+    ``degraded`` is True when the cards come from the tool's local rules
+    because the model failed, ran out of quota or answered nothing valid —
+    ``notice`` says which. ``cached`` is True when the same context was
+    answered within ``AI_SUGGEST_CACHE_SECONDS``: no quota was spent.
+    """
+
+    tool: SuggestTool
+    summary: str
+    suggestions: list[SuggestionOut]
+    rejected: list[str] = Field(default_factory=list)
+    degraded: bool = False
+    cached: bool = False
+    notice: str | None = None
+    provider: str
+    simulated: bool
+    disclaimer: str

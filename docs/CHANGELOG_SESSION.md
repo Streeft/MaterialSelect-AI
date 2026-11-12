@@ -120,6 +120,23 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 185 — 12/11/26 — IA gratuita do Google em todas as funções e sugestões em todas as ferramentas (D-228)
+
+**O que mudou.** Backend: `GET /api/ai/status` ampliado (modelo, host, modo JSON, embeddings e as quatro capacidades);
+`POST /api/ai/diagnostico` (`app/services/ai_diagnostics.py`, `probe()` nos provedores, contador próprio por hora);
+`POST /api/ai/suggest` com 16 ferramentas (`app/ai/suggest.py` — contrato, leitura e guardrails; `app/services/ai_suggest.py` —
+contexto validado e enriquecido por ferramenta; `suggest()` no mock e no `ModelProviderBase`); `openai_compat` desce sozinho de
+`schema` para `object`/`prompt` quando o servidor recusa o formato e traduz o 429 do Google (`app/ai/google_quota.py`,
+`QuotaExhaustedError`); orçamento de tempo na recuperação dos Cadernos (`embed_query` compartilhado). Configuração nova:
+`AI_SUGGEST_TIMEOUT_SECONDS`, `AI_SUGGEST_MAX_OUTPUT_TOKENS`, `AI_SUGGEST_CACHE_SECONDS`, `AI_DIAGNOSTIC_PER_HOUR`,
+`NOTEBOOK_RETRIEVAL_BUDGET_SECONDS`. Frontend: tipos em `packages/shared-types`, `runAIDiagnostico` e `suggestNextSteps` em
+`lib/api.ts`, cartão "Diagnóstico da IA" em Aparência (`AIDiagnosticsCard`). Testes novos: `test_ai_suggest.py`,
+`test_ai_diagnostico.py`, `test_ai_gemini.py`, dois em `test_notebook_retrieval.py`, `AIDiagnosticsCard.test.tsx`; dois testes de
+`test_ai_openai_compat.py` passaram a fixar a descida automática do modo JSON.
+
+**Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Em produção, Aparência → "Testar a IA agora"
+(ou `POST /api/ai/diagnostico`). As 15 telas recebem o painel de sugestões nas etapas IA-2a e IA-2b.
+
 ## Sessão 184 — 12/11/26 — Banco sem conexões ociosas (D-227)
 
 **O que mudou.** `app/db/base.py`: banco de servidor usa `NullPool` (padrão), `DB_POOL_MODE=queue` volta ao pool de 5 + 5; novo

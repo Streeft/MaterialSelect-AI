@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from app.ai.guardrails import Catalogue
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion
 from app.ai.studio import StudioRequest
+from app.ai.suggest import SuggestContext
 from app.config import Settings
 from app.knowledge.retrieval import RetrievedChunk
 
@@ -217,3 +218,17 @@ class AIProvider(ABC):
         """Make one Studio artifact from the passages given (D-94). See
         ``app.ai.studio``."""
         raise AIUnavailableError(f"O provedor '{self.name}' não gera itens do Estúdio.")
+
+    # --- suggestions and diagnosis (D-228) ----------------------------------
+
+    def suggest(self, context: SuggestContext) -> dict:
+        """Up to three next steps for one tool's screen. See ``app.ai.suggest``.
+
+        Not abstract, for the reason above: the service answers a provider
+        that cannot suggest with the tool's local rules.
+        """
+        raise AIUnavailableError(f"O provedor '{self.name}' não sugere próximos passos.")
+
+    def probe(self) -> dict:
+        """The smallest call that proves text and JSON work: ``{"ok": true}``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não tem um teste rápido.")

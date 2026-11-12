@@ -343,7 +343,7 @@ class EmbeddingClient:
         The body is read once here: an :class:`~urllib.error.HTTPError` body is
         a stream, and a second read would find it empty.
         """
-        detail, message, error = _error_body(exc)
+        detail, message, error = error_body(exc)
         # A server may echo the credential back in its explanation, and this
         # detail is printed to a public log: the key never leaves as text. It
         # is scrubbed *before* the cut — cutting first could keep only the
@@ -352,8 +352,8 @@ class EmbeddingClient:
         return EmbeddingHttpError(
             self._http_message(exc.code, detail),
             status=exc.code,
-            retry_after=_retry_after_of(exc, message, error),
-            daily=_is_daily_quota(message, error),
+            retry_after=retry_after_of(exc, message, error),
+            daily=is_daily_quota(message, error),
             detail=detail,
         )
 
@@ -460,10 +460,10 @@ _DETAIL_LIMIT = 300
 
 def _detail_of(exc: urllib.error.HTTPError) -> str:
     """The server's own explanation, when it sent one, cut for display."""
-    return _error_body(exc)[0][:_DETAIL_LIMIT]
+    return error_body(exc)[0][:_DETAIL_LIMIT]
 
 
-def _error_body(exc: urllib.error.HTTPError) -> tuple[str, str, object]:
+def error_body(exc: urllib.error.HTTPError) -> tuple[str, str, object]:
     """Read an error body once: ``(detail, full message, error object)``.
 
     ``detail`` is the explanation shown to a user, **not yet cut**: the caller
@@ -518,7 +518,7 @@ def _details_of(error: object) -> list[dict]:
     return [item for item in details if isinstance(item, dict)]
 
 
-def _retry_after_of(exc: urllib.error.HTTPError, message: str, error: object) -> float | None:
+def retry_after_of(exc: urllib.error.HTTPError, message: str, error: object) -> float | None:
     """Seconds the server asked to wait, from the first place that says so.
 
     ``Retry-After`` (numeric form only), then ``google.rpc.RetryInfo``'s
@@ -546,7 +546,7 @@ def _retry_after_of(exc: urllib.error.HTTPError, message: str, error: object) ->
     return None
 
 
-def _is_daily_quota(message: str, error: object) -> bool:
+def is_daily_quota(message: str, error: object) -> bool:
     """Whether the refusal names a per-day quota — in a quota id or in prose."""
     if _PER_DAY.search(message):
         return True

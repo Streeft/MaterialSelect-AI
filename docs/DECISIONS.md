@@ -13281,3 +13281,61 @@ direto: o mesmo valor serve a migração).
 merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que a computação volta a suspender nos intervalos sem uso.
 
 **Numeração.** D-227/Sessão 184 (D-226/Sessão 183 são o fechamento da revisão das telas, neste mesmo PR).
+
+## D-228 — IA gratuita do Google em todas as funções: diagnóstico, robustez com o Gemini e sugestões em todas as ferramentas (IA-1, backend)
+
+**Contexto.** Em produção a IA é o Gemini gratuito via `openai-compat` (`gemini-flash-lite-latest`, embeddings
+`gemini-embedding-001` com 768 dimensões). Todas as funções de IA (interpretar, plano, explicação/laudo, chat e guia dos
+Cadernos, Estúdio) passam pela mesma fábrica, mas não havia como conferir, de dentro do app, se cada capacidade respondia; a
+recuperação dos Cadernos esperava o embedding da pergunta sem limite; uma recusa do Google ao `json_schema` estrito obrigava a
+trocar `AI_JSON_MODE` à mão; o 429 do plano gratuito virava uma mensagem genérica; e 15 telas não tinham nenhuma IA.
+
+**Decisão.**
+
+1. **Diagnóstico.** `GET /api/ai/status` passa a trazer `model`, `host` (só o host, nunca a chave nem o caminho), `json_mode`,
+   `embedding_model` e `capabilities` (texto, JSON estrito, embeddings, busca na web), cada uma configurada ou não, com o que
+   falta em PT-BR — só lendo a configuração. `POST /api/ai/diagnostico` (pessoa logada, bucket `ai` do limite por minuto)
+   faz as chamadas mínimas — um JSON de dois campos (`probe()` do provedor), o embedding de uma palavra e, se ligada, uma busca
+   na web — e devolve, por capacidade, `ok`/`erro`/`nao_configurado`, latência e mensagem. Não gasta a cota diária; tem contador
+   próprio por pessoa e hora (`AI_DIAGNOSTIC_PER_HOUR=6`, 429 em PT-BR depois). Na interface, cartão "Diagnóstico da IA" em
+   **Aparência**, com "Testar a IA agora".
+2. **Orçamento de tempo nos Cadernos.** `app/notebooks/retrieval.py` usa o mesmo `embed_query` do Cérebro (D-224) com
+   `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS=2`: passou, a pergunta é ranqueada só pela busca léxica, e o estouro fica no log.
+3. **Robustez com o Gemini.** Todas as chamadas (interpret, plan, explain, answer, digest, studio, suggest e o probe) saem em
+   `json_schema` estrito e são lidas do envelope do Gemini (testado com respostas no formato real). Um **400 que reclama do
+   pedido de formato** (`additionalProperties`, `response_schema`, `response_format`…) — e não da geração, que segue o D-89 —
+   faz o provedor descer **sozinho** um degrau do `AI_JSON_MODE` já previsto (`schema` → `object` → `prompt`), uma vez, e lembrar
+   disso por processo (`effective_json_mode()`); a leitura, a coerção e os guardrails não mudam. Um **429 do Google** vira
+   `QuotaExhaustedError` (ainda `AIUnavailableError`) com "A cota gratuita do Google acabou por agora; tente em X", X tirado do
+   `RetryInfo`/`Retry-After`/"retry in" ou "amanhã" quando a cota estourada é diária (`app/ai/google_quota.py`); o plano, as
+   sugestões e o diagnóstico mostram essa frase. Outro host mantém a mensagem genérica do 429.
+4. **Motor de sugestões `POST /api/ai/suggest {tool, context}`.** `tool` é um enum de 16 ferramentas (mapas, comparar, catalogo,
+   ficha, processos, glossario, sintetizar, painel, registros, importar, dimensionar, custo, eco, baterias, admin_classes,
+   admin_propriedades). Um construtor por ferramenta (`app/services/ai_suggest.py`) **valida** o contexto (id inexistente → 404;
+   pedido de calculadora malformado → 400; contexto acima de 20 000 caracteres → 422) e o **enriquece** no servidor: Comparar
+   recebe ids e o servidor monta a tabela; Custo, Eco, Baterias, Dimensionar e Sintetizar recebem o pedido e o resultado é
+   recalculado; o Painel lê os agregados; qualquer "resultado" que o cliente mande é ignorado. A saída `SuggestionsOut` traz
+   `summary` e até 3 `suggestions` (`title`, `body`, até 3 `actions` tipadas com `label` escrito pelo servidor):
+   `set_axes{x,y}`, `apply_preset{id}`, `set_index{slug}`, `add_filter{field,value}`, `sort{prop,dir}`, `search{q}`,
+   `open_route{path}`, `compare{ids}`, `set_param{name,value}`, `map_column{col,prop}`, `fill_text{field,text}` — cada
+   ferramenta com a sua lista. **Guardrails** (`app/ai/suggest.py`): entidade inexistente, rota fora da lista, ação de outra
+   tela ou valor de `set_param` que não vem do contexto nem de um cenário/padrão (D-224) → ação removida com motivo em
+   `rejected`; prosa com número fora do contexto (`ungrounded_numbers`, aceitando os arredondamentos e o percentual de um número
+   do servidor) → cartão descartado. **Nunca vazio**: falha, cota ou nada válido → regras locais da ferramenta com `degraded` e
+   `notice`; camada desligada → as mesmas regras (provedor `regras-locais`). O **mock** responde as regras (determinístico). Cache
+   por (ferramenta, hash do contexto enriquecido, provedor, modelo) por `AI_SUGGEST_CACHE_SECONDS=600`, sem gastar cota;
+   chamada curta (`AI_SUGGEST_TIMEOUT_SECONDS=20`, `AI_SUGGEST_MAX_OUTPUT_TOKENS=1500`, uma repetição), prompt curto (contexto
+   até 2 500 caracteres, até 30 opções por tipo), cota diária (D-179) e bucket `ai` do limite por minuto. Nada é aplicado pela
+   API: a tela mostra cada ação como botão.
+
+**Alternativas recusadas.** Ação como união de onze formatos no schema do modelo (um modelo pequeno erra; o schema do modelo é
+plano — `type`, `target`, `value`, `ids` — e a API devolve o formato tipado). Deixar o cliente mandar a tabela ou o resultado
+(o modelo repetiria números sem conferência). Descer o modo JSON em qualquer 400 (uma requisição inválida não é recusa de
+formato). Contar o diagnóstico na cota diária (testar a IA não pode tirar a IA de quem testa).
+
+**Consequências.** Só backend e o mínimo de interface (cliente em `lib/api.ts` e o cartão em Aparência); as 15 telas ganham o
+painel "Sugestão da IA" nas etapas IA-2a e IA-2b. Tipos novos em `packages/shared-types` (`AIStatus` ampliado,
+`AIDiagnostico`, `SuggestionsOut`, `SuggestAction`). **Deploy da API** depois do merge; sem migração nem seed. Em produção, rodar
+o diagnóstico (§5-quinquies do deploy).
+
+**Numeração.** D-228/Sessão 185.

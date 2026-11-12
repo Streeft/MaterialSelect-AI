@@ -120,8 +120,11 @@ def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[
     return sorted(scores.items(), key=lambda item: -item[1])[:_CANDIDATES]
 
 
-def _embed_query(client: EmbeddingClient, query: str, budget: float | None) -> list[float] | None:
-    """The query's vector, or ``None`` when it did not arrive within ``budget``."""
+def embed_query(client: EmbeddingClient, query: str, budget: float | None) -> list[float] | None:
+    """The query's vector, or ``None`` when it did not arrive within ``budget``.
+
+    Shared with the Cadernos' retrieval (D-228), which bounds its wait the same way.
+    """
     if budget is None:
         return client.embed([query])[0]
     future = _EMBED_POOL.submit(client.embed, [query])
@@ -161,7 +164,7 @@ def _semantic_rank(
         )
         return []
     try:
-        query_vector = _embed_query(client, query, budget)
+        query_vector = embed_query(client, query, budget)
         if query_vector is None:
             return []
         # Only vectors of this model *and* the query's own length are compared

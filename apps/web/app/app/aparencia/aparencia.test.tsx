@@ -11,6 +11,12 @@ import AppearancePage from "./page";
 
 let pathname = "/app/mapas";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
+// D-228: the page carries the AI diagnosis; its own test is AIDiagnosticsCard.test.tsx.
+vi.mock("@/lib/api", () => ({
+  getAIStatus: () =>
+    Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "", capabilities: [] }),
+  runAIDiagnostico: () => Promise.reject(new Error("não usado aqui")),
+}));
 
 const t = ptBR.appearance;
 const root = document.documentElement;
