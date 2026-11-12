@@ -13,6 +13,8 @@ import { draftKey, parseDraft, serializeDraft, type DraftData } from "@/lib/sele
 import { flowText } from "@/lib/i18n-flow";
 import type {
   PerformanceIndex,
+  PlanRequest,
+  ProjectPlan,
   ProcessAttribute,
   PropertyDefinition,
   RunDiff,
@@ -27,6 +29,9 @@ import type {
 } from "@/lib/types";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
 import { wizardText } from "@/lib/i18n-selection-wizard";
+import { planText } from "@/lib/i18n-plan";
+import { writePlanDraft } from "@/lib/selection/planDraft";
+import { makeComponent, makePlan } from "@/lib/testing/planFixtures";
 
 // Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
 allowLoadedRunner();
@@ -41,6 +46,9 @@ const previewWeights = vi.fn<(payload: WeightsPreviewRequest) => Promise<Weights
 const listStudyTemplates = vi.fn<() => Promise<StudyTemplate[]>>();
 const previewFunnel = vi.fn<(payload: RunRequest) => Promise<unknown>>();
 const diffRuns = vi.fn<(payload: RunDiffRequest) => Promise<RunDiff>>();
+const planProject = vi.fn<(payload: PlanRequest, signal?: AbortSignal) => Promise<ProjectPlan>>();
+/** D-225: the assistant is off in every test but the ones that say otherwise. */
+let aiEnabled = false;
 
 /** A budget that closes: every row sound, `can_run` true — the backend's answer
  * to any well-formed set of criteria, unless a test says otherwise. */
@@ -128,7 +136,9 @@ vi.mock("@/lib/api", () => ({
   deleteStudy: () => Promise.resolve(),
   runStudy: () => Promise.resolve(null),
   evaluateIndex: () => Promise.resolve({ dimension: "dimensionless" }),
-  getAIStatus: () => Promise.resolve({ enabled: false, simulated: false }),
+  getAIStatus: () => Promise.resolve({ enabled: aiEnabled, simulated: true, provider: "mock", disclaimer: "x" }),
+  planProject: (payload: PlanRequest, signal?: AbortSignal) => planProject(payload, signal),
+  runPlan: () => Promise.reject(new Error("not used")),
   interpretStatement: () => Promise.resolve(null),
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
@@ -208,6 +218,8 @@ beforeEach(() => {
   listStudyTemplates.mockReset();
   listStudyTemplates.mockResolvedValue([]);
   diffRuns.mockReset();
+  planProject.mockReset();
+  aiEnabled = false;
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
   window.localStorage.clear();
@@ -899,6 +911,53 @@ describe("rascunho salvo (D-139)", () => {
 
     await waitFor(() => expect(createStudy).toHaveBeenCalled());
     await waitFor(() => expect(window.localStorage.getItem(draftKey(7))).toBeNull());
+  });
+});
+
+describe("assistente de projeto na Seleção (D-225)", () => {
+  it("opens the draft 'Abrir na Seleção' wrote without asking, on the limits, and drops the marker", async () => {
+    writePlanDraft(7, makeComponent());
+    searchParams.set("rascunho", "assistente");
+    searchParams.set("etapa", "restricoes");
+    window.history.replaceState(null, "", "/app/selecao?etapa=restricoes&rascunho=assistente");
+    render(wrap(<SelectionPage />));
+
+    // The limits step, with the limits the part brought and no "Continuar" question.
+    await waitFor(() => expect(window.location.search).not.toContain("rascunho"));
+    expect(screen.queryByShadowRole("button", { name: t.draftContinue })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(stepButton(t.stepFunction));
+    await waitFor(() => expect(screen.getByLabelText(t.studyName)).toHaveValue("Camada externa"));
+    expect(screen.getByLabelText(t.functionText)).toHaveValue("Camada externa de roupa de esqui");
+  });
+
+  it("still asks when the draft was not the assistant's", async () => {
+    writePlanDraft(7, makeComponent());
+    render(wrap(<SelectionPage />));
+    expect(await screen.findByShadowRole("button", { name: t.draftContinue })).toBeInTheDocument();
+  });
+
+  it("applies a proposal to the study only after the click: function, objective and limits", async () => {
+    aiEnabled = true;
+    const user = userEvent.setup();
+    planProject.mockResolvedValue(makePlan({ mode: "single", components: [makeComponent()] }));
+    render(wrap(<SelectionPage />));
+
+    await user.click(await screen.findByShadowRole("button", { name: t.aiOpen }));
+    await user.type(
+      await screen.findByLabelText(planText.statementLabel),
+      "camada externa de roupa de esqui que aguente frio",
+    );
+    await user.click(screen.getByShadowRole("button", { name: planText.interpret }));
+    const card = await screen.findByRole("article", { name: "Camada externa" });
+    // Nothing reached the study yet.
+    expect(screen.getByLabelText(t.functionText)).toHaveValue("");
+
+    await user.click(within(card).getByRole("button", { name: planText.apply }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(t.functionText)).toHaveValue("Camada externa de roupa de esqui"),
+    );
+    expect(screen.getByLabelText(t.objectiveText)).toHaveValue("Mínima massa com resistência ao frio");
   });
 });
 

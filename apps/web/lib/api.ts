@@ -96,10 +96,14 @@ import type {
   StudioList,
   StudioRequest,
   PerformanceIndex,
+  PlanRequest,
+  PlanRunRequest,
+  PlanRunResponse,
   PortalSession,
   MaterialClassDetail,
   PackDesignRequest,
   PackDesignResult,
+  ProjectPlan,
   Process,
   ProcessAttribute,
   ProcessClass,
@@ -1164,6 +1168,27 @@ export function interpretStatement(statement: string): Promise<Interpretation> {
   return request<Interpretation>(`/api/ai/interpret`, {
     method: "POST",
     body: JSON.stringify({ statement }),
+  });
+}
+
+/**
+ * The project assistant (D-224): a plain request becomes parts, limits with
+ * their origin, and the first materials of the catalogue. `signal` cancels the
+ * call — the wizard interprets while the person types and drops the stale one.
+ */
+export function planProject(payload: PlanRequest, signal?: AbortSignal): Promise<ProjectPlan> {
+  return request<ProjectPlan>(`/api/ai/plan`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+/** The same plan run again with the person's choices — no model, no quota. */
+export function runPlan(payload: PlanRunRequest): Promise<PlanRunResponse> {
+  return request<PlanRunResponse>(`/api/ai/plan/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

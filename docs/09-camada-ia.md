@@ -766,6 +766,24 @@ com teto, tempo e tentativas próprios (tabela de configuração). O mesmo pedid
 reaproveita o plano do modelo sem gastar a cota diária da D-179; o `/plan/run`
 também não gasta. As duas rotas contam no balde "IA" do limite por minuto (D-223).
 
+### Interface do assistente de projeto ([D-225](DECISIONS.md))
+
+- **Início** (`components/home/HomeComposer.tsx`): chama `/ai/plan` com `mode: "project"` (botão ou Ctrl/⌘+Enter). A espera mostra
+  "Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…" com skeleton e `aria-live`. Com `/ai/status` desligado
+  a caixa só leva o texto à função do estudo, como antes.
+- **Proposta** (`components/ai/PlanView.tsx`, `PlanComponentCard.tsx`, `ConstraintOriginChip.tsx`): resumo, premissas, perguntas em
+  aberto, cenários com fonte e, por parte, os limites e os materiais do servidor (link para a ficha e o motivo). Cada número tem
+  um chip de origem: **Você**, **Cenário: <nome>** (fonte no tooltip e escrita ao lado) ou **Sugestão da IA, revise** (aviso). A
+  sugestão vem **desmarcada**; marcar pede confirmação e roda `/ai/plan/run` com `confirmed: true`. Recusadas ficam recolhidas.
+  `degraded` mostra "Proposta montada por regras locais porque a IA não respondeu"; `cached` aparece em letra pequena. Erro:
+  `describeApiError` e "Tentar de novo"; o 429 traz o tempo de espera que o servidor escreveu.
+- **Abrir na Seleção**: o `study` da parte (só limites aplicados) vira o rascunho da Seleção (D-139/D-210,
+  `lib/selection/planDraft.ts`) e a Seleção o continua sem perguntar (`?rascunho=assistente`). **Comparar** vai a
+  `/app/comparar?materiais=` na ordem do ranking.
+- **Seleção** (`components/ai/AIAssistPanel.tsx`): `mode: "single"`; interpreta ao digitar (pausa de 1,5 s, 15 caracteres, a chamada
+  anterior cancelada por `AbortController`) ou no botão "Interpretar". "Aplicar ao estudo" preenche função, objetivo, índice e
+  limites aplicados; nada entra sem esse clique, e a sugestão da IA só entra se foi marcada e confirmada.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com

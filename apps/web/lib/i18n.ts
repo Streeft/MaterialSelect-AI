@@ -391,8 +391,8 @@ export const ptBR = {
     draftDiscard: "Descartar",
     exampleUnavailable: (missing: string) =>
       `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
-    aiOpen: "Preencher a partir de um texto (IA)",
-    aiClose: "Fechar o assistente de IA",
+    aiOpen: "Assistente de projeto: descrever em texto (IA)",
+    aiClose: "Fechar o assistente de projeto",
     // Uma linha por campo (D-85): o que ele pede, sem virar parágrafo.
     studyNameHint: "Só para você achar o estudo depois. Ex.: Viga de bicicleta.",
     functionTextHint: "O que a peça faz. Ex.: viga em flexão.",
@@ -3650,7 +3650,7 @@ export const ptBR = {
     recentEmpty: "Nada visto ainda.",
     recentEmptyHint: "Os materiais e processos que você abrir aparecem aqui.",
     recentError: "Não foi possível carregar o que você viu recentemente.",
-    lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
+    lead: "Descreva o que quer projetar e receba uma proposta com os melhores materiais do catálogo, cada limite com a sua origem à vista.",
     lead2:
       "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
       "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
@@ -3670,16 +3670,20 @@ export const ptBR = {
     stepResultsHint: "Classificação, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
-    // D-195: começar escrevendo, como num app do Google. O texto vai para a
-    // função do estudo e mais nada: nenhum número sai daqui.
+    // D-195: começar escrevendo, como num app do Google. D-225: o texto vai para o
+    // assistente de projeto, que monta uma proposta; os números dela dizem de onde
+    // vieram e os materiais vêm sempre do catálogo. Sem a IA, volta a ser a função.
     composer: {
-      title: "O que a peça precisa fazer?",
-      label: "Função do componente",
-      placeholder: "Ex.: viga leve que não pode fletir muito, a até 80 °C",
-      hint: "Vira a função do estudo. Os limites e o índice você escolhe nas etapas seguintes.",
-      submit: "Montar a seleção",
+      title: "Assistente de projeto",
+      label: "Descreva o projeto ou a peça",
+      placeholder:
+        "Ex.: quero fazer uma roupa de esqui · quero construir um prédio que caiba algumas pessoas · viga leve a 80 °C",
+      hint: "Escreva do seu jeito, com ou sem números. Ctrl ou ⌘ + Enter envia.",
+      submit: "Montar a proposta",
       suggestionsLabel: "Sugestões para começar",
       suggestions: [
+        "Roupa de esqui",
+        "Prédio para 50 pessoas",
         "Viga leve e rígida em flexão",
         "Mola que guarde muita energia elástica",
         "Painel isolante térmico e barato",

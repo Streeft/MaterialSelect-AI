@@ -13185,3 +13185,57 @@ pedido).
 plano). Os provedores `claude-api` e `claude-cli` usam o plano sem o teto próprio (só o `openai-compat`, o oficial, o aplica).
 
 **Numeração.** D-224/Sessão 181. Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.
+
+---
+
+## D-225 — Assistente de projeto com IA, interface: cartão de proposta no Início, painel da Seleção e princípio 2 nos arquivos de instrução
+
+**Contexto.** A D-224 entregou o backend (`POST /ai/plan`, `POST /ai/plan/run`) e deixou a interface e a aplicação do texto
+revisado do princípio 2 como pendências. O Início só navegava para `/app/selecao?funcao=` com o texto digitado, e o painel da
+Seleção ainda usava `/ai/interpret` (resposta vazia sem número no texto, lenta).
+
+**Decisão.**
+
+1. **Início.** O `HomeComposer` é o "Assistente de projeto". Enviar (botão ou Ctrl/⌘+Enter; Enter sozinho quebra a linha, porque
+   o pedido agora tem várias frases e um Enter perdido gastaria uma chamada) chama `/ai/plan` com `mode: "project"`. Durante a
+   espera há três fases ("Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…", trocadas a cada ~2 s, a
+   última fica), um skeleton e `aria-live`. A proposta pega o foco ao chegar. Com a IA desligada (`/ai/status`) a caixa volta ao
+   que era (o texto vira a função do estudo). Erro de verdade usa `describeApiError` (o 429 já traz "Tente de novo em N s.", que
+   é o detalhe do servidor) com "Tentar de novo". Os chips de exemplo ganharam "Roupa de esqui" e "Prédio para 50 pessoas".
+2. **Componentes** em `components/ai/`, usados nas duas telas: `PlanView` (resumo, premissas, perguntas em aberto, cenários com
+   fonte, uma parte por cartão, recusadas recolhidas, aviso de `degraded`/`notice`, `cached` discreto), `PlanComponentCard`
+   (função, objetivo, índice ou ordenação, limites, até 5 materiais com link para a ficha e o motivo do servidor, funil em
+   palavras) e `ConstraintOriginChip`. Cada número mostra a origem num chip com palavras: **Você** (texto do usuário),
+   **Cenário: <nome>** (a fonte vai no tooltip e também escrita ao lado do limite, porque tooltip some no toque) e **Sugestão da
+   IA, revise** (tom de aviso por token); `indice` aparece como "Do índice" (sem número). O tom nunca é o único canal.
+3. **Sugestão da IA vem desmarcada.** É um checkbox cujo estado é `applied` do servidor. Marcar pede confirmação
+   (`ConfirmDialog`) e então chama `/ai/plan/run` com `confirmed: true` só para ela; desmarcar refaz sem perguntar. A resposta
+   substitui as partes (resumo, premissas e cenários, que são a leitura do texto, ficam). Nenhum número é calculado no cliente.
+4. **"Abrir na Seleção"** grava o `study` da parte (só limites aplicados; a sugestão não confirmada nunca está nele) no
+   **rascunho** da Seleção, no formato do D-139/D-210 (`stateFromStudy` do próprio assistente de seleção, com o índice do
+   catálogo por slug), e navega para `/app/selecao?etapa=restricoes&rascunho=assistente`. A Seleção continua esse rascunho sem
+   perguntar (o clique foi a revisão) e tira o marcador do endereço; sem o marcador pergunta como sempre. Já havendo rascunho no
+   navegador, o Início pergunta antes de substituí-lo. É rascunho local: nada vai ao servidor até a pessoa salvar. Também há
+   "Comparar estes materiais" (`/app/comparar?materiais=`, na ordem do ranking) e "Ajustar o pedido" (volta o foco à caixa).
+5. **Seleção.** O `AIAssistPanel` usa `mode: "single"`. Interpreta ao digitar: pausa de 1,5 s, mínimo de 15 caracteres,
+   `AbortController` cancelando a chamada anterior (`planProject(payload, signal)`; o `request` de `lib/api.ts` já repassava
+   `signal`), "interpretando…" discreto; o botão "Interpretar" pergunta na hora. A proposta usa o mesmo `PlanView`. "Aplicar ao
+   estudo" (ação `plan` do reducer) preenche função, objetivo, índice e limites aplicados (acrescenta, não substitui; tira a
+   linha em branco do estudo novo e não repete limite igual) e fica desligado enquanto o texto mudou depois da proposta. O
+   `interpretStatement` e o `/ai/interpret` continuam na API, mas nenhuma tela os usa mais.
+6. **Princípio 2 nos arquivos de instrução** (a pendência da D-224, aplicada por decisão do usuário em 12/11/2026, na conversa
+   com o coordenador): `CLAUDE.md` (princípio 2), `docs/CLAUDE.md` §1.5 e `.claude/rules/backend-ai-exporters.md` passam a dizer
+   que a IA não produz valor de propriedade nem resultado de cálculo e que um limite tem três origens, nesta ordem (texto,
+   cenário com fonte, sugestão da IA marcada e nunca aplicada sem confirmação). A ancoragem no texto e a unidade explícita
+   valem para `usuario`; `sugestao_ia` segue as salvaguardas da D-224 (unidade compatível, faixa observada, `confirmed`); o
+   modelo não escreve a origem `cenario`.
+
+**Alternativas recusadas.** Aplicar a sugestão e deixar desfazer (o número entraria antes da revisão, contra a D-224). Levar o
+estudo por endereço (um estudo não cabe num link; o rascunho do D-139 já é o formato que a Seleção sabe abrir). Perguntar
+"Continuar o rascunho?" também depois de "Abrir na Seleção" (um clique a mais depois de a pessoa já ter escolhido a parte).
+Enter envia (um pedido tem várias frases). Guardar a proposta entre navegações (o servidor já reaproveita o mesmo texto por 10
+min sem gastar cota).
+
+**Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
+
+**Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).

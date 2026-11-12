@@ -1805,13 +1805,11 @@ Registrados para não voltarem por engano:
 - Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
 
 **Assistente de projeto com IA — pendências (D-224).**
-- Etapa B (frontend): o `HomeComposer` do Início vira o assistente (`POST /api/ai/plan`, `mode: "project"`, estados de andamento,
-  cartão com as partes, chips de origem "Você" / "Cenário + fonte" / "Sugestão da IA, revise", materiais do servidor, "Abrir na
-  Seleção" com o `study`, "Ajustar" via `POST /api/ai/plan/run`); o `AIAssistPanel` da Seleção usa `mode: "single"`. Tipos já em
-  `packages/shared-types` (`ProjectPlan`, `PlanRunRequest`). E2E com o `mock` ("roupa de esqui", "prédio").
-- Princípio 2: o texto revisado (três origens, sugestão marcada e nunca aplicada sem confirmação, cenários de tabela com fonte)
-  precisa entrar no `CLAUDE.md`, em `docs/CLAUDE.md` §1.5 e em `.claude/rules/backend-ai-exporters.md`. São instruções de agente:
-  o PR traz o texto proposto, e quem aplica é o autor.
+- ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
+- ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
+- `/ai/interpret` e `interpretStatement` ficaram sem uso na interface (D-225); remover o endpoint, o provedor `interpret` e os textos `ptBR.ai.*` do painel antigo numa limpeza própria, ou manter para clientes externos.
+- Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
+- Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
 - Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.
 - `claude-api` e `claude-cli` respondem o plano sem o teto próprio (tempo, saída, tentativas); só o `openai-compat` o aplica.
 - O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.

@@ -120,6 +120,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 182 — 12/11/26 — Assistente de projeto com IA, etapa B: interface (D-225)
+
+**O que mudou.** Início: o `HomeComposer` virou o "Assistente de projeto" (`/ai/plan`, `mode: "project"`, Ctrl/⌘+Enter, fases
+da espera com skeleton e `aria-live`, erro com "Tentar de novo", volta ao comportamento antigo com a IA desligada, chips
+"Roupa de esqui" e "Prédio para 50 pessoas"). Novos `components/ai/PlanView`, `PlanComponentCard` e `ConstraintOriginChip`: a
+proposta mostra resumo, premissas, perguntas, cenários com fonte e, por parte, função, objetivo, índice, limites com a origem
+(Você / Cenário: nome / Sugestão da IA, revise) e até 5 materiais com link e motivo. Sugestão da IA vem desmarcada; marcar pede
+confirmação e chama `/ai/plan/run`. "Abrir na Seleção" grava o `study` no rascunho da Seleção (D-139/D-210) e a Seleção o
+continua sem perguntar (`?rascunho=assistente`); "Comparar estes materiais" e "Ajustar o pedido". Seleção: o `AIAssistPanel` usa
+`mode: "single"`, interpreta ao digitar (1,5 s, 15 caracteres, `AbortController`) e "Aplicar ao estudo" é a ação `plan` do
+reducer. `lib/api.ts`: `planProject(payload, signal)` e `runPlan`. Textos em `lib/i18n-plan.ts`. Princípio 2 aplicado em
+`CLAUDE.md`, `docs/CLAUDE.md` e `.claude/rules/backend-ai-exporters.md`. Testes: `PlanView.test.tsx`, `AIAssistPanel.test.tsx`,
+`composer.test.tsx` (reescrito), `lib/ai/plan.test.ts`, `lib/selection/planDraft.test.ts`, casos novos em `wizardState.test.ts`
+e `selecao.test.tsx`, e `e2e/assistente-projeto.spec.ts` (roupa de esqui, prédio, comparar, Seleção).
+
+**Para quem retoma.** Sem migração e sem Deploy da API próprio. O catálogo do E2E é o seed pequeno: na "roupa de esqui" as três
+partes saem sem material (o cartão diz isso, sem inventar); no "prédio", a estrutura e a vedação trazem dois. O `/ai/interpret`
+segue na API sem uso na interface.
+
+---
+
 ## Sessão 181 — 12/11/26 — Assistente de projeto com IA, etapa A: backend e desenho (D-224)
 
 **O que mudou.** Backend: `POST /api/ai/plan` transforma um pedido em linguagem comum ("quero fazer uma roupa de esqui", "um

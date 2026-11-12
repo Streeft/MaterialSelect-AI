@@ -353,7 +353,11 @@ Roteiro completo, com o porquê de cada passo, em
   projeto, os limites de cada uma com a origem do número e os primeiros
   materiais do catálogo pela seleção determinística. `POST /api/ai/plan/run`
   roda de novo com as escolhas da pessoa. O mesmo pedido reaproveita a resposta
-  sem gastar a cota; se o modelo falhar, as regras locais respondem.
+  sem gastar a cota; se o modelo falhar, as regras locais respondem. No Início
+  ele é o "Assistente de projeto" (D-225): a proposta mostra, em chips, de onde
+  veio cada número (Você, Cenário com fonte, ou "Sugestão da IA, revise", que
+  fica desmarcada até a pessoa confirmar), e "Abrir na Seleção" leva a parte
+  para o estudo. Na Seleção, o mesmo plano interpreta o texto enquanto se digita.
 - Outros provedores (`claude-api`, `claude-cli`, Groq, Ollama local) são troca
   de variável; serviço, guardrails e interface não mudam.
 

@@ -18,11 +18,13 @@ import type {
   MethodLiteral,
   NormalizationMethod,
   SelectionUniverse,
+  PlanComponent,
   StageOut,
   StudyDetail,
   StudyTemplate,
 } from "@/lib/types";
 import {
+  type ConstraintRow,
   emptyConstraint,
   emptyGroup,
   fromConstraintPayload,
@@ -41,7 +43,7 @@ import {
   objectiveUsesAdvanced,
 } from "@/lib/selection/advanced";
 import type { SelectionExample } from "@/lib/selection/examples";
-import type { AcceptedSuggestions } from "@/components/ai/AIAssistPanel";
+import { appliedConstraints, studyDetailFromPlan } from "@/lib/ai/plan";
 
 export interface CriterionRow {
   id: string;
@@ -112,7 +114,8 @@ export type WizardAction =
   | { type: "toggleAi" }
   | { type: "restore"; snapshot: WizardSnapshot }
   | { type: "replace"; state: WizardState }
-  | { type: "suggestions"; accepted: AcceptedSuggestions };
+  /** D-225: the assistant's proposal for one part, applied after the person's review. */
+  | { type: "plan"; component: PlanComponent };
 
 function resolve<T>(update: Updater<T>, current: T): T {
   return typeof update === "function" ? (update as (c: T) => T)(current) : update;
@@ -227,43 +230,111 @@ function rowFromConstraint(constraint: ConstraintIn) {
   };
 }
 
+/** A row with nothing in it: the blank one a new study opens with. */
+function isBlankRow(row: ConstraintRow): boolean {
+  return (
+    row.property_slug === "" &&
+    row.value === "" &&
+    row.value_min === "" &&
+    row.value_max === "" &&
+    row.class_slugs.length === 0 &&
+    row.text === ""
+  );
+}
+
+/** Whether a row already says what `other` says, so applying a proposal twice adds nothing. */
+function sameRow(a: ConstraintRow, b: ConstraintRow): boolean {
+  return (
+    a.operator === b.operator &&
+    a.property_slug === b.property_slug &&
+    a.value === b.value &&
+    a.value_min === b.value_min &&
+    a.value_max === b.value_max &&
+    a.unit === b.unit &&
+    a.text === b.text
+  );
+}
+
 /**
- * Merge the suggestions the user ticked into the study.
- *
- * Constraints are appended, never substituted: an interpretation adds to what
- * the user already wrote rather than overwriting it — to the first limit
- * stage's root group, never into a group or stage the AI has no way to name.
+ * Append limits to the first limit stage's root group, never into a group or
+ * stage the assistant has no way to name. Blank rows are dropped and rows the
+ * group already has are not repeated.
  */
-function withSuggestions(state: WizardState, accepted: AcceptedSuggestions): WizardState {
-  const next = { ...state };
-  if (accepted.functionText) next.functionText = accepted.functionText;
-  if (accepted.objectiveText) next.objectiveText = accepted.objectiveText;
-  if (accepted.freeVariables.length > 0) next.freeVariables = accepted.freeVariables.join(", ");
-  if (accepted.constraints.length > 0) {
-    const rows = accepted.constraints.map(({ constraint }) => rowFromConstraint(constraint));
-    const target = state.stages.findIndex((s) => s.kind === "limit");
-    // No limit stage to append to: adding one is the honest outcome — dropping
-    // the suggestion the reader just accepted would look like a dead button.
-    next.stages =
-      target === -1
-        ? [
-            ...state.stages,
-            {
-              ...limitStageShape(emptyLimitStage()),
-              group: { ...emptyGroup(nextEditorId("group")), constraints: rows },
-            },
-          ]
-        : state.stages.map((stage, i) =>
-            i !== target || stage.kind !== "limit"
-              ? stage
-              : { ...stage, group: { ...stage.group, constraints: [...stage.group.constraints, ...rows] } },
-          );
+function withAppendedConstraints(
+  state: WizardState,
+  rows: ConstraintRow[],
+): WizardState {
+  if (rows.length === 0) return state;
+  const target = state.stages.findIndex((s) => s.kind === "limit");
+  // No limit stage to append to: adding one is the honest outcome — dropping
+  // the limits the reader just accepted would look like a dead button.
+  if (target === -1) {
+    return {
+      ...state,
+      stages: [
+        ...state.stages,
+        {
+          ...limitStageShape(emptyLimitStage()),
+          group: { ...emptyGroup(nextEditorId("group")), constraints: rows },
+        },
+      ],
+    };
   }
-  if (accepted.index) {
-    next.indexMode = accepted.index.slug;
-    next.indexGoal = accepted.index.goal;
+  return {
+    ...state,
+    stages: state.stages.map((stage, i) => {
+      if (i !== target || stage.kind !== "limit") return stage;
+      const kept = stage.group.constraints.filter((row) => !isBlankRow(row));
+      const fresh = rows.filter((row) => !kept.some((existing) => sameRow(existing, row)));
+      return { ...stage, group: { ...stage.group, constraints: [...kept, ...fresh] } };
+    }),
+  };
+}
+
+/**
+ * The assistant's proposal for one part (D-225), merged into the study.
+ *
+ * Function, objective and index replace what is there only when the proposal
+ * has one; the limits are appended, never substituted — an interpretation adds
+ * to what the user already wrote. The component's study carries the applied
+ * limits only, so an AI suggestion the person did not confirm never gets here.
+ */
+function withPlanComponent(state: WizardState, component: PlanComponent): WizardState {
+  let next: WizardState = { ...state };
+  if (component.function_text) next.functionText = component.function_text;
+  if (component.objective_text) next.objectiveText = component.objective_text;
+  if (component.index) {
+    next.indexMode = component.index.slug;
+    next.indexGoal = component.index.goal;
+    next.customExpression = "";
+    next.validation = null;
   }
+  if (next.criteria.length === 0 && component.study.criteria.length > 0) {
+    next.criteria = component.study.criteria.map((c) => ({
+      id: nextCriterionId(),
+      key: c.key,
+      direction: (c.direction as "max" | "min" | null) ?? "",
+      weight: c.weight.toString(),
+    }));
+  }
+  next = withAppendedConstraints(next, appliedConstraints(component.study).map(rowFromConstraint));
   return next;
+}
+
+/**
+ * A plan's part as a whole study, for the draft the home writes (D-225): the
+ * wizard opens on it exactly as it opens on a saved study. The catalogue's own
+ * index slug is used when the part has one, never a different formula.
+ */
+export function stateFromPlanComponent(base: WizardState, component: PlanComponent): WizardState {
+  const opened = stateFromStudy(base, studyDetailFromPlan(component.study));
+  if (!component.index) return opened;
+  return {
+    ...opened,
+    indexMode: component.index.slug,
+    customExpression: "",
+    indexGoal: component.index.goal,
+  };
 }
 
 export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
@@ -327,8 +398,8 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       };
     case "replace":
       return action.state;
-    case "suggestions":
-      return withSuggestions(state, action.accepted);
+    case "plan":
+      return withPlanComponent(state, action.component);
   }
 }
 
