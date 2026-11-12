@@ -132,7 +132,7 @@ clássicos" no estado vazio (`lib/compareClassics.ts`, só os que o catálogo te
 propriedades por busca, em chips removíveis. A F4 passa de D-218 para D-220 (Sessão 177): a D-218 é a dos Cadernos (#242) e a D-219 a do #243.
 Testes: `compareClassics.test.ts`, título vivo e propriedades da Seleção, Alt+↓ no estágio, inspetor e folha dos Mapas, visão
 fixada e `?grafico=`, "Mapas fixados" no Início, par clássico no Comparar; os do Comparar e dos Mapas seguem o novo desenho.
-Frontend 1976 (186 arquivos), backend 5541. Sem backend, sem migração: depois do merge, só a Vercel.
+Com a `main` do #243 mesclada: frontend 1997 (187 arquivos), backend 5550. Sem backend, sem migração: depois do merge, só a Vercel.
 
 ## Sessão 177 — 12/11/26 — F4 por cima das calculadoras da D-216: bancadas ao vivo (D-220)
 
