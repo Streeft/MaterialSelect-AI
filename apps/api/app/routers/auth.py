@@ -27,6 +27,7 @@ from app.dependencies import (
     SESSION_COOKIE_NAME,
     get_current_project,
     get_current_user,
+    rate_limit,
 )
 from app.integrations.http import get_http_transport
 from app.models.project import Project
@@ -44,7 +45,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("/google/login")
+# D-223: login and callback are counted per IP; /me and /logout are not.
+@router.get("/google/login", dependencies=[Depends(rate_limit("auth"))])
 def google_login(db: Session = Depends(get_db)) -> RedirectResponse:
     """Redirect to Google's consent screen, with a fresh CSRF `state` cookie."""
     url, state = AuthService(db).build_authorize_url()
@@ -60,7 +62,7 @@ def google_login(db: Session = Depends(get_db)) -> RedirectResponse:
     return response
 
 
-@router.get("/google/callback")
+@router.get("/google/callback", dependencies=[Depends(rate_limit("auth"))])
 def google_callback(
     request: Request,
     code: str | None = None,
@@ -81,7 +83,7 @@ def google_callback(
         # MockTransport here, so the exchange never leaves the machine.
         http_client = httpx.Client(transport=transport, timeout=10.0) if transport else None
         try:
-            session = AuthService(db, http_client=http_client).handle_callback(
+            issued = AuthService(db, http_client=http_client).handle_callback(
                 code=code, state=state, cookie_state=cookie_state
             )
         finally:
@@ -99,7 +101,8 @@ def google_callback(
     response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
     response.set_cookie(
         SESSION_COOKIE_NAME,
-        session.id,
+        # The token itself; the database only ever holds its SHA-256 (D-223).
+        issued.token,
         max_age=settings.session_ttl_hours * 3600,
         httponly=True,
         secure=settings.session_cookie_secure,

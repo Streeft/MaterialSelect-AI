@@ -1,9 +1,12 @@
 """FastAPI dependencies shared across routers: who is logged in, and their
 default Project. The single point of truth for "logged in" is a valid
-``UserSession`` row — see ``app.repositories.session_repository``.
+``UserSession`` row — see ``app.repositories.session_repository`` — found by
+the SHA-256 of the cookie token (D-223).
 """
 
 from __future__ import annotations
+
+from collections.abc import Callable
 
 from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session
@@ -19,8 +22,9 @@ from app.domain.errors import (
 from app.models.project import Project
 from app.models.user import User
 from app.repositories.project_repository import ProjectRepository
-from app.repositories.session_repository import SessionRepository
 from app.repositories.subscription_repository import SubscriptionRepository
+from app.services.auth_service import AuthService
+from app.services.rate_limit_service import Bucket, check_rate_limit
 
 # Named ``msai_*`` to avoid colliding with any cookie a proxy or the browser
 # itself sets. The session cookie is the only one both the router and this
@@ -34,7 +38,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
         raise AuthenticationError("Não autenticado.")
-    session = SessionRepository(db).get_valid(token)
+    session = AuthService(db).current_session(token)
     if session is None:
         raise AuthenticationError("Sessão inválida ou expirada.")
     return session.user
@@ -110,3 +114,28 @@ def get_unit_choices(
     números sem dizer nada.
     """
     return parse_choices(unidades)
+
+
+_WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def rate_limit(bucket: Bucket, *, writes_only: bool = False) -> Callable[[Request], None]:
+    """A dependency that counts the request in ``bucket`` (D-223).
+
+    ``writes_only`` leaves reads uncounted: opening a notebook fires several
+    GETs at once, and those cost nothing worth limiting.
+    """
+
+    def _dependency(request: Request) -> None:
+        if writes_only and request.method not in _WRITE_METHODS:
+            return
+        client_ip = request.headers.get("fly-client-ip") or (
+            request.client.host if request.client else None
+        )
+        check_rate_limit(
+            bucket,
+            session_cookie=request.cookies.get(SESSION_COOKIE_NAME),
+            client_ip=client_ip,
+        )
+
+    return _dependency

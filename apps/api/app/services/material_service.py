@@ -55,6 +55,7 @@ from app.models.material_composition import MaterialCompositionEntry
 from app.models.material_designation import MaterialDesignation
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
+from app.models.source import Source
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.material_repository import MaterialRepository, SearchFacts
@@ -635,8 +636,7 @@ class MaterialService:
         self.repo.add(material)
         self.repo.flush()
 
-        for value_in in payload.values:
-            row = self._build_value_from_input(value_in, is_demo=payload.is_demo)
+        for row in self._build_values(payload.values, is_demo=payload.is_demo):
             row.material_id = material.id
             self.repo.add(row)
 
@@ -939,7 +939,7 @@ class MaterialService:
 
         # Build (and validate) the new rows before deleting the old ones, so a
         # validation error leaves the existing data untouched.
-        new_rows = [self._build_value_from_input(v, is_demo=material.is_demo) for v in values]
+        new_rows = self._build_values(values, is_demo=material.is_demo)
         self.repo.delete_values_for_material(material_id)
         for row in new_rows:
             row.material_id = material_id
@@ -999,6 +999,23 @@ class MaterialService:
         if duplicates:
             raise ValidationError(f"Propriedades repetidas no payload: {', '.join(duplicates)}")
 
+    def _build_values(
+        self, values: list[PropertyValueIn], *, is_demo: bool
+    ) -> list[MaterialPropertyValue]:
+        """Build every row of one write with one read of definitions and sources (D-223).
+
+        Looking each slug and each source label up inside the loop cost two
+        queries per value (N+1). The definitions and the existing sources are
+        read once here; a label seen for the first time is created once and
+        shared by the values that cite it.
+        """
+        properties = self.repo.get_properties_by_slugs(v.property_slug for v in values)
+        sources = self.repo.get_sources_by_labels(v.source_label for v in values if v.source_label)
+        return [
+            self._build_value_from_input(v, is_demo, properties=properties, sources=sources)
+            for v in values
+        ]
+
     def _build_value_from_input(
         self,
         payload: PropertyValueIn,
@@ -1008,6 +1025,8 @@ class MaterialService:
         source_license_url: str | None = None,
         source_contains_third_party_data: bool = False,
         source_reviewed_by_user_id: int | None = None,
+        properties: Mapping[str, PropertyDefinition] | None = None,
+        sources: dict[str, Source] | None = None,
     ) -> MaterialPropertyValue:
         """Convert a PropertyValueIn into a validated MaterialPropertyValue.
 
@@ -1019,7 +1038,12 @@ class MaterialService:
         ``ImportService`` is the only caller that passes them, after its own
         gate has already required them for an unregistered source.
         """
-        prop = self.repo.get_property_by_slug(payload.property_slug)
+        # ``properties``/``sources``: prefetched by ``_build_values`` for a whole
+        # write; a single value (the importer's path) still looks up its own.
+        if properties is not None:
+            prop = properties.get(payload.property_slug)
+        else:
+            prop = self.repo.get_property_by_slug(payload.property_slug)
         if prop is None:
             raise NotFoundError(f"Propriedade não encontrada: {payload.property_slug}")
 
@@ -1054,14 +1078,21 @@ class MaterialService:
 
         source_id = None
         if payload.source_label:
-            source = self.repo.get_or_create_source(
-                payload.source_label,
-                is_demo=is_demo,
-                license_label=source_license_label,
-                license_url=source_license_url,
-                contains_third_party_data=source_contains_third_party_data,
-                reviewed_by_user_id=source_reviewed_by_user_id,
-            )
+            license_kwargs = {
+                "is_demo": is_demo,
+                "license_label": source_license_label,
+                "license_url": source_license_url,
+                "contains_third_party_data": source_contains_third_party_data,
+                "reviewed_by_user_id": source_reviewed_by_user_id,
+            }
+            if sources is None:
+                source = self.repo.get_or_create_source(payload.source_label, **license_kwargs)
+            elif payload.source_label in sources:
+                source = sources[payload.source_label]
+            else:
+                # Prefetched and not found: it does not exist, insert without asking again.
+                source = self.repo.create_source(payload.source_label, **license_kwargs)
+                sources[payload.source_label] = source
             source_id = source.id
 
         return MaterialPropertyValue(

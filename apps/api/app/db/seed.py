@@ -35,6 +35,7 @@ from app.domain.data_quality import (
     build_scalar_value,
     missing_value,
 )
+from app.domain.session_token import hash_session_token
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.enums import (
     BetterDirection,
@@ -2847,10 +2848,12 @@ def seed_e2e_session(db: Session) -> None:
         db.flush()
         db.add(Project(name="Meu projeto", owner_id=user.id))
 
-    if db.get(UserSession, token) is None:
+    # The row holds the token's SHA-256, like every session (D-223); the
+    # browser still gets the token itself from ``e2e/session.ts``.
+    if db.get(UserSession, hash_session_token(token)) is None:
         db.add(
             UserSession(
-                id=token,
+                id=hash_session_token(token),
                 user_id=user.id,
                 expires_at=datetime.now(UTC) + timedelta(hours=settings.session_ttl_hours),
             )

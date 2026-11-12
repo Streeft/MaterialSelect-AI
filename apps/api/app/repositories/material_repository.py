@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -348,6 +349,18 @@ class MaterialRepository:
         stmt = select(PropertyDefinition).where(PropertyDefinition.slug == slug)
         return self.db.execute(stmt).scalars().one_or_none()
 
+    def get_properties_by_slugs(self, slugs: Iterable[str]) -> dict[str, PropertyDefinition]:
+        """The definitions for these slugs, in one query, keyed by slug (D-223).
+
+        A slug with no definition is simply absent from the result; the caller
+        names it in the error.
+        """
+        wanted = sorted(set(slugs))
+        if not wanted:
+            return {}
+        stmt = select(PropertyDefinition).where(PropertyDefinition.slug.in_(wanted))
+        return {d.slug: d for d in self.db.execute(stmt).scalars().all()}
+
     def list_properties(self) -> list[PropertyDefinition]:
         """The whole property catalogue, in name order.
 
@@ -435,6 +448,26 @@ class MaterialRepository:
         )
         if existing:
             return existing
+        return self.create_source(
+            label,
+            is_demo=is_demo,
+            license_label=license_label,
+            license_url=license_url,
+            contains_third_party_data=contains_third_party_data,
+            reviewed_by_user_id=reviewed_by_user_id,
+        )
+
+    def create_source(
+        self,
+        label: str,
+        is_demo: bool = False,
+        *,
+        license_label: str | None = None,
+        license_url: str | None = None,
+        contains_third_party_data: bool = False,
+        reviewed_by_user_id: int | None = None,
+    ) -> Source:
+        """Insert a source the caller already knows is not there (D-223)."""
         source = Source(
             label=label,
             is_demo=is_demo,
@@ -447,6 +480,14 @@ class MaterialRepository:
         self.db.add(source)
         self.db.flush()
         return source
+
+    def get_sources_by_labels(self, labels: Iterable[str]) -> dict[str, Source]:
+        """Existing sources for these labels, in one query, keyed by label (D-223)."""
+        wanted = sorted(set(labels))
+        if not wanted:
+            return {}
+        stmt = select(Source).where(Source.label.in_(wanted))
+        return {s.label: s for s in self.db.execute(stmt).scalars().all()}
 
     def get_source_by_label(self, label: str) -> Source | None:
         return self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()

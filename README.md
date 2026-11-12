@@ -231,7 +231,7 @@ python -m alembic upgrade head
 python -m app.db.seed              # base de demonstração
 python -m app.db.seed_extended     # opcional: +70 de exercício e +593 do catálogo demo ampliado (D-185), com designação, composição e curva (668 materiais; com os 10 das releases de exemplo, 678 `is_demo`), 48 propriedades numéricas (D-188) e 144 processos (D-192)
 python -m app.db.demo_coverage     # quem tem (e quem não tem) designação, composição e curva
-uvicorn app.main:app --reload      # http://localhost:8000/docs
+uvicorn app.main:app --reload      # http://localhost:8000/docs (só fora de produção, D-223)
 ```
 
 ```bash
@@ -307,11 +307,17 @@ workflows de disparo manual na aba *Actions*:
 
 | Workflow | Quando |
 |---|---|
-| **Deploy da API** (`deploy-api.yml`) | Depois de todo merge que toque `apps/api/**`. |
+| **Deploy da API** (`deploy-api.yml`) | Depois de todo merge que toque `apps/api/**`. Sai só da `main` e espera a CI daquele commit ficar verde (D-223). |
 | **Administração do banco** (`admin-banco.yml`) | `semear_referencia` para referência real; `semear_demo` para o catálogo fictício, aditivo e idempotente (D-189: só acrescenta o que falta); também `migrar`, `excluir_demo`, `catalogo_oficial_validar`, `catalogo_oficial_importar`, `conceder` e `revogar`. |
 | **Provedor de IA** (`provedor-ia.yml`) | Trocar a IA (`gemini`, `groq`, `mock`); confere em `/api/health`. |
 | **Modo de acesso** (`modo-acesso.yml`) | `abrir` para uma turma, `restaurar_assinatura` depois. |
 | **Base de conhecimento (Cérebro)** (`conhecimento.yml`) | `ingerir` depois de um PR que mexa em `Cérebro/` ou no manifesto — baixa do LFS só o que o banco ainda não tem (com `arquivos: Links.md`, só ele, sem baixar nada); `embeddings` para gerar vetores já; `status` para o retrato. **Sem execução noturna** (D-203): os vetores só saem rodando `embeddings` à mão. Nunca envia trecho de documento da lista de remoção. |
+
+`/api/health` responde sem tocar no banco (é o que o Fly sonda); `/api/health/db`
+confere o banco com um `SELECT 1`. Em produção não há `/docs`, `/redoc` nem
+`/openapi.json` (`API_DOCS_ENABLED` força). Login, IA, exportações e escritas dos
+Cadernos têm limite por minuto (`RATE_LIMIT_*`, 429 com `Retry-After`), e o
+token de sessão fica no banco só como SHA-256 (D-223).
 
 Roteiro completo, com o porquê de cada passo, em
 [`docs/13-deploy.md`](docs/13-deploy.md).

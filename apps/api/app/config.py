@@ -34,6 +34,24 @@ class Settings(BaseSettings):
     app_name: str = "MaterialSelect AI"
     environment: str = "development"
 
+    # --- Protection of the public surface (D-223) --------------------------
+    # Interactive docs (/docs, /redoc, /openapi.json). ``None`` means "on
+    # everywhere except ENVIRONMENT=production"; true/false forces it.
+    api_docs_enabled: bool | None = None
+    # A simple per-process limit, in memory, on the routes that cost the most
+    # (login, AI, exports, notebook writes). Counted per minute and per caller:
+    # the session cookie when there is one, the client IP otherwise. One Fly
+    # machine means one counter; more machines would each count apart.
+    rate_limit_enabled: bool = True
+    rate_limit_auth_per_minute: int = 20
+    rate_limit_ai_per_minute: int = 30
+    rate_limit_exports_per_minute: int = 30
+    rate_limit_notebooks_per_minute: int = 60
+    # Lists that change only with a deploy or a curator's edit (properties,
+    # classes, processes, glossary, defaults): how long a browser may reuse
+    # them before asking again with ``If-None-Match``.
+    static_list_max_age_seconds: int = 300
+
     # --- Import uploads ---------------------------------------------------
     # Directory where uploaded files are kept while an import job is open.
     upload_dir: str = "var/uploads"
@@ -301,6 +319,13 @@ class Settings(BaseSettings):
     def ai_enabled(self) -> bool:
         """True when an AI provider is configured."""
         return bool(self.ai_provider.strip())
+
+    @property
+    def docs_enabled(self) -> bool:
+        """Whether /docs, /redoc and /openapi.json are served (D-223)."""
+        if self.api_docs_enabled is not None:
+            return self.api_docs_enabled
+        return self.environment.strip().lower() != "production"
 
     @property
     def knowledge_enabled(self) -> bool:

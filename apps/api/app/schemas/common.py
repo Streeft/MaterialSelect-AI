@@ -32,3 +32,12 @@ class HealthResponse(BaseModel):
     # dimensions are also ``None`` when the model answers at its native size.
     knowledge_embedding_model: str | None = None
     knowledge_embedding_dimensions: int | None = None
+
+
+class DatabaseHealthResponse(BaseModel):
+    """``GET /api/health/db`` (D-223): the database answered, and how fast."""
+
+    status: Literal["ok"]
+    database: Literal["ok"]
+    # Round trip of one ``SELECT 1``, in milliseconds, measured by the API.
+    latency_ms: float
