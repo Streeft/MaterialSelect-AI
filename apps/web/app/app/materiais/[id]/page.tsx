@@ -15,6 +15,7 @@ import {
 import { UNITS_PARAM, parseUnitChoices } from "@/components/UnitPicker";
 import { errorsText } from "@/lib/i18n-errors";
 import { ptBR } from "@/lib/i18n";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { flowText } from "@/lib/i18n-flow";
 import { fichaText } from "@/lib/i18n-ficha";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
@@ -321,6 +322,18 @@ export default function MaterialDetailPage() {
         <ButtonLink href="/app/catalogo" variant="link" size="sm" className="self-start">
           {t.back}
         </ButtonLink>
+      )}
+
+      {data && (
+        <AISuggestPanel
+          tool="ficha"
+          context={{ material_id: data.id }}
+          actions={["compare", "open_route"]}
+          onAction={(action) => {
+            // D-229: the similar materials plus this one, side by side.
+            if (action.type === "compare") router.push(`/app/comparar?materiais=${action.ids.join(",")}`);
+          }}
+        />
       )}
 
       {data && (
