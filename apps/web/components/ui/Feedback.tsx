@@ -108,6 +108,113 @@ export function ListSkeleton({
   );
 }
 
+/**
+ * The shape of what is coming, by kind (D-209): a table, a chart or a sheet of
+ * figures. Each says what it is loading once, to a screen reader and on screen
+ * (the label stays visible, as `LoadingState`'s does — a grey box alone tells
+ * nobody what is on its way), and its pieces stay silent. The boxes keep the
+ * height of the real thing, so the page does not jump when it lands.
+ */
+function SkeletonFrame({
+  kind,
+  label,
+  className,
+  children,
+}: {
+  kind: "table" | "chart" | "sheet";
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-skeleton={kind}
+      className={cn("flex min-w-0 flex-col gap-3", className)}
+    >
+      <span className="text-support text-ink-muted">{label}</span>
+      <div aria-hidden className="flex min-w-0 flex-col gap-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** A table on its way: a header row and `rows` body rows. */
+export function TableSkeleton({
+  rows = 5,
+  columns = 4,
+  label = ptBR.ui.loadingTable,
+  className,
+}: {
+  rows?: number;
+  columns?: number;
+  label?: string;
+  className?: string;
+}) {
+  const row = (height: string, key: number) => (
+    <div
+      key={key}
+      className="grid gap-3"
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+    >
+      {Array.from({ length: columns }, (_, c) => (
+        <Skeleton key={c} className={height} />
+      ))}
+    </div>
+  );
+  return (
+    <SkeletonFrame kind="table" label={label} className={className}>
+      {row("h-4", -1)}
+      {Array.from({ length: rows }, (_, r) => row("h-8", r))}
+    </SkeletonFrame>
+  );
+}
+
+/** A chart on its way: the plot area and a legend line. */
+export function ChartSkeleton({
+  label = ptBR.ui.loadingChart,
+  className,
+}: {
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <SkeletonFrame kind="chart" label={label} className={className}>
+      <Skeleton className="h-64 w-full" />
+      <div className="flex gap-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+    </SkeletonFrame>
+  );
+}
+
+/** A sheet of figures on its way: a title and a row of tiles. */
+export function SheetSkeleton({
+  tiles = 4,
+  label = ptBR.ui.loadingSheet,
+  className,
+}: {
+  tiles?: number;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <SkeletonFrame kind="sheet" label={label} className={className}>
+      <Skeleton className="h-6 w-1/2" />
+      <Skeleton className="h-4 w-3/4" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: tiles }, (_, i) => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    </SkeletonFrame>
+  );
+}
+
 export function LoadingState({
   label = ptBR.ui.loading,
   className,

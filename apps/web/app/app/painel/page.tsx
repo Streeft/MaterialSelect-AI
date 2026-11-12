@@ -55,6 +55,8 @@ import {
   Button,
   ButtonLink,
   Card,
+  ChartSkeleton,
+  CopyLinkItem,
   CardBody,
   CardHeader,
   EmptyState,
@@ -63,6 +65,7 @@ import {
   MenuButton,
   MenuItem,
   PageHeader,
+  SheetSkeleton,
   RowHeader,
   Select,
   SelectOption,
@@ -71,6 +74,7 @@ import {
   Table,
   TableCaption,
   TableScroll,
+  TableSkeleton,
   Tabs,
   Td,
   Th,
@@ -151,18 +155,18 @@ function DashboardContent() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-       
-        actions={
-          <>
-            <MenuButton label={d.actions.exportLabel} icon={<IconDownload />}>
-              <MenuItem href={dashboardExportUrl(section, filters)} download hint={d.actions.exportCsvHint}>
-                {d.actions.exportCsv}
-              </MenuItem>
-            </MenuButton>
-            <ButtonLink href="/app/selecao" variant="primary" size="sm">
-              {d.actions.newSelection}
-            </ButtonLink>
-          </>
+        secondaryActions={
+          <MenuButton label={d.actions.exportLabel} icon={<IconDownload />}>
+            <MenuItem href={dashboardExportUrl(section, filters)} download hint={d.actions.exportCsvHint}>
+              {d.actions.exportCsv}
+            </MenuItem>
+          </MenuButton>
+        }
+        overflow={<CopyLinkItem />}
+        primaryAction={
+          <ButtonLink href="/app/selecao" variant="primary" size="sm">
+            {d.actions.newSelection}
+          </ButtonLink>
         }
       />
 
@@ -252,6 +256,7 @@ function DashboardContent() {
             composition={composition}
             processes={processes}
             onProperty={(slug) => update({ property: slug })}
+            onScale={(scale) => update({ scale })}
           />
         )}
       </Tabs>
@@ -270,6 +275,7 @@ function CatalogueTab({
   composition,
   processes,
   onProperty,
+  onScale,
 }: {
   tab: DashboardSection;
   state: DashboardViewState;
@@ -277,8 +283,9 @@ function CatalogueTab({
   composition: CompositionQuery;
   processes: ProcessesQuery;
   onProperty: (slug: string) => void;
+  onScale: (scale: ChartScale) => void;
 }) {
-  if (overview.isLoading) return <LoadingState label={t.loading} />;
+  if (overview.isLoading) return <SheetSkeleton label={t.loading} />;
   if (overview.isError || !overview.data) {
     return (
       <ErrorState
@@ -302,7 +309,7 @@ function CatalogueTab({
         ) : composition.data ? (
           <CompositionTreemap data={composition.data} />
         ) : (
-          <LoadingState label={d.loading} />
+          <ChartSkeleton label={d.loading} />
         )}
         <div className="grid gap-4 xl:grid-cols-2">
           <QualityMixChart slices={data.by_quality} />
@@ -313,10 +320,17 @@ function CatalogueTab({
     );
   }
   if (tab === "propriedades") {
-    return <PropertiesTab state={state} properties={data.by_property} onProperty={onProperty} />;
+    return (
+      <PropertiesTab
+        state={state}
+        properties={data.by_property}
+        onProperty={onProperty}
+        onScale={onScale}
+      />
+    );
   }
   if (tab === "processos") {
-    if (processes.isLoading) return <LoadingState label={d.loading} />;
+    if (processes.isLoading) return <TableSkeleton label={d.loading} />;
     if (processes.isError || !processes.data) {
       return <ErrorState title={d.error} onRetry={() => void processes.refetch()} />;
     }
@@ -338,16 +352,17 @@ function PropertiesTab({
   state,
   properties,
   onProperty,
+  onScale,
 }: {
   state: DashboardViewState;
   properties: PropertyCoverage[];
   onProperty: (slug: string) => void;
+  onScale: (scale: ChartScale) => void;
 }) {
   const { filters } = state;
   const visible = properties.some((p) => p.slug === state.property);
   const property = (visible ? state.property : null) ?? worstCovered(properties) ?? "";
   const name = properties.find((p) => p.slug === property)?.name ?? property;
-  const [scale, setScale] = useState<ChartScale>("linear");
   const [chosen, setChosen] = useState<string[] | null>(null);
 
   const stats = useQuery({
@@ -366,11 +381,9 @@ function PropertiesTab({
     placeholderData: (previous) => previous,
   });
 
-  // A property that refuses a log axis must not keep a log scale the reader
-  // picked for another one.
-  if (distribution.data && distribution.data.allows_log_scale === false && scale === "log") {
-    setScale("linear");
-  }
+  // A property that refuses a log axis is drawn linear, whatever the URL asks
+  // for another one: derived here, never written back during render (D-209).
+  const scale: ChartScale = distribution.data?.allows_log_scale === false ? "linear" : state.scale;
   const partner = property === "densidade" ? "modulo_young" : "densidade";
 
   return (
@@ -398,20 +411,20 @@ function PropertiesTab({
               </SelectOption>
             ))}
           </Select>
-          {stats.isLoading ? <LoadingState label={d.loading} /> : null}
+          {stats.isLoading ? <SheetSkeleton label={d.loading} /> : null}
           {stats.isError ? <ErrorState title={d.error} onRetry={() => void stats.refetch()} /> : null}
           {stats.data ? <PropertyStatsTiles stats={stats.data} /> : null}
         </CardBody>
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        {stats.data ? <HistogramChart stats={stats.data} /> : <LoadingState label={d.loading} />}
+        {stats.data ? <HistogramChart stats={stats.data} /> : <ChartSkeleton label={d.loading} />}
         <PropertyDistributionPanel
           properties={properties}
           selected={property}
           onSelect={onProperty}
           scale={scale}
-          onScaleChange={setScale}
+          onScaleChange={onScale}
           distribution={distribution.data}
           isLoading={distribution.isLoading}
           isError={distribution.isError}
@@ -424,7 +437,7 @@ function PropertiesTab({
       <TopRanking properties={properties} property={property} filters={filters} />
 
       <CorrelationPicker properties={properties} chosen={chosen} onChange={setChosen} />
-      {correlation.isLoading ? <LoadingState label={d.loading} /> : null}
+      {correlation.isLoading ? <ChartSkeleton label={d.loading} /> : null}
       {correlation.isError ? (
         <ErrorState
           title={d.error} error={correlation.error}
@@ -456,7 +469,7 @@ function QualityTab({
   );
   return (
     <>
-      {sources.isLoading ? <LoadingState label={d.loading} /> : null}
+      {sources.isLoading ? <ChartSkeleton label={d.loading} /> : null}
       {sources.isError ? <ErrorState title={d.error} onRetry={() => void sources.refetch()} /> : null}
       {sources.data ? <SourceQualityChart data={sources.data} /> : null}
       <QualityMixChart slices={overviewQuality} />

@@ -76,14 +76,17 @@ const result: CostResult = {
   ],
 };
 
-const nav = vi.hoisted(() => ({ query: "" }));
+// The brief lives in the URL (D-209): a test opens the page at an address.
+function setQuery(query: string) {
+  window.history.replaceState(null, "", `/app/custo${query ? `?${query}` : ""}`);
+}
 
 // `PageHeader` reads the pathname for the route palette (D-49); without this it
 // gets null and the header throws before anything renders.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/custo",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(nav.query),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -104,7 +107,7 @@ async function open() {
 }
 
 beforeEach(() => {
-  nav.query = "";
+  setQuery("");
   estimatePartCost.mockReset();
   estimatePartCost.mockResolvedValue(result);
 });
@@ -120,7 +123,7 @@ describe("Custo da peça", () => {
   });
 
   it("recolhe as premissas, mas imprime cada valor no resumo", async () => {
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     await open();
 
     const summary = screen.getByText(t.assumptionsSummary("5", "0,5"));
@@ -128,7 +131,7 @@ describe("Custo da peça", () => {
   });
 
   it("aceita a peça e o lote pela URL, que é como o dimensionamento liga aqui", async () => {
-    nav.query = "material=7&massa=2&lote=500";
+    setQuery("material=7&massa=2&lote=500");
     const user = userEvent.setup();
     await open();
 
@@ -144,7 +147,7 @@ describe("Custo da peça", () => {
 
   it("mostra os quatro termos, não só o total", async () => {
     // A decomposição é o item; total sozinho seria oráculo.
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
 
@@ -159,7 +162,7 @@ describe("Custo da peça", () => {
 
   it("diz em que unidade o número está, em vez de imprimir moeda", async () => {
     // Dinheiro não está em sistema de unidades nenhum, e a tela admite isso.
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
 
@@ -172,7 +175,7 @@ describe("Custo da peça", () => {
 
   it("nomeia o processo sem dado econômico, com o motivo", async () => {
     // D-24, e a razão concreta: ferramental em branco viraria o mais barato.
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
 
@@ -184,7 +187,7 @@ describe("Custo da peça", () => {
   });
 
   it("envia as premissas da oficina junto, com os padrões visíveis", async () => {
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
 
@@ -197,10 +200,34 @@ describe("Custo da peça", () => {
     });
   });
 
+  it("leva amortização e fator de carga pela URL, nos dois sentidos (D-209)", async () => {
+    setQuery("material=7&massa=2&amortizacao=8&fator_carga=0.7");
+    const user = userEvent.setup();
+    await open();
+
+    // Read from the link…
+    expect(screen.getByText(t.assumptionsSummary("8", "0,7"))).toBeInTheDocument();
+    await user.click(await screen.findByShadowRole("button", { name: t.estimate }));
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
+    expect(estimatePartCost.mock.calls[0]![0]).toMatchObject({
+      write_off_years: 8,
+      load_factor: 0.7,
+    });
+
+    // …and written back as the reader types.
+    const mass = await screen.findByShadowLabelText(/Massa da peça/);
+    await user.clear(mass);
+    await user.type(mass, "3");
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("massa")).toBe("3");
+    expect(params.get("amortizacao")).toBe("8");
+    expect(params.get("fator_carga")).toBe("0.7");
+  });
+
   it("recusa fator de carga acima de um antes de chamar a API", async () => {
     // O servidor também recusa (o schema tem o limite), mas deixar o botão
     // ativo mandaria o leitor descobrir isso por um 422.
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     await open();
 
     const loadFactor = await screen.findByShadowLabelText(/Fator de carga/);
@@ -218,7 +245,7 @@ describe("Custo da peça", () => {
   });
 
   it("desenha a curva de custo por lote com a alternância para a tabela", async () => {
-    nav.query = "material=7&massa=2";
+    setQuery("material=7&massa=2");
     const user = userEvent.setup();
     await open();
 

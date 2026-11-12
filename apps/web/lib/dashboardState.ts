@@ -1,8 +1,8 @@
-import type { DashboardDemoFilter, DashboardFilters, DashboardSection } from "@/lib/types";
+import type { ChartScale, DashboardDemoFilter, DashboardFilters, DashboardSection } from "@/lib/types";
 
 /**
- * The rich panel's state in the URL (D-193): the tab, the four global filters
- * and the property being read. In the URL rather than in component state so a
+ * The rich panel's state in the URL (D-193): the tab, the four global filters,
+ * the property being read and the scale of its distribution (D-209). In the URL rather than in component state so a
  * view can be linked, bookmarked and reopened — the same reason D-63 keeps the
  * reading unit there.
  */
@@ -10,6 +10,8 @@ export interface DashboardViewState {
   tab: DashboardSection;
   filters: DashboardFilters;
   property: string | null;
+  /** The distribution's axis. "linear" is the default and stays out of the URL. */
+  scale: ChartScale;
 }
 
 export const DASHBOARD_TABS: readonly DashboardSection[] = [
@@ -39,6 +41,7 @@ export function readDashboardState(params: ParamReader): DashboardViewState {
       demo: DEMO.includes(demo as DashboardDemoFilter) ? (demo as DashboardDemoFilter) : "todos",
     },
     property: params.get("prop") || null,
+    scale: params.get("escala") === "log" ? "log" : "linear",
   };
 }
 
@@ -51,6 +54,7 @@ export function dashboardSearch(state: DashboardViewState): string {
   if (state.filters.nivel && state.filters.nivel !== 3) params.set("nivel", String(state.filters.nivel));
   if (state.filters.demo && state.filters.demo !== "todos") params.set("demo", state.filters.demo);
   if (state.property) params.set("prop", state.property);
+  if (state.scale === "log") params.set("escala", "log");
   const text = params.toString();
   return text ? `?${text}` : "";
 }

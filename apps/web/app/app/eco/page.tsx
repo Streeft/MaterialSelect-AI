@@ -24,7 +24,7 @@ import {
   getMaterial,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatTyped } from "@/lib/format";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
 import { PhaseBars, type PhaseBarRow } from "@/components/eco/PhaseBars";
 import { EcoExportMenu } from "@/components/eco/EcoExportMenu";
@@ -39,9 +39,9 @@ import {
   Input,
   EmptyState,
   ErrorState,
-  LoadingState,
   NumberInput,
   PageHeader,
+  SheetSkeleton,
   Select,
   SelectOption,
   StepCard,
@@ -54,6 +54,7 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
 const t = ptBR.eco;
 
@@ -343,11 +344,6 @@ function LegTable({ result }: { result: EcoAuditResult }) {
       </Table>
     </TableScroll>
   );
-}
-
-function printable(raw: string): string {
-  const value = Number(raw);
-  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
 }
 
 function Quantity({
@@ -931,7 +927,7 @@ export default function EcoPage() {
   }, [compareResult]);
 
   if (materials.isLoading || modes.isLoading || routes.isLoading)
-    return <LoadingState label={t.title} />;
+    return <SheetSkeleton label={t.title} />;
   if (materials.isError)
     return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
   if (modes.isError) return <ErrorState error={modes.error} onRetry={() => void modes.refetch()} />;
@@ -956,474 +952,480 @@ export default function EcoPage() {
         </ButtonGroup>
       </div>
 
-      {modeChoice === "individual" ? (
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          <StepCard
-            title={t.productStep}
-            description={t.productHint}
-            bodyClassName="flex flex-col gap-4"
-            footer={
-              <Button
-                size="sm"
-                onClick={() =>
-                  setComponents((list) => [
-                    ...list,
-                    {
-                      key: newKey(),
-                      name: "",
-                      materialId: "",
-                      processId: "",
-                      mass: "",
-                      quantity: "1",
-                      recycled: DEFAULTS.recycled,
-                      endOfLife: "reciclagem",
-                    },
-                  ])
+      <ParamsResultLayout>
+        <ParamsPanel>
+          {modeChoice === "individual" ? (
+            <div className="flex flex-col gap-6">
+              <StepCard
+                title={t.productStep}
+                description={t.productHint}
+                bodyClassName="flex flex-col gap-4"
+                footer={
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setComponents((list) => [
+                        ...list,
+                        {
+                          key: newKey(),
+                          name: "",
+                          materialId: "",
+                          processId: "",
+                          mass: "",
+                          quantity: "1",
+                          recycled: DEFAULTS.recycled,
+                          endOfLife: "reciclagem",
+                        },
+                      ])
+                    }
+                  >
+                    {t.addComponent}
+                  </Button>
                 }
               >
-                {t.addComponent}
-              </Button>
-            }
-          >
-            {components.map((draft, index) => (
-              <ComponentFields
-                key={draft.key}
-                index={index}
-                draft={{ ...draft, materialId: resolvedComponents[index]?.materialId ?? "" }}
-                canRemove={components.length > 1}
-                materialOptions={materialOptions}
-                processes={componentProcesses[index] ?? []}
-                processesLoaded={Boolean(details[index]?.isSuccess)}
-                routes={routes.data ?? []}
-                onChange={(patch) => patchComponent(draft.key, patch)}
-                onRemove={() =>
-                  setComponents((list) => list.filter((c) => c.key !== draft.key))
-                }
-              />
-            ))}
-          </StepCard>
-
-          <StepCard
-            title={t.transportStep}
-            description={t.legsHint}
-            bodyClassName="flex flex-col gap-4"
-            footer={
-              <Button
-                size="sm"
-                onClick={() =>
-                  setLegs((list) => [...list, { key: newKey(), mode: "", distance: "0" }])
-                }
-              >
-                {t.addLeg}
-              </Button>
-            }
-          >
-            {legs.map((draft, index) => (
-              <LegFields
-                key={draft.key}
-                index={index}
-                draft={{ ...draft, mode: resolvedLegs[index]?.mode ?? "" }}
-                canRemove={legs.length > 1}
-                modes={modes.data ?? []}
-                onChange={(patch) => patchLeg(draft.key, patch)}
-                onRemove={() => setLegs((list) => list.filter((leg) => leg.key !== draft.key))}
-              />
-            ))}
-          </StepCard>
-        </div>
-      ) : (
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          <StepCard title={t.materialA} bodyClassName="grid gap-4 sm:grid-cols-2">
-            <Combobox
-              label={t.materialLabel}
-              hint={t.materialHint}
-              options={materialOptions}
-              value={selectedMatA}
-              onChange={(value) => {
-                setMaterialAId(value);
-                setProcessAId("");
-              }}
-            />
-            {detailA.isSuccess && processesA.length === 0 ? (
-              <div className="flex flex-col gap-1">
-                <span className="msds-field-label">{t.processLabel}</span>
-                <Alert tone="warning">{t.noProcess}</Alert>
-              </div>
-            ) : (
-              <Select
-                label={t.processLabel}
-                hint={t.processHint}
-                value={selectedProcA}
-                disabled={processesA.length === 0}
-                onChange={(event) =>
-                  setProcessAId((event.target as HTMLSelectElement).value)
-                }
-              >
-                {processesA.map((process) => (
-                  <SelectOption key={process.id} value={String(process.id)}>
-                    {process.name}
-                  </SelectOption>
+                {components.map((draft, index) => (
+                  <ComponentFields
+                    key={draft.key}
+                    index={index}
+                    draft={{ ...draft, materialId: resolvedComponents[index]?.materialId ?? "" }}
+                    canRemove={components.length > 1}
+                    materialOptions={materialOptions}
+                    processes={componentProcesses[index] ?? []}
+                    processesLoaded={Boolean(details[index]?.isSuccess)}
+                    routes={routes.data ?? []}
+                    onChange={(patch) => patchComponent(draft.key, patch)}
+                    onRemove={() =>
+                      setComponents((list) => list.filter((c) => c.key !== draft.key))
+                    }
+                  />
                 ))}
-              </Select>
-            )}
-            <NumberInput
-              label={t.massLabel}
-              hint={t.massHint}
-              value={massA}
-              min={0}
-              step="any"
-              onChange={(event) => setMassA(event.target.value)}
-            />
-            <NumberInput
-              label={t.recycledLabel}
-              hint={t.recycledHint}
-              value={recycledA}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setRecycledA(event.target.value)}
-            />
-            <div className="sm:col-span-2">
-              <Select
-                label={t.eolLabel}
-                hint={t.eolHint}
-                value={endOfLifeA}
-                onChange={(event) =>
-                  setEndOfLifeA((event.target as HTMLSelectElement).value as EndOfLifeRoute)
+              </StepCard>
+
+              <StepCard
+                title={t.transportStep}
+                description={t.legsHint}
+                bodyClassName="flex flex-col gap-4"
+                footer={
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setLegs((list) => [...list, { key: newKey(), mode: "", distance: "0" }])
+                    }
+                  >
+                    {t.addLeg}
+                  </Button>
                 }
               >
-                <RouteOptions routes={routes.data ?? []} />
-              </Select>
+                {legs.map((draft, index) => (
+                  <LegFields
+                    key={draft.key}
+                    index={index}
+                    draft={{ ...draft, mode: resolvedLegs[index]?.mode ?? "" }}
+                    canRemove={legs.length > 1}
+                    modes={modes.data ?? []}
+                    onChange={(patch) => patchLeg(draft.key, patch)}
+                    onRemove={() => setLegs((list) => list.filter((leg) => leg.key !== draft.key))}
+                  />
+                ))}
+              </StepCard>
             </div>
-          </StepCard>
-
-          <StepCard title={t.materialB} bodyClassName="grid gap-4 sm:grid-cols-2">
-            <Combobox
-              label={t.materialLabel}
-              hint={t.materialHint}
-              options={materialOptions}
-              value={selectedMatB}
-              onChange={(value) => {
-                setMaterialBId(value);
-                setProcessBId("");
-              }}
-            />
-            {detailB.isSuccess && processesB.length === 0 ? (
-              <div className="flex flex-col gap-1">
-                <span className="msds-field-label">{t.processLabel}</span>
-                <Alert tone="warning">{t.noProcess}</Alert>
-              </div>
-            ) : (
-              <Select
-                label={t.processLabel}
-                hint={t.processHint}
-                value={selectedProcB}
-                disabled={processesB.length === 0}
-                onChange={(event) =>
-                  setProcessBId((event.target as HTMLSelectElement).value)
-                }
-              >
-                {processesB.map((process) => (
-                  <SelectOption key={process.id} value={String(process.id)}>
-                    {process.name}
-                  </SelectOption>
-                ))}
-              </Select>
-            )}
-            <NumberInput
-              label={t.massLabel}
-              hint={t.massHint}
-              value={massB}
-              min={0}
-              step="any"
-              onChange={(event) => setMassB(event.target.value)}
-            />
-            <NumberInput
-              label={t.recycledLabel}
-              hint={t.recycledHint}
-              value={recycledB}
-              min={0}
-              max={1}
-              step="any"
-              onChange={(event) => setRecycledB(event.target.value)}
-            />
-            <div className="sm:col-span-2">
-              <Select
-                label={t.eolLabel}
-                hint={t.eolHint}
-                value={endOfLifeB}
-                onChange={(event) =>
-                  setEndOfLifeB((event.target as HTMLSelectElement).value as EndOfLifeRoute)
-                }
-              >
-                <RouteOptions routes={routes.data ?? []} />
-              </Select>
-            </div>
-          </StepCard>
-        </div>
-      )}
-
-      <StepCard
-        title={modeChoice === "individual" ? t.useStep : t.sharedPremises}
-        description={t.useHint}
-        footer={
-          <div className="flex flex-wrap items-center gap-3">
-            {modeChoice === "individual" ? (
-              <Button
-                variant="primary"
-                onClick={() => audit.mutate()}
-                disabled={!ready || audit.isPending}
-                aria-describedby={blocked ? "eco-motivo" : undefined}
-              >
-                {audit.isPending ? t.running : t.run}
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={() => comparisonMutation.mutate()}
-                disabled={!ready || comparisonMutation.isPending}
-                aria-describedby={blocked ? "eco-motivo" : undefined}
-              >
-                {comparisonMutation.isPending ? t.compareRunning : t.compareRun}
-              </Button>
-            )}
-            {blocked ? (
-              <p id="eco-motivo" className="text-support text-ink-muted">
-                {blocked.reason}
-              </p>
-            ) : null}
-          </div>
-        }
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          {modeChoice === "compare" && (
-            <>
-              <Select
-                label={t.transportModeLabel}
-                value={selectedMode}
-                onChange={(event) =>
-                  setMode((event.target as HTMLSelectElement).value)
-                }
-              >
-                {(modes.data ?? []).map((item) => (
-                  <SelectOption key={item.slug} value={item.slug}>
-                    {item.name}
-                  </SelectOption>
-                ))}
-              </Select>
-              <NumberInput
-                label={t.transportDistanceLabel}
-                value={distance}
-                min={0}
-                step="any"
-                onChange={(event) => setDistance(event.target.value)}
-              />
-            </>
-          )}
-          <Select
-            label={t.useModelLabel}
-            value={useModel}
-            onChange={(event) =>
-              setUseModel((event.target as HTMLSelectElement).value as UseModel)
-            }
-          >
-            <SelectOption value="estatico">{t.useStatic}</SelectOption>
-            <SelectOption value="movel">{t.useMobile}</SelectOption>
-          </Select>
-        </div>
-        <Disclosure
-          summary={
-            useModel === "estatico"
-              ? t.useSummaryStatic(
-                  printable(life),
-                  printable(power),
-                  printable(duty),
-                  printable(carbonPerEnergy),
-                )
-              : t.useSummaryMobile(
-                  printable(life),
-                  printable(travel),
-                  printable(intensity),
-                  printable(carbonPerEnergy),
-                )
-          }
-          open={premisesOpen || Boolean(blocked?.inPremises)}
-          onOpenChange={setPremisesOpen}
-        >
-          <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-3">
-            <NumberInput
-              label={t.lifeLabel}
-              value={life}
-              min={0}
-              step="any"
-              onChange={(event) => setLife(event.target.value)}
-            />
-            {useModel === "estatico" ? (
-              <>
+          ) : (
+            <div className="flex flex-col gap-6">
+              <StepCard title={t.materialA} bodyClassName="grid gap-4 sm:grid-cols-2">
+                <Combobox
+                  label={t.materialLabel}
+                  hint={t.materialHint}
+                  options={materialOptions}
+                  value={selectedMatA}
+                  onChange={(value) => {
+                    setMaterialAId(value);
+                    setProcessAId("");
+                  }}
+                />
+                {detailA.isSuccess && processesA.length === 0 ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="msds-field-label">{t.processLabel}</span>
+                    <Alert tone="warning">{t.noProcess}</Alert>
+                  </div>
+                ) : (
+                  <Select
+                    label={t.processLabel}
+                    hint={t.processHint}
+                    value={selectedProcA}
+                    disabled={processesA.length === 0}
+                    onChange={(event) =>
+                      setProcessAId((event.target as HTMLSelectElement).value)
+                    }
+                  >
+                    {processesA.map((process) => (
+                      <SelectOption key={process.id} value={String(process.id)}>
+                        {process.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
+                )}
                 <NumberInput
-                  label={t.powerLabel}
-                  value={power}
+                  label={t.massLabel}
+                  hint={t.massHint}
+                  value={massA}
                   min={0}
                   step="any"
-                  onChange={(event) => setPower(event.target.value)}
+                  onChange={(event) => setMassA(event.target.value)}
                 />
                 <NumberInput
-                  label={t.dutyLabel}
-                  hint={t.dutyHint}
-                  value={duty}
+                  label={t.recycledLabel}
+                  hint={t.recycledHint}
+                  value={recycledA}
                   min={0}
                   max={1}
                   step="any"
-                  onChange={(event) => setDuty(event.target.value)}
+                  onChange={(event) => setRecycledA(event.target.value)}
                 />
-              </>
-            ) : (
-              <>
+                <div className="sm:col-span-2">
+                  <Select
+                    label={t.eolLabel}
+                    hint={t.eolHint}
+                    value={endOfLifeA}
+                    onChange={(event) =>
+                      setEndOfLifeA((event.target as HTMLSelectElement).value as EndOfLifeRoute)
+                    }
+                  >
+                    <RouteOptions routes={routes.data ?? []} />
+                  </Select>
+                </div>
+              </StepCard>
+
+              <StepCard title={t.materialB} bodyClassName="grid gap-4 sm:grid-cols-2">
+                <Combobox
+                  label={t.materialLabel}
+                  hint={t.materialHint}
+                  options={materialOptions}
+                  value={selectedMatB}
+                  onChange={(value) => {
+                    setMaterialBId(value);
+                    setProcessBId("");
+                  }}
+                />
+                {detailB.isSuccess && processesB.length === 0 ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="msds-field-label">{t.processLabel}</span>
+                    <Alert tone="warning">{t.noProcess}</Alert>
+                  </div>
+                ) : (
+                  <Select
+                    label={t.processLabel}
+                    hint={t.processHint}
+                    value={selectedProcB}
+                    disabled={processesB.length === 0}
+                    onChange={(event) =>
+                      setProcessBId((event.target as HTMLSelectElement).value)
+                    }
+                  >
+                    {processesB.map((process) => (
+                      <SelectOption key={process.id} value={String(process.id)}>
+                        {process.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
+                )}
                 <NumberInput
-                  label={t.travelLabel}
-                  value={travel}
+                  label={t.massLabel}
+                  hint={t.massHint}
+                  value={massB}
                   min={0}
                   step="any"
-                  onChange={(event) => setTravel(event.target.value)}
+                  onChange={(event) => setMassB(event.target.value)}
                 />
                 <NumberInput
-                  label={t.intensityLabel}
-                  value={intensity}
+                  label={t.recycledLabel}
+                  hint={t.recycledHint}
+                  value={recycledB}
                   min={0}
+                  max={1}
                   step="any"
-                  onChange={(event) => setIntensity(event.target.value)}
+                  onChange={(event) => setRecycledB(event.target.value)}
                 />
-              </>
-            )}
-            <NumberInput
-              label={t.carbonPerEnergyLabel}
-              hint={t.carbonPerEnergyHint}
-              value={carbonPerEnergy}
-              min={0}
-              step="any"
-              onChange={(event) => setCarbonPerEnergy(event.target.value)}
-            />
-          </div>
-        </Disclosure>
-        {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
-        {comparisonMutation.isError ? (
-          <Alert tone="danger">{String(comparisonMutation.error)}</Alert>
-        ) : null}
-      </StepCard>
-
-      {modeChoice === "individual" ? (
-        <StepCard title={t.resultStep}>
-          {result ? (
-            <>
-              <EcoExportMenu brief={resultBrief} />
-              <div className="flex flex-col gap-3">
-                <span className="text-sm font-medium text-ink">
-                  {t.dominanceTitle}
-                </span>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Podium
-                    label={t.dominanceEnergy}
-                    dominance={result.energy_dominance}
-                  />
-                  <Podium
-                    label={t.dominanceCarbon}
-                    dominance={result.carbon_dominance}
-                  />
+                <div className="sm:col-span-2">
+                  <Select
+                    label={t.eolLabel}
+                    hint={t.eolHint}
+                    value={endOfLifeB}
+                    onChange={(event) =>
+                      setEndOfLifeB((event.target as HTMLSelectElement).value as EndOfLifeRoute)
+                    }
+                  >
+                    <RouteOptions routes={routes.data ?? []} />
+                  </Select>
                 </div>
-              </div>
-
-              <PhaseTable result={result} />
-              <ComponentTable result={result} />
-              <LegTable result={result} />
-
-              <div className="flex flex-col gap-4">
-                <PhaseBars
-                  title={ecoPhaseI18n.energyChartTitle}
-                  unit={result.energy_unit}
-                  rows={energyRows}
-                />
-                <PhaseBars
-                  title={ecoPhaseI18n.carbonChartTitle}
-                  unit={result.carbon_unit}
-                  rows={carbonRows}
-                />
-              </div>
-
-              <div className="well flex flex-col gap-2 text-xs text-ink-muted">
-                <span>
-                  <strong className="text-ink">{t.massBought}:</strong>{" "}
-                  {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
-                </span>
-                <span>{result.recycling_credit_note}</span>
-                <span>{t.productSummary(result.components.length, result.transport_legs.length)}</span>
-              </div>
-            </>
-          ) : (
-            <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
-          )}
-        </StepCard>
-      ) : (
-        <StepCard title={t.compareResultStep}>
-          {compareResult ? (
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="well flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-ink">{t.winnerEnergy}</span>
-                    <Badge tone="success">
-                      {compareResult.winner_energy === "material_a"
-                        ? compareResult.material_a.material_name
-                        : compareResult.winner_energy === "material_b"
-                          ? compareResult.material_b.material_name
-                          : t.tieEnergy}
-                    </Badge>
-                  </div>
-                  {compareResult.delta_energy_percent !== null && Math.abs(compareResult.delta_energy_percent) > 0.01 && (
-                    <span className="text-xs text-ink-muted">
-                      {t.savingsEnergy(Math.abs(compareResult.delta_energy_percent))}
-                    </span>
-                  )}
-                </div>
-
-                <div className="well flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-ink">{t.winnerCarbon}</span>
-                    <Badge tone="brand">
-                      {compareResult.winner_carbon === "material_a"
-                        ? compareResult.material_a.material_name
-                        : compareResult.winner_carbon === "material_b"
-                          ? compareResult.material_b.material_name
-                          : t.tieCarbon}
-                    </Badge>
-                  </div>
-                  {compareResult.delta_carbon_percent !== null && Math.abs(compareResult.delta_carbon_percent) > 0.01 && (
-                    <span className="text-xs text-ink-muted">
-                      {t.savingsCarbon(Math.abs(compareResult.delta_carbon_percent))}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <ComparisonTable result={compareResult} />
-
-              <div className="flex flex-col gap-4">
-                <PhaseBars
-                  title={ecoPhaseI18n.energyChartCompareTitle}
-                  unit={compareResult.material_a.energy_unit}
-                  rows={compareEnergyRows}
-                />
-                <PhaseBars
-                  title={ecoPhaseI18n.carbonChartCompareTitle}
-                  unit={compareResult.material_a.carbon_unit}
-                  rows={compareCarbonRows}
-                />
-              </div>
+              </StepCard>
             </div>
-          ) : (
-            <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
           )}
-        </StepCard>
-      )}
+
+          <StepCard
+            title={modeChoice === "individual" ? t.useStep : t.sharedPremises}
+            description={t.useHint}
+            footer={
+              <div className="flex flex-wrap items-center gap-3">
+                {modeChoice === "individual" ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => audit.mutate()}
+                    disabled={!ready || audit.isPending}
+                    aria-describedby={blocked ? "eco-motivo" : undefined}
+                  >
+                    {audit.isPending ? t.running : t.run}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={() => comparisonMutation.mutate()}
+                    disabled={!ready || comparisonMutation.isPending}
+                    aria-describedby={blocked ? "eco-motivo" : undefined}
+                  >
+                    {comparisonMutation.isPending ? t.compareRunning : t.compareRun}
+                  </Button>
+                )}
+                {blocked ? (
+                  <p id="eco-motivo" className="text-support text-ink-muted">
+                    {blocked.reason}
+                  </p>
+                ) : null}
+              </div>
+            }
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              {modeChoice === "compare" && (
+                <>
+                  <Select
+                    label={t.transportModeLabel}
+                    value={selectedMode}
+                    onChange={(event) =>
+                      setMode((event.target as HTMLSelectElement).value)
+                    }
+                  >
+                    {(modes.data ?? []).map((item) => (
+                      <SelectOption key={item.slug} value={item.slug}>
+                        {item.name}
+                      </SelectOption>
+                    ))}
+                  </Select>
+                  <NumberInput
+                    label={t.transportDistanceLabel}
+                    value={distance}
+                    min={0}
+                    step="any"
+                    onChange={(event) => setDistance(event.target.value)}
+                  />
+                </>
+              )}
+              <Select
+                label={t.useModelLabel}
+                value={useModel}
+                onChange={(event) =>
+                  setUseModel((event.target as HTMLSelectElement).value as UseModel)
+                }
+              >
+                <SelectOption value="estatico">{t.useStatic}</SelectOption>
+                <SelectOption value="movel">{t.useMobile}</SelectOption>
+              </Select>
+            </div>
+            <Disclosure
+              summary={
+                useModel === "estatico"
+                  ? t.useSummaryStatic(
+                      formatTyped(life),
+                      formatTyped(power),
+                      formatTyped(duty),
+                      formatTyped(carbonPerEnergy),
+                    )
+                  : t.useSummaryMobile(
+                      formatTyped(life),
+                      formatTyped(travel),
+                      formatTyped(intensity),
+                      formatTyped(carbonPerEnergy),
+                    )
+              }
+              open={premisesOpen || Boolean(blocked?.inPremises)}
+              onOpenChange={setPremisesOpen}
+            >
+              <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-3">
+                <NumberInput
+                  label={t.lifeLabel}
+                  value={life}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setLife(event.target.value)}
+                />
+                {useModel === "estatico" ? (
+                  <>
+                    <NumberInput
+                      label={t.powerLabel}
+                      value={power}
+                      min={0}
+                      step="any"
+                      onChange={(event) => setPower(event.target.value)}
+                    />
+                    <NumberInput
+                      label={t.dutyLabel}
+                      hint={t.dutyHint}
+                      value={duty}
+                      min={0}
+                      max={1}
+                      step="any"
+                      onChange={(event) => setDuty(event.target.value)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <NumberInput
+                      label={t.travelLabel}
+                      value={travel}
+                      min={0}
+                      step="any"
+                      onChange={(event) => setTravel(event.target.value)}
+                    />
+                    <NumberInput
+                      label={t.intensityLabel}
+                      value={intensity}
+                      min={0}
+                      step="any"
+                      onChange={(event) => setIntensity(event.target.value)}
+                    />
+                  </>
+                )}
+                <NumberInput
+                  label={t.carbonPerEnergyLabel}
+                  hint={t.carbonPerEnergyHint}
+                  value={carbonPerEnergy}
+                  min={0}
+                  step="any"
+                  onChange={(event) => setCarbonPerEnergy(event.target.value)}
+                />
+              </div>
+            </Disclosure>
+            {audit.isError ? <Alert tone="danger">{String(audit.error)}</Alert> : null}
+            {comparisonMutation.isError ? (
+              <Alert tone="danger">{String(comparisonMutation.error)}</Alert>
+            ) : null}
+          </StepCard>
+        </ParamsPanel>
+
+        <ResultPanel>
+          {modeChoice === "individual" ? (
+            <StepCard title={t.resultStep}>
+              {result ? (
+                <>
+                  <EcoExportMenu brief={resultBrief} />
+                  <div className="flex flex-col gap-3">
+                    <span className="text-sm font-medium text-ink">
+                      {t.dominanceTitle}
+                    </span>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Podium
+                        label={t.dominanceEnergy}
+                        dominance={result.energy_dominance}
+                      />
+                      <Podium
+                        label={t.dominanceCarbon}
+                        dominance={result.carbon_dominance}
+                      />
+                    </div>
+                  </div>
+
+                  <PhaseTable result={result} />
+                  <ComponentTable result={result} />
+                  <LegTable result={result} />
+
+                  <div className="flex flex-col gap-4">
+                    <PhaseBars
+                      title={ecoPhaseI18n.energyChartTitle}
+                      unit={result.energy_unit}
+                      rows={energyRows}
+                    />
+                    <PhaseBars
+                      title={ecoPhaseI18n.carbonChartTitle}
+                      unit={result.carbon_unit}
+                      rows={carbonRows}
+                    />
+                  </div>
+
+                  <div className="well flex flex-col gap-2 text-xs text-ink-muted">
+                    <span>
+                      <strong className="text-ink">{t.massBought}:</strong>{" "}
+                      {formatNumber(result.mass_bought)} kg — {t.massBoughtHint}
+                    </span>
+                    <span>{result.recycling_credit_note}</span>
+                    <span>{t.productSummary(result.components.length, result.transport_legs.length)}</span>
+                  </div>
+                </>
+              ) : (
+                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+              )}
+            </StepCard>
+          ) : (
+            <StepCard title={t.compareResultStep}>
+              {compareResult ? (
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="well flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-ink">{t.winnerEnergy}</span>
+                        <Badge tone="success">
+                          {compareResult.winner_energy === "material_a"
+                            ? compareResult.material_a.material_name
+                            : compareResult.winner_energy === "material_b"
+                              ? compareResult.material_b.material_name
+                              : t.tieEnergy}
+                        </Badge>
+                      </div>
+                      {compareResult.delta_energy_percent !== null && Math.abs(compareResult.delta_energy_percent) > 0.01 && (
+                        <span className="text-xs text-ink-muted">
+                          {t.savingsEnergy(Math.abs(compareResult.delta_energy_percent))}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="well flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-ink">{t.winnerCarbon}</span>
+                        <Badge tone="brand">
+                          {compareResult.winner_carbon === "material_a"
+                            ? compareResult.material_a.material_name
+                            : compareResult.winner_carbon === "material_b"
+                              ? compareResult.material_b.material_name
+                              : t.tieCarbon}
+                        </Badge>
+                      </div>
+                      {compareResult.delta_carbon_percent !== null && Math.abs(compareResult.delta_carbon_percent) > 0.01 && (
+                        <span className="text-xs text-ink-muted">
+                          {t.savingsCarbon(Math.abs(compareResult.delta_carbon_percent))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <ComparisonTable result={compareResult} />
+
+                  <div className="flex flex-col gap-4">
+                    <PhaseBars
+                      title={ecoPhaseI18n.energyChartCompareTitle}
+                      unit={compareResult.material_a.energy_unit}
+                      rows={compareEnergyRows}
+                    />
+                    <PhaseBars
+                      title={ecoPhaseI18n.carbonChartCompareTitle}
+                      unit={compareResult.material_a.carbon_unit}
+                      rows={compareCarbonRows}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <EmptyState title={t.resultIdleTitle} description={t.resultIdleHint} />
+              )}
+            </StepCard>
+          )}
+        </ResultPanel>
+      </ParamsResultLayout>
     </div>
   );
 }

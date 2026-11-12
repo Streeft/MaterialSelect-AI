@@ -1,4 +1,5 @@
 import type { ChartScale, Goal, SelectionUniverse } from "@/lib/types";
+import { decodeUrlJson, encodeUrlJson } from "@/lib/urlState";
 
 /**
  * What one axis is drawing: a catalogued property, or a computed index — the
@@ -31,29 +32,18 @@ export interface MapUrlState {
   numericLevels: number[];
 }
 
-/** Opaque, URL-safe encoding of the full filter state, for the "share" link. */
+/** Opaque, URL-safe encoding of the full filter state, for the "share" link
+ * (the base64url JSON of `lib/urlState.ts`, which generalizes this file, D-209). */
 export function encodeMapState(state: MapUrlState): string {
-  const json = JSON.stringify(state);
-  // btoa operates on UTF-16 code units; encodeURIComponent/unescape round-trip
-  // handles non-ASCII (e.g. a custom expression with "±") before btoa, and
-  // base64url (- and _ instead of + and /) keeps the result safe unescaped in
-  // a query string.
-  const base64 = btoa(unescape(encodeURIComponent(json)));
-  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return encodeUrlJson(state);
 }
 
 /** Inverse of encodeMapState. Returns null on any malformed input — a bad or
  * tampered link degrades to the page's normal defaults, never a crash. */
 export function decodeMapState(param: string): Partial<MapUrlState> | null {
-  try {
-    const base64 = param.replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(escape(atob(base64)));
-    const parsed = JSON.parse(json);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
-    return sanitizeMapState(parsed as Record<string, unknown>);
-  } catch {
-    return null;
-  }
+  const parsed = decodeUrlJson(param);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+  return sanitizeMapState(parsed as Record<string, unknown>);
 }
 
 const isString = (v: unknown): v is string => typeof v === "string";

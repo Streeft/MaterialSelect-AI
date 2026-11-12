@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC roles live inside a
 // shadow root, invisible to plain @testing-library/react queries.
 import { screen } from "shadow-dom-testing-library";
@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import type { LoadCase, SolveRequest, SolveResult } from "@/lib/types";
 
 const t = ptBR.solver;
@@ -115,7 +116,7 @@ const result: SolveResult = {
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/dimensionar",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -143,6 +144,8 @@ async function chooseBeam() {
 }
 
 beforeEach(() => {
+  // The brief lives in the URL (D-209): each test starts at a clean address.
+  window.history.replaceState(null, "", "/app/dimensionar");
   solveBrief.mockReset();
   solveBrief.mockResolvedValue(result);
 });
@@ -234,6 +237,28 @@ describe("Dimensionar", () => {
       "href",
       "/app/materiais/1",
     );
+  });
+
+  it("guarda caso, números e objetivo na URL, e o link reabre o mesmo pedido (D-209)", async () => {
+    const user = userEvent.setup();
+    await chooseBeam();
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("caso")).toBe("viga-rigidez");
+    expect(params.get("entradas")).not.toBeNull();
+
+    cleanup();
+    render(wrap(<SolverPage />));
+    expect(await screen.findByShadowLabelText(/Comprimento/)).toHaveValue(0.8);
+  });
+
+  it("põe parâmetros e resultado em regiões nomeadas, sem violação de axe", async () => {
+    const { container } = render(wrap(<SolverPage />));
+    expect(await screen.findByRole("region", { name: ptBR.ui.paramsPanel })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: ptBR.ui.resultPanel })).toBeInTheDocument();
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 
   it("envia os números na unidade canônica, como números", async () => {

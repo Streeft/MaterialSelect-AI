@@ -12,7 +12,6 @@ import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
 import {
-  Breadcrumb,
   ButtonLink,
   Card,
   CardBody,
@@ -86,15 +85,16 @@ export default function MaterialFamilyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Breadcrumb
-        items={[
+      <PageHeader
+        breadcrumb={[
           { label: f.allClasses, href: "/app/catalogo" },
           ...data.ancestors.map((a) => ({ label: a.name, href: `/app/catalogo/${a.slug}` })),
           { label: data.name },
         ]}
+        title={data.name}
+        description={data.description ?? undefined}
+        eyebrow={false}
       />
-
-      <PageHeader title={data.name} description={data.description ?? undefined} eyebrow={false} />
 
       <FamilyProseCard
         applications={data.applications}

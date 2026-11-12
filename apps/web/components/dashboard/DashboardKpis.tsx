@@ -2,7 +2,7 @@
 
 import type { DashboardComposition, DashboardOverview, DashboardProcesses } from "@/lib/types";
 import { dashboardText as d } from "@/lib/i18n-dashboard";
-import { StatTile } from "./CoverageSummary";
+import { StatTile } from "@/components/ui";
 
 const integer = (value: number) => Math.round(value).toLocaleString("pt-BR");
 

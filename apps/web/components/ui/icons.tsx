@@ -499,6 +499,15 @@ export const IconMoreVertical = (p: IconProps) => (
   </Svg>
 );
 
+/** "⋯": the page header's overflow menu (D-209). */
+export const IconMoreHorizontal = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconAudio = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4.5 10.5v3" />

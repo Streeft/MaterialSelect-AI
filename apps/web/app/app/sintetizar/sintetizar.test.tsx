@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, waitFor, within } from "@testing-library/react";
+import { cleanup, render, waitFor, within } from "@testing-library/react";
 // Ver a nota em components/layout/layout.test.tsx: papéis do MWC vivem dentro de
 // um shadow root, invisíveis para as consultas normais.
 import { screen } from "shadow-dom-testing-library";
@@ -171,7 +171,7 @@ const saved: SynthesisResult = {
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/sintetizar",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -215,6 +215,8 @@ async function chooseKind(label: string) {
 }
 
 beforeEach(() => {
+  // The recipe lives in the URL (D-209): each test starts at a clean address.
+  window.history.replaceState(null, "", "/app/sintetizar");
   previewSynthesis.mockReset();
   previewSynthesis.mockResolvedValue(preview);
   createSynthesis.mockReset();
@@ -254,6 +256,24 @@ describe("Sintetizar material", () => {
 
     expect(previewSynthesis.mock.calls[0]![0]!.name).toBe(t.previewName);
     expect(createSynthesis).not.toHaveBeenCalled();
+  });
+
+  it("guarda a receita na URL e o link reabre a mesma espuma (D-209)", async () => {
+    const user = userEvent.setup();
+    await open();
+    await chooseKind(t.kindFoam);
+    const density = await screen.findByShadowLabelText(/Densidade relativa/);
+    await user.clear(density);
+    await user.type(density, "0.2");
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("tipo")).toBe("espuma");
+    expect(params.get("densidade")).toBe("0.2");
+
+    cleanup();
+    await open();
+    expect(screen.getByRole("radio", { name: t.kindFoam })).toBeChecked();
+    expect(await screen.findByShadowLabelText(/Densidade relativa/)).toHaveValue(0.2);
   });
 
   it("troca os campos ao escolher espuma", async () => {

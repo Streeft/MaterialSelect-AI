@@ -3004,6 +3004,18 @@ export const ptBR = {
     change: "Alterar",
     advancedOptions: "Opções avançadas",
     comboboxPlaceholder: "Digite para buscar…",
+    // D-209: os padrões de página.
+    moreActions: "Mais ações",
+    pageActions: "Ações da página",
+    paramsPanel: "Parâmetros",
+    resultPanel: "Resultado",
+    loadingTable: "Carregando a tabela…",
+    loadingChart: "Carregando o gráfico…",
+    loadingSheet: "Carregando a ficha…",
+    copyLink: "Copiar o link desta configuração",
+    copyLinkHint: "Quem abrir o link vê os mesmos parâmetros.",
+    copyLinkDone: "Link copiado.",
+    copyLinkFailed: "O navegador não permitiu copiar. O endereço da barra já é o link: copie-o de lá.",
     comboboxNoMatch: (query: string) =>
       query.trim() ? `Nada encontrado para “${query.trim()}”.` : "Nenhuma opção disponível.",
     theme: {

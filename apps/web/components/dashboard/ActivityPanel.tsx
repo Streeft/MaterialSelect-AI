@@ -8,12 +8,11 @@ import { dashboardText as d } from "@/lib/i18n-dashboard";
 import { ptBR } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { chartFileName } from "@/lib/charts";
-import { Card, CardBody, CardHeader, EmptyState, ErrorState, LoadingState } from "@/components/ui";
+import { Card, CardBody, CardHeader, EmptyState, ErrorState, LoadingState, StatTile } from "@/components/ui";
 import { ChartFrame } from "../charts/ChartFrame";
 import { FigureData } from "../charts/FigureData";
 import { HorizontalBars, type BarRow, type BarSegment } from "../charts/HorizontalBars";
 import { tok } from "../charts/figureKit";
-import { StatTile } from "./CoverageSummary";
 
 const integer = (value: number) => Math.round(value).toLocaleString("pt-BR");
 
@@ -87,7 +86,7 @@ export function ActivityPanel() {
         <StatTile index={3} label={d.activity.ownMaterials} value={data.own_materials} format={integer} />
         <StatTile
           index={4}
-          inverted
+          tone="inverted"
           label={d.activity.aiToday}
           value={ai.today.requests}
           format={integer}

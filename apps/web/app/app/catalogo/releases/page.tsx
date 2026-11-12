@@ -19,8 +19,7 @@ export default function ReleaseChangesPage() {
       <PageHeader
         title={t.title}
         description={t.subtitle}
-       
-        actions={
+        secondaryActions={
           <ButtonLink href="/app/catalogo" variant="ghost" size="sm">
             {t.backToCatalog}
           </ButtonLink>

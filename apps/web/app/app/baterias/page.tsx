@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { enumCodec, textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
 import { useQuery } from "@tanstack/react-query";
 import type {
   ApplicationArchetype,
@@ -19,7 +20,7 @@ import {
   listBatteryChemistries,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
-import { formatNumber, formatScore } from "@/lib/format";
+import { formatNumber, formatScore, formatTyped } from "@/lib/format";
 import {
   Alert,
   Badge,
@@ -31,7 +32,11 @@ import {
   EmptyState,
   ErrorState,
   Field,
-  LoadingState,
+  ChartSkeleton,
+  CopyLinkItem,
+  SheetSkeleton,
+  StatTile,
+  TableSkeleton,
   NumberInput,
   PageHeader,
   StepCard,
@@ -50,10 +55,40 @@ import {
 } from "@/components/ui";
 import { IconBattery } from "@/components/ui/icons";
 import { RagoneChart } from "@/components/charts/RagoneChart";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
 const t = ptBR.battery;
 
 type TabView = "design" | "compare" | "ragone";
+
+interface BatteryBrief {
+  archetype: string;
+  chemistry: string;
+  voltage: string;
+  energy: string;
+  power: string;
+  dod: string;
+  cellCapacity: string;
+  massPacking: string;
+  volPacking: string;
+  costPacking: string;
+  tab: TabView;
+}
+
+/** The brief's parameters in the URL (D-209); the defaults are the Urban EV's. */
+const BRIEF_URL: UrlSpec<BatteryBrief> = {
+  archetype: { param: "arquetipo", codec: textCodec, defaultValue: "ve-urbano" },
+  chemistry: { param: "quimica", codec: textCodec, defaultValue: "lfp" },
+  voltage: { param: "tensao", codec: textCodec, defaultValue: "400" },
+  energy: { param: "energia", codec: textCodec, defaultValue: "50" },
+  power: { param: "potencia", codec: textCodec, defaultValue: "120" },
+  dod: { param: "dod", codec: textCodec, defaultValue: "0.85" },
+  cellCapacity: { param: "celula", codec: textCodec, defaultValue: "" },
+  massPacking: { param: "emp_massa", codec: textCodec, defaultValue: "0.65" },
+  volPacking: { param: "emp_volume", codec: textCodec, defaultValue: "0.50" },
+  costPacking: { param: "emp_custo", codec: textCodec, defaultValue: "0.70" },
+  tab: { param: "aba", codec: enumCodec<TabView>(["design", "compare", "ragone"]), defaultValue: "design" },
+};
 
 const TAB_ITEMS: readonly TabItem<TabView>[] = [
   { id: "design", label: t.tabDesign },
@@ -144,42 +179,6 @@ const PODIUM_FACETS: readonly {
   },
 ];
 
-/** A premise as the reader typed it, in the pt-BR form — never recomputed. */
-function printable(raw: string): string {
-  const value = Number(raw);
-  return raw.trim() !== "" && Number.isFinite(value) ? formatNumber(value) : raw || "…";
-}
-
-function StatTile({
-  label,
-  value,
-  unit,
-  highlight = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  unit?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`flex flex-col gap-1 rounded-control p-3 ${
-        highlight ? "bg-brand-50" : "bg-well"
-      }`}
-    >
-      <span className="text-caption font-semibold text-ink-muted">
-        {label}
-      </span>
-      <div className="flex items-baseline gap-1">
-        <span className="text-lg font-semibold tabular-nums text-ink">
-          {value}
-        </span>
-        {unit ? <span className="text-xs text-ink-muted">{unit}</span> : null}
-      </div>
-    </div>
-  );
-}
-
 /**
  * A seção Ragone: independente dos requisitos de projeto (não depende de
  * arquétipo nem de energia alvo), então busca o próprio dado e trata os três
@@ -190,7 +189,7 @@ function RagoneSection() {
     queryKey: ["battery-ragone"],
     queryFn: getBatteryRagone,
   });
-  if (ragone.isLoading) return <LoadingState label={t.ragone.loading} />;
+  if (ragone.isLoading) return <ChartSkeleton label={t.ragone.loading} />;
   if (ragone.isError) {
     return (
       <ErrorState
@@ -212,29 +211,39 @@ export default function BateriasPage() {
     queryFn: listBatteryArchetypes,
   });
 
-  // State: Brief inputs initialized with Urban EV defaults
-  const [archetypeSlug, setArchetypeSlug] = useState<string>("ve-urbano");
-  const [chemistrySlug, setChemistrySlug] = useState<string>("lfp");
-  const [targetVoltage, setTargetVoltage] = useState<string>("400");
-  const [targetEnergy, setTargetEnergy] = useState<string>("50");
-  const [targetPower, setTargetPower] = useState<string>("120");
-  const [dod, setDod] = useState<string>("0.85");
-  const [cellCapacity, setCellCapacity] = useState<string>("");
-  const [massPacking, setMassPacking] = useState<string>("0.65");
-  const [volPacking, setVolPacking] = useState<string>("0.50");
-  const [costPacking, setCostPacking] = useState<string>("0.70");
-
-  const [activeTab, setActiveTab] = useState<TabView>("design");
+  // The brief lives in the URL (D-209): a link reopens the same pack, and a
+  // reload does not throw away what was typed. Defaults stay the Urban EV's.
+  const [brief, setBrief] = useUrlState(BRIEF_URL);
+  const {
+    archetype: archetypeSlug,
+    chemistry: chemistrySlug,
+    voltage: targetVoltage,
+    energy: targetEnergy,
+    power: targetPower,
+    dod,
+    cellCapacity,
+    massPacking,
+    volPacking,
+    costPacking,
+    tab: activeTab,
+  } = brief;
+  // Typing a requirement by hand leaves the archetype: it is "custom" now.
+  const setCustom = (patch: Partial<BatteryBrief>) => setBrief({ ...patch, archetype: "custom" });
 
   // Handle archetype preset selection
   const handleArchetypeChange = (slug: string) => {
-    setArchetypeSlug(slug);
-    if (!slug || slug === "custom") return;
+    if (!slug || slug === "custom") {
+      setBrief({ archetype: slug });
+      return;
+    }
 
     const chosen = archetypes.data?.find(
       (a: ApplicationArchetype) => a.slug === slug,
     );
-    if (!chosen) return;
+    if (!chosen) {
+      setBrief({ archetype: slug });
+      return;
+    }
 
     // O arquétipo carrega o **requisito** (tensão, energia, potência, DoD e a
     // capacidade de célula típica) e a lista de químicas que costumam servi-lo.
@@ -242,12 +251,15 @@ export default function BateriasPage() {
     // oficina, como a condição de apoio do D-64 e as premissas do D-65 — ficam
     // visíveis e editáveis na tela, e trocar de arquétipo não os mexe.
     const first = chosen.recommended_chemistries[0];
-    if (first) setChemistrySlug(first);
-    setTargetVoltage(String(chosen.target_voltage));
-    setTargetEnergy(String(chosen.target_energy_kwh));
-    setTargetPower(String(chosen.target_power_kw));
-    setDod(String(chosen.target_dod));
-    setCellCapacity(String(chosen.default_cell_capacity_ah));
+    setBrief({
+      archetype: slug,
+      ...(first ? { chemistry: first } : {}),
+      voltage: String(chosen.target_voltage),
+      energy: String(chosen.target_energy_kwh),
+      power: String(chosen.target_power_kw),
+      dod: String(chosen.target_dod),
+      cellCapacity: String(chosen.default_cell_capacity_ah),
+    });
   };
 
   // The first unmet requirement, in words (D-86), and whether it lives in the
@@ -363,7 +375,7 @@ export default function BateriasPage() {
   });
 
   if (chemistries.isLoading || archetypes.isLoading) {
-    return <LoadingState label={t.loading} />;
+    return <SheetSkeleton label={t.loading} />;
   }
 
   if (chemistries.isError) {
@@ -379,613 +391,611 @@ export default function BateriasPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} />
+      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
-      {/* Archetype and Requirements Section */}
-      <StepCard title={t.archetypesTitle} description={t.archetypesHint} bodyClassName="flex flex-col">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Select
-            label={t.archetypesTitle}
-            value={archetypeSlug}
-            onChange={(e) =>
-              handleArchetypeChange((e.target as HTMLSelectElement).value)
-            }
-          >
-            <SelectOption value="custom">{t.customOption}</SelectOption>
-            {(archetypes.data ?? []).map((arch: ApplicationArchetype) => (
-              <SelectOption key={arch.slug} value={arch.slug}>
-                {arch.name}
-              </SelectOption>
-            ))}
-          </Select>
-          <Select
-            label={t.chemistryTitle}
-            value={chemistrySlug}
-            onChange={(e) => {
-              setChemistrySlug((e.target as HTMLSelectElement).value);
-              setArchetypeSlug("custom");
-            }}
-          >
-            {(chemistries.data ?? []).map((chem: BatteryChemistry) => (
-              <SelectOption key={chem.slug} value={chem.slug}>
-                {chem.name} ({formatNumber(chem.nominal_voltage)} V)
-              </SelectOption>
-            ))}
-          </Select>
-          <NumberInput
-            label={t.targetVoltage}
-            value={targetVoltage}
-            min={1}
-            step="any"
-            onChange={(e) => {
-              setTargetVoltage((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-          <NumberInput
-            label={t.targetEnergy}
-            value={targetEnergy}
-            min={0.01}
-            step="any"
-            onChange={(e) => {
-              setTargetEnergy((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-          <NumberInput
-            label={t.targetPower}
-            value={targetPower}
-            min={0.1}
-            step="any"
-            onChange={(e) => {
-              setTargetPower((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-          <NumberInput
-            label={t.dod}
-            value={dod}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            hint={t.dodHint}
-            onChange={(e) => {
-              setDod((e.target as HTMLInputElement).value);
-              setArchetypeSlug("custom");
-            }}
-          />
-        </div>
-
-        {/*
-          Os três fatores de empacotamento (e a capacidade da célula) são
-          **premissa de oficina**, e a regra do D-65 vale igual aqui: premissa é
-          entrada com valor visível. Recolhidos (D-86), mas com cada valor
-          impresso no resumo — o volume e o investimento do pack saem divididos
-          por eles, e nenhum número mexe na resposta sem que alguém o veja.
-        */}
-        <Disclosure
-          className="mt-4"
-          summary={t.premisesSummary(
-            cellCapacity.trim() ? `${printable(cellCapacity)} Ah` : t.typicalCell,
-            printable(massPacking),
-            printable(volPacking),
-            printable(costPacking),
-          )}
-          open={premisesOpen || Boolean(blocked?.inPremises)}
-          onOpenChange={setPremisesOpen}
-        >
-          <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
+      <ParamsResultLayout>
+        <ParamsPanel>
+          {/* Archetype and Requirements Section */}
+          <StepCard title={t.archetypesTitle} description={t.archetypesHint} bodyClassName="flex flex-col">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Select
+                label={t.archetypesTitle}
+                value={archetypeSlug}
+                onChange={(e) =>
+                  handleArchetypeChange((e.target as HTMLSelectElement).value)
+                }
+              >
+                <SelectOption value="custom">{t.customOption}</SelectOption>
+                {(archetypes.data ?? []).map((arch: ApplicationArchetype) => (
+                  <SelectOption key={arch.slug} value={arch.slug}>
+                    {arch.name}
+                  </SelectOption>
+                ))}
+              </Select>
+              <Select
+                label={t.chemistryTitle}
+                value={chemistrySlug}
+                onChange={(e) => setCustom({ chemistry: (e.target as HTMLSelectElement).value })}
+              >
+                {(chemistries.data ?? []).map((chem: BatteryChemistry) => (
+                  <SelectOption key={chem.slug} value={chem.slug}>
+                    {chem.name} ({formatNumber(chem.nominal_voltage)} V)
+                  </SelectOption>
+                ))}
+              </Select>
               <NumberInput
-                label={t.cellCapacity}
-                value={cellCapacity}
+                label={t.targetVoltage}
+                value={targetVoltage}
+                min={1}
+                step="any"
+                onChange={(e) => setCustom({ voltage: (e.target as HTMLInputElement).value })}
+              />
+              <NumberInput
+                label={t.targetEnergy}
+                value={targetEnergy}
+                min={0.01}
+                step="any"
+                onChange={(e) => setCustom({ energy: (e.target as HTMLInputElement).value })}
+              />
+              <NumberInput
+                label={t.targetPower}
+                value={targetPower}
                 min={0.1}
                 step="any"
-                hint={t.cellCapacityHint}
-                onChange={(e) => {
-                  setCellCapacity((e.target as HTMLInputElement).value);
-                  setArchetypeSlug("custom");
-                }}
+                onChange={(e) => setCustom({ power: (e.target as HTMLInputElement).value })}
               />
               <NumberInput
-                label={t.massPackingFactor}
-                value={massPacking}
+                label={t.dod}
+                value={dod}
                 min={0.1}
                 max={1.0}
                 step={0.05}
-                hint={t.massPackingHint}
-                onChange={(e) => {
-                  setMassPacking((e.target as HTMLInputElement).value);
-                  setArchetypeSlug("custom");
-                }}
+                hint={t.dodHint}
+                onChange={(e) => setCustom({ dod: (e.target as HTMLInputElement).value })}
               />
-              <NumberInput
-                label={t.volumePackingFactor}
-                value={volPacking}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                hint={t.volumePackingHint}
-                onChange={(e) => {
-                  setVolPacking((e.target as HTMLInputElement).value);
-                  setArchetypeSlug("custom");
-                }}
-              />
-              <NumberInput
-                label={t.costPackingFactor}
-                value={costPacking}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                hint={t.costPackingHint}
-                onChange={(e) => {
-                  setCostPacking((e.target as HTMLInputElement).value);
-                  setArchetypeSlug("custom");
-                }}
-              />
-          </div>
-        </Disclosure>
-      </StepCard>
+            </div>
 
-      {/* Tabs navigation */}
-      <Tabs
-        label={t.title}
-        items={TAB_ITEMS}
-        value={activeTab}
-        onChange={setActiveTab}
-        panelClassName="flex flex-col gap-4 pt-2"
-      >
-        {/* Tab 1: Pack Sizing */}
-        {activeTab === "design" && (
-          <>
-            {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
-            {designQuery.isLoading && ready && (
-              <LoadingState label={t.loading} />
-            )}
-            {designQuery.isError && (
-              <ErrorState
-                title={t.error} error={designQuery.error} onRetry={() => void designQuery.refetch()} />
-            )}
-
-            {design && (
-              <div className="flex flex-col gap-6">
-                {/* Hero Architecture Card */}
-                <Card>
-                  <CardHeader
-                    title={
-                      <span className="flex items-center gap-2">
-                        <IconBattery className="h-5 w-5 text-brand-600 dark:text-brand-400" />
-                        {t.packArchitecture} ({design.chemistry.name})
-                      </span>
-                    }
-                    actions={
-                      <Badge tone={SAFETY_TONE[design.thermal_safety]}>
-                        {t.thermalTitle}: {SAFETY_LABEL[design.thermal_safety]}
-                      </Badge>
-                    }
+            {/*
+              Os três fatores de empacotamento (e a capacidade da célula) são
+              **premissa de oficina**, e a regra do D-65 vale igual aqui: premissa é
+              entrada com valor visível. Recolhidos (D-86), mas com cada valor
+              impresso no resumo — o volume e o investimento do pack saem divididos
+              por eles, e nenhum número mexe na resposta sem que alguém o veja.
+            */}
+            <Disclosure
+              className="mt-4"
+              summary={t.premisesSummary(
+                cellCapacity.trim() ? `${formatTyped(cellCapacity)} Ah` : t.typicalCell,
+                formatTyped(massPacking),
+                formatTyped(volPacking),
+                formatTyped(costPacking),
+              )}
+              open={premisesOpen || Boolean(blocked?.inPremises)}
+              onOpenChange={setPremisesOpen}
+            >
+              <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <NumberInput
+                    label={t.cellCapacity}
+                    value={cellCapacity}
+                    min={0.1}
+                    step="any"
+                    hint={t.cellCapacityHint}
+                    onChange={(e) => setCustom({ cellCapacity: (e.target as HTMLInputElement).value })}
                   />
-                  <CardBody className="flex flex-col gap-6">
-                    {/* Big Ns x Np visual banner */}
-                    <div className="flex flex-wrap items-center justify-around gap-4 rounded-xl border border-edge bg-surface-sunken p-4 text-center">
-                      <div className="flex flex-col">
-                        <span className="text-caption font-medium text-ink-muted">
-                          {t.seriesLabel}
-                        </span>
-                        <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
-                          {design.series_cells_ns}
-                        </span>
-                        <span className="text-2xs text-ink-subtle">
-                          em série ({formatNumber(design.nominal_voltage_v)} V)
-                        </span>
-                      </div>
-
-                      <span className="text-2xl font-light text-ink-subtle">
-                        ×
-                      </span>
-
-                      <div className="flex flex-col">
-                        <span className="text-caption font-medium text-ink-muted">
-                          {t.parallelLabel}
-                        </span>
-                        <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
-                          {design.parallel_strings_np}
-                        </span>
-                        <span className="text-2xs text-ink-subtle">
-                          em paralelo ({formatNumber(design.pack_capacity_ah)}{" "}
-                          Ah)
-                        </span>
-                      </div>
-
-                      <span className="text-2xl font-light text-ink-subtle">
-                        =
-                      </span>
-
-                      <div className="flex flex-col">
-                        <span className="text-caption font-medium text-ink-muted">
-                          {t.totalCellsLabel}
-                        </span>
-                        <span className="text-3xl font-bold tabular-nums text-ink">
-                          {formatNumber(design.total_cells)}
-                        </span>
-                        <span className="text-2xs text-ink-subtle">
-                          células unitárias
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Technical stats grid */}
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <StatTile
-                        label={t.usableEnergyLabel}
-                        value={formatNumber(design.usable_energy_kwh)}
-                        unit="kWh"
-                        highlight
-                      />
-                      <StatTile
-                        label={t.grossEnergyLabel}
-                        value={formatNumber(design.gross_energy_kwh)}
-                        unit="kWh"
-                      />
-                      <StatTile
-                        label={t.peakPower}
-                        value={formatNumber(design.peak_power_kw)}
-                        unit="kW"
-                      />
-                      <StatTile
-                        label={t.cRate}
-                        value={`${formatNumber(design.max_continuous_discharge_c_rate)}C`}
-                        unit="1/h"
-                      />
-                    </div>
-                  </CardBody>
-                </Card>
-
-                {/*
-                  A ficha da química, e não só o resultado que ela produziu.
-                  O princípio 1 vale aqui como em qualquer outro número da
-                  ferramenta: energia específica, vida em ciclos e custo por kWh
-                  são **dado medido**, vindos do catálogo semeado, e a tela diz
-                  de onde — a citação da linha e a fonte que registra a licença
-                  do conjunto (M1). A álgebra do pack é argumento e vive em
-                  código; estes números não são, e por isso nomeiam origem.
-                */}
-                <Card>
-                  <CardHeader
-                    title={`${t.cellSpecs} — ${design.chemistry.name}`}
-                    description={design.chemistry.description}
-                    headingLevel={4}
+                  <NumberInput
+                    label={t.massPackingFactor}
+                    value={massPacking}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    hint={t.massPackingHint}
+                    onChange={(e) => setCustom({ massPacking: (e.target as HTMLInputElement).value })}
                   />
-                  <CardBody className="flex flex-col gap-4">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <StatTile
-                        label={t.cellVoltage}
-                        value={formatNumber(design.chemistry.nominal_voltage)}
-                        unit="V"
-                      />
-                      <StatTile
-                        label={t.cellSpecificEnergy}
-                        value={formatNumber(design.chemistry.specific_energy)}
-                        unit="Wh/kg"
-                      />
-                      <StatTile
-                        label={t.cellEnergyDensity}
-                        value={formatNumber(design.chemistry.energy_density)}
-                        unit="Wh/L"
-                      />
-                      <StatTile
-                        label={t.cellCostPerKwh}
-                        value={`US$ ${formatNumber(design.chemistry.cell_cost_per_kwh)}`}
-                      />
-                    </div>
-                    <dl className="well flex flex-col gap-2 text-xs">
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="font-semibold text-ink">
-                          {t.citationLabel}
-                        </dt>
-                        {/*
-                          Ausência é o quarto estado e leva rótulo escrito
-                          (D-24): um campo em branco leria como "esta química
-                          não tem fonte".
-                        */}
-                        <dd className="text-ink-muted">
-                          {design.chemistry.citation ?? t.citationMissing}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="font-semibold text-ink">
-                          {t.sourceLabel}
-                        </dt>
-                        <dd className="text-ink-muted">
-                          {design.chemistry.source ?? t.sourceMissing}
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardBody>
-                </Card>
-
-                {/* Mass & Volume Breakdown */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader title={t.massBreakdown} headingLevel={4} />
-                    <CardBody className="flex flex-col gap-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.cellsMass}
-                          value={formatNumber(design.cells_mass_kg)}
-                          unit="kg"
-                        />
-                        <StatTile
-                          label={t.overheadMass}
-                          value={formatNumber(design.mass_overhead_kg)}
-                          unit="kg"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.totalPackMass}
-                          value={formatNumber(design.pack_mass_kg)}
-                          unit="kg"
-                          highlight
-                        />
-                        <StatTile
-                          label={t.specificEnergy}
-                          value={formatNumber(
-                            design.pack_specific_energy_wh_kg,
-                          )}
-                          unit="Wh/kg"
-                        />
-                      </div>
-                    </CardBody>
-                  </Card>
-
-                  <Card>
-                    <CardHeader title={t.volumeBreakdown} headingLevel={4} />
-                    <CardBody className="flex flex-col gap-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.cellsVolume}
-                          value={formatNumber(design.cells_volume_l)}
-                          unit="L"
-                        />
-                        <StatTile
-                          label={t.volumeOverhead}
-                          value={formatNumber(design.volume_overhead_l)}
-                          unit="L"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.totalPackVolume}
-                          value={formatNumber(design.pack_volume_l)}
-                          unit="L"
-                          highlight
-                        />
-                        <StatTile
-                          label={t.energyDensity}
-                          value={formatNumber(design.pack_energy_density_wh_l)}
-                          unit="Wh/L"
-                        />
-                      </div>
-                    </CardBody>
-                  </Card>
-                </div>
-
-                {/* Economic & Lifetime Breakdown */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader
-                      title={t.costBreakdown}
-                      description={t.currencyNote}
-                      headingLevel={4}
-                    />
-                    <CardBody className="flex flex-col gap-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.cellCost}
-                          value={`US$ ${formatNumber(design.cell_cost_total_usd)}`}
-                        />
-                        <StatTile
-                          label={t.overheadCost}
-                          value={`US$ ${formatNumber(design.cost_overhead_usd)}`}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.totalCost}
-                          value={`US$ ${formatNumber(design.pack_cost_total_usd)}`}
-                          highlight
-                        />
-                        <StatTile
-                          label={t.levelizedCost}
-                          value={`US$ ${formatScore(design.levelized_cost_per_kwh_cycle, 4)}`}
-                          unit="/kWh·ciclo"
-                        />
-                      </div>
-                    </CardBody>
-                  </Card>
-
-                  <Card>
-                    <CardHeader title={t.thermalTitle} headingLevel={4} />
-                    <CardBody className="flex flex-col gap-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <StatTile
-                          label={t.thermalRunaway}
-                          value={`${formatNumber(design.chemistry.thermal_runaway_temp_c)} °C`}
-                        />
-                        <StatTile
-                          label={t.operatingRange}
-                          value={`${formatNumber(design.chemistry.operating_temp_min_c)} a ${formatNumber(design.chemistry.operating_temp_max_c)} °C`}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5 rounded-lg bg-surface-sunken p-3">
-                        <span className="text-xs font-semibold text-ink">
-                          Diretrizes de Gerenciamento Térmico:
-                        </span>
-                        <ul className="list-inside list-disc text-xs text-ink-muted">
-                          {design.thermal_guidelines.map((guide, idx) => (
-                            <li key={idx}>{guide}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </CardBody>
-                  </Card>
-                </div>
+                  <NumberInput
+                    label={t.volumePackingFactor}
+                    value={volPacking}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    hint={t.volumePackingHint}
+                    onChange={(e) => setCustom({ volPacking: (e.target as HTMLInputElement).value })}
+                  />
+                  <NumberInput
+                    label={t.costPackingFactor}
+                    value={costPacking}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    hint={t.costPackingHint}
+                    onChange={(e) => setCustom({ costPacking: (e.target as HTMLInputElement).value })}
+                  />
               </div>
-            )}
-          </>
-        )}
+            </Disclosure>
+          </StepCard>
+        </ParamsPanel>
 
-        {/* Tab 3: Ragone (energia × potência específicas) */}
-        {activeTab === "ragone" && <RagoneSection />}
+        <ResultPanel>
 
-        {/* Tab 2: Chemistry Trade-offs */}
-        {activeTab === "compare" && (
-          <>
-            {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
-            {comparisonQuery.isLoading && ready && (
-              <LoadingState label={t.loading} />
-            )}
-            {comparisonQuery.isError && (
-              <ErrorState
-                title={t.error} error={comparisonQuery.error} onRetry={() => void comparisonQuery.refetch()} />
-            )}
+          {/* Tabs navigation */}
+          <Tabs
+            label={t.title}
+            items={TAB_ITEMS}
+            value={activeTab}
+            onChange={(tab) => setBrief({ tab })}
+            panelClassName="flex flex-col gap-4 pt-2"
+          >
+            {/* Tab 1: Pack Sizing */}
+            {activeTab === "design" && (
+              <>
+                {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
+                {designQuery.isLoading && ready && <SheetSkeleton label={t.loading} />}
+                {designQuery.isError && (
+                  <ErrorState
+                    title={t.error} error={designQuery.error} onRetry={() => void designQuery.refetch()} />
+                )}
 
-            {comparison && (
-              <div className="flex flex-col gap-6">
-                {/* Podiums / Dominance Badges */}
-                <Card>
-                  <CardHeader
-                    title={t.podiumTitle}
-                    description={t.podiumHint}
-                  />
-                  <CardBody>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {PODIUM_FACETS.map((facet) => {
-                        const winner = comparison.items.find(
-                          (item) =>
-                            item.chemistry_slug === comparison[facet.slugKey],
-                        );
-                        return (
-                          <div
-                            key={facet.slugKey}
-                            className="well flex flex-col gap-1"
-                          >
-                            <Badge tone={facet.tone}>{facet.badge}</Badge>
-                            {/*
-                              Ausência nunca vira `0` nem célula vazia (D-24). O
-                              pódio nomeia um slug que sempre está entre os itens
-                              — mas um `?? 0` aqui imprimiria "0 kg" no dia em que
-                              não estivesse, e ninguém leria isso como defeito.
-                            */}
-                            {winner ? (
-                              <>
-                                <span className="text-sm font-semibold text-ink">
-                                  {winner.chemistry_name}
-                                </span>
-                                <span className="text-xs text-ink-muted">
-                                  {facet.detail(winner)}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-ink-muted">
-                                {t.podiumMissing}
-                              </span>
-                            )}
+                {design && (
+                  <div className="flex flex-col gap-6">
+                    {/* Hero Architecture Card */}
+                    <Card>
+                      <CardHeader
+                        title={
+                          <span className="flex items-center gap-2">
+                            <IconBattery className="h-5 w-5 text-brand-600 dark:text-brand-400" />
+                            {t.packArchitecture} ({design.chemistry.name})
+                          </span>
+                        }
+                        actions={
+                          <Badge tone={SAFETY_TONE[design.thermal_safety]}>
+                            {t.thermalTitle}: {SAFETY_LABEL[design.thermal_safety]}
+                          </Badge>
+                        }
+                      />
+                      <CardBody className="flex flex-col gap-6">
+                        {/* Big Ns x Np visual banner */}
+                        <div className="flex flex-wrap items-center justify-around gap-4 rounded-xl border border-edge bg-surface-sunken p-4 text-center">
+                          <div className="flex flex-col">
+                            <span className="text-caption font-medium text-ink-muted">
+                              {t.seriesLabel}
+                            </span>
+                            <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
+                              {design.series_cells_ns}
+                            </span>
+                            <span className="text-2xs text-ink-subtle">
+                              em série ({formatNumber(design.nominal_voltage_v)} V)
+                            </span>
                           </div>
-                        );
-                      })}
+
+                          <span className="text-2xl font-light text-ink-subtle">
+                            ×
+                          </span>
+
+                          <div className="flex flex-col">
+                            <span className="text-caption font-medium text-ink-muted">
+                              {t.parallelLabel}
+                            </span>
+                            <span className="text-3xl font-bold tabular-nums text-brand-600 dark:text-brand-400">
+                              {design.parallel_strings_np}
+                            </span>
+                            <span className="text-2xs text-ink-subtle">
+                              em paralelo ({formatNumber(design.pack_capacity_ah)}{" "}
+                              Ah)
+                            </span>
+                          </div>
+
+                          <span className="text-2xl font-light text-ink-subtle">
+                            =
+                          </span>
+
+                          <div className="flex flex-col">
+                            <span className="text-caption font-medium text-ink-muted">
+                              {t.totalCellsLabel}
+                            </span>
+                            <span className="text-3xl font-bold tabular-nums text-ink">
+                              {formatNumber(design.total_cells)}
+                            </span>
+                            <span className="text-2xs text-ink-subtle">
+                              células unitárias
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Technical stats grid */}
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <StatTile
+                            size="compact"
+                            label={t.usableEnergyLabel}
+                            value={formatNumber(design.usable_energy_kwh)}
+                            unit="kWh"
+                            tone="highlight"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.grossEnergyLabel}
+                            value={formatNumber(design.gross_energy_kwh)}
+                            unit="kWh"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.peakPower}
+                            value={formatNumber(design.peak_power_kw)}
+                            unit="kW"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.cRate}
+                            value={`${formatNumber(design.max_continuous_discharge_c_rate)}C`}
+                            unit="1/h"
+                          />
+                        </div>
+                      </CardBody>
+                    </Card>
+
+                    {/*
+                      A ficha da química, e não só o resultado que ela produziu.
+                      O princípio 1 vale aqui como em qualquer outro número da
+                      ferramenta: energia específica, vida em ciclos e custo por kWh
+                      são **dado medido**, vindos do catálogo semeado, e a tela diz
+                      de onde — a citação da linha e a fonte que registra a licença
+                      do conjunto (M1). A álgebra do pack é argumento e vive em
+                      código; estes números não são, e por isso nomeiam origem.
+                    */}
+                    <Card>
+                      <CardHeader
+                        title={`${t.cellSpecs} — ${design.chemistry.name}`}
+                        description={design.chemistry.description}
+                        headingLevel={4}
+                      />
+                      <CardBody className="flex flex-col gap-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <StatTile
+                            size="compact"
+                            label={t.cellVoltage}
+                            value={formatNumber(design.chemistry.nominal_voltage)}
+                            unit="V"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.cellSpecificEnergy}
+                            value={formatNumber(design.chemistry.specific_energy)}
+                            unit="Wh/kg"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.cellEnergyDensity}
+                            value={formatNumber(design.chemistry.energy_density)}
+                            unit="Wh/L"
+                          />
+                          <StatTile
+                            size="compact"
+                            label={t.cellCostPerKwh}
+                            value={`US$ ${formatNumber(design.chemistry.cell_cost_per_kwh)}`}
+                          />
+                        </div>
+                        <dl className="well flex flex-col gap-2 text-xs">
+                          <div className="flex flex-col gap-0.5">
+                            <dt className="font-semibold text-ink">
+                              {t.citationLabel}
+                            </dt>
+                            {/*
+                              Ausência é o quarto estado e leva rótulo escrito
+                              (D-24): um campo em branco leria como "esta química
+                              não tem fonte".
+                            */}
+                            <dd className="text-ink-muted">
+                              {design.chemistry.citation ?? t.citationMissing}
+                            </dd>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <dt className="font-semibold text-ink">
+                              {t.sourceLabel}
+                            </dt>
+                            <dd className="text-ink-muted">
+                              {design.chemistry.source ?? t.sourceMissing}
+                            </dd>
+                          </div>
+                        </dl>
+                      </CardBody>
+                    </Card>
+
+                    {/* Mass & Volume Breakdown */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <Card>
+                        <CardHeader title={t.massBreakdown} headingLevel={4} />
+                        <CardBody className="flex flex-col gap-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.cellsMass}
+                              value={formatNumber(design.cells_mass_kg)}
+                              unit="kg"
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.overheadMass}
+                              value={formatNumber(design.mass_overhead_kg)}
+                              unit="kg"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.totalPackMass}
+                              value={formatNumber(design.pack_mass_kg)}
+                              unit="kg"
+                              tone="highlight"
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.specificEnergy}
+                              value={formatNumber(
+                                design.pack_specific_energy_wh_kg,
+                              )}
+                              unit="Wh/kg"
+                            />
+                          </div>
+                        </CardBody>
+                      </Card>
+
+                      <Card>
+                        <CardHeader title={t.volumeBreakdown} headingLevel={4} />
+                        <CardBody className="flex flex-col gap-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.cellsVolume}
+                              value={formatNumber(design.cells_volume_l)}
+                              unit="L"
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.volumeOverhead}
+                              value={formatNumber(design.volume_overhead_l)}
+                              unit="L"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.totalPackVolume}
+                              value={formatNumber(design.pack_volume_l)}
+                              unit="L"
+                              tone="highlight"
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.energyDensity}
+                              value={formatNumber(design.pack_energy_density_wh_l)}
+                              unit="Wh/L"
+                            />
+                          </div>
+                        </CardBody>
+                      </Card>
                     </div>
-                  </CardBody>
-                </Card>
 
-                {/* Full Comparative Table */}
-                <Card>
-                  <CardHeader title={t.comparisonTableTitle} />
-                  <TableScroll label={t.comparisonTableTitle}>
-                    <Table>
-                      <TableCaption>
-                        Comparativo determinístico das {comparison.items.length}{" "}
-                        químicas do catálogo para {targetEnergy} kWh e{" "}
-                        {targetPower} kW. {t.currencyNote}
-                      </TableCaption>
-                      <THead>
-                        <Tr>
-                          <Th scope="col">{t.tableColChem}</Th>
-                          <Th scope="col">{t.tableColNsNp}</Th>
-                          <Th scope="col">{t.tableColMass}</Th>
-                          <Th scope="col">{t.tableColVol}</Th>
-                          <Th scope="col">{t.tableColCost}</Th>
-                          <Th scope="col">{t.tableColLife}</Th>
-                          <Th scope="col">{t.tableColLevelized}</Th>
-                          <Th scope="col">{t.tableColSafety}</Th>
-                        </Tr>
-                      </THead>
-                      <TBody>
-                        {comparison.items.map((item) => {
-                          const isSelected =
-                            item.chemistry_slug === chemistrySlug;
-                          return (
-                            <Tr
-                              key={item.chemistry_slug}
-                              className={
-                                isSelected
-                                  ? "bg-brand-50/40 dark:bg-brand-950/20 font-medium"
-                                  : undefined
-                              }
-                            >
-                              <Td>
-                                <div className="flex items-center gap-2">
-                                  <span>{item.chemistry_name}</span>
-                                  {isSelected ? (
-                                    <Badge tone="brand">{t.selectedBadge}</Badge>
-                                  ) : null}
-                                </div>
-                              </Td>
-                              <Td className="tabular-nums">
-                                {item.series_cells_ns}s{" "}
-                                {item.parallel_strings_np}p (
-                                {formatNumber(item.total_cells)})
-                              </Td>
-                              <Td className="tabular-nums">
-                                {formatNumber(item.pack_mass_kg)} kg
-                              </Td>
-                              <Td className="tabular-nums">
-                                {formatNumber(item.pack_volume_l)} L
-                              </Td>
-                              <Td className="tabular-nums">
-                                US$ {formatNumber(item.pack_cost_usd)}
-                              </Td>
-                              <Td className="tabular-nums">
-                                {formatNumber(item.cycle_life)}
-                              </Td>
-                              <Td className="tabular-nums">
-                                US${" "}
-                                {formatScore(item.levelized_cost_per_kwh_cycle, 4)}
-                              </Td>
-                              <Td>
-                                <Badge
-                                  tone={SAFETY_TONE[item.thermal_safety]}
-                                >
-                                  {SAFETY_LABEL[item.thermal_safety]}
-                                </Badge>
-                              </Td>
-                            </Tr>
-                          );
-                        })}
-                      </TBody>
-                    </Table>
-                  </TableScroll>
-                </Card>
+                    {/* Economic & Lifetime Breakdown */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <Card>
+                        <CardHeader
+                          title={t.costBreakdown}
+                          description={t.currencyNote}
+                          headingLevel={4}
+                        />
+                        <CardBody className="flex flex-col gap-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.cellCost}
+                              value={`US$ ${formatNumber(design.cell_cost_total_usd)}`}
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.overheadCost}
+                              value={`US$ ${formatNumber(design.cost_overhead_usd)}`}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.totalCost}
+                              value={`US$ ${formatNumber(design.pack_cost_total_usd)}`}
+                              tone="highlight"
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.levelizedCost}
+                              value={`US$ ${formatScore(design.levelized_cost_per_kwh_cycle, 4)}`}
+                              unit="/kWh·ciclo"
+                            />
+                          </div>
+                        </CardBody>
+                      </Card>
 
-                {/* Technical Summary */}
-                <Alert tone="info" title={t.summaryTitle}>
-                  {comparison.technical_summary}
-                </Alert>
-              </div>
+                      <Card>
+                        <CardHeader title={t.thermalTitle} headingLevel={4} />
+                        <CardBody className="flex flex-col gap-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <StatTile
+                              size="compact"
+                              label={t.thermalRunaway}
+                              value={`${formatNumber(design.chemistry.thermal_runaway_temp_c)} °C`}
+                            />
+                            <StatTile
+                              size="compact"
+                              label={t.operatingRange}
+                              value={`${formatNumber(design.chemistry.operating_temp_min_c)} a ${formatNumber(design.chemistry.operating_temp_max_c)} °C`}
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5 rounded-lg bg-surface-sunken p-3">
+                            <span className="text-xs font-semibold text-ink">
+                              Diretrizes de Gerenciamento Térmico:
+                            </span>
+                            <ul className="list-inside list-disc text-xs text-ink-muted">
+                              {design.thermal_guidelines.map((guide, idx) => (
+                                <li key={idx}>{guide}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
-      </Tabs>
+
+            {/* Tab 3: Ragone (energia × potência específicas) */}
+            {activeTab === "ragone" && <RagoneSection />}
+
+            {/* Tab 2: Chemistry Trade-offs */}
+            {activeTab === "compare" && (
+              <>
+                {!ready && <EmptyState title={t.empty} description={blocked?.reason} />}
+                {comparisonQuery.isLoading && ready && <TableSkeleton label={t.loading} />}
+                {comparisonQuery.isError && (
+                  <ErrorState
+                    title={t.error} error={comparisonQuery.error} onRetry={() => void comparisonQuery.refetch()} />
+                )}
+
+                {comparison && (
+                  <div className="flex flex-col gap-6">
+                    {/* Podiums / Dominance Badges */}
+                    <Card>
+                      <CardHeader
+                        title={t.podiumTitle}
+                        description={t.podiumHint}
+                      />
+                      <CardBody>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {PODIUM_FACETS.map((facet) => {
+                            const winner = comparison.items.find(
+                              (item) =>
+                                item.chemistry_slug === comparison[facet.slugKey],
+                            );
+                            return (
+                              <div
+                                key={facet.slugKey}
+                                className="well flex flex-col gap-1"
+                              >
+                                <Badge tone={facet.tone}>{facet.badge}</Badge>
+                                {/*
+                                  Ausência nunca vira `0` nem célula vazia (D-24). O
+                                  pódio nomeia um slug que sempre está entre os itens
+                                  — mas um `?? 0` aqui imprimiria "0 kg" no dia em que
+                                  não estivesse, e ninguém leria isso como defeito.
+                                */}
+                                {winner ? (
+                                  <>
+                                    <span className="text-sm font-semibold text-ink">
+                                      {winner.chemistry_name}
+                                    </span>
+                                    <span className="text-xs text-ink-muted">
+                                      {facet.detail(winner)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-ink-muted">
+                                    {t.podiumMissing}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardBody>
+                    </Card>
+
+                    {/* Full Comparative Table */}
+                    <Card>
+                      <CardHeader title={t.comparisonTableTitle} />
+                      <TableScroll label={t.comparisonTableTitle}>
+                        <Table>
+                          <TableCaption>
+                            Comparativo determinístico das {comparison.items.length}{" "}
+                            químicas do catálogo para {targetEnergy} kWh e{" "}
+                            {targetPower} kW. {t.currencyNote}
+                          </TableCaption>
+                          <THead>
+                            <Tr>
+                              <Th scope="col">{t.tableColChem}</Th>
+                              <Th scope="col">{t.tableColNsNp}</Th>
+                              <Th scope="col">{t.tableColMass}</Th>
+                              <Th scope="col">{t.tableColVol}</Th>
+                              <Th scope="col">{t.tableColCost}</Th>
+                              <Th scope="col">{t.tableColLife}</Th>
+                              <Th scope="col">{t.tableColLevelized}</Th>
+                              <Th scope="col">{t.tableColSafety}</Th>
+                            </Tr>
+                          </THead>
+                          <TBody>
+                            {comparison.items.map((item) => {
+                              const isSelected =
+                                item.chemistry_slug === chemistrySlug;
+                              return (
+                                <Tr
+                                  key={item.chemistry_slug}
+                                  className={
+                                    isSelected
+                                      ? "bg-brand-50/40 dark:bg-brand-950/20 font-medium"
+                                      : undefined
+                                  }
+                                >
+                                  <Td>
+                                    <div className="flex items-center gap-2">
+                                      <span>{item.chemistry_name}</span>
+                                      {isSelected ? (
+                                        <Badge tone="brand">{t.selectedBadge}</Badge>
+                                      ) : null}
+                                    </div>
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    {item.series_cells_ns}s{" "}
+                                    {item.parallel_strings_np}p (
+                                    {formatNumber(item.total_cells)})
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    {formatNumber(item.pack_mass_kg)} kg
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    {formatNumber(item.pack_volume_l)} L
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    US$ {formatNumber(item.pack_cost_usd)}
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    {formatNumber(item.cycle_life)}
+                                  </Td>
+                                  <Td className="tabular-nums">
+                                    US${" "}
+                                    {formatScore(item.levelized_cost_per_kwh_cycle, 4)}
+                                  </Td>
+                                  <Td>
+                                    <Badge
+                                      tone={SAFETY_TONE[item.thermal_safety]}
+                                    >
+                                      {SAFETY_LABEL[item.thermal_safety]}
+                                    </Badge>
+                                  </Td>
+                                </Tr>
+                              );
+                            })}
+                          </TBody>
+                        </Table>
+                      </TableScroll>
+                    </Card>
+
+                    {/* Technical Summary */}
+                    <Alert tone="info" title={t.summaryTitle}>
+                      {comparison.technical_summary}
+                    </Alert>
+                  </div>
+                )}
+              </>
+            )}
+          </Tabs>
+        </ResultPanel>
+      </ParamsResultLayout>
     </div>
   );
 }

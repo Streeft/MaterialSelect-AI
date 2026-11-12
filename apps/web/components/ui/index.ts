@@ -44,7 +44,17 @@ export {
 export { DensityToggle } from "./DensityToggle";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";
-export { EmptyState, ErrorState, ListSkeleton, LoadingState, Skeleton, Spinner } from "./Feedback";
+export {
+  ChartSkeleton,
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  LoadingState,
+  SheetSkeleton,
+  Skeleton,
+  Spinner,
+  TableSkeleton,
+} from "./Feedback";
 export {
   Checkbox,
   Field,
@@ -62,6 +72,8 @@ export {
 export { FileDrop, UploadList, type UploadItem } from "./FileDrop";
 export { GuidedBlock, type GuidedBlockState } from "./GuidedBlock";
 export { MenuButton, MenuItem } from "./Menu";
+export { CopyLinkItem } from "./CopyLinkItem";
+export { StatTile, type StatTileTone } from "./StatTile";
 export { RemovableChip } from "./RemovableChip";
 export { PageHeader } from "./PageHeader";
 export { PanelHeader } from "./PanelHeader";
