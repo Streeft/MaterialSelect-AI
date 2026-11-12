@@ -1814,8 +1814,9 @@ Registrados para não voltarem por engano:
 - ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
 
 **IA em todas as ferramentas — pendências (D-228).**
-- Etapa IA-2a (frontend): painel "Sugestão da IA" reutilizável, ligado em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações (`set_axes`, `apply_preset`, `set_index`, `add_filter`, `sort`, `search`, `compare`, `map_column`, `open_route`) só no clique.
-- Etapa IA-2b (frontend): Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin (`set_param`, `fill_text`, `compare`, `open_route`).
+- ~~Etapa IA-2a (frontend)~~ — feita na D-229 (`AISuggestPanel` em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações só no clique).
+- Etapa IA-2b (frontend, reutiliza o `AISuggestPanel` da D-229): Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin (`set_param`, `fill_text`, `compare`, `open_route`).
+- Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
 - Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
 - A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
 - `claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída; só o `openai-compat` o aplica.

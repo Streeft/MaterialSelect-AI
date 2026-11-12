@@ -575,8 +575,8 @@ describe("Mapas — Sugestão da IA (D-229)", () => {
     await user.click(await screen.findByRole("button", { name: "Usar estes eixos" }));
     await waitFor(() => expect(query().get("estado")).not.toBeNull());
     const state = decodeMapState(query().get("estado") ?? "");
-    expect(state?.xAxis.property).toBe("densidade");
-    expect(state?.yAxis.property).toBe("limite_escoamento");
+    expect(state?.xAxis?.property).toBe("densidade");
+    expect(state?.yAxis?.property).toBe("limite_escoamento");
     await waitFor(() =>
       expect(getPropertyMap).toHaveBeenLastCalledWith(
         expect.objectContaining({ x: "densidade", y: "limite_escoamento" }),
@@ -590,7 +590,7 @@ describe("Mapas — Sugestão da IA (D-229)", () => {
     await user.click(await screen.findByRole("button", { name: suggestText.button }));
     await user.click(await screen.findByRole("button", { name: "Abrir este mapa" }));
     await waitFor(() =>
-      expect(decodeMapState(query().get("estado") ?? "")?.yAxis.property).toBe("limite_escoamento"),
+      expect(decodeMapState(query().get("estado") ?? "")?.yAxis?.property).toBe("limite_escoamento"),
     );
     // On a narrow window the panel folds after an action; the answer is kept.
     expect(screen.queryByRole("button", { name: "Usar este índice" })).toBeNull();

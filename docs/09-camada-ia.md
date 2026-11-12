@@ -859,6 +859,32 @@ válida → as regras locais da ferramenta, com `degraded: true` e `notice`; com
 `regras-locais`). Cache de 10 minutos por (ferramenta, hash do contexto enriquecido, provedor, modelo), sem gastar cota;
 prompts curtos (contexto até 2 500 caracteres) para caber no plano gratuito.
 
+### Painel "Sugestão da IA" nas telas (D-229, IA-2a)
+
+`components/ai/AISuggestPanel.tsx` (dados em `useAISuggest`, regras puras em `lib/ai/suggest.ts`, textos em
+`lib/i18n-suggest.ts`) é o painel único de todas as telas. Um botão **"Sugestão da IA"** só consulta `POST /api/ai/suggest` **ao
+clicar** (a cota gratuita do Google é compartilhada: abrir uma tela nunca chama o modelo). O painel carrega (esqueleto e
+`aria-live`), mostra erro com a razão e **"Tentar de novo"** (um 429 traz a frase do servidor com "tente em X"), o vazio escrito, o
+`degraded`/`notice` como aviso honesto, o `cached` discreto e o `disclaimer`. Cada sugestão é um cartão (título, texto e botões
+cujo rótulo o servidor escreveu). **Clicar aplica a ação pela função `onAction` que a tela passa; nada é aplicado ao chegar a
+resposta.** Ação de tipo que a tela não listou em `actions`, ou com formato que o tipo não promete, **não aparece**; `open_route`
+é um link (e `linkFor` faz de outra ação, por exemplo um `search` numa tela sem busca, um link para o caminho que a tela devolver).
+Se o contexto da tela mudar depois da resposta, o painel diz que a resposta é antiga e só pede de novo no clique. Em janela
+estreita o painel se recolhe depois de uma ação, para a pessoa ver o que mudou; a resposta fica guardada. Com `/ai/status`
+`enabled=false` o botão fica desligado e diz por quê.
+
+| Tela | `tool` e contexto enviado | O que cada ação faz na tela |
+|---|---|---|
+| Mapas | `mapas`: `x`, `y`, `index_slug` (só no mapa de materiais) | `set_axes` e `apply_preset` e `set_index` mudam o estado do mapa, e com ele `estado=` na URL; `open_route` é link |
+| Comparar | `comparar`: `material_ids`, `property_slugs` (desligado sem material) | `compare` troca `?materiais=`; `set_axes` abre os comparados no Mapa (`mapHrefForAxes`), a única vista com eixos |
+| Catálogo | `catalogo`: `busca`, `classe`, `qualidade`, `demo`, `ordenar` | `add_filter`, `sort` e `search` escrevem na URL (e voltam à página 1); `compare` abre `/app/comparar?materiais=` |
+| Ficha do material | `ficha`: `material_id` | `compare` abre o Comparar com os parecidos; `open_route` é link |
+| Glossário | `glossario`: `q`, `slug` (do verbete aberto) | `search` vai para a caixa de busca (`?busca=`); `open_route` é link |
+| Processos (lista e ficha) | `processos`: `slug` (nulo na lista) | na lista, `search` vai para `?busca=`; na ficha, vira link para a lista com a busca; `open_route` é link |
+| Importar (mapeamento) | `importar`: `columns` | `map_column` preenche a linha da coluna (alvo "propriedade" e a propriedade), sem importar nem validar e **sem inventar a unidade** |
+
+Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin ficam para a IA-2b, que reutiliza o mesmo painel.
+
 ## Provedor simulado (`app/ai/mock.py`)
 
 É a implementação de referência e a que o produto entrega. Lê o enunciado com

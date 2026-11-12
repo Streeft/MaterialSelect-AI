@@ -123,7 +123,7 @@ describe("comparador — Sugestão da IA (D-229)", () => {
     expect(href.pathname).toBe("/app/mapas");
     expect(href.searchParams.get("materiais")).toBe("1,2");
     const state = decodeMapState(href.searchParams.get("estado") ?? "");
-    expect(state?.xAxis.property).toBe("densidade");
-    expect(state?.yAxis.property).toBe("modulo_young");
+    expect(state?.xAxis?.property).toBe("densidade");
+    expect(state?.yAxis?.property).toBe("modulo_young");
   });
 });

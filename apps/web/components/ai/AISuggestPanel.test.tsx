@@ -165,6 +165,31 @@ describe("AISuggestPanel — Sugestão da IA (D-229)", () => {
     expect(link.getAttribute("href")).toBe("/app/catalogo");
   });
 
+  it("draws an action as a link when the screen says it is a navigation", async () => {
+    suggestNextSteps.mockResolvedValue(
+      answer({
+        suggestions: [
+          { title: "Buscar", body: "Texto.", actions: [{ type: "search", label: "Buscar aço", q: "aço" }] },
+        ],
+      }),
+    );
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    render(
+      wrap(
+        panel(onAction, {
+          actions: ["search"],
+          linkFor: (action: SuggestAction) =>
+            action.type === "search" ? `/app/catalogo?busca=${encodeURIComponent(action.q)}` : null,
+        }),
+      ),
+    );
+    await user.click(await screen.findByRole("button", { name: t.button }));
+    const link = await screen.findByRole("link", { name: "Buscar aço" });
+    expect(link.getAttribute("href")).toBe("/app/catalogo?busca=a%C3%A7o");
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
   it("ignores an action the screen did not list, and one with a broken shape", async () => {
     suggestNextSteps.mockResolvedValue(
       answer({
