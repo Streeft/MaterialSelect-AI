@@ -157,7 +157,7 @@ export function LinkTab({ notebookId, onDone }: { notebookId: number; onDone: ()
         <div className="flex flex-col gap-3">
           <p className="text-support text-ink-muted">{t.link.youtubeDetected}</p>
           {videoTitle ? (
-            <p role="status" className="text-sm font-semibold text-ink">
+            <p role="status" className="text-body font-semibold text-ink">
               {t.link.videoTitle(videoTitle)}
             </p>
           ) : null}

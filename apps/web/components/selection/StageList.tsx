@@ -858,7 +858,7 @@ function MaterialStageFields({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-ink-muted">{t.stageMaterialsHint}</p>
+      <p className="text-body text-ink-muted">{t.stageMaterialsHint}</p>
 
       <SlugMultiSelect
         label={t.stageMaterialClasses}
@@ -877,9 +877,9 @@ function MaterialStageFields({
 
       {/* Absence written out, never an empty control the reader has to read into. */}
       {stage.materialClassSlugs.length === 0 ? (
-        <p className="text-sm text-ink-muted">{t.stageNoMaterialClasses}</p>
+        <p className="text-body text-ink-muted">{t.stageNoMaterialClasses}</p>
       ) : (
-        <p className="text-sm text-ink-muted">{t.stageMaterialWarning}</p>
+        <p className="text-body text-ink-muted">{t.stageMaterialWarning}</p>
       )}
     </div>
   );
@@ -901,7 +901,7 @@ function ProcessStageFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-ink-muted">{t.stageProcessesHint}</p>
+      <p className="text-body text-ink-muted">{t.stageProcessesHint}</p>
 
       <div className="flex flex-wrap gap-4">
         <div className="min-w-[min(14rem,100%)] flex-1">
@@ -933,9 +933,9 @@ function ProcessStageFields({
 
       {/* Absence written out, never an empty control the reader has to read into. */}
       {nothingPicked ? (
-        <p className="text-sm text-ink-muted">{t.stageNoProcesses}</p>
+        <p className="text-body text-ink-muted">{t.stageNoProcesses}</p>
       ) : (
-        <p className="text-sm text-ink-muted">{t.stageProcessWarning}</p>
+        <p className="text-body text-ink-muted">{t.stageProcessWarning}</p>
       )}
     </div>
   );
@@ -1105,7 +1105,7 @@ function ChartStageFields({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-ink-muted">{t.stageChartHint}</p>
+      <p className="text-body text-ink-muted">{t.stageChartHint}</p>
 
       <div className="flex flex-wrap gap-4">
         <ChartAxisFields
@@ -1135,7 +1135,7 @@ function ChartStageFields({
       {canPlotMap && (
         <div className="well flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-ink">{t.stageKindChart}</span>
+            <span className="text-body font-medium text-ink">{t.stageKindChart}</span>
             <Button
               variant="secondary"
               size="sm"
@@ -1146,9 +1146,9 @@ function ChartStageFields({
           </div>
           {showMap && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs text-ink-muted">{t.stageChartInteractiveHint}</p>
+              <p className="text-caption text-ink-muted">{t.stageChartInteractiveHint}</p>
               {mapQuery.isLoading && (
-                <p className="text-xs text-ink-muted">{ptBR.ui.loading}</p>
+                <p className="text-caption text-ink-muted">{ptBR.ui.loading}</p>
               )}
               {mapQuery.data && (
                 <AshbyMap
@@ -1166,8 +1166,8 @@ function ChartStageFields({
       )}
 
       <div className="well flex flex-col gap-3">
-        <p className="text-sm font-medium text-ink">{t.stageChartLine}</p>
-        <p className="text-sm text-ink-muted">{t.stageChartLineHint}</p>
+        <p className="text-body font-medium text-ink">{t.stageChartLine}</p>
+        <p className="text-body text-ink-muted">{t.stageChartLineHint}</p>
         <ExpressionBuilder
           label={t.stageChartExpression}
           universe={universe}
@@ -1198,18 +1198,18 @@ function ChartStageFields({
           into — and the plottability rule stated, because it is the one rule
           this stage has that no other stage has. */}
       {!axesChosen ? (
-        <p className="text-sm text-ink-muted">{t.stageChartNoAxes}</p>
+        <p className="text-body text-ink-muted">{t.stageChartNoAxes}</p>
       ) : !hasBox && !hasLine ? (
-        <p className="text-sm text-ink-muted">{t.stageChartPlottableOnly}</p>
+        <p className="text-body text-ink-muted">{t.stageChartPlottableOnly}</p>
       ) : (
-        <p className="text-sm text-ink-muted">{t.stageChartWarning}</p>
+        <p className="text-body text-ink-muted">{t.stageChartWarning}</p>
       )}
 
       {/* Said before the run, not after: an inverted box returns nothing and
           looks like an answer, which is the bug this whole stage's checks
           exist to prevent. The backend refuses it too. */}
       {invertedAxis(stage) !== null && (
-        <p className="text-sm text-danger-fg">{t.stageChartInvertedBox(invertedAxis(stage)!)}</p>
+        <p className="text-body text-danger-fg">{t.stageChartInvertedBox(invertedAxis(stage)!)}</p>
       )}
     </div>
   );
@@ -1252,7 +1252,7 @@ function ChartAxisFields({
 
   return (
     <div className="well flex min-w-[min(18rem,100%)] flex-1 flex-col gap-3">
-      <p className="text-sm font-medium text-ink">{label}</p>
+      <p className="text-body font-medium text-ink">{label}</p>
 
       <Select
         label={t.stageChartAxisKind}
@@ -1306,7 +1306,7 @@ function ChartAxisFields({
           onChange={(e) => onChange({ ...axis, max: e.target.value })}
         />
       </div>
-      <p className="text-sm text-ink-muted">{boundsHint}</p>
+      <p className="text-body text-ink-muted">{boundsHint}</p>
     </div>
   );
 }
@@ -1340,7 +1340,7 @@ function TreeStageFields({
       />
 
       {stage.classSlugs.length === 0 && (
-        <p className="text-sm text-ink-muted">{t.stageNoClasses}</p>
+        <p className="text-body text-ink-muted">{t.stageNoClasses}</p>
       )}
     </div>
   );

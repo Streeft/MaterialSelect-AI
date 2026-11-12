@@ -139,7 +139,7 @@ export function PropertyDistributionPanel({
             </div>
           ) : null}
           {distribution?.allows_log_scale === false && (
-            <p className="text-xs text-ink-muted">{t.logDisabled}</p>
+            <p className="text-caption text-ink-muted">{t.logDisabled}</p>
           )}
           {isLoading && <LoadingState label={t.loading} />}
           {isError && (
@@ -169,7 +169,7 @@ export function PropertyDistributionPanel({
       }
       footer={
         distribution && distribution.classes_without_data.length > 0 ? (
-          <div className="mt-3 text-xs text-ink-muted">
+          <div className="mt-3 text-caption text-ink-muted">
             <p className="font-medium text-ink-subtle">{t.classesWithoutData}</p>
             <p>{distribution.classes_without_data.join(", ")}</p>
           </div>

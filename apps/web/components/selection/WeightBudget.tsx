@@ -50,7 +50,7 @@ export function WeightBudget({
   }
   if (!preview) {
     return (
-      <p role="status" className="text-xs text-ink-muted">
+      <p role="status" className="text-caption text-ink-muted">
         {t.checking}
       </p>
     );
@@ -65,7 +65,7 @@ export function WeightBudget({
       className="well flex flex-col gap-3"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="pesos-titulo" className="text-sm font-semibold text-ink">
+        <h3 id="pesos-titulo" className="text-body font-semibold text-ink">
           {t.title}
         </h3>
         <Badge tone="neutral">{t.limit}</Badge>
@@ -75,10 +75,10 @@ export function WeightBudget({
         role="status"
         className={
           budget.status === "exceeds"
-            ? "text-sm font-medium text-danger-fg"
+            ? "text-body font-medium text-danger-fg"
             : budget.status === "complete"
-              ? "text-sm font-medium text-success-fg"
-              : "text-sm font-medium text-ink"
+              ? "text-body font-medium text-success-fg"
+              : "text-body font-medium text-ink"
         }
       >
         {describeTotal(budget)}
@@ -165,16 +165,16 @@ export function WeightBudget({
       )}
 
       <div className="flex flex-col gap-2 border-t border-edge pt-3">
-        <h3 className="text-sm font-semibold text-ink">{t.previewTitle}</h3>
+        <h3 className="text-body font-semibold text-ink">{t.previewTitle}</h3>
         {preview.unavailable_message ? (
-          <p className="text-xs text-ink-muted">{preview.unavailable_message}</p>
+          <p className="text-caption text-ink-muted">{preview.unavailable_message}</p>
         ) : (
           <>
             <ol className="flex flex-col gap-1">
               {preview.top.map((item) => (
                 <li
                   key={item.record_id}
-                  className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+                  className="flex flex-wrap items-baseline justify-between gap-2 text-body"
                 >
                   <span>
                     <span className="mr-2 tabular-nums text-ink-muted">{item.rank}.</span>

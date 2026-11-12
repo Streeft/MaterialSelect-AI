@@ -59,7 +59,7 @@ export default function BillingPage() {
             <ErrorState onRetry={() => refetch()} />
           ) : data?.active ? (
             <>
-              <p className="text-sm text-ink-muted">{t.activeSubtitle}</p>
+              <p className="text-body text-ink-muted">{t.activeSubtitle}</p>
               <Button variant="primary" onClick={handlePortal} disabled={redirecting}>
                 {redirecting ? t.redirecting : t.manageButton}
               </Button>
@@ -68,14 +68,14 @@ export default function BillingPage() {
             // D-83: no checkout while the tool is open to a class — the
             // student has nothing to buy to get in.
             <>
-              <p className="text-sm text-ink-muted">{t.openSubtitle}</p>
+              <p className="text-body text-ink-muted">{t.openSubtitle}</p>
               <ButtonLink href="/app" variant="primary">
                 {t.openButton}
               </ButtonLink>
             </>
           ) : (
             <>
-              <p className="text-sm text-ink-muted">{t.inactiveSubtitle}</p>
+              <p className="text-body text-ink-muted">{t.inactiveSubtitle}</p>
               <Button variant="primary" onClick={handleCheckout} disabled={redirecting}>
                 {redirecting ? t.redirecting : t.subscribeButton}
               </Button>

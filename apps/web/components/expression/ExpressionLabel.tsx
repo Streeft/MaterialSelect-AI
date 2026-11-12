@@ -46,7 +46,7 @@ export function ExpressionLabel({
 }
 
 function RawExpression({ expression, className }: { expression: string; className?: string }) {
-  return <code className={cn("font-mono text-xs", className)}>{expression}</code>;
+  return <code className={cn("font-mono text-caption", className)}>{expression}</code>;
 }
 
 function DescribedExpression({

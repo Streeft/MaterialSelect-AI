@@ -62,6 +62,7 @@ from app.routers import (
     processes,
     properties,
     saved_charts,
+    saved_views,
     search,
     selection,
     solver,
@@ -312,6 +313,9 @@ app.include_router(
 )
 app.include_router(
     saved_charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+app.include_router(
+    saved_views.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 app.include_router(
     charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]

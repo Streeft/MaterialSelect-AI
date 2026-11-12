@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { screen } from "shadow-dom-testing-library";
+import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -70,27 +70,50 @@ describe("página do glossário (D-130)", () => {
     expect(await screen.findByShadowText(t.empty)).toBeInTheDocument();
   });
 
-  it("mostra o verbete com fonte, licença e revisão escritas, e a ausência escrita", async () => {
+  // D-209: the glossary is a wiki — an index, and the entry opened beside it.
+  it("abre o verbete ao lado com fonte, licença e revisão escritas, e escreve a ausência no índice", async () => {
+    window.history.replaceState(null, "", "/app/glossario");
     render(wrap(<GlossaryPage />));
-    expect(await screen.findByShadowRole("heading", { name: /Densidade/ })).toBeInTheDocument();
-    expect(screen.getByShadowText(densidade.definition)).toBeInTheDocument();
-    expect(screen.getByShadowText(densidade.license)).toBeInTheDocument();
-    expect(screen.getByShadowText("Norma de exemplo")).toBeInTheDocument();
-    expect(screen.getByShadowText(t.howMeasuredMissing)).toBeInTheDocument();
-    expect(screen.getAllByShadowText(t.reviewDraft).length).toBeGreaterThan(0);
-    expect(await screen.findByShadowText(t.missingHint)).toBeInTheDocument();
+    const open = await screen.findByShadowRole("button", { name: t.openEntry("Densidade") });
+    expect(screen.getByShadowText(densidade.summary)).toBeInTheDocument();
+    // The property without an entry is in the index, its absence written.
+    expect(screen.getByShadowText(t.missing)).toBeInTheDocument();
+
+    await userEvent.click(open);
+    const peek = screen.getByShadowRole("dialog", { name: "Densidade" });
+    expect(window.location.hash).toBe("#densidade");
+    for (const text of [densidade.definition, densidade.license, "Norma de exemplo", t.howMeasuredMissing, t.reviewDraft]) {
+      expect(within(peek).getByShadowText(text)).toBeInTheDocument();
+    }
     const violations = await findA11yViolations(document.body);
     expect(violations, describeViolations(violations)).toEqual([]);
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByShadowRole("dialog")).not.toBeInTheDocument();
+    expect(window.location.hash).toBe("");
   });
 
-  it("filtra por nome, sem acento, e escreve quando nada corresponde", async () => {
+  it("abre direto o verbete do endereço, como as dicas do app apontam", async () => {
+    window.history.replaceState(null, "", "/app/glossario#densidade");
     render(wrap(<GlossaryPage />));
-    await screen.findByShadowRole("heading", { name: /Densidade/ });
+    expect(await screen.findByShadowRole("dialog", { name: "Densidade" })).toBeInTheDocument();
+    window.history.replaceState(null, "", "/app/glossario");
+  });
+
+  it("filtra por nome, sem acento, e pelo estado, e escreve quando nada corresponde", async () => {
+    window.history.replaceState(null, "", "/app/glossario");
+    render(wrap(<GlossaryPage />));
+    await screen.findByShadowRole("button", { name: t.openEntry("Densidade") });
     const box = screen.getByShadowRole("searchbox", { name: t.filter });
     await userEvent.type(box, "agua");
-    expect(screen.queryByShadowRole("heading", { name: /^Densidade/ })).not.toBeInTheDocument();
-    expect(screen.getByShadowRole("heading", { name: /Durabilidade/ })).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
+    expect(screen.getByShadowRole("button", { name: t.openEntry("Durabilidade em água doce") })).toBeInTheDocument();
     await userEvent.clear(box);
+
+    await userEvent.click(screen.getByShadowRole("button", { name: /^Estado: / }));
+    await userEvent.click(await screen.findByShadowRole("button", { name: t.stateMissing }));
+    expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
+
     await userEvent.type(box, "zzz");
     expect(screen.getByShadowText(t.noMatch("zzz"))).toBeInTheDocument();
   });

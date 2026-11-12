@@ -97,7 +97,7 @@ export function SourcesPanel({
           ) : null}
 
           {sources.length === 0 ? (
-            <p className="text-sm text-ink-muted">{t.noSources}</p>
+            <p className="text-body text-ink-muted">{t.noSources}</p>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2 px-1">
@@ -121,7 +121,7 @@ export function SourcesPanel({
                       type="button"
                       onClick={() => setReading(source)}
                       aria-label={t.openSource(source.title)}
-                      className="min-w-0 flex-1 truncate text-left text-sm text-ink hover:text-brand-700"
+                      className="min-w-0 flex-1 truncate text-left text-body text-ink hover:text-brand-700"
                     >
                       {source.title}
                     </button>

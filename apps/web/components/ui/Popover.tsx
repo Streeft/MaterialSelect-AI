@@ -45,6 +45,7 @@ export function Popover({
   align = "start",
   className,
   panelClassName,
+  triggerClassName,
   children,
 }: {
   /** Rendered inside the trigger button. */
@@ -56,7 +57,10 @@ export function Popover({
   align?: "start" | "end";
   className?: string;
   panelClassName?: string;
-  children: ReactNode;
+  /** D-206: replaces the bare-text trigger look (a filter chip draws itself). */
+  triggerClassName?: string;
+  /** D-206: a function receives `close`, for a panel whose choice ends it (a filter option). */
+  children: ReactNode | ((close: () => void) => ReactNode);
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{
@@ -157,6 +161,24 @@ export function Popover({
     setOpen(false);
     triggerRef.current?.focus();
   }
+  // D-206: a panel that closes itself (a filter option picked) only flips the
+  // state; giving focus back to the trigger happens after, in an effect,
+  // because a callback handed to children during render may not touch refs.
+  const content =
+    typeof children === "function" ? children(() => setOpen(false)) : children;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    // Focus fell to <body> with the panel it was in: hand it back to the trigger.
+    if (document.activeElement === document.body || document.activeElement === null) {
+      triggerRef.current?.focus();
+    }
+  }, [open]);
 
   const sheetPanel =
     open && sheet && typeof document !== "undefined"
@@ -181,7 +203,7 @@ export function Popover({
                   <IconClose className="h-5 w-5" />
                 </button>
               </div>
-              <div className={cn("text-sm text-ink", panelClassName)}>{children}</div>
+              <div className={cn("text-body text-ink", panelClassName)}>{content}</div>
             </div>
           </>,
           document.body,
@@ -204,11 +226,11 @@ export function Popover({
               maxHeight: position.above ? position.top - MARGIN : undefined,
             }}
             className={cn(
-              "fixed z-50 animate-fade-in overflow-y-auto rounded-card border border-edge bg-surface-raised p-3 text-left text-xs text-ink shadow-overlay",
+              "fixed z-50 animate-fade-in overflow-y-auto rounded-card border border-edge bg-surface-raised p-3 text-left text-caption text-ink shadow-overlay",
               panelClassName,
             )}
           >
-            {children}
+            {content}
           </div>,
           document.body,
         )
@@ -223,7 +245,7 @@ export function Popover({
         aria-controls={open ? panelId : undefined}
         aria-label={label}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded text-left transition hover:text-brand"
+        className={triggerClassName ?? "inline-flex items-center gap-1 rounded text-left transition hover:text-brand"}
       >
         {trigger}
       </button>
@@ -286,7 +308,7 @@ export function Disclosure({
     >
       <summary
         className={cn(
-          "flex cursor-pointer list-none items-center gap-2 py-2.5 text-sm font-medium text-ink marker:content-[''] [&::-webkit-details-marker]:hidden",
+          "flex cursor-pointer list-none items-center gap-2 py-2.5 text-body font-medium text-ink marker:content-[''] [&::-webkit-details-marker]:hidden",
           flush ? "px-0 pt-3" : "px-4",
         )}
       >

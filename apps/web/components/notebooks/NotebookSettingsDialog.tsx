@@ -90,7 +90,7 @@ function SettingsForm({ notebook, onClose }: { notebook: Notebook; onClose: () =
         />
       ) : null}
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t.length}</span>
+        <span className="text-body font-medium text-ink">{t.length}</span>
         <ButtonGroup label={t.length}>
           {LENGTHS.map((id) => (
             <ButtonGroupItem

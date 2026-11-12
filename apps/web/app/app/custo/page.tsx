@@ -255,9 +255,9 @@ export default function CustoPage() {
             <CostCurveChart result={result} />
             {result.uncosted.length > 0 ? (
               <div className="well flex flex-col gap-2">
-                <span className="text-sm font-medium text-ink">{t.uncostedTitle}</span>
-                <span className="text-xs text-ink-muted">{t.uncostedHint}</span>
-                <ul className="flex flex-col gap-1 text-sm text-ink">
+                <span className="text-body font-medium text-ink">{t.uncostedTitle}</span>
+                <span className="text-caption text-ink-muted">{t.uncostedHint}</span>
+                <ul className="flex flex-col gap-1 text-body text-ink">
                   {result.uncosted.map((item) => (
                     <li key={item.process_id}>
                       {item.process_name} — {item.reason}

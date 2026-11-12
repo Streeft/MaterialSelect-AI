@@ -10,6 +10,7 @@ import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { ExportButtons } from "@/components/ExportButtons";
 import { MaterialList } from "@/components/catalog/MaterialList";
+import { MaterialCards, MaterialLines } from "@/components/catalog/MaterialCards";
 import { MaterialPreview } from "@/components/catalog/MaterialPreview";
 import { PaneScaffold } from "@/components/layout/PaneScaffold";
 import { useAnnounce } from "@/components/ui/Announcer";
@@ -22,18 +23,19 @@ import {
   Card,
   DensityToggle,
   CardBody,
-  CardHeader,
   DataQualityLegend,
   EmptyState,
   ErrorState,
+  FilterBar,
   Input,
   LoadingState,
   PageHeader,
-  RemovableChip,
+  SavedViewsBar,
   Section,
-  Select,
-  SelectOption,
+  VIEW_KIND_LABEL,
+  type FilterField,
 } from "@/components/ui";
+import { useDatabaseView } from "@/lib/savedViews";
 
 import { useDebounced } from "@/lib/useDebounced";
 
@@ -47,6 +49,8 @@ const t = ptBR.catalog;
  * anything in it was actually measured.
  */
 type QualityFilter = "any" | "complete" | "gaps" | "measured" | "referenced";
+
+const QUALITY_VALUES: readonly QualityFilter[] = ["complete", "gaps", "measured", "referenced"];
 
 function matchesQuality(material: MaterialListItem, filter: QualityFilter): boolean {
   const q = material.quality;
@@ -89,9 +93,23 @@ function CatalogPageContent() {
   // from then on.
   const params = useSearchParams();
   const [search, setSearch] = useState(() => params.get("busca") ?? "");
-  const [classSlug, setClassSlug] = useState(() => params.get("classe") ?? "");
-  const [subclass, setSubclass] = useState(() => params.get("subclasse") ?? "");
-  const [quality, setQuality] = useState<QualityFilter>("any");
+  // D-209: the filters live with the screen's saved views (tabs in the
+  // reader's account); a tab applies its filters, "Salvar na visão" stores
+  // the current ones. What they filter is unchanged: the list the server sent.
+  const view = useDatabaseView<"classe" | "subclasse" | "qualidade">({
+    scope: "catalogo",
+    initialFilters: {
+      classe: params.get("classe") || null,
+      subclasse: params.get("subclasse") || null,
+      qualidade: null,
+    },
+    defaultKind: "table",
+  });
+  const classSlug = view.filters.classe ?? "";
+  const subclass = view.filters.subclasse ?? "";
+  const quality: QualityFilter = QUALITY_VALUES.includes(view.filters.qualidade as QualityFilter)
+    ? (view.filters.qualidade as QualityFilter)
+    : "any";
   const debouncedSearch = useDebounced(search, 300);
 
   // D-105: the search endpoint, so a composition query can say which rule ran
@@ -147,6 +165,43 @@ function CatalogPageContent() {
     return true;
   };
 
+  // The subclass is offered among the ones the list actually has, so a chip
+  // never offers a value that empties the screen.
+  const subclasses = useMemo(
+    () =>
+      [...new Set((items ?? []).map((m) => m.subclass).filter((x): x is string => Boolean(x)))].sort(
+        (a, b) => a.localeCompare(b, "pt-BR"),
+      ),
+    [items],
+  );
+  const filterFields: FilterField[] = [
+    {
+      id: "classe",
+      label: t.filterClass,
+      pinned: true,
+      value: view.filters.classe,
+      options: (classes.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
+    },
+    {
+      id: "qualidade",
+      label: t.filterQuality,
+      pinned: true,
+      value: quality === "any" ? null : quality,
+      options: [
+        { value: "complete", label: t.qualityComplete },
+        { value: "gaps", label: t.qualityWithGaps },
+        { value: "measured", label: t.qualityMeasured },
+        { value: "referenced", label: t.qualityReferenced },
+      ],
+    },
+    {
+      id: "subclasse",
+      label: t.subclassLabel,
+      value: view.filters.subclasse,
+      options: subclasses.map((name) => ({ value: name, label: name })),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -166,76 +221,36 @@ function CatalogPageContent() {
         }
       />
 
-      <Card>
-        <CardHeader headingLevel={2} title={t.filters} />
-        {/* One row at lg: the search takes what is left. `className` on a
-            field styles its control, not its wrapper, so the columns come from
-            the grid; `items-start` keeps the three labels on one line even
-            though only the search carries a hint under it. */}
-        <CardBody className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,12rem)_minmax(0,14rem)_auto]">
-          <Input
-            label={t.searchLabel}
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t.searchPlaceholder}
-            hint={t.searchHint}
-          />
-
-          <Select
-            label={t.filterClass}
-            value={classSlug}
-            onChange={(e) => setClassSlug(e.target.value)}
-          >
-            <SelectOption value="">{t.allClasses}</SelectOption>
-            {(classes.data ?? []).map((c) => (
-              <SelectOption key={c.slug} value={c.slug}>
-                {c.name}
-              </SelectOption>
-            ))}
-          </Select>
-
-          <Select
-            label={t.filterQuality}
-            value={quality}
-            onChange={(e) => setQuality(e.target.value as QualityFilter)}
-          >
-            <SelectOption value="any">{t.qualityAny}</SelectOption>
-            <SelectOption value="complete">{t.qualityComplete}</SelectOption>
-            <SelectOption value="gaps">{t.qualityWithGaps}</SelectOption>
-            <SelectOption value="measured">{t.qualityMeasured}</SelectOption>
-            <SelectOption value="referenced">{t.qualityReferenced}</SelectOption>
-          </Select>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="justify-self-start lg:mt-[1.4rem]"
-            disabled={!filtered && !search}
-            onClick={() => {
-              setSearch("");
-              setClassSlug("");
-              setSubclass("");
-              setQuality("any");
-            }}
-          >
-            {t.clearFilters}
-          </Button>
-        </CardBody>
-        {subclass ? (
-          <CardBody className="pt-0">
-            <RemovableChip
-              onRemove={() => setSubclass("")}
-              removeLabel={t.subclassFilterRemove(subclass)}
-            >
-              {t.subclassFilter(subclass)}
-            </RemovableChip>
-          </CardBody>
-        ) : null}
-        <CardBody className="pt-0">
-          <SearchHelp onUse={setSearch} />
-        </CardBody>
-      </Card>
+      <div className="flex flex-col gap-3">
+        <SavedViewsBar
+          views={view.saved.views}
+          activeId={view.activeId}
+          onSelect={view.select}
+          onCreate={(kind) =>
+            view.create(kind, `${VIEW_KIND_LABEL[kind]} ${view.saved.views.length + 1}`)
+          }
+          onRename={view.rename}
+          onDelete={view.remove}
+          dirty={view.dirty}
+          onSaveChanges={view.saveChanges}
+        />
+        <Input
+          label={t.searchLabel}
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t.searchPlaceholder}
+          hint={t.searchHint}
+        />
+        <FilterBar
+          fields={filterFields}
+          onChange={(id, value) =>
+            view.setFilter(id as "classe" | "subclasse" | "qualidade", value)
+          }
+          onClear={view.clearFilters}
+        />
+        <SearchHelp onUse={setSearch} />
+      </div>
 
       {/* P1-4: the way *into* the taxonomy, next to (not instead of) the filter
           above. The two answer different questions — the select narrows the list
@@ -253,7 +268,7 @@ function CatalogPageContent() {
               <Card className="pressable">
                 <CardBody className="flex flex-col gap-0.5 px-4 py-3">
                   <span className="font-medium text-ink">{family.name}</span>
-                  <span className="text-xs text-ink-muted">
+                  <span className="text-caption text-ink-muted">
                     {ptBR.family.countMaterials(
                       (items ?? []).filter((m) =>
                         descendantSlugs(family.slug, classes.data ?? []).has(m.class_slug),
@@ -274,7 +289,7 @@ function CatalogPageContent() {
         actions={
           <>
             {/* The table exists from `sm` up; the cards below it have no rows to densify. */}
-            <DensityToggle className="hidden sm:inline-flex" />
+            {view.kind === "table" ? <DensityToggle className="hidden sm:inline-flex" /> : null}
             <ExportButtons urlFor={catalogueExportUrl} label={ptBR.exports.catalogue} />
           </>
         }
@@ -299,10 +314,7 @@ function CatalogPageContent() {
                 filtered ? (
                   <Button
                     size="sm"
-                    onClick={() => {
-                      setClassSlug("");
-                      setQuality("any");
-                    }}
+                    onClick={view.clearFilters}
                   >
                     {t.clearFilters}
                   </Button>
@@ -338,6 +350,10 @@ function CatalogPageContent() {
                     />
                   }
                 />
+              ) : view.kind === "gallery" ? (
+                <MaterialCards materials={shown} searchQuery={debouncedSearch} layout="gallery" />
+              ) : view.kind === "list" ? (
+                <MaterialLines materials={shown} searchQuery={debouncedSearch} />
               ) : (
                 <MaterialList
                   materials={shown}

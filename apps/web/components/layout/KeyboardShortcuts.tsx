@@ -80,38 +80,38 @@ export function KeyboardShortcuts() {
     <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} title={t.title} description={t.intro}>
       <ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
         {SHORTCUTS.map((shortcut) => (
-          <li key={shortcut.key} className="flex items-center justify-between gap-3 text-sm">
+          <li key={shortcut.key} className="flex items-center justify-between gap-3 text-body">
             <span>{ptBR.nav[shortcut.label]}</span>
             <span className="whitespace-nowrap">
               <kbd className="msds-kbd">g</kbd> <kbd className="msds-kbd">{shortcut.key}</kbd>
             </span>
           </li>
         ))}
-        <li className="flex items-center justify-between gap-3 text-sm">
+        <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.search}</span>
           <span className="whitespace-nowrap">
             <kbd className="msds-kbd">/</kbd> <kbd className="msds-kbd">{ptBR.palette.shortcut}</kbd>
           </span>
         </li>
-        <li className="flex items-center justify-between gap-3 text-sm">
+        <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.help}</span>
           <kbd className="msds-kbd">?</kbd>
         </li>
       </ul>
       {/* D-207: the keys inside the command palette, so "?" lists every shortcut there is. */}
-      <h3 className="mt-4 text-sm font-semibold text-ink">{t.paletteTitle}</h3>
+      <h3 className="mt-4 text-body font-semibold text-ink">{t.paletteTitle}</h3>
       <ul className="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-        <li className="flex items-center justify-between gap-3 text-sm">
+        <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.paletteMove}</span>
           <span className="whitespace-nowrap">
             <kbd className="msds-kbd">↑</kbd> <kbd className="msds-kbd">↓</kbd>
           </span>
         </li>
-        <li className="flex items-center justify-between gap-3 text-sm">
+        <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.paletteRun}</span>
           <kbd className="msds-kbd">Enter</kbd>
         </li>
-        <li className="flex items-center justify-between gap-3 text-sm">
+        <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.paletteClose}</span>
           <kbd className="msds-kbd">Esc</kbd>
         </li>

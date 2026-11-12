@@ -604,7 +604,7 @@ function ConstraintRowFields({
           onClick={onRemove}
         />
         {sentence ? (
-          <p className="w-full text-xs text-ink-muted" aria-live="polite">
+          <p className="w-full text-caption text-ink-muted" aria-live="polite">
             <span className="font-medium text-ink">{t.sentenceLead}</span> {sentence}
           </p>
         ) : null}
@@ -697,7 +697,7 @@ function ConstraintGroupEditor({
           // use is never hidden, or the rows below would read as "all of these".
           (showRootCombinator || group.operator === "OR") && (
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-ink-muted">{t.combinator}</span>
+            <span className="text-caption font-medium text-ink-muted">{t.combinator}</span>
             <OperatorToggle
               value={group.operator}
               onChange={(op) => actions.updateOperator(group.id, op)}
@@ -724,7 +724,7 @@ function ConstraintGroupEditor({
       </div>
 
       {isEmpty && (
-        <p className="text-sm text-ink-muted">{isRoot ? t.noConstraints : t.emptyGroup}</p>
+        <p className="text-body text-ink-muted">{isRoot ? t.noConstraints : t.emptyGroup}</p>
       )}
 
       {group.constraints.length > 0 && (

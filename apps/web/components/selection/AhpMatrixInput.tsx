@@ -114,7 +114,7 @@ export function AhpMatrixInput({ criteria, onDerived }: AhpMatrixInputProps) {
   }, [query.data, onDerived]);
 
   if (!ready) {
-    return <p className="text-sm text-ink-muted">{t.needsCriteria}</p>;
+    return <p className="text-body text-ink-muted">{t.needsCriteria}</p>;
   }
 
   const errorMessage = query.isError
@@ -125,16 +125,16 @@ export function AhpMatrixInput({ criteria, onDerived }: AhpMatrixInputProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-ink-muted">{t.hint}</p>
+      <p className="text-caption text-ink-muted">{t.hint}</p>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-1 text-sm">
+        <table className="min-w-full border-separate border-spacing-1 text-body">
           <caption className="sr-only">{t.title}</caption>
           <thead>
             <tr>
               <th scope="col" className="p-1" />
               {criteria.map((c) => (
-                <th key={c.key} scope="col" className="p-1 text-xs font-medium text-ink-muted">
+                <th key={c.key} scope="col" className="p-1 text-caption font-medium text-ink-muted">
                   {c.label}
                 </th>
               ))}
@@ -143,7 +143,7 @@ export function AhpMatrixInput({ criteria, onDerived }: AhpMatrixInputProps) {
           <tbody>
             {criteria.map((rowC, i) => (
               <tr key={rowC.key}>
-                <th scope="row" className="p-1 text-left text-xs font-medium text-ink-muted">
+                <th scope="row" className="p-1 text-left text-caption font-medium text-ink-muted">
                   {rowC.label}
                 </th>
                 {criteria.map((colC, j) => {
@@ -200,13 +200,13 @@ export function AhpMatrixInput({ criteria, onDerived }: AhpMatrixInputProps) {
       </div>
 
       {query.isFetching && (
-        <p className="flex items-center gap-2 text-xs text-ink-muted">
+        <p className="flex items-center gap-2 text-caption text-ink-muted">
           <Spinner /> {t.computing}
         </p>
       )}
 
       {!query.isFetching && query.data && !query.isError && (
-        <p className="text-xs text-ink-muted">
+        <p className="text-caption text-ink-muted">
           {t.consistency(formatScore(query.data.consistency_ratio, 2))} —{" "}
           {query.data.consistency_ratio <= CONSISTENCY_THRESHOLD ? t.consistencyOk : t.consistencyBad}
         </p>

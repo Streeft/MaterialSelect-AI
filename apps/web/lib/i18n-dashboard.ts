@@ -32,6 +32,21 @@ export const dashboardText = {
     scope: (materials: number) =>
       materials === 1 ? "1 material passa pelos filtros" : `${materials.toLocaleString("pt-BR")} materiais passam pelos filtros`,
     emptyScope: "Nenhum material passa por estes filtros.",
+    // D-209: o nível 3 é "todos", e é o que o chip mostra como "Qualquer".
+    nivelChip: (level: number) => `Nível ${level}`,
+  },
+
+  // D-209: os blocos da visão geral, que a pessoa reordena e oculta.
+  blocks: {
+    label: "Blocos da visão geral",
+    hint: "Arraste pela alça ⋮⋮ ou use Alt + seta para mudar a ordem; o olho oculta um bloco. A ordem fica guardada na sua conta.",
+    cobertura: "Cobertura",
+    indicadores: "Indicadores",
+    composicao: "Composição do catálogo",
+    qualidade: "Qualidade dos valores",
+    classes: "Cobertura por classe",
+    lacunas: "Lacunas",
+    reset: "Restaurar a ordem padrão",
   },
 
   actions: {

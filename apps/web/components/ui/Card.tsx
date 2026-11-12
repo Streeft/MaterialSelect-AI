@@ -183,7 +183,7 @@ export function Section({
             {title}
           </Heading>
           {description ? (
-            <p className="mt-0.5 max-w-prose text-sm text-ink-muted">{description}</p>
+            <p className="mt-0.5 max-w-prose text-body text-ink-muted">{description}</p>
           ) : null}
         </div>
         {actions ? <div className={ACTIONS}>{actions}</div> : null}

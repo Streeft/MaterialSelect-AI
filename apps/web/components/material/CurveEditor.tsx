@@ -249,7 +249,7 @@ function Form({
         submit();
       }}
     >
-      <p className="text-xs text-ink-muted">{t.rule}</p>
+      <p className="text-caption text-ink-muted">{t.rule}</p>
       <div className="flex flex-wrap items-end gap-3">
         <Select
           label={t.kind}
@@ -413,7 +413,7 @@ function Form({
       ))}
 
       {problem && (
-        <p role="alert" className="text-sm text-danger-fg">
+        <p role="alert" className="text-body text-danger-fg">
           {problem}
         </p>
       )}

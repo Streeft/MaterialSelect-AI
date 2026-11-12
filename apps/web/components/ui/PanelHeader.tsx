@@ -48,7 +48,7 @@ export function PanelHeader({
     >
       <h2
         id={headingId}
-        className={cn("min-w-0 flex-1 truncate text-sm font-semibold text-ink", !expanded && "sr-only")}
+        className={cn("min-w-0 flex-1 truncate text-body font-semibold text-ink", !expanded && "sr-only")}
       >
         {title}
       </h2>

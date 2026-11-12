@@ -245,7 +245,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
                           label={
                             <>
                               <strong>{suggestion.name}</strong>{" "}
-                              <code className="text-xs text-ink-muted">
+                              <code className="text-caption text-ink-muted">
                                 {suggestion.expression}
                               </code>
                             </>
@@ -261,7 +261,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
               )}
 
               {proposal.chart && (
-                <p className="text-xs text-ink-muted">
+                <p className="text-caption text-ink-muted">
                   <strong className="font-semibold">{t.chartRead}:</strong>{" "}
                   {proposal.chart.y} × {proposal.chart.x} ({proposal.chart.scale}) —{" "}
                   {proposal.chart.rationale}
@@ -273,9 +273,9 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
                   {t.apply}
                 </Button>
                 {selectedCount === 0 && (
-                  <span className="text-xs text-ink-muted">{t.nothingToApply}</span>
+                  <span className="text-caption text-ink-muted">{t.nothingToApply}</span>
                 )}
-                {applied && <span className="text-sm text-success-fg">{t.applied}</span>}
+                {applied && <span className="text-body text-success-fg">{t.applied}</span>}
               </div>
 
               {proposal.open_questions.length > 0 && (
@@ -299,7 +299,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
                 </Alert>
               )}
 
-              <p className="border-t border-edge-subtle pt-2 text-xs text-ink-subtle">
+              <p className="border-t border-edge-subtle pt-2 text-caption text-ink-subtle">
                 {proposal.disclaimer}
               </p>
             </CardBody>

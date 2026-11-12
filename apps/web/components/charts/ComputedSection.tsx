@@ -35,21 +35,21 @@ function SpreadLine({
   const state = column.spread_state ?? "valores_insuficientes";
   if (state !== "calculada" || column.spread_pct == null) {
     return (
-      <span className="block text-xs font-normal normal-case text-ink-subtle">
+      <span className="block text-caption font-normal normal-case text-ink-subtle">
         {tt.unavailable}: {tt.spread[state as keyof typeof tt.spread]}
       </span>
     );
   }
   const spread = tt.headerSpread(formatNumber(column.spread_pct));
   if (!thresholdSet) {
-    return <span className="block text-xs font-normal normal-case text-ink-subtle">{spread}</span>;
+    return <span className="block text-caption font-normal normal-case text-ink-subtle">{spread}</span>;
   }
   return column.exceeds_threshold === true ? (
     <Badge tone="warning" className="mt-1">
       {tt.above} · {spread}
     </Badge>
   ) : (
-    <span className="block text-xs font-normal normal-case text-ink-subtle">
+    <span className="block text-caption font-normal normal-case text-ink-subtle">
       {tt.below} · {spread}
     </span>
   );
@@ -107,10 +107,10 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
                     </span>
                   )}
                 </span>
-                <span className="block text-sm font-normal normal-case text-ink">
+                <span className="block text-body font-normal normal-case text-ink">
                   <ExpressionLabel expression={column.expression} />
                 </span>
-                <span className="block text-xs font-normal normal-case text-ink-subtle">
+                <span className="block text-caption font-normal normal-case text-ink-subtle">
                   {t.inputs("")}
                   <ExpressionInputs expression={column.expression} variables={column.variables} /> ·{" "}
                   {t.summary(column.defined_count, column.undefined_count)}
@@ -125,7 +125,7 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
             <Tr key={material.material_id}>
               <RowHeader className="sticky left-0 z-[1] bg-panel">
                 {material.name}
-                <span className="block text-xs font-normal text-ink-subtle">
+                <span className="block text-caption font-normal text-ink-subtle">
                   {material.class_name}
                 </span>
               </RowHeader>
@@ -136,7 +136,7 @@ export function ComputedTable({ comparison }: { comparison: Comparison }) {
                     {item && item.value !== null ? (
                       <span className="tabular-nums text-ink">{formatNumber(item.value)}</span>
                     ) : (
-                      <span className="text-xs text-ink-subtle">
+                      <span className="text-caption text-ink-subtle">
                         {t.undefinedLabel}
                         {item?.undefined_reason ? `: ${item.undefined_reason}` : ""}
                       </span>

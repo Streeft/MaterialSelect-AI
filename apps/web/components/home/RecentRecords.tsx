@@ -49,9 +49,10 @@ export function RecentRecords() {
               <li key={`${b.universe}-${bookmarkHref(b)}`}>
                 <Link
                   href={bookmarkHref(b)!}
-                  className="flex h-full flex-col gap-2 rounded-card border border-line bg-panel p-4 shadow-card transition hover:border-brand hover:bg-brand-50"
+                  data-interactive="true"
+                  className="msds-card flex h-full flex-col gap-2 p-4"
                 >
-                  <span className="text-sm font-medium text-ink">{bookmarkName(b)}</span>
+                  <span className="text-body font-medium text-ink">{bookmarkName(b)}</span>
                   <span className="flex flex-wrap items-center gap-2">
                     {klass ? (
                       <ClassBadge name={klass.name} color={classVisual(klass.slug).color} />

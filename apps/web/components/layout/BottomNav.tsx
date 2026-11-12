@@ -96,7 +96,7 @@ function useHideOnScrollDown(pathname: string): boolean {
  *
  * `min-h-12` (48 px) is a floor, not a suggestion: it's the minimum touch
  * target, and the height needs to survive a label that wraps to two lines.
- * The label is `text-xs` (12 px), the smallest body size the product uses: the
+ * The label is `text-caption` (12 px), the smallest body size the product uses: the
  * 9 px it had before was unreadable at arm's length (D-202).
  * `pb-[env(safe-area-inset-bottom)]` keeps the row above iOS's gesture bar;
  * without it, the fifth item sits under it and stops being tappable.
@@ -152,7 +152,7 @@ export function BottomNav() {
             >
               <Icon className="h-[19px] w-[19px] shrink-0" />
             </span>
-            <span className={cn("text-xs leading-4", active && "font-semibold")}>
+            <span className={cn("text-caption leading-4", active && "font-semibold")}>
               {item.label}
             </span>
           </Link>

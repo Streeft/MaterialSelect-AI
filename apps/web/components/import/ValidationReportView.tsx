@@ -52,7 +52,7 @@ export function ValidationReportView({ report }: { report: ValidationReport }) {
         ))}
       </dl>
 
-      <p className="text-xs text-ink-muted">{t.reportHint}</p>
+      <p className="text-caption text-ink-muted">{t.reportHint}</p>
 
       {/* A long report scrolls inside itself; the sticky header keeps the
           column meanings on screen while it does. */}
@@ -88,7 +88,7 @@ export function ValidationReportView({ report }: { report: ValidationReport }) {
                     ) : (
                       <ul className="space-y-1">
                         {row.issues.map((issue, i) => (
-                          <li key={i} className="flex flex-wrap items-baseline gap-1.5 text-xs">
+                          <li key={i} className="flex flex-wrap items-baseline gap-1.5 text-caption">
                             <Badge tone="danger">{t.issueLabel}</Badge>
                             <span className="text-ink">
                               {issue.column ? `${issue.column}: ` : ""}
@@ -97,7 +97,7 @@ export function ValidationReportView({ report }: { report: ValidationReport }) {
                           </li>
                         ))}
                         {row.warnings.map((w, i) => (
-                          <li key={`w${i}`} className="flex flex-wrap items-baseline gap-1.5 text-xs">
+                          <li key={`w${i}`} className="flex flex-wrap items-baseline gap-1.5 text-caption">
                             <Badge tone="warning">{t.warningLabel}</Badge>
                             <span className="text-ink">{w}</span>
                           </li>

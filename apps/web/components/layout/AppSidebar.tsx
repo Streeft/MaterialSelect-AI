@@ -28,6 +28,7 @@ import { useTitleOverride } from "@/lib/pageTitle";
 import { IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
+  IconSearch,
   IconBattery,
   IconBlend,
   IconBook,
@@ -56,6 +57,8 @@ import {
   IconUpload,
 } from "@/components/ui/icons";
 import { useCanEditCatalog } from "@/lib/billing";
+import { labelForPath } from "@/lib/design/sections";
+import { OPEN_SEARCH_EVENT } from "./GlobalSearch";
 
 const t = ptBR.nav;
 
@@ -228,7 +231,7 @@ function NavLink({
       // screen reader users with no idea where they are.
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
-      className={cn("msds-rail-item text-sm", collapsed && "justify-center")}
+      className={cn("msds-rail-item text-body", collapsed && "justify-center")}
     >
       <Icon
         className={cn("msds-rail-icon", active && "text-rail-accent")}
@@ -354,7 +357,7 @@ function MemoryItem({
       <Link
         href={entry.href}
         aria-current={current ? "page" : undefined}
-        className="msds-rail-item min-w-0 flex-1 text-sm"
+        className="msds-rail-item min-w-0 flex-1 text-body"
       >
         <Icon className={cn("msds-rail-icon", current && "text-rail-accent")} />
         <span className="msds-rail-label truncate">{entry.label}</span>
@@ -439,7 +442,7 @@ function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: st
               ))}
             </ul>
           ) : (
-            <p id={pinnedListId} className="px-2.5 text-xs text-rail-ink-muted">
+            <p id={pinnedListId} className="px-2.5 text-caption text-rail-ink-muted">
               {t.pinnedEmpty}
             </p>
           )
@@ -508,7 +511,7 @@ function BrandLink({
           too narrow to paint it. */}
       <span
         aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-sm font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-body font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
       >
         M
       </span>
@@ -573,13 +576,13 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         ) : (
           <span
             aria-hidden
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rail-accent/25 text-xs font-semibold text-rail-accent"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rail-accent/25 text-caption font-semibold text-rail-accent"
           >
             {user.name.charAt(0).toUpperCase()}
           </span>
         )}
         {!collapsed && (
-          <span className="truncate text-xs font-medium text-rail-ink-muted">
+          <span className="truncate text-caption font-medium text-rail-ink-muted">
             {user.name}
           </span>
         )}
@@ -665,7 +668,17 @@ export function AppSidebar() {
           aria-controls="menu-principal"
           onClick={() => setOpen(true)}
         />
-        <BrandLink pathname={pathname} />
+        {/* D-206: M3's small top app bar on a narrow screen — the brand as a
+            mark, the screen's name, and search as an icon (the full bar would
+            print "Ctrl K" on a phone and take a row of its own). */}
+        <BrandLink pathname={pathname} collapsed />
+        <span className="ds-topbar-title">{labelForPath(pathname)}</span>
+        <IconButton
+          size="sm"
+          label={ptBR.ds.searchOpen}
+          icon={<IconSearch />}
+          onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+        />
       </header>
 
       {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place

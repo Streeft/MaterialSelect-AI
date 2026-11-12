@@ -93,7 +93,9 @@ describe("AnswerView — attribution in the citation (D-97)", () => {
 
     expect(within(panel).queryByText(new RegExp(t.reader.attribution))).not.toBeInTheDocument();
     expect(within(panel).queryByText("—")).not.toBeInTheDocument();
-    expect(panel.querySelector(".text-caption")).toBeNull();
+    // D-206: other lines of the panel are captions too now (text-xs became the
+    // caption role), so the credit is found by its words, not by its size.
+    expect(panel.textContent).not.toContain(`${t.reader.attribution}:`);
     expect(within(panel).getByText(own.excerpt)).toBeInTheDocument();
   });
 });

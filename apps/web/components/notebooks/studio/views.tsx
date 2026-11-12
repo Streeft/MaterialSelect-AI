@@ -269,8 +269,8 @@ export function QuizView({ content, cites }: { content: StudioQuizContent; cites
                 aria-pressed={isChosen}
                 onClick={() => setAnswers((all) => ({ ...all, [position]: index }))}
                 className={cn(
-                  "flex w-full items-start gap-2 rounded-control border px-3 py-2 text-left text-sm transition",
-                  !answered && "border-edge-control hover:border-brand hover:bg-brand-50",
+                  "flex w-full items-start gap-2 rounded-control border px-3 py-2 text-left text-body transition",
+                  !answered && "m3-state border-edge-control",
                   answered && isRight && "border-success bg-success-soft",
                   answered && isChosen && !isRight && "border-danger bg-danger-soft",
                   answered && !isRight && !isChosen && "border-line opacity-70",
@@ -293,7 +293,7 @@ export function QuizView({ content, cites }: { content: StudioQuizContent; cites
           );
         })}
       </ul>
-      <p aria-live="polite" className="text-sm font-semibold text-ink">
+      <p aria-live="polite" className="text-body font-semibold text-ink">
         {answered
           ? chosen === question.answer_index
             ? t.correct
@@ -596,12 +596,12 @@ function MindMapItem({
             type="button"
             aria-label={t.askAbout(node.label)}
             onClick={() => onAsk(node.label)}
-            className="rounded-control px-1 text-left text-sm text-ink hover:bg-brand-50 hover:text-brand-800"
+            className="rounded-control px-1 text-left text-body text-ink hover:bg-brand-50 hover:text-brand-800"
           >
             {node.label}
           </button>
         ) : (
-          <span className="text-sm text-ink">{node.label}</span>
+          <span className="text-body text-ink">{node.label}</span>
         )}
         <Chips numbers={node.citations} cites={cites} />
       </span>

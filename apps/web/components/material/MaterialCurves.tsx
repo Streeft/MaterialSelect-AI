@@ -250,7 +250,7 @@ export function MaterialCurves({
         <div className="flex flex-wrap items-center gap-2">
           {newCurveButton}
           {selected.is_official ? (
-            <p className="text-xs text-ink-muted">{t.edit.officialReadOnly}</p>
+            <p className="text-caption text-ink-muted">{t.edit.officialReadOnly}</p>
           ) : (
             <>
               <Button size="sm" disabled={!curve.data} onClick={() => setEditing("edit")}>

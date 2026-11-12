@@ -146,7 +146,7 @@ function CreateForm({
     >
       {tool.formats.length > 0 ? (
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-semibold text-ink">
+          <legend className="mb-2 text-body font-semibold text-ink">
             {t.formatLegend[tool.slug] ?? t.format}
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -168,7 +168,7 @@ function CreateForm({
 
       {tool.templates.length > 0 ? (
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-semibold text-ink">
+          <legend className="mb-2 text-body font-semibold text-ink">
             {t.templateLegend[tool.slug] ?? t.template}
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -303,7 +303,7 @@ function Segmented({
   const selected = choices.find((c) => c.slug === value);
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-ink">{label}</span>
+      <span className="text-body font-semibold text-ink">{label}</span>
       <ButtonGroup label={label} className="self-start">
         {choices.map((choice) => (
           <ButtonGroupItem
@@ -330,7 +330,7 @@ function ColumnsEditor({
 }) {
   return (
     <div className="well flex flex-col gap-2">
-      <span className="text-sm font-semibold text-ink">{t.columns}</span>
+      <span className="text-body font-semibold text-ink">{t.columns}</span>
       {columns.length === 0 ? <p className="text-support text-ink-muted">{t.columnsHint}</p> : null}
       <ol className="flex flex-col gap-2">
         {columns.map((column, index) => (

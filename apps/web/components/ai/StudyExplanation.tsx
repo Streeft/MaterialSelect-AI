@@ -50,16 +50,16 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
           }
         />
         <CardBody className="space-y-2">
-          <p className="max-w-prose text-sm font-medium text-ink">{explanation.summary}</p>
+          <p className="max-w-prose text-body font-medium text-ink">{explanation.summary}</p>
           {explanation.paragraphs.map((paragraph, i) => (
-            <p key={i} className="max-w-prose text-sm text-ink-muted">
+            <p key={i} className="max-w-prose text-body text-ink-muted">
               {paragraph}
             </p>
           ))}
 
           {explanation.caveats.length > 0 && (
             <Alert tone="warning" title={t.caveats}>
-              <ul className="list-disc space-y-1 pl-4 text-xs">
+              <ul className="list-disc space-y-1 pl-4 text-caption">
                 {explanation.caveats.map((caveat, i) => (
                   <li key={i}>{caveat}</li>
                 ))}
@@ -106,7 +106,7 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
           : t.explain}
       </Button>
       {error && (
-        <p role="alert" className="mt-1 text-xs text-danger-fg">
+        <p role="alert" className="mt-1 text-caption text-danger-fg">
           {error}
         </p>
       )}

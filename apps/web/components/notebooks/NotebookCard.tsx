@@ -55,7 +55,7 @@ export function NotebookCard({
   };
 
   const meta = (
-    <span className="mt-auto text-xs text-ink-muted">
+    <span className="mt-auto text-caption text-ink-muted">
       {t.sourceCount(notebook.source_count)}
       {date ? ` · ${t.updated(date)}` : ""}
     </span>
