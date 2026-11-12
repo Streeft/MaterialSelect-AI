@@ -4267,7 +4267,7 @@ export interface ReleaseDiff {
   items: ReleaseDiffItem[];
 }
 
-/** Um verbete do glossário de propriedades (D-130): conceitual, nunca numérico. */
+/** Um verbete do glossário de propriedades (D-130b): conceitual, nunca numérico. */
 export interface GlossaryEntry {
   slug: string;
   summary: string;

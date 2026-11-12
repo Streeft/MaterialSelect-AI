@@ -251,7 +251,7 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   material oficial (D-116).
 
 **Glossário de propriedades (relatório de lacunas do EduPack, #7,
-[D-130](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
+[D-130b](DECISIONS.md), Sessão 84b).** ✔ Entregue: ~~verbetes conceituais e
 autorais para os 15 slugs de `seed.PROPERTIES`, em `app/glossary/entries.json`
 (sem migração), com fonte, licença e estado de revisão por verbete~~,
 ~~`GET /api/glossario` e `/{slug}` (404 escrito)~~, ~~dica "?" na ficha e na
@@ -1160,7 +1160,7 @@ Registrados para não voltarem por engano:
   universo de processos. Resíduo: ~~tolerância por propriedade~~ (feita:
   `tolerances` slug → %, sobrepõe a global só naquela propriedade; sem
   nenhuma das duas, sem faixa; 422 em pt-BR; campo por linha no painel, na
-  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115). Novo
+  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115b). Novo
   resíduo: desligar a tolerância global numa propriedade só (hoje, para isso,
   apaga-se a global e dá-se a cada outra propriedade a sua).
 

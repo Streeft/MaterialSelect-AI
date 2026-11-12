@@ -53,7 +53,7 @@ beforeEach(() => {
   api.properties = () => Promise.resolve(props);
 });
 
-describe("página do glossário (D-130)", () => {
+describe("página do glossário (D-130b)", () => {
   it("mostra o carregamento", () => {
     api.glossary = () => new Promise(() => {});
     render(wrap(<GlossaryPage />));

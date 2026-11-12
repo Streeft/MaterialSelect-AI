@@ -232,7 +232,7 @@ Cada linha: o que faz e a decisão que a justifica. A tela de cada módulo fica 
 | **Painel** (`/app/painel`) | Cinco abas (Visão geral, Propriedades, Processos, Qualidade, Minha atividade) sobre filtros globais de classe, subclasse, nível e demonstração: cobertura, treemap, histograma, caixas, ranking, correlação de Spearman, qualidade por fonte, atividade própria; CSV por aba | [D-27](DECISIONS.md), [D-39](DECISIONS.md), [D-193](DECISIONS.md) |
 | **Catálogo** e ficha do material | Lista e detalhe lado a lado; ficha com proveniência por valor, composição, designações com equivalência **declarada por fonte** (nunca inferida), propriedades ordinais, curvas, "Materiais semelhantes" | [D-105](DECISIONS.md), [D-115](DECISIONS.md), [D-157](DECISIONS.md), [D-184](DECISIONS.md) |
 | Curvas do material | Tensão–deformação, temperatura, taxa, fadiga (S–N) e fluência como SVG próprio; nada é interpolado; o valor lido é só o ponto que a fonte declarou | [D-106](DECISIONS.md), [D-110](DECISIONS.md), [D-118](DECISIONS.md), [D-175](DECISIONS.md) |
-| **Glossário** | Verbetes autorais por propriedade (o que é e como se mede, sem valor típico) e notas conceituais por família de materiais | [D-130 (glossário)](DECISIONS.md), [D-151](DECISIONS.md) |
+| **Glossário** | Verbetes autorais por propriedade (o que é e como se mede, sem valor típico) e notas conceituais por família de materiais | [D-130b (glossário)](DECISIONS.md), [D-151](DECISIONS.md) |
 | Unidades de leitura | A unidade em que se lê é propriedade da propriedade; ler não é guardar (o valor canônico não muda) | [D-70](DECISIONS.md) |
 
 ### 4.2 Ferramentas de engenharia

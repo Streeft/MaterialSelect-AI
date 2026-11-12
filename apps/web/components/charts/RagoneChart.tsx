@@ -57,7 +57,7 @@ export function RagoneChart({
 }) {
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
-  const plotBox = usePlotlyResize<HTMLDivElement>();
+  const plotBox = usePlotlyResize<HTMLDivElement>(ptBR.chart.figureLabel(t.figure));
   const [tip, setTip] = useState<TooltipContent | null>(null);
 
   const { x_axis: xAxis, y_axis: yAxis } = data;
@@ -270,12 +270,14 @@ export function RagoneChart({
         </div>
       }
     >
-      {/* `role="img"` collapses Plotly's nodes into one object for assistive
-          technology; what replaces them is the data table (D-31). */}
+      {/* `role="img"` (on Plotly's `.svg-container`, see `usePlotlyResize`, D-226)
+          collapses Plotly's nodes into one object for assistive technology; what
+          replaces them is the data table (D-31). The wrapper is a `group`: the
+          modebar's buttons cannot live inside an image. */}
       <div
         ref={plotBox}
         className={`chart-plotly relative ${PLOTLY_HEIGHT.ragone}`}
-        role="img" aria-label={ptBR.chart.figureLabel(t.figure)}>
+        role="group" aria-label={ptBR.chart.figureLabel(t.figure)}>
         <Plot
           data={traces}
           layout={layout}

@@ -83,7 +83,10 @@ function traces(): { x: number[]; y: number[]; mode: string; name?: string }[] {
 describe("RagoneChart (D-145)", () => {
   it("passes axe and names the figure for assistive technology", async () => {
     const { container } = render(<RagoneChart data={fixture} />);
-    expect(screen.getByRole("img", { name: ptBR.chart.figureLabel(t.figure) })).toBeInTheDocument();
+    // D-226: the wrapper is a group (the modebar's buttons live in it); the
+    // `img` role goes on Plotly's own `.svg-container`, covered in
+    // usePlotlyResize.test.tsx.
+    expect(screen.getByRole("group", { name: ptBR.chart.figureLabel(t.figure) })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: new RegExp(t.title) })).toBeInTheDocument();
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);

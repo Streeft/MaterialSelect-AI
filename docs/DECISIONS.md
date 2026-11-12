@@ -10401,7 +10401,7 @@ cancelado ao esconder o item (`cancelQueries`).
 
 **O que não muda.** Nada de cálculo e nenhum valor de propriedade em jogo. Frontend
 apenas; não precisa de Deploy da API.
-## D-130 — Glossário de propriedades: verbete conceitual, autoral e versionado
+## D-130b — Glossário de propriedades: verbete conceitual, autoral e versionado
 
 *Decidida pelo assistente por delegação do autor, revisável.*
 
@@ -11024,10 +11024,10 @@ funil". Sem migração. Depois do merge, rodar o Deploy da API.
 
 **Contexto.** Lacuna do EduPack: o leitor não tinha um texto curto sobre cada família de materiais (o que ela é, por que se
 comporta assim, onde se usa, o que conferir ao escolhê-la). O P1-4 deu a `MaterialClass` duas frases editáveis
-(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130) é por propriedade.
+(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130b) é por propriedade.
 
 **Decisão.**
-1. **Mesmo desenho do D-130, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
+1. **Mesmo desenho do D-130b, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
    (Pydantic estrito, sem sessão de banco), servido por `GET /api/familias/notas` e `/{slug}` (404 escrito, nomeando o slug), com a
    regra de acesso da lista de classes. Sem migração. Campos: `summary` (≤ 280), `body` em parágrafos curtos (≤ 1200 no total),
    `when_to_use`, `watch_out`, `reference`, `license`, `review_status`, `lang`.
@@ -11574,7 +11574,7 @@ valores corrigidos, 2 materiais substituídos (Zamak por gravidade → ZA-8 e ZA
    regra (D-71) se mantém: mesmo arquivo, mesmo escritor (`seed_extended_materials`, que ganhou `specs`), mesmo `main()` que
    `semear_demo` e `scripts/seed.ps1` já executam — nenhum dos dois mudou. Nenhuma contagem fixa da suíte se moveu.
 2. **Dados em JSON, validador puro.** Os lotes ficam em `apps/api/app/db/demo_catalog/L0*.json` (no `package-data` do
-   `pyproject.toml`, como o glossário do D-130). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
+   `pyproject.toml`, como o glossário do D-130b). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
    `__main__`. As regras portadas do QA (`qa_global.py` e os nove validadores): estrutura e 15 propriedades por material; unidade
    aceita pela propriedade e conversão pela trilha de `app.calculations.units` (via `app.domain.data_quality`); nenhum zero ou
    negativo (ausência é `missing` com nota, e só em dureza e reciclagem — o escoamento do ferro fundido cinzento é a única exceção
@@ -11676,7 +11676,7 @@ seleção correta". O catálogo tinha 15 definições numéricas e duas ordinais
   (escala de cinco níveis), inflamabilidade (cinco níveis), transparência (quatro) e biocompatibilidade (quatro, "nível de exemplo, não
   qualificação regulatória"). Definições `is_demo`, como as de D-126: o importador oficial já recusa enquanto houver ordinal demo.
 - **Níveis (D-127)**: no Nível 1 entram só tenacidade à fratura, alongamento, fadiga e fusão; 17 no Nível 2; 12 no Nível 3.
-- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130).
+- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130b).
 - **Valores** (`app/db/seed_demo_extended_props.py` + faixas em `app/db/demo_extended_data.py`, no padrão de `seed_demo_cae`): cada
   material demo cai num de 358 perfis por uma de 365 regras sobre o **nome** (a subclasse "Concretos e Argamassas" ou "Aramida, Basalto e
   Híbridos" nomeia várias famílias), com sobreposição por nome para 51 graus conhecidos (6061-T6, 304, Ti-6Al-4V, cobre OF, Inconel 718…).
@@ -12492,28 +12492,6 @@ trilho estreito (continua estado de React, como antes: ler o armazenamento na ca
 **Numeração.** D-206/Sessão 163 ficaram com o PR 2.3, que corre em paralelo; esta é a D-207 e a sessão é a 164.
 Mexe em `apps/api` (rota nova): depois do merge, **Deploy da API**. Sem migração nem seed.
 
-## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
-
-**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
-inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
-"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
-
-**Decisão.**
-- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
-  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
-  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
-  `Response.error()`.
-- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
-  é uma navegação offline sem a página amigável, como antes de existir worker.
-- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
-- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
-
-**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
-ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
-bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
-
-**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
-internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
 
 ## D-206 — F1 da revisão das telas: fundações do sistema de design e oito peças novas

@@ -213,7 +213,7 @@ describe("AppSidebar", () => {
       // de estudo recebeu "Dimensionar" (P2), "Custo" e "Eco" (P3) e agora
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
       // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
-      // Dezoito desde o D-130: "Glossário", em "Dados".
+      // Dezoito desde o D-130b: "Glossário", em "Dados".
       // D-196: mais o atalho de Aparência no rodapé da conta.
       expect(within(drawer).getAllByShadowRole("link")).toHaveLength(20); // 18 + o wordmark + Aparência
       expect(within(drawer).getByShadowRole("link", { name: ptBR.appearance.open })).toHaveAttribute(
