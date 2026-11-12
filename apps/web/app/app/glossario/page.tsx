@@ -14,6 +14,7 @@ import {
 } from "@/lib/urlState";
 import { useDebounced } from "@/lib/useDebounced";
 import type { GlossaryEntry } from "@/lib/types";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { GlossaryNav } from "@/components/glossary/GlossaryNav";
 import {
   Badge,
@@ -138,6 +139,15 @@ function GlossaryPageContent() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
+      <AISuggestPanel
+        tool="glossario"
+        context={{ q: filter.slice(0, 120), slug: open?.entry ? open.slug : null }}
+        actions={["search", "open_route"]}
+        // D-229: the term the AI proposes goes into the same box the reader types in.
+        onAction={(action) => {
+          if (action.type === "search") setUrl({ busca: action.q });
+        }}
+      />
       <GlossaryNav current="propriedades" />
 
       {(entries.isLoading || properties.isLoading) && (
