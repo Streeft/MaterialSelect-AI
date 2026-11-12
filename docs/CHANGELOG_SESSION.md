@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 166 — 12/11/26 — F2 da revisão das telas: bases de dados com visões salvas (D-209)
+
+**O que mudou.** Visões salvas na conta: tabela `saved_view` (migração `4947c5b5057d`) e `/api/saved-views` por usuário, com
+`config` validado e teto de 20 visões por tela. Catálogo e Processos viram bases: busca, `FilterBar` e abas de visão (Tabela,
+Galeria, Lista) com "Salvar na visão", renomear e excluir com Desfazer; a D-50 é revogada em parte (a Tabela continua virando
+cartões no celular). O Painel ganha filtros em chips e a visão geral em blocos móveis e ocultáveis, com o layout na conta. O
+Glossário vira wiki: índice por letra, filtro por estado e o verbete aberto ao lado pelo hash; no celular a página foi de 54 394 para
+7 382 px. Testes: +7 de backend (`test_saved_views_api.py`) e, no frontend, abas e chips do catálogo, filtros de processos, layout do
+painel e o glossário como wiki (o verbete aberto e o vindo do endereço, com axe). No meio, a `main` trouxe a D-207/D-208; o merge
+renumerou esta fase e passou para papéis os `text-xs`/`text-sm` novos. Suíte: backend 5430 coletados (5424 passam e 6 pulam),
+frontend 1735 passam (163 arquivos); E2E inteiro passou antes (47) e depois do merge (48, com a paleta da main). No Chromium a 1440 e a 390 px: abas e Galeria no
+catálogo, blocos no painel, glossário com o verbete ao lado. Depois do merge: **Deploy da API** (rota e migração novas).
+
 ## Sessão 165 — 12/11/26 — Acesso livre a todos os menus (D-208)
 
 **O que mudou.** Etapa 1.7. `can_edit_shared_catalog` passou a ser verdadeiro para todo usuário logado, também no modo

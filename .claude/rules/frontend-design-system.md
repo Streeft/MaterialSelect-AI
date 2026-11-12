@@ -174,6 +174,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
   tela vazia é `EmptyState layout="page"` com `templates`; abrir ao lado é `SidePeek` modal; cálculo é `Workbench`. Nenhuma peça
   calcula, filtra ou ordena dado: relatam a escolha, o servidor responde. `foundations.test.ts` guarda as regras.
 
+- **Bases de dados têm visões salvas na conta** ([D-209](docs/DECISIONS.md), revoga em parte a D-50): tela-base usa
+  `useDatabaseView` + `SavedViewsBar` (abas "Todos" + visões; `aria-pressed`, não `tablist`) + `FilterBar`, e escolhe Tabela, Galeria
+  ou Lista; a Tabela continua virando cartões no celular. Visão mora em `saved_view` (`/api/saved-views`, por usuário, `config`
+  validado, sem número de material); escopo novo entra em `SavedViewScope` no backend e no `shared-types`. O layout do Painel é a
+  linha `kind="layout"`. Glossário é wiki: verbete aberto no `SidePeek` pelo hash.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

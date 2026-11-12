@@ -12411,3 +12411,42 @@ peças novas: é a F2 em diante, uma tela por vez.
 
 **Numeração.** D-206 e Sessão 163, as próximas livres em `main` (D-205/Sessão 162 da F0). Só frontend: sem migração, seed nem Deploy
 da API.
+
+## D-209 — F2 da revisão das telas: bases de dados com visões salvas na conta (revoga em parte a D-50)
+
+**Contexto.** A F1 (D-206) deu as peças; a F2 as usa nas quatro telas que são, na prática, bases de dados: Catálogo, Processos,
+Painel e Glossário. A auditoria mostrou filtros num cartão que ocupava a primeira tela do celular, nenhuma forma de guardar um
+jeito de olhar a lista, um painel de ordem fixa e um glossário de 54 mil px no celular. Duas decisões do autor, em 12/11/2026:
+**revogar em parte a D-50** (a troca manual de visão volta, como abas) e **guardar as visões na conta**, não no aparelho.
+
+**Decisão.**
+- **Visões salvas na conta.** Tabela `saved_view` (migração `4947c5b5057d`): `user_id`, `scope` (`catalogo`, `processos`,
+  `glossario`, `painel`), `name`, `kind` (`table`, `gallery`, `list`, `layout`), `config` JSON e `position`. O `config` é
+  validado por `SavedViewConfig` (filtros por slug com valor de até 120 caracteres, ordem, colunas, blocos e ocultos, todos com
+  teto; campo desconhecido é recusado), não guardado opaco: toda tela lê de volta as suas abas, e uma linha malformada quebraria a
+  tela. API `GET/POST/PATCH/DELETE /api/saved-views`, por usuário (a visão de outro é 404, como D-42); até 20 visões por tela; um
+  só `layout`, e só no Painel. Nenhum número de material entra na visão: filtros nomeiam valores que o servidor lista.
+- **A D-50 é revogada em parte.** A troca manual de visão volta como abas (`SavedViewsBar`): "Todos" e as visões da pessoa, cada uma
+  com seu tipo e filtros, "+ Nova visão" (Tabela, Galeria, Lista), renomear, excluir com Desfazer (D-130) e "Salvar na visão" quando
+  os filtros mudam. Fica da D-50 o que ela protegia: na visão **Tabela** a largura continua trocando tabela por cartões no celular,
+  sem botão que force uma tabela num telefone. Abas são botões com `aria-pressed`, não um `tablist`: o conteúdo é a mesma lista relida.
+- **Catálogo.** O cartão de filtros vira busca + `FilterBar` (classe, qualidade, subclasse); visões Tabela (a de sempre, com a
+  prévia ao lado, D-184), Galeria (`MaterialCards layout="gallery"`) e Lista (`MaterialLines`). Os filtros continuam estreitando a
+  lista que o servidor mandou, como antes.
+- **Processos.** Busca + `FilterBar` (família, subfamília, uso no catálogo) e visões Galeria (as famílias, padrão), Tabela e Lista.
+- **Painel.** Os filtros viram chips, ainda no endereço (D-193). A visão geral vira `OverviewBlocks`: cobertura, indicadores,
+  composição, qualidade, classes e lacunas reordenáveis e ocultáveis (`Block`/`useReorder`), com ordem e ocultos numa linha
+  `layout` da conta e "Restaurar a ordem padrão".
+- **Glossário como wiki.** Índice compacto por letra com o resumo de cada verbete, filtro por nome e por estado (revisado,
+  rascunho, sem verbete) e o verbete inteiro num `SidePeek`, aberto pelo hash (`#slug`, o mesmo destino de `glossaryHref`). O selo
+  de rascunho sai da lista e fica no verbete. No celular a página foi de 54 394 para 7 382 px.
+- `useDatabaseView` (`lib/savedViews.ts`) guarda filtros, tipo e visão ativa de uma tela; `useOptionalSnackbar` deixa excluir uma
+  visão funcionar numa tela renderizada fora do app.
+
+**Alternativas recusadas.** Guardar no aparelho (a recomendação inicial; o autor preferiu a conta, que segue a pessoa). `config`
+opaco como o `saved_chart` (uma visão é lida por toda tela que mostra a aba). Revogar a D-50 inteira (uma tabela forçada num telefone
+volta a rolar na horizontal). Um `tablist` ARIA (prometeria um painel por aba). Visões para o Glossário já nesta fase: o escopo
+existe, a barra fica para quando houver mais de um jeito de ler os verbetes.
+
+**Numeração.** A `main` recebeu a D-207 (paleta de comandos) e a D-208 (acesso livre) enquanto esta fase andava; a F2 ficou com a
+D-209 e a Sessão 166. Mexe em `apps/api` e traz migração: depois do merge, **Deploy da API** (o `release_command` aplica a migração).
