@@ -1993,6 +1993,47 @@ export interface SavedChartListItem {
   created_at: string;
 }
 
+// --- Saved views (D-207) ---------------------------------------------------
+// A reader's tabs on a database screen, kept in the account. Mirrors
+// `app/schemas/saved_view.py`; `config` never carries a number about a
+// material, only slugs the server lists.
+
+export type SavedViewScope = "catalogo" | "processos" | "glossario" | "painel";
+export type SavedViewKind = "table" | "gallery" | "list" | "layout";
+
+export interface SavedViewConfig {
+  filters?: Record<string, string | null>;
+  sort?: { field: string; direction: "asc" | "desc" } | null;
+  columns?: string[] | null;
+  blocks?: string[] | null;
+  hidden?: string[] | null;
+}
+
+export interface SavedViewIn {
+  scope: SavedViewScope;
+  name: string;
+  kind: SavedViewKind;
+  config?: SavedViewConfig;
+}
+
+export interface SavedViewPatch {
+  name?: string;
+  kind?: SavedViewKind;
+  config?: SavedViewConfig;
+  position?: number;
+}
+
+export interface SavedView {
+  id: number;
+  scope: SavedViewScope;
+  name: string;
+  kind: SavedViewKind;
+  config: SavedViewConfig;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- My Records (P1-4) -----------------------------------------------------
 
 /** The two universes a bookmark can point into — the engine's own word (D-58). */

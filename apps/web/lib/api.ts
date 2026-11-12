@@ -112,6 +112,10 @@ import type {
   RunResult,
   SavedChart,
   SavedChartIn,
+  SavedView,
+  SavedViewIn,
+  SavedViewPatch,
+  SavedViewScope,
   SavedChartListItem,
   Similar,
   SimilarRequest,
@@ -857,6 +861,30 @@ export function createSavedChart(payload: SavedChartIn): Promise<SavedChart> {
 
 export function deleteSavedChart(id: number): Promise<void> {
   return request<void>(`/api/saved-charts/${id}`, { method: "DELETE" });
+}
+
+// --- Saved views (D-207) ---------------------------------------------------
+
+export function listSavedViews(scope: SavedViewScope): Promise<SavedView[]> {
+  return request<SavedView[]>(`/api/saved-views?scope=${encodeURIComponent(scope)}`);
+}
+
+export function createSavedView(payload: SavedViewIn): Promise<SavedView> {
+  return request<SavedView>(`/api/saved-views`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateSavedView(id: number, patch: SavedViewPatch): Promise<SavedView> {
+  return request<SavedView>(`/api/saved-views/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteSavedView(id: number): Promise<void> {
+  return request<void>(`/api/saved-views/${id}`, { method: "DELETE" });
 }
 
 // --- Visualisation ----------------------------------------------------------

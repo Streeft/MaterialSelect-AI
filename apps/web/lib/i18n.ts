@@ -2090,6 +2090,8 @@ export const ptBR = {
     count: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
     showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
     filters: "Filtros",
+    // D-207: o nome do campo no chip ("Subclasse: …").
+    subclassLabel: "Subclasse",
     filterClass: "Classe",
     allClasses: "Todas",
     // P1-4: navegar não é filtrar. O seletor estreita a lista desta tela; um
@@ -2974,6 +2976,27 @@ export const ptBR = {
     workbenchResult: "Resultado",
     workbenchMethod: "Como se calcula",
     searchOpen: "Buscar",
+    // D-207: visões salvas (abas de uma base).
+    views: "Visões",
+    allView: "Todos",
+    newView: "Visão",
+    newViewMenu: "Nova visão",
+    kindTable: "Tabela",
+    kindGallery: "Galeria",
+    kindList: "Lista",
+    renameView: "Renomear",
+    deleteView: "Excluir",
+    viewActions: (name: string) => `Ações da visão ${name}`,
+    renameTitle: "Renomear visão",
+    nameLabel: "Nome",
+    save: "Salvar",
+    cancel: "Cancelar",
+    saveChanges: "Salvar na visão",
+    viewChanged: "Filtros mudaram",
+    viewWhat: (name: string) => `Visão “${name}”`,
+    viewsError: "Não foi possível carregar as visões salvas.",
+    viewCreated: (name: string) => `Visão “${name}” criada.`,
+    viewSaved: (name: string) => `Visão “${name}” atualizada.`,
   },
 
   ui: {

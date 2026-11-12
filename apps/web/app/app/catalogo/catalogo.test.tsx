@@ -5,6 +5,7 @@ import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import type { MaterialListItem } from "@/lib/types";
@@ -57,6 +58,8 @@ const materials: MaterialListItem[] = [
   },
 ];
 
+const savedViews = vi.hoisted(() => ({ list: [] as unknown[] }));
+
 // D-105: what the search answers, steered per test.
 const search = vi.hoisted(() => ({
   composition: null as unknown,
@@ -100,16 +103,34 @@ vi.mock("@/lib/api", () => ({
       composition: [],
     }),
   catalogueExportUrl: (format: string) => `#${format}`,
+  // D-207: the screen's saved views; none by default.
+  listSavedViews: () => Promise.resolve(savedViews.list),
+  createSavedView: (payload: Record<string, unknown>) =>
+    Promise.resolve({ id: 99, position: 0, created_at: "", updated_at: "", config: {}, ...payload }),
+  updateSavedView: () => Promise.resolve({}),
+  deleteSavedView: () => Promise.resolve(),
   opensInBrowser: (format: string) => format === "html",
 }));
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <SnackbarProvider>{node}</SnackbarProvider>
+    </QueryClientProvider>
+  );
 }
 
 // Imported after the mock so the page picks it up.
 const { default: CatalogPage } = await import("./page");
+
+// D-207: the filters are chips ("Campo: valor ▾") that open their options.
+async function pick(field: string, option: string) {
+  await userEvent.click(
+    screen.getByShadowRole("button", { name: new RegExp(`^${field}: `) }),
+  );
+  await userEvent.click(await screen.findByShadowRole("button", { name: option }));
+}
 
 async function renderCatalog() {
   const user = userEvent.setup();
@@ -127,6 +148,7 @@ describe("catálogo", () => {
   beforeEach(() => {
     search.composition = null;
     search.reject = null;
+    savedViews.list = [];
   });
 
   it("links, quietly, to the changes between releases (D-108)", async () => {
@@ -187,10 +209,11 @@ describe("catálogo", () => {
     expect(within(row as HTMLElement).getByText(t.noValues)).toBeInTheDocument();
   });
 
+
   it("filters by data quality, not only by name", async () => {
     const { table } = await renderCatalog();
 
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterQuality }), "gaps");
+    await pick(t.filterQuality, t.qualityWithGaps);
 
     await waitFor(() => {
       expect(within(table).queryByShadowRole("link", { name: /Aço 1020/ })).not.toBeInTheDocument();
@@ -202,8 +225,8 @@ describe("catálogo", () => {
   it("offers a way out when the filters leave nothing on screen", async () => {
     const { user } = await renderCatalog();
 
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterClass }), "ceramicas");
-    await userEvent.selectOptions(screen.getByShadowRole("combobox", { name: t.filterQuality }), "measured");
+    await pick(t.filterClass, "Cerâmicas");
+    await pick(t.filterQuality, t.qualityMeasured);
 
     // D-78: EmptyState's title now renders inside `.msds-state-title` (a
     // `<div>`, delegated to MSDS), so `.closest("div")` from the title text
@@ -213,7 +236,7 @@ describe("catálogo", () => {
     const empty = (await screen.findByText(t.emptyFiltered)).closest(".msds-state");
     expect(empty).not.toBeNull();
     // The empty state clears the filters rather than only apologising — the
-    // button inside it, not the one in the filter card above.
+    // button inside it, not the "Limpar" of the filter bar above.
     await user.click(within(empty as HTMLElement).getByShadowRole("button", { name: t.clearFilters }));
     const table = await screen.findByShadowRole("table");
     expect(within(table).getByShadowRole("link", { name: /Aço 1020/ })).toBeInTheDocument();
@@ -304,5 +327,56 @@ describe("lista e detalhe (D-184)", () => {
     expect(bar).toHaveClass("m3-floating-toolbar");
     expect(within(bar).getByShadowRole("status")).toHaveTextContent(t.selectedCount(1));
   });
-});
 
+  // D-207: the reader's saved views are tabs above the list.
+  it("applies a saved view's filters and kind when its tab is chosen", async () => {
+    savedViews.list = [
+      {
+        id: 7,
+        scope: "catalogo",
+        name: "Cerâmicas em lista",
+        kind: "list",
+        config: { filters: { classe: "ceramicas" } },
+        position: 0,
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+    const { user } = await renderCatalog();
+    const views = screen.getByShadowRole("group", { name: ptBR.ds.views });
+    await user.click(within(views).getByShadowRole("button", { name: /Cerâmicas em lista/ }));
+
+    // The "Lista" view: rows of links, no table; only the ceramic stays.
+    await waitFor(() => expect(screen.queryByShadowRole("table")).not.toBeInTheDocument());
+    expect(screen.getByShadowRole("link", { name: /Alumina/ })).toBeInTheDocument();
+    expect(screen.queryByShadowRole("link", { name: /Aço 1020/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByShadowRole("button", { name: ptBR.ds.filterChip(t.filterClass, "Cerâmicas") }),
+    ).toBeInTheDocument();
+
+    // "Todos" goes back to the whole table.
+    await user.click(within(views).getByShadowRole("button", { name: ptBR.ds.allView }));
+    expect(await screen.findByShadowRole("table")).toBeInTheDocument();
+  });
+
+  it("offers to save the filters into the active view once they change", async () => {
+    savedViews.list = [
+      {
+        id: 8,
+        scope: "catalogo",
+        name: "Metais",
+        kind: "table",
+        config: { filters: { classe: "metais" } },
+        position: 0,
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+    const { user } = await renderCatalog();
+    const views = screen.getByShadowRole("group", { name: ptBR.ds.views });
+    await user.click(within(views).getByShadowRole("button", { name: /^Metais/ }));
+    expect(screen.queryByShadowRole("button", { name: ptBR.ds.saveChanges })).not.toBeInTheDocument();
+    await pick(t.filterQuality, t.qualityMeasured);
+    expect(screen.getByShadowRole("button", { name: ptBR.ds.saveChanges })).toBeInTheDocument();
+  });
+});

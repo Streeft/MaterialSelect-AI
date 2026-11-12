@@ -111,3 +111,4 @@ export { PropertyList, type PropertyItem } from "./PropertyList";
 export { PageDoc } from "./PageDoc";
 export { SidePeek } from "./SidePeek";
 export { Workbench } from "./Workbench";
+export { SavedViewsBar, VIEW_KIND_LABEL, type ListViewKind } from "./SavedViewsBar";

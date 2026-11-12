@@ -115,7 +115,43 @@ function MaterialCard({
  * if the page ever shows hundreds of rows, switch to a `useMediaQuery` that
  * renders only one of the two.
  */
+/**
+ * D-207: `responsive` is the phone's stand-in for the table (hidden from `sm`
+ * up, D-50); `gallery` is the "Galeria" view a reader chose, a grid at every
+ * width.
+ */
 export function MaterialCards({
+  materials,
+  searchQuery,
+  layout = "responsive",
+}: {
+  materials: MaterialListItem[];
+  searchQuery?: string;
+  layout?: "responsive" | "gallery";
+}) {
+  return (
+    <ul
+      className={
+        layout === "gallery"
+          ? "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3"
+          : "flex flex-col gap-3 sm:hidden"
+      }
+    >
+      {materials.map((material, index) => (
+        <li key={material.id}>
+          <MaterialCard material={material} index={index} searchQuery={searchQuery} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * D-207: the "Lista" view — one line per material, Notion's list: name,
+ * family and the quality chips, nothing else. Rows are links, so the whole
+ * line is the target.
+ */
+export function MaterialLines({
   materials,
   searchQuery,
 }: {
@@ -123,14 +159,25 @@ export function MaterialCards({
   searchQuery?: string;
 }) {
   return (
-    <ul className="flex flex-col gap-3 sm:hidden">
-      {materials.map((material, index) => (
-        <li key={material.id}>
-          <MaterialCard
-            material={material}
-            index={index}
-            searchQuery={searchQuery}
-          />
+    <ul className="divide-y divide-line-divider rounded-card border border-line bg-panel">
+      {materials.map((material) => (
+        <li key={material.id} {...{ [ORIGIN_ATTRIBUTE]: "" }}>
+          <Link
+            href={`/app/materiais/${material.id}`}
+            onClick={markContainerOrigin}
+            className="m3-state flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5"
+          >
+            <span
+              aria-hidden
+              className="h-2.5 w-2.5 shrink-0 rounded-sm"
+              style={{ background: classVisual(material.class_slug).color }}
+            />
+            <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
+              <HighlightText text={material.name} query={searchQuery} />
+            </span>
+            <span className="text-caption text-ink-muted">{material.class_name}</span>
+            <QualityBar quality={material.quality} referenceCount={material.reference_count} />
+          </Link>
         </li>
       ))}
     </ul>
