@@ -8,7 +8,7 @@ const catalogue = [
   { id: 4, name: "Titânio Demo Ti-6Al-4V" },
 ];
 
-describe("pares clássicos do comparador (D-220)", () => {
+describe("pares clássicos do comparador (D-221)", () => {
   it("acha cada lado pelo nome, sem acento nem caixa, na ordem do catálogo", () => {
     const pairs = resolveClassicPairs(catalogue);
     expect(pairs.map((p) => p.ids)).toEqual([

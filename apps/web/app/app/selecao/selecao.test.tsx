@@ -431,7 +431,7 @@ describe("navegação guiada (D-85)", () => {
     expect(stepButton(t.stepFunction)).toHaveTextContent("viga em flexão");
   });
 
-  it("é um documento: o nome é o título, e as propriedades levam ao passo (D-220)", async () => {
+  it("é um documento: o nome é o título, e as propriedades levam ao passo (D-221)", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
     const title = screen.getByRole("textbox", { name: t.studyName });

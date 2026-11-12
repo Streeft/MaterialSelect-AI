@@ -358,7 +358,7 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     expect(screen.getByRole("checkbox", { name: t.pointSelect("Titânio") })).toHaveFocus();
   });
 
-  // D-220 (on D-86): on a narrow window the drawing sections of the inspector
+  // D-221 (on D-86): on a narrow window the drawing sections of the inspector
   // fold, unless the link already uses one of them.
   it("em tela estreita as seções de desenho do inspetor recolhem, a não ser que o link as use", async () => {
     const { unmount } = await open();
@@ -383,7 +383,7 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     expect(screen.getByRole("group", { name: new RegExp(`^${t.axisX} — `) })).toBeInTheDocument();
   });
 
-  it("um mapa salvo é uma visão: abre com um clique e se fixa no Início (D-220)", async () => {
+  it("um mapa salvo é uma visão: abre com um clique e se fixa no Início (D-221)", async () => {
     const user = userEvent.setup();
     window.localStorage.removeItem("msai:pinned-maps");
     listSavedCharts.mockResolvedValueOnce([{ id: 7, name: "Metais leves", created_at: "2026-11-01" }]);
@@ -402,13 +402,13 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     window.localStorage.removeItem("msai:pinned-maps");
   });
 
-  it("abre o mapa fixado que chega pelo endereço (?grafico=) (D-220)", async () => {
+  it("abre o mapa fixado que chega pelo endereço (?grafico=) (D-221)", async () => {
     setQuery("grafico=9");
     await open();
     await waitFor(() => expect(getSavedChart).toHaveBeenCalledWith(9));
   });
 
-  it("no celular o inspetor é uma folha que começa recolhida à cabeça (D-220)", async () => {
+  it("no celular o inspetor é uma folha que começa recolhida à cabeça (D-221)", async () => {
     const user = userEvent.setup();
     await open();
     const toggle = screen.getByRole("button", { name: t.inspectorOpen });
@@ -466,7 +466,7 @@ describe("Mapas — mapas clássicos e linha de índice móvel (D-213)", () => {
     await waitFor(() => expect(query().get("estado")).toBeNull());
   });
 
-  it("em tela larga as seções de desenho do inspetor começam abertas (D-220)", async () => {
+  it("em tela larga as seções de desenho do inspetor começam abertas (D-221)", async () => {
     await open();
     for (const part of ["appearance", "classes", "index"] as const) {
       expect(screen.getByRole("button", { name: t.inspectorParts[part] })).toHaveAttribute(

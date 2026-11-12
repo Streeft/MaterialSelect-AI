@@ -57,7 +57,7 @@ function mount() {
   );
 }
 
-/** D-220: what the property search offers, by opening it. */
+/** D-221: what the property search offers, by opening it. */
 async function offered(): Promise<string[]> {
   const user = userEvent.setup();
   await user.click(await screen.findByRole("combobox", { name: compareViewText.bar.addProperty }));

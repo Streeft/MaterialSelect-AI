@@ -513,7 +513,7 @@ export function StageList({
   constraintAdvanced = true,
   depthLevel = DEFAULT_DEPTH_LEVEL,
 }: Props) {
-  // D-220: the app's one reorder gesture (D-206) — the grip drags, Alt+↑/↓
+  // D-221: the app's one reorder gesture (D-206) — the grip drags, Alt+↑/↓
   // moves from the keyboard, and every move is announced.
   const reorderGesture = useReorder({
     items: stages,

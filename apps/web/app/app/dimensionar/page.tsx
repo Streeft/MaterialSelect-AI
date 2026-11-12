@@ -361,7 +361,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
     ? t.blockedVariable(`${missingVariable.label} (${prettyUnit(missingVariable.unit)})`)
     : null;
 
-  // D-219: the result follows the brief — asked about a moment after the reader
+  // D-220: the result follows the brief — asked about a moment after the reader
   // stops typing. The sizing is still the server's.
   const live = useLiveResult<SolveRequest, SolveResult>({
     key: "dimensionar-ao-vivo",
@@ -379,7 +379,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
   });
   const result = live.data ?? null;
 
-  // D-219: the case's declared example, only on the reader's click — a brief
+  // D-220: the case's declared example, only on the reader's click — a brief
   // pre-filled on its own would be the tool inventing a design.
   function applyExample() {
     if (!selected) return;

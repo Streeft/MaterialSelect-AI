@@ -128,7 +128,7 @@ function MapsPageContent() {
   const [customizeOpen, setCustomizeOpen] = useState(() =>
     mapUsesCustomization({ ...decodedState, universe }),
   );
-  // D-220: the inspector's folds. Selection and axes start open; the three
+  // D-221: the inspector's folds. Selection and axes start open; the three
   // drawing sections follow D-213 — open beside the map on a wide window, and
   // on a narrow one open by themselves only when the link uses one of them.
   const [openSections, setOpenSections] = useState<Partial<Record<InspectorPart, boolean>>>({});
@@ -140,7 +140,7 @@ function MapsPageContent() {
     if (part !== "selection" && part !== "axes" && next) setCustomizeOpen(true);
   };
   const customizeVisible = wide || customizeOpen;
-  // D-220: below lg the inspector is a bottom sheet; it starts folded to its head.
+  // D-221: below lg the inspector is a bottom sheet; it starts folded to its head.
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const [xAxis, setXAxis] = useState<AxisState>(() => ({
@@ -653,7 +653,7 @@ function MapsPageContent() {
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [chartNameDraft, setChartNameDraft] = useState("");
-  // D-220: the saved map last opened, for its chip; any later change keeps it
+  // D-221: the saved map last opened, for its chip; any later change keeps it
   // marked until another view is opened — the chip says where the map came from.
   const [activeChartId, setActiveChartId] = useState<number | null>(null);
   const savedCharts = useQuery({
@@ -754,7 +754,7 @@ function MapsPageContent() {
     setLive({ box: null, line: null });
   }
 
-  // D-220: a pinned map opens from the Início as `?grafico=<id>` — the saved
+  // D-221: a pinned map opens from the Início as `?grafico=<id>` — the saved
   // map is asked for again, applied once, and the parameter leaves the address.
   const openedFromLink = useRef(false);
   const linkedChart = params.get("grafico");
@@ -839,7 +839,7 @@ function MapsPageContent() {
     />
   ) : null;
 
-  // D-220: what a folded section holds, so closing it never hides what is in use.
+  // D-221: what a folded section holds, so closing it never hides what is in use.
   const partSummary: Record<"appearance" | "classes" | "index", string | null> = {
     appearance: inUse.some((k) => k === "scale" || k === "envelope" || k === "layers")
       ? t.customizeInUse(
@@ -1043,7 +1043,7 @@ function MapsPageContent() {
           )}
         </div>
 
-        {/* D-220: the inspector (Figma's right panel) — the question, the
+        {/* D-221: the inspector (Figma's right panel) — the question, the
             axes and the drawing options as sections that fold, beside the map
             on a wide screen; below lg the same inspector is a standard bottom
             sheet whose head peeks over the map, so the map takes the width. */}
@@ -1169,7 +1169,7 @@ function MapsPageContent() {
           </div>
         </aside>
       </div>
-      {/* D-220: below lg, room for the inspector's head over the last row. */}
+      {/* D-221: below lg, room for the inspector's head over the last row. */}
       <div aria-hidden className="ds-map-sheet-spacer" />
     </div>
   );

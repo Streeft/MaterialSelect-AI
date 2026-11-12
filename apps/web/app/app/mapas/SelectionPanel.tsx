@@ -50,7 +50,7 @@ export function SelectionPanel({
   const outside = selectedIds.filter((id) => !plottedIds.has(id)).length;
   const hasSelection = count > 0 || box !== null;
 
-  // D-220: the body of the inspector's "Seleção" section; the heading is the section's.
+  // D-221: the body of the inspector's "Seleção" section; the heading is the section's.
   if (!hasSelection) return <p className="text-support text-ink-muted">{t.selectionEmpty}</p>;
   return (
         <div className="flex flex-col gap-3">

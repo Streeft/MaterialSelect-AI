@@ -324,7 +324,7 @@ export function AshbyMap({
   const plotBox = usePlotlyResize<HTMLDivElement>();
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
-  // D-220: on a touch screen a drag on the figure is a pan, not a box — the
+  // D-221: on a touch screen a drag on the figure is a pan, not a box — the
   // region and lasso tools leave with the cursor-mode seats (CSS hides them on
   // a coarse pointer), and the selection stays a tap on the points' list.
   // Until the reader picks a mode, the pointer decides; read after hydration.
@@ -981,7 +981,7 @@ export function AshbyMap({
         />
       }
     >
-      {/* D-220: the legend sits above the drawing, inside the first screen —
+      {/* D-221: the legend sits above the drawing, inside the first screen —
           under a figure as tall as the viewport it was never seen. */}
       <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
       {/* `role="img"` collapses Plotly's thousands of `<path>` and tick nodes

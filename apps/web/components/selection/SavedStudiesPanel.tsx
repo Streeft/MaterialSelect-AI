@@ -27,7 +27,7 @@ const t = ptBR.selection;
  *
  * It used to sit under every step, about ten controls per study, below the
  * very form the reader was trying to fill; D-85 folded it into a line at the
- * top. D-220 takes it off the document altogether: one quiet button in the
+ * top. D-221 takes it off the document altogether: one quiet button in the
  * study's head, saying how many there are, opens the list beside the page
  * (`SidePeek`), so the study being written keeps the whole width. Nothing was
  * removed; the Início lists the same studies on the way in.
@@ -57,7 +57,7 @@ export function SavedStudiesPanel({
       {count === 0 ? (
         <EmptyState title={t.noStudies} />
       ) : (
-        // D-220: a list of cards, not a table — the panel is 28rem wide, and a
+        // D-221: a list of cards, not a table — the panel is 28rem wide, and a
         // three-column row squeezed the counts into one word per line.
         <ul aria-label={t.savedStudies} className="flex flex-col gap-3">
           {(studies ?? []).map((s) => (

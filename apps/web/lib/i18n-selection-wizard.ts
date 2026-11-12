@@ -5,7 +5,7 @@
  * do not collide with this one.
  */
 export const wizardText = {
-  // D-220: the study as a document — its name is the title, the problem its properties.
+  // D-221: the study as a document — its name is the title, the problem its properties.
   doc: {
     untitled: "Estudo sem título",
     functionProp: "Função",

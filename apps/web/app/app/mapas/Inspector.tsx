@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { IconChevronDown } from "@/components/ui/icons";
 
 /**
- * D-220: one section of the map's inspector — a heading that is a button
+ * D-221: one section of the map's inspector — a heading that is a button
  * (Figma's right panel, M3's expandable list item), its body mounted only while
  * open. The summary line says what a folded section holds, so closing one never
  * hides that it is in use ("Escala linear", "2 classes").

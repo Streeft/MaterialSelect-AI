@@ -12905,10 +12905,6 @@ o carregamento era um spinner e o cabeçalho tinha dois botões soltos sem hiera
 **Fora.** Posição do trecho no servidor, para o link com trecho sobreviver ao recarregar. Mover a conversa e o Estúdio na
 duplicação. Arquivar em lote. Toca `apps/api` **com migração**: depois do merge, **Deploy da API** e a **Administração do
 banco** (migrar) antes de usar a lista de arquivados em produção.
-## D-219 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
-
-> Mesclada como "D-218", número que a decisão dos Cadernos já usava; renumerada para D-219 no PR da F5 (D-220), junto com as referências no código.
-
 
 ## D-219 — Processos (matriz, capacidade, comparação), Glossário, Sintetizar, Painel e Meus registros
 
@@ -12953,7 +12949,9 @@ no render), o índice A–Z e o filtro sem acento do Glossário, e os `useUrlSta
 galeria, lista e tabela (hoje só na matriz). Excluir registro próprio em lote (a exclusão de material não é desfazível
 no servidor). Toca `apps/api` **sem migração nem seed**: depois do merge, **Deploy da API**.
 
-## D-218 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
+## D-220 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
+
+> Mesclada como "D-218", número que a decisão dos Cadernos já usava; o #243 tomou a D-219 em paralelo. Renumerada para D-220 no PR da F5 (D-221), junto com as referências no código.
 
 **Contexto.** A F4 do plano ("bancadas de cálculo") correu em paralelo com a etapa 4.5 do #240 (D-216: padrões no backend, Eco
 em módulos e no endereço com cascata, Dimensionar com esquema e barras, Custo comparando). O autor escolheu, em 12/11/2026, ficar
@@ -12987,10 +12985,10 @@ com o desenho da D-216 e pôr a F4 por cima dela, com o Dimensionar abrindo vazi
 (inventa projeto; o clique é o consentimento — decisão do autor). Manter o botão de calcular ao lado do ao vivo (dois jeitos de
 fazer a mesma coisa). Uma grade de planilha com teclado próprio (a tabela de controles nativos já tem Tab, leitor de tela e celular).
 
-**Numeração.** D-219 e Sessão 176 (mesclada como D-218/Sessão 175, renumerada na D-220): o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
+**Numeração.** D-220 e Sessão 177 (mesclada como D-218/Sessão 175, renumerada na D-221): o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
 (sem migração): depois do merge, **Deploy da API**.
 
-## D-220 — F5 da revisão das telas: o estudo como documento, o mapa com inspetor e o comparador com pontos de partida
+## D-221 — F5 da revisão das telas: o estudo como documento, o mapa com inspetor e o comparador com pontos de partida
 
 **Contexto.** A F5 do plano de revisão das telas ("M3 na estrutura, Notion na superfície") cobre o grupo Estudar: a Seleção abria
 com um formulário em caixa, "Meus estudos" como faixa solta acima dos passos e os quatro passos empilhados em meia tela de celular;
@@ -13032,6 +13030,6 @@ fixados por id (o catálogo muda; um id errado poria um material no lugar de out
 campo (o rascunho e o salvar leem o estado a cada tecla, D-139).
 
 **Numeração.** A F4 entrou como "D-218", número que a decisão dos Cadernos (#242) já usava; neste PR ela passa a D-219 (Sessão
-176), nas decisões, no registro e nos comentários do código. Esta é a D-220, Sessão 177. Só frontend: nada a disparar depois do
+176), nas decisões, no registro e nos comentários do código. Esta é a D-221, Sessão 177. Só frontend: nada a disparar depois do
 merge além da Vercel.
 

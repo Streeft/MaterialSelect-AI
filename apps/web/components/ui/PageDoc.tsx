@@ -39,21 +39,21 @@ export function PageDoc({
 }: {
   /** A glyph or a badge before the title. Decorative. */
   icon?: ReactNode;
-  /** D-220: the section line above the title, for a page that is a section and a document at once. */
+  /** D-221: the section line above the title, for a page that is a section and a document at once. */
   eyebrow?: ReactNode;
   title: string;
   /** Present: the title is editable in place. */
   onTitleChange?: (title: string) => void;
-  /** D-220: the editable title's name, when "Título" is not what it is ("Nome do estudo"). */
+  /** D-221: the editable title's name, when "Título" is not what it is ("Nome do estudo"). */
   titleLabel?: string;
   /**
-   * D-220: shown while the title is empty ("Estudo sem título"). With it the
+   * D-221: shown while the title is empty ("Estudo sem título"). With it the
    * title is a live field — every keystroke reaches `onTitleChange`, and empty
    * is a real state (a study with no name yet), not a typo to restore.
    */
   titlePlaceholder?: string;
   /**
-   * D-220: the heading's name when the title is a field that may be empty —
+   * D-221: the heading's name when the title is a field that may be empty —
    * the section the document is ("Seleção de materiais"). The field keeps its
    * own name; the outline never shows a heading with no words.
    */
@@ -85,7 +85,7 @@ export function PageDoc({
               // Keyed by the title: one changed elsewhere (a save that
               // normalised it) remounts the field with the new draft.
               titlePlaceholder !== undefined ? (
-                // D-220: a title that may be empty is the record's own field
+                // D-221: a title that may be empty is the record's own field
                 // (a study's name), so it follows each keystroke like any field
                 // of the form — the draft and the save read it as it is typed.
                 <textarea

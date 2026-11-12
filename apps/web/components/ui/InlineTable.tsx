@@ -24,7 +24,7 @@ export interface InlineColumn {
 }
 
 /**
- * D-219: a table you edit in place — Airtable's grid, in the app's table look.
+ * D-220: a table you edit in place — Airtable's grid, in the app's table look.
  *
  * One row per item (a component of the product, a transport leg), the controls
  * in the cells, "+ Nova linha" under the last row, and a "⋯" per row with

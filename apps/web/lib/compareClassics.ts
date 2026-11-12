@@ -1,5 +1,5 @@
 /**
- * D-220: classic pairs for the comparator's empty state — the comparisons a
+ * D-221: classic pairs for the comparator's empty state — the comparisons a
  * materials course makes first (steel against aluminium, HDPE against PP).
  *
  * A pair is two *names*, not two records: each side is looked up in the

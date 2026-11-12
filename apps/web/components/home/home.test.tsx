@@ -166,7 +166,7 @@ describe("RecentRecords (D-132)", () => {
   });
 });
 
-describe("Mapas fixados no Início (D-220)", () => {
+describe("Mapas fixados no Início (D-221)", () => {
   it("lista os mapas fixados, cada um reabrindo o mapa salvo, e some sem nenhum", async () => {
     const { PinnedMaps } = await import("./PinnedMaps");
     window.localStorage.removeItem("msai:pinned-maps");

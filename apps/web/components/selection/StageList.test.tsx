@@ -407,7 +407,7 @@ describe("StageList", () => {
     expect(card2).not.toHaveAttribute("data-drop-target");
   });
 
-  it("move o estágio com Alt+↓ na alça, como todo bloco do app (D-220)", () => {
+  it("move o estágio com Alt+↓ na alça, como todo bloco do app (D-221)", () => {
     let last: StageState[] = [];
     const s1 = { ...emptyLimitStage(), label: "Primeiro" };
     const s2 = { ...emptyTreeStage(), label: "Segundo" };

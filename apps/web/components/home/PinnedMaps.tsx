@@ -9,7 +9,7 @@ import { usePinnedMaps } from "@/lib/pinnedMaps";
 const t = ptBR.home;
 
 /**
- * D-220: the saved maps a reader pinned in Mapas ("Fixar no Início"). Each is a
+ * D-221: the saved maps a reader pinned in Mapas ("Fixar no Início"). Each is a
  * link that reopens the saved map (`?grafico=`): the configuration is fetched
  * again, never kept here. No pin, no block — the Início does not grow an empty
  * section for a feature the reader has not used.

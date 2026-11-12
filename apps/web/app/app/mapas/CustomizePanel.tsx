@@ -57,7 +57,7 @@ export interface CustomizeActions {
 }
 
 /**
- * D-220: three sections of the map's inspector — Aparência, Classes, Índice —
+ * D-221: three sections of the map's inspector — Aparência, Classes, Índice —
  * from the one "Personalizar o mapa" card they used to share (D-213). Each is
  * its own fold now, with the inspector's heading; `part` says which body.
  */

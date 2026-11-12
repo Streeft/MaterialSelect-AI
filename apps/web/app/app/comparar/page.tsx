@@ -324,7 +324,7 @@ function ComparePageContent() {
       : []),
   ];
 
-  // D-220: the property search offers what is not chosen yet, at the reading
+  // D-221: the property search offers what is not chosen yet, at the reading
   // level (D-165); the chosen ones are chips, each with its own way out.
   const propertyBySlug = new Map((properties.data ?? []).map((p) => [p.slug, p]));
   const propertyOptions: ComboboxOption[] = offeredProperties
@@ -377,7 +377,7 @@ function ComparePageContent() {
         </p>
       )}
 
-      {/* D-220: what is compared is one bar — the materials and the
+      {/* D-221: what is compared is one bar — the materials and the
           properties as chips, each added by search — instead of two step
           cards; with two materials the result below takes the screen. A link
           with `?materiais=` arrives with the bar filled (D-86). */}

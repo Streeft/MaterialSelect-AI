@@ -119,7 +119,7 @@ describe("comparador: o link leva propriedades e normalização (D-174)", () => 
     expect(requests.every((r) => r.normalization === "vector")).toBe(true);
     expect(requests.every((r) => r.property_slugs.join() === "modulo_young,densidade")).toBe(true);
     expect(screen.getByLabelText(ptBR.compare.normalization)).toHaveValue("vector");
-    // D-220: the chosen properties are chips, in the order the link gave.
+    // D-221: the chosen properties are chips, in the order the link gave.
     const chips = screen.getByRole("list", { name: compareViewText.bar.chosenProperties });
     expect(chips).toHaveTextContent(/Módulo de Young.*Densidade/);
   });

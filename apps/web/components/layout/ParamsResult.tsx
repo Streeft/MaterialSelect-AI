@@ -62,7 +62,7 @@ export function ResultPanel({
   children: ReactNode;
   label?: string;
   sticky?: boolean;
-  /** D-219: a live result is being asked about again (`aria-busy`). */
+  /** D-220: a live result is being asked about again (`aria-busy`). */
   busy?: boolean;
   className?: string;
 }) {

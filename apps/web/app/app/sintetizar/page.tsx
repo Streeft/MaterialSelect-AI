@@ -153,7 +153,7 @@ const KINDS: { kind: SynthesisKind; label: string; line: string }[] = [
 ];
 
 /**
- * D-219: what each kind *is*, drawn — fibres in a matrix, cells in a solid,
+ * D-220: what each kind *is*, drawn — fibres in a matrix, cells in a solid,
  * two faces on a core. A picture, not data: decorative (`aria-hidden`), in the
  * ink colour, the same size for the three so the cards line up.
  */
@@ -417,7 +417,7 @@ export default function SintetizarPage() {
   ]);
   const recipeReady = recipeBlocked === null;
 
-  // D-219: the preview follows the recipe. It creates nothing, so it asks with
+  // D-220: the preview follows the recipe. It creates nothing, so it asks with
   // the provisional name (the API validates the same body as a save and refuses
   // an empty one) and without the identity: typing the name asks nothing again.
   const live = useLiveResult<SynthesisRequest, SynthesisPreview>({
@@ -739,7 +739,7 @@ export default function SintetizarPage() {
         parentB={selectedB}
       />
 
-      {/* D-219: said once, in one line at the foot of the page — not a banner
+      {/* D-220: said once, in one line at the foot of the page — not a banner
           above every field repeating principle 1. */}
       <p className="max-w-prose text-caption text-ink-muted">{t.principle}</p>
     </div>

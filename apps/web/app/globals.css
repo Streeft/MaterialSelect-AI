@@ -2208,7 +2208,7 @@ div[data-surface="rail"] .msds-rail-item {
   .ds-prop-table td { padding-top: 4px; }
 }
 
-/* D-219: the unit inside a number field, after the value ("1,2 m"). */
+/* D-220: the unit inside a number field, after the value ("1,2 m"). */
 .msds-unit-wrap { position: relative; }
 .msds-unit-wrap > .msds-control { padding-right: calc(var(--unit-ch, 1) * 0.6em + 20px); }
 .msds-unit {
@@ -2216,7 +2216,7 @@ div[data-surface="rail"] .msds-rail-item {
   color: rgb(var(--ink-muted)); font-size: 0.875em; white-space: nowrap;
 }
 
-/* D-219: InlineTable — a grid edited in place; stacks below 640 px of its own width. */
+/* D-220: InlineTable — a grid edited in place; stacks below 640 px of its own width. */
 .ds-inline-table { container-type: inline-size; min-width: 0; }
 .ds-inline-grid { width: 100%; border-collapse: collapse; }
 .ds-inline-grid th { padding: 6px 8px; text-align: left; vertical-align: bottom; border-bottom: 1px solid rgb(var(--border-divider)); }
@@ -2255,10 +2255,10 @@ div[data-surface="rail"] .msds-rail-item {
   .ds-inline-table[data-stack="md"] .ds-inline-row-name { display: block; font-weight: 600; color: rgb(var(--ink)); }
 }
 
-/* D-220: a control that only makes sense with a mouse (a box drawn on a figure). */
+/* D-221: a control that only makes sense with a mouse (a box drawn on a figure). */
 @media (pointer: coarse) { .ds-fine-pointer-only { display: none !important; } }
 
-/* D-220: the map's inspector — one surface, sections that fold (Figma's right panel). */
+/* D-221: the map's inspector — one surface, sections that fold (Figma's right panel). */
 .ds-inspector { display: flex; flex-direction: column; border: 1px solid rgb(var(--line)); border-radius: var(--shape-medium);
   background: rgb(var(--panel)); }
 .ds-inspector-section + .ds-inspector-section { border-top: 1px solid rgb(var(--line-divider)); }

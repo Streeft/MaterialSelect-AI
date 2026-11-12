@@ -9,7 +9,7 @@ import { pinMap, unpinMap, usePinnedMaps } from "@/lib/pinnedMaps";
 const t = ptBR.map;
 
 /**
- * D-220: the saved maps as views — a row of chips above the figure (Notion's
+ * D-221: the saved maps as views — a row of chips above the figure (Notion's
  * view tabs), one click to reopen, and a "⋯" per view to pin it to the Início.
  * It replaces the "Mapas salvos" select that sat at the end of the axes panel,
  * where a saved map was a form value to pick rather than a place to go back to.

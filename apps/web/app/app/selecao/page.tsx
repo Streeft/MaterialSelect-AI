@@ -820,7 +820,7 @@ function SelectionWizard() {
 
   /** What each step already holds, in a few words — the stepper's second line. */
   const stepSummaries: Record<Step, string | undefined> = {
-    // D-220: the name is the page's title now; the step says the function.
+    // D-221: the name is the page's title now; the step says the function.
     function: state.functionText.trim() || undefined,
     objective: hasObjective
       ? t.summaryObjective(activeIndex?.name ?? null, criteriaPayload().length)
@@ -832,13 +832,13 @@ function SelectionWizard() {
   };
   const stepsWithSummary = STEPS.map((s) => ({ ...s, summary: stepSummaries[s.id] }));
 
-  // D-220: a section and a document at once — the eyebrow PageHeader would
+  // D-221: a section and a document at once — the eyebrow PageHeader would
   // write ("estudar · seleção"), above the study's own title.
   const groupLabel = groupForPath(pathname)?.toLowerCase();
   const sectionLabel = labelForPath(pathname).toLowerCase();
   const eyebrow = groupLabel ? `${groupLabel} · ${sectionLabel}` : sectionLabel;
 
-  // D-220: the study is the page — its name the title, the problem its
+  // D-221: the study is the page — its name the title, the problem its
   // properties, each one a way back to the step that holds it.
   const freeVariables = state.freeVariables
     .split(",")

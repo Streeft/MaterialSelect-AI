@@ -185,12 +185,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
   e famílias seguem o mesmo molde. Unidade de leitura é `UnitChip` no próprio valor (escolha na URL, D-70; quem converte é o servidor);
   nunca uma fileira de seletores antes dos números. Grandeza de uma unidade e valor ausente não ganham chip.
 
-- **Calculadora é bancada ao vivo** ([D-219](docs/DECISIONS.md), sobre a D-216): o resultado segue os campos por `useLiveResult` (pergunta ao
+- **Calculadora é bancada ao vivo** ([D-220](docs/DECISIONS.md), sobre a D-216): o resultado segue os campos por `useLiveResult` (pergunta ao
   servidor depois de uma pausa, mantém a resposta anterior marcada "Atualizando…"; nunca calcula no cliente) e o painel do resultado
   diz o que falta. Exemplo só com clique ("Usar o exemplo", valores declarados no backend). Unidade dentro do campo
   (`NumberInput unit`). Lista de itens que se editam é `InlineTable` (linha nova, ⋯ com Duplicar e Remover com Desfazer).
 
-- **Estudar é documento e inspetor** ([D-220](docs/DECISIONS.md)): o estudo da Seleção é `PageDoc` (nome como título vivo, problema
+- **Estudar é documento e inspetor** ([D-221](docs/DECISIONS.md)): o estudo da Seleção é `PageDoc` (nome como título vivo, problema
   como propriedades que levam ao passo; "Meus estudos" num `SidePeek`, nunca faixa na página); `Stepper compact` no celular. O mapa
   tem um inspetor de seções que dobram (`InspectorSection`), folha inferior padrão abaixo de `lg`; controle que só serve ao mouse
   leva `.ds-fine-pointer-only`. Pino e layout começam no aparelho (`lib/pinnedMaps.ts`) e só guardam id e nome — abrir pede ao

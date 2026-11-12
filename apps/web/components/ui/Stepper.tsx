@@ -88,7 +88,7 @@ export function Stepper<T extends string>({
   current: T;
   onSelect: (id: T) => void;
   /**
-   * D-220: on a phone, one row — the other steps shrink to their numbered dot
+   * D-221: on a phone, one row — the other steps shrink to their numbered dot
    * and only the current one keeps its words. Four stacked step buttons used
    * half of a 390 px screen before the reader reached the step itself. The
    * labels of the others stay in the button's name (`sr-only`), so nothing is

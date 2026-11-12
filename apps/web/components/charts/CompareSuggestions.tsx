@@ -93,7 +93,7 @@ export function CompareSuggestions({
 }: {
   chosen: readonly number[];
   onAdd: (ids: number[]) => void;
-  /** D-220: the catalogue the classic pairs are looked up in, by name. */
+  /** D-221: the catalogue the classic pairs are looked up in, by name. */
   catalogue?: readonly { id: number; name: string }[];
 }) {
   const classics = resolveClassicPairs(catalogue);
@@ -122,7 +122,7 @@ export function CompareSuggestions({
           </>
         )}
 
-        {/* D-220: the third way in — pairs every course compares first, each
+        {/* D-221: the third way in — pairs every course compares first, each
             found in this catalogue by name; a pair it lacks is not offered. */}
         {classics.length > 0 && (
           <div className="flex min-w-0 flex-col gap-2">

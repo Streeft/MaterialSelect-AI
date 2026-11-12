@@ -1,5 +1,5 @@
 /**
- * D-220: the maps a reader pinned to the Início — a saved map's id and name, on
+ * D-221: the maps a reader pinned to the Início — a saved map's id and name, on
  * this device (as the appearance, D-196; the plan of the screen review keeps
  * layouts on the device until the account holds them). Nothing of the map's
  * content is kept here: opening a pin asks the server for the saved map again,

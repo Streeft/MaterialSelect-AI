@@ -121,7 +121,7 @@ describe("comparador: estado vazio e visão no link (D-214)", () => {
   });
 });
 
-describe("comparador: pares clássicos como ponto de partida (D-220)", () => {
+describe("comparador: pares clássicos como ponto de partida (D-221)", () => {
   beforeEach(() => {
     requests.length = 0;
     nav.query = "";

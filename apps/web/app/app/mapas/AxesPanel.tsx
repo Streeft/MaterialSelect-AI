@@ -57,7 +57,7 @@ export function AxesPanel({
   yDimension?: string;
 }) {
   return (
-    // D-220: the body of the inspector's "Eixos" section.
+    // D-221: the body of the inspector's "Eixos" section.
     <div className="flex flex-col gap-4">
       <p className="text-support text-ink-muted">{t.axesHint}</p>
         <div className="flex flex-col gap-1">
