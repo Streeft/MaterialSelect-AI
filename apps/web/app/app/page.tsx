@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ptBR } from "@/lib/i18n";
-import { Disclosure } from "@/components/ui";
+import { Disclosure, Section } from "@/components/ui";
 import { Greeting } from "@/components/home/Greeting";
 import { RecentRecords } from "@/components/home/RecentRecords";
 import { SavedStudies } from "@/components/home/SavedStudies";
@@ -57,6 +57,7 @@ export default function HomePage() {
       <TaskShortcuts />
 
       <CatalogNews />
+
       <PinnedMaps />
 
       <Section title={t.exploreTitle}>

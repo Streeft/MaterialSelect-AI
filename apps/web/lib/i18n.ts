@@ -3708,7 +3708,7 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
-
+    exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
     compareHint: "Tabela, barras, radar e mapa de calor sobre valores normalizados.",
