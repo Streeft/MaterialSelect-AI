@@ -211,10 +211,14 @@ class TestReplaceAndDelete:
 
 
 class TestPermission:
-    def test_the_shared_catalogue_needs_a_curator(self, client, db_session, monkeypatch) -> None:
+    def test_the_shared_catalogue_is_open_to_any_logged_in_user(
+        self, client, db_session, monkeypatch
+    ) -> None:
         monkeypatch.setattr(settings, "access_mode", "open")
         mid = _material_id(db_session)
-        assert client.post(f"/api/materials/{mid}/curvas", json=_curve()).status_code == 403
+        assert (
+            client.post(f"/api/materials/{mid}/curvas", json=_curve()).status_code == 201
+        )  # D-208
 
     def test_an_own_record_belongs_to_its_owner(self, client, db_session, monkeypatch) -> None:
         monkeypatch.setattr(settings, "access_mode", "open")

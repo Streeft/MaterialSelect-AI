@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.base import get_db
-from app.domain import access
 from app.domain.display_units import parse_choices
 from app.domain.errors import (
     AuthenticationError,
@@ -74,14 +73,13 @@ def require_active_subscription(
         )
 
 
-def can_edit_shared_catalog(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
-) -> bool:
-    """Whether this user may write the shared catalogue (``owner_id`` NULL)."""
-    if settings.access_mode != "open":
-        # Skips the query, not the rule: see access.can_edit_shared_catalog.
-        return True
-    return access.can_edit_shared_catalog(settings.access_mode, has_active_subscription(user, db))
+def can_edit_shared_catalog(user: User = Depends(get_current_user)) -> bool:
+    """Whether this user may write the shared catalogue (``owner_id`` NULL).
+
+    D-208: any authenticated user may, in both access modes. Kept as a
+    dependency so routes and tests can still override it.
+    """
+    return True
 
 
 def require_catalog_curator(allowed: bool = Depends(can_edit_shared_catalog)) -> None:

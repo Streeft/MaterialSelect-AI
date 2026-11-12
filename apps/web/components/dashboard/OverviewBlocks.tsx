@@ -12,7 +12,7 @@ export interface OverviewBlock {
 }
 
 /**
- * D-207: the dashboard's overview as movable blocks — Notion's page of blocks
+ * D-209: the dashboard's overview as movable blocks — Notion's page of blocks
  * on M3 cards. The reader reorders (drag or Alt + ↑/↓) and hides blocks; the
  * order and the hidden set are one `layout` row of their saved views, so the
  * dashboard comes back the same on another device.

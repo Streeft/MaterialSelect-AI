@@ -116,7 +116,7 @@ function MaterialCard({
  * renders only one of the two.
  */
 /**
- * D-207: `responsive` is the phone's stand-in for the table (hidden from `sm`
+ * D-209: `responsive` is the phone's stand-in for the table (hidden from `sm`
  * up, D-50); `gallery` is the "Galeria" view a reader chose, a grid at every
  * width.
  */
@@ -147,7 +147,7 @@ export function MaterialCards({
 }
 
 /**
- * D-207: the "Lista" view — one line per material, Notion's list: name,
+ * D-209: the "Lista" view — one line per material, Notion's list: name,
  * family and the quality chips, nothing else. Rows are links, so the whole
  * line is the target.
  */

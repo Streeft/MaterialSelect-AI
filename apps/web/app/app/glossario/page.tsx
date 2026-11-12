@@ -50,7 +50,7 @@ function setHash(slug: string | null) {
 }
 
 /**
- * Glossário de propriedades (D-130), como wiki (D-207): um índice compacto
+ * Glossário de propriedades (D-130), como wiki (D-209): um índice compacto
  * por letra e o verbete inteiro aberto ao lado (`SidePeek`). A página antiga
  * imprimia cada verbete por extenso e chegava a 54 mil pixels no celular.
  *

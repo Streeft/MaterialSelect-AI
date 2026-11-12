@@ -17,11 +17,13 @@ def grants_access(mode: AccessMode, subscribed: bool) -> bool:
 
 
 def can_edit_shared_catalog(mode: AccessMode, subscribed: bool) -> bool:
-    """Only a subscriber writes the catalogue every other user reads.
+    """Every user who got in may write the shared catalogue (D-208).
 
-    Under the subscription gate the answer is yes without asking: the gate
-    already admitted only subscribers, so D-62's "whoever is in may write the
-    shared catalogue" stays exactly what it was. Open mode is the only one in
-    which "in" and "subscribed" come apart.
+    Until D-207 open mode kept the catalogue read-only for anyone without a
+    subscription (D-83), which hid Classes, Properties and Import from a
+    student on a fresh database. D-208 revokes that: login is the only
+    requirement, in both modes. The arguments stay so the HTTP gate and
+    ``/billing/status`` keep one shared call site; protections that live on the
+    record (official and demo material, delete confirmation) are untouched.
     """
-    return mode != "open" or subscribed
+    return True

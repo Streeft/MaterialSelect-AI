@@ -103,7 +103,7 @@ vi.mock("@/lib/api", () => ({
       composition: [],
     }),
   catalogueExportUrl: (format: string) => `#${format}`,
-  // D-207: the screen's saved views; none by default.
+  // D-209: the screen's saved views; none by default.
   listSavedViews: () => Promise.resolve(savedViews.list),
   createSavedView: (payload: Record<string, unknown>) =>
     Promise.resolve({ id: 99, position: 0, created_at: "", updated_at: "", config: {}, ...payload }),
@@ -124,7 +124,7 @@ function wrap(node: ReactNode) {
 // Imported after the mock so the page picks it up.
 const { default: CatalogPage } = await import("./page");
 
-// D-207: the filters are chips ("Campo: valor ▾") that open their options.
+// D-209: the filters are chips ("Campo: valor ▾") that open their options.
 async function pick(field: string, option: string) {
   await userEvent.click(
     screen.getByShadowRole("button", { name: new RegExp(`^${field}: `) }),
@@ -328,7 +328,7 @@ describe("lista e detalhe (D-184)", () => {
     expect(within(bar).getByShadowRole("status")).toHaveTextContent(t.selectedCount(1));
   });
 
-  // D-207: the reader's saved views are tabs above the list.
+  // D-209: the reader's saved views are tabs above the list.
   it("applies a saved view's filters and kind when its tab is chosen", async () => {
     savedViews.list = [
       {

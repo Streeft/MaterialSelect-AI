@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Checkbox, Dialog } from "@/components/ui";
 import { ptBR } from "@/lib/i18n";
 import {
+  OPEN_SHORTCUTS_EVENT,
   SEQUENCE_MS,
   SHORTCUTS,
   readShortcutsEnabled,
@@ -68,6 +69,13 @@ export function KeyboardShortcuts() {
     };
   }, [enabled, router]);
 
+  // D-207: the palette's "Ver atalhos de teclado" opens this same list.
+  useEffect(() => {
+    const open = () => setHelpOpen(true);
+    window.addEventListener(OPEN_SHORTCUTS_EVENT, open);
+    return () => window.removeEventListener(OPEN_SHORTCUTS_EVENT, open);
+  }, []);
+
   return (
     <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} title={t.title} description={t.intro}>
       <ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
@@ -88,6 +96,24 @@ export function KeyboardShortcuts() {
         <li className="flex items-center justify-between gap-3 text-body">
           <span>{t.help}</span>
           <kbd className="msds-kbd">?</kbd>
+        </li>
+      </ul>
+      {/* D-207: the keys inside the command palette, so "?" lists every shortcut there is. */}
+      <h3 className="mt-4 text-body font-semibold text-ink">{t.paletteTitle}</h3>
+      <ul className="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+        <li className="flex items-center justify-between gap-3 text-body">
+          <span>{t.paletteMove}</span>
+          <span className="whitespace-nowrap">
+            <kbd className="msds-kbd">↑</kbd> <kbd className="msds-kbd">↓</kbd>
+          </span>
+        </li>
+        <li className="flex items-center justify-between gap-3 text-body">
+          <span>{t.paletteRun}</span>
+          <kbd className="msds-kbd">Enter</kbd>
+        </li>
+        <li className="flex items-center justify-between gap-3 text-body">
+          <span>{t.paletteClose}</span>
+          <kbd className="msds-kbd">Esc</kbd>
         </li>
       </ul>
       <div className="mt-4 border-t border-line-divider pt-3">

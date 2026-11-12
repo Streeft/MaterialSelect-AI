@@ -21,7 +21,7 @@ export const VIEW_KIND_LABEL: Record<ListViewKind, string> = {
 };
 
 /**
- * D-207: the tabs of a database screen — Notion's and Airtable's view bar in
+ * D-209: the tabs of a database screen — Notion's and Airtable's view bar in
  * M3's tab look. "Todos" is the screen with nothing saved; each other tab is a
  * view in the reader's account, with its kind (Tabela, Galeria, Lista) and its
  * filters. Choosing a tab only *reports* the choice; the screen applies the

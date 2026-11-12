@@ -67,7 +67,7 @@ def _subscribe(db_session, user) -> None:
     [
         ("subscription", False, False, True),
         ("subscription", True, True, True),
-        ("open", False, True, False),
+        ("open", False, True, True),
         ("open", True, True, True),
     ],
 )
@@ -118,7 +118,8 @@ def test_billing_status_reports_open_mode(client_without_subscription, open_mode
     assert body["active"] is False
     assert body["access_mode"] == "open"
     assert body["has_access"] is True
-    assert body["can_edit_catalog"] is False
+    # D-208: login is enough to curate; no subscription needed in open mode.
+    assert body["can_edit_catalog"] is True
 
 
 def test_billing_status_keeps_a_subscriber_curator_in_open_mode(
@@ -154,52 +155,53 @@ def test_student_creates_and_edits_own_record(client_without_subscription, open_
     assert client_without_subscription.delete(f"/api/materials/{material_id}").status_code == 204
 
 
-def test_student_cannot_add_to_shared_catalogue(client_without_subscription, open_mode, db_session):
+def test_student_adds_to_shared_catalogue(client_without_subscription, open_mode, db_session):
     response = client_without_subscription.post(
         "/api/materials",
         json={"name": "Liga compartilhada", "class_id": _class_id(db_session), "values": []},
     )
-    assert response.status_code == 403
-    assert READ_ONLY in response.json()["detail"]
+    assert response.status_code == 201
 
 
-def test_student_cannot_change_a_shared_material(
+def test_student_edits_and_deletes_a_shared_material(
     client_without_subscription, open_mode, db_session
 ):
-    material_id = _shared_material_id(db_session)
-    responses = [
-        client_without_subscription.patch(f"/api/materials/{material_id}", json={"name": "X"}),
-        client_without_subscription.put(f"/api/materials/{material_id}/values", json=[]),
-        client_without_subscription.delete(f"/api/materials/{material_id}"),
-    ]
-    assert [r.status_code for r in responses] == [403, 403, 403]
-    assert db_session.get(Material, material_id).is_active is True
+    created = client_without_subscription.post(
+        "/api/materials",
+        json={"name": "Liga editável", "class_id": _class_id(db_session), "values": []},
+    ).json()["id"]
+    assert (
+        client_without_subscription.patch(f"/api/materials/{created}", json={"name": "X"})
+    ).status_code == 200
+    assert client_without_subscription.delete(f"/api/materials/{created}").status_code == 204
 
 
-@pytest.mark.parametrize(
-    ("method", "path"),
-    [
-        ("post", "/api/classes"),
-        ("put", "/api/classes/1"),
-        ("delete", "/api/classes/1"),
-        ("post", "/api/properties"),
-        ("put", "/api/properties/1"),
-        ("delete", "/api/properties/1"),
-        ("post", "/api/imports/upload"),
-        ("post", "/api/imports/1/preview"),
-        ("post", "/api/imports/1/validate"),
-        ("post", "/api/imports/1/commit"),
-        ("post", "/api/imports/1/cancel"),
-        ("post", "/api/imports/1/rollback"),
-        ("post", "/api/knowledge/ingest"),
-    ],
-)
-def test_student_cannot_curate_catalogue_routes(
-    client_without_subscription, open_mode, method, path
-):
-    response = getattr(client_without_subscription, method)(path)
-    assert response.status_code == 403
-    assert READ_ONLY in response.json()["detail"]
+def test_student_creates_and_deletes_a_class(client_without_subscription, open_mode):
+    created = client_without_subscription.post(
+        "/api/classes", json={"name": "Classe livre", "slug": "classe-livre"}
+    )
+    assert created.status_code == 201, created.text
+    class_id = created.json()["id"]
+    assert client_without_subscription.delete(f"/api/classes/{class_id}").status_code == 204
+
+
+def test_student_creates_a_property(client_without_subscription, open_mode):
+    response = client_without_subscription.post(
+        "/api/properties",
+        json={
+            "name": "Propriedade livre",
+            "slug": "propriedade-livre",
+            "canonical_unit": "MPa",
+            "data_type": "numeric",
+        },
+    )
+    assert response.status_code != 403, response.text
+
+
+def test_student_reaches_the_import_routes(client_without_subscription, open_mode):
+    response = client_without_subscription.post("/api/imports/1/cancel")
+    # Not found / invalid is fine: what matters is that the curator gate let it in.
+    assert response.status_code != 403
 
 
 def test_subscriber_keeps_curating_in_open_mode(

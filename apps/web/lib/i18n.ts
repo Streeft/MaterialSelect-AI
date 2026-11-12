@@ -47,17 +47,31 @@ export const ptBR = {
   palette: {
     open: "Buscar",
     title: "Buscar no MaterialSelect AI",
-    placeholder: "Buscar tela, material, processo, caderno ou estudo…",
-    hint: "↑↓ para escolher · Enter para abrir · Esc para fechar",
+    placeholder: "Buscar tela, material, processo, caderno, estudo ou ação…",
+    hint: "↑↓ para escolher · Enter para abrir · Esc para fechar · ? atalhos",
     shortcut: "Ctrl K",
     clear: "Limpar busca",
     empty: "Nada encontrado para essa busca.",
-    loading: "Carregando o catálogo…",
+    loading: "Buscando…",
+    // D-207: a falha da busca não esconde as ações nem as telas, só avisa.
+    error: "A busca não respondeu agora. As telas e as ações continuam aqui.",
     groupPages: "Telas",
     groupMaterials: "Materiais",
     groupProcesses: "Processos",
     groupNotebooks: "Cadernos",
     groupStudies: "Estudos salvos",
+    // D-207: a paleta também executa ações, não só navega.
+    groupActions: "Ações",
+    groupRecents: "Recentes",
+    goTo: (label: string) => `Ir para ${label}`,
+    actionNewSelection: "Nova seleção",
+    actionMapEDensity: "Abrir mapa E × ρ",
+    actionCompareFavorites: "Comparar favoritos",
+    actionToggleTheme: "Alternar tema claro/escuro",
+    actionShortcuts: "Ver atalhos de teclado",
+    actionPin: "Fixar esta página no menu",
+    actionUnpin: "Desafixar esta página do menu",
+    noFavorites: "Você ainda não marcou favoritos; eles ficam em Meus registros.",
     results: (n: number) => (n === 1 ? "1 resultado" : `${n} resultados`),
   },
   nav: {
@@ -91,6 +105,15 @@ export const ptBR = {
     groupStudy: "Estudar",
     groupData: "Dados",
     groupAdmin: "Administrar",
+    // D-207: o que o menu lembra deste leitor, neste aparelho.
+    groupPinned: "Fixados",
+    groupRecents: "Recentes",
+    pinCurrent: "Fixar esta página",
+    unpinCurrent: "Desafixar esta página",
+    pin: (label: string) => `Fixar ${label}`,
+    unpin: (label: string) => `Desafixar ${label}`,
+    pinnedEmpty: "Nada fixado ainda.",
+    recentsEmpty: "As páginas que você abrir aparecem aqui.",
   },
 
   actions: {
@@ -2090,7 +2113,7 @@ export const ptBR = {
     count: (n: number) => `${n} ${n === 1 ? "material" : "materiais"}`,
     showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
     filters: "Filtros",
-    // D-207: o nome do campo no chip ("Subclasse: …").
+    // D-209: o nome do campo no chip ("Subclasse: …").
     subclassLabel: "Subclasse",
     filterClass: "Classe",
     allClasses: "Todas",
@@ -2935,6 +2958,11 @@ export const ptBR = {
     intro: "Aperte g e, em seguida, a letra da tela. Os atalhos não funcionam enquanto você digita num campo.",
     search: "Buscar",
     help: "Abrir esta lista",
+    // D-207: os atalhos da paleta de comandos.
+    paletteTitle: "Na paleta de comandos",
+    paletteMove: "Escolher resultado",
+    paletteRun: "Abrir ou executar",
+    paletteClose: "Fechar",
     enable: "Atalhos de uma tecla",
     enableHint: "Desligue se uma tecla solta atrapalha (por exemplo, ao usar ditado por voz). A lista continua abrindo com ?.",
   },
@@ -2976,7 +3004,7 @@ export const ptBR = {
     workbenchResult: "Resultado",
     workbenchMethod: "Como se calcula",
     searchOpen: "Buscar",
-    // D-207: visões salvas (abas de uma base).
+    // D-209: visões salvas (abas de uma base).
     views: "Visões",
     allView: "Todos",
     newView: "Visão",
@@ -3038,7 +3066,7 @@ export const ptBR = {
     error: "Não foi possível carregar os processos.",
     empty: "Nenhum processo cadastrado.",
     familiesTitle: "Famílias",
-    // D-207: a base de processos.
+    // D-209: a base de processos.
     searchLabel: "Buscar processo",
     searchPlaceholder: "Nome do processo",
     filterFamily: "Família",
@@ -3114,7 +3142,7 @@ export const ptBR = {
     hintLabel: (name: string) => `O que é ${name}? Abrir verbete do glossário`,
     hintLoading: "Carregando verbete…",
     hintError: "Não foi possível carregar o verbete.",
-    // D-207: o glossário como wiki — índice por letra e verbete aberto ao lado.
+    // D-209: o glossário como wiki — índice por letra e verbete aberto ao lado.
     lettersLabel: "Índice por letra",
     filterState: "Estado",
     stateReviewed: "Revisado",
@@ -3393,11 +3421,6 @@ export const ptBR = {
 
   styleGuide: {
     title: "Sistema de design",
-    // D-202: in production the style guide is for the curator only.
-    restrictedTitle: "Página restrita",
-    restrictedDescription:
-      "O sistema de design é uma referência para quem mantém o produto. Ele fica visível só para quem cura o catálogo.",
-    restrictedBack: "Voltar ao início",
     subtitle:
       "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
     tokens: "Tokens de cor",

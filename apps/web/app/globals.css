@@ -2123,7 +2123,7 @@ div[data-surface="rail"] .msds-rail-item {
 @media (prefers-reduced-motion: reduce) { .ds-side-peek { animation: none; } }
 :root[data-motion="reduced"] .ds-side-peek { animation: none; }
 
-/* D-207: the views bar — M3 tabs drawn as text with a 3 px indicator (D-137). */
+/* D-209: the views bar — M3 tabs drawn as text with a 3 px indicator (D-137). */
 .ds-views { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; border-bottom: 1px solid rgb(var(--border-divider)); }
 .ds-view-item { display: inline-flex; align-items: center; }
 .ds-view-tab {
@@ -2139,7 +2139,7 @@ div[data-surface="rail"] .msds-rail-item {
 .ds-view-tab:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: -2px; }
 @media (pointer: coarse) { .ds-view-tab { min-height: var(--target-min); } }
 
-/* D-207: the glossary's letter index. */
+/* D-209: the glossary's letter index. */
 .ds-letter {
   display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px;
   border-radius: var(--shape-small); font-size: 0.875rem; font-weight: 600; color: rgb(var(--m3-primary));

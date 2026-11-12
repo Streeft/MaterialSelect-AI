@@ -37,16 +37,16 @@ const user: CurrentUser = {
 const getCurrentUser = vi.fn(() => Promise.resolve(user));
 const logoutMock = vi.fn(() => Promise.resolve());
 // D-86: the menu depends on whether this reader may curate the catalogue.
-const billing = { can_edit_catalog: true };
+const billing = { can_edit_catalog: true, open: false };
 vi.mock("@/lib/api", () => ({
   getCurrentUser: () => getCurrentUser(),
   logout: () => logoutMock(),
   getBillingStatus: () =>
     Promise.resolve({
-      active: billing.can_edit_catalog,
+      active: !billing.open && billing.can_edit_catalog,
       status: null,
       current_period_end: null,
-      access_mode: billing.can_edit_catalog ? "subscription" : "open",
+      access_mode: billing.open || !billing.can_edit_catalog ? "open" : "subscription",
       has_access: true,
       can_edit_catalog: billing.can_edit_catalog,
     }),
@@ -63,6 +63,7 @@ function renderSidebar() {
 
 beforeEach(() => {
   billing.can_edit_catalog = true;
+  billing.open = false;
   route.pathname = "/app";
   routerReplace.mockClear();
   getCurrentUser.mockClear();
@@ -267,7 +268,18 @@ describe("AppSidebar", () => {
 });
 
 describe("menu por papel e ícones próprios (D-86)", () => {
-  it("hides from a student what only a curator can use", async () => {
+  it("D-208: um estudante em acesso aberto, sem assinatura, vê Administrar e Importar", async () => {
+    billing.open = true;
+    billing.can_edit_catalog = true; // what the API now answers for any logged-in user
+    renderSidebar();
+    expect(
+      await within(rail()).findByShadowRole("link", { name: ptBR.nav.imports }),
+    ).toBeInTheDocument();
+    expect(within(rail()).getByShadowRole("link", { name: ptBR.nav.classes })).toBeInTheDocument();
+    expect(within(rail()).getByShadowRole("list", { name: ptBR.nav.groupAdmin })).toBeInTheDocument();
+  });
+
+  it("still honours a server that explicitly says the catalogue is read-only", async () => {
     billing.can_edit_catalog = false;
     renderSidebar();
     await vi.waitFor(() =>

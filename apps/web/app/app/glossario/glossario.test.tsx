@@ -70,7 +70,7 @@ describe("página do glossário (D-130)", () => {
     expect(await screen.findByShadowText(t.empty)).toBeInTheDocument();
   });
 
-  // D-207: the glossary is a wiki — an index, and the entry opened beside it.
+  // D-209: the glossary is a wiki — an index, and the entry opened beside it.
   it("abre o verbete ao lado com fonte, licença e revisão escritas, e escreve a ausência no índice", async () => {
     window.history.replaceState(null, "", "/app/glossario");
     render(wrap(<GlossaryPage />));

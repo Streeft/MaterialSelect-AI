@@ -173,12 +173,14 @@ class TestComposition:
     def test_unknown_material_is_404(self, client) -> None:
         assert _put(client, 999999, []).status_code == 404
 
-    def test_the_shared_catalogue_needs_a_curator(self, client, db_session, monkeypatch) -> None:
+    def test_the_shared_catalogue_is_open_to_any_logged_in_user(
+        self, client, db_session, monkeypatch
+    ) -> None:
         monkeypatch.setattr(settings, "access_mode", "open")
         mid = _material_id(db_session, STEEL)
         response = _put(client, mid, [_entry("Cr", value_nominal=18, unit="%")])
-        assert response.status_code == 403
-        # ...but their own record is theirs.
+        assert response.status_code == 200  # D-208: login is enough
+        # ...and their own record is theirs.
         own = _own_record(client, db_session)
         assert _put(client, own, [_entry("Al", value_min=99, unit="%")]).status_code == 200
 
@@ -253,7 +255,9 @@ class TestDesignations:
         events = client.get("/api/audit", params={"entity_id": mid}).json()
         assert any("designação UNS S30400" in e["changes"] for e in events)
 
-    def test_the_shared_catalogue_needs_a_curator(self, client, db_session, monkeypatch) -> None:
+    def test_the_shared_catalogue_is_open_to_any_logged_in_user(
+        self, client, db_session, monkeypatch
+    ) -> None:
         monkeypatch.setattr(settings, "access_mode", "open")
         mid = _material_id(db_session, POLYMER)
-        assert self._put(client, mid, [_designation("UNS", "S30400")]).status_code == 403
+        assert self._put(client, mid, [_designation("UNS", "S30400")]).status_code == 200

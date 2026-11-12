@@ -168,7 +168,7 @@ function DashboardContent() {
         }
       />
 
-      {/* D-207: the filters as chips, still in the address (D-193): a link
+      {/* D-209: the filters as chips, still in the address (D-193): a link
           reproduces the view. Level 3 is "all", so it reads "Qualquer". */}
       <div className="flex flex-col gap-2">
         <FilterBar
@@ -285,7 +285,7 @@ function CatalogueTab({
   }
 
   if (tab === "visao") {
-    // D-207: each piece of the overview is a block the reader can move or hide.
+    // D-209: each piece of the overview is a block the reader can move or hide.
     return (
       <OverviewBlocks
         blocks={[

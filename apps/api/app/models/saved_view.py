@@ -1,4 +1,4 @@
-"""SavedView: a reader's named way of looking at one screen (D-207, F2).
+"""SavedView: a reader's named way of looking at one screen (D-209, F2).
 
 A view is a tab on a database screen — the catalogue, the processes, the
 glossary — with a kind (table, gallery, list) and the filters and order the

@@ -13,11 +13,11 @@ import type {
   SavedViewScope,
 } from "@/lib/types";
 
-/** D-207: the query key of one screen's views; invalidating it refreshes the tabs. */
+/** D-209: the query key of one screen's views; invalidating it refreshes the tabs. */
 export const savedViewsKey = (scope: SavedViewScope) => ["saved-views", scope] as const;
 
 /**
- * One screen's saved views, kept in the reader's account (D-207). The tabs and
+ * One screen's saved views, kept in the reader's account (D-209). The tabs and
  * the dashboard layout read the same rows; the layout is filtered out of the
  * tabs because it is not a way of looking at a list.
  */
@@ -67,7 +67,7 @@ export function filtersDiffer(
 export type { SavedView };
 
 /**
- * D-207: the state of a database screen — its filters, its kind and the
+ * D-209: the state of a database screen — its filters, its kind and the
  * active saved view — and everything `SavedViewsBar` needs to drive it.
  *
  * The screen owns what the filters *mean* (which query they feed); this hook

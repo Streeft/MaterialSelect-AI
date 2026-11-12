@@ -1,7 +1,6 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type CSSProperties } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import {
   Alert,
+  Breadcrumb,
   Button,
   ButtonGroup,
   ButtonGroupItem,
@@ -19,7 +19,8 @@ import {
   Input,
   LoadingState,
 } from "@/components/ui";
-import { IconArrowLeft, IconGear, IconTrash } from "@/components/ui/icons";
+import { IconGear, IconTrash } from "@/components/ui/icons";
+import { usePageTitle } from "@/lib/pageTitle";
 import { ChatPanel } from "./ChatPanel";
 import { NOTEBOOKS_KEY, notebookKey } from "./keys";
 import { PanelResizer } from "./PanelResizer";
@@ -105,6 +106,9 @@ export function NotebookWorkspace({ id }: { id: number }) {
     null,
   );
 
+  // D-207: the tab and the menu's "Recentes" carry the notebook's title.
+  usePageTitle(notebook.data?.title);
+
   if (notebook.isPending) return <LoadingState />;
   if (notebook.error || !notebook.data) {
     return (
@@ -117,6 +121,13 @@ export function NotebookWorkspace({ id }: { id: number }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* D-207: the trail replaces the lone "Todos os cadernos" link. */}
+      <Breadcrumb
+        items={[
+          { label: ptBR.nav.notebooks, href: "/app/cadernos" },
+          { label: data.title },
+        ]}
+      />
       <Header
         id={id}
         title={data.title}
@@ -292,13 +303,7 @@ function Header({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link
-        href="/app/cadernos"
-        className="inline-flex items-center gap-1 text-body text-ink-muted hover:text-brand-700"
-      >
-        <IconArrowLeft /> {t.back}
-      </Link>
-      <span aria-hidden className="ml-2 text-2xl">
+      <span aria-hidden className="text-2xl">
         {emoji}
       </span>
       <div className="min-w-0 flex-1">

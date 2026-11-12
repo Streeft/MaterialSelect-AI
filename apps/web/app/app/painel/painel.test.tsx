@@ -312,7 +312,7 @@ const activity: DashboardActivity = {
 };
 
 const getDashboardOverview = vi.fn((_filters?: unknown) => Promise.resolve(overview));
-// D-207: the overview's block layout, kept in the account.
+// D-209: the overview's block layout, kept in the account.
 const createSavedView = vi.fn((payload: Record<string, unknown>) =>
   Promise.resolve({ id: 1, position: 0, created_at: "", updated_at: "", ...payload }),
 );
@@ -507,7 +507,7 @@ describe("painel", () => {
   it("sends the global filters to the API and lists subclasses of the catalogue", async () => {
     await renderDashboard();
     await screen.findByText(d.composition.title);
-    // D-207: the filters are chips; each opens its options.
+    // D-209: the filters are chips; each opens its options.
     await userEvent.click(screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.classe}: `) }));
     await userEvent.click(await screen.findByShadowRole("button", { name: "Metais" }));
     await waitFor(() =>
@@ -520,7 +520,7 @@ describe("painel", () => {
     expect(await screen.findByShadowRole("button", { name: "Aços" })).toBeInTheDocument();
   });
 
-  it("lets the reader hide an overview block and keeps the layout in the account (D-207)", async () => {
+  it("lets the reader hide an overview block and keeps the layout in the account (D-209)", async () => {
     await renderDashboard();
     await screen.findByText(d.composition.title);
     await userEvent.click(

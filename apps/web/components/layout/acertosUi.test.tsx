@@ -133,7 +133,9 @@ describe("rótulos de seção do menu", () => {
     await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
     const labels = screen.getAllByText(ptBR.nav.groupAdmin);
     expect(labels.length).toBeGreaterThanOrEqual(2);
-    for (const label of labels) expect(label.className).toContain("msds-rail-eyebrow");
+    // D-207: the label is now the text of the group's fold toggle; the eyebrow
+    // style sits on the toggle itself.
+    for (const label of labels) expect(label.closest(".msds-rail-eyebrow")).not.toBeNull();
   });
 });
 

@@ -21,7 +21,7 @@ const student: BillingStatus = {
   ...base,
   access_mode: "open",
   has_access: true,
-  can_edit_catalog: false,
+  can_edit_catalog: true, // D-208: login is enough to curate
 };
 const unsubscribed: BillingStatus = {
   ...base,
@@ -58,8 +58,16 @@ describe("acesso aberto (D-83)", () => {
     expect(screen.queryByText(ptBR.billing.openSubtitle)).not.toBeInTheDocument();
   });
 
-  it("warns a student that the shared catalogue is read-only", async () => {
+  it("does not warn a student: the shared catalogue is writable (D-208)", async () => {
     getBillingStatus.mockResolvedValue(student);
+    const { container } = wrap(<CatalogReadOnlyNotice />);
+
+    await vi.waitFor(() => expect(getBillingStatus).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("still warns when the server says the catalogue is read-only", async () => {
+    getBillingStatus.mockResolvedValue({ ...student, can_edit_catalog: false });
     wrap(<CatalogReadOnlyNotice />);
 
     expect(await screen.findByText(ptBR.billing.catalogReadOnly)).toBeInTheDocument();
