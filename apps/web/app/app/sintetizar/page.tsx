@@ -1,7 +1,12 @@
 "use client";
 
 import { useId, useMemo, useState, type ReactNode } from "react";
-import { enumCodec, textCodec, useUrlState, type UrlSpec } from "@/lib/urlState";
+import {
+  enumCodec,
+  textCodec,
+  useUrlState,
+  type UrlSpec,
+} from "@/lib/urlState";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLiveResult } from "@/lib/useLiveResult";
@@ -52,7 +57,11 @@ import {
   type ComboboxOption,
   type QualityState,
 } from "@/components/ui";
-import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
+import {
+  ParamsPanel,
+  ParamsResultLayout,
+  ResultPanel,
+} from "@/components/layout/ParamsResult";
 import { SweepSection } from "./SweepSection";
 
 const t = ptBR.synthesis;
@@ -87,7 +96,12 @@ const RECIPE_URL: UrlSpec<Recipe> = {
   coreThickness: { param: "nucleo", codec: textCodec, defaultValue: "18" },
 };
 
-const QUALITY_STATES: readonly string[] = ["MEDIDO", "IMPORTADO", "ESTIMADO", "AUSENTE"];
+const QUALITY_STATES: readonly string[] = [
+  "MEDIDO",
+  "IMPORTADO",
+  "ESTIMADO",
+  "AUSENTE",
+];
 
 function isQualityState(value: string): value is QualityState {
   return QUALITY_STATES.includes(value);
@@ -144,34 +158,79 @@ const KINDS: { kind: SynthesisKind; label: string; line: string }[] = [
  * ink colour, the same size for the three so the cards line up.
  */
 function KindDrawing({ kind }: { kind: SynthesisKind }) {
-  const frame = { fill: "none", stroke: "currentColor", strokeWidth: 1.5 } as const;
+  const frame = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+  } as const;
   return (
-    <svg aria-hidden viewBox="0 0 96 48" className="h-12 w-24 text-ink-muted" focusable="false">
+    <svg
+      aria-hidden
+      viewBox="0 0 96 48"
+      className="h-12 w-24 text-ink-muted"
+      focusable="false"
+    >
       {kind === "composito" ? (
         <>
           <rect x="2" y="4" width="92" height="40" rx="3" {...frame} />
           {[12, 20, 28, 36].map((y) => (
-            <line key={y} x1="10" y1={y} x2="86" y2={y} stroke="currentColor" strokeWidth="2.5" />
+            <line
+              key={y}
+              x1="10"
+              y1={y}
+              x2="86"
+              y2={y}
+              stroke="currentColor"
+              strokeWidth="2.5"
+            />
           ))}
         </>
       ) : kind === "espuma" ? (
         <>
           <rect x="2" y="4" width="92" height="40" rx="3" {...frame} />
           {[
-            [16, 15, 6], [34, 14, 5], [54, 16, 7], [76, 14, 6],
-            [24, 32, 6], [44, 33, 5], [64, 31, 6], [84, 33, 4],
+            [16, 15, 6],
+            [34, 14, 5],
+            [54, 16, 7],
+            [76, 14, 6],
+            [24, 32, 6],
+            [44, 33, 5],
+            [64, 31, 6],
+            [84, 33, 4],
           ].map(([cx, cy, r]) => (
             <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} {...frame} />
           ))}
         </>
       ) : (
         <>
-          <rect x="2" y="4" width="92" height="6" rx="1.5" fill="currentColor" />
+          <rect
+            x="2"
+            y="4"
+            width="92"
+            height="6"
+            rx="1.5"
+            fill="currentColor"
+          />
           <rect x="2" y="12" width="92" height="24" rx="1.5" {...frame} />
           {[14, 26, 38, 50, 62, 74, 86].map((x) => (
-            <line key={x} x1={x} y1="12" x2={x - 8} y2="36" stroke="currentColor" strokeWidth="1" />
+            <line
+              key={x}
+              x1={x}
+              y1="12"
+              x2={x - 8}
+              y2="36"
+              stroke="currentColor"
+              strokeWidth="1"
+            />
           ))}
-          <rect x="2" y="38" width="92" height="6" rx="1.5" fill="currentColor" />
+          <rect
+            x="2"
+            y="38"
+            width="92"
+            height="6"
+            rx="1.5"
+            fill="currentColor"
+          />
         </>
       )}
     </svg>
@@ -201,7 +260,8 @@ function PreviewTable({ preview }: { preview: SynthesisPreview }) {
                 {value.name}
                 {/* An adimensional quantity says nothing by printing
                     "(dimensionless)"; the others read as the rest of the app. */}
-                {value.canonical_unit && value.canonical_unit !== "dimensionless" ? (
+                {value.canonical_unit &&
+                value.canonical_unit !== "dimensionless" ? (
                   <span className="font-normal text-ink-muted">
                     {" "}
                     ({prettyUnit(value.canonical_unit)})
@@ -250,7 +310,15 @@ export default function SintetizarPage() {
 
   const kindName = useId();
   const [recipe, setRecipe] = useUrlState(RECIPE_URL);
-  const { kind, parentA, parentB, fraction, density, faceThickness, coreThickness } = recipe;
+  const {
+    kind,
+    parentA,
+    parentB,
+    fraction,
+    density,
+    faceThickness,
+    coreThickness,
+  } = recipe;
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [description, setDescription] = useState("");
@@ -354,24 +422,40 @@ export default function SintetizarPage() {
   // an empty one) and without the identity: typing the name asks nothing again.
   const live = useLiveResult<SynthesisRequest, SynthesisPreview>({
     key: "sintetizar-ao-vivo",
-    request: recipeReady ? { ...body, name: t.previewName, description: null } : null,
+    request: recipeReady
+      ? { ...body, name: t.previewName, description: null }
+      : null,
     fetcher: previewSynthesis,
   });
   const preview: SynthesisPreview | null = saved ?? live.data ?? null;
 
   // Gravar exige nome; a prévia não, porque ela não cria registro nenhum e a
   // pergunta "o que sairia daqui" não depende de como o resultado se chamaria.
-  const saveBlocked = recipeBlocked ?? (name.trim().length > 0 ? null : t.blocked.name);
+  const saveBlocked =
+    recipeBlocked ?? (name.trim().length > 0 ? null : t.blocked.name);
   const canSave = saveBlocked === null;
 
   if (kinds.isLoading || materials.isLoading || classes.isLoading) {
     return <SheetSkeleton label={t.title} />;
   }
-  if (kinds.isError) return <ErrorState error={kinds.error} onRetry={() => void kinds.refetch()} />;
+  if (kinds.isError)
+    return (
+      <ErrorState error={kinds.error} onRetry={() => void kinds.refetch()} />
+    );
   if (materials.isError)
-    return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
+    return (
+      <ErrorState
+        error={materials.error}
+        onRetry={() => void materials.refetch()}
+      />
+    );
   if (classes.isError)
-    return <ErrorState error={classes.error} onRetry={() => void classes.refetch()} />;
+    return (
+      <ErrorState
+        error={classes.error}
+        onRetry={() => void classes.refetch()}
+      />
+    );
 
   const noteOf = (value: SynthesisKind) =>
     (kinds.data ?? []).find((item) => item.kind === value)?.note;
@@ -385,37 +469,43 @@ export default function SintetizarPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
+      <PageHeader
+        title={t.title}
+        description={t.subtitle}
+        overflow={<CopyLinkItem />}
+      />
 
       <StepCard title={t.kindStep}>
-          {/* Cards, not a <select>: the rule each kind follows is what the
+        {/* Cards, not a <select>: the rule each kind follows is what the
               reader is choosing between, and a <select> hides it until after
               the choice. */}
-          <fieldset className="min-w-0">
-            <legend className="msds-field-label">{t.kindLabel}</legend>
-            <div className="mt-2 grid gap-3 md:grid-cols-3">
-              {KINDS.map((item) => {
-                return (
-                  <RadioCard
-                    key={item.kind}
-                    name={kindName}
-                    value={item.kind}
-                    checked={kind === item.kind}
-                    onChange={(value) => {
-                      setRecipe({ kind: value as SynthesisKind });
-                      setSaved(null);
-                    }}
-                    title={item.label}
-                  >
-                    <span className="flex flex-col gap-2">
-                      <KindDrawing kind={item.kind} />
-                      <span className="text-caption text-ink-muted">{item.line}</span>
+        <fieldset className="min-w-0">
+          <legend className="msds-field-label">{t.kindLabel}</legend>
+          <div className="mt-2 grid gap-3 md:grid-cols-3">
+            {KINDS.map((item) => {
+              return (
+                <RadioCard
+                  key={item.kind}
+                  name={kindName}
+                  value={item.kind}
+                  checked={kind === item.kind}
+                  onChange={(value) => {
+                    setRecipe({ kind: value as SynthesisKind });
+                    setSaved(null);
+                  }}
+                  title={item.label}
+                >
+                  <span className="flex flex-col gap-2">
+                    <KindDrawing kind={item.kind} />
+                    <span className="text-caption text-ink-muted">
+                      {item.line}
                     </span>
-                  </RadioCard>
-                );
-              })}
-            </div>
-          </fieldset>
+                  </span>
+                </RadioCard>
+              );
+            })}
+          </div>
+        </fieldset>
       </StepCard>
 
       <ParamsResultLayout>
@@ -424,79 +514,88 @@ export default function SintetizarPage() {
             title={t.recipeStep}
             bodyClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
           >
+            <Combobox
+              label={
+                kind === "composito"
+                  ? t.parentALabel
+                  : kind === "painel"
+                    ? t.faceLabel
+                    : t.parentASolidLabel
+              }
+              hint={t.materialHint}
+              options={materialOptions}
+              value={selectedA}
+              onChange={(parentA) => setRecipe({ parentA })}
+            />
+            {kind === "espuma" ? (
+              <NumberInput
+                label={t.densityLabel}
+                hint={t.densityHint}
+                value={density}
+                min={0}
+                max={1}
+                step="any"
+                onChange={(event) => setRecipe({ density: event.target.value })}
+              />
+            ) : (
               <Combobox
-                label={
-                  kind === "composito"
-                    ? t.parentALabel
-                    : kind === "painel"
-                      ? t.faceLabel
-                      : t.parentASolidLabel
-                }
+                label={kind === "painel" ? t.coreLabel : t.parentBLabel}
                 hint={t.materialHint}
                 options={materialOptions}
-                value={selectedA}
-                onChange={(parentA) => setRecipe({ parentA })}
+                value={selectedB}
+                onChange={(parentB) => setRecipe({ parentB })}
               />
-              {kind === "espuma" ? (
+            )}
+            {kind === "composito" ? (
+              <div className="sm:col-span-2 xl:col-span-1">
                 <NumberInput
-                  label={t.densityLabel}
-                  hint={t.densityHint}
-                  value={density}
+                  label={t.fractionLabel}
+                  hint={t.fractionHint}
+                  value={fraction}
                   min={0}
                   max={1}
                   step="any"
-                  onChange={(event) => setRecipe({ density: event.target.value })}
+                  onChange={(event) =>
+                    setRecipe({ fraction: event.target.value })
+                  }
                 />
-              ) : (
-                <Combobox
-                  label={kind === "painel" ? t.coreLabel : t.parentBLabel}
-                  hint={t.materialHint}
-                  options={materialOptions}
-                  value={selectedB}
-                  onChange={(parentB) => setRecipe({ parentB })}
+              </div>
+            ) : null}
+            {kind === "painel" ? (
+              <>
+                <NumberInput
+                  label={t.faceThicknessLabel}
+                  value={faceThickness}
+                  min={0}
+                  step="any"
+                  onChange={(event) =>
+                    setRecipe({ faceThickness: event.target.value })
+                  }
                 />
-              )}
-              {kind === "composito" ? (
-                <div className="sm:col-span-2 xl:col-span-1">
-                  <NumberInput
-                    label={t.fractionLabel}
-                    hint={t.fractionHint}
-                    value={fraction}
-                    min={0}
-                    max={1}
-                    step="any"
-                    onChange={(event) => setRecipe({ fraction: event.target.value })}
-                  />
-                </div>
-              ) : null}
-              {kind === "painel" ? (
-                <>
-                  <NumberInput
-                    label={t.faceThicknessLabel}
-                    value={faceThickness}
-                    min={0}
-                    step="any"
-                    onChange={(event) => setRecipe({ faceThickness: event.target.value })}
-                  />
-                  <NumberInput
-                    label={t.coreThicknessLabel}
-                    value={coreThickness}
-                    min={0}
-                    step="any"
-                    onChange={(event) => setRecipe({ coreThickness: event.target.value })}
-                  />
-                  <p className="text-caption text-ink-muted sm:col-span-2 xl:col-span-1">
-                    {t.thicknessHint}
-                  </p>
-                </>
-              ) : null}
-              {noteOf(kind) ? (
-                <Disclosure summary={t.kindNoteTitle} className="sm:col-span-2 xl:col-span-1">
-                  <p className="pt-2 text-support leading-relaxed text-ink-muted">
-                    <Emphasis text={noteOf(kind) ?? ""} />
-                  </p>
-                </Disclosure>
-              ) : null}
+                <NumberInput
+                  label={t.coreThicknessLabel}
+                  value={coreThickness}
+                  min={0}
+                  step="any"
+                  onChange={(event) =>
+                    setRecipe({ coreThickness: event.target.value })
+                  }
+                />
+                <p className="text-caption text-ink-muted sm:col-span-2 xl:col-span-1">
+                  {t.thicknessHint}
+                </p>
+              </>
+            ) : null}
+            {noteOf(kind) ? (
+              <Disclosure
+                summary={t.kindNoteTitle}
+                className="sm:col-span-2 xl:col-span-1"
+              >
+                <p className="pt-2 text-support leading-relaxed text-ink-muted">
+                  <Emphasis text={noteOf(kind) ?? ""} />
+                </p>
+              </Disclosure>
+            ) : null}
           </StepCard>
 
           {preview ? (
@@ -509,50 +608,57 @@ export default function SintetizarPage() {
                     variant="primary"
                     onClick={() => save.mutate()}
                     disabled={!canSave || save.isPending}
-                    aria-describedby={saveBlocked ? "sintetizar-motivo-gravar" : undefined}
+                    aria-describedby={
+                      saveBlocked ? "sintetizar-motivo-gravar" : undefined
+                    }
                   >
                     {save.isPending ? t.saving : t.save}
                   </Button>
                   {saveBlocked ? (
-                    <p id="sintetizar-motivo-gravar" className="text-support text-ink-muted">
+                    <p
+                      id="sintetizar-motivo-gravar"
+                      className="text-support text-ink-muted"
+                    >
                       {saveBlocked}
                     </p>
                   ) : null}
                 </div>
               }
             >
+              <Input
+                label={t.nameLabel}
+                hint={t.nameHint}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+              <Select
+                label={t.classLabel}
+                hint={t.classHint}
+                value={selectedClass}
+                onChange={(event) =>
+                  setClassId((event.target as HTMLSelectElement).value)
+                }
+              >
+                {(classes.data ?? []).map((item) => (
+                  <SelectOption key={item.id} value={String(item.id)}>
+                    {item.name}
+                  </SelectOption>
+                ))}
+              </Select>
+              <div className="sm:col-span-2 xl:col-span-1">
                 <Input
-                  label={t.nameLabel}
-                  hint={t.nameHint}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  label={t.descriptionLabel}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                 />
-                <Select
-                  label={t.classLabel}
-                  hint={t.classHint}
-                  value={selectedClass}
-                  onChange={(event) =>
-                    setClassId((event.target as HTMLSelectElement).value)
-                  }
-                >
-                  {(classes.data ?? []).map((item) => (
-                    <SelectOption key={item.id} value={String(item.id)}>
-                      {item.name}
-                    </SelectOption>
-                  ))}
-                </Select>
-                <div className="sm:col-span-2 xl:col-span-1">
-                  <Input
-                    label={t.descriptionLabel}
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
-                </div>
-                {save.isError ? (
-                  <Alert tone="danger" className="sm:col-span-2 xl:col-span-1">
-                    {String(save.error)}
-                  </Alert>
-                ) : null}
+              </div>
+              {save.isError ? (
+                <ErrorState
+                  className="sm:col-span-2 xl:col-span-1"
+                  error={save.error}
+                  onRetry={() => save.mutate()}
+                />
+              ) : null}
             </StepCard>
           ) : null}
 
@@ -580,47 +686,58 @@ export default function SintetizarPage() {
             title={t.previewStep}
             actions={
               live.updating ? (
-                <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
+                <span className="text-caption text-ink-muted">
+                  {ptBR.ui.updating}
+                </span>
               ) : undefined
             }
             description={
-              preview ? `${t.parentsLabel}: ${preview.parents.join(" · ")}` : undefined
+              preview
+                ? `${t.parentsLabel}: ${preview.parents.join(" · ")}`
+                : undefined
             }
           >
-              {live.error ? (
-                <Alert tone="danger">{describeApiError(live.error, t.title)}</Alert>
-              ) : null}
-              {preview ? (
-                <>
-                  <PreviewTable preview={preview} />
-                  {preview.skipped.length > 0 ? (
-                    <div className="well flex flex-col gap-2">
-                      <span className="text-body font-medium text-ink">
-                        {t.skippedTitle}
-                      </span>
-                      <span className="text-caption text-ink-muted">{t.skippedHint}</span>
-                      <ul className="flex flex-col gap-1 text-body text-ink">
-                        {preview.skipped.map((item) => (
-                          <li key={item.slug}>
-                            <span className="font-medium">{item.name}</span> —{" "}
-                            {item.reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </>
-              ) : live.error ? null : (
-                <EmptyState
-                  title={t.previewIdleTitle}
-                  description={recipeBlocked ?? t.previewIdleHint}
-                />
-              )}
+            {live.error ? (
+              <ErrorState error={live.error} onRetry={live.retry} />
+            ) : null}
+            {preview ? (
+              <>
+                <PreviewTable preview={preview} />
+                {preview.skipped.length > 0 ? (
+                  <div className="well flex flex-col gap-2">
+                    <span className="text-body font-medium text-ink">
+                      {t.skippedTitle}
+                    </span>
+                    <span className="text-caption text-ink-muted">
+                      {t.skippedHint}
+                    </span>
+                    <ul className="flex flex-col gap-1 text-body text-ink">
+                      {preview.skipped.map((item) => (
+                        <li key={item.slug}>
+                          <span className="font-medium">{item.name}</span> —{" "}
+                          {item.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : live.error ? null : (
+              <EmptyState
+                title={t.previewIdleTitle}
+                description={recipeBlocked ?? t.previewIdleHint}
+              />
+            )}
           </StepCard>
         </ResultPanel>
       </ParamsResultLayout>
 
-      <SweepSection key={kind} kind={kind} parentA={selectedA} parentB={selectedB} />
+      <SweepSection
+        key={kind}
+        kind={kind}
+        parentA={selectedA}
+        parentB={selectedB}
+      />
 
       {/* D-219: said once, in one line at the foot of the page — not a banner
           above every field repeating principle 1. */}

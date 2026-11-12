@@ -204,7 +204,15 @@ Na tela, expressão se edita com `ExpressionBuilder` e se mostra com
 usa os dois; uma legenda gerada no servidor usa `friendly_label`. KaTeX roda com
 `trust: false` e só recebe TeX do backend.
 
-## Processos (D-57, D-59, D-192)
+## Processos (D-57, D-59, D-192, D-219)
+
+**D-219: matriz e filtros por capacidade são do backend.** `GET /api/processes/matrix`
+devolve a junção material × processo por **família raiz de material** e aplica
+massa, espessura (a faixa do processo **alcança** o valor, regra do envelope) e
+lote (se paga a partir de no máximo N). A unidade é convertida por `units.py`;
+processo sem dado do atributo filtrado sai e é **contado** em `without_data`,
+nunca lido como 0. A tela não compara nem conta. Tolerância não é atributo
+cadastrado: não se cria filtro para dado que não existe.
 
 **D-192: vínculo demo por subclasse, nunca só por classe** ([D-192](DECISIONS.md)).
 Processo demo novo entra em `app/db/process_catalog_ashby.py` (conformação com os

@@ -134,4 +134,27 @@ describe("Varrer (D-144)", () => {
     expect(await screen.findByText(t.errorTitle)).toBeInTheDocument();
     expect(screen.getByText(`${t.error400}: Face e núcleo iguais.`)).toBeInTheDocument();
   });
+
+  it("oferece tentar de novo no erro e refaz o mesmo pedido (D-219)", async () => {
+    sweepSynthesis.mockRejectedValueOnce(new ApiError("Face e núcleo iguais.", 400));
+    const user = userEvent.setup();
+    await open();
+    await user.click(await runButton());
+    await screen.findByText(t.errorTitle);
+
+    await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.retry }));
+    await waitFor(() => expect(sweepSynthesis).toHaveBeenCalledTimes(2));
+    expect(sweepSynthesis.mock.calls[1]![0]).toEqual(sweepSynthesis.mock.calls[0]![0]);
+    expect(await screen.findByText(scalarSweep.note)).toBeInTheDocument();
+  });
+
+  it("escreve a legenda do gráfico: linha, ponto e passo sem índice (D-219)", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await runButton());
+    await screen.findByText(scalarSweep.note);
+    expect(screen.getByRole("list", { name: t.chart.legendTitle })).toBeInTheDocument();
+    expect(screen.getByText(t.chart.legendPoint)).toBeInTheDocument();
+    expect(screen.getByText(t.chart.legendBreak)).toBeInTheDocument();
+  });
 });

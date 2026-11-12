@@ -56,6 +56,16 @@ describe("estado do assistente (D-210)", () => {
     expect(state.indexMode).toBe("none");
   });
 
+  it("opens the first limit on the property named by ?restricao= (D-219) and ignores a malformed one", () => {
+    const stage = start({ restricao: "modulo_young" }).stages[0];
+    expect(stage?.kind).toBe("limit");
+    if (stage?.kind === "limit") {
+      expect(stage.group.constraints[0]).toMatchObject({ property_slug: "modulo_young", value: "" });
+    }
+    const bad = start({ restricao: "x;drop table" }).stages[0];
+    if (bad?.kind === "limit") expect(bad.group.constraints[0]?.property_slug).toBe("");
+  });
+
   it("opens with a chart stage on the map's deep link, and on processes with ?universo=", () => {
     const chart = start({ novo_estagio: "chart", x_prop: "densidade", y_expr: "modulo_young" });
     const stage = chart.stages[0];

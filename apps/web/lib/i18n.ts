@@ -1622,6 +1622,11 @@ export const ptBR = {
         figureLabel: (index: string, variable: string) =>
           `Linha de ${index} contra ${variable}`,
         band: "Faixa Reuss–Voigt: do menor ao maior valor possível do índice, sem média",
+        // D-219: a legenda diz o que cada marca do gráfico é.
+        legendTitle: "Legenda",
+        legendLine: (index: string) => `Linha: ${index} em cada passo calculado`,
+        legendPoint: "Ponto: um passo da varredura, com o índice calculado pela API",
+        legendBreak: "Linha interrompida: passo sem índice (nunca ligado nem lido como zero)",
         tableCaption: (index: string) => `Origem da varredura: ${index} em cada passo`,
         columnStep: "Passo",
         columnIndex: "Índice",
@@ -1663,6 +1668,26 @@ export const ptBR = {
     favorited: "Favoritado",
     universeMaterial: "Material",
     universeProcess: "Processo",
+    // D-219: filtros, busca e ações em lote.
+    search: "Buscar nos seus registros",
+    searchHint: "Pelo nome ou pela classe, sem diferenciar acento.",
+    filterClass: "Classe",
+    filterKind: "Tipo",
+    kindMaterial: "Materiais",
+    kindProcess: "Processos",
+    noMatch: "Nenhum registro bate com a busca e os filtros.",
+    count: (n: number) => (n === 1 ? "1 registro" : `${n} registros`),
+    selectRow: (name: string) => `Selecionar ${name}`,
+    selected: (n: number) => (n === 1 ? "1 selecionado" : `${n} selecionados`),
+    clearSelection: "Limpar seleção",
+    compareSelected: "Comparar materiais",
+    compareNeedTwo: "Selecione ao menos 2 materiais para comparar.",
+    unfavoriteSelected: "Desfavoritar selecionados",
+    confirmTitle: (n: number) =>
+      n === 1 ? "Desfavoritar 1 registro?" : `Desfavoritar ${n} registros?`,
+    confirmMessage:
+      "Eles saem dos favoritos; os registros em si continuam no catálogo. Dá para desfazer logo depois.",
+    unfavorited: (n: number) => (n === 1 ? "1 favorito removido" : `${n} favoritos removidos`),
   },
 
   // D-92: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
@@ -3356,6 +3381,45 @@ export const ptBR = {
       "Comparado por alcance: a faixa atende um limiar quando o alcança, e não pelo ponto médio.",
     kindDiscretoHint:
       "Pertinência a um vocabulário fechado, sem unidade e sem ordem.",
+    // D-219: matriz material × processo, filtros por capacidade e comparação.
+    modeLabel: "Modo",
+    modeList: "Processos",
+    modeMatrix: "Matriz com materiais",
+    matrixTitle: "Matriz material × processo",
+    matrixHint:
+      "Cada célula conta quantos materiais da família o processo atende. Célula vazia: nenhum material daquela família está vinculado ao processo.",
+    matrixNone: "nenhum",
+    matrixCell: (n: number, family: string) =>
+      n === 1 ? `1 material de ${family}` : `${n} materiais de ${family}`,
+    matrixError: "Não foi possível carregar a matriz.",
+    capabilityTitle: "O que o processo precisa fazer",
+    capabilityHint:
+      "Mantém o processo cuja faixa alcança o valor (a faixa de 0,1 a 10 kg faz uma peça de 5 kg). Processo sem esse dado cadastrado sai da lista e é contado ao lado.",
+    capMass: "Massa da peça",
+    capThickness: "Espessura de seção",
+    capBatch: "Lote de peças (no máximo)",
+    capBatchHint: "Mantém processos que se pagam a partir deste lote ou menos.",
+    capUnit: "Unidade",
+    capNoTolerance:
+      "Tolerância dimensional ainda não é atributo cadastrado dos processos; o filtro só aparece quando houver dado.",
+    withoutData: (name: string, n: number) =>
+      n === 1
+        ? `1 processo sem dado de ${name} ficou de fora.`
+        : `${n} processos sem dado de ${name} ficaram de fora.`,
+    columnMass: "Massa",
+    columnThickness: "Espessura",
+    columnBatch: "Lote econômico",
+    columnCompare: "Comparar",
+    compareRow: (name: string) => `Comparar ${name}`,
+    compareTitle: "Comparação lado a lado",
+    compareHint: "Até 4 processos. Cada valor mantém a unidade e a qualidade do dado.",
+    comparePick: "Marque de 2 a 4 processos na matriz ou na tabela para comparar.",
+    compareLimit: "O limite é de 4 processos por comparação.",
+    compareClear: "Limpar comparação",
+    compareAttribute: "Atributo",
+    compareRemove: (name: string) => `Tirar ${name} da comparação`,
+    compareError: "Não foi possível carregar um dos processos.",
+    compareCount: (n: number) => (n === 1 ? "1 selecionado" : `${n} selecionados`),
   },
 
   // D-130: glossário de propriedades — verbetes conceituais, com fonte e licença.
@@ -3388,6 +3452,10 @@ export const ptBR = {
     hintError: "Não foi possível carregar o verbete.",
     // D-209: o glossário como wiki — índice por letra e verbete aberto ao lado.
     lettersLabel: "Índice por letra",
+    // D-219: do verbete para o uso.
+    useTitle: "Usar esta propriedade",
+    useAsAxis: "Usar como eixo no Mapa",
+    useAsConstraint: "Usar como restrição na Seleção",
     filterState: "Estado",
     stateReviewed: "Revisado",
     stateDraft: "Rascunho",

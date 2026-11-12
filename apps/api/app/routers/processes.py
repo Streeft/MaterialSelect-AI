@@ -10,7 +10,7 @@ the material catalogue has.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -21,6 +21,7 @@ from app.schemas.process import (
     ProcessClassDetailOut,
     ProcessClassOut,
     ProcessDetailOut,
+    ProcessMatrixOut,
     ProcessOut,
 )
 from app.services.process_service import ProcessService
@@ -56,6 +57,26 @@ def list_process_attributes(
     """List the process attribute catalogue (P0-4) — what a limit stage over
     processes can select on, and which shape of value each attribute holds."""
     return ProcessService(db).list_attributes()
+
+
+@router.get("/matrix", response_model=ProcessMatrixOut)
+def process_matrix(
+    massa: float | None = Query(default=None, ge=0),
+    massa_unidade: str = Query(default="kg", max_length=20),
+    espessura: float | None = Query(default=None, ge=0),
+    espessura_unidade: str = Query(default="mm", max_length=20),
+    lote: float | None = Query(default=None, ge=0),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProcessMatrixOut:
+    """Material family × process matrix, optionally narrowed by what the process can make (D-219)."""
+    return ProcessService(db).matrix(
+        mass=massa,
+        mass_unit=massa_unidade,
+        thickness=espessura,
+        thickness_unit=espessura_unidade,
+        batch=lote,
+    )
 
 
 @router.get("", response_model=list[ProcessOut])

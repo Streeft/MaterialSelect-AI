@@ -1,22 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { listProcessClasses, listProcesses } from "@/lib/api";
+import { getProcessMatrix, listProcessClasses, listProcesses } from "@/lib/api";
+import { ProcessCompare } from "@/components/process/ProcessCompare";
+import { ProcessMatrix } from "@/components/process/ProcessMatrix";
+import {
+  MASS_UNITS,
+  MAX_COMPARE_PROCESSES,
+  PROCESSES_URL,
+  THICKNESS_UNITS,
+  type ProcessMode,
+} from "@/lib/processesUrl";
+import { useDebounced } from "@/lib/useDebounced";
+import { matchesQuery } from "@/lib/search";
+import { useUrlState } from "@/lib/urlState";
 import type { Process, ProcessClass } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
 import { useDatabaseView } from "@/lib/savedViews";
 import {
+  Alert,
   Button,
+  ButtonGroup,
+  ButtonGroupItem,
   Card,
   CardBody,
   EmptyState,
   ErrorState,
   FilterBar,
   Input,
-  LoadingState,
+  ListSkeleton,
+  Select,
+  SelectOption,
   PageHeader,
   RowHeader,
   SavedViewsBar,
@@ -46,19 +63,95 @@ const t = ptBR.processes;
  * and because a flat list of thirteen is already a list nobody reads.
  */
 export default function ProcessesPage() {
-  const classes = useQuery({ queryKey: ["process-classes"], queryFn: listProcessClasses });
-  const processes = useQuery({ queryKey: ["processes"], queryFn: listProcesses });
-  const [search, setSearch] = useState("");
+  // `useSearchParams` (inside `useUrlState`) needs a boundary, or `next build` refuses the page.
+  return (
+    <Suspense fallback={<ListSkeleton variant="rows" count={4} />}>
+      <ProcessesPageContent />
+    </Suspense>
+  );
+}
+
+type FilterKey = "familia" | "subfamilia" | "uso";
+
+function ProcessesPageContent() {
+  const [url, setUrl] = useUrlState(PROCESSES_URL);
+  const classes = useQuery({
+    queryKey: ["process-classes"],
+    queryFn: listProcessClasses,
+  });
+  const processes = useQuery({
+    queryKey: ["processes"],
+    queryFn: listProcesses,
+  });
 
   // D-209: a database of processes. The family cards are the "Galeria", the
   // default; "Tabela" and "Lista" read the same rows flat. Filters narrow the
   // list the server sent (family, sub-family, whether any material uses it)
   // and live in the reader's saved views.
-  const view = useDatabaseView<"familia" | "subfamilia" | "uso">({
+  // D-219: the filters, the kind and the search now live in the address.
+  const view = useDatabaseView<FilterKey>({
     scope: "processos",
     initialFilters: { familia: null, subfamilia: null, uso: null },
     defaultKind: "gallery",
+    store: {
+      filters: {
+        familia: url.familia || null,
+        subfamilia: url.subfamilia || null,
+        uso: url.uso || null,
+      },
+      updateFilters: (update) =>
+        setUrl((current) => {
+          const next = update({
+            familia: current.familia || null,
+            subfamilia: current.subfamilia || null,
+            uso: current.uso || null,
+          });
+          return {
+            familia: next.familia ?? "",
+            subfamilia: next.subfamilia ?? "",
+            uso: (next.uso ?? "") as "" | "com" | "sem",
+          };
+        }),
+      kind: url.visao,
+      setKind: (kind) => setUrl({ visao: kind }),
+    },
   });
+
+  // D-219: capability filters are answered by the backend (it converts the unit
+  // and compares the envelope); the lists below keep what it kept.
+  const capQuery = {
+    massa: url.massa,
+    massaUnidade: url.massaUn,
+    espessura: url.espessura,
+    espessuraUnidade: url.espessuraUn,
+    lote: url.lote,
+  };
+  const debouncedCap = useDebounced(JSON.stringify(capQuery), 400);
+  const capActive = [url.massa, url.espessura, url.lote].some((v) =>
+    /^\d+([.,]\d+)?$/.test(v.trim()),
+  );
+  const matrixOn = url.modo === "matriz" || capActive;
+  const matrix = useQuery({
+    queryKey: ["process-matrix", debouncedCap],
+    queryFn: () => getProcessMatrix(JSON.parse(debouncedCap)),
+    enabled: matrixOn,
+    placeholderData: (previous) => previous,
+  });
+  const keptSlugs = useMemo(
+    () =>
+      capActive && matrix.data
+        ? new Set(matrix.data.rows.map((r) => r.process.slug))
+        : null,
+    [capActive, matrix.data],
+  );
+  const toggleCompare = (slug: string) =>
+    setUrl((current) => ({
+      comparar: current.comparar.includes(slug)
+        ? current.comparar.filter((s) => s !== slug)
+        : current.comparar.length < MAX_COMPARE_PROCESSES
+          ? [...current.comparar, slug]
+          : current.comparar,
+    }));
 
   const loading = classes.isLoading || processes.isLoading;
   const failed = classes.isError || processes.isError;
@@ -66,25 +159,41 @@ export default function ProcessesPage() {
   const rootOf = useMemo(() => {
     const map = new Map<string, ProcessClass>();
     for (const root of roots(allClasses)) {
-      for (const slug of descendantSlugs(root.slug, allClasses)) map.set(slug, root);
+      for (const slug of descendantSlugs(root.slug, allClasses))
+        map.set(slug, root);
     }
     return map;
   }, [allClasses]);
 
-  const needle = search.trim().toLocaleLowerCase("pt-BR");
+  const needle = url.busca.trim();
   const shown = (processes.data ?? []).filter((p) => {
-    if (view.filters.familia && rootOf.get(p.class_slug)?.slug !== view.filters.familia) return false;
-    if (view.filters.subfamilia && p.class_slug !== view.filters.subfamilia) return false;
+    if (
+      view.filters.familia &&
+      rootOf.get(p.class_slug)?.slug !== view.filters.familia
+    )
+      return false;
+    if (view.filters.subfamilia && p.class_slug !== view.filters.subfamilia)
+      return false;
     if (view.filters.uso === "com" && p.material_count === 0) return false;
     if (view.filters.uso === "sem" && p.material_count > 0) return false;
-    return !needle || p.name.toLocaleLowerCase("pt-BR").includes(needle);
+    // While the backend has not answered yet, keep the list rather than flash it empty.
+    if (keptSlugs && !keptSlugs.has(p.slug)) return false;
+    return matchesQuery(needle, p.name);
   });
   const filtered =
-    Boolean(needle) || Object.values(view.filters).some((value) => value !== null);
+    Boolean(needle) ||
+    capActive ||
+    Object.values(view.filters).some((value) => value !== null);
+  const clearAll = () => {
+    view.clearFilters();
+    setUrl({ busca: "", massa: "", espessura: "", lote: "" });
+  };
 
   const familyClasses = view.filters.familia
     ? allClasses.filter(
-        (c) => c.slug !== view.filters.familia && rootOf.get(c.slug)?.slug === view.filters.familia,
+        (c) =>
+          c.slug !== view.filters.familia &&
+          rootOf.get(c.slug)?.slug === view.filters.familia,
       )
     : allClasses.filter((c) => c.parent_id !== null);
   const fields: FilterField[] = [
@@ -122,7 +231,10 @@ export default function ProcessesPage() {
           activeId={view.activeId}
           onSelect={view.select}
           onCreate={(kind) =>
-            view.create(kind, `${VIEW_KIND_LABEL[kind]} ${view.saved.views.length + 1}`)
+            view.create(
+              kind,
+              `${VIEW_KIND_LABEL[kind]} ${view.saved.views.length + 1}`,
+            )
           }
           onRename={view.rename}
           onDelete={view.remove}
@@ -132,10 +244,20 @@ export default function ProcessesPage() {
         <Input
           label={t.searchLabel}
           type="search"
-          value={search}
+          value={url.busca}
           placeholder={t.searchPlaceholder}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => setUrl({ busca: event.target.value })}
         />
+        <ButtonGroup label={t.modeLabel}>
+          {(["lista", "matriz"] as ProcessMode[]).map((mode) => (
+            <ButtonGroupItem
+              key={mode}
+              selected={url.modo === mode}
+              label={mode === "lista" ? t.modeList : t.modeMatrix}
+              onClick={() => setUrl({ modo: mode })}
+            />
+          ))}
+        </ButtonGroup>
         <FilterBar
           fields={fields}
           onChange={(id, value) => {
@@ -143,14 +265,92 @@ export default function ProcessesPage() {
             // A sub-family belongs to one family: changing the family drops it.
             if (id === "familia") view.setFilter("subfamilia", null);
           }}
-          onClear={() => {
-            view.clearFilters();
-            setSearch("");
-          }}
+          onClear={clearAll}
         />
+        <fieldset className="flex min-w-0 flex-col gap-2 rounded-card border border-line p-3">
+          <legend className="px-1 text-body font-medium text-ink">
+            {t.capabilityTitle}
+          </legend>
+          <p className="text-support text-ink-muted">{t.capabilityHint}</p>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex min-w-0 items-end gap-2">
+              <Input
+                label={t.capMass}
+                inputMode="decimal"
+                className="min-w-0 flex-1"
+                value={url.massa}
+                onChange={(e) => setUrl({ massa: e.target.value })}
+              />
+              <Select
+                label={t.capUnit}
+                value={url.massaUn}
+                onChange={(e) =>
+                  setUrl({
+                    massaUn: e.target.value as (typeof MASS_UNITS)[number],
+                  })
+                }
+              >
+                {MASS_UNITS.map((u) => (
+                  <SelectOption key={u} value={u}>
+                    {u}
+                  </SelectOption>
+                ))}
+              </Select>
+            </div>
+            <div className="flex min-w-0 items-end gap-2">
+              <Input
+                label={t.capThickness}
+                inputMode="decimal"
+                className="min-w-0 flex-1"
+                value={url.espessura}
+                onChange={(e) => setUrl({ espessura: e.target.value })}
+              />
+              <Select
+                label={t.capUnit}
+                value={url.espessuraUn}
+                onChange={(e) =>
+                  setUrl({
+                    espessuraUn: e.target
+                      .value as (typeof THICKNESS_UNITS)[number],
+                  })
+                }
+              >
+                {THICKNESS_UNITS.map((u) => (
+                  <SelectOption key={u} value={u}>
+                    {u}
+                  </SelectOption>
+                ))}
+              </Select>
+            </div>
+            <Input
+              label={t.capBatch}
+              hint={t.capBatchHint}
+              inputMode="numeric"
+              value={url.lote}
+              onChange={(e) => setUrl({ lote: e.target.value })}
+            />
+          </div>
+          <p className="text-support text-ink-subtle">{t.capNoTolerance}</p>
+          {capActive && matrix.data
+            ? (
+                [
+                  ["massa", t.capMass],
+                  ["espessura", t.capThickness],
+                  ["lote", t.capBatch],
+                ] as const
+              ).map(([key, name]) => {
+                const n = matrix.data.without_data[key] ?? 0;
+                return n > 0 ? (
+                  <Alert key={key} tone="info">
+                    {t.withoutData(name.toLocaleLowerCase("pt-BR"), n)}
+                  </Alert>
+                ) : null;
+              })
+            : null}
+        </fieldset>
       </div>
 
-      {loading && <LoadingState label={t.loading} />}
+      {loading && <ListSkeleton variant="rows" count={4} label={t.loading} />}
       {failed && (
         <ErrorState
           title={t.error}
@@ -164,7 +364,11 @@ export default function ProcessesPage() {
       {classes.data && processes.data && (
         <Section
           id="processos"
-          title={view.kind === "gallery" && !filtered ? t.familiesTitle : t.shownCount(shown.length)}
+          title={
+            view.kind === "gallery" && !filtered
+              ? t.familiesTitle
+              : t.shownCount(shown.length)
+          }
         >
           {classes.data.length === 0 ? (
             <EmptyState title={t.empty} />
@@ -172,17 +376,35 @@ export default function ProcessesPage() {
             <EmptyState
               title={t.emptyFiltered}
               action={
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    view.clearFilters();
-                    setSearch("");
-                  }}
-                >
+                <Button size="sm" onClick={clearAll}>
                   {t.clearFilters}
                 </Button>
               }
             />
+          ) : url.modo === "matriz" ? (
+            matrix.isError ? (
+              <ErrorState
+                title={t.matrixError}
+                error={matrix.error}
+                onRetry={() => void matrix.refetch()}
+              />
+            ) : !matrix.data ? (
+              <ListSkeleton variant="rows" count={4} label={t.loading} />
+            ) : (
+              <div className="flex min-w-0 flex-col gap-2">
+                <p className="text-support text-ink-muted">{t.matrixHint}</p>
+                <ProcessMatrix
+                  matrix={{
+                    ...matrix.data,
+                    rows: matrix.data.rows.filter((r) =>
+                      shown.some((p) => p.slug === r.process.slug),
+                    ),
+                  }}
+                  selected={url.comparar}
+                  onToggle={toggleCompare}
+                />
+              </div>
+            )
           ) : view.kind === "table" ? (
             <ProcessTable processes={shown} rootOf={rootOf} />
           ) : view.kind === "list" ? (
@@ -196,7 +418,10 @@ export default function ProcessesPage() {
                 // instead of showing an empty card that reads as "no data".
                 .filter(
                   (root) =>
-                    !filtered || shown.some((p) => rootOf.get(p.class_slug)?.slug === root.slug),
+                    !filtered ||
+                    shown.some(
+                      (p) => rootOf.get(p.class_slug)?.slug === root.slug,
+                    ),
                 )
                 .map((root) => (
                   <FamilyCard
@@ -210,6 +435,14 @@ export default function ProcessesPage() {
           )}
         </Section>
       )}
+
+      {url.comparar.length > 0 ? (
+        <ProcessCompare
+          slugs={url.comparar}
+          onRemove={toggleCompare}
+          onClear={() => setUrl({ comparar: [] })}
+        />
+      ) : null}
     </div>
   );
 }
@@ -236,11 +469,16 @@ function ProcessTable({
           {processes.map((process) => (
             <Tr key={process.slug}>
               <RowHeader>
-                <Link href={`/app/processos/${process.slug}`} className="font-medium text-brand-700">
+                <Link
+                  href={`/app/processos/${process.slug}`}
+                  className="font-medium text-brand-700"
+                >
                   {process.name}
                 </Link>
               </RowHeader>
-              <Td className="text-ink-muted">{rootOf.get(process.class_slug)?.name ?? process.class_name}</Td>
+              <Td className="text-ink-muted">
+                {rootOf.get(process.class_slug)?.name ?? process.class_name}
+              </Td>
               <Td className="text-ink-muted">{process.class_name}</Td>
               <Td numeric className="text-ink-muted">
                 {process.material_count}
@@ -274,7 +512,9 @@ function ProcessLines({
             <span className="text-caption text-ink-muted">
               {rootOf.get(process.class_slug)?.name ?? process.class_name}
             </span>
-            <span className="text-caption text-ink-muted">{t.materialsServed(process.material_count)}</span>
+            <span className="text-caption text-ink-muted">
+              {t.materialsServed(process.material_count)}
+            </span>
           </Link>
         </li>
       ))}
@@ -306,7 +546,9 @@ function FamilyCard({
           >
             {family.name}
           </Link>
-          <span className="text-body text-ink-muted">{t.countProcesses(inFamily.length)}</span>
+          <span className="text-body text-ink-muted">
+            {t.countProcesses(inFamily.length)}
+          </span>
         </div>
 
         {inFamily.length === 0 ? (
@@ -333,4 +575,3 @@ function FamilyCard({
     </Card>
   );
 }
-

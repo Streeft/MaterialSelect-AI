@@ -250,6 +250,15 @@ describe("Sintetizar material", () => {
     expect(sent.relative_density).toBeUndefined();
   });
 
+  it("diz o erro da prévia e oferece tentar de novo (D-219)", async () => {
+    previewSynthesis.mockRejectedValueOnce(new Error("falhou"));
+    await open();
+    await screen.findByShadowRole("button", { name: ptBR.ui.retry });
+    await userEvent.click(screen.getByShadowRole("button", { name: ptBR.ui.retry }));
+    await screen.findByText(new RegExp(`^${t.parentsLabel}:`));
+    expect(previewSynthesis.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("prevê sem nome, com um nome provisório que a API aceita", async () => {
     // A API valida o mesmo corpo da gravação e recusa nome vazio; o campo de
     // nome só aparece depois da prévia. Mandar "" fazia a prévia falhar sempre.

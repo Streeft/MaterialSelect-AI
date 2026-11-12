@@ -12909,6 +12909,52 @@ banco** (migrar) antes de usar a lista de arquivados em produção.
 
 > Mesclada como "D-218", número que a decisão dos Cadernos já usava; renumerada para D-219 no PR da F5 (D-220), junto com as referências no código.
 
+
+## D-219 — Processos (matriz, capacidade, comparação), Glossário, Sintetizar, Painel e Meus registros
+
+**Contexto.** Etapa "Processos, Glossário, Sintetizar, Painel e Meus registros" da revisão das telas (parte 4). Já existiam e foram
+mantidos: o Painel em blocos móveis e o Glossário como wiki (D-209), o estado do Sintetizar na URL e o layout de parâmetros e
+resultado (D-212), `figure` com nome em todo gráfico do Painel, a propriedade e a escala do Painel na URL (D-212, sem `setState`
+no render), o índice A–Z e o filtro sem acento do Glossário, e os `useUrlState`, `PageHeader`, esqueletos, `ErrorState` e
+`useUndoableDelete`. Faltavam o que segue.
+
+**Decisão.**
+
+1. **Meus registros.** Busca (sem acento nem caixa), filtro por classe e por tipo (material/processo) em `FilterBar`, tudo em
+   `?q=`, `?classe=`, `?tipo=` (`lib/myRecordsFilter.ts`, `useUrlState`). Os filtros valem para as três listas e as classes
+   oferecidas são as que existem nos registros do leitor; registro próprio é material, então some quando o tipo é processo. Ações em
+   lote nos favoritos: caixa de seleção por linha, "Comparar materiais" (leva a `/app/comparar?materiais=` com os ids; desabilitado
+   com menos de 2, dizendo o motivo) e "Desfavoritar selecionados" com `ConfirmDialog` e depois "Desfazer" pelo
+   `useUndoableDelete` (o hook ganha `message` opcional, para o plural). A lista é só filtragem do que o servidor mandou; nada é
+   calculado. Esqueleto no carregamento.
+2. **Processos.** (a) **Matriz material × processo** (`?modo=matriz`): linhas são processos, colunas as famílias raiz de material,
+   célula é quantos materiais da família o processo atende, vindo da junção que já existia; célula sem material diz "nenhum", e
+   capacidade sem dado diz "Ausente" (D-24). Endpoint novo `GET /api/processes/matrix` (`ProcessService.matrix`). (b) **Filtros por
+   capacidade**: massa da peça, espessura de seção e lote. O backend converte a unidade (`units.py`) e compara: massa e espessura
+   mantêm o processo cuja **faixa alcança** o valor (regra do envelope, D-59/D-62), lote mantém o que se paga a partir de no
+   máximo N peças. Processo **sem dado** daquele atributo sai e é **contado** ("1 processo sem dado de massa ficou de fora"), nunca
+   lido como 0. Valores negativos são 422, unidade incompatível é 400. Os filtros valem na matriz, na galeria, na tabela e na
+   lista. **Tolerância dimensional não é atributo cadastrado** dos processos: não se inventa o dado, o filtro não existe e a tela
+   escreve isso (ver TODO). (c) **Comparar lado a lado** até 4 processos (`?comparar=a,b`), uma coluna cada, uma linha por
+   atributo, com a unidade da fonte e a ausência escrita; usa a ficha de cada processo, sem endpoint novo. (d) **Estado na URL**: busca,
+   família, subfamília, uso, visão, modo, os três filtros com unidade e a comparação (`lib/processesUrl.ts`); as visões salvas
+   continuam, agora sobre os mesmos parâmetros (`store` do `useDatabaseView`, como o catálogo).
+3. **Glossário.** O filtro espera 200 ms de pausa antes de refiltrar, e a busca e o estado vão para `?busca=` e `?estado=`. Todo
+   verbete (e a propriedade sem verbete) ganha "Usar como eixo no Mapa" (`/app/mapas?estado=…` com a propriedade no eixo X, por
+   `mapHrefForAxis`) e "Usar como restrição na Seleção" (`/app/selecao?etapa=restricoes&restricao=<slug>`; o assistente abre a primeira
+   restrição já apontada para a propriedade, sem valor, e ignora slug malformado).
+4. **Sintetizar.** A prévia ao vivo veio da F4 (D-218, `useLiveResult`) e foi mantida; esta etapa não a refez. A varredura ganha
+   **legenda escrita** no gráfico (linha, ponto, passo sem índice) além da faixa; o erro da varredura, o da prévia e o da
+   gravação usam `ErrorState` com "Tentar novamente" (a gravação mostrava `String(error)`).
+5. **Painel.** Conferido, sem mudança de código: propriedade e escala já estão na URL, todo gráfico é `figure` com nome, e nenhum
+   `setState` corre durante o render. Um teste novo trava as três coisas nas cinco abas.
+
+**Fora.** Filtro por tolerância (falta o atributo no catálogo de processos). Comparar processos também a partir das visões de
+galeria, lista e tabela (hoje só na matriz). Excluir registro próprio em lote (a exclusão de material não é desfazível
+no servidor). Toca `apps/api` **sem migração nem seed**: depois do merge, **Deploy da API**.
+
+## D-218 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
+
 **Contexto.** A F4 do plano ("bancadas de cálculo") correu em paralelo com a etapa 4.5 do #240 (D-216: padrões no backend, Eco
 em módulos e no endereço com cascata, Dimensionar com esquema e barras, Custo comparando). O autor escolheu, em 12/11/2026, ficar
 com o desenho da D-216 e pôr a F4 por cima dela, com o Dimensionar abrindo vazio e preenchendo o exemplo só com o clique.

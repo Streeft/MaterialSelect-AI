@@ -101,3 +101,16 @@ export function selectedIdsOf(
 ): number[] {
   return box ? inBox : explicit;
 }
+
+/**
+ * D-219: the map with `slug` on the X axis, everything else as the default map
+ * opens. What the glossary's "Usar como eixo" links to; the property is the only
+ * thing it names, so the map itself decides what to plot of it.
+ */
+export function mapHrefForAxis(slug: string): string {
+  const state: MapUrlState = {
+    ...DEFAULT_MAP_STATE,
+    xAxis: { ...DEFAULT_MAP_STATE.xAxis, property: slug },
+  };
+  return `/app/mapas?estado=${encodeMapState(state)}`;
+}
