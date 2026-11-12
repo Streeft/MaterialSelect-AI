@@ -200,13 +200,17 @@ async function open() {
   await screen.findByRole("heading", { name: t.kindStep });
 }
 
-async function runPreview(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(
-    await screen.findByShadowRole("button", { name: t.preview }),
-  );
-  // The result card is always on screen (empty until asked); what appears only
-  // after a preview is the line naming the parents it was computed from.
+/**
+ * D-216: the preview follows the recipe — nothing to press. What appears only
+ * once it has arrived is the line naming the parents it was computed from.
+ */
+async function runPreview(_user?: ReturnType<typeof userEvent.setup>) {
   await screen.findByText(new RegExp(`^${t.parentsLabel}:`));
+}
+
+/** The latest brief the preview asked about (the recipe changes after load). */
+function lastSent() {
+  return previewSynthesis.mock.calls.at(-1)![0]!;
 }
 
 /** The kind is a radio card now — the rule of each kind shows before the choice. */
@@ -224,9 +228,9 @@ beforeEach(() => {
 });
 
 describe("Sintetizar material", () => {
-  it("diz de saída que nada ali é inventado", async () => {
-    // É a frase que justifica a tela existir (princípio 1), e ela vem antes de
-    // qualquer campo.
+  it("diz que nada ali é inventado, uma vez, no rodapé (D-216)", async () => {
+    // É a frase que justifica a tela existir (princípio 1); dita uma vez, numa
+    // linha, e não como faixa acima de todo campo.
     await open();
 
     expect(screen.getByText(t.principle)).toBeInTheDocument();
@@ -287,8 +291,8 @@ describe("Sintetizar material", () => {
     ).toBeInTheDocument();
     await runPreview(user);
 
-    const sent = previewSynthesis.mock.calls[0]![0]!;
-    expect(sent.kind).toBe("espuma");
+    await waitFor(() => expect(lastSent().kind).toBe("espuma"));
+    const sent = lastSent();
     expect(sent.relative_density).toBe(0.1);
     expect(sent.volume_fraction).toBeUndefined();
     expect(sent.parent_b_id).toBeUndefined();
@@ -338,11 +342,16 @@ describe("Sintetizar material", () => {
   it("não grava nada sem a prévia ter sido lida", async () => {
     // O passo da identidade só aparece depois da prévia: gravar primeiro e
     // explicar depois encheria o catálogo de hipóteses que ninguém leu.
+    let release: (value: typeof preview) => void = () => {};
+    previewSynthesis.mockImplementation(() => new Promise((resolve) => (release = resolve)));
     await open();
 
     expect(
       screen.queryByRole("heading", { name: t.identityStep }),
     ).not.toBeInTheDocument();
+    await waitFor(() => expect(previewSynthesis).toHaveBeenCalled());
+    release(preview);
+    expect(await screen.findByRole("heading", { name: t.identityStep })).toBeInTheDocument();
   });
 
   it("exige nome para gravar, mas não para prever", async () => {
@@ -367,8 +376,11 @@ describe("Sintetizar material", () => {
     await user.clear(fraction);
     await user.type(fraction, "1");
 
-    expect(await screen.findByShadowRole("button", { name: t.preview })).toBeDisabled();
-    expect(screen.getByText(t.blocked.fraction)).toBeInTheDocument();
+    // D-86/D-216: no preview button; the result card says what is wrong.
+    expect(await screen.findByText(t.blocked.fraction)).toBeInTheDocument();
+    expect(screen.queryByShadowRole("button", { name: t.preview })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(previewSynthesis.mock.calls.some(([req]) => req.volume_fraction === 1)).toBe(false);
   });
 
   it("grava e aponta para a ficha do registro criado", async () => {
@@ -389,8 +401,11 @@ describe("Sintetizar material", () => {
     ).toHaveAttribute("href", "/app/materiais/77");
   });
 
-  it("mostra a nota do tipo escolhido", async () => {
+  it("mostra a nota do tipo escolhido, um clique abaixo do desenho (D-216)", async () => {
     await open();
+    // Each kind is a drawing and one line; the full rule is in "Sobre este tipo".
+    expect(screen.getByText(t.kindLineComposite)).toBeInTheDocument();
+    expect(screen.getByText(t.kindNoteTitle)).toBeInTheDocument();
 
     expect(
       screen.getByText(/par de limites porque depende da direção/),
@@ -414,8 +429,8 @@ describe("Painel sanduíche", () => {
 
     await runPreview(user);
 
-    const sent = previewSynthesis.mock.calls[0]![0]!;
-    expect(sent.kind).toBe("painel");
+    await waitFor(() => expect(lastSent().kind).toBe("painel"));
+    const sent = lastSent();
     expect(sent.face_thickness).toBe(1);
     expect(sent.core_thickness).toBe(18);
     expect(sent.volume_fraction).toBeUndefined();
@@ -432,7 +447,8 @@ describe("Painel sanduíche", () => {
     await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel));
     await runPreview(user);
 
-    expect(previewSynthesis.mock.calls[0]![0]!.parent_b_id).toBe(2);
+    await waitFor(() => expect(lastSent().kind).toBe("painel"));
+    expect(lastSent().parent_b_id).toBe(2);
   });
 
   it("nomeia os pais por papel: face e núcleo", async () => {

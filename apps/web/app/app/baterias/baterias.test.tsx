@@ -241,7 +241,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     const user = userEvent.setup();
     const { unmount } = render(wrap(<BateriasPage />));
 
-    const energy = await screen.findByShadowRole("spinbutton", { name: t.targetEnergy });
+    const energy = await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` });
     await user.clear(energy);
     await user.type(energy, "75");
     await user.click(await screen.findByShadowRole("tab", { name: t.tabCompare }));
@@ -254,7 +254,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
 
     unmount();
     render(wrap(<BateriasPage />));
-    expect(await screen.findByShadowRole("spinbutton", { name: t.targetEnergy })).toHaveValue(75);
+    expect(await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` })).toHaveValue(75);
     expect(await screen.findByShadowRole("tab", { name: t.tabCompare })).toHaveAttribute(
       "aria-selected",
       "true",

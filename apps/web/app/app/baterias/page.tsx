@@ -425,6 +425,7 @@ export default function BateriasPage() {
               </Select>
               <NumberInput
                 label={t.targetVoltage}
+                unit="V"
                 value={targetVoltage}
                 min={1}
                 step="any"
@@ -432,6 +433,7 @@ export default function BateriasPage() {
               />
               <NumberInput
                 label={t.targetEnergy}
+                unit="kWh"
                 value={targetEnergy}
                 min={0.01}
                 step="any"
@@ -439,6 +441,7 @@ export default function BateriasPage() {
               />
               <NumberInput
                 label={t.targetPower}
+                unit="kW"
                 value={targetPower}
                 min={0.1}
                 step="any"
@@ -476,6 +479,7 @@ export default function BateriasPage() {
               <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
                   <NumberInput
                     label={t.cellCapacity}
+                    unit="Ah"
                     value={cellCapacity}
                     min={0.1}
                     step="any"
