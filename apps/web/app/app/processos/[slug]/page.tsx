@@ -26,6 +26,7 @@ import {
   provenanceOfProcessAttribute,
   qualityState,
 } from "@/components/ui";
+import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.processes;
 
@@ -49,6 +50,9 @@ export default function ProcessDetailPage() {
   });
 
   useRecordVisit("process", process.data?.id);
+
+  // D-207: the tab and the menu's "Recentes" carry the record's own name.
+  usePageTitle(process.data?.name);
 
   if (process.isLoading) return <LoadingState label={t.loading} />;
   if (process.isError) {

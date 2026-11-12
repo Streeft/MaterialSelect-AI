@@ -179,12 +179,13 @@ def _subscribe(db_session, user) -> None:
 TEMPLATE = {"name": "Padrão da turma", "mapping": MAPPING}
 
 
-def test_open_mode_student_cannot_touch_templates_history_or_reports(client, monkeypatch):
-    job_id = _validated_job(client)  # created by a curator (closed mode)
+def test_open_mode_student_reaches_templates_history_and_reports(client, monkeypatch):
+    # D-208: login is enough in open mode; no subscription needed to import.
+    job_id = _validated_job(client)
     monkeypatch.setattr(settings, "access_mode", "open")
-    assert client.post("/api/import-templates", json=TEMPLATE).status_code == 403
-    assert client.get("/api/imports").status_code == 403
-    assert client.get(f"/api/imports/{job_id}/report").status_code == 403
+    assert client.post("/api/import-templates", json=TEMPLATE).status_code == 201
+    assert client.get("/api/imports").status_code == 200
+    assert client.get(f"/api/imports/{job_id}/report").status_code == 200
 
 
 def test_open_mode_subscriber_creates_templates(client, db_session, test_user, monkeypatch):

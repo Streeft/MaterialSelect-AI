@@ -1,6 +1,7 @@
 import { AuthGate } from "@/components/auth/AuthGate";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { DocumentTitle } from "@/components/layout/DocumentTitle";
 import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
@@ -51,6 +52,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <KeyboardShortcuts />
+      {/* D-207: the tab title per page, and the menu's "Recentes". */}
+      <DocumentTitle />
       <BottomNav />
       </AnnouncerProvider>
       </SnackbarProvider>

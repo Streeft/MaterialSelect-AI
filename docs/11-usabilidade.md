@@ -233,6 +233,12 @@ lista, refeita a cada mudança de tela:
 - [ ] Menu lateral a 1280x800: do Início a "Propriedades" e ao rodapé (Aparência, sair, tema), tudo alcançável; se a lista rola, a
       barra de rolagem é visível. Na gaveta do celular (667 px de altura), "Administrar" é alcançável rolando a lista (D-202).
 - [ ] Barra inferior do celular: rótulos de 12 px ou mais e alvos de 48 px (D-202).
+- [ ] Paleta de comandos (Ctrl/Cmd+K ou `/`), só com teclado e com leitor de tela: cada seta anuncia a opção, Enter abre ou
+      executa, Esc fecha e devolve o foco; "?" lista todas as teclas, inclusive as da paleta (D-207).
+- [ ] Menu lateral: recolher um grupo anuncia "recolhido" e mantém a página atual à vista; "Fixar esta página" anuncia o estado
+      (pressionado); em Fixados e Recentes o botão de fixar é separado do link (D-207).
+- [ ] A aba do navegador diz a tela ou o registro aberto ("Aço inoxidável 304 · MaterialSelect AI"), e as fichas de material,
+      família, processo e caderno têm trilha com a página atual marcada (D-207).
 - [ ] Páginas fora de `/app` (`/entrar`, `/assinatura`) têm um `<main>`: o leitor de tela salta direto ao conteúdo (D-202).
 
 ---

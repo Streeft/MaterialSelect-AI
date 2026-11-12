@@ -22,11 +22,11 @@ export function useBillingStatus(options?: { enabled?: boolean }) {
 }
 
 /**
- * Whether to offer controls that write the shared catalogue (D-83).
+ * Whether to offer controls that write the shared catalogue (D-83, D-208).
  *
- * Only hides what a student admitted by open access mode could not use; the
- * server refuses the write either way. Unknown (loading, error) reads as yes,
- * because under the subscription gate every user who got this far may write.
+ * Since D-208 every logged-in user may write, in both access modes, so this is
+ * true unless the server explicitly says otherwise. Unknown (loading, error)
+ * reads as yes; the server refuses a write it does not allow either way.
  */
 export function useCanEditCatalog(): boolean {
   const { data } = useBillingStatus();

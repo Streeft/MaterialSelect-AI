@@ -62,6 +62,7 @@ from app.routers import (
     processes,
     properties,
     saved_charts,
+    search,
     selection,
     solver,
     sources,
@@ -341,6 +342,10 @@ app.include_router(
 )
 app.include_router(
     battery.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# The palette's light search (D-207): id, name, class and kind only, limited per kind.
+app.include_router(
+    search.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 # Cadernos (D-92): the same gate as every product route, so open access mode
 # (D-83) admits a student. A notebook is the student's own, never the shared

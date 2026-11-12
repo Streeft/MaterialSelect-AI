@@ -88,7 +88,10 @@ quitados".
 ## Média prioridade
 
 **Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 entregue** (D-205: unidades,
-textos, sobrescrito, ícone de enviar, etapa neutra). Próximas: F1 fundações do sistema de design (PageDoc, PropertyList, FilterBar,
+textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,
+menu com grupos recolhíveis, Fixados e Recentes, migalhas no material e no caderno, título da aba por página). Pendente do 2.1:
+se o catálogo passar de dezenas de milhares de registros, trocar a dobra de acento em Python por coluna normalizada indexada
+(pede migração); fixar e recentes são por aparelho (sincronizar entre aparelhos pede tabela própria). **Etapa 1.7 entregue** (D-208: todo usuário logado cura o catálogo e vê `/app/estilo`, sem assinatura). Próximas: F1 fundações do sistema de design (PageDoc, PropertyList, FilterBar,
 SavedViews…), F2 bases de dados, F3 fichas como documento, F4 bancadas, F5 Estudar, F6 Início, F7 Cadernos, F8 Entrada (com o
 "Baixar modelo CSV" do Importar), F9 Admin. Antes da F2, cinco decisões do autor: visões salvas em abas (revoga D-50 em parte),
 onde guardar visões e layout, barra lateral clara como opção, um `primary` por tela, landing.

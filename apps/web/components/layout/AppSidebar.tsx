@@ -14,12 +14,25 @@ import { logout } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
+import {
+  SHOWN_RECENTS,
+  isPinned,
+  toggleGroupCollapsed,
+  togglePinned,
+  useCollapsedGroups,
+  usePinned,
+  useRecents,
+  type NavEntry,
+} from "@/lib/navMemory";
+import { useTitleOverride } from "@/lib/pageTitle";
 import { IconButton, ThemeToggle } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
   IconBattery,
   IconBlend,
   IconBook,
+  IconChevronDown,
+  IconClock,
   IconClose,
   IconCoins,
   IconCompare,
@@ -35,6 +48,7 @@ import {
   IconMenu,
   IconNotebook,
   IconPanelLeft,
+  IconPin,
   IconRuler,
   IconScatter,
   IconStar,
@@ -59,7 +73,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-const HOME: NavItem = { href: "/app", label: t.home, icon: IconHome };
+export const HOME: NavItem = { href: "/app", label: t.home, icon: IconHome };
 
 /**
  * Three groups, in the order work happens: you study something, the study
@@ -142,8 +156,30 @@ export function visibleGroups(groups: NavGroup[], canEditCatalog: boolean): NavG
     }));
 }
 
+/** Screens outside the menu that still have a fixed name (D-207). */
+const EXTRA_TITLES: Record<string, string> = {
+  "/app/aparencia": ptBR.appearance.title,
+  "/app/materiais/novo": ptBR.actions.new,
+};
+
+/**
+ * D-207: the name of a screen with a fixed name, from the same list the menu
+ * draws — so the tab title, the menu and the palette never disagree. Exact
+ * paths only: a detail page (`/app/materiais/7`) names itself with
+ * `usePageTitle` once its record loads.
+ */
+export function routeTitle(pathname: string): string | null {
+  if (pathname === HOME.href) return HOME.label;
+  for (const group of GROUPS) {
+    for (const item of group.items) {
+      if (item.href === pathname) return item.label;
+    }
+  }
+  return EXTRA_TITLES[pathname] ?? null;
+}
+
 /** `/app` (the home item's own route) only matches itself; every other route also controls what's below it. */
-function isActive(pathname: string, href: string): boolean {
+export function isActive(pathname: string, href: string): boolean {
   if (href === HOME.href) return pathname === HOME.href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -204,7 +240,57 @@ function NavLink({
   );
 }
 
-/** A titled group of destinations. */
+/**
+ * The title of a group: a toggle that folds it (D-207), remembered per device.
+ * On the collapsed rail there is no room for words, so the title stays only
+ * for screen readers and the group never folds — its icons are the menu.
+ */
+function GroupTitle({
+  id,
+  label,
+  listId,
+  foldKey,
+  open,
+  railCollapsed,
+}: {
+  id: string;
+  label: string;
+  listId: string;
+  /** What the fold is remembered under: the same for the rail and the drawer. */
+  foldKey: string;
+  open: boolean;
+  railCollapsed: boolean;
+}) {
+  if (railCollapsed) {
+    return (
+      <span id={id} className="sr-only">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      id={id}
+      aria-expanded={open}
+      aria-controls={listId}
+      onClick={() => toggleGroupCollapsed(foldKey)}
+      className="msds-rail-eyebrow flex min-h-8 w-full items-center justify-between gap-2 rounded-control text-left"
+    >
+      <span>{label}</span>
+      <IconChevronDown
+        className={cn("h-3.5 w-3.5 transition-transform", !open && "-rotate-90")}
+      />
+    </button>
+  );
+}
+
+/**
+ * A titled group of destinations. Folding a group never hides where the reader
+ * is: the current page stays listed under a folded title (D-207), and the list
+ * still scrolls inside the rail (D-202) — nothing here can push an item out of
+ * reach.
+ */
 function NavGroupList({
   group,
   pathname,
@@ -217,16 +303,23 @@ function NavGroupList({
   collapsed?: boolean;
 }) {
   const labelId = `${idPrefix}-${group.id}`;
+  const listId = `${idPrefix}-list-${group.id}`;
+  const folded = useCollapsedGroups().includes(group.id) && !collapsed;
+  const items = folded
+    ? group.items.filter((item) => isActive(pathname, item.href))
+    : group.items;
   return (
     <div className="flex flex-col gap-0.5">
-      <span
+      <GroupTitle
         id={labelId}
-        className={cn("msds-rail-eyebrow", collapsed && "sr-only")}
-      >
-        {group.label}
-      </span>
-      <ul aria-labelledby={labelId} className="flex flex-col gap-0.5">
-        {group.items.map((item) => (
+        label={group.label}
+        listId={listId}
+        foldKey={group.id}
+        open={!folded}
+        railCollapsed={collapsed}
+      />
+      <ul id={listId} aria-labelledby={labelId} className="flex flex-col gap-0.5">
+        {items.map((item) => (
           <li key={item.href}>
             <NavLink
               item={item}
@@ -237,6 +330,151 @@ function NavGroupList({
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * One remembered page: the link, and beside it (never inside it) the pin
+ * toggle. A sibling button, not a nested one, so each has its own name.
+ */
+function MemoryItem({
+  entry,
+  icon: Icon,
+  pinned,
+  current,
+}: {
+  entry: NavEntry;
+  icon: IconComponent;
+  pinned: boolean;
+  current: boolean;
+}) {
+  const label = pinned ? t.unpin(entry.label) : t.pin(entry.label);
+  return (
+    <li className="flex items-center gap-1">
+      <Link
+        href={entry.href}
+        aria-current={current ? "page" : undefined}
+        className="msds-rail-item min-w-0 flex-1 text-sm"
+      >
+        <Icon className={cn("msds-rail-icon", current && "text-rail-accent")} />
+        <span className="msds-rail-label truncate">{entry.label}</span>
+      </Link>
+      <IconButton
+        size="sm"
+        label={label}
+        toggle
+        selected={pinned}
+        icon={<IconPin filled={pinned} />}
+        onClick={() => togglePinned(entry)}
+        className="shrink-0 text-rail-ink-muted"
+      />
+    </li>
+  );
+}
+
+/**
+ * "Fixados" and "Recentes" (D-207): what this reader keeps and what they just
+ * opened, on this device. Both fold like the groups below them. Not drawn on
+ * the collapsed rail: a pinned record has no glyph of its own, and a column
+ * of identical pins says nothing.
+ */
+function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: string }) {
+  const pinned = usePinned();
+  const recents = useRecents();
+  const collapsedGroups = useCollapsedGroups();
+  const currentTitle = useTitleOverride(pathname) ?? routeTitle(pathname);
+  const currentPinned = isPinned(pinned, pathname);
+  // The page on screen is not a "recent": it is where the reader is, already
+  // marked in the menu, and listing it twice put a second "Fixar <this page>"
+  // button beside the one in the title.
+  const shownRecents = recents.filter((entry) => entry.href !== pathname).slice(0, SHOWN_RECENTS);
+
+  const pinnedListId = `${idPrefix}-list-pinned`;
+  const recentsListId = `${idPrefix}-list-recents`;
+  const pinnedOpen = !collapsedGroups.includes("pinned");
+  const recentsOpen = !collapsedGroups.includes("recents");
+  const pinLabel = currentPinned ? t.unpinCurrent : t.pinCurrent;
+
+  return (
+    <>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <GroupTitle
+              id={`${idPrefix}-pinned`}
+              label={t.groupPinned}
+              listId={pinnedListId}
+              foldKey="pinned"
+              open={pinnedOpen}
+              railCollapsed={false}
+            />
+          </div>
+          {currentTitle && pathname !== HOME.href ? (
+            <IconButton
+              size="sm"
+              label={pinLabel}
+              toggle
+              selected={currentPinned}
+              icon={<IconPin filled={currentPinned} />}
+              onClick={() => togglePinned({ href: pathname, label: currentTitle })}
+              className="shrink-0 text-rail-ink-muted"
+            />
+          ) : null}
+        </div>
+        {pinnedOpen ? (
+          pinned.length > 0 ? (
+            <ul
+              id={pinnedListId}
+              aria-labelledby={`${idPrefix}-pinned`}
+              className="flex flex-col gap-0.5"
+            >
+              {pinned.map((entry) => (
+                <MemoryItem
+                  key={entry.href}
+                  entry={entry}
+                  icon={IconPin}
+                  pinned
+                  current={entry.href === pathname}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p id={pinnedListId} className="px-2.5 text-xs text-rail-ink-muted">
+              {t.pinnedEmpty}
+            </p>
+          )
+        ) : null}
+      </div>
+      {shownRecents.length > 0 ? (
+        <div className="flex flex-col gap-0.5">
+          <GroupTitle
+            id={`${idPrefix}-recents`}
+            label={t.groupRecents}
+            listId={recentsListId}
+            foldKey="recents"
+            open={recentsOpen}
+            railCollapsed={false}
+          />
+          {recentsOpen ? (
+            <ul
+              id={recentsListId}
+              aria-labelledby={`${idPrefix}-recents`}
+              className="flex flex-col gap-0.5"
+            >
+              {shownRecents.map((entry) => (
+                <MemoryItem
+                  key={entry.href}
+                  entry={entry}
+                  icon={IconClock}
+                  pinned={isPinned(pinned, entry.href)}
+                  current={entry.href === pathname}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -458,6 +696,7 @@ export function AppSidebar() {
               />
             </li>
           </ul>
+          {!collapsed && <MemorySections pathname={pathname} idPrefix="nav-rail" />}
           {groups.map((group) => (
             <NavGroupList
               key={group.id}
@@ -540,6 +779,7 @@ export function AppSidebar() {
                   <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
                 </li>
               </ul>
+              <MemorySections pathname={pathname} idPrefix="nav-drawer" />
               {groups.map((group) => (
                 <NavGroupList
                   key={group.id}

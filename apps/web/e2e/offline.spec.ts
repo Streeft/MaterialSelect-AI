@@ -9,7 +9,8 @@ import { test, expect } from "./session";
 
 test("uma ficha aberta com conexão aparece em /offline.html, com a data da leitura em cada valor", async ({ page }) => {
   await page.goto("/app/catalogo");
-  const link = page.locator("a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible").first();
+  // D-207: inside <main>; the menu's "Recentes" also links to sheets.
+  const link = page.locator("main a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible").first();
   await expect(link).toBeVisible({ timeout: 45_000 });
   const name = (await link.textContent())!.trim();
   // D-184: a wide list opens the preview pane first; the sheet opens from it.

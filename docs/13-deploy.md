@@ -372,16 +372,17 @@ Passo a passo, sem terminal, pela aba **Actions** do repositório:
 
 Para estudantes testarem com a própria conta Google, sem assinatura
 ([D-83](DECISIONS.md#d-83)). O login continua obrigatório; o que deixa de ser
-exigido é a assinatura. **O catálogo compartilhado continua protegido:** no
-modo aberto, só quem tem assinatura ativa altera material compartilhado,
-classe, propriedade, importa planilha ou ingere documento. O estudante usa
-toda a ferramenta e cria os próprios registros, estudos e gráficos.
+exigido é a assinatura. **Acesso livre (D-208):** no
+modo aberto, todo usuário logado usa todos os menus e ações, inclusive alterar
+material compartilhado, classe e propriedade, importar planilha e ingerir
+documento ([D-208](DECISIONS.md) revogou a restrição do D-83). Material oficial
+e demo seguem protegidos, e a exclusão pede confirmação.
 
 **Abrir** — pela aba **Actions**:
 
 1. Garanta que a **sua** conta tem assinatura ativa (**Administração do
-   banco** → `conceder` com o seu e-mail). É ela que mantém você como curador
-   do catálogo durante a abertura, e que deixa você entrar depois de fechar.
+   banco** → `conceder` com o seu e-mail). É ela que deixa você entrar
+   depois de fechar (durante a abertura, todo usuário logado já cura o catálogo, D-208).
 2. Se a API publicada ainda não tem o D-83 (primeira vez), dispare **Deploy da
    API** antes.
 3. **Modo de acesso** → **Run workflow** → `abrir`.

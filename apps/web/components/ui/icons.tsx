@@ -409,6 +409,28 @@ export const IconStar = ({
   </Svg>
 );
 
+/** D-207: a pushpin — "keep this in the menu". Filled while it is pinned. */
+export const IconPin = ({
+  filled = false,
+  ...p
+}: IconProps & { filled?: boolean }) => (
+  <Svg {...p}>
+    <path
+      d="M9 3.5h6l-1 5.2 3.5 3.3v1.5h-11V12L10 8.7 9 3.5Z"
+      fill={filled ? "currentColor" : "none"}
+    />
+    <path d="M12 13.5v7" />
+  </Svg>
+);
+
+/** D-207: a clock face, for the "Recentes" section of the menu. */
+export const IconClock = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </Svg>
+);
+
 export const IconBattery = (p: IconProps) => (
   <Svg {...p} fill="currentColor" stroke="none">
     <rect x="2.6" y="6.6" width="16.8" height="10.8" rx="3.2" />

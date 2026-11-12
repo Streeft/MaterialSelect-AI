@@ -11,6 +11,8 @@ import { installWideViewport } from "@/lib/testing/viewport";
 import NotebooksPage from "./page";
 import { NotebookWorkspace } from "@/components/notebooks/NotebookWorkspace";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+import { DocumentTitle } from "@/components/layout/DocumentTitle";
+import { formatDocumentTitle } from "@/lib/pageTitle";
 
 // Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
 allowLoadedRunner();
@@ -299,6 +301,24 @@ describe("painéis redimensionáveis", () => {
 });
 
 describe("caderno", () => {
+  it("leva a migalha Cadernos / título e dá o título à aba (D-207)", async () => {
+    render(
+      wrap(
+        <>
+          <DocumentTitle />
+          <NotebookWorkspace id={4} />
+        </>,
+      ),
+    );
+    const trail = await screen.findByRole("navigation", { name: "Trilha de navegação" });
+    expect(within(trail).getByRole("link", { name: ptBR.nav.notebooks })).toHaveAttribute(
+      "href",
+      "/app/cadernos",
+    );
+    expect(within(trail).getByText("Materiais estruturais")).toHaveAttribute("aria-current", "page");
+    expect(document.title).toBe(formatDocumentTitle("Materiais estruturais"));
+  });
+
   it("lays out sources, the guide with its citation, and the studio", async () => {
     render(wrap(<NotebookWorkspace id={4} />));
     expect(await screen.findByRole("heading", { name: t.panels.sources })).toBeInTheDocument();

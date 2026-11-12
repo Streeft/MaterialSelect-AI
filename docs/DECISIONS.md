@@ -12105,6 +12105,32 @@ fixam as classes e os tokens que produzem o efeito); a causa exata da chave dupl
 
 ---
 
+## D-208 — Acesso livre a todos os menus: login basta para curar o catálogo e ver o sistema de design
+
+**Contexto.** Com `ACCESS_MODE=open` (D-83) e um banco novo sem assinaturas, `can_edit_shared_catalog` era falso para todo
+mundo (`mode != "open" or subscribed`): sumiam Classes, Propriedades e Importar do menu, o `/app/estilo` ficava restrito
+(D-202) e a API devolvia 403 "o catálogo compartilhado é somente leitura". O pedido do autor: todo usuário logado tem acesso
+livre a todos os menus e ações.
+
+**Decisão.**
+- `domain/access.can_edit_shared_catalog` é verdadeiro para todo usuário autenticado, nos dois modos. Os argumentos ficam
+  para o `/billing/status` e o portão HTTP seguirem com um só ponto de chamada. `dependencies.can_edit_shared_catalog` deixa
+  de consultar assinatura; `require_catalog_curator` segue como dependência (pode ser sobrescrita em teste).
+- `/app/estilo` (D-202) fica visível a todo usuário logado, em produção também; `lib/styleGuideAccess.ts` e os textos
+  "Página restrita" saíram.
+- `useCanEditCatalog` (frontend) continua tratando "desconhecido" como sim e ainda respeita um servidor que diga falso.
+- **Intactos:** a assinatura continua sendo o portão do produto no modo `subscription` (D-46); material oficial e demo
+  seguem protegidos contra edição e exclusão (D-62, D-116) e a confirmação ao excluir continua.
+
+**Revisa** o D-202 (página de estilo só para o curador) e a regra de acesso do D-83 (catálogo compartilhado só com
+assinatura no modo aberto).
+
+**Consequências.** Backend: o teste que fixava "estudante não cura" virou "estudante cria/edita/exclui material, cria e
+exclui classe, cria propriedade e alcança as rotas de importação". Frontend: o menu mostra Administrar e Importar para o
+estudante em acesso aberto. Mexe em `apps/api`: depois do merge, **Deploy da API**. Sem migração nem seed.
+
+**Numeração.** D-206/Sessão 163 ficaram com a etapa 2.3; esta é a D-208 e a sessão é a 165.
+
 ## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
 
 **Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
@@ -12262,6 +12288,60 @@ esquecido).
 
 **Numeração.** D-199 a D-203 e as Sessões 156 a 160 estão nos PRs abertos #228 a #232; e a D-204/Sessão 161 entrou na `main` (CI resiliente na instalação do Chromium); esta decisão é a D-205 e a sessão é a 162.
 Mexe em `apps/api` (`pretty_unit`): depois do merge, **Deploy da API**.
+
+## D-207 — Shell e navegação: paleta de comandos com busca leve, menu que lembra, migalhas e título da aba
+
+**Contexto.** PR 2.1 da revisão das telas (referências: Linear, Raycast, VS Code). A busca global (D-129) baixava o catálogo
+inteiro, os processos, os cadernos e os estudos na primeira vez que abria, e casava por "contém": "aço" mostrava "Argamassa de
+Cimento e Areia Traço 1:3" antes dos aços (achado da auditoria visual). A paleta só navegava; o menu lateral não lembrava nada
+do leitor; a ficha do material e o caderno não tinham trilha; a aba do navegador dizia "MaterialSelect AI" em toda tela.
+
+**Decisão.**
+- **`GET /api/search?q=&limit=`** (router → `SearchService` → `SearchRepository`, consultas parametrizadas). Devolve só
+  `kind`, `id`, `name`, `class_name` e `slug` (este só em processo). `limit` vale **por tipo** (1 a 50, padrão 8; a paleta pede
+  6), para o catálogo não empurrar o único caderno do leitor para fora da lista. Materiais pela regra de visibilidade (catálogo
+  compartilhado + registros próprios, nunca os de outra pessoa; só ativos), processos ativos, cadernos do dono, estudos do
+  projeto. Atrás do mesmo portão de toda rota de produto (login e acesso, D-46/D-83). Entrou na varredura de isolamento
+  (`test_my_records_isolation.py`).
+- **Relevância em `app/domain/quick_search.py`, pura:** nome que **começa** com o termo (4) > termo como **palavra inteira** (3)
+  > palavra que **começa** com o termo (2) > **contém** (1) > só na classe (0). Acento e caixa somem antes (`unicodedata`, NFD):
+  "aco" acha "aço". Várias palavras: todas precisam aparecer (no nome ou na classe), e vale o melhor entre a frase inteira e a
+  palavra mais fraca. Empate: nome mais curto, depois ordem alfabética.
+- **Acento em Python, não em SQL.** SQLite não tem `unaccent`, e no Postgres seria extensão + migração (este PR não cria
+  migração). O repositório lê só três ou quatro colunas curtas e dobra em Python; o tráfego até o navegador cai de catálogo
+  inteiro para no máximo 6 linhas por tipo. Se o catálogo crescer a ponto de pesar, o próximo passo é uma coluna normalizada
+  indexada (TODO).
+- **Paleta de comandos** (`GlobalSearch.tsx`, mesmos atalhos Ctrl/Cmd+K e `/`): pergunta ao servidor depois de 150 ms sem
+  digitar, nunca mostra resultado de uma consulta anterior e avisa se a busca falha sem esconder telas e ações. Ações: **Nova
+  seleção**, **Abrir mapa E × ρ** (`/app/mapas?x=densidade&y=modulo_young`), **Comparar favoritos** (lê Meus registros; sem
+  favoritos, explica e fica aberta), **Alternar tema claro/escuro**, **Ver atalhos de teclado**, **Fixar/Desafixar esta página**;
+  telas como "Ir para …"; sem texto digitado, as **Recentes** vêm primeiro. Combobox ARIA 1.2 mantido (foco no campo,
+  `aria-activedescendant`), mais Home/End. "?" continua abrindo a lista de atalhos (D-169), que agora inclui as teclas da paleta;
+  a ação da paleta abre a mesma lista por um evento de janela.
+- **Menu lateral que lembra** (`lib/navMemory.ts`): grupos recolhíveis pelo título (botão com `aria-expanded`), seção
+  **Fixados** (botão "Fixar esta página" no título; desafixar ao lado de cada item) e **Recentes** (as 5 últimas páginas ou
+  registros com nome, sem a página aberta, que já está marcada no menu; até 8 guardados). Tudo em `localStorage` lido por `useSyncExternalStore` (servidor e primeiro render
+  concordam), com `try/catch` em toda leitura e escrita: se o armazenamento recusa, vale a memória até recarregar. Entrada
+  inválida no armazenamento (outro domínio, tipo errado) é descartada. Um grupo recolhido **continua mostrando a página
+  atual**; a lista segue rolando dentro do trilho (D-202) e o trilho recolhido não desenha Fixados/Recentes (um registro não
+  tem glifo próprio). O botão de fixar é irmão do link, nunca está dentro dele.
+- **Título da aba** (`lib/pageTitle.ts` + `DocumentTitle` no layout do app): telas do menu pelo próprio nome do menu
+  (`routeTitle`, mesma lista do `AppSidebar`); páginas de detalhe (material, família do catálogo, processo, família de
+  processo, caderno) por `usePageTitle(nome)` quando o registro chega. O nome fica preso ao caminho em que foi dado, então não
+  sobra para a página seguinte. "Nome · MaterialSelect AI". O mesmo componente grava a visita em Recentes (Início não entra).
+- **Migalhas** na ficha do material (Catálogo / família / material) e no caderno (Cadernos / título, no lugar do link solto
+  "Todos os cadernos"); família do catálogo, processo e família de processo já tinham.
+
+**Alternativas recusadas.** Manter a busca no navegador com ordenação melhor (continuaria baixando o catálogo inteiro).
+`unaccent`/coluna normalizada agora (migração fora do escopo). Botão de fixar em todo item do menu (dobraria as paradas de Tab).
+`metadata` do Next por rota (as telas são componentes de cliente; o nome do registro só existe depois da consulta). Persistir o
+trilho estreito (continua estado de React, como antes: ler o armazenamento na carga o faria piscar).
+
+**E2E.** Os links do menu (Recentes) também apontam para fichas: os seletores de E2E que pegavam "o primeiro link para
+`/app/materiais/`" passam a procurar dentro de `<main>`, e o campo "Título" do caderno é buscado pelo rótulo exato.
+
+**Numeração.** D-206/Sessão 163 ficaram com o PR 2.3, que corre em paralelo; esta é a D-207 e a sessão é a 164.
+Mexe em `apps/api` (rota nova): depois do merge, **Deploy da API**. Sem migração nem seed.
 
 ## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
 

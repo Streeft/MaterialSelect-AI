@@ -12,7 +12,8 @@ const SURFACE = "[data-container-transform]";
 
 async function openFirstCard(page: import("@playwright/test").Page) {
   await page.goto("/app/catalogo");
-  const link = page.locator("a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible").first();
+  // D-207: inside <main>; the menu's "Recentes" also links to sheets.
+  const link = page.locator("main a[href^='/app/materiais/']:not([href='/app/materiais/novo']):visible").first();
   await expect(link).toBeVisible({ timeout: 45_000 });
   // `next dev` compiles the detail route on its first visit, which can outlast the
   // freshness window of the origin (1.5 s) and so would, correctly, skip the

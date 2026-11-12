@@ -120,6 +120,34 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 165 — 12/11/26 — Acesso livre a todos os menus (D-208)
+
+**O que mudou.** Etapa 1.7. `can_edit_shared_catalog` passou a ser verdadeiro para todo usuário logado, também no modo
+`open` sem assinatura: voltam Classes, Propriedades e Importar, e a API deixa de responder 403 "somente leitura" nessas
+rotas. `/app/estilo` ficou visível a todos (sai `styleGuideAccess.ts`). Mantidas as proteções de material oficial/demo e a
+confirmação ao excluir. Testes: em `test_open_access.py`, as asserções "estudante não cura" viraram o contrário (material
+compartilhado, classe, propriedade, importação) e a tabela da regra marca `open/sem assinatura` como curador; no frontend,
+`acesso.test.tsx` agora afirma a vitrine aberta sem consultar a permissão, `openAccess.test.tsx` e `layout.test.tsx`
+ganharam o caso do estudante em acesso aberto vendo Administrar e Importar. Os testes antigos que fixavam a restrição foram
+ajustados porque a regra que eles protegiam foi revogada de propósito (D-208).
+
+## Sessão 164 — 11/11/26 — Shell e navegação: paleta de comandos, menu que lembra, migalhas (D-207)
+
+**O que mudou.** PR 2.1 da revisão das telas. Backend: `GET /api/search?q=&limit=` (router → `SearchService` →
+`SearchRepository`), só `kind`/`id`/`name`/`class_name`/`slug`, limite por tipo, relevância pura em `app/domain/quick_search.py`
+(começa com > palavra inteira > palavra que começa > contém > só na classe), acento e caixa ignorados — "aço" traz os aços antes de
+"Argamassa … Traço 1:3". Frontend: a busca global vira **paleta de comandos** (debounce de 150 ms, nada de catálogo inteiro ao
+abrir; ações Nova seleção, Abrir mapa E × ρ, Comparar favoritos, Alternar tema, Ver atalhos, Fixar/Desafixar esta página;
+Recentes primeiro sem texto); "?" lista também as teclas da paleta; menu lateral com **grupos recolhíveis**, **Fixados** e
+**Recentes** em `localStorage` com `try/catch`, página atual sempre à vista; **título da aba** por página (`usePageTitle`,
+`DocumentTitle`); **migalhas** na ficha do material e no caderno. Testes: +18 de backend (`test_quick_search.py`: ordem, acento,
+limite, carga, dono, login, acesso; e `/api/search` na varredura de isolamento), +27 de frontend (paleta, ações, menu, título da
+aba, migalhas, atalhos; axe em cada um) e +1 de E2E (`e2e/paleta.spec.ts`: Ctrl+K, "aço", Enter abre um aço). Na CI, o E2E
+pegou dois efeitos do menu novo: a página aberta aparecia em Recentes com um botão "Fixar <título>" que colidia com o rótulo
+"Título" do caderno (corrigido na raiz: Recentes não lista a página aberta) e o primeiro link para uma ficha passou a ser o do
+menu (seletores de `transicao`/`offline` agora dentro de `<main>`). Suíte: backend
+5433 (192 arquivos), frontend 1714 passam (161 arquivos). Sem migração nem seed; depois do merge, **Deploy da API** (rota nova).
+
 ## Sessão 162 — 11/11/26 — F0 da revisão das telas: correções rápidas (D-205)
 
 **O que mudou.** Primeira fase do plano de revisão das telas. Unidade de tempo em símbolo (`1/h`, não `1/hour`) no backend e no

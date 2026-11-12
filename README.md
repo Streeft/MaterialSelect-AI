@@ -39,8 +39,11 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   saem como arquivo JSON versionado que outra pessoa importa (o arquivo é só
   dado: nada nele é executado). A tabela de resultado se copia como TSV, e um
   registro próprio se duplica como cópia editável.
-- **Busca global e desfazer** — a barra do topo (Ctrl/Cmd+K ou `/`) leva a qualquer tela, material, processo, caderno ou
-  estudo salvo, e só navega. Excluir um estudo, uma fonte, uma nota ou um caderno mostra um aviso com
+- **Paleta de comandos e desfazer** — a barra do topo (Ctrl/Cmd+K ou `/`) leva a qualquer tela, material, processo,
+  caderno ou estudo salvo, e executa ações (nova seleção, mapa E × ρ, comparar favoritos, alternar tema, fixar a página,
+  ver atalhos; D-207). Os registros vêm de `GET /api/search`, leve e ordenado por relevância ("aço" acha os aços antes de
+  "Traço"), sem baixar o catálogo. O menu lateral recolhe grupos, guarda **Fixados** e **Recentes** neste aparelho, e a aba do
+  navegador leva o nome da tela ou do registro; fichas de material e cadernos ganharam trilha. Excluir um estudo, uma fonte, uma nota ou um caderno mostra um aviso com
   **Desfazer** (o servidor só apaga quando o aviso vence). A tabela do catálogo ordena por material ou
   classe e permite marcar linhas para **Comparar selecionados**. A página inicial cumprimenta pelo nome e
   mostra **Vistos recentemente**, os últimos materiais e processos abertos.
