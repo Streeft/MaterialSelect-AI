@@ -120,6 +120,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 177 — 12/11/26 — F5: o estudo como documento, o mapa com inspetor e o comparador com pontos de partida (D-220)
+
+**O que mudou.** Seleção: o nome do estudo é o título da página (`PageDoc` com `titlePlaceholder` e `headingLabel`), função,
+objetivo, limites e variáveis viram propriedades que levam ao passo, a nota fica sob elas; "Meus estudos" sai do topo para um
+`SidePeek` aberto por um botão na cabeça; `Stepper compact` deixa os passos numa linha no celular; os estágios usam `useReorder`.
+Mapas: inspetor único (Seleção, Eixos, Aparência, Classes, Linha de índice) com seções que dobram e resumo quando recolhidas,
+folha inferior padrão abaixo de `lg`, legenda acima do desenho, modo do cursor só com mouse (no toque arrastar navega), mapas
+salvos como chips com "Fixar no Início" (`lib/pinnedMaps.ts`, "Mapas fixados" no Início, `?grafico=`). Comparar: "Pares
+clássicos" no estado vazio (`lib/compareClassics.ts`, só os que o catálogo tem, achados pelo nome) e uma barra com materiais e
+propriedades por busca, em chips removíveis. A F4 passa de D-218 para D-219 (Sessão 176): a D-218 é a dos Cadernos (#242).
+Testes: `compareClassics.test.ts`, título vivo e propriedades da Seleção, Alt+↓ no estágio, inspetor e folha dos Mapas, visão
+fixada e `?grafico=`, "Mapas fixados" no Início, par clássico no Comparar; os do Comparar e dos Mapas seguem o novo desenho.
+Frontend 1976 (186 arquivos), backend 5541. Sem backend, sem migração: depois do merge, só a Vercel.
+
 ## Sessão 176 — 12/11/26 — F4 por cima das calculadoras da D-216: bancadas ao vivo (D-219)
 
 **O que mudou.** `useLiveResult` (pergunta ao servidor depois de uma pausa, mantém a resposta anterior e diz a que pedido ela

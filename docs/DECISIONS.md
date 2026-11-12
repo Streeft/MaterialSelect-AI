@@ -12941,5 +12941,51 @@ com o desenho da D-216 e pôr a F4 por cima dela, com o Dimensionar abrindo vazi
 (inventa projeto; o clique é o consentimento — decisão do autor). Manter o botão de calcular ao lado do ao vivo (dois jeitos de
 fazer a mesma coisa). Uma grade de planilha com teclado próprio (a tabela de controles nativos já tem Tab, leitor de tela e celular).
 
-**Numeração.** D-219 e Sessão 175: o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
+**Numeração.** D-219 e Sessão 176 (mesclada como D-218/Sessão 175, renumerada na D-220): o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
 (sem migração): depois do merge, **Deploy da API**.
+
+## D-220 — F5 da revisão das telas: o estudo como documento, o mapa com inspetor e o comparador com pontos de partida
+
+**Contexto.** A F5 do plano de revisão das telas ("M3 na estrutura, Notion na superfície") cobre o grupo Estudar: a Seleção abria
+com um formulário em caixa, "Meus estudos" como faixa solta acima dos passos e os quatro passos empilhados em meia tela de celular;
+os Mapas tinham quatro cartões ao lado do mapa, a legenda abaixo de uma figura da altura da tela (fora da primeira dobra) e o modo
+"Região" brigando com a rolagem no toque; o Comparar começava por dois cartões de passo e uma nuvem de chips de propriedades.
+
+**Decisão.**
+- **Seleção é documento (`PageDoc`).** O nome do estudo é o título — um campo vivo, com o marcador "Estudo sem título" e o nome
+  acessível "Nome do estudo"; o `<h1>` se chama "Seleção de materiais" (`headingLabel`), para o sumário nunca ter cabeçalho sem
+  palavras. Função, objetivo, limites e variáveis livres são a linha de propriedades, cada valor um botão que leva ao passo que o
+  guarda; a nota do estudo fica logo abaixo, sempre visível. `PageDoc` ganhou `eyebrow`, `titleLabel`, `titlePlaceholder` (título
+  vivo: cada tecla chega ao estado, vazio é estado real) e `headingLabel`.
+- **"Meus estudos" sai da página.** Um botão tonal na cabeça ("Meus estudos (n)") abre a lista inteira num `SidePeek`, com todas
+  as ações de antes (exportar, laudo, explicação, executar, abrir, excluir com Desfazer); abrir ou executar fecha o painel. O
+  Início continua listando os estudos (`SavedStudies`). A barra lateral não ganhou a lista: favoritos no trilho são da F6.
+- **Passos numa linha no celular.** `Stepper compact`: abaixo de `sm`, os outros passos encolhem ao número (alvo de toque de 44 px)
+  e só o atual mostra o nome; o nome dos outros fica no botão (`sr-only`).
+- **Estágios com a alça do app.** `StageList` usa `useReorder` (D-206): a mesma alça ⋮⋮, Alt+↑/↓ anunciado; os botões ↑/↓ ficam.
+- **Mapas: um inspetor.** A lateral vira uma superfície só (`.ds-inspector`) com seções que dobram — Seleção, Eixos, Aparência,
+  Classes, Linha de índice —, a cabeça de cada uma é um botão com `aria-expanded` e, recolhida, diz o que guarda ("Escala linear",
+  "2 classes", o índice). As três de desenho seguem a D-213: abertas em tela larga; na estreita, abertas sozinhas só quando o link
+  usa uma delas. Abaixo de `lg` o mesmo inspetor é uma **folha inferior padrão** (não modal, M3) cuja cabeça fica sobre a navegação
+  inferior; o mapa ocupa a largura. A legenda sobe para cima do desenho.
+- **No toque, arrastar navega.** O modo do cursor (Região, Laço, Mover linha, Navegar) some com ponteiro grosso
+  (`.ds-fine-pointer-only`) e o modo inicial vira "Navegar" (`useSyncExternalStore`, sem descompasso de hidratação); a seleção no
+  toque é a lista de pontos.
+- **Mapas salvos são visões.** O seletor "Mapas salvos" no fim do painel de eixos vira uma fileira de chips acima do mapa; cada
+  chip reabre o mapa salvo e tem um "⋯" com "Fixar no Início". O pino fica **no aparelho** (`lib/pinnedMaps.ts`, como a
+  Aparência) e guarda só id e nome; o Início mostra "Mapas fixados" (sem pino, sem bloco), e `?grafico=<id>` reabre o mapa pedindo
+  a configuração de novo ao servidor.
+- **Comparar: pontos de partida e uma barra.** O estado vazio ganha "Pares clássicos" (aço × alumínio, PEAD × PP, titânio × aço,
+  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência);
+  par com um lado ausente não aparece (`lib/compareClassics.ts`). Os dois cartões de passo viram uma barra: materiais e
+  propriedades adicionados por busca (`Combobox`) e escolhidos como chips removíveis; o nível de leitura fica ao lado da busca.
+
+**Alternativas recusadas.** Pino de mapa na conta (o plano manda começar no aparelho; vai para a conta junto com a Aparência).
+Inspetor como folha modal no celular (o mapa sumiria sob o véu a cada ajuste; a folha padrão deixa ver o efeito). Pares clássicos
+fixados por id (o catálogo muda; um id errado poria um material no lugar de outro). Título do estudo confirmado só ao sair do
+campo (o rascunho e o salvar leem o estado a cada tecla, D-139).
+
+**Numeração.** A F4 entrou como "D-218", número que a decisão dos Cadernos (#242) já usava; neste PR ela passa a D-219 (Sessão
+176), nas decisões, no registro e nos comentários do código. Esta é a D-220, Sessão 177. Só frontend: nada a disparar depois do
+merge além da Vercel.
+

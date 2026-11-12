@@ -190,6 +190,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
   diz o que falta. Exemplo só com clique ("Usar o exemplo", valores declarados no backend). Unidade dentro do campo
   (`NumberInput unit`). Lista de itens que se editam é `InlineTable` (linha nova, ⋯ com Duplicar e Remover com Desfazer).
 
+- **Estudar é documento e inspetor** ([D-220](docs/DECISIONS.md)): o estudo da Seleção é `PageDoc` (nome como título vivo, problema
+  como propriedades que levam ao passo; "Meus estudos" num `SidePeek`, nunca faixa na página); `Stepper compact` no celular. O mapa
+  tem um inspetor de seções que dobram (`InspectorSection`), folha inferior padrão abaixo de `lg`; controle que só serve ao mouse
+  leva `.ds-fine-pointer-only`. Pino e layout começam no aparelho (`lib/pinnedMaps.ts`) e só guardam id e nome — abrir pede ao
+  servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".
