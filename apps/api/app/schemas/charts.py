@@ -309,6 +309,95 @@ class PropertyMapOut(BaseModel):
     )
 
 
+# --- Movable index line (D-211) --------------------------------------------
+
+
+class MapPointIn(BaseModel):
+    """A point of the map, in the map's reading units (D-70), where the reader let go."""
+
+    x: float = Field(gt=0, allow_inf_nan=False)
+    y: float = Field(gt=0, allow_inf_nan=False)
+
+
+class IndexLineRequest(BaseModel):
+    """Move one iso-index line over a material map (D-211).
+
+    The map itself is not redrawn: the same axes, filters and index as the map
+    on screen, plus where the line should go — a level ``M`` (``level``), a
+    point the reader dragged the line to (``through``, in reading units), or
+    neither (the line starts at the median defined value). Never both.
+    """
+
+    x: str = Field(min_length=1, max_length=160, description="Slug da propriedade do eixo X")
+    y: str = Field(min_length=1, max_length=160, description="Slug da propriedade do eixo Y")
+    scale: ScaleLiteral = "log"
+    class_slugs: list[str] = Field(default_factory=list)
+    material_ids: list[int] | None = None
+    index: IndexIn
+    level: float | None = Field(default=None, allow_inf_nan=False, description="Valor de M")
+    through: MapPointIn | None = Field(
+        default=None, description="Ponto do mapa por onde a linha deve passar"
+    )
+
+
+class IndexLineOut(BaseModel):
+    """The moved line, already in the map's reading units, and the sides it splits.
+
+    ``better_ids`` are the plotted materials on the favourable side for the
+    goal (index ≥ M when maximising), ``worse_ids`` the others with a defined
+    index, ``undefined_ids`` those whose index cannot be computed — never
+    counted on either side. ``steps`` are the levels the slider offers, from
+    the smallest to the largest defined value; ``step_index`` is the one
+    nearest to ``value``.
+    """
+
+    available: bool
+    unavailable_reason: str | None = None
+    value: float | None = None
+    dimension: str
+    orientation: Literal["oblique", "vertical"] | None = None
+    slope: float | None = None
+    points: list[list[float]] = Field(default_factory=list)
+    handle: list[float] | None = Field(
+        default=None, description="Meio do segmento na escala do mapa: onde fica a alça"
+    )
+    better_ids: list[int] = Field(default_factory=list)
+    worse_ids: list[int] = Field(default_factory=list)
+    undefined_ids: list[int] = Field(default_factory=list)
+    steps: list[float] = Field(default_factory=list)
+    step_index: int | None = None
+
+
+# --- Classic map presets (D-211) -------------------------------------------
+
+
+class MapPresetIndexOut(BaseModel):
+    name: str
+    expression: str
+    goal: Literal["maximize", "minimize"]
+    slug: str | None = Field(
+        default=None, description="Índice catalogado com a mesma expressão, quando existe"
+    )
+
+
+class MapPresetOut(BaseModel):
+    """A classic Ashby chart: axes, scale and index — no material number at all."""
+
+    slug: str
+    name: str
+    description: str
+    x: str
+    y: str
+    x_name: str | None = None
+    y_name: str | None = None
+    scale: ScaleLiteral
+    index: MapPresetIndexOut | None = None
+    available: bool
+    missing_properties: list[str] = Field(
+        default_factory=list, description="Propriedades que o catálogo não define"
+    )
+
+
 # --- Comparison ------------------------------------------------------------
 
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useReducer, useState, type ReactNode } from "react";
+import {
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import dynamic from "next/dynamic";
 import type { Data, Layout, LayoutAxis } from "plotly.js";
 import type { ChartScale, MapPoint, PropertyMap } from "@/lib/types";
@@ -23,6 +30,7 @@ import { ChartLegend, type LegendItem } from "./ChartLegend";
 import { ChartTooltip, type TooltipContent } from "./ChartTooltip";
 import { FigureData, type FigureColumn } from "./FigureData";
 import { PLOTLY_HEIGHT, usePlotlyResize } from "./usePlotlyResize";
+import { pointerToData } from "./plotlyPointer";
 
 // Plotly touches window/document, so it must never render on the server.
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -38,6 +46,17 @@ export interface BoxSelection {
 
 type PlotlyShape = NonNullable<Layout["shapes"]>[number];
 
+/** What a drag on the figure does: draw a box, draw a lasso, move the index line, or zoom/pan. */
+type CursorMode = "select" | "lasso" | "line" | "zoom";
+
+/** The movable index line, exactly as the backend placed it (D-213, ADR 0004). */
+export interface MovableLine {
+  points: number[][];
+  /** The middle of the segment in the map's scale: where the handle is drawn. */
+  handle: number[] | null;
+  label: string;
+}
+
 interface AshbyMapProps {
   map: PropertyMap;
   recordLabel?: string;
@@ -52,6 +71,23 @@ interface AshbyMapProps {
   enableBoxSelect?: boolean;
   dragMode?: "select" | "zoom";
   onDragModeChange?: (mode: "select" | "zoom") => void;
+  /** D-213: a lasso that picks records (not a region): their ids go to `onSelectPoints`. */
+  enableLasso?: boolean;
+  onSelectPoints?: (ids: number[]) => void;
+  /** Records the page holds as selected, ringed on the figure. */
+  selectedIds?: readonly number[];
+  /** The record focused in the page's point list: a larger accent ring. */
+  activeId?: number | null;
+  /** The record under the pointer, so the page can mark its row. */
+  onHoverPoint?: (id: number | null) => void;
+  /** The legend's hidden series, when the page needs to know (controlled). */
+  hiddenSeries?: ReadonlySet<string>;
+  onHiddenSeriesChange?: (hidden: ReadonlySet<string>) => void;
+  /** D-213: the index line the reader moves, and where the pointer drags it to. */
+  movableLine?: MovableLine | null;
+  onDragLine?: (point: { x: number; y: number }, phase: "move" | "end") => void;
+  /** D-213: offer "PNG/SVG para relatório" in the Exportar menu. */
+  reportExport?: boolean;
   /**
    * D-91: fill the viewport's height instead of a fixed 540 px — the map is
    * the whole point of `/app/mapas`, so it takes the screen there. Other
@@ -251,6 +287,16 @@ export function AshbyMap({
   enableBoxSelect = false,
   dragMode,
   onDragModeChange,
+  enableLasso = false,
+  onSelectPoints,
+  selectedIds,
+  activeId = null,
+  onHoverPoint,
+  hiddenSeries,
+  onHiddenSeriesChange,
+  movableLine = null,
+  onDragLine,
+  reportExport = false,
   fillHeight = false,
 }: AshbyMapProps) {
   // Colours come from the tokens of whichever theme is on the document, so the
@@ -260,13 +306,33 @@ export function AshbyMap({
   const plotBox = usePlotlyResize<HTMLDivElement>();
   const highlighted = useMemo(() => new Set(highlightIds), [highlightIds]);
 
-  const [localDragMode, setLocalDragMode] = useState<"select" | "zoom">("select");
-  const activeDragMode = dragMode ?? localDragMode;
+  const [localDragMode, setLocalDragMode] = useState<CursorMode>("select");
+  const lineDragAvailable = Boolean(onDragLine && movableLine && movableLine.points.length >= 2);
+  // A mode whose tool went away (the line was removed) falls back to the box.
+  const requested: CursorMode = dragMode ?? localDragMode;
+  const activeDragMode: CursorMode =
+    (requested === "line" && !lineDragAvailable) || (requested === "lasso" && !enableLasso)
+      ? "select"
+      : requested;
   // What "Navegar / Zoom" means right now: the modebar still offers pan, and a
   // pan picked there must not be undone by the next render.
   const [navMode, setNavMode] = useState<"zoom" | "pan">("zoom");
-  const plotDragMode = enableBoxSelect && activeDragMode === "select" ? "select" : navMode;
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  const plotDragMode: Layout["dragmode"] = !enableBoxSelect
+    ? navMode
+    : activeDragMode === "select"
+      ? "select"
+      : activeDragMode === "lasso"
+        ? "lasso"
+        : activeDragMode === "line"
+          ? false
+          : navMode;
+  const [localHidden, setLocalHidden] = useState<ReadonlySet<string>>(new Set());
+  const hidden = hiddenSeries ?? localHidden;
+  const setHidden = (next: ReadonlySet<string>) => {
+    if (!hiddenSeries) setLocalHidden(next);
+    onHiddenSeriesChange?.(next);
+  };
+  const selectedSet = useMemo(() => new Set(selectedIds ?? []), [selectedIds]);
   // `react-plotly.js` keeps its bound handlers across an unmount it purged, so
   // after React's development double-mount (StrictMode) it believes
   // `onSelected` is still attached and skips it — the first box drawn after a
@@ -275,10 +341,38 @@ export function AshbyMap({
   // Harmless in production, where the component mounts once.
   const [, rebindHandlers] = useReducer((n: number) => n + 1, 0);
 
-  const handleDragModeToggle = (mode: "select" | "zoom") => {
+  const handleDragModeToggle = (mode: CursorMode) => {
     setLocalDragMode(mode);
     if (mode === "zoom") setNavMode("zoom");
-    onDragModeChange?.(mode);
+    if (mode === "select" || mode === "zoom") onDragModeChange?.(mode);
+  };
+
+  // D-213: dragging the index line. The page is told where the pointer is, in
+  // data coordinates, and the backend answers with the line (ADR 0004).
+  const dragging = useRef(false);
+  const dragPoint = (event: ReactPointerEvent<HTMLDivElement>) =>
+    pointerToData(
+      plotBox.current?.querySelector<HTMLElement>(".js-plotly-plot") ?? null,
+      event.clientX,
+      event.clientY,
+    );
+  const handleLinePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const point = dragPoint(event);
+    if (!point) return;
+    dragging.current = true;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onDragLine?.(point, "move");
+  };
+  const handleLinePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    const point = dragPoint(event);
+    if (point) onDragLine?.(point, "move");
+  };
+  const handleLinePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const point = dragPoint(event);
+    if (point) onDragLine?.(point, "end");
   };
 
   // Keep the toggle honest when the reader switches tool in Plotly's modebar.
@@ -290,6 +384,14 @@ export function AshbyMap({
     if (typeof data === "number") {
       const point = map.points[data];
       setTip(point ? tipFor(point, map) : null);
+      onHoverPoint?.(point ? point.material_id : null);
+      return;
+    }
+    if (data === "movable" && movableLine) {
+      setTip({
+        title: t.lineTitle,
+        rows: [{ key: "movable", label: movableLine.label, value: "", color: paint.accent, line: true }],
+      });
       return;
     }
     if (typeof data === "string" && data.startsWith("level:")) {
@@ -316,19 +418,18 @@ export function AshbyMap({
     const next = event.dragmode;
     if (next !== "zoom" && next !== "pan") return;
     setNavMode(next);
-    if (enableBoxSelect && activeDragMode === "select") {
+    if (enableBoxSelect && activeDragMode !== "zoom") {
       setLocalDragMode("zoom");
       onDragModeChange?.("zoom");
     }
   };
 
-  const toggleSeries = (key: string) =>
-    setHidden((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggleSeries = (key: string) => {
+    const next = new Set(hidden);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setHidden(next);
+  };
 
   // When fetching with a different displayScale, use the pre-computed alt envelope
   // instead of the stale one. This enables instant visual feedback on scale toggle.
@@ -337,8 +438,27 @@ export function AshbyMap({
   const renderEnvelopes = useAltEnvelopes ? map.envelopes_alt : map.envelopes;
 
   const handleSelected = (
-    event: { range?: { x?: number[]; y?: number[] } } | null | undefined,
+    event:
+      | {
+          range?: { x?: number[]; y?: number[] };
+          lassoPoints?: unknown;
+          points?: { customdata?: unknown }[];
+        }
+      | null
+      | undefined,
   ) => {
+    // D-213: a lasso picks records, not a region — the points Plotly found
+    // inside it (its own hit test, over the traces on screen) become ids.
+    if (event && event.lassoPoints) {
+      const ids = new Set<number>();
+      for (const hit of event.points ?? []) {
+        if (typeof hit.customdata !== "number") continue;
+        const point = map.points[hit.customdata];
+        if (point) ids.add(point.material_id);
+      }
+      onSelectPoints?.(Array.from(ids));
+      return;
+    }
     // Two different events arrive here with no box, and only one is a clear.
     // A click on the plot in select mode sends *nothing* (`undefined`): the
     // reader cleared the region. But every `Plotly.react` — including the one
@@ -540,6 +660,37 @@ export function AshbyMap({
       });
     }
 
+    // 3b. D-213: the selection (box, lasso or list) ringed in ink, and the
+    // record focused in the point list ringed larger in the accent.
+    const picked = map.points.filter(
+      (p) => selectedSet.has(p.material_id) && !hidden.has(`class:${p.class_slug}`),
+    );
+    if (picked.length > 0) {
+      result.push({
+        x: picked.map((p) => p.x),
+        y: picked.map((p) => p.y),
+        type: "scatter",
+        mode: "markers",
+        name: "selection",
+        marker: { size: 19, symbol: "circle-open", color: paint.ink, line: { width: 2, color: paint.ink } },
+        hoverinfo: "skip",
+        showlegend: false,
+      });
+    }
+    const active = map.points.find((p) => p.material_id === activeId);
+    if (active && !hidden.has(`class:${active.class_slug}`)) {
+      result.push({
+        x: [active.x],
+        y: [active.y],
+        type: "scatter",
+        mode: "markers",
+        name: "active",
+        marker: { size: 30, symbol: "circle-open", color: paint.accent, line: { width: 3, color: paint.accent } },
+        hoverinfo: "skip",
+        showlegend: false,
+      });
+    }
+
     // 4. Index lines. Slope and endpoints come from the backend untouched.
     if (map.index?.available) {
       map.index.levels.forEach((level, position) => {
@@ -568,8 +719,50 @@ export function AshbyMap({
       });
     }
 
+    // 5. D-213: the movable line and its handle, as the backend placed them.
+    if (movableLine && movableLine.points.length >= 2 && !hidden.has("movable")) {
+      const { xs, ys } = toXY(movableLine.points);
+      result.push({
+        x: xs,
+        y: ys,
+        type: "scatter",
+        mode: "lines",
+        name: movableLine.label,
+        showlegend: false,
+        line: { color: paint.accent, width: 3, dash: "dot" },
+        customdata: xs.map(() => "movable"),
+        hoverinfo: "none",
+      });
+      const [hx, hy] = movableLine.handle ?? [];
+      if (hx !== undefined && hy !== undefined) {
+        result.push({
+          x: [hx],
+          y: [hy],
+          type: "scatter",
+          mode: "markers",
+          name: "handle",
+          showlegend: false,
+          marker: { size: 14, symbol: "diamond", color: paint.accent, line: { width: 2, color: paint.surface } },
+          customdata: ["movable"],
+          hoverinfo: "none",
+        });
+      }
+    }
+
     return result;
-  }, [map, renderEnvelopes, highlighted, showEnvelopes, showIntervals, showLabels, paint, hidden]);
+  }, [
+    map,
+    renderEnvelopes,
+    highlighted,
+    showEnvelopes,
+    showIntervals,
+    showLabels,
+    paint,
+    hidden,
+    selectedSet,
+    activeId,
+    movableLine,
+  ]);
 
   const layout = useMemo<Partial<Layout>>(() => {
     const base = paint.layout;
@@ -603,6 +796,9 @@ export function AshbyMap({
         map.y_axis.property_slug ?? map.y_axis.expression,
         axisScale,
         JSON.stringify(selectionBox ?? null),
+        // A lasso's outline goes with the selection it drew: clearing the
+        // selection clears the outline too.
+        selectedSet.size > 0 ? "picked" : "none",
       ].join("|"),
       xaxis: {
         ...titled(base.xaxis, axisLabel(map.x_axis.property_name, map.x_axis.unit)),
@@ -619,7 +815,7 @@ export function AshbyMap({
         ...(isLog ? logAxisTicks(map.y_axis.min_value, map.y_axis.max_value) : {}),
       },
     };
-  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox]);
+  }, [map, paint, displayScale, plotDragMode, shapes, selectionBox, selectedSet]);
 
   // The legend MSDS draws under its scatter: one button per class (colour *and*
   // marker shape, D-28), then one per index level the backend traced.
@@ -647,8 +843,11 @@ export function AshbyMap({
         });
       });
     }
+    if (movableLine && movableLine.points.length >= 2) {
+      items.push({ key: "movable", label: movableLine.label, color: paint.accent, line: "dash" });
+    }
     return items;
-  }, [map, paint.accent]);
+  }, [map, paint.accent, movableLine]);
 
   // The figure's own numbers, as columns. The index column only exists when the
   // figure drew one, and a point without an index carries the backend's reason
@@ -711,6 +910,7 @@ export function AshbyMap({
       description={t.coverage(map.plotted_count, map.considered_count)}
       exportName={chartFileName("mapa", map.y_axis.property_name, map.x_axis.property_name, map.scale)}
       exportDisabled={map.points.length === 0}
+      reportExport={reportExport}
       controls={
         enableBoxSelect ? (
           <ButtonGroup label={ptBR.chart.dragMode}>
@@ -719,6 +919,20 @@ export function AshbyMap({
               label={ptBR.chart.dragModeSelect}
               onClick={() => handleDragModeToggle("select")}
             />
+            {enableLasso ? (
+              <ButtonGroupItem
+                selected={activeDragMode === "lasso"}
+                label={ptBR.chart.dragModeLasso}
+                onClick={() => handleDragModeToggle("lasso")}
+              />
+            ) : null}
+            {lineDragAvailable ? (
+              <ButtonGroupItem
+                selected={activeDragMode === "line"}
+                label={ptBR.chart.dragModeLine}
+                onClick={() => handleDragModeToggle("line")}
+              />
+            ) : null}
             <ButtonGroupItem
               selected={activeDragMode === "zoom"}
               label={ptBR.chart.dragModeZoom}
@@ -764,8 +978,8 @@ export function AshbyMap({
             responsive: true,
             // Export lives in the card's toolbar (with the legend and title the
             // modebar's camera would leave out); the box is drawn through the
-            // "Selecionar região" toggle, and lasso has no meaning for a
-            // region stage. Zoom, pan and reset stay — nothing else offers them.
+            // "Modo do cursor" toggle (box, lasso where the page takes a set
+            // of records, D-213). Zoom, pan and reset stay — nothing else offers them.
             modeBarButtonsToRemove: ["toImage", "lasso2d", "select2d"],
           }}
           onSelected={
@@ -773,12 +987,31 @@ export function AshbyMap({
           }
           onRelayout={handleRelayout as unknown as (event: unknown) => void}
           onHover={handleHover as unknown as (event: unknown) => void}
-          onUnhover={() => setTip(null)}
+          onUnhover={() => {
+            setTip(null);
+            onHoverPoint?.(null);
+          }}
           onInitialized={() => rebindHandlers()}
           style={{ width: "100%", height: "100%" }}
           useResizeHandler
         />
         <ChartTooltip content={tip} />
+        {activeDragMode === "line" && lineDragAvailable ? (
+          // The figure stays the drawing; this transparent sheet only reads
+          // where the pointer is while the line is being moved. The keyboard
+          // moves the same line through the slider beside the map.
+          <div
+            data-testid="line-drag-surface"
+            aria-hidden
+            className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
+            onPointerDown={handleLinePointerDown}
+            onPointerMove={handleLinePointerMove}
+            onPointerUp={handleLinePointerUp}
+            onPointerCancel={() => {
+              dragging.current = false;
+            }}
+          />
+        ) : null}
       </div>
       <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
     </ChartFrame>

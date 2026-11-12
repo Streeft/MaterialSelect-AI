@@ -24,6 +24,7 @@ export function ChartToolbar({
   fileName,
   disabled = false,
   extraItems,
+  report = false,
   className,
 }: {
   /** The element wrapping the rendered figure. */
@@ -36,16 +37,26 @@ export function ChartToolbar({
    * after the two images, so there is still one "Exportar" per figure (D-91).
    */
   extraItems?: ReactNode;
+  /**
+   * D-213: also offer the figure "para relatório" — a fixed 3:2 layout, the
+   * card's description under the title, PNG at 3× (see `REPORT_FIGURE`).
+   */
+  report?: boolean;
   className?: string;
 }) {
   const [exporting, setExporting] = useState<"png" | "svg" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleExport(format: "png" | "svg") {
+  async function handleExport(format: "png" | "svg", forReport = false) {
     setError(null);
     setExporting(format);
     try {
-      await downloadChartImage(target.current, format, fileName);
+      await downloadChartImage(
+        target.current,
+        format,
+        forReport ? `${fileName}-relatorio` : fileName,
+        { report: forReport },
+      );
     } catch (caught) {
       // A PNG the browser would not rasterise still exists as SVG: say so.
       setError(caught instanceof RasterizeError ? t.exportPngFailed : t.exportError);
@@ -71,6 +82,16 @@ export function ChartToolbar({
           <MenuItem hint={t.exportSvgHint} onSelect={() => void handleExport("svg")}>
             {t.exportSvg}
           </MenuItem>
+          {report ? (
+            <>
+              <MenuItem hint={t.exportReportPngHint} onSelect={() => void handleExport("png", true)}>
+                {t.exportReportPng}
+              </MenuItem>
+              <MenuItem hint={t.exportReportSvgHint} onSelect={() => void handleExport("svg", true)}>
+                {t.exportReportSvg}
+              </MenuItem>
+            </>
+          ) : null}
           {extraItems}
         </MenuButton>
       </div>

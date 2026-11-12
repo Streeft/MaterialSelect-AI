@@ -41,7 +41,9 @@ describe("ChartToolbar PNG failure", () => {
     exporter.downloadChartImage.mockRejectedValue(new RasterizeError("tainted", "SecurityError"));
     await exportPng();
 
-    expect(exporter.downloadChartImage).toHaveBeenCalledWith(expect.anything(), "png", "mapa");
+    expect(exporter.downloadChartImage).toHaveBeenCalledWith(expect.anything(), "png", "mapa", {
+      report: false,
+    });
     expect(await screen.findByShadowRole("alert")).toHaveTextContent(t.exportPngFailed);
   });
 

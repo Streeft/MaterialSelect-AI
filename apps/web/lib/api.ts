@@ -109,8 +109,11 @@ import type {
   PropertyDefinitionIn,
   PropertyDistribution,
   PropertyMap,
+  IndexLineOut,
+  IndexLineRequest,
   MapBoxOut,
   MapBoxRequest,
+  MapPreset,
   PropertyMapRequest,
   PropertyValueIn,
   RunRequest,
@@ -962,6 +965,23 @@ export function convertMapBox(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Move an iso-index line over a material map (D-211): to a level, or through
+ * the point the reader dragged it to. The level, the segment and the two sides
+ * are the backend's — the page never reads a level off the pointer itself.
+ */
+export function moveIndexLine(payload: IndexLineRequest): Promise<IndexLineOut> {
+  return request<IndexLineOut>(`/api/charts/index-line`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** The classic Ashby charts, as data: axes, scale and index (D-211). */
+export function listMapPresets(): Promise<MapPreset[]> {
+  return request<MapPreset[]>(`/api/charts/presets`);
 }
 
 export function getComparison(payload: ComparisonRequest): Promise<Comparison> {

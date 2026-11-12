@@ -1517,6 +1517,60 @@ export interface PropertyMap {
   open_bounds?: OpenBounds | null;
 }
 
+/** Move one iso-index line over a material map (D-211). Exactly one of
+ *  `level`/`through`, or neither (the line starts at the median material). */
+export interface IndexLineRequest {
+  x: string;
+  y: string;
+  scale?: ChartScale;
+  class_slugs?: string[];
+  material_ids?: number[] | null;
+  index: IndexIn;
+  level?: number | null;
+  /** A map point in the map's reading units (D-70). */
+  through?: { x: number; y: number } | null;
+}
+
+/** The moved line (reading units) and the materials on each side of it. */
+export interface IndexLineOut {
+  available: boolean;
+  unavailable_reason: string | null;
+  value: number | null;
+  dimension: string;
+  orientation: "oblique" | "vertical" | null;
+  slope: number | null;
+  points: CoordinatePair[];
+  /** The middle of the segment in the map's scale: where the drag handle sits. */
+  handle: CoordinatePair | null;
+  better_ids: number[];
+  worse_ids: number[];
+  undefined_ids: number[];
+  /** The levels the slider offers (backend-computed, ADR 0004). */
+  steps: number[];
+  step_index: number | null;
+}
+
+/** A classic Ashby chart: axes, scale and index — no material number (D-211). */
+export interface MapPreset {
+  slug: string;
+  name: string;
+  description: string;
+  x: string;
+  y: string;
+  x_name: string | null;
+  y_name: string | null;
+  scale: ChartScale;
+  index: {
+    name: string;
+    expression: string;
+    goal: Goal;
+    /** A catalogued index with the same expression, when one exists. */
+    slug: string | null;
+  } | null;
+  available: boolean;
+  missing_properties: string[];
+}
+
 export interface OpenSides {
   x: [number, number];
   y: [number, number];

@@ -1293,6 +1293,9 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getBatteryChemistry: () => Promise.resolve(batteryChemistries[0]),
   solveBrief: () => Promise.resolve(solveResult),
   getPropertyMap: () => Promise.resolve(propertyMap),
+  // D-213: the classic charts and the movable line of /app/mapas.
+  listMapPresets: () => Promise.resolve([]),
+  moveIndexLine: () => Promise.resolve(null),
   getComparison: () => Promise.resolve(comparison),
   getMaterial: () => Promise.resolve(materialDetail),
   // D-106: the sheet's "Curvas" section, audited with a figure drawn.
@@ -1569,39 +1572,13 @@ describe("acessibilidade das telas principais", () => {
     await auditRoute(<MapsPage />, new RegExp(`^${ptBR.map.figure}\\b.*×`));
   });
 
-  // D-86: the axes and the chart are the screen; everything else waits in
-  // "Personalizar o mapa" — unless the link already uses it.
-  it("mapas: personalização recolhida, a não ser que o link a use", async () => {
-    const { unmount } = render(wrap(<MapsPage />, makeClient()));
-    const summary = await screen.findByText(ptBR.map.customize);
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-    expect(screen.getByRole("combobox", { name: ptBR.map.axisX })).toBeInTheDocument();
-    // An axis can become an index only from inside the panel.
-    expect(screen.queryByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) })).toBeNull();
-    unmount();
-
-    const { encodeMapState } = await import("./mapas/url-state");
-    nav.query = `estado=${encodeMapState({
-      xAxis: { mode: "property", property: "densidade", indexSlug: "", customExpression: "", goal: "maximize" },
-      yAxis: { mode: "property", property: "modulo_young", indexSlug: "", customExpression: "", goal: "maximize" },
-      scale: "linear",
-      envelopeShape: "ellipse",
-      selectedClasses: [],
-      showEnvelopes: true,
-      showIntervals: true,
-      showLabels: false,
-      indexMode: "none",
-      customExpression: "",
-      indexGoal: "maximize",
-      levelMaterialIds: [],
-      numericLevels: [],
-    })}`;
+  // D-213: on a wide window "Personalizar o mapa" is a panel always open
+  // beside the map (the narrow-window disclosure is pinned in mapas.test.tsx).
+  it("mapas: personalização sempre visível em tela larga", async () => {
     render(wrap(<MapsPage />, makeClient()));
-    const opened = (await screen.findByText(ptBR.map.customize)).closest(
-      "details",
-    ) as HTMLDetailsElement;
-    expect(opened.open).toBe(true);
+    const heading = await screen.findByRole("heading", { name: ptBR.map.customize });
+    expect(heading.closest("details")).toBeNull();
+    expect(screen.getByRole("combobox", { name: ptBR.map.axisX })).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: new RegExp(`^${ptBR.map.axisX} — `) }),
     ).toBeInTheDocument();
