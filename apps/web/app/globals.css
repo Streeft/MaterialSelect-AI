@@ -2207,7 +2207,7 @@ div[data-surface="rail"] .msds-rail-item {
   .ds-prop-table td { padding-top: 4px; }
 }
 
-/* D-218: the unit inside a number field, after the value ("1,2 m"). */
+/* D-219: the unit inside a number field, after the value ("1,2 m"). */
 .msds-unit-wrap { position: relative; }
 .msds-unit-wrap > .msds-control { padding-right: calc(var(--unit-ch, 1) * 0.6em + 20px); }
 .msds-unit {
@@ -2215,7 +2215,7 @@ div[data-surface="rail"] .msds-rail-item {
   color: rgb(var(--ink-muted)); font-size: 0.875em; white-space: nowrap;
 }
 
-/* D-218: InlineTable — a grid edited in place; stacks below 640 px of its own width. */
+/* D-219: InlineTable — a grid edited in place; stacks below 640 px of its own width. */
 .ds-inline-table { container-type: inline-size; min-width: 0; }
 .ds-inline-grid { width: 100%; border-collapse: collapse; }
 .ds-inline-grid th { padding: 6px 8px; text-align: left; vertical-align: bottom; border-bottom: 1px solid rgb(var(--border-divider)); }

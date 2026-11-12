@@ -94,7 +94,7 @@ class DesignVariable:
     label: str
     unit: str
     help_text: str
-    #: D-218: an illustrative number, in ``unit``, that the screen offers behind
+    #: D-219: an illustrative number, in ``unit``, that the screen offers behind
     #: an explicit "Usar o exemplo" — never filled in on its own, because a
     #: pre-filled load or span would be the tool inventing a design brief. It is
     #: a design input, not a material property (principle 1 is about those).

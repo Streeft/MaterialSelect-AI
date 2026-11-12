@@ -12905,7 +12905,9 @@ o carregamento era um spinner e o cabeçalho tinha dois botões soltos sem hiera
 **Fora.** Posição do trecho no servidor, para o link com trecho sobreviver ao recarregar. Mover a conversa e o Estúdio na
 duplicação. Arquivar em lote. Toca `apps/api` **com migração**: depois do merge, **Deploy da API** e a **Administração do
 banco** (migrar) antes de usar a lista de arquivados em produção.
-## D-218 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
+## D-219 — F4 da revisão das telas por cima da D-216: resultado ao vivo, exemplo com clique, unidade no campo e tabela editável
+
+> Mesclada como "D-218", número que a decisão dos Cadernos já usava; renumerada para D-219 no PR da F5 (D-220), junto com as referências no código.
 
 **Contexto.** A F4 do plano ("bancadas de cálculo") correu em paralelo com a etapa 4.5 do #240 (D-216: padrões no backend, Eco
 em módulos e no endereço com cascata, Dimensionar com esquema e barras, Custo comparando). O autor escolheu, em 12/11/2026, ficar
@@ -12939,5 +12941,5 @@ com o desenho da D-216 e pôr a F4 por cima dela, com o Dimensionar abrindo vazi
 (inventa projeto; o clique é o consentimento — decisão do autor). Manter o botão de calcular ao lado do ao vivo (dois jeitos de
 fazer a mesma coisa). Uma grade de planilha com teclado próprio (a tabela de controles nativos já tem Tab, leitor de tela e celular).
 
-**Numeração.** D-218 e Sessão 175: o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
+**Numeração.** D-219 e Sessão 175: o #240 usa D-216/Sessão 173 (calculadoras) e D-217/Sessão 174 (catálogo). Toca `apps/api`
 (sem migração): depois do merge, **Deploy da API**.

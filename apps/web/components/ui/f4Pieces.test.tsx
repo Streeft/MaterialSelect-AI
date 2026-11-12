@@ -17,7 +17,7 @@ async function expectAccessible(container: Element) {
   expect(violations, describeViolations(violations)).toEqual([]);
 }
 
-describe("NumberInput com unidade (D-218)", () => {
+describe("NumberInput com unidade (D-219)", () => {
   it("writes the unit inside the field and keeps it in the accessible name", async () => {
     const { container } = render(<NumberInput label="Comprimento" unit="m" defaultValue="1,2" />);
     expect(screen.getByRole("spinbutton", { name: "Comprimento (m)" })).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("NumberInput com unidade (D-218)", () => {
   });
 });
 
-describe("useLiveResult (D-218)", () => {
+describe("useLiveResult (D-219)", () => {
   afterEach(() => vi.useRealTimers());
 
   function Live({ fetcher }: { fetcher: (n: number) => Promise<string> }) {
@@ -96,7 +96,7 @@ describe("useLiveResult (D-218)", () => {
   });
 });
 
-describe("InlineTable (D-218)", () => {
+describe("InlineTable (D-219)", () => {
   interface Leg {
     key: number;
     mode: string;

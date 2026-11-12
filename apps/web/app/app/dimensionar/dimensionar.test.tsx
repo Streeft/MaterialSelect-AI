@@ -217,7 +217,7 @@ describe("Dimensionar", () => {
     expect(solveBrief).not.toHaveBeenCalled();
   });
 
-  it("o exemplo do caso só entra com o clique, e o resultado vem sozinho (D-218)", async () => {
+  it("o exemplo do caso só entra com o clique, e o resultado vem sozinho (D-219)", async () => {
     const user = userEvent.setup();
     await chooseBeam();
     // Nothing typed, nothing asked: the example is offered, never applied.
@@ -234,7 +234,7 @@ describe("Dimensionar", () => {
     expect(await screen.findByRole("link", { name: "Alumínio 6061" })).toBeInTheDocument();
   });
 
-  it("escreve a unidade dentro do campo, e ela continua no nome do campo (D-218)", async () => {
+  it("escreve a unidade dentro do campo, e ela continua no nome do campo (D-219)", async () => {
     await chooseBeam();
     expect(await screen.findByShadowRole("spinbutton", { name: "Comprimento (m)" })).toBeInTheDocument();
     expect(screen.getByShadowRole("spinbutton", { name: "Rigidez exigida (N/m)" })).toBeInTheDocument();

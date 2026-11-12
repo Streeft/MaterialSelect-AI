@@ -223,7 +223,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
       );
   const ready = blocked === null;
 
-  // D-218: both modes answer as the reader types; the numbers are the server's.
+  // D-219: both modes answer as the reader types; the numbers are the server's.
   // The export sends the brief the shown result answers (D-172), never the inputs.
   const comparisonBrief = () =>
     buildComparisonBrief(
@@ -247,7 +247,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   const compareResult = liveCompare.data ?? null;
   const live = individual ? liveAudit : liveCompare;
 
-  // D-218: rows of the product and of the legs, edited in place.
+  // D-219: rows of the product and of the legs, edited in place.
   const setComponents = (next: (list: ComponentDraft[]) => ComponentDraft[]) =>
     setBrief((current) => ({ components: next(effectiveComponents(current, defaults)) }));
   const setLegs = (next: (list: LegDraft[]) => LegDraft[]) =>
