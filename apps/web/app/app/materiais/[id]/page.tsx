@@ -481,8 +481,9 @@ export default function MaterialDetailPage() {
               </DocSection>
 
               {/* P2: "what resembles this" is a question about a record, so it
-                  lives on the record's own page. */}
-              <SimilarPanel material={data} unitChoices={unitChoices} />
+                  lives on the record's own page. D-214: it is a tool, not a
+                  fact of the record, so it starts folded — the outline opens it. */}
+              <SimilarPanel material={data} unitChoices={unitChoices} defaultOpen={false} />
 
               {chart.data && (
                 // `min-w-0` inside: the figure's data table is wider than a

@@ -35,7 +35,7 @@ import {
   ErrorState,
   Input,
   RowHeader,
-  Section,
+  DocSection,
   Select,
   SelectOption,
   TBody,
@@ -101,10 +101,13 @@ function NamedList({
 export function SimilarPanel({
   material,
   unitChoices,
+  defaultOpen = true,
 }: {
   material: MaterialDetail;
   /** The reader's units (D-70): they only print the tolerance bands. */
   unitChoices?: Record<string, string>;
+  /** D-214: a section of the sheet that folds; the sheet starts it folded. */
+  defaultOpen?: boolean;
 }) {
   const [basis, setBasis] = useState<string[]>(() => proposedBasis(material));
   const properties = useQuery({
@@ -243,7 +246,7 @@ export function SimilarPanel({
   const result = search.data;
 
   return (
-    <Section id="semelhantes" title={t.title} description={t.hint}>
+    <DocSection id="semelhantes" title={t.title} description={t.hint} defaultOpen={defaultOpen}>
       <Card>
         <CardBody className="flex flex-col gap-4">
           <fieldset className="flex min-w-0 flex-col gap-2">
@@ -513,7 +516,7 @@ export function SimilarPanel({
           )}
         </CardBody>
       </Card>
-    </Section>
+    </DocSection>
   );
 }
 

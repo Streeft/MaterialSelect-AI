@@ -132,9 +132,9 @@ export function PropertyGroupCard({
           the frame, so the box draws none. */}
       <TableScroll
         label={ptBR.categories[group.category]}
-        className="rounded-none border-0 bg-transparent"
+        className="ds-prop-table-box rounded-none border-0 bg-transparent"
       >
-        <table className="min-w-full divide-y divide-edge-subtle text-body">
+        <table className="ds-prop-table min-w-full divide-y divide-edge-subtle text-body">
           <tbody>
             {group.properties.map((p) => (
               <tr key={p.property_slug} className="align-top">

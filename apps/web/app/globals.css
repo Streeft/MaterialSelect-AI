@@ -2172,6 +2172,15 @@ div[data-surface="rail"] .msds-rail-item {
 .ds-unit-option:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: -2px; }
 @media (pointer: coarse) { .ds-unit-option { min-height: var(--target-min); } }
 
+/* D-214: a property card narrower than 480 px stacks the name over the value,
+   instead of wrapping "Coeficiente de Poisson" one word per line in a third. */
+.ds-prop-table-box { container-type: inline-size; }
+@container (max-width: 480px) {
+  .ds-prop-table tr { display: flex; flex-direction: column; }
+  .ds-prop-table th { width: auto; padding-bottom: 0; }
+  .ds-prop-table td { padding-top: 4px; }
+}
+
 /* D-214: a document page — the content and, from lg, the side index in view. */
 .ds-doc-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 .ds-doc-main { display: flex; min-width: 0; flex-direction: column; gap: 32px; }

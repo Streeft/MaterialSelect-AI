@@ -10,6 +10,9 @@ const t = ptBR.ds;
 /** Fired by the outline before it jumps, so a folded section opens first. */
 export const OPEN_SECTION_EVENT = "msai:open-section";
 
+/** Where reading happens: a little under the app bar (and the sections' scroll margin). */
+const READING_LINE = 120;
+
 export interface OutlineItem {
   /** The section's `id` — the anchor the link goes to. */
   id: string;
@@ -33,28 +36,37 @@ export function Outline({ items, className }: { items: readonly OutlineItem[]; c
   const ids = items.map((item) => item.id).join(" ");
 
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
     const targets = ids
       .split(" ")
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el !== null);
     if (targets.length === 0) return;
-    const visible = new Set<string>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) visible.add(entry.target.id);
-          else visible.delete(entry.target.id);
-        }
-        // The first section, in page order, that is in the reading band.
-        const first = targets.find((el) => visible.has(el.id));
-        if (first) setActive(first.id);
-      },
-      // The reading band: the top third of the window, under the app bar.
-      { rootMargin: "-64px 0px -66% 0px" },
-    );
-    for (const el of targets) observer.observe(el);
-    return () => observer.disconnect();
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      // The section being read is the last one whose heading has passed the
+      // reading line under the app bar. At the very end of the page the last
+      // sections can never reach that line: there, the last one on screen is.
+      const atEnd =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      const line = atEnd ? window.innerHeight - 1 : READING_LINE;
+      let current: HTMLElement | undefined;
+      for (const el of targets) {
+        if (el.getBoundingClientRect().top <= line) current = el;
+      }
+      setActive(current?.id ?? null);
+    };
+    const onScroll = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [ids]);
 
   if (items.length === 0) return null;
@@ -72,6 +84,7 @@ export function Outline({ items, className }: { items: readonly OutlineItem[]; c
               aria-current={active === item.id ? "location" : undefined}
               className="ds-outline-link m3-state touch-target text-body"
               onClick={() => {
+                setActive(item.id);
                 window.dispatchEvent(new CustomEvent(OPEN_SECTION_EVENT, { detail: item.id }));
               }}
             >
