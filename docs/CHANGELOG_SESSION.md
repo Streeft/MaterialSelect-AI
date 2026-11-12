@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 166 — 12/11/26 — Padrões de página (D-209)
+
+**O que mudou.** Etapa 2.2. `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;
+`ParamsResultLayout`/`ParamsPanel`/`ResultPanel` em Dimensionar, Custo, Eco, Baterias e Sintetizar; `useUrlState`
+(`lib/urlState.ts`) põe na URL Baterias, Dimensionar, Sintetizar e todo o Custo, e o Painel guarda a escala sem `setState`
+no render; "Copiar o link desta configuração" no "⋯"; `formatTyped` e `StatTile` únicos; `TableSkeleton`, `ChartSkeleton`
+e `SheetSkeleton` nos carregamentos; `lib/msds/msds.tsx` em 45 arquivos com reexport pelo mesmo caminho. Testes:
+`lib/urlState.test.tsx` (leitura, escrita, ida e volta, Voltar), `components/ui/pagePatterns.test.tsx` (cabeçalho, menu,
+trilha, layout, skeletons, `StatTile`, `formatTyped`, copiar link; com axe), e casos novos de URL e de regiões em
+`baterias`, `custo`, `dimensionar`, `sintetizar` e `painel`. Sem backend nem migração.
+
 ## Sessão 163 — 12/11/26 — Gráficos uniformes (D-206)
 
 **O que mudou.** Etapa 2.3. O backend passou a calcular o domínio do box-plot (`DistributionOut.domain`), a extensão log-log

@@ -12181,6 +12181,55 @@ bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o
 
 **Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
 internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
+## D-209 — Padrões de página: cabeçalho com papéis, parâmetros e resultado, estado na URL, skeletons por tipo
+
+**Contexto.** Etapa 2.2 da revisão das telas. As páginas de `/app` repetiam à mão quatro desenhos: o cabeçalho (ações em
+qualquer ordem, às vezes dois botões fortes), as calculadoras (Dimensionar, Custo, Eco, Baterias, Sintetizar) com a grade
+de colunas de cada uma, o estado das entradas (só o mapa e o painel iam para a URL; Baterias, Dimensionar e Sintetizar
+perdiam tudo num recarregar, e Custo levava material, massa e lote mas não as premissas), e dois `printable()` e dois
+`StatTile` iguais em arquivos diferentes. O Painel ainda corrigia a escala com `setState` durante o render.
+`lib/msds/msds.tsx` tinha ~2.650 linhas num arquivo só. Referências: Stripe e Vercel (cabeçalho com uma ação primária e o
+resto num "⋯"), Onshape (parâmetros à esquerda, resultado à direita).
+
+**Decisão.**
+- **`PageHeader`** ganha papéis: `secondaryActions`, `overflow` (os `MenuItem`s de um `MenuButton` "⋯", "Mais ações") e
+  `primaryAction`, sempre nessa ordem, com o `primary` no fim; e `breadcrumb`, que leva a trilha do D-207 para dentro do
+  cabeçalho (catálogo, processo e família de processo). `actions` continua aceito, antes dos três. Aplicado em Painel,
+  Catálogo, Cadernos, Comparar, Mapas e releases; as demais páginas já usavam o componente e não têm ação de página.
+- **`ParamsResultLayout`** com **`ParamsPanel`** e **`ResultPanel`** (`components/layout/ParamsResult.tsx`): duas regiões
+  nomeadas ("Parâmetros", "Resultado"), lado a lado a partir de 1200 px **do bloco** (container query `.m3-scaffold`,
+  `data-layout="params-result"`, como o D-182), empilhadas abaixo, parâmetros antes na ordem de leitura. `sticky` é opcional
+  (só onde a resposta é curta; uma caixa grudada mais alta que a tela esconde o próprio fim). Só layout: nenhuma lógica mudou.
+- **`useUrlState`** (`lib/urlState.ts`) generaliza `app/app/mapas/url-state.ts`: uma especificação por tela (parâmetro,
+  codec, padrão), `location.search` como única fonte lida por `useSyncExternalStore` e escrita por `history.replaceState`
+  (síncrono: o campo controlado não perde tecla; `replace`, não `push`, porque cada tecla não é um passo do Voltar). Valor
+  igual ao padrão sai da URL; valor malformado é ignorado, nunca consertado. Codecs `textCodec`, `enumCodec`, `boolCodec` e
+  `jsonCodec` (base64url, o mesmo do mapa, que passou a usá-lo). Na URL agora: Baterias (arquétipo, química, requisitos,
+  premissas e aba), Dimensionar (`caso`, `entradas`, `objetivo`), Sintetizar (a receita; nome, classe e descrição ficam
+  fora, são do registro e não da pergunta) e o resto do Custo (`amortizacao`, `fator_carga`). O Painel guarda a escala
+  (`escala=log`) no estado que já tinha na URL (D-193), e a queda para linear de uma propriedade que recusa log é derivada no
+  render, sem escrever estado. As telas com estado na URL ganham "Copiar o link desta configuração" no "⋯".
+- **Um só utilitário e um só componente:** `formatTyped` (`lib/format.ts`) no lugar dos três `printable()`; `StatTile`
+  em `components/ui` com `size="hero"` (o do painel, contagem animada, valor final para o leitor de tela) e
+  `size="compact"` (o das baterias), e `tone` `default`/`highlight`/`inverted`.
+- **Skeletons por tipo:** `TableSkeleton`, `ChartSkeleton` e `SheetSkeleton`, com o rótulo escrito à vista e as caixas
+  mudas, nos carregamentos de Painel, Baterias, Custo, Dimensionar, Eco e Sintetizar.
+- **MSDS em arquivos:** `lib/msds/msds.tsx` virou 45 arquivos por componente ou família (`Button.tsx`, `Dialog.tsx`,
+  `motion.tsx`, `fields.tsx`…), cada um com só as exceções de lint que precisa; `msds.tsx` reexporta os mesmos nomes pelo
+  mesmo caminho e mantém o objeto `api`. Nenhuma linha de comportamento mudou (conferido linha a linha e por `tsc` sem
+  `@ts-nocheck`, só para nomes não definidos).
+
+**Consequências.** Só frontend: sem backend, migração nem seed. Testes de página que abriam a tela por `useSearchParams`
+simulado passaram a abrir por `history.replaceState`, porque a URL real é a fonte. Um link antigo continua abrindo (parâmetro
+ausente = padrão).
+
+**Rejeitado.** `router.replace` para cada tecla (é transição: o campo controlado pode perder caractere e o cursor); estado em
+`localStorage` (não vai num link); mover a correção de escala para um `useEffect` (a regra `set-state-in-effect` é erro).
+
+**Numeração.** D-209 e Sessão 166, conferidas livres em `origin/main` antes do commit.
+
+---
+
 ## D-200 — Erros humanos e com saída: um só tradutor de falha, menu que sobrevive, 404 que não finge ser falha
 
 **Contexto.** Na auditoria visual, a falha de rede aparecia como "Failed to fetch" e o erro do servidor como "Internal

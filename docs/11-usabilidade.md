@@ -239,6 +239,10 @@ lista, refeita a cada mudança de tela:
       (pressionado); em Fixados e Recentes o botão de fixar é separado do link (D-207).
 - [ ] A aba do navegador diz a tela ou o registro aberto ("Aço inoxidável 304 · MaterialSelect AI"), e as fichas de material,
       família, processo e caderno têm trilha com a página atual marcada (D-207).
+- [ ] Cabeçalho de página: secundárias, "⋯" e o `primary` por último; o "⋯" abre com Enter e setas e Esc devolve o foco (D-209).
+- [ ] Calculadoras (Dimensionar, Custo, Eco, Baterias, Sintetizar): a 1280 px os parâmetros ficam à esquerda e o resultado à
+      direita; a 375 px o resultado desce para baixo; o leitor de tela salta entre as regiões "Parâmetros" e "Resultado"; recarregar
+      a página mantém o que foi digitado (D-209).
 - [ ] Páginas fora de `/app` (`/entrar`, `/assinatura`) têm um `<main>`: o leitor de tela salta direto ao conteúdo (D-202).
 
 ---
