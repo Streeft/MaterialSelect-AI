@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 165 — 12/11/26 — Acesso livre a todos os menus (D-208)
+
+**O que mudou.** Etapa 1.7. `can_edit_shared_catalog` passou a ser verdadeiro para todo usuário logado, também no modo
+`open` sem assinatura: voltam Classes, Propriedades e Importar, e a API deixa de responder 403 "somente leitura" nessas
+rotas. `/app/estilo` ficou visível a todos (sai `styleGuideAccess.ts`). Mantidas as proteções de material oficial/demo e a
+confirmação ao excluir. Testes: em `test_open_access.py`, as asserções "estudante não cura" viraram o contrário (material
+compartilhado, classe, propriedade, importação) e a tabela da regra marca `open/sem assinatura` como curador; no frontend,
+`acesso.test.tsx` agora afirma a vitrine aberta sem consultar a permissão, `openAccess.test.tsx` e `layout.test.tsx`
+ganharam o caso do estudante em acesso aberto vendo Administrar e Importar. Os testes antigos que fixavam a restrição foram
+ajustados porque a regra que eles protegiam foi revogada de propósito (D-208).
+
 ## Sessão 164 — 11/11/26 — Shell e navegação: paleta de comandos, menu que lembra, migalhas (D-207)
 
 **O que mudou.** PR 2.1 da revisão das telas. Backend: `GET /api/search?q=&limit=` (router → `SearchService` →

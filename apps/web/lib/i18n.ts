@@ -3346,11 +3346,6 @@ export const ptBR = {
 
   styleGuide: {
     title: "Sistema de design",
-    // D-202: in production the style guide is for the curator only.
-    restrictedTitle: "Página restrita",
-    restrictedDescription:
-      "O sistema de design é uma referência para quem mantém o produto. Ele fica visível só para quem cura o catálogo.",
-    restrictedBack: "Voltar ao início",
     subtitle:
       "Vitrine viva dos tokens e das primitivas. Serve de referência para quem continuar o trabalho e de fonte das figuras da monografia.",
     tokens: "Tokens de cor",

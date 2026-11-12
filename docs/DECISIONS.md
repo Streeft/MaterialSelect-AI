@@ -12105,6 +12105,32 @@ fixam as classes e os tokens que produzem o efeito); a causa exata da chave dupl
 
 ---
 
+## D-208 — Acesso livre a todos os menus: login basta para curar o catálogo e ver o sistema de design
+
+**Contexto.** Com `ACCESS_MODE=open` (D-83) e um banco novo sem assinaturas, `can_edit_shared_catalog` era falso para todo
+mundo (`mode != "open" or subscribed`): sumiam Classes, Propriedades e Importar do menu, o `/app/estilo` ficava restrito
+(D-202) e a API devolvia 403 "o catálogo compartilhado é somente leitura". O pedido do autor: todo usuário logado tem acesso
+livre a todos os menus e ações.
+
+**Decisão.**
+- `domain/access.can_edit_shared_catalog` é verdadeiro para todo usuário autenticado, nos dois modos. Os argumentos ficam
+  para o `/billing/status` e o portão HTTP seguirem com um só ponto de chamada. `dependencies.can_edit_shared_catalog` deixa
+  de consultar assinatura; `require_catalog_curator` segue como dependência (pode ser sobrescrita em teste).
+- `/app/estilo` (D-202) fica visível a todo usuário logado, em produção também; `lib/styleGuideAccess.ts` e os textos
+  "Página restrita" saíram.
+- `useCanEditCatalog` (frontend) continua tratando "desconhecido" como sim e ainda respeita um servidor que diga falso.
+- **Intactos:** a assinatura continua sendo o portão do produto no modo `subscription` (D-46); material oficial e demo
+  seguem protegidos contra edição e exclusão (D-62, D-116) e a confirmação ao excluir continua.
+
+**Revisa** o D-202 (página de estilo só para o curador) e a regra de acesso do D-83 (catálogo compartilhado só com
+assinatura no modo aberto).
+
+**Consequências.** Backend: o teste que fixava "estudante não cura" virou "estudante cria/edita/exclui material, cria e
+exclui classe, cria propriedade e alcança as rotas de importação". Frontend: o menu mostra Administrar e Importar para o
+estudante em acesso aberto. Mexe em `apps/api`: depois do merge, **Deploy da API**. Sem migração nem seed.
+
+**Numeração.** D-206/Sessão 163 ficaram com a etapa 2.3; esta é a D-208 e a sessão é a 165.
+
 ## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
 
 **Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,

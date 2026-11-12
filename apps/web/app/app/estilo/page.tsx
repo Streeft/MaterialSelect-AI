@@ -3,8 +3,6 @@
 import { PaneScaffold } from "@/components/layout/PaneScaffold";
 import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
-import { useBillingStatus } from "@/lib/billing";
-import { styleGuideVisible } from "@/lib/styleGuideAccess";
 import { M3Foundations } from "./M3Foundations";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
@@ -259,32 +257,10 @@ function Marker({ symbol, color }: { symbol: string; color: string }) {
 }
 
 /**
- * D-202: in production only the curator sees the style guide. The permission is
- * read only there (`enabled`), so development, tests and CI never ask for it.
- * The guide itself is a separate component because it is full of hooks, and a
- * gate cannot return early above them.
+ * D-208: the style guide is open to every signed-in reader (D-202 had limited
+ * it to the curator in production). It holds no data; it is documentation.
  */
 export default function StyleGuidePage() {
-  const production = process.env.NODE_ENV === "production";
-  const billing = useBillingStatus({ enabled: production });
-
-  if (production && billing.isLoading) {
-    return <LoadingState label={ptBR.auth.checkingSubscription} />;
-  }
-  const canEdit = billing.data ? billing.data.can_edit_catalog : null;
-  if (!styleGuideVisible({ production, canEdit })) {
-    return (
-      <EmptyState
-        title={ptBR.styleGuide.restrictedTitle}
-        description={ptBR.styleGuide.restrictedDescription}
-        action={
-          <ButtonLink href="/app" variant="secondary" size="sm">
-            {ptBR.styleGuide.restrictedBack}
-          </ButtonLink>
-        }
-      />
-    );
-  }
   return <StyleGuide />;
 }
 
