@@ -11,11 +11,8 @@ import {
   Disclosure,
   Input,
   Section,
-  Textarea,
 } from "@/components/ui";
 import { AIAssistPanel } from "@/components/ai/AIAssistPanel";
-import { MAX_NOTE_LENGTH } from "@/components/selection/StageList";
-import { flowText } from "@/lib/i18n-flow";
 import { ptBR } from "@/lib/i18n";
 import type { WizardAction, WizardState } from "../wizardState";
 
@@ -55,13 +52,6 @@ export function FunctionStep({
         <Card>
           <CardBody className="grid gap-3 sm:grid-cols-2">
             <Input
-              label={t.studyName}
-              hint={t.studyNameHint}
-              className="sm:col-span-2"
-              value={state.name}
-              onChange={(e) => text("name")(e.target.value)}
-            />
-            <Input
               label={t.functionText}
               hint={t.functionTextHint}
               value={state.functionText}
@@ -79,16 +69,6 @@ export function FunctionStep({
               className="sm:col-span-2"
               value={state.freeVariables}
               onChange={(e) => text("freeVariables")(e.target.value)}
-            />
-            <Textarea
-              label={flowText.notes.studyLabel}
-              hint={flowText.notes.studyHint}
-              className="sm:col-span-2"
-              rows={3}
-              maxLength={MAX_NOTE_LENGTH}
-              placeholder={flowText.notes.placeholder}
-              value={state.studyNotes}
-              onChange={(e) => text("studyNotes")(e.target.value)}
             />
           </CardBody>
         </Card>

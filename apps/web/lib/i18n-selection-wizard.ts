@@ -5,6 +5,20 @@
  * do not collide with this one.
  */
 export const wizardText = {
+  // D-220: the study as a document — its name is the title, the problem its properties.
+  doc: {
+    untitled: "Estudo sem título",
+    functionProp: "Função",
+    objectiveProp: "Objetivo",
+    variablesProp: "Variáveis livres",
+    universeProp: "Universo",
+    limitsProp: "Limites",
+    notDescribed: "Ainda não descrita",
+    notDescribedMasc: "Ainda não descrito",
+    noLimits: "Nenhum limite ainda",
+    noVariables: "Nenhuma",
+    editIn: (step: string) => `Editar em ${step}`,
+  },
   progress: {
     title: "Progresso do estudo",
     count: (done: number, total: number) =>

@@ -2082,7 +2082,8 @@ div[data-surface="rail"] .msds-rail-item {
   .ds-block-grip, .ds-block-actions { opacity: 0; transition: opacity var(--motion-effects-fast-dur) var(--motion-effects-fast); }
   .ds-block:hover .ds-block-grip, .ds-block:focus-within .ds-block-grip,
   .ds-block:hover .ds-block-actions, .ds-block:focus-within .ds-block-actions,
-  .ds-block[data-hidden] .ds-block-actions { opacity: 1; }
+  .ds-block[data-hidden] .ds-block-actions,
+  .ds-block-grip[data-visible] { opacity: 1; }
   .ds-block:hover { background: rgb(var(--m3-on-surface) / 0.04); }
 }
 

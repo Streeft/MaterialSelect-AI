@@ -8,7 +8,6 @@ import type { StudySummary } from "@/lib/types";
 import {
   Badge,
   Button,
-  Disclosure,
   EmptyState,
   MenuItem,
   TBody,
@@ -21,18 +20,22 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { IconTrash } from "@/components/ui/icons";
 import { EngineeringReportLink } from "@/components/EngineeringReportLink";
 import { StudyExplanation } from "@/components/ai/StudyExplanation";
+import { SidePeek } from "@/components/ui/SidePeek";
+import { useState } from "react";
 import { ImportStudyButton } from "./ImportStudyButton";
 
 const t = ptBR.selection;
 
 /**
  * "Meus estudos" (D-85): every saved study with every action it had — exports,
- * the laudo, the AI explanation, run, open, delete — collapsed behind one line
- * at the top of the wizard.
+ * the laudo, the AI explanation, run, open, delete.
  *
  * It used to sit under every step, about ten controls per study, below the
- * very form the reader was trying to fill. Nothing was removed; it moved out of
- * the way and says how many studies it holds, so it is still found.
+ * very form the reader was trying to fill; D-85 folded it into a line at the
+ * top. D-220 takes it off the document altogether: one quiet button in the
+ * study's head, saying how many there are, opens the list beside the page
+ * (`SidePeek`), so the study being written keeps the whole width. Nothing was
+ * removed; the Início lists the same studies on the way in.
  */
 export function SavedStudiesPanel({
   studies,
@@ -46,8 +49,13 @@ export function SavedStudiesPanel({
   onDelete: (id: number) => void;
 }) {
   const count = studies?.length ?? 0;
+  const [open, setOpen] = useState(false);
   return (
-    <Disclosure summary={t.myStudies(count)}>
+    <>
+      <Button variant="tonal" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        {t.myStudies(count)}
+      </Button>
+      <SidePeek open={open} title={t.savedStudies} onClose={() => setOpen(false)}>
       <div className="mb-3">
         <ImportStudyButton />
       </div>
@@ -92,10 +100,23 @@ export function SavedStudiesPanel({
                   </Td>
                   <Td className="align-top">
                     <div className="flex justify-end gap-2">
-                      <Button size="sm" onClick={() => onRun(s.id)}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setOpen(false);
+                          onRun(s.id);
+                        }}
+                      >
                         {t.runSaved}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => onLoad(s.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setOpen(false);
+                          onLoad(s.id);
+                        }}
+                      >
                         {t.load}
                       </Button>
                       <Button
@@ -116,6 +137,7 @@ export function SavedStudiesPanel({
           </Table>
         </TableScroll>
       )}
-    </Disclosure>
+      </SidePeek>
+    </>
   );
 }
