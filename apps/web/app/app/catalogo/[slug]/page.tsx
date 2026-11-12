@@ -12,15 +12,21 @@ import { MaterialList } from "@/components/catalog/MaterialList";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { FamilyNote } from "@/components/glossary/FamilyNote";
 import {
+  Breadcrumb,
   ButtonLink,
   Card,
   CardBody,
   DataQualityLegend,
+  DocSection,
   ErrorState,
   LoadingState,
-  PageHeader,
-  Section,
+  Outline,
+  PageDoc,
+  PropertyList,
+  type OutlineItem,
 } from "@/components/ui";
+import { IconLayers } from "@/components/ui/icons";
+import { fichaText } from "@/lib/i18n-ficha";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.catalog;
@@ -83,88 +89,118 @@ export default function MaterialFamilyPage() {
   const data = family.data;
   const hasChildren = data.children.length > 0;
 
+  const outline: OutlineItem[] = [
+    ...(hasChildren ? [{ id: "subclasses", label: f.subclasses }] : []),
+    { id: "materiais", label: f.inThisFamily },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumb={[
+      <Breadcrumb
+        items={[
           { label: f.allClasses, href: "/app/catalogo" },
           ...data.ancestors.map((a) => ({ label: a.name, href: `/app/catalogo/${a.slug}` })),
           { label: data.name },
         ]}
+      />
+
+      {/* D-214: a family is a document page in the sheets' mould — its counts
+          as properties, then the sections that fold, with the side index. */}
+      <PageDoc
+        icon={<IconLayers className="h-5 w-5" />}
         title={data.name}
-        description={data.description ?? undefined}
-        eyebrow={false}
-      />
-
-      <FamilyProseCard
-        applications={data.applications}
-        characteristics={data.characteristics}
-      />
-
-      {/* D-151: the conceptual note for this class, keyed by its slug. The query
-          is the same one the material sheet and the glossary use, so a reader
-          moving between them pays one request. */}
-      <Card>
-        <CardBody>
-          <FamilyNote slug={data.slug} name={data.name} />
-        </CardBody>
-      </Card>
-
-      {hasChildren && (
-        <Section id="subclasses" title={f.subclasses}>
-          <div className="flex flex-wrap gap-2">
-            {data.children.map((child) => (
-              <Link
-                key={child.slug}
-                href={`/app/catalogo/${child.slug}`}
-                className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <Card className="pressable">
-                  <CardBody className="flex flex-col gap-0.5 px-4 py-3">
-                    <span className="font-medium text-ink">{child.name}</span>
-                    <span className="text-caption text-ink-muted">
-                      {f.countDirect(child.material_count)}
-                    </span>
-                  </CardBody>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <Section
-        id="materiais"
-        title={f.inThisFamily}
-        description={countLine(data.material_count, data.descendant_material_count)}
-      >
-        {materials.isLoading && <LoadingState label={t.loading} />}
-        {materials.isError || classes.isError ? (
-          // D-200: a failed query is not an empty folder. Saying "nenhum material"
-          // here would be data absence invented out of a network error.
-          <ErrorState
-            error={materials.error ?? classes.error}
-            onRetry={() => {
-              void materials.refetch();
-              void classes.refetch();
-            }}
+        properties={
+          <PropertyList
+            items={[
+              {
+                id: "materiais",
+                label: fichaText.doc.materialsLabel,
+                value: countLine(data.material_count, data.descendant_material_count),
+              },
+              ...(hasChildren
+                ? [
+                    {
+                      id: "subclasses",
+                      label: f.subclasses,
+                      value: String(data.children.length),
+                    },
+                  ]
+                : []),
+            ]}
           />
-        ) : shown.length === 0 && !materials.isLoading ? (
-          // Two absences, and they are not the same sentence: a folder whose
-          // contents are one level down is not an empty folder.
-          <p className="text-body text-ink-muted">
-            {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
-          </p>
-        ) : (
-          <MaterialList materials={shown} />
-        )}
+        }
+      >
+        {data.description ? (
+          <p className="max-w-prose text-body text-ink">{data.description}</p>
+        ) : null}
 
-        <Card>
-          <CardBody>
-            <DataQualityLegend />
-          </CardBody>
-        </Card>
-      </Section>
+        {/* D-151: the conceptual note for this class, folded, as on the
+            material sheet; the same query the sheet and the glossary use. */}
+        <FamilyNote slug={data.slug} name={data.name} className="max-w-prose" />
+
+        <FamilyProseCard
+          applications={data.applications}
+          characteristics={data.characteristics}
+        />
+
+        <div className="ds-doc-grid">
+          <Outline items={outline} />
+          <div className="ds-doc-main">
+            {hasChildren && (
+              <DocSection id="subclasses" title={f.subclasses}>
+                <div className="flex flex-wrap gap-2">
+                  {data.children.map((child) => (
+                    <Link
+                      key={child.slug}
+                      href={`/app/catalogo/${child.slug}`}
+                      className="msds-card m3-state flex flex-col gap-0.5 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      data-interactive="true"
+                    >
+                      <span className="font-medium text-ink">{child.name}</span>
+                      <span className="text-caption text-ink-muted">
+                        {f.countDirect(child.material_count)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </DocSection>
+            )}
+
+            <DocSection
+              id="materiais"
+              title={f.inThisFamily}
+            >
+              {materials.isLoading && <LoadingState label={t.loading} />}
+              {materials.isError || classes.isError ? (
+                // D-200: a failed query is not an empty folder. Saying "nenhum material"
+                // here would be data absence invented out of a network error.
+                <ErrorState
+                  error={materials.error ?? classes.error}
+                  onRetry={() => {
+                    void materials.refetch();
+                    void classes.refetch();
+                  }}
+                />
+              ) : shown.length === 0 && !materials.isLoading ? (
+                // Two absences, and they are not the same sentence: a folder whose
+                // contents are one level down is not an empty folder.
+                <p className="text-body text-ink-muted">
+                  {hasChildren ? f.emptyFolderWithChildren : f.emptyFolder}
+                </p>
+              ) : (
+                <MaterialList materials={shown} />
+              )}
+
+              <Card>
+                <CardBody>
+                  <DataQualityLegend />
+                </CardBody>
+              </Card>
+            </DocSection>
+
+          </div>
+        </div>
+      </PageDoc>
     </div>
   );
 }

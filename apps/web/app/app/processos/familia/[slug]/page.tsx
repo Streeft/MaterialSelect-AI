@@ -6,14 +6,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getProcessClass } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import {
-  Badge,
-  Card,
-  CardBody,
+  Breadcrumb,
+  DocSection,
   ErrorState,
   LoadingState,
-  PageHeader,
-  Section,
+  PageDoc,
+  PropertyList,
 } from "@/components/ui";
+import { IconLayers } from "@/components/ui/icons";
+import { fichaText } from "@/lib/i18n-ficha";
 import { FamilyProseCard } from "@/components/browse/FamilyProse";
 import { usePageTitle } from "@/lib/pageTitle";
 
@@ -52,8 +53,8 @@ export default function ProcessFamilyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumb={[
+      <Breadcrumb
+        items={[
           { label: t.backToProcesses, href: "/app/processos" },
           ...data.ancestors.map((a) => ({
             label: a.name,
@@ -61,66 +62,92 @@ export default function ProcessFamilyPage() {
           })),
           { label: data.name },
         ]}
+      />
+
+      {/* D-214: the family in the sheets' mould — counts as properties, the
+          processes and sub-families in sections that fold. */}
+      <PageDoc
+        icon={<IconLayers className="h-5 w-5" />}
         title={data.name}
-        description={data.description ?? undefined}
-        eyebrow={false}
-      />
-
-      <FamilyProseCard
-        applications={data.applications}
-        characteristics={data.characteristics}
-      />
-
-      <Section
-        id="processos"
-        title={t.familiesTitle}
-        description={countLine(data.process_count, data.descendant_process_count)}
+        properties={
+          <PropertyList
+            items={[
+              {
+                id: "processos",
+                label: fichaText.doc.processesLabel,
+                value: countLine(data.process_count, data.descendant_process_count),
+              },
+              ...(hasChildren
+                ? [
+                    {
+                      id: "subfamilias",
+                      label: fichaText.doc.subfamiliesLabel,
+                      value: String(data.children.length),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        }
       >
-        {data.processes.length === 0 ? (
-          // Absence written out, and the two absences are not the same: a folder
-          // whose contents are one level down is not an empty folder.
-          <p className="text-body text-ink-muted">
-            {hasChildren ? t.emptyFolderWithChildren : t.emptyFolder}
-          </p>
-        ) : (
-          <Card>
-            <CardBody className="flex flex-wrap gap-2">
+        {data.description ? (
+          <p className="max-w-prose text-body text-ink">{data.description}</p>
+        ) : null}
+
+        <FamilyProseCard
+          applications={data.applications}
+          characteristics={data.characteristics}
+        />
+
+        <DocSection
+          id="processos"
+          title={fichaText.doc.processesLabel}
+        >
+          {data.processes.length === 0 ? (
+            // Absence written out, and the two absences are not the same: a folder
+            // whose contents are one level down is not an empty folder.
+            <p className="text-body text-ink-muted">
+              {hasChildren ? t.emptyFolderWithChildren : t.emptyFolder}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line-divider rounded-card border border-line bg-panel">
               {data.processes.map((process) => (
+                <li key={process.slug}>
+                  <Link
+                    href={`/app/processos/${process.slug}`}
+                    className="m3-state flex items-center justify-between gap-2 px-4 py-2.5 text-body text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+                  >
+                    <span>{process.name}</span>
+                    <span aria-hidden className="text-ink-subtle">
+                      →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DocSection>
+
+        {hasChildren && (
+          <DocSection id="subfamilias" title={t.subfamilies}>
+            <div className="flex flex-wrap gap-2">
+              {data.children.map((child) => (
                 <Link
-                  key={process.slug}
-                  href={`/app/processos/${process.slug}`}
-                  className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  key={child.slug}
+                  href={`/app/processos/familia/${child.slug}`}
+                  className="msds-card m3-state flex flex-col gap-0.5 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  data-interactive="true"
                 >
-                  <Badge tone="brand">{process.name}</Badge>
+                  <span className="font-medium text-ink">{child.name}</span>
+                  <span className="text-caption text-ink-muted">
+                    {t.countDirect(child.process_count)}
+                  </span>
                 </Link>
               ))}
-            </CardBody>
-          </Card>
+            </div>
+          </DocSection>
         )}
-      </Section>
-
-      {hasChildren && (
-        <Section id="subfamilias" title={t.subfamilies}>
-          <div className="flex flex-wrap gap-2">
-            {data.children.map((child) => (
-              <Link
-                key={child.slug}
-                href={`/app/processos/familia/${child.slug}`}
-                className="rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <Card className="pressable">
-                  <CardBody className="flex flex-col gap-0.5 px-4 py-3">
-                    <span className="font-medium text-ink">{child.name}</span>
-                    <span className="text-caption text-ink-muted">
-                      {t.countDirect(child.process_count)}
-                    </span>
-                  </CardBody>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
+      </PageDoc>
     </div>
   );
 }

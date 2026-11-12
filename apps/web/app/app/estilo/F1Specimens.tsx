@@ -9,6 +9,8 @@ import {
   Badge,
   Block,
   Button,
+  DocSection,
+  Outline,
   DataQualityBadge,
   EmptyState,
   FilterBar,
@@ -34,6 +36,7 @@ export function F1Specimens() {
       <BlockSpecimen />
       <FilterSpecimen />
       <DocSpecimen />
+      <OutlineSpecimen />
       <EmptySpecimen />
       <PeekSpecimen />
       <WorkbenchSpecimen />
@@ -164,6 +167,39 @@ function DocSpecimen() {
             />
           }
         />
+      </div>
+    </Section>
+  );
+}
+
+function OutlineSpecimen() {
+  return (
+    <Section
+      title="Índice lateral e seções recolhíveis"
+      description="D-214: o índice acompanha a leitura e abre a seção recolhida antes de saltar; o título da seção é o botão que a recolhe."
+      headingLevel={2}
+    >
+      <div className="msds-card p-5">
+        <div className="ds-doc-grid">
+          <Outline
+            items={[
+              { id: "estilo-propriedades", label: "Propriedades" },
+              { id: "estilo-curvas", label: "Curvas" },
+            ]}
+          />
+          <div className="ds-doc-main">
+            <DocSection id="estilo-propriedades" title="Propriedades" description="Aberta por padrão.">
+              <PropertyList
+                items={[
+                  { label: "Densidade", value: "7,87 g/cm³", aside: <DataQualityBadge state="MEDIDO" /> },
+                ]}
+              />
+            </DocSection>
+            <DocSection id="estilo-curvas" title="Curvas" defaultOpen={false}>
+              <p className="text-body text-ink-muted">Uma seção recolhida continua no índice.</p>
+            </DocSection>
+          </div>
+        </div>
       </div>
     </Section>
   );

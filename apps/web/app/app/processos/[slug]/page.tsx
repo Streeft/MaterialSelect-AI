@@ -11,20 +11,25 @@ import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { formatNumber, valueUnit } from "@/lib/format";
 import {
   Badge,
+  Breadcrumb,
   Card,
   CardBody,
   DataQualityBadge,
   DataQualityLegend,
+  DocSection,
   EmptyState,
   ErrorState,
   LoadingState,
   MissingValue,
-  PageHeader,
+  PageDoc,
+  PropertyList,
   ProvenancePopover,
-  Section,
   provenanceOfProcessAttribute,
   qualityState,
+  type PropertyItem,
 } from "@/components/ui";
+import { IconGear } from "@/components/ui/icons";
+import { fichaText } from "@/lib/i18n-ficha";
 import { usePageTitle } from "@/lib/pageTitle";
 
 const t = ptBR.processes;
@@ -63,102 +68,99 @@ export default function ProcessDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumb={[
+      <Breadcrumb
+        items={[
           { label: t.backToProcesses, href: "/app/processos" },
           { label: data.class_name, href: `/app/processos/familia/${data.class_slug}` },
           { label: data.name },
         ]}
-        title={data.name}
-        description={data.description ?? undefined}
-        eyebrow={false}
-        secondaryActions={<FavoriteButton universe="process" recordId={data.id} />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Section id="atributos" title={t.attributes} description={t.attributesHint}>
+      {/* D-214: the process sheet in the material sheet's mould — a document
+          page whose properties sit in one aligned list, with the attributes
+          below in a section that folds. */}
+      <PageDoc
+        icon={<IconGear className="h-5 w-5" />}
+        title={data.name}
+        primaryAction={<FavoriteButton universe="process" recordId={data.id} />}
+        properties={
+          <PropertyList
+            items={[
+              {
+                id: "familia",
+                label: t.family,
+                value: (
+                  <Link
+                    href={`/app/processos/familia/${data.class_slug}`}
+                    className="rounded-control font-medium text-brand-700 underline-offset-2 hover:text-brand-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    {data.class_name}
+                  </Link>
+                ),
+              },
+              {
+                id: "materiais",
+                label: fichaText.doc.materialsLabel,
+                value:
+                  data.material_count === 0
+                    ? t.noMaterialsServed
+                    : t.materialsServed(data.material_count),
+              },
+            ]}
+          />
+        }
+      >
+        {data.description ? (
+          <p className="max-w-prose text-body text-ink">{data.description}</p>
+        ) : null}
+
+        <DocSection id="atributos" title={t.attributes} description={t.attributesHint}>
           {data.attributes.length === 0 ? (
             <EmptyState title={t.noAttributes} />
           ) : (
-            <Card>
-              <CardBody className="flex flex-col gap-4">
-                {data.attributes.map((value) => (
-                  <AttributeRow key={value.attribute_slug} value={value} />
-                ))}
-              </CardBody>
-            </Card>
+            <PropertyList
+              items={data.attributes.map((value) => attributeItem(value))}
+            />
           )}
-
           <Card>
             <CardBody>
               <DataQualityLegend />
             </CardBody>
           </Card>
-        </Section>
-
-        <div className="flex min-w-0 flex-col gap-3">
-          <Section id="materiais" title={t.family}>
-            <Card>
-              <CardBody className="flex flex-col gap-2 text-body">
-                <Link
-                  href={`/app/processos/familia/${data.class_slug}`}
-                  className="rounded-control font-medium text-ink underline-offset-2 hover:text-brand-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  {data.class_name}
-                </Link>
-                <p className="text-ink-muted">
-                  {data.material_count === 0
-                    ? t.noMaterialsServed
-                    : t.materialsServed(data.material_count)}
-                </p>
-              </CardBody>
-            </Card>
-          </Section>
-        </div>
-      </div>
+        </DocSection>
+      </PageDoc>
     </div>
   );
 }
 
 /**
- * One attribute, with the rule it is compared by stated next to it.
+ * One attribute as a row of the property list, with the rule it is compared
+ * by stated under it.
  *
  * The kind is not decoration: an envelope is compared by **reach** and a scalar
  * by its own value (D-59), so a reader who cannot see which rule applies cannot
  * check the selection that used it. That obligation is the same one the report's
  * provenance sheet took on, carried to the screen.
  */
-function AttributeRow({ value }: { value: ProcessAttributeValue }) {
+function attributeItem(value: ProcessAttributeValue): PropertyItem {
   const provenance = provenanceOfProcessAttribute(value);
-  const state = qualityState(provenance);
-
-  return (
-    <div className="flex flex-col gap-1 border-b border-edge pb-3 last:border-0 last:pb-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="font-medium text-ink">{value.attribute_name}</span>
-        <span className="text-caption text-ink-subtle">{kindLabel(value)}</span>
-      </div>
-
-      <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        {value.is_missing ? (
-          <ProvenancePopover provenance={provenance}>
-            <MissingValue />
-          </ProvenancePopover>
-        ) : (
-          <>
-            <ProvenancePopover provenance={provenance}>
-              <AttributeValueText value={value} />
-            </ProvenancePopover>
-            <DataQualityBadge state={state} />
-          </>
-        )}
-      </span>
-
-      {kindHint(value) ? (
-        <p className="text-caption text-ink-muted">{kindHint(value)}</p>
-      ) : null}
-    </div>
-  );
+  const hint = kindHint(value);
+  return {
+    id: value.attribute_slug,
+    label: value.attribute_name,
+    value: (
+      <ProvenancePopover provenance={provenance}>
+        {value.is_missing ? <MissingValue /> : <AttributeValueText value={value} />}
+      </ProvenancePopover>
+    ),
+    hint: (
+      <>
+        <span className="block">{kindLabel(value)}</span>
+        {hint ? <span className="block">{hint}</span> : null}
+      </>
+    ),
+    aside: value.is_missing ? undefined : <DataQualityBadge state={qualityState(provenance)} />,
+  };
 }
 
 function kindLabel(value: ProcessAttributeValue): string {

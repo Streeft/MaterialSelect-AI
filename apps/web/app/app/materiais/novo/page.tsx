@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getMaterial, listClasses, listProperties } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { MaterialForm } from "@/components/MaterialForm";
-import { ButtonLink, ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { Breadcrumb, ErrorState, LoadingState, PageDoc } from "@/components/ui";
+import { IconPlus } from "@/components/ui/icons";
 
 export default function NewMaterialPage() {
   // `useSearchParams` opts the subtree out of prerendering unless it sits
@@ -36,11 +37,22 @@ function NewMaterialContent() {
   const error = classes.isError || properties.isError || source.isError;
 
   return (
-    <div className="flex flex-col gap-4">
-      <ButtonLink href="/app/catalogo" variant="link" size="sm" className="self-start">
-        {ptBR.detail.back}
-      </ButtonLink>
-      <PageHeader title={copyId !== null ? ptBR.form.copyTitle : ptBR.form.createTitle} />
+    <div className="flex flex-col gap-6">
+      {/* D-214: a new record opens as the document it will be — the same head
+          as a sheet, under the catalogue it joins. */}
+      <Breadcrumb
+        items={[
+          { label: ptBR.nav.catalog, href: "/app/catalogo" },
+          ...(copyId !== null && source.data
+            ? [{ label: source.data.name, href: `/app/materiais/${copyId}` }]
+            : []),
+          { label: copyId !== null ? ptBR.form.copyTitle : ptBR.form.createTitle },
+        ]}
+      />
+      <PageDoc
+        icon={<IconPlus className="h-5 w-5" />}
+        title={copyId !== null ? ptBR.form.copyTitle : ptBR.form.createTitle}
+      />
 
       {loading && <LoadingState label={ptBR.catalog.loading} />}
       {error && (
