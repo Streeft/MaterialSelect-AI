@@ -294,45 +294,52 @@ export function IndexPicker({
         </p>
       ) : null}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <RadioCard
-          name={name}
-          value="none"
-          checked={value === "none"}
-          onChange={onChange}
-          title={t.none}
-        >
-          <p className="text-support text-ink-muted">{t.noneHint}</p>
-        </RadioCard>
-
-        {indices.map((index) => (
+      {/* D-213: the columns follow the picker's own width (a container
+          query), not the window's: in the map's side panel two columns chosen
+          by a wide window squeezed each card under its longest word.
+          `min-w-0` + `break-words` let a long name wrap inside a card that
+          hides its overflow, whatever the font's metrics. */}
+      <div className="index-picker mt-3">
+        <div className="index-picker-grid grid gap-2 [&>*]:min-w-0 [&>*]:break-words">
           <RadioCard
-            key={index.slug}
             name={name}
-            value={index.slug}
-            checked={value === index.slug}
+            value="none"
+            checked={value === "none"}
             onChange={onChange}
-            title={index.name}
-            badge={
-              <Badge tone={index.goal === "minimize" ? "info" : "brand"}>
-                {goalLabel(index.goal)}
-              </Badge>
-            }
+            title={t.none}
           >
-            <Expression>{index.expression}</Expression>
-            <OptionSummary index={index} />
+            <p className="text-support text-ink-muted">{t.noneHint}</p>
           </RadioCard>
-        ))}
 
-        <RadioCard
-          name={name}
-          value="custom"
-          checked={value === "custom"}
-          onChange={onChange}
-          title={t.custom}
-        >
-          <p className="text-support text-ink-muted">{t.customHint}</p>
-        </RadioCard>
+          {indices.map((index) => (
+            <RadioCard
+              key={index.slug}
+              name={name}
+              value={index.slug}
+              checked={value === index.slug}
+              onChange={onChange}
+              title={index.name}
+              badge={
+                <Badge tone={index.goal === "minimize" ? "info" : "brand"}>
+                  {goalLabel(index.goal)}
+                </Badge>
+              }
+            >
+              <Expression>{index.expression}</Expression>
+              <OptionSummary index={index} />
+            </RadioCard>
+          ))}
+
+          <RadioCard
+            name={name}
+            value="custom"
+            checked={value === "custom"}
+            onChange={onChange}
+            title={t.custom}
+          >
+            <p className="text-support text-ink-muted">{t.customHint}</p>
+          </RadioCard>
+        </div>
       </div>
 
       {value === "custom" && customSlot ? <div className="mt-3">{customSlot}</div> : null}

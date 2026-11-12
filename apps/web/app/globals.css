@@ -1706,6 +1706,13 @@ div[data-surface="rail"] .msds-rail-item {
    the rows' own width, not the window's: fixed tracks (`lg:grid-cols-[1fr_8rem_14rem_11rem]`)
    asked for ~40rem inside a ~29rem column and `.msds-card { overflow: hidden }`
    cut the excess off. Every track is `minmax(0, …)`, so nothing can force it wider. */
+/* D-213: the index picker's cards in two columns only when the picker itself
+   has room for them — not when the window does (the map's side panel). */
+.index-picker { container-type: inline-size; container-name: index-picker; min-width: 0; }
+.index-picker-grid { grid-template-columns: minmax(0, 1fr); }
+@container index-picker (min-width: 30rem) {
+  .index-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .similar-weights { container-type: inline-size; container-name: similar-weights; min-width: 0; }
 .similar-weight-row { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 @container similar-weights (min-width: 30rem) {

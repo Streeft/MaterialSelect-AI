@@ -12640,6 +12640,9 @@ tamanho da janela, sem a cobertura ("N de M materiais plotados") que a figura af
 string (`useStableIds`), para que mudar `sel` ou `linha` não redesenhe o mapa; os painéis do `aside` não encolhem
 (`shrink-0`), porque `.msds-card` esconde o excesso; o seletor do cursor tem rótulos curtos (Região, Laço, Mover linha,
 Navegar) e quebra linha dentro do cartão no celular — com quatro assentos ele empurrava a página a 375 px na CI.
+O `IndexPicker` passou a escolher uma ou duas colunas por consulta de contêiner (`.index-picker`, 30rem), não pela
+janela: a 1280 px o painel lateral (22rem) recebia duas colunas e um nome longo vazava 7 px do cartão com as fontes da CI;
+os cartões têm `min-w-0`/`break-words` e os chips dos mapas clássicos quebram linha, para não depender da métrica da fonte.
 `e2e/larguras.spec.ts` (mapas, Nível 2 e a troca de nível) passa.
 
 **Alternativas descartadas.** Arrastar uma `shape` editável do Plotly (coordenadas de shape em eixo log são ambíguas e a

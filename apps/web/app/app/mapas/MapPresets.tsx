@@ -38,6 +38,9 @@ export function MapPresets({
           return (
             <ToggleChip
               key={preset.slug}
+              // A long pair of axes wraps inside the chip rather than past
+              // the side panel's edge (the card hides what overflows).
+              className="h-auto max-w-full whitespace-normal text-left"
               selected={preset.slug === activeSlug}
               disabled={!preset.available}
               title={why}
