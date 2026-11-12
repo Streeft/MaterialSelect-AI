@@ -2,7 +2,7 @@
 
 Uma nota diz **o que uma família de materiais é, por que se comporta como se
 comporta, onde se usa e o que conferir ao escolhê-la** — nunca quanto valem as
-suas propriedades. É a irmã do glossário de propriedades (D-130) e segue as
+suas propriedades. É a irmã do glossário de propriedades (D-130b) e segue as
 mesmas três regras, cada uma com teste em ``test_family_notes.py``:
 
 1. **Conceitual, nunca numérico.** Faixa típica ou exemplo com número seria dado

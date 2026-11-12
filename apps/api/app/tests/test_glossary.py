@@ -1,4 +1,4 @@
-"""Glossário de propriedades (D-130): verbetes conceituais, versionados e validados."""
+"""Glossário de propriedades (D-130b): verbetes conceituais, versionados e validados."""
 
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ def test_shipped_entries_are_drafts_in_ptbr_with_license() -> None:
     for entry in load_entries().values():
         assert entry.lang == "pt-BR"
         assert entry.license
-        # D-130: nada sai como revisado sem edição do autor.
+        # D-130b: nada sai como revisado sem edição do autor.
         assert entry.review_status in {"rascunho", "revisado"}
 
 

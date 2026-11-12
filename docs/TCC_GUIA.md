@@ -232,7 +232,7 @@ Cada linha: o que faz e a decisão que a justifica. A tela de cada módulo fica 
 | **Painel** (`/app/painel`) | Cinco abas (Visão geral, Propriedades, Processos, Qualidade, Minha atividade) sobre filtros globais de classe, subclasse, nível e demonstração: cobertura, treemap, histograma, caixas, ranking, correlação de Spearman, qualidade por fonte, atividade própria; CSV por aba | [D-27](DECISIONS.md), [D-39](DECISIONS.md), [D-193](DECISIONS.md) |
 | **Catálogo** e ficha do material | Lista e detalhe lado a lado; ficha com proveniência por valor, composição, designações com equivalência **declarada por fonte** (nunca inferida), propriedades ordinais, curvas, "Materiais semelhantes" | [D-105](DECISIONS.md), [D-115](DECISIONS.md), [D-157](DECISIONS.md), [D-184](DECISIONS.md) |
 | Curvas do material | Tensão–deformação, temperatura, taxa, fadiga (S–N) e fluência como SVG próprio; nada é interpolado; o valor lido é só o ponto que a fonte declarou | [D-106](DECISIONS.md), [D-110](DECISIONS.md), [D-118](DECISIONS.md), [D-175](DECISIONS.md) |
-| **Glossário** | Verbetes autorais por propriedade (o que é e como se mede, sem valor típico) e notas conceituais por família de materiais | [D-130 (glossário)](DECISIONS.md), [D-151](DECISIONS.md) |
+| **Glossário** | Verbetes autorais por propriedade (o que é e como se mede, sem valor típico) e notas conceituais por família de materiais | [D-130b (glossário)](DECISIONS.md), [D-151](DECISIONS.md) |
 | Unidades de leitura | A unidade em que se lê é propriedade da propriedade; ler não é guardar (o valor canônico não muda) | [D-70](DECISIONS.md) |
 
 ### 4.2 Ferramentas de engenharia
@@ -282,6 +282,52 @@ telas que se adaptam de 375 a 1920 px ([D-147](DECISIONS.md),
 ([D-140](DECISIONS.md), [D-150](DECISIONS.md)). Regras em
 [`.claude/rules/frontend-design-system.md`](../.claude/rules/frontend-design-system.md).
 
+### 4.6 Revisão das telas (Fases 0 a 5) e assistente de projeto
+
+Material para o capítulo de **Resultados**. A revisão partiu de uma auditoria visual
+de 33 rotas em três larguras e dois temas (Fase 0, [D-205](DECISIONS.md)) e foi
+fechada em cinco fases, cada uma com decisão própria:
+
+- **Fundações (Fases 1 e 2).** Peças novas do sistema de design e padrões de página
+  ([D-206](DECISIONS.md), [D-212](DECISIONS.md)); shell, menu e paleta de comandos
+  ([D-207](DECISIONS.md)); bases de dados com visões salvas ([D-209](DECISIONS.md));
+  gráficos de um só desenho, com legenda e tabela equivalente ([D-211](DECISIONS.md)).
+- **Telas de estudo (Fase 3).** Seleção em passos, com o estado num reducer
+  ([D-210](DECISIONS.md)); Mapas com inspetor ([D-213](DECISIONS.md)); Comparar e a
+  ficha do material mais curtos, com os painéis longos fechados por padrão
+  ([D-214](DECISIONS.md)); catálogo em páginas, e não mais os 678 cartões de uma vez
+  no celular ([D-217](DECISIONS.md)); Cadernos ([D-218](DECISIONS.md)).
+- **Calculadoras e demais telas (Fases 4 e 5).** Padrões de backend e as quatro
+  calculadoras ([D-216](DECISIONS.md), [D-220](DECISIONS.md)); Processos, Glossário,
+  Sintetizar, Painel e Meus registros ([D-219](DECISIONS.md)); estudo como documento
+  ([D-221](DECISIONS.md)); Importar com erro por célula e Início que retoma o trabalho
+  ([D-222](DECISIONS.md)).
+- **Confiabilidade.** Service worker que só diz "Sem conexão" com o aparelho sem
+  rede ([D-199](DECISIONS.md)); erros em linguagem simples e com saída
+  ([D-200](DECISIONS.md)); exclusão confirmada e com Desfazer ([D-201](DECISIONS.md));
+  token de sessão guardado só como hash e limite por minuto
+  ([D-223](DECISIONS.md)).
+- **Fechamento ([D-226](DECISIONS.md)).** axe em toda rota da suíte E2E, nos dois
+  extremos de largura; alvos de toque de 44 px no celular, medidos em navegador
+  real; metas do Lighthouse; e a numeração antiga desambiguada (D-130b, Sessões
+  84b, 98b e 115b).
+
+**Assistente de projeto com IA ([D-224](DECISIONS.md), [D-225](DECISIONS.md)).** A
+pessoa escreve "quero fazer uma roupa de esqui" e recebe uma proposta: partes,
+função, objetivo, índice e limites. Isso **revisou o princípio 2**: a IA continua sem
+produzir valor de propriedade nem resultado de cálculo, mas um limite numérico agora
+tem três origens, nesta ordem: o texto da pessoa, um cenário com fonte, ou uma
+sugestão da IA marcada como tal, desmarcada por padrão e nunca aplicada sem
+confirmação. Os materiais sugeridos vêm do ranking determinístico do backend, não do
+modelo. Ao escrever, diga isso como **mudança de método justificada**, não como
+exceção escondida, e mostre a origem de cada número na figura do cartão de proposta.
+
+Como medir o que mudou (para a seção de resultados, sempre com data e commit):
+`apps/web/e2e/a11y.spec.ts` (axe por rota), `apps/web/e2e/mobile.spec.ts` (390 px,
+alvos de 44 px, sem rolagem lateral) e `apps/web/e2e/larguras.spec.ts` (quatro
+larguras). O antes e o depois da auditoria visual não ficam no repositório (as
+capturas são grandes); o relatório está descrito no [D-226](DECISIONS.md).
+
 ---
 
 ## 5. Números do estado atual
@@ -306,7 +352,7 @@ coluna da direita.
 | Testes de E2E | 8 arquivos de especificação em `apps/web/e2e/` (Playwright), incluindo a suíte de larguras 375/768/1280/1920 px | `apps/web/e2e/` |
 | Migrations Alembic | 43 | `apps/api/alembic/versions/` |
 | Módulos de router / arquivos `.py` de aplicação (sem testes) | 31 / 311 | `apps/api/app/` |
-| Decisões registradas | **186** decisões `D-NN` (de D-05 a D-193; D-154, D-159 e D-160 não têm seção) mais 4 ADRs. O número D-130 aparece duas vezes (aviso com Desfazer e glossário) | [`DECISIONS.md`](DECISIONS.md) |
+| Decisões registradas | **186** decisões `D-NN` (de D-05 a D-193; D-154, D-159 e D-160 não têm seção) mais 4 ADRs. O número D-130 aparecia duas vezes; o glossário agora é D-130b (regra no D-226) | [`DECISIONS.md`](DECISIONS.md) |
 | Sessões de trabalho registradas | 150 (a mais recente) | [`CHANGELOG_SESSION.md`](CHANGELOG_SESSION.md) |
 | Pull requests mesclados | 212, até o #219 | API do GitHub, 02/11/2026 |
 | Fases concluídas | 1 a 9 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §3 |

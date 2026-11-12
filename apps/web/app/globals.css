@@ -2060,6 +2060,43 @@ div[data-surface="rail"] .msds-rail-item {
   }
 }
 
+/* D-226: the same promise for what the four classes above do not cover. The
+   audit of the phone (390 px) found buttons, links, summaries and fields with
+   their own classes at 20 to 36 px. Every button and every link that is not set
+   inside running text gets the invisible hit area; fields and summaries, which
+   cannot have one (a native control draws its own box), grow to --target-min.
+   Not covered, on purpose: Plotly's modebar (its own library, and the same
+   actions are in the toolbar above the figure), tabs (their `::after` is the
+   indicator; the tab itself grows), and a link in a sentence (WCAG 2.5.8
+   inline exception). */
+@media (pointer: coarse) {
+  :where(button, a[href], summary):not(.modebar *) {
+    position: relative;
+  }
+  button:not(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target, [role="tab"], [role="switch"], .modebar-btn)::after,
+  a[href]:not(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target, [role="tab"], .modebar-btn):not(p a, dd a, dt a, li > a:not(:only-child), figcaption a, label a, .prose a)::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--target-min));
+    height: max(100%, var(--target-min));
+    transform: translate(-50%, -50%);
+  }
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+  select,
+  textarea,
+  summary,
+  [role="tab"] {
+    min-height: var(--target-min);
+  }
+  /* A checkbox or radio with its label is one target: the whole row. */
+  label:has(> input[type="checkbox"], > input[type="radio"]) {
+    min-height: var(--target-min);
+    align-items: center;
+  }
+}
+
 /* ---------- D-206: the F1 pieces (Notion's surface on M3's structure) ---------- */
 
 /* Block: a movable row. The grip shows on hover or focus with a pointer that

@@ -10401,7 +10401,7 @@ cancelado ao esconder o item (`cancelQueries`).
 
 **O que não muda.** Nada de cálculo e nenhum valor de propriedade em jogo. Frontend
 apenas; não precisa de Deploy da API.
-## D-130 — Glossário de propriedades: verbete conceitual, autoral e versionado
+## D-130b — Glossário de propriedades: verbete conceitual, autoral e versionado
 
 *Decidida pelo assistente por delegação do autor, revisável.*
 
@@ -11024,10 +11024,10 @@ funil". Sem migração. Depois do merge, rodar o Deploy da API.
 
 **Contexto.** Lacuna do EduPack: o leitor não tinha um texto curto sobre cada família de materiais (o que ela é, por que se
 comporta assim, onde se usa, o que conferir ao escolhê-la). O P1-4 deu a `MaterialClass` duas frases editáveis
-(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130) é por propriedade.
+(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130b) é por propriedade.
 
 **Decisão.**
-1. **Mesmo desenho do D-130, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
+1. **Mesmo desenho do D-130b, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
    (Pydantic estrito, sem sessão de banco), servido por `GET /api/familias/notas` e `/{slug}` (404 escrito, nomeando o slug), com a
    regra de acesso da lista de classes. Sem migração. Campos: `summary` (≤ 280), `body` em parágrafos curtos (≤ 1200 no total),
    `when_to_use`, `watch_out`, `reference`, `license`, `review_status`, `lang`.
@@ -11574,7 +11574,7 @@ valores corrigidos, 2 materiais substituídos (Zamak por gravidade → ZA-8 e ZA
    regra (D-71) se mantém: mesmo arquivo, mesmo escritor (`seed_extended_materials`, que ganhou `specs`), mesmo `main()` que
    `semear_demo` e `scripts/seed.ps1` já executam — nenhum dos dois mudou. Nenhuma contagem fixa da suíte se moveu.
 2. **Dados em JSON, validador puro.** Os lotes ficam em `apps/api/app/db/demo_catalog/L0*.json` (no `package-data` do
-   `pyproject.toml`, como o glossário do D-130). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
+   `pyproject.toml`, como o glossário do D-130b). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
    `__main__`. As regras portadas do QA (`qa_global.py` e os nove validadores): estrutura e 15 propriedades por material; unidade
    aceita pela propriedade e conversão pela trilha de `app.calculations.units` (via `app.domain.data_quality`); nenhum zero ou
    negativo (ausência é `missing` com nota, e só em dureza e reciclagem — o escoamento do ferro fundido cinzento é a única exceção
@@ -11676,7 +11676,7 @@ seleção correta". O catálogo tinha 15 definições numéricas e duas ordinais
   (escala de cinco níveis), inflamabilidade (cinco níveis), transparência (quatro) e biocompatibilidade (quatro, "nível de exemplo, não
   qualificação regulatória"). Definições `is_demo`, como as de D-126: o importador oficial já recusa enquanto houver ordinal demo.
 - **Níveis (D-127)**: no Nível 1 entram só tenacidade à fratura, alongamento, fadiga e fusão; 17 no Nível 2; 12 no Nível 3.
-- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130).
+- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130b).
 - **Valores** (`app/db/seed_demo_extended_props.py` + faixas em `app/db/demo_extended_data.py`, no padrão de `seed_demo_cae`): cada
   material demo cai num de 358 perfis por uma de 365 regras sobre o **nome** (a subclasse "Concretos e Argamassas" ou "Aramida, Basalto e
   Híbridos" nomeia várias famílias), com sobreposição por nome para 51 graus conhecidos (6061-T6, 304, Ti-6Al-4V, cobre OF, Inconel 718…).
@@ -12492,28 +12492,6 @@ trilho estreito (continua estado de React, como antes: ler o armazenamento na ca
 **Numeração.** D-206/Sessão 163 ficaram com o PR 2.3, que corre em paralelo; esta é a D-207 e a sessão é a 164.
 Mexe em `apps/api` (rota nova): depois do merge, **Deploy da API**. Sem migração nem seed.
 
-## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
-
-**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
-inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
-"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
-
-**Decisão.**
-- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
-  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
-  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
-  `Response.error()`.
-- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
-  é uma navegação offline sem a página amigável, como antes de existir worker.
-- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
-- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
-
-**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
-ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
-bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
-
-**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
-internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
 
 ## D-206 — F1 da revisão das telas: fundações do sistema de design e oito peças novas
@@ -13239,3 +13217,67 @@ min sem gastar cota).
 **Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
 
 **Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).
+
+## D-226 — Fechamento da revisão das telas: axe em toda rota, alvos de toque no celular, Lighthouse e numeração antiga desambiguada
+
+**Contexto.** A revisão das telas (D-205 a D-225) trocou o que a auditoria da Fase 0 apontou. Faltava provar o conjunto: que
+nenhuma rota da suíte E2E tem violação de acessibilidade em navegador real, que o celular (390 px) é utilizável com o dedo, e que
+o Lighthouse sustenta as metas. E a numeração tinha cinco repetições antigas (D-130, D-199, Sessões 84, 98 e 115).
+
+**Decisão.**
+1. **axe em toda rota do E2E** (`e2e/a11y.spec.ts`, lista única em `e2e/rotas.ts`, a mesma de `larguras.spec.ts`), a 1280 e a 390 px.
+   Sem `@axe-core/playwright`: o `axe-core` já é dependência dos testes de componente e o script é injetado a partir do pacote.
+   Nenhuma regra desligada. Violações reais corrigidas: (a) `nested-interactive` na barra do Plotly, porque o `role="img"` estava no
+   contêiner que também guarda os botões de zoom: o contêiner agora é `role="group"` e a imagem é só a primeira camada `.main-svg`
+   (`usePlotlyResize(figureLabel)`; as outras camadas ficam `aria-hidden`); (b) `scrollable-region-focusable` nas fórmulas (`MathTex`):
+   o `overflow-x: auto` forçava rolagem vertical invisível pelos sobrescritos do KaTeX; agora o vertical é `hidden` com folga de
+   `0.2em`; (c) `/app/estilo`: tabela de botões com região focável e rótulos sem `opacity` (contraste).
+2. **Alvos de toque** (`e2e/mobile.spec.ts`, 390 px com `isMobile` e `hasTouch`, 13 páginas e a ficha): sem rolagem lateral e todo
+   controle com 44 px nos dois eixos, medido pela caixa do elemento ou pela área de toque invisível (`::after`). `globals.css`
+   estende a área do D-206 a todo botão e link que não está dentro de um texto corrido (exceção "em linha" do WCAG 2.5.8); campos
+   nativos, `summary`, abas e linhas de caixa de seleção crescem para `--target-min`. Fica de fora, de propósito, a barra de
+   ferramentas do Plotly (biblioteca de terceiros; as mesmas ações estão na barra acima da figura).
+3. **Lighthouse.** Os limiares ficam em performance 0,7, acessibilidade 0,9 e boas práticas 0,8 (ver "Medição").
+4. **Numeração antiga.** A regra: **quando duas entradas têm o mesmo número, a que já era mais citada (ou a mais antiga) fica com ele
+   e a outra ganha um sufixo de letra minúscula (`D-130b`, `Sessão 84b`)**; ninguém renumera para o fim, porque as citações no
+   código, nos documentos e na monografia continuariam apontando para a entrada errada. D-130 = aviso com Desfazer (o glossário passou
+   a **D-130b**, com todas as referências do código e dos documentos atualizadas); D-199 era a mesma entrada colada duas vezes (a
+   cópia foi removida, sem perda de texto); Sessão 84 = busca global e aviso (a do glossário é a **84b**), Sessão 98 = Cadernos
+   (Ragone é a **98b**) e Sessão 115 = fichas offline (tolerância no Find Similar é a **115b**). Número novo nunca repete: antes de
+   escolher, `git grep -n "^## D-NNN" docs/DECISIONS.md` e `origin/main`.
+
+**Medição.** E2E local inteiro: 116 testes passam (eram 71; os 45 novos são `a11y.spec.ts` e `mobile.spec.ts`). axe a 1280 e 390 px, tema
+claro, nas 31 rotas de `e2e/rotas.ts`: 0 violações (antes: `nested-interactive` em Mapas, `scrollable-region-focusable` em Seleção, Mapas,
+Dimensionar e Estilo, `color-contrast` em Estilo). Alvos de toque a 390 px nas 13 páginas e na ficha: 0 abaixo de 44 px (antes: de 5 a 285 por página,
+por exemplo 285 de 293 na ficha e 264 de 711 no catálogo). **Lighthouse:** não consegui rodá-lo localmente (o `lhci` do workspace aponta para o
+checkout principal) e o relatório do job não é baixável com o token da sessão; o log do job `Lighthouse` do CI (13 URLs, 3 rodadas cada) termina em
+"All results processed" sem falha de asserção, então as notas ficaram acima dos limiares atuais (0,7 / 0,9 / 0,8), mas **o valor exato não foi
+medido**. Por isso os limiares não subiram para as metas 0,9 (performance) e 0,95 (acessibilidade): falta ler o `.lighthouseci/report` do artefato
+do CI (7 dias de retenção) e, se as notas sustentarem, subir `lighthouserc.json` num PR próprio.
+
+**Alternativas recusadas.** Renumerar as duplicadas para o fim da lista (quebra links e citações já feitas). Desligar a regra
+`nested-interactive` ou esconder a barra do Plotly (zoom e reinício de eixos só existem nela). Adicionar `@axe-core/playwright`
+(mais uma dependência para o que o `axe-core` já faz). Medir alvos só pela caixa do elemento (reprovaria a área de toque do D-206,
+que é a solução escolhida para não mexer no desenho).
+
+**Consequências.** Frontend e documentação; sem migração e sem Deploy da API. O E2E fica mais longo (axe em 32 rotas × 2 larguras e
+mais 14 páginas de celular).
+
+**Numeração.** D-226/Sessão 183.
+## D-227 — Banco sem conexões ociosas: `NullPool` por padrão fora do SQLite
+
+**Contexto.** A API roda sempre ligada no Fly e o `engine` (D-198) mantinha um pool de 5 + 5 conexões com o Neon. Conexões ociosas
+abertas impedem o Neon de suspender a computação; a cota gratuita de computação estourou.
+
+**Decisão.** `engine_kwargs` usa `poolclass=NullPool` para banco de servidor, controlado por `DB_POOL_MODE=null|queue` (padrão
+`null`; qualquer outro valor é erro na subida). Mantêm-se `pool_pre_ping` e a repetição de `OperationalError` do D-195. `queue`
+preserva o pool antigo (`pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`, que não existem para `NullPool`). SQLite não muda.
+
+**Alternativas recusadas.** Encolher o pool para 1 (ainda deixa uma conexão aberta). `pool_recycle` curto (a conexão continua
+aberta entre as requisições). Trocar para o endpoint com pooler do Neon (o D-198/§1 do deploy já explica por que o endpoint é o
+direto: o mesmo valor serve a migração).
+
+**Consequências.** Um *connect* a cada requisição (e cada sessão de job em segundo plano). Só backend; **Deploy da API** depois do
+merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que a computação volta a suspender nos intervalos sem uso.
+
+**Numeração.** D-227/Sessão 184 (D-226/Sessão 183 são o fechamento da revisão das telas, neste mesmo PR).

@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
+import { ROUTES } from "./rotas";
 
 /**
  * REDESIGN §3 / §10: the four widths the design answers to — a phone (375), a
@@ -80,44 +81,6 @@ const WIDTHS = [
   { name: "notebook", width: 1280, height: 800 },
   { name: "desktop", width: 1920, height: 1080 },
 ] as const;
-
-// Routes that open without an id. The ones that need a record are reached from
-// these by their own specs; here the point is the shell and each tool's screen.
-const ROUTES: ReadonlyArray<readonly [string, string]> = [
-  ["inicio", "/app"],
-  ["aparencia", "/app/aparencia"],
-  ["catalogo", "/app/catalogo"],
-  ["selecao", "/app/selecao"],
-  ["mapas", "/app/mapas"],
-  ["comparar", "/app/comparar"],
-  ["painel", "/app/painel"],
-  ["processos", "/app/processos"],
-  ["cadernos", "/app/cadernos"],
-  ["eco", "/app/eco"],
-  ["custo", "/app/custo"],
-  ["dimensionar", "/app/dimensionar"],
-  ["sintetizar", "/app/sintetizar"],
-  ["baterias", "/app/baterias"],
-  ["glossario", "/app/glossario"],
-  ["glossario-familias", "/app/glossario/familias"],
-  ["importar", "/app/importar"],
-  ["meus-registros", "/app/meus-registros"],
-  ["admin-classes", "/app/admin/classes"],
-  ["admin-propriedades", "/app/admin/propriedades"],
-  ["estilo", "/app/estilo"],
-  // D-190: screens that only exist with state in the address.
-  ["selecao-resultados", "/app/selecao?etapa=resultados"],
-  ["mapas-nivel-2", "/app/mapas?nivel=2"],
-  // D-193: each tab of the panel is its own screen, with its own figures.
-  ["painel-propriedades", "/app/painel?aba=propriedades"],
-  ["painel-processos", "/app/painel?aba=processos"],
-  ["painel-qualidade", "/app/painel?aba=qualidade"],
-  ["painel-atividade", "/app/painel?aba=atividade"],
-  ["painel-filtrado", "/app/painel?classe=metais&nivel=1"],
-  // D-215: the document pages that open without an id of their own.
-  ["catalogo-familia", "/app/catalogo/metais"],
-  ["material-novo", "/app/materiais/novo"],
-];
 
 for (const [slug, path] of ROUTES) {
   test(`${path} não rola na horizontal em nenhuma das quatro larguras`, async ({ page }) => {

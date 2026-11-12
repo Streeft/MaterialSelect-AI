@@ -59,7 +59,7 @@ export function Breadcrumb({
                 </span>
               ) : null}
               {item.href && !last ? (
-                <Link href={item.href} className="msds-breadcrumb-link truncate">
+                <Link href={item.href} className="msds-breadcrumb-link touch-target truncate">
                   {item.label}
                 </Link>
               ) : (

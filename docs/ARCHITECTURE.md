@@ -408,7 +408,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Calculadora de índice | `POST /expressions/describe`, `GET /expressions/palette` — LaTeX, dimensão e validade vindos do servidor ([D-191](DECISIONS.md)) |
 | Processos | `/processes` — taxonomia, atributos, vínculo material–processo ([D-57](DECISIONS.md), [D-59](DECISIONS.md), [D-192](DECISIONS.md)) |
 | Ferramentas | `/solver` (dimensionar, [D-64](DECISIONS.md)), `/custo` ([D-65](DECISIONS.md)), `/eco` ([D-66](DECISIONS.md), [D-121](DECISIONS.md)), `/baterias` ([D-69](DECISIONS.md)), `POST /sintetizar/…` ([D-67](DECISIONS.md), [D-68](DECISIONS.md), [D-144](DECISIONS.md)) |
-| Catálogo e glossário | `/catalogo` (releases e diff, [D-108](DECISIONS.md)), `/materials/{id}/curvas` ([D-106](DECISIONS.md)), `/glossario` e `/familias/notas` ([D-130](DECISIONS.md), [D-151](DECISIONS.md)), `/my-records` ([D-62](DECISIONS.md)) |
+| Catálogo e glossário | `/catalogo` (releases e diff, [D-108](DECISIONS.md)), `/materials/{id}/curvas` ([D-106](DECISIONS.md)), `/glossario` e `/familias/notas` ([D-130b](DECISIONS.md), [D-151](DECISIONS.md)), `/my-records` ([D-62](DECISIONS.md)) |
 | Cadernos e Cérebro | `/notebooks` (fontes, conversa, Estúdio; [D-92](DECISIONS.md), [D-94](DECISIONS.md), [D-97](DECISIONS.md), [D-98](DECISIONS.md)), `/knowledge` (RAG; [D-47](DECISIONS.md), [D-101](DECISIONS.md)) |
 | Assinatura | `/billing` ([D-46](DECISIONS.md), [D-83](DECISIONS.md)) |
 
