@@ -3600,6 +3600,30 @@ export const ptBR = {
   },
 
   // D-196: a tela de Aparência. Tudo fica neste aparelho, como o tema.
+  // D-228: the AI diagnosis — what the server has configured and a live test.
+  aiDiagnostics: {
+    title: "Diagnóstico da IA",
+    hint: "Confere o modelo, os embeddings e a busca na web deste servidor. O teste não gasta a sua cota diária de IA.",
+    run: "Testar a IA agora",
+    running: "Testando…",
+    statusLoading: "Lendo a configuração da IA…",
+    statusError: "Não foi possível ler a configuração da IA.",
+    runError: "O diagnóstico não pôde ser feito.",
+    off: "Camada de IA desativada neste servidor.",
+    simulated: "Provedor simulado: regras locais, sem rede e sem cota.",
+    providerLine: (provider: string, model: string, host: string) =>
+      [provider, model, host].filter(Boolean).join(" · "),
+    configuredTitle: "Configurado",
+    resultTitle: "Resultado do teste",
+    configured: "Configurado",
+    notConfigured: "Não configurado",
+    statusLabel: { ok: "Funcionando", erro: "Com erro", nao_configurado: "Não configurado" },
+    latency: (ms: number) => `${ms.toLocaleString("pt-BR")} ms`,
+    allOk: "Tudo o que está configurado respondeu.",
+    someFailed: "Alguma capacidade configurada falhou; veja abaixo.",
+    remaining: (n: number) =>
+      n === 1 ? "Você pode rodar mais 1 diagnóstico nesta hora." : `Você pode rodar mais ${n} diagnósticos nesta hora.`,
+  },
   appearance: {
     title: "Aparência",
     description: "Cor, contraste, movimento e densidade. Vale para você, neste aparelho.",

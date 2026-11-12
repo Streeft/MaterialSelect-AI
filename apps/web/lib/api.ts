@@ -12,6 +12,10 @@ import type {
   ExpressionUniverse,
   AhpWeightsIn,
   AhpWeightsOut,
+  AIDiagnostico,
+  SuggestRequest,
+  SuggestTool,
+  SuggestionsOut,
   AIStatus,
   ApplicationArchetype,
   BatteryChemistry,
@@ -1162,6 +1166,32 @@ export function dashboardExportUrl(section: DashboardSection, filters: Dashboard
 
 export function getAIStatus(): Promise<AIStatus> {
   return request<AIStatus>(`/api/ai/status`);
+}
+
+/**
+ * D-228: try the model (a small JSON), the embedding and the web search once
+ * each. Spends no daily quota; limited per person per hour (429 past it).
+ */
+export function runAIDiagnostico(): Promise<AIDiagnostico> {
+  return request<AIDiagnostico>(`/api/ai/diagnostico`, { method: "POST" });
+}
+
+/**
+ * D-228: up to three checked next steps for one tool's screen. The context
+ * carries what the screen shows (ids, slugs, parameters); the server
+ * validates and enriches it. Nothing is applied: each action is a proposal.
+ */
+export function suggestNextSteps(
+  tool: SuggestTool,
+  context: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<SuggestionsOut> {
+  const payload: SuggestRequest = { tool, context };
+  return request<SuggestionsOut>(`/api/ai/suggest`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal,
+  });
 }
 
 export function interpretStatement(statement: string): Promise<Interpretation> {

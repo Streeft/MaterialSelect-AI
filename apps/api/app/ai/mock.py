@@ -40,6 +40,7 @@ from app.ai.studio import (
     amount_for,
     read_studio,
 )
+from app.ai.suggest import SuggestContext
 from app.calculations.expressions import ExpressionError, safe_variable
 from app.calculations.powerlaw import as_monomial
 
@@ -666,6 +667,22 @@ class MockAIProvider(AIProvider):
         plain = headline and _has_figure(request.notebook_title)
         raw.setdefault("title", label if plain else named)
         return read_studio(request, raw)
+
+    # --- suggestions and diagnosis (D-228) ----------------------------------
+
+    def suggest(self, context: SuggestContext) -> dict:
+        """The tool's local rules, as built by the server for this context.
+
+        Deterministic by construction: the same screen state yields the same
+        cards, and every number in them was read or computed by the backend.
+        """
+        return {
+            "summary": context.rule_summary,
+            "suggestions": [dict(rule) for rule in context.rules],
+        }
+
+    def probe(self) -> dict:
+        return {"ok": True, "palavra": "material"}
 
 
 def _has_figure(text: str) -> bool:

@@ -26,7 +26,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 
-from app.ai.factory import disclaimer_for, get_provider
+from app.ai import openai_compat
+from app.ai.factory import SIMULATED_NOTE, disclaimer_for, get_provider
 from app.ai.guardrails import (
     Catalogue,
     check_chart,
@@ -51,9 +52,16 @@ from app.ai.provider import (
     ScenarioFacts,
 )
 from app.ai.rule_plan import rule_plan
+from app.ai.suggest import SuggestContext, check_suggestions, read_suggestions
 from app.config import Settings
 from app.config import settings as default_settings
-from app.domain.errors import NotFoundError, QuotaExceededError, ValidationError
+from app.domain.errors import (
+    NotFoundError,
+    QuotaExceededError,
+    RateLimitedError,
+    ValidationError,
+)
+from app.domain.rate_limit import FixedWindowLimiter
 from app.domain.use_scenarios import USE_SCENARIOS
 from app.knowledge.retrieval import search as knowledge_search
 from app.models.user import User
@@ -62,6 +70,7 @@ from app.repositories.notebook_repository import NotebookRepository
 from app.repositories.ordinal_repository import OrdinalRepository
 from app.repositories.selection_repository import SelectionRepository
 from app.schemas.ai import (
+    AIDiagnosticoOut,
     AIStatusOut,
     CitedSourceOut,
     ExplanationOut,
@@ -75,9 +84,13 @@ from app.schemas.ai import (
     SuggestedConstraint,
     SuggestedIndex,
     SuggestedProperty,
+    SuggestionsOut,
+    SuggestRequest,
 )
 from app.schemas.selection import ConstraintIn
+from app.services import ai_diagnostics
 from app.services.ai_plan import PlanBuilder, PlanCatalogue, grounded_prose, scenarios_out
+from app.services.ai_suggest import SuggestContextBuilder
 from app.services.selection_service import SelectionService
 
 logger = logging.getLogger(__name__)
@@ -128,13 +141,24 @@ _CONTEXT_CACHE = _TTLCache(max_entries=256)
 _RANGE_CACHE = _TTLCache(max_entries=256)
 #: hash of (provider, model, mode, normalised text) → the provider's raw plan.
 _PLAN_CACHE = _TTLCache(max_entries=512)
+#: hash of (tool, enriched context, provider, model) → checked suggestions (D-228).
+_SUGGEST_CACHE = _TTLCache(max_entries=1024)
+#: Diagnoses per person per hour (D-228) — its own low counter, not the quota.
+_DIAGNOSTIC_LIMITER = FixedWindowLimiter(window_seconds=3600.0)
+
+#: The provider name a suggestion carries when the layer is off (D-228).
+RULES_PROVIDER = "regras-locais"
 
 
 def reset_ai_caches() -> None:
-    """Forget every cached summary and plan (tests; a catalogue reload)."""
+    """Forget every cached summary, plan and suggestion (tests; a catalogue
+    reload), every diagnosis counted and every JSON mode a server refused."""
     _CONTEXT_CACHE.clear()
     _RANGE_CACHE.clear()
     _PLAN_CACHE.clear()
+    _SUGGEST_CACHE.clear()
+    _DIAGNOSTIC_LIMITER.reset()
+    openai_compat.reset_json_mode_memory()
 
 
 @dataclass(frozen=True)
@@ -164,16 +188,171 @@ class AIService:
     # --- status -----------------------------------------------------------
 
     def status(self) -> AIStatusOut:
-        """Report availability without raising — the UI asks this on every load."""
+        """Report availability without raising — the UI asks this on every load.
+
+        D-228: also the model, the provider's host (never the key) and each
+        capability configured or not. Reads settings only: no call is made.
+        """
         try:
             provider = get_provider(self.settings)
         except AIUnavailableError as exc:
-            return AIStatusOut(enabled=False, provider="", simulated=True, disclaimer=str(exc))
+            return AIStatusOut(
+                enabled=False,
+                provider="",
+                simulated=True,
+                disclaimer=str(exc),
+                capabilities=ai_diagnostics.capabilities(self.settings, None, str(exc)),
+            )
+        embeddings = ai_diagnostics.EmbeddingClient(self.settings)
         return AIStatusOut(
             enabled=True,
             provider=provider.name,
             simulated=provider.simulated,
             disclaimer=disclaimer_for(provider),
+            model=ai_diagnostics.provider_model(self.settings, provider),
+            host=ai_diagnostics.provider_host(self.settings, provider),
+            json_mode=ai_diagnostics.json_mode(self.settings, provider),
+            embedding_model=embeddings.model if embeddings.configured else "",
+            capabilities=ai_diagnostics.capabilities(self.settings, provider),
+        )
+
+    # --- diagnosis (D-228) ------------------------------------------------
+
+    def diagnose(self) -> AIDiagnosticoOut:
+        """Try each capability once — a JSON, an embedding, a web search.
+
+        Spends none of the person's daily quota: it has its own low counter
+        per hour (``AI_DIAGNOSTIC_PER_HOUR``), checked before any call.
+        """
+        limit = self.settings.ai_diagnostic_per_hour
+        key = f"diag:{self.viewer_id}"
+        now = time.monotonic()
+        wait = _DIAGNOSTIC_LIMITER.hit(key, limit, now)
+        if wait is not None:
+            minutes = max(1, -(-wait // 60))
+            raise RateLimitedError(
+                f"Você já rodou {limit} diagnósticos da IA nesta hora. Tente de novo em "
+                f"{minutes} min.",
+                retry_after=wait,
+            )
+        remaining = max(0, limit - _DIAGNOSTIC_LIMITER.count(key, now)) if limit > 0 else 0
+        try:
+            provider: AIProvider | None = get_provider(self.settings)
+            off_reason = ""
+        except AIUnavailableError as exc:
+            provider, off_reason = None, str(exc)
+        checks = [
+            ai_diagnostics.check_json(self.settings, provider, off_reason),
+            ai_diagnostics.check_embeddings(self.settings),
+            ai_diagnostics.check_web_search(self.settings),
+        ]
+        ok = checks[0].status == "ok" and all(c.status != "erro" for c in checks)
+        return AIDiagnosticoOut(
+            ok=ok,
+            provider=provider.name if provider is not None else "",
+            simulated=provider.simulated if provider is not None else True,
+            model=ai_diagnostics.provider_model(self.settings, provider),
+            host=ai_diagnostics.provider_host(self.settings, provider),
+            checked_at=datetime.now(UTC),
+            checks=checks,
+            remaining=remaining,
+        )
+
+    # --- suggestions of every tool (D-228) ---------------------------------
+
+    def suggest(self, request: SuggestRequest) -> SuggestionsOut:
+        """Up to three checked next steps for one screen. Never empty.
+
+        The context is validated and enriched on the server
+        (``app/services/ai_suggest.py``); the model's answer passes the
+        guardrails (``app/ai/suggest.py``); a model that fails, runs out of
+        quota or answers nothing valid is replaced by the tool's local rules
+        (``degraded``). The same enriched context within
+        ``AI_SUGGEST_CACHE_SECONDS`` is answered from the cache, spending no
+        quota. With the layer off, the rules answer and the notice says so.
+        """
+        context = SuggestContextBuilder(self.db, self.user).build(request.tool, request.context)
+        try:
+            provider = get_provider(self.settings)
+        except AIUnavailableError as exc:
+            return self._rule_suggestions(
+                context,
+                provider=None,
+                notice=f"{str(exc).rstrip('.')}. Estas sugestões vêm das regras locais do app.",
+            )
+        key = _suggest_key(provider, self.settings, context)
+        cached = _SUGGEST_CACHE.get(key)
+        if isinstance(cached, SuggestionsOut):
+            return cached.model_copy(update={"cached": True})
+        try:
+            with self._spending(provider):
+                raw = provider.suggest(context)
+        except QuotaExceededError as exc:
+            return self._rule_suggestions(
+                context, provider, notice=f"{exc} Estas sugestões vêm das regras locais do app."
+            )
+        except AIUnavailableError as exc:
+            return self._rule_suggestions(
+                context,
+                provider,
+                notice=(
+                    "A IA não respondeu como esperado, e estas sugestões vêm das regras "
+                    f"locais do app. Motivo: {str(exc).rstrip('.')}."
+                ),
+            )
+        except Exception:  # never an empty screen for a provider's defect
+            logger.exception("Falha inesperada do provedor ao sugerir próximos passos.")
+            return self._rule_suggestions(
+                context,
+                provider,
+                notice="A IA falhou ao sugerir, e estas sugestões vêm das regras locais do app.",
+            )
+        checked = check_suggestions(read_suggestions(raw), context)
+        if not checked.suggestions:
+            return self._rule_suggestions(
+                context,
+                provider,
+                notice=(
+                    "A IA não trouxe nenhuma sugestão válida para esta tela; estas vêm das "
+                    "regras locais do app."
+                ),
+                rejected=checked.rejected,
+            )
+        out = SuggestionsOut(
+            tool=request.tool,
+            summary=checked.summary or context.rule_summary or "Próximos passos sugeridos.",
+            suggestions=checked.suggestions,  # type: ignore[arg-type]
+            rejected=checked.rejected,
+            provider=provider.name,
+            simulated=provider.simulated,
+            disclaimer=disclaimer_for(provider),
+        )
+        _SUGGEST_CACHE.put(key, out, self.settings.ai_suggest_cache_seconds)
+        return out
+
+    def _rule_suggestions(
+        self,
+        context: SuggestContext,
+        provider: AIProvider | None,
+        notice: str,
+        rejected: list[str] | None = None,
+    ) -> SuggestionsOut:
+        """The tool's local rules, through the same guardrails as a model."""
+        checked = check_suggestions(
+            {"summary": context.rule_summary, "suggestions": list(context.rules)}, context
+        )
+        if checked.rejected:  # a rule that fails its own guardrail is a bug
+            logger.warning("Regra de sugestão recusada (%s): %s", context.tool, checked.rejected)
+        return SuggestionsOut(
+            tool=context.tool,  # type: ignore[arg-type]
+            summary=checked.summary or "Próximos passos sugeridos.",
+            suggestions=checked.suggestions,  # type: ignore[arg-type]
+            rejected=list(rejected or []),
+            degraded=True,
+            notice=notice,
+            provider=provider.name if provider is not None else RULES_PROVIDER,
+            simulated=True,
+            disclaimer=disclaimer_for(provider) if provider is not None else SIMULATED_NOTE,
         )
 
     def _provider(self) -> AIProvider:
@@ -763,6 +942,13 @@ def _plan_key(provider: AIProvider, settings: Settings, mode: str, text: str) ->
     normalised = " ".join(unicodedata.normalize("NFC", text).casefold().split())
     model = "" if provider.simulated else settings.ai_model
     material = f"{provider.name}\n{model}\n{mode}\n{normalised}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _suggest_key(provider: AIProvider, settings: Settings, context: SuggestContext) -> str:
+    """Same tool, same enriched context, same model → the same suggestions."""
+    model = "" if provider.simulated else settings.ai_model
+    material = f"{provider.name}\n{model}\n{context.fingerprint()}"
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 

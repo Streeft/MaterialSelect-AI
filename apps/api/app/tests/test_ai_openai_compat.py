@@ -337,10 +337,16 @@ class TestEveryFailureNamesItsFix:
 
     def test_a_rejected_schema_points_at_the_way_out(self) -> None:
         # The commonest failure on a free plan: the model does not do strict
-        # structured output. The user needs the name of the setting, not a 400.
-        error = _http_error(400, {"error": {"message": "response_format not supported"}})
+        # structured output. D-228: the provider steps down (schema → object →
+        # prompt) by itself; only a server that refuses even the plain prompt
+        # leaves the reader with the error — and it still names the setting.
+        def _refusal() -> urllib.error.HTTPError:
+            return _http_error(400, {"error": {"message": "response_format not supported"}})
+
+        server = _ScriptedServer(_refusal(), _refusal(), _refusal())
         with pytest.raises(AIUnavailableError) as exc:
-            _provider(_Server(error=error)).interpret(_context())
+            _provider(server).interpret(_context())
+        assert server.calls == 3
         assert "AI_JSON_MODE" in str(exc.value)
         assert "response_format not supported" in str(exc.value)
 
@@ -489,12 +495,15 @@ class TestAGenerationTheServerRejectsIsAskedAgain:
         with pytest.raises(AIUnavailableError):
             _provider(server).interpret(_context())
 
-    def test_an_unsupported_response_format_is_not_retried(self) -> None:
+    def test_an_unsupported_response_format_steps_down_once(self) -> None:
+        # D-228: not a retry of the same request — the next mode, once, and
+        # remembered for the calls that follow.
         error = _http_error(400, {"error": {"message": "response_format not supported"}})
-        server = _ScriptedServer(error)
-        with pytest.raises(AIUnavailableError, match="AI_JSON_MODE=object ou AI_JSON_MODE=prompt"):
-            _provider(server).interpret(_context())
-        assert server.calls == 1
+        server = _ScriptedServer(error, _answer(json.dumps(_EMPTY_INTERPRETATION)))
+        provider = _provider(server)
+        provider.interpret(_context())
+        assert server.calls == 2
+        assert provider.effective_json_mode() == "object"
 
 
 # --- D-93: the provider a switch left in place, read from the outside --------

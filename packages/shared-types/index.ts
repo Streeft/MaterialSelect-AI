@@ -1796,8 +1796,119 @@ export interface Comparison {
 // Everything below is a *proposal*. The API never applies any of it, and no
 // numeric property value ever appears here — see app/ai/guardrails.py.
 
+/** D-228: one capability of the AI layer, configured on this server or not. */
+export type AICapabilityKey = "texto" | "json_estrito" | "embeddings" | "busca_web";
+
+export interface AICapability {
+  key: AICapabilityKey;
+  label: string;
+  configured: boolean;
+  /** PT-BR: what is configured, or what to set. */
+  detail: string;
+}
+
 export interface AIStatus {
   enabled: boolean;
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+  /**
+   * D-228 — always sent by the API; optional here only so an older answer
+   * (or a test double) still type-checks. The host only, never the key.
+   */
+  model?: string;
+  host?: string;
+  /** "schema", "object" or "prompt" — how the JSON shape is asked for. */
+  json_mode?: string;
+  embedding_model?: string;
+  capabilities?: AICapability[];
+}
+
+/** D-228: one live check of `POST /api/ai/diagnostico`. */
+export interface AIDiagnosticCheck {
+  key: "json" | "embeddings" | "busca_web";
+  label: string;
+  status: "ok" | "erro" | "nao_configurado";
+  latency_ms: number | null;
+  /** PT-BR, including the free-quota notice when Google answered 429. */
+  message: string;
+}
+
+export interface AIDiagnostico {
+  ok: boolean;
+  provider: string;
+  simulated: boolean;
+  model: string;
+  host: string;
+  checked_at: string;
+  checks: AIDiagnosticCheck[];
+  /** Diagnoses this person may still run this hour. */
+  remaining: number;
+}
+
+/** D-228: the tools that ask `POST /api/ai/suggest` for next steps. */
+export type SuggestTool =
+  | "mapas"
+  | "comparar"
+  | "catalogo"
+  | "ficha"
+  | "processos"
+  | "glossario"
+  | "sintetizar"
+  | "painel"
+  | "registros"
+  | "importar"
+  | "dimensionar"
+  | "custo"
+  | "eco"
+  | "baterias"
+  | "admin_classes"
+  | "admin_propriedades";
+
+/**
+ * One typed action a suggestion proposes. Never applied by the API: the
+ * screen shows it as a button (`label`, written by the server) and applies it
+ * on the person's click. Every name in it was checked to exist; a `set_param`
+ * value comes from the context or a scenario, never from the model (D-224).
+ */
+export type SuggestAction =
+  | { type: "set_axes"; label: string; x: string; y: string }
+  | { type: "apply_preset"; label: string; id: string }
+  | { type: "set_index"; label: string; slug: string }
+  | { type: "add_filter"; label: string; field: string; value: string }
+  | { type: "sort"; label: string; prop: string; dir: "asc" | "desc" }
+  | { type: "search"; label: string; q: string }
+  | { type: "open_route"; label: string; path: string }
+  | { type: "compare"; label: string; ids: number[] }
+  | { type: "set_param"; label: string; name: string; value: number | string }
+  | { type: "map_column"; label: string; col: string; prop: string }
+  | { type: "fill_text"; label: string; field: string; text: string };
+
+export type SuggestActionType = SuggestAction["type"];
+
+export interface Suggestion {
+  title: string;
+  body: string;
+  actions: SuggestAction[];
+}
+
+export interface SuggestRequest {
+  tool: SuggestTool;
+  /** What the screen shows: ids, slugs, parameters — never computed values. */
+  context: Record<string, unknown>;
+}
+
+export interface SuggestionsOut {
+  tool: SuggestTool;
+  summary: string;
+  suggestions: Suggestion[];
+  /** What the guardrails removed, and why (PT-BR). */
+  rejected: string[];
+  /** True when the cards come from the tool's local rules (`notice` says why). */
+  degraded: boolean;
+  /** True when answered from the 10-minute cache: no quota spent. */
+  cached: boolean;
+  notice: string | null;
   provider: string;
   simulated: boolean;
   disclaimer: string;

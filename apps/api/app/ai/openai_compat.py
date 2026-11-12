@@ -30,6 +30,9 @@ every proposal still passes ``app/ai/guardrails.py``. Those live in
 from __future__ import annotations
 
 import json
+import logging
+import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -37,10 +40,14 @@ from collections.abc import Callable
 from typing import Any
 
 from app import __version__
+from app.ai.google_quota import is_google_host, quota_message
 from app.ai.model_base import CallLimits, ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
+from app.knowledge.embeddings import is_daily_quota, retry_after_of
+
+logger = logging.getLogger(__name__)
 
 # Endpoints known to work with this provider, shown when no base URL is set.
 # The error a misconfiguration produces is the only documentation anyone reads,
@@ -63,6 +70,29 @@ KNOWN_ENDPOINTS = (
 
 # Modes for constraining the answer's shape, in decreasing order of guarantee.
 JSON_MODES = ("schema", "object", "prompt")
+
+#: A 400 whose reason is the *shape request itself* — a schema keyword or
+#: ``response_format`` the server does not accept — rather than the generated
+#: answer (D-228). Gemini words it "Unknown name \"additionalProperties\" at
+#: 'generation_config.response_schema'"; others name ``response_format``.
+_FORMAT_COMPLAINT = re.compile(
+    r"response_format|json_schema|response_schema|responseschema|json_object|"
+    r"additionalproperties|response_mime_type|\bschema\b",
+    re.IGNORECASE,
+)
+
+#: (base URL, model) → the mode a server already refused down to (D-228). Per
+#: process: a restart asks for the configured mode again, which is right — the
+#: server may have learned the feature since.
+_STEPPED_DOWN: dict[tuple[str, str], str] = {}
+_STEPPED_DOWN_LOCK = threading.Lock()
+
+
+def reset_json_mode_memory() -> None:
+    """Forget every mode a server refused (tests)."""
+    with _STEPPED_DOWN_LOCK:
+        _STEPPED_DOWN.clear()
+
 
 #: Statuses that say "the server is struggling right now", not "the request is
 #: wrong". A free hosted model answers 503 "high demand" in bursts (Gemini,
@@ -142,7 +172,14 @@ class OpenAICompatProvider(ModelProviderBase):
         return body
 
     def _complete(self, system: str, user: str, schema: dict) -> dict:
-        body = self._body(system, user, schema, self.settings.ai_max_output_tokens)
+        while True:
+            body = self._body(system, user, schema, self.settings.ai_max_output_tokens)
+            try:
+                return self._complete_body(body)
+            except _FormatRefused as exc:
+                self._step_down(exc)
+
+    def _complete_body(self, body: dict) -> dict:
         try:
             payload = self._post(body)
         except _GenerationRejected:
@@ -165,17 +202,26 @@ class OpenAICompatProvider(ModelProviderBase):
         body = self._body(system, user, schema, limits.max_output_tokens)
         attempts = max(limits.max_retries, 0) + 1
         failure: AIUnavailableError | None = None
-        for attempt in range(attempts):
+        attempt = 0
+        while attempt < attempts:
+            attempt += 1
             try:
                 payload = self._post_once(body, timeout=limits.timeout_seconds)
+            except _FormatRefused as exc:
+                # Not an attempt spent: the server named a feature it lacks, and
+                # asking in the next mode is negotiation, not a retry (D-228).
+                self._step_down(exc)
+                body = self._body(system, user, schema, limits.max_output_tokens)
+                attempt -= 1
+                continue
             except _GenerationRejected as exc:
                 failure = AIUnavailableError(_rejected_message(exc))
                 continue
             except _Transient as exc:
-                failure = AIUnavailableError(self._transient_message(exc, retried=attempt))
+                failure = AIUnavailableError(self._transient_message(exc, retried=attempt - 1))
                 if exc.retry_after > _MAX_RETRY_AFTER:
                     break
-                if attempt < attempts - 1:
+                if attempt < attempts:
                     self._sleep(max(_RETRY_DELAYS[0], exc.retry_after))
                 continue
             return parse_json_object(_strip_fence(_answer_of(payload)))
@@ -189,7 +235,40 @@ class OpenAICompatProvider(ModelProviderBase):
                 f"AI_JSON_MODE inválido: '{self.settings.ai_json_mode}'. "
                 f"Use um de: {', '.join(JSON_MODES)}."
             )
+        with _STEPPED_DOWN_LOCK:
+            stepped = _STEPPED_DOWN.get(self._mode_key())
+        if stepped and JSON_MODES.index(stepped) > JSON_MODES.index(mode):
+            return stepped
         return mode
+
+    def effective_json_mode(self) -> str:
+        """The mode the next call goes out in: AI_JSON_MODE, or the one the
+        server already refused it down to (D-228)."""
+        return self._json_mode()
+
+    def _mode_key(self) -> tuple[str, str]:
+        return (self.settings.ai_base_url.strip().rstrip("/"), self.settings.ai_model.strip())
+
+    def _step_down(self, exc: _FormatRefused) -> None:
+        """Ask in the next, weaker mode — the degradation AI_JSON_MODE already
+        offers, taken automatically when the server names the feature it lacks
+        (D-228). What changes is only how the shape is *asked for*: the answer
+        is read, coerced and checked by the guardrails exactly as before."""
+        current = self._json_mode()
+        position = JSON_MODES.index(current)
+        if position == len(JSON_MODES) - 1:
+            raise AIUnavailableError(
+                f"O servidor recusou o pedido mesmo sem response_format (400). {exc.detail}"
+            )
+        weaker = JSON_MODES[position + 1]
+        logger.warning(
+            "O servidor recusou o modo JSON '%s'; usando '%s' a partir de agora (%s).",
+            current,
+            weaker,
+            _host_of(self.settings.ai_base_url),
+        )
+        with _STEPPED_DOWN_LOCK:
+            _STEPPED_DOWN[self._mode_key()] = weaker
 
     def _post(self, body: dict) -> dict:
         """One request, retried while the server says it is only overloaded.
@@ -242,11 +321,24 @@ class OpenAICompatProvider(ModelProviderBase):
                 payload = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
             # The body can be read once, so it is read here and handed on.
-            detail, generation_rejected = _error_of(exc)
-            if exc.code == 400 and generation_rejected:
+            error = _read_error(exc)
+            detail = error.detail
+            if exc.code == 400 and error.generation_rejected:
                 raise _GenerationRejected(detail) from exc
+            if (
+                exc.code == 400
+                and "response_format" in body
+                and _FORMAT_COMPLAINT.search(error.message)
+            ):
+                raise _FormatRefused(detail) from exc
             if exc.code in _TRANSIENT_STATUSES:
                 raise _Transient(exc.code, detail, _retry_after(exc)) from exc
+            if exc.code == 429 and is_google_host(self.settings.ai_base_url):
+                retry = retry_after_of(exc, error.message, error.error)
+                daily = is_daily_quota(error.message, error.error)
+                raise QuotaExhaustedError(
+                    f"{quota_message(retry, daily)} (429)", retry_after=retry, daily=daily
+                ) from exc
             raise AIUnavailableError(self._http_message(exc, detail)) from exc
         except TimeoutError as exc:
             raise AIUnavailableError(
@@ -433,6 +525,28 @@ def _retry_after(exc: urllib.error.HTTPError) -> float:
         return 0.0
 
 
+class QuotaExhaustedError(AIUnavailableError):
+    """Google's free quota ran out (429 ``RESOURCE_EXHAUSTED``, D-228).
+
+    Still an :class:`AIUnavailableError`, so every caller that degrades keeps
+    degrading; the fields say when to try again.
+    """
+
+    def __init__(self, message: str, *, retry_after: float | None, daily: bool) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+        self.daily = daily
+
+
+class _FormatRefused(Exception):
+    """A 400 in which the server refused the *shape request* (a schema keyword,
+    ``response_format``) — answered by stepping the JSON mode down (D-228)."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
 class _GenerationRejected(Exception):
     """A 400 in which the server rejected the *generated* JSON against the
     schema — the model's miss, not a malformed request (D-89)."""
@@ -448,22 +562,60 @@ class _GenerationRejected(Exception):
 _GENERATION_REJECTED_CODES = {"json_validate_failed"}
 
 
+class _ErrorBody:
+    """An error body read once: what to show, what to classify by."""
+
+    __slots__ = ("detail", "error", "generation_rejected", "message", "status")
+
+    def __init__(
+        self,
+        detail: str = "",
+        message: str = "",
+        error: object = None,
+        generation_rejected: bool = False,
+        status: str = "",
+    ) -> None:
+        #: The server's explanation, cut for display.
+        self.detail = detail
+        #: The whole explanation — a "retry in 37.5s" can sit past the cut.
+        self.message = message
+        #: The structured error object, for Google's ``details`` list.
+        self.error = error
+        self.generation_rejected = generation_rejected
+        #: Google's ``status`` ("RESOURCE_EXHAUSTED"), when sent.
+        self.status = status
+
+
 def _error_of(exc: urllib.error.HTTPError) -> tuple[str, bool]:
+    """``(detail, generation_rejected)`` — the short reading of an error body."""
+    error = _read_error(exc)
+    return error.detail, error.generation_rejected
+
+
+def _read_error(exc: urllib.error.HTTPError) -> _ErrorBody:
     """The server's own explanation, and whether it says the generated JSON —
     rather than the request — failed the schema."""
     try:
         body = exc.read().decode("utf-8", errors="replace")
     except Exception:  # the body was already consumed, or never arrived
-        return "", False
+        return _ErrorBody()
     try:
         payload = json.loads(body)
     except ValueError:
-        return body.strip()[:300], False
+        return _ErrorBody(detail=body.strip()[:300], message=body)
     error = error_object(payload)
     if isinstance(error, dict):
         rejected = error.get("code") in _GENERATION_REJECTED_CODES or "failed_generation" in error
-        return str(error.get("message", ""))[:300], rejected
-    return str(error or "")[:300], False
+        message = str(error.get("message", ""))
+        status = error.get("status")
+        return _ErrorBody(
+            detail=message[:300],
+            message=message,
+            error=error,
+            generation_rejected=rejected,
+            status=status if isinstance(status, str) else "",
+        )
+    return _ErrorBody(detail=str(error or "")[:300], message=str(error or ""))
 
 
 def error_object(payload: object) -> object:
