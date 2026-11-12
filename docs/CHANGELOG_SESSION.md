@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 171 — 12/11/26 — F3 da revisão das telas: fichas como documento (D-214)
+
+**O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar da fileira "Ler em:" e do
+`UnitPicker`; `Outline` (índice lateral que acompanha a leitura) e `DocSection` (seção recolhível com o botão no título) em
+`components/ui/Outline.tsx`; ficha de material como `PageDoc` com `PropertyList`, uma ação visível, o resto no "⋯" e o nome
+editável no lugar; "Materiais semelhantes" recolhida por padrão; cartão de propriedades empilhado abaixo de 480 px; ficha de
+processo, família de material e família de processo no mesmo molde; novo e editar material com a cabeça da ficha. Testes:
+`components/ui/f3Pieces.test.tsx` (chip, URL, volta à convenção, grandeza de uma unidade, ausente, seção recolhível e índice
+que abre a seção; com axe), `duplicar` e `familia` da ficha ajustados ao "⋯" e ao cabeçalho, e na suíte de larguras
+`/app/catalogo/metais`, `/app/materiais/novo` e as páginas de processo e de família de processo. Ficha no celular:
+13 494 → 12 938 px com "semelhantes" recolhida. Frontend 1829 (+7). Sem backend nem migração.
+
 ## Sessão 169 — 12/11/26 — Padrões de página (D-212)
 
 **O que mudou.** Etapa 2.2 (numerada D-209/Sessão 166 até o merge com a `main`, que usou esses números para a F2). `PageHeader` com secundárias, "⋯" e um `primary` por último, e a trilha dentro dele;

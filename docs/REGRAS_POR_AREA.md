@@ -433,7 +433,9 @@ número. `PropertyDefinition.display_unit` dá a convenção de leitura de cada
 grandeza — e é **por propriedade e não por dimensão**, porque módulo, escoamento
 e tração compartilham dimensão e se leem em GPa, MPa e MPa. A escolha do leitor
 vive na **URL** (D-63), restrita a `accepted_units`, e unidade fora do conjunto é
-recusada com as admitidas escritas.
+recusada com as admitidas escritas. Na ficha, a escolha se faz **no próprio valor**:
+a unidade é um `UnitChip` que abre as unidades aceitas daquela grandeza
+([D-214](DECISIONS.md)); voltar à convenção tira a escolha da URL.
 
 **A leitura é acrescentada, nunca substitui:** `value_scalar` guarda o que a
 fonte disse, os campos `display_*` saem ao lado, e um documento exportado carrega

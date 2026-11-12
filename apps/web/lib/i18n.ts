@@ -1256,7 +1256,6 @@ export const ptBR = {
 
   // D-70: a unidade em que o leitor lê.
   units: {
-    readIn: "Ler em:",
     // D-214: the unit is the control, on the value itself.
     chipLabel: (name: string, unit: string) => `Unidade de ${name}: ${unit}. Trocar a unidade de leitura`,
     chipTitle: (name: string) => `Ler ${name} em`,

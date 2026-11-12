@@ -12594,3 +12594,40 @@ existe, a barra fica para quando houver mais de um jeito de ler os verbetes.
 
 **Numeração.** A `main` recebeu a D-207 (paleta de comandos) e a D-208 (acesso livre) enquanto esta fase andava; a F2 ficou com a
 D-209 e a Sessão 166. Mexe em `apps/api` e traz migração: depois do merge, **Deploy da API** (o `release_command` aplica a migração).
+
+## D-214 — F3 da revisão das telas: fichas como documento, unidade no valor e índice lateral
+
+**Contexto.** A F1 (D-206) deu `PageDoc` e `PropertyList`; a F3 os leva às fichas. A auditoria da ficha de material contou 13 119 px
+no celular, 88 de 165 alvos abaixo de 32 px, um cabeçalho com seis botões e uma fileira de seletores "Ler em:" **antes** de qualquer
+valor: o leitor atravessava controles para chegar ao número que a ficha existe para mostrar. Processo e famílias tinham outro desenho.
+
+**Decisão.**
+- **A unidade fica no valor (`UnitChip`).** Ao lado de cada número de uma grandeza que se lê em mais de uma unidade, a unidade é um
+  chip; ele abre as `accepted_units` daquela grandeza e a escolhida relê só aquela propriedade. A D-70 continua inteira: a escolha vai
+  para a URL (`?unidades=slug:unidade`), voltar à convenção (`display_unit` da definição) **tira** a escolha do endereço, e quem
+  converte é o servidor (ADR 0004) — o chip só muda a pergunta. Grandeza de uma unidade só não ganha chip (a unidade fica escrita, sem
+  prometer escolha), e valor ausente também não. A fileira "Ler em:" e o `UnitPicker` saíram; a nota de leitura foi para o rodapé da
+  legenda e para o próprio painel do chip. A prévia lateral do catálogo (D-184) segue sem chip.
+- **Ficha de material como `PageDoc`.** Ícone na cor da classe, nome, uma `PropertyList` com classe, registro (próprio, ativo, cópia
+  de), referências e palavras-chave, **uma** ação visível (Editar, ou "Criar cópia própria" num registro oficial, D-116) e o resto no
+  "⋯" (Comparar, Ver no mapa, Duplicar, Desativar). Favoritar e Exportar continuam à vista no desktop e na barra flutuante do celular
+  (D-197). O nome se edita no lugar (`PATCH /api/materials/{id}` com `name`) onde o servidor aceitaria a escrita; o resultado é anunciado.
+- **Seções que recolhem e índice lateral.** `DocSection` é o título de seção com um botão `aria-expanded` dentro do `h2` (padrão de
+  divulgação da WAI; o título continua título, aberto ou não); recolhida, o corpo fica `hidden`, não desmontado. `Outline` ("Nesta
+  página") lista as seções, marca com `aria-current="location"` a que está sendo lida e, a partir de `lg`, fica fixo na coluna da
+  direita (`.ds-doc-grid`); mais estreito, é uma fileira de links acima do conteúdo. Um link para uma seção recolhida a abre antes de
+  saltar. "Materiais semelhantes" começa recolhida na ficha: é uma ferramenta, não um fato do registro.
+- **No celular, nome sobre valor.** Um cartão de propriedades com menos de 480 px empilha o nome sobre o valor (container query),
+  em vez de quebrar "Coeficiente de Poisson" palavra a palavra num terço da largura.
+- **Mesmo molde.** Ficha de processo (atributos numa `PropertyList`, com a regra de comparação — escalar, envelope, discreto — na linha
+  de baixo, D-59), família de material (com índice) e família de processo usam trilha + `PageDoc` + `DocSection`. Novo e editar
+  material abrem com a cabeça da ficha e a trilha até ela; o formulário é o mesmo.
+
+**Alternativas recusadas.** Um `<select>` ao lado de cada valor (a coluna de números vira fileira de controles — o motivo do desenho
+de D-70; o chip é um botão do tamanho da unidade escrita). `<details>` para as seções (o `summary` não é título, e a hierarquia que
+um leitor de tela percorre perderia as seções fechadas). `IntersectionObserver` para o índice (no fim da página as últimas seções
+nunca alcançam a faixa de leitura e o índice marcava a anterior; uma medida por quadro, no rolar, resolve). Formulário inteiro dentro
+da ficha (dobraria a superfície de escrita da ficha; fica para quando a F4 trouxer a tabela editável).
+
+**Numeração.** D-214 e Sessão 171: a `main` está em D-212/Sessão 169 e o PR #238, aberto em paralelo, usa D-213/Sessão 170. Só
+frontend: sem migração, seed nem Deploy da API.
