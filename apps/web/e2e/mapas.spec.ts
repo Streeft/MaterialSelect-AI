@@ -24,7 +24,7 @@ test("mapa clássico, caixa no gráfico e Comparar", async ({ page }) => {
   await expect(page).toHaveURL(/estado=/);
   await page.waitForLoadState("networkidle");
 
-  // A box over the whole plotting area ("Selecionar região" is the default
+  // A box over the whole plotting area ("Região" is the default
   // cursor): every plotted record falls inside it.
   const area = page.locator(".chart-plotly .nsewdrag").first();
   await expect(area).toBeVisible();

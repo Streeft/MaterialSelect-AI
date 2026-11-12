@@ -12638,7 +12638,9 @@ tamanho da janela, sem a cobertura ("N de M materiais plotados") que a figura af
 
 **Nível 2 (D-190) preservado.** `fillHeight` e o `ResizeObserver` do mapa ficam; os ids vindos da URL são memorizados pela
 string (`useStableIds`), para que mudar `sel` ou `linha` não redesenhe o mapa; os painéis do `aside` não encolhem
-(`shrink-0`), porque `.msds-card` esconde o excesso. `e2e/larguras.spec.ts` (mapas, Nível 2 e a troca de nível) passa.
+(`shrink-0`), porque `.msds-card` esconde o excesso; o seletor do cursor tem rótulos curtos (Região, Laço, Mover linha,
+Navegar) e quebra linha dentro do cartão no celular — com quatro assentos ele empurrava a página a 375 px na CI.
+`e2e/larguras.spec.ts` (mapas, Nível 2 e a troca de nível) passa.
 
 **Alternativas descartadas.** Arrastar uma `shape` editável do Plotly (coordenadas de shape em eixo log são ambíguas e a
 linha deixaria de ser a do backend). Calcular o M no cliente a partir do ponteiro (contraria o ADR 0004). Mandar o laço

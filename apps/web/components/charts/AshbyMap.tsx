@@ -913,7 +913,9 @@ export function AshbyMap({
       reportExport={reportExport}
       controls={
         enableBoxSelect ? (
-          <ButtonGroup label={ptBR.chart.dragMode}>
+          // On a phone the seats wrap inside the figure card instead of
+          // pushing the page sideways (D-147).
+          <ButtonGroup label={ptBR.chart.dragMode} className="max-w-full flex-wrap">
             <ButtonGroupItem
               selected={activeDragMode === "select"}
               label={ptBR.chart.dragModeSelect}

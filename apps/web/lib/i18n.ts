@@ -2606,8 +2606,9 @@ export const ptBR = {
     columnClass: "Classe",
     thisMaterial: "Este material",
     dragMode: "Modo do cursor",
-    dragModeSelect: "Selecionar região",
-    dragModeZoom: "Navegar / Ampliar",
+    // D-213: short, so four seats fit a phone's figure card.
+    dragModeSelect: "Região",
+    dragModeZoom: "Navegar",
     // D-213: o laço escolhe materiais; "Mover linha" arrasta a linha de índice.
     dragModeLasso: "Laço",
     dragModeLine: "Mover linha",
