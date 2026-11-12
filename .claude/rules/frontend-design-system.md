@@ -185,6 +185,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   e famílias seguem o mesmo molde. Unidade de leitura é `UnitChip` no próprio valor (escolha na URL, D-70; quem converte é o servidor);
   nunca uma fileira de seletores antes dos números. Grandeza de uma unidade e valor ausente não ganham chip.
 
+- **Calculadora é bancada ao vivo** ([D-216](docs/DECISIONS.md)): o resultado segue os campos por `useLiveResult` (pergunta ao
+  servidor depois de uma pausa, mantém a resposta anterior marcada "Atualizando…"; nunca calcula no cliente) e o painel do resultado
+  diz o que falta. Exemplo só com clique ("Usar o exemplo", valores declarados no backend). Unidade dentro do campo
+  (`NumberInput unit`). Lista de itens que se editam é `InlineTable` (linha nova, ⋯ com Duplicar e Remover com Desfazer).
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

@@ -12735,3 +12735,41 @@ anterior). Formulário inteiro dentro da ficha (fica para a F4, com a tabela edi
 
 **Numeração.** D-215 e Sessão 172: a D-214/Sessão 171 é a do #238, sobre o qual esta branch foi mesclada. Só frontend: sem migração,
 seed nem Deploy da API (o #238, que vem junto se ainda não tiver entrado, pede o Deploy da API).
+
+## D-216 — F4 da revisão das telas: bancadas de cálculo com resultado ao vivo, exemplo com clique e tabela editável
+
+**Contexto.** A auditoria das telas mostrou Dimensionar, Custo, Eco e Sintetizar com o resultado abaixo da dobra, atrás de um
+botão: quem digita não vê o efeito. Eco era um formulário de 1 644 px (2 613 no celular), um parágrafo de ajuda por campo;
+Sintetizar abria com uma faixa que repetia o princípio 1 e cartões de tipo de alturas diferentes; as unidades ficavam no rótulo.
+
+**Decisão.**
+- **Resultado ao vivo, número do servidor.** `useLiveResult` (`lib/useLiveResult.ts`) pergunta ao backend 450 ms depois da
+  última digitação, com o pedido serializado; enquanto a próxima resposta chega, a anterior fica na tela, marcada "Atualizando…"
+  (`aria-busy` no painel do resultado). Pedido incompleto não pergunta nada e não mostra resposta velha; o painel diz o que falta.
+  O cliente só decide *quando* perguntar (ADR 0004). Dimensionar, Custo, Eco (os dois modos) e a prévia do Sintetizar deixam de
+  ter botão; gravar o material sintetizado continua sendo um clique.
+- **Exemplo declarado, aplicado só com o clique.** Cada variável de projeto digitada tem um `example` no backend
+  (`DesignVariable.example`, servido em `/api/solver/casos`): 1 m, 100 000 N/m, 1 000 N, 100 N·m, 0,1 m. "Usar o exemplo" preenche
+  esses valores; a tela nunca os põe sozinha — um briefing pré-preenchido seria a ferramenta inventando um projeto. Variável que
+  uma condição de apoio preenche não tem exemplo. Teste: todo caso resolve com o seu exemplo.
+- **Unidade dentro do campo.** `NumberInput` aceita `unit`, escrita à direita do número; o rótulo fica com o nome da grandeza e a
+  unidade continua no nome acessível ("Comprimento (m)"). Aplicado a Dimensionar, Custo, Eco e Baterias.
+- **Tabela editável (`InlineTable`).** Uma linha por item, os controles nas células (cada um se nomeia por coluna e linha:
+  "Massa de uma unidade, Componente 2"), "+ Adicionar …" sob a última linha e um "⋯" por linha com Duplicar e Remover —
+  com Desfazer (D-130). Abaixo de 640 px (ou 900 px, `stackBelow="md"`) de largura do próprio bloco, cada linha vira um bloco
+  com os nomes das colunas escritos. No Eco, componentes e trechos viram tabelas e a ajuda dos campos vai para "Como preencher".
+  A exportação continua mandando o briefing da resposta que está na tela (`dataRequest`, D-172).
+- **Encadeamento massa → custo.** O link "Estimar custo" de cada linha do Dimensionar leva `origem=dimensionar`; o Custo diz
+  "Massa calculada no Dimensionar" e, sem massa, oferece "Calcular a massa no Dimensionar".
+- **Sintetizar.** Cada tipo com um desenho (fibras na matriz, células no sólido, faces sobre o núcleo) e uma linha; a regra
+  inteira em "Sobre este tipo". O princípio 1 vira uma linha no rodapé. A prévia não pede nome nem reenvia ao digitar a identidade.
+- Recusa do servidor (um processo sem fração de refugo, um material sem custo) aparece no cartão do resultado, e o texto de
+  "nada calculado" some enquanto ela vale.
+
+**Alternativas recusadas.** Calcular no cliente para "parecer instantâneo" (fere o princípio 2). Pré-preencher o exemplo ao abrir
+(inventa projeto; o clique é o consentimento). Uma grade de planilha com edição por célula e teclado próprio (a tabela de
+controles nativos já tem Tab, leitor de tela e celular). Manter o botão "Calcular" ao lado do ao vivo (dois jeitos de fazer a mesma
+coisa).
+
+**Numeração.** D-216 e Sessão 173 provisórios: o #240, aberto em paralelo, também refaz as calculadoras (4.5) e usa os mesmos
+números; o número final sai da ordem de merge. Toca `apps/api` (sem migração): depois do merge, **Deploy da API**.

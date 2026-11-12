@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 173 — 12/11/26 — F4 da revisão das telas: bancadas ao vivo (D-216)
+
+**O que mudou.** `useLiveResult` (pergunta ao servidor depois de uma pausa e mantém a resposta anterior), `NumberInput` com
+`unit` dentro do campo, `InlineTable` (tabela editável com linha nova, duplicar e remover com Desfazer, empilhada no estreito) e
+`example` nas variáveis de projeto do backend. Dimensionar e Custo ao vivo, "Usar o exemplo", "Como se calcula" sob o resultado e a
+massa que passa ao custo; Eco com componentes e trechos em tabela e os dois modos ao vivo; Sintetizar com desenho por tipo, prévia
+ao vivo e o princípio no rodapé; Baterias com as unidades nos campos. Testes: `components/ui/f4Pieces.test.tsx` (unidade no nome,
+debounce, resposta anterior durante a próxima, pedido incompleto, tabela com Desfazer e mínimo de linhas; com axe),
+`test_solver_api.py` (+2: exemplo positivo em toda variável digitada e todo caso resolve com o seu exemplo) e os testes das cinco
+telas reescritos para o resultado ao vivo. Backend 5503 (+2), frontend 1901. Sem migração. Depois do merge: **Deploy da API**.
+
 ## Sessão 172 — 12/11/26 — F3 por cima da ficha da D-214: unidade no valor, sumário que acompanha, processo e famílias no molde (D-215)
 
 **O que mudou.** `UnitChip` (unidade no valor, escolha na URL, conversão no servidor) no lugar do bloco "Ler os valores em outra
