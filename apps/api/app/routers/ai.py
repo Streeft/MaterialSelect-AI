@@ -20,8 +20,6 @@ from app.schemas.ai import (
     AIStatusOut,
     ExplainRequest,
     ExplanationOut,
-    InterpretationOut,
-    InterpretRequest,
     PlanRequest,
     PlanRunRequest,
     PlanRunResponse,
@@ -60,16 +58,6 @@ def suggest(
 ) -> SuggestionsOut:
     """Up to three checked next steps for one tool's screen (D-228). Never applied here."""
     return AIService(db, user=user).suggest(payload)
-
-
-@router.post("/interpret", response_model=InterpretationOut)
-def interpret(
-    payload: InterpretRequest,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> InterpretationOut:
-    """Structure a problem statement into editable, reviewable suggestions."""
-    return AIService(db, user=user).interpret(payload)
 
 
 @router.post("/explain", response_model=ExplanationOut)

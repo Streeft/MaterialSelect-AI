@@ -821,6 +821,28 @@ describe("Auditoria ambiental", () => {
   });
 });
 
+const comparedFixture: EcoComparisonResult = {
+  material_a: { ...result, material_name: "Liga Alumínio Demo A" },
+  material_b: { ...result, material_name: "Aço Demo B", total_energy: 2000 },
+  delta_energy: 396.8,
+  delta_energy_percent: 24.75,
+  delta_carbon: 10,
+  delta_carbon_percent: 9.36,
+  winner_energy: "material_a",
+  winner_carbon: "material_a",
+  // Deliberately NOT B − A of the two audits above: the table must print what
+  // the server sent, never subtract on its own.
+  phase_deltas: PHASES.map(([phase, label], index) => ({
+    phase,
+    label,
+    delta_energy: index === 0 ? 4242 : null,
+    delta_carbon: null,
+  })),
+  // The server's B − A steps (D-234), written by hand like the audits' waterfalls.
+  energy_difference_waterfall: waterfall("energy", "MJ", [120, -40.5, 0, 300, -3]),
+  carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [12, null, 0, 30, -0.3]),
+};
+
 describe("Auditoria ambiental: cenários A e B (D-216)", () => {
   const scenario = (material: string, mass: string) => ({
     material,
@@ -829,28 +851,48 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     recycled: "0",
     endOfLife: "reciclagem" as const,
   });
-  const compared: EcoComparisonResult = {
-    material_a: { ...result, material_name: "Liga Alumínio Demo A" },
-    material_b: { ...result, material_name: "Aço Demo B", total_energy: 2000 },
-    delta_energy: 396.8,
-    delta_energy_percent: 24.75,
-    delta_carbon: 10,
-    delta_carbon_percent: 9.36,
-    winner_energy: "material_a",
-    winner_carbon: "material_a",
-    // Deliberately NOT B − A of the two audits above: the table must print what
-    // the server sent, never subtract on its own.
-    phase_deltas: PHASES.map(([phase, label], index) => ({
-      phase,
-      label,
-      delta_energy: index === 0 ? 4242 : null,
-      delta_carbon: null,
-    })),
-  };
+  const compared = comparedFixture;
 
   beforeEach(() => {
     compareEcoAudits.mockResolvedValue(compared);
   });
+
+  it("desenha a cascata da diferença B − A que o servidor calculou, sem somar no navegador", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    render(wrap(<EcoPage />));
+    await screen.findByText(t.winnerEnergy);
+    const energy = await screen.findByRole("figure", {
+      name: ecoPhaseI18n.waterfall.difference.figureLabel("energia"),
+    });
+    expect(energy).toBeInTheDocument();
+    expect(
+      screen.getByRole("figure", { name: ecoPhaseI18n.waterfall.difference.figureLabel("carbono") }),
+    ).toBeInTheDocument();
+    // A step below zero says whose side it favours, in words and not by colour alone.
+    expect(
+      within(energy).getByRole("img", { name: /Manufatura: diferença de -40,5 MJ \(B abaixo de A\)/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(energy).getByRole("img", { name: /Uso: diferença de 300 MJ \(B acima de A\)/ }),
+    ).toBeInTheDocument();
+    // The total bar is the server's (120 − 40,5 + 0 + 300 − 3), not summed here.
+    expect(within(energy).getByRole("img", { name: /Total: 376,5 MJ/ })).toBeInTheDocument();
+    // A phase either side could not compute is a written gap.
+    const carbon = screen.getByRole("figure", {
+      name: ecoPhaseI18n.waterfall.difference.figureLabel("carbono"),
+    });
+    expect(within(carbon).getByRole("img", { name: /Manufatura: sem dado/ })).toBeInTheDocument();
+  });
+
+  it("não tem violação de acessibilidade com as cascatas da diferença", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    const { container } = render(wrap(<EcoPage />));
+    await screen.findByRole("figure", {
+      name: ecoPhaseI18n.waterfall.difference.figureLabel("energia"),
+    });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 
   it("abre os dois cenários pela URL e compara com o que ela descreve", async () => {
     setQuery(
@@ -983,7 +1025,6 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     // screen does not have are not buttons.
     expect(screen.queryByRole("button", { name: "fração reciclada: 7" })).toBeNull();
     expect(screen.queryByRole("button", { name: "fim de vida: inventado" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
     // Nothing changed by the answer arriving.
     expect(runEcoAudit).toHaveBeenCalledTimes(1);
 
@@ -1005,6 +1046,11 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     await waitFor(() =>
       expect(runEcoAudit.mock.calls.at(-1)![0].transport_legs![0]).toMatchObject({ distance_km: 800 }),
     );
+    // D-234: a product of ONE component takes the mass of its part.
+    await user.click(screen.getByRole("button", { name: "massa da peça: 3" }));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ unit_mass: 3 }),
+    );
   });
 
   it("um parâmetro de produto vale para todos os componentes, sem deixar linha para trás", async () => {
@@ -1018,15 +1064,93 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     await waitFor(() =>
       expect(runEcoAudit.mock.calls.at(-1)![0].components!.map((c) => c.recycled_fraction)).toEqual([0.3, 0.3]),
     );
+    // With two components "a massa da peça" has no single meaning: not offered.
+    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
   });
 
-  it("na comparação A × B o botão fica desligado e diz por quê", async () => {
-    setQuery("modo=compare");
+  it("na comparação A × B pede ao servidor o pedido da comparação e aplica o lado certo (D-234)", async () => {
+    const scenario = (material: string, mass: string) => ({
+      material,
+      process: "",
+      mass,
+      recycled: "0",
+      endOfLife: "reciclagem" as const,
+    });
+    compareEcoAudits.mockResolvedValue(comparedFixture);
+    suggest.fn.mockResolvedValue({
+      ...answer,
+      suggestions: [
+        {
+          title: "Aproxime as massas",
+          body: "Uma peça B mais leve aproxima as alternativas.",
+          actions: [
+            { type: "set_param", label: "massa da peça B: 2,5 (sugestão da IA, revise)", name: "material_b.part_mass", value: 2.5, origin: "sugestao_ia" },
+            { type: "set_param", label: "fração reciclada de A: 0,3", name: "material_a.recycled_fraction", value: 0.3, origin: "contexto" },
+            { type: "set_param", label: "fim de vida de B: aterro", name: "material_b.end_of_life", value: "aterro", origin: "contexto" },
+            { type: "set_param", label: "massa da peça: 3", name: "part_mass", value: 3, origin: "contexto" },
+          ],
+        },
+      ],
+    });
+    setQuery(
+      `modo=compare&a=${encodeUrlJson(scenario("7", "3"))}&b=${encodeUrlJson(scenario("7", "4"))}`,
+    );
+    const user = userEvent.setup();
     render(wrap(<EcoPage />));
-    await screen.findByText(t.materialA);
-    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
-    expect(screen.getByText(suggestText.individualOnly)).toBeInTheDocument();
-    expect(suggest.fn).not.toHaveBeenCalled();
+    await waitFor(() => expect(compareEcoAudits).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aproxime as massas");
+    // The brief the comparison answers, never its numbers.
+    expect(suggest.fn).toHaveBeenCalledWith("eco", { comparison: compareEcoAudits.mock.calls[0]![0] });
+    // The audit's own name is not a field of the comparison.
+    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
+
+    // A number the model chose waits for the yes.
+    await user.click(screen.getByRole("button", { name: /massa da peça B: 2,5/ }));
+    expect(screen.getByRole("dialog", { name: suggestText.confirmTitle })).toBeInTheDocument();
+    expect(JSON.parse(atob(new URLSearchParams(window.location.search).get("b")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({ mass: "4" });
+    await user.click(screen.getByRole("button", { name: suggestText.confirmAction }));
+    await waitFor(() =>
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({ part_mass: 2.5 }),
+    );
+    expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({ part_mass: 3 });
+
+    await user.click(screen.getByRole("button", { name: "fração reciclada de A: 0,3" }));
+    await waitFor(() =>
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({ recycled_fraction: 0.3 }),
+    );
+    await user.click(screen.getByRole("button", { name: "fim de vida de B: aterro" }));
+    await waitFor(() =>
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({ end_of_life: "aterro" }),
+    );
+  });
+
+  it("recusar a sugestão marcada não muda nada", async () => {
+    compareEcoAudits.mockResolvedValue(comparedFixture);
+    suggest.fn.mockResolvedValue({
+      ...answer,
+      suggestions: [
+        {
+          title: "Aproxime as massas",
+          body: "Uma peça B mais leve.",
+          actions: [
+            { type: "set_param", label: "massa da peça B: 2,5 (sugestão da IA, revise)", name: "material_b.part_mass", value: 2.5, origin: "sugestao_ia" },
+          ],
+        },
+      ],
+    });
+    setQuery(
+      `modo=compare&a=${encodeUrlJson({ material: "7", process: "", mass: "3", recycled: "0", endOfLife: "reciclagem" })}`,
+    );
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    await waitFor(() => expect(compareEcoAudits).toHaveBeenCalled());
+    const calls = compareEcoAudits.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: /massa da peça B: 2,5/ }));
+    await user.click(screen.getByRole("button", { name: ptBR.actions.cancel }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(compareEcoAudits.mock.calls.length).toBe(calls);
   });
 
   it("sem a massa não há o que perguntar", async () => {

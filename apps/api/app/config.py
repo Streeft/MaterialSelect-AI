@@ -268,6 +268,8 @@ class Settings(BaseSettings):
     # ``app.integrations.gemini_search.resolve_key``.
     web_search_api_key: str = ""
     web_search_model: str = "gemini-flash-latest"
+    # Where a 429 of the search model falls back to (D-234); empty = no fallback.
+    web_search_fallback_model: str = "gemini-flash-lite-latest"
     web_search_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     # A grounded call searches before it answers, so it is slower than a fetch.
     web_search_timeout_seconds: float = 25.0

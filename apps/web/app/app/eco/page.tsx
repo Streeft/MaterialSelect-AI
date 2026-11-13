@@ -43,7 +43,7 @@ import {
   StepCard,
 } from "@/components/ui";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
-import { revealField } from "@/lib/ai/revealField";
+import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
@@ -254,7 +254,11 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
   // D-230b: a suggested parameter is written where the reader would have typed it
   // (the URL) and the audit follows by itself; the field that changed is shown.
-  const aiAudit = individual && ready ? buildAuditBrief(resolvedComponents, resolvedLegs, premises) : null;
+  const aiContext: Record<string, unknown> = !ready
+    ? {}
+    : individual
+      ? { request: buildAuditBrief(resolvedComponents, resolvedLegs, premises) }
+      : { comparison: comparisonBrief() };
   const acceptsAiAction = (action: SuggestAction) =>
     action.type !== "set_param" || aiParamPatch(brief, defaults, action.name, action.value) !== null;
   function applyAiAction(action: SuggestAction) {
@@ -311,14 +315,13 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
       <AISuggestPanel
         tool="eco"
-        // The audit's own request (D-229); the comparison has no server-side suggestion.
-        context={aiAudit ? { request: aiAudit } : {}}
+        // The request of what the page shows, never its numbers (D-229): the audit, or
+        // the A × B brief (D-234) — the server recomputes either one.
+        context={aiContext}
         actions={["set_param", "open_route"]}
         accepts={acceptsAiAction}
         onAction={applyAiAction}
-        disabledReason={
-          !individual ? suggestText.individualOnly : !ready ? suggestText.needsBrief : undefined
-        }
+        disabledReason={!ready ? suggestText.needsBrief : undefined}
       />
 
       <ParamsResultLayout>
@@ -390,6 +393,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   value={brief.distance}
                   min={0}
                   step="any"
+                  {...aiField("transport_distance_km")}
                   onChange={(event) => setBrief({ distance: event.target.value })}
                 />
               </StepCard>
@@ -495,6 +499,8 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                     />
                   </div>
 
+                  <DifferenceWaterfalls result={compareResult} />
+
                   {(
                     [
                       ["A", compareResult.material_a],
@@ -517,6 +523,33 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
         </ResultPanel>
       </ParamsResultLayout>
     </div>
+  );
+}
+
+/**
+ * D-234: where the difference between A and B is made, phase by phase. Every step
+ * and the total bar come from the server (`*_difference_waterfall`): the total is
+ * the two audits' totals subtracted, and a phase either side could not compute is
+ * a written gap, never a zero.
+ */
+function DifferenceWaterfalls({ result }: { result: EcoComparisonResult }) {
+  return (
+    <Disclosure summary={ecoPhaseI18n.waterfall.difference.summary} defaultOpen>
+      <div className="flex flex-col gap-4 pt-2">
+        <PhaseWaterfall
+          variant="difference"
+          waterfall={result.energy_difference_waterfall}
+          title={ecoPhaseI18n.waterfall.difference.energyTitle}
+          exportName="cascata-eco-diferenca-energia"
+        />
+        <PhaseWaterfall
+          variant="difference"
+          waterfall={result.carbon_difference_waterfall}
+          title={ecoPhaseI18n.waterfall.difference.carbonTitle}
+          exportName="cascata-eco-diferenca-carbono"
+        />
+      </div>
+    </Disclosure>
   );
 }
 

@@ -434,14 +434,20 @@ export default function SintetizarPage() {
   const recipeReady = recipeBlocked === null;
 
   // D-230b: a suggested number goes where the reader would have typed it (the URL)
-  // and the preview follows by itself. The server proposes only values it holds
-  // (the current one among them), so an action that would change nothing, one for
-  // a field of another kind of recipe, or one that is not a number is not shown.
+  // and the preview follows by itself. The server proposes a value it holds or — D-234 —
+  // a number the model chose inside the calculator's range, marked "Sugestão da IA,
+  // revise" and confirmed by the panel before it gets here. An action that would change
+  // nothing, one for a field of another kind of recipe, or one that is not a number
+  // is not shown.
   const acceptsAiAction = (action: SuggestAction): boolean => {
     if (action.type !== "set_param") return true;
     const target = isOwnKey(AI_PARAMS, action.name) ? AI_PARAMS[action.name] : undefined;
     if (!target || target.kind !== kind) return false;
     if (typeof action.value !== "number" || !Number.isFinite(action.value)) return false;
+    // The calculator's own range (the server checked it too, D-234): a fraction is
+    // strictly between 0 and 1, a thickness is above 0.
+    const isFraction = target.field === "fraction" || target.field === "density";
+    if (!(action.value > 0) || (isFraction && !(action.value < 1))) return false;
     return Number(recipe[target.field]) !== action.value;
   };
   function applyAiAction(action: SuggestAction) {

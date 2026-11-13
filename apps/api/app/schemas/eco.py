@@ -375,3 +375,7 @@ class EcoComparisonResultOut(BaseModel):
     winner_energy: Literal["material_a", "material_b", "tie"] | None = None
     winner_carbon: Literal["material_a", "material_b", "tie"] | None = None
     phase_deltas: list[PhaseDeltaOut] = Field(default_factory=list)
+    #: B minus A, one step per phase, in data coordinates (D-234, ADR 0004). The
+    #: total bar is the two audits' totals subtracted.
+    energy_difference_waterfall: WaterfallOut
+    carbon_difference_waterfall: WaterfallOut

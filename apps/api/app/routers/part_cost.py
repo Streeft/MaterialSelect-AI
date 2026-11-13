@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.dependencies import get_current_user, heavy_request
 from app.models.user import User
-from app.schemas.part_cost import CostRequest, CostResultOut
+from app.schemas.part_cost import CostCurvesOut, CostCurvesRequest, CostRequest, CostResultOut
 from app.services.part_cost_service import PartCostService
 
 router = APIRouter(prefix="/custo", tags=["custo"])
@@ -28,3 +28,13 @@ def estimate_part_cost(
 ) -> CostResultOut:
     """Cost one part, term by term, for each compatible process."""
     return PartCostService(db, user.id).estimate(payload)
+
+
+@router.post("/curvas", response_model=CostCurvesOut, dependencies=[Depends(heavy_request)])
+def part_cost_curves(
+    payload: CostCurvesRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> CostCurvesOut:
+    """The cost × batch curve of each compared material, on one shared frame."""
+    return PartCostService(db, user.id).curves(payload)

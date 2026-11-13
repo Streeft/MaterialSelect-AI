@@ -8,7 +8,17 @@ import { suggestText as t } from "@/lib/i18n-suggest";
 import { atLeast } from "@/lib/design/breakpoints";
 import { useWindowClass } from "@/lib/useWindowClass";
 import type { SuggestAction, SuggestActionType, Suggestion, SuggestionsOut, SuggestTool } from "@/lib/types";
-import { Alert, Badge, Button, Card, CardBody, CardHeader, Disclosure, Skeleton } from "@/components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  ConfirmDialog,
+  Disclosure,
+  Skeleton,
+} from "@/components/ui";
 import { useAnnounce } from "@/components/ui/Announcer";
 import { IconSparkle } from "@/components/ui/icons";
 import { useAISuggest } from "./useAISuggest";
@@ -70,6 +80,8 @@ export function AISuggestPanel({
   const { state, ask, stale, enabled } = useAISuggest(tool, context);
   const [open, setOpen] = useState(false);
   const [applied, setApplied] = useState<ReadonlySet<string>>(new Set());
+  // D-234: a number the model chose (`origin: "sugestao_ia"`) waits for the person's yes.
+  const [pending, setPending] = useState<{ id: string; action: SuggestAction } | null>(null);
   const announce = useAnnounce();
   const wide = atLeast(useWindowClass(), "expanded");
   const panelId = useId();
@@ -95,6 +107,14 @@ export function AISuggestPanel({
   }
 
   function apply(id: string, action: SuggestAction) {
+    if (action.type === "set_param" && action.origin === "sugestao_ia") {
+      setPending({ id, action });
+      return;
+    }
+    commit(id, action);
+  }
+
+  function commit(id: string, action: SuggestAction) {
     onAction(action);
     setApplied((current) => new Set(current).add(id));
     announce(t.applied(action.label));
@@ -176,6 +196,18 @@ export function AISuggestPanel({
           </CardBody>
         </Card>
       ) : null}
+
+      <ConfirmDialog
+        open={pending !== null}
+        title={t.confirmTitle}
+        message={pending ? t.confirmMessage(pending.action.label) : undefined}
+        confirmLabel={t.confirmAction}
+        onCancel={() => setPending(null)}
+        onConfirm={() => {
+          if (pending) commit(pending.id, pending.action);
+          setPending(null);
+        }}
+      />
     </div>
   );
 }

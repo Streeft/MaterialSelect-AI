@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 191 — 13/11/26 — Fluxos entre telas, parte 16: a IA marca o número que escolheu, A × B na Eco, curva de custo por material e fim do `/ai/interpret` (D-234)
+
+**O que mudou.** Backend: `set_param` ganha `origin` (`contexto` | `sugestao_ia`) e `NumberRange` (faixa da validação do pedido) em
+`app/ai/suggest.py` — um número que o modelo escolheu dentro da faixa fica marcado "(sugestão da IA, revise)", fora dela é recusado com
+o motivo; Sintetizar ganha faixas nos quatro parâmetros e a Eco em `part_mass`; o contexto de `eco` aceita `{comparison}` (A × B
+recalculado no servidor) e, no produto, `part_mass` vale só para um componente; `build_difference_waterfall` e os campos
+`energy_difference_waterfall`/`carbon_difference_waterfall` em `/eco/comparar` (total = totais auditados subtraídos); `POST
+/api/custo/curvas` com `cheapest_envelope` (curva de cada material = o processo mais barato em cada lote, quadro log-log comum);
+recaída do 429 da busca na web para `WEB_SEARCH_FALLBACK_MODEL` com `quotaId`/limite no log; removidos `POST /api/ai/interpret`,
+`AIService.interpret` e os esquemas que só ele usava. Workflow **Provedor de IA**: entrada `modelo_busca_web`. Frontend:
+`AISuggestPanel` pede confirmação para `sugestao_ia`; Eco com sugestões na comparação e cascata da diferença
+(`PhaseWaterfall variant="difference"`); Custo com `MaterialCostCurvesChart`; saiu `interpretStatement`. Testes novos: pytest
+(`test_ai_suggest`, `test_eco_waterfall`, `test_part_cost`, `test_part_cost_api`, `test_integrations_gemini_search`, portão
+pesado) e vitest com axe em `AISuggestPanel`, Eco, `ecoBrief`, Custo e Sintetizar; testes que usavam `/ai/interpret` foram
+reescritos sobre o provedor ou `/ai/explain`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 190 — 13/11/26 — Ficha, Admin e Cadernos, parte 15: citar fonte, mover classe, posição do trecho e lotes (D-233)
 
 **O que mudou.** Backend: `source` ganha autores, título, editora, ano, URL e data de acesso (todos nuláveis; o importador oficial lê

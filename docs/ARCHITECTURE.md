@@ -400,7 +400,7 @@ Todas sob `/api`. Erros de domínio são mapeados em `main.py`:
 | Seleção | `POST /selection/filter`, `/index`, `/run`; `GET/POST /selection/studies`; `GET/DELETE /selection/studies/{id}`; `POST /selection/studies/{id}/run`; `GET/POST /performance-indices` |
 | Visualização | `POST /charts/property-map`, `POST /charts/compare` |
 | Painel | `GET /dashboard/overview`, `/distribution/{property_slug}`, `/composition`, `/processes`, `/sources`, `/property/{property_slug}`, `/top`, `/correlation`, `/activity`, `/export.csv` — filtros globais `classe`, `subclasse`, `nivel`, `demo` (D-193) |
-| IA (opcional) | `GET /ai/status`, `POST /ai/interpret`, `POST /ai/explain` |
+| IA (opcional) | `GET /ai/status`, `POST /ai/explain`, `POST /ai/plan`, `POST /ai/suggest` |
 | Exportação | `GET /exports/catalogo.{csv,xlsx,html}`, `GET /exports/estudos/{id}.{csv,xlsx,html}` |
 | Laudo de engenharia | `GET /exports/estudos/{id}/laudo.html` |
 | Auditoria | `GET /audit` — quem mudou o quê e quando ([D-43](DECISIONS.md)) |

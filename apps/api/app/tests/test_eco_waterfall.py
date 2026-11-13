@@ -20,6 +20,7 @@ from app.calculations.eco_audit import (
     ENERGY_UNIT,
     PHASES,
     PhaseResult,
+    build_difference_waterfall,
     build_waterfall,
 )
 from app.models.material import Material
@@ -175,3 +176,102 @@ def test_the_total_bar_takes_the_audits_own_total_not_a_second_sum() -> None:
     assert build_waterfall(phases, "carbon", CARBON_UNIT).total.value == pytest.approx(
         own, rel=1e-3
     )
+
+
+# --- the waterfall of the A x B difference (D-234) ---------------------------------
+
+
+def _side(values: tuple[float | None, ...]) -> tuple[PhaseResult, ...]:
+    return tuple(_phase(name, value) for name, value in zip(PHASES, values, strict=True))
+
+
+def test_the_difference_waterfall_walks_phase_by_phase_to_the_audited_difference() -> None:
+    a = _side((10.0, 5.0, 2.0, 30.0, 3.0))
+    b = _side((12.0, 4.0, 2.0, 20.0, 5.0))
+    wf = build_difference_waterfall(a, b, "energy", ENERGY_UNIT, 50.0, 43.0)
+    assert [s.value for s in wf.steps] == [2.0, -1.0, 0.0, -10.0, 2.0]
+    assert [s.start for s in wf.steps] == [0.0, 2.0, 1.0, 1.0, -9.0]
+    assert [s.end for s in wf.steps] == [2.0, 1.0, 1.0, -9.0, -7.0]
+    # The total bar is the audits' totals subtracted, not a re-sum of the steps.
+    assert wf.total.value == 43.0 - 50.0 == -7.0
+    assert wf.total.start == 0.0 and wf.total.end == -7.0
+    # A difference below zero keeps the baseline and the lowest point inside the axis.
+    assert wf.domain == (-9.0, 2.0)
+    assert wf.unit == ENERGY_UNIT
+
+
+def test_the_difference_total_is_the_audited_one_even_when_the_sum_differs_in_the_last_digit() -> (
+    None
+):
+    a = _side((31.25, 2.125, 0.204, 70.0, 3.2))
+    b = _side((10.1, 0.3, 0.7, 12.9, 8.0))
+    audited_a, audited_b = 106.77900000000001, 32.0
+    wf = build_difference_waterfall(a, b, "energy", ENERGY_UNIT, audited_a, audited_b)
+    assert wf.total.value == audited_b - audited_a
+    # Python 3.12 sums floats differently from 3.11: compare with a tolerance.
+    assert wf.steps[-1].end == pytest.approx(wf.total.value, abs=1e-9)
+    assert sum(s.value for s in wf.steps if s.value is not None) == pytest.approx(
+        wf.total.value, abs=1e-9
+    )
+
+
+def test_a_phase_missing_on_either_side_has_no_difference_and_the_total_is_refused() -> None:
+    a = _side((10.0, None, 2.0, 30.0, 3.0))
+    b = _side((12.0, 4.0, 2.0, None, 5.0))
+    wf = build_difference_waterfall(a, b, "energy", ENERGY_UNIT, None, None)
+    gap_a, gap_b = wf.steps[1], wf.steps[3]
+    assert gap_a.value is None and gap_a.reason is not None and "A:" in gap_a.reason
+    assert "Dados ausentes: x" in gap_a.reason
+    assert gap_b.value is None and gap_b.reason is not None and "B:" in gap_b.reason
+    # The running level skips the gaps instead of reading them as zero.
+    assert gap_a.start == gap_a.end == 2.0
+    assert wf.total.value is None and wf.total.reason
+
+
+def test_the_difference_waterfall_of_carbon_reads_the_carbon_column() -> None:
+    a = tuple(_phase(n, 1.0, c) for n, c in zip(PHASES, (4.0, 1.0, 1.0, 9.0, 1.0), strict=True))
+    b = tuple(_phase(n, 1.0, c) for n, c in zip(PHASES, (5.0, 1.0, 1.0, 7.0, 1.0), strict=True))
+    wf = build_difference_waterfall(a, b, "carbon", CARBON_UNIT, 16.0, 15.0)
+    assert [s.value for s in wf.steps] == [1.0, 0.0, 0.0, -2.0, 0.0]
+    assert wf.total.value == -1.0 and wf.unit == CARBON_UNIT
+
+
+def test_the_comparison_carries_both_difference_waterfalls_that_add_up(
+    client: TestClient, db_session: Session
+) -> None:
+    base = _audit_body(db_session)
+    body = {
+        "material_a": {
+            "material_id": base["material_id"],
+            "process_id": base["process_id"],
+            "part_mass": 2.0,
+        },
+        "material_b": {
+            "material_id": base["material_id"],
+            "process_id": base["process_id"],
+            "part_mass": 3.0,
+        },
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 1500.0,
+        "use": MOBILE_USE,
+    }
+    out = client.post("/api/eco/comparar", json=body).json()
+    for key, unit, quantity in (
+        ("energy_difference_waterfall", ENERGY_UNIT, "energy"),
+        ("carbon_difference_waterfall", CARBON_UNIT, "carbon"),
+    ):
+        wf = out[key]
+        assert wf["unit"] == unit and wf["quantity"] == quantity
+        assert [s["phase"] for s in wf["steps"]] == list(PHASES)
+        for step, delta in zip(wf["steps"], out["phase_deltas"], strict=True):
+            assert step["value"] == delta[f"delta_{quantity}"]
+        total_a = out["material_a"][f"total_{quantity}"]
+        total_b = out["material_b"][f"total_{quantity}"]
+        if total_a is None or total_b is None:
+            assert wf["total"]["value"] is None
+            continue
+        assert wf["total"]["value"] == total_b - total_a
+        known = [s["value"] for s in wf["steps"] if s["value"] is not None]
+        assert sum(known) == pytest.approx(wf["total"]["value"], abs=1e-6)
+        assert wf["steps"][-1]["end"] == pytest.approx(wf["total"]["value"], abs=1e-6)
+        assert wf["domain"][0] <= 0.0 <= wf["domain"][1]

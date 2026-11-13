@@ -590,6 +590,54 @@ describe("Sintetizar — Sugestão da IA (D-230b)", () => {
     await waitFor(() => expect(lastSent().face_thickness).toBe(2));
   });
 
+  it("um número que a IA escolheu pede confirmação antes de mudar a receita (D-234)", async () => {
+    suggest.fn.mockResolvedValue({
+      ...answer,
+      suggestions: [
+        {
+          title: "Fibra um pouco acima",
+          body: "Uma fração de 0,55 fica entre as duas.",
+          actions: [
+            {
+              type: "set_param",
+              label: "fração volumétrica: 0,55 (sugestão da IA, revise)",
+              name: "volume_fraction",
+              value: 0.55,
+              origin: "sugestao_ia",
+            },
+            {
+              type: "set_param",
+              label: "fração volumétrica: 1,4 (sugestão da IA, revise)",
+              name: "volume_fraction",
+              value: 1.4,
+              origin: "sugestao_ia",
+            },
+          ],
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    await open();
+    await runPreview(user);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    // A fraction outside (0, 1) is not a button, whoever proposed it.
+    expect(screen.queryByRole("button", { name: /1,4/ })).toBeNull();
+    const callsBefore = previewSynthesis.mock.calls.length;
+
+    await user.click(await screen.findByRole("button", { name: /fração volumétrica: 0,55/ }));
+    expect(screen.getByRole("dialog", { name: suggestText.confirmTitle })).toBeInTheDocument();
+    // Declined: the recipe is as it was.
+    await user.click(screen.getByRole("button", { name: ptBR.actions.cancel }));
+    expect(new URLSearchParams(window.location.search).has("fracao")).toBe(false);
+    expect(previewSynthesis.mock.calls.length).toBe(callsBefore);
+
+    await user.click(screen.getByRole("button", { name: /fração volumétrica: 0,55/ }));
+    await user.click(screen.getByRole("button", { name: suggestText.confirmAction }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("fracao")).toBe("0.55"));
+    await waitFor(() => expect(lastSent().volume_fraction).toBe(0.55));
+    expect(createSynthesis).not.toHaveBeenCalled();
+  });
+
   it("receita incompleta: o botão fica desligado e nada é perguntado", async () => {
     window.history.replaceState(null, "", "/app/sintetizar?fracao=2");
     await open();

@@ -309,13 +309,22 @@ export function buildComparisonBrief(
 
 // --- What an AI suggestion may change (D-230b) -----------------------------------
 
+/** The calculator's own bounds (`EcoComponentIn`, `EcoMaterialInput`): above 0 up to 10⁶ kg. */
+const MAX_MASS = 1.0e6;
+const MAX_DISTANCE = 1.0e6;
+
 /**
- * The patch of the brief that a `set_param` of the server's audit request
- * stands for, or `null` when this screen has no such field or the value is not
- * one the field takes. The audit's names are the request's: a product is a list,
- * so a parameter that every component (or every leg) has is written on all of
- * them — a suggestion to go back to the default fraction does not leave one line
- * behind. Never invents a value: the number or route is the server's.
+ * The patch of the brief that a `set_param` of the server's request stands for, or
+ * `null` when this screen has no such field or the value is not one the field takes.
+ *
+ * The names are the request's. **Individual view** (the audit): a product is a
+ * list, so a parameter that every component (or every leg) has is written on all
+ * of them — a suggestion to go back to the default fraction does not leave one
+ * line behind — and `part_mass` (D-234) is the unit mass of a product of ONE
+ * component, and nothing otherwise. **Comparison view**: `material_a.*` and
+ * `material_b.*` write the scenario of that side, `transport_distance_km` the
+ * shared distance. Never invents a value: the number or route is the server's
+ * (a number the model chose arrives marked and is confirmed before it gets here).
  */
 export function aiParamPatch(
   brief: EcoBrief,
@@ -324,11 +333,40 @@ export function aiParamPatch(
   value: number | string,
 ): Partial<EcoBrief> | null {
   const number = typeof value === "number" && Number.isFinite(value) ? value : null;
+  const fraction = number !== null && number >= 0 && number <= 1 ? number : null;
+  const mass = number !== null && number > 0 && number <= MAX_MASS ? number : null;
+  const distance = number !== null && number >= 0 && number <= MAX_DISTANCE ? number : null;
+
+  if (brief.view === "compare") {
+    const side = /^material_([ab])\.(part_mass|recycled_fraction|end_of_life)$/.exec(name);
+    if (side) {
+      const key = side[1] === "a" ? "a" : "b";
+      const current = brief[key];
+      switch (side[2]) {
+        case "part_mass":
+          return mass === null ? null : { [key]: { ...current, mass: String(mass) } };
+        case "recycled_fraction":
+          return fraction === null ? null : { [key]: { ...current, recycled: String(fraction) } };
+        default:
+          return isRoute(value) ? { [key]: { ...current, endOfLife: value } } : null;
+      }
+    }
+    if (name === "transport_distance_km") {
+      return distance === null ? null : { distance: String(distance) };
+    }
+    return null;
+  }
+
   switch (name) {
+    case "part_mass": {
+      const components = effectiveComponents(brief, defaults);
+      if (mass === null || components.length !== 1) return null;
+      return { components: components.map((c) => ({ ...c, mass: String(mass) })) };
+    }
     case "recycled_fraction":
-      if (number === null || number < 0 || number > 1) return null;
+      if (fraction === null) return null;
       return {
-        components: effectiveComponents(brief, defaults).map((c) => ({ ...c, recycled: String(number) })),
+        components: effectiveComponents(brief, defaults).map((c) => ({ ...c, recycled: String(fraction) })),
       };
     case "end_of_life":
       if (!isRoute(value)) return null;
@@ -336,9 +374,9 @@ export function aiParamPatch(
         components: effectiveComponents(brief, defaults).map((c) => ({ ...c, endOfLife: value })),
       };
     case "transport_distance_km":
-      if (number === null || number < 0) return null;
+      if (distance === null) return null;
       return {
-        legs: effectiveLegs(brief, defaults).map((leg) => ({ ...leg, distance: String(number) })),
+        legs: effectiveLegs(brief, defaults).map((leg) => ({ ...leg, distance: String(distance) })),
       };
     default:
       return null;

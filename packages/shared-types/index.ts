@@ -1908,7 +1908,19 @@ export type SuggestAction =
   | { type: "search"; label: string; q: string }
   | { type: "open_route"; label: string; path: string }
   | { type: "compare"; label: string; ids: number[] }
-  | { type: "set_param"; label: string; name: string; value: number | string }
+  | {
+      type: "set_param";
+      label: string;
+      name: string;
+      value: number | string;
+      /**
+       * Where the value comes from (D-224, D-234): `contexto` is a figure the screen
+       * or a curated scenario holds; `sugestao_ia` is a number the model chose inside
+       * the range the calculator accepts — "Sugestão da IA, revise", applied only
+       * after the person confirms. Absent means `contexto`.
+       */
+      origin?: "contexto" | "sugestao_ia";
+    }
   | { type: "map_column"; label: string; col: string; prop: string }
   | { type: "fill_text"; label: string; field: string; text: string };
 
@@ -1937,51 +1949,6 @@ export interface SuggestionsOut {
   /** True when answered from the 10-minute cache: no quota spent. */
   cached: boolean;
   notice: string | null;
-  provider: string;
-  simulated: boolean;
-  disclaimer: string;
-}
-
-export interface SuggestedConstraint {
-  constraint: ConstraintIn;
-  /** The fragment of the user's own text this reading came from. */
-  evidence: string;
-  rationale: string;
-}
-
-export interface SuggestedIndex {
-  slug: string;
-  name: string;
-  expression: string;
-  goal: Goal;
-  rationale: string;
-}
-
-export interface SuggestedProperty {
-  slug: string;
-  name: string;
-  rationale: string;
-}
-
-export interface SuggestedChart {
-  x: string;
-  y: string;
-  scale: ChartScale;
-  rationale: string;
-}
-
-export interface Interpretation {
-  statement: string;
-  function_text: string | null;
-  objective_text: string | null;
-  free_variables: string[];
-  constraints: SuggestedConstraint[];
-  properties: SuggestedProperty[];
-  indices: SuggestedIndex[];
-  chart: SuggestedChart | null;
-  open_questions: string[];
-  /** Suggestions the guardrails refused, with the reason. */
-  rejected: string[];
   provider: string;
   simulated: boolean;
   disclaimer: string;
@@ -2898,6 +2865,45 @@ export interface CostDomain {
   y: [number, number];
   /** Lotes das curvas mais o atual, em ordem: as linhas da tabela da figura. */
   batch_sizes: number[];
+}
+
+/** `POST /api/custo/curvas`: the materials of a comparison, priced with one part and one batch. */
+export interface CostCurvesRequest {
+  material_ids: number[];
+  part_mass: number;
+  batch_size: number;
+  write_off_years?: number;
+  load_factor?: number;
+}
+
+/** The cheapest way of making the part at one batch size (D-234). */
+export interface MaterialCurvePoint {
+  batch_size: number;
+  cost: number;
+  process_id: number;
+  process_slug: string;
+  process_name: string;
+}
+
+/**
+ * One material's cost × batch curve: the lower envelope of its processes, computed
+ * on the server. `points` is empty, with `reason` in words, when it could not be
+ * priced; `current` is the point at the batch asked for (the figure's marker).
+ */
+export interface MaterialCostCurve {
+  material_id: number;
+  material_name: string | null;
+  points: MaterialCurvePoint[];
+  current: MaterialCurvePoint | null;
+  reason: string | null;
+}
+
+export interface CostCurves {
+  batch_size: number;
+  curves: MaterialCostCurve[];
+  /** Extensão log-log comum a todas as curvas (ADR 0004); `null` sem nenhuma curva. */
+  domain: CostDomain | null;
+  monetary_unit_note: string;
 }
 
 // --- Eco Audit (P3) ----------------------------------------------------------

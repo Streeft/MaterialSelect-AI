@@ -676,14 +676,11 @@ class TestCache:
 
 
 class TestLightContext:
-    def test_interpret_and_plan_never_load_every_material(
-        self, client: TestClient, monkeypatch
-    ) -> None:
+    def test_the_plan_never_loads_every_material(self, client: TestClient, monkeypatch) -> None:
         def _forbidden(*_a, **_k):
             raise AssertionError("o contexto da IA não pode carregar o catálogo inteiro")
 
         monkeypatch.setattr(ChartRepository, "list_materials", _forbidden)
-        assert client.post("/api/ai/interpret", json={"statement": BEAM}).status_code == 200
         _plan(client, BEAM)
 
     def test_the_summary_is_a_handful_of_queries_then_none(self, db_session: Session) -> None:

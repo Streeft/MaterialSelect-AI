@@ -402,6 +402,78 @@ describe("AISuggestPanel — Sugestão da IA (D-229)", () => {
   });
 });
 
+describe("AISuggestPanel — número escolhido pela IA (D-234)", () => {
+  installWideViewport();
+  const marked = (): SuggestionsOut =>
+    answer({
+      suggestions: [
+        {
+          title: "Densidade relativa",
+          body: "Um valor entre os extremos.",
+          actions: [
+            { type: "set_param", label: "densidade relativa: 0,25 (sugestão da IA, revise)", name: "relative_density", value: 0.25, origin: "sugestao_ia" },
+            { type: "set_param", label: "densidade relativa: 0,1", name: "relative_density", value: 0.1, origin: "contexto" },
+          ],
+        },
+      ],
+    });
+  const render_ = (onAction = vi.fn()) =>
+    render(
+      wrap(
+        <AISuggestPanel tool="sintetizar" context={{}} actions={["set_param"]} onAction={onAction} />,
+      ),
+    );
+
+  beforeEach(() => {
+    getAIStatus.mockResolvedValue({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" });
+  });
+
+  it("applies a value from the context at once, and a marked one only after the yes", async () => {
+    suggestNextSteps.mockResolvedValue(marked());
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    render_(onAction);
+    await user.click(await screen.findByRole("button", { name: t.button }));
+
+    await user.click(await screen.findByRole("button", { name: "densidade relativa: 0,1" }));
+    expect(onAction).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: /densidade relativa: 0,25/ }));
+    const dialog = screen.getByRole("dialog", { name: t.confirmTitle });
+    expect(dialog).toBeTruthy();
+    expect(dialog.textContent).toContain("sugestão a revisar");
+    expect(onAction).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: t.confirmAction }));
+    expect(onAction).toHaveBeenCalledTimes(2);
+    expect(onAction.mock.calls[1]?.[0]).toMatchObject({ name: "relative_density", value: 0.25, origin: "sugestao_ia" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("declining changes nothing and leaves the button unmarked", async () => {
+    suggestNextSteps.mockResolvedValue(marked());
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    render_(onAction);
+    await user.click(await screen.findByRole("button", { name: t.button }));
+    await user.click(await screen.findByRole("button", { name: /densidade relativa: 0,25/ }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onAction).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText(`(${t.appliedMark})`)).toBeNull();
+  });
+
+  it("has no accessibility violations with the confirmation open", async () => {
+    suggestNextSteps.mockResolvedValue(marked());
+    const user = userEvent.setup();
+    const { container } = render_();
+    await user.click(await screen.findByRole("button", { name: t.button }));
+    await user.click(await screen.findByRole("button", { name: /densidade relativa: 0,25/ }));
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
+});
+
 describe("AISuggestPanel — janela larga", () => {
   installWideViewport();
   beforeEach(() => {

@@ -31,6 +31,8 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CostCurves,
+  CostCurvesRequest,
   CostRequest,
   CostResult,
   CurrentUser,
@@ -54,7 +56,6 @@ import type {
   EcoComparisonRequest,
   EcoComparisonResult,
   Explanation,
-  Interpretation,
   MaterialEquivalences,
   ReleaseDiff,
   ReleaseDiffItem,
@@ -1221,13 +1222,6 @@ export function suggestNextSteps(
   });
 }
 
-export function interpretStatement(statement: string): Promise<Interpretation> {
-  return request<Interpretation>(`/api/ai/interpret`, {
-    method: "POST",
-    body: JSON.stringify({ statement }),
-  });
-}
-
 /**
  * The project assistant (D-224): a plain request becomes parts, limits with
  * their origin, and the first materials of the catalogue. `signal` cancels the
@@ -1535,6 +1529,14 @@ export function solveBrief(body: SolveRequest): Promise<SolveResult> {
  */
 export function estimatePartCost(body: CostRequest): Promise<CostResult> {
   return request<CostResult>("/api/custo/estimar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** The cost × batch curve of each compared material, on one shared frame (D-234). */
+export function estimateCostCurves(body: CostCurvesRequest): Promise<CostCurves> {
+  return request<CostCurves>("/api/custo/curvas", {
     method: "POST",
     body: JSON.stringify(body),
   });

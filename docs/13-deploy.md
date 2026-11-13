@@ -484,6 +484,11 @@ desligado**.
    `gemini-flash-latest`, o apelido do Google que acompanha o Flash vigente; o
    `gemini-flash-lite-latest` aguenta mais pedidos por dia, útil numa aula
    cheia. Para um modelo específico, escreva o nome em "modelo_personalizado".
+   O campo "modelo_busca_web" (D-234) fixa o `WEB_SEARCH_MODEL`, o modelo da busca
+   na Web dos Cadernos (`manter` não mexe). Quando o Google responde 429 a essa
+   busca, a API tenta sozinha, uma vez, o `WEB_SEARCH_FALLBACK_MODEL`
+   (`gemini-flash-lite-latest`) e registra no log (`fly logs`) o modelo que estourou,
+   o `quotaId` e o limite, sem chave.
 3. **Antes de mexer no Fly, o job pergunta ao Google, com a própria chave, se
    o modelo responde.** Se não responder, o job falha com o motivo do Google e
    a lista dos modelos Flash que a chave enxerga — escolha um e rode de novo.

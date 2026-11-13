@@ -144,7 +144,6 @@ vi.mock("@/lib/api", () => ({
   getAIStatus: () => Promise.resolve({ enabled: aiEnabled, simulated: true, provider: "mock", disclaimer: "x" }),
   planProject: (payload: PlanRequest, signal?: AbortSignal) => planProject(payload, signal),
   runPlan: () => Promise.reject(new Error("not used")),
-  interpretStatement: () => Promise.resolve(null),
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
   studyExportUrl: () => "#",

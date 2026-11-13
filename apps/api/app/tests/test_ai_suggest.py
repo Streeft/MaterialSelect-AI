@@ -467,3 +467,272 @@ def test_the_prompt_is_short_and_lists_the_allowed_actions(
     ]["type"]["enum"]
     assert "map_column" not in enum and "set_axes" in enum
     assert seen["limits"].max_output_tokens <= 2000
+
+
+# --- "Sugestão da IA, revise": a number inside a range (D-234) -------------------------
+
+
+def _set_param_card(title: str, body: str, name: str, value: str) -> dict:
+    return {
+        "summary": "Um ajuste.",
+        "suggestions": [
+            {"title": title, "body": body, "actions": [_action("set_param", name, value)]}
+        ],
+    }
+
+
+def _serve(monkeypatch: pytest.MonkeyPatch, answer: dict) -> _LyingProvider:
+    provider = _LyingProvider(answer)
+    monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: provider)
+    return provider
+
+
+def _params_of(body: dict) -> list[dict]:
+    return [a for s in body["suggestions"] for a in s["actions"] if a["type"] == "set_param"]
+
+
+def test_sintetizar_keeps_a_number_inside_the_range_marked_as_the_models_own(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(
+        monkeypatch,
+        _set_param_card(
+            "Espuma mais leve",
+            "Uma densidade relativa de 0,25 deixa a espuma mais leve.",
+            "relative_density",
+            "0.25",
+        ),
+    )
+    body = _ok(client, "sintetizar", _contexts(client)["sintetizar"])
+    [action] = _params_of(body)
+    assert action["name"] == "relative_density"
+    assert action["value"] == 0.25
+    assert action["origin"] == "sugestao_ia"
+    assert "sugestão da IA, revise" in action["label"]
+    # The card that proposes it may write it: it is its own marked suggestion.
+    assert body["suggestions"][0]["body"].startswith("Uma densidade relativa de 0,25")
+    assert body["rejected"] == []
+
+
+def test_a_value_the_screen_already_holds_is_not_the_models_own(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(monkeypatch, _set_param_card("Mantenha", "Fica como está.", "relative_density", "0.1"))
+    [action] = _params_of(_ok(client, "sintetizar", _contexts(client)["sintetizar"]))
+    assert action["origin"] == "contexto" and action["value"] == 0.1
+
+
+@pytest.mark.parametrize("value", ["1", "1.5", "0", "-0.2", "nan", "inf", "muito", ""])
+def test_sintetizar_refuses_a_number_outside_the_range_with_the_reason(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    _serve(monkeypatch, _set_param_card("Fora", "Um ajuste.", "relative_density", value))
+    body = _ok(client, "sintetizar", _contexts(client)["sintetizar"])
+    assert body["rejected"], body
+    assert not [a for a in _params_of(body) if a["origin"] == "sugestao_ia"]
+    if value in ("1", "1.5", "0", "-0.2"):
+        assert any("fora da faixa permitida" in r for r in body["rejected"])
+
+
+def test_a_parameter_of_another_recipe_is_not_offered(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The recipe is a foam: there is no volume fraction on this screen.
+    _serve(monkeypatch, _set_param_card("Outra receita", "Um ajuste.", "volume_fraction", "0.3"))
+    body = _ok(client, "sintetizar", _contexts(client)["sintetizar"])
+    assert not _params_of(body)
+    assert any("volume_fraction" in r and "não existe nesta tela" in r for r in body["rejected"])
+
+
+def test_the_card_may_not_cite_another_number_than_its_own_suggestion(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(
+        monkeypatch,
+        _set_param_card(
+            "Número solto",
+            "Com 0,25 a rigidez cai 8734,2%.",
+            "relative_density",
+            "0.25",
+        ),
+    )
+    body = _ok(client, "sintetizar", _contexts(client)["sintetizar"])
+    assert any("8734" in r for r in body["rejected"])
+
+
+def test_a_tool_without_a_range_still_takes_only_the_values_it_holds(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(monkeypatch, _set_param_card("Lote", "Um lote maior.", "batch_size", "5000"))
+    body = _ok(client, "custo", _contexts(client)["custo"])
+    assert not _params_of(body)
+    assert any("não vem do contexto" in r for r in body["rejected"])
+
+
+def test_the_prompt_lists_the_range_only_where_there_is_one(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[str] = []
+
+    class _Recorder(_LyingProvider):
+        def _complete_limited(self, system, user, schema, limits):  # type: ignore[override]
+            seen.append(f"{system}\n{user}")
+            return {"summary": "", "suggestions": []}
+
+    monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _Recorder())
+    _ok(client, "sintetizar", _contexts(client)["sintetizar"])
+    _ok(client, "custo", _contexts(client)["custo"])
+    assert "relative_density" in seen[0] and "ou um número > 0 e < 1" in seen[0]
+    assert "ou um número" not in seen[1]
+    assert "Sugestão da IA, revise" in seen[0]
+
+
+# --- Eco: the part's mass and the A x B comparison (D-234) -----------------------------
+
+
+def _comparison(client: TestClient, **overrides) -> dict:
+    casting = next(p for p in client.get("/api/processes").json() if p["slug"] == "fundicao-areia")
+    side = {"material_id": 1, "process_id": casting["id"], "part_mass": 2.0}
+    brief = {
+        "material_a": dict(side),
+        "material_b": {**side, "part_mass": 3.0, "recycled_fraction": 0.4},
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 1500.0,
+        "use": _contexts(client)["eco"]["request"]["use"],
+    }
+    brief.update(overrides)
+    return {"comparison": brief}
+
+
+def test_eco_answers_the_comparison_from_the_server(client: TestClient) -> None:
+    context = _comparison(client)
+    context["result"] = {"delta_energy": 987654.321}
+    body = _ok(client, "eco", context)
+    assert body["rejected"] == [] and body["degraded"] is False
+    text = " ".join(s["title"] + " " + s["body"] for s in body["suggestions"])
+    assert "987654" not in text
+    assert body["suggestions"]
+
+
+def test_eco_comparison_is_validated(client: TestClient) -> None:
+    broken = _comparison(client)
+    broken["comparison"]["material_a"]["part_mass"] = -1
+    response = _suggest(client, "eco", broken)
+    assert response.status_code == 400
+    assert "eco" in response.json()["detail"].lower()
+    assert _suggest(client, "eco", {"comparison": {"material_a": {}}}).status_code == 400
+    assert _suggest(client, "eco", {"comparison": "x"}).status_code in (400, 422)
+
+
+def test_eco_comparison_offers_the_mass_of_each_side_as_a_marked_suggestion(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(
+        monkeypatch,
+        _set_param_card(
+            "Peça B mais leve",
+            "Uma massa de 2,5 kg para a peça B aproxima as duas alternativas.",
+            "material_b.part_mass",
+            "2.5",
+        ),
+    )
+    body = _ok(client, "eco", _comparison(client))
+    [action] = _params_of(body)
+    assert action["name"] == "material_b.part_mass"
+    assert action["value"] == 2.5 and action["origin"] == "sugestao_ia"
+    assert "peça B" in action["label"]
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "1000001"])
+def test_eco_refuses_a_mass_the_calculator_would_not_take(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    _serve(monkeypatch, _set_param_card("Massa", "Um ajuste.", "material_a.part_mass", value))
+    body = _ok(client, "eco", _comparison(client))
+    assert not _params_of(body)
+    assert any("fora da faixa permitida" in r for r in body["rejected"])
+
+
+def test_eco_comparison_takes_the_default_of_a_premise_but_not_a_number_of_the_models(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    defaults = client.get("/api/padroes").json()["eco"]
+    answer = {
+        "summary": "",
+        "suggestions": [
+            {
+                "title": "Fração reciclada de B",
+                "body": "Volte ao valor de partida.",
+                "actions": [
+                    _action(
+                        "set_param",
+                        "material_b.recycled_fraction",
+                        str(defaults["recycled_fraction"]),
+                    ),
+                    _action("set_param", "material_a.recycled_fraction", "0.9"),
+                ],
+            }
+        ],
+    }
+    _serve(monkeypatch, answer)
+    body = _ok(client, "eco", _comparison(client))
+    kept = _params_of(body)
+    assert [(a["name"], a["origin"]) for a in kept] == [
+        ("material_b.recycled_fraction", "contexto")
+    ]
+    assert any("material_a.recycled_fraction" in r for r in body["rejected"])
+
+
+def test_eco_product_offers_the_mass_only_for_a_single_component(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    casting = next(p for p in client.get("/api/processes").json() if p["slug"] == "fundicao-areia")
+    use = _contexts(client)["eco"]["request"]["use"]
+    component = {
+        "material_id": 1,
+        "process_id": casting["id"],
+        "unit_mass": 2.0,
+        "quantity": 1,
+        "recycled_fraction": 0.0,
+        "end_of_life": "reciclagem",
+    }
+    leg = {"mode": "rodoviario", "distance_km": 100.0}
+
+    def request(components: list[dict]) -> dict:
+        return {"request": {"components": components, "transport_legs": [leg], "use": use}}
+
+    _serve(monkeypatch, _set_param_card("Massa", "Uma peça mais leve.", "part_mass", "1.2"))
+    [action] = _params_of(_ok(client, "eco", request([component])))
+    assert action["value"] == 1.2 and action["origin"] == "sugestao_ia"
+
+    ai_service.reset_ai_caches()
+    body = _ok(client, "eco", request([component, {**component, "unit_mass": 0.5}]))
+    assert not _params_of(body)
+    assert any("part_mass" in r and "não existe nesta tela" in r for r in body["rejected"])
+
+
+def test_eco_product_goes_back_to_the_default_when_every_component_left_it(
+    client: TestClient,
+) -> None:
+    casting = next(p for p in client.get("/api/processes").json() if p["slug"] == "fundicao-areia")
+    use = _contexts(client)["eco"]["request"]["use"]
+    component = {
+        "material_id": 1,
+        "process_id": casting["id"],
+        "unit_mass": 2.0,
+        "recycled_fraction": 0.8,
+        "end_of_life": "reciclagem",
+    }
+    body = _ok(
+        client,
+        "eco",
+        {
+            "request": {
+                "components": [component, {**component, "unit_mass": 1.0}],
+                "transport_legs": [{"mode": "rodoviario", "distance_km": 100.0}],
+                "use": use,
+            }
+        },
+    )
+    names = {a["name"] for a in _params_of(body)}
+    assert "recycled_fraction" in names
