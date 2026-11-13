@@ -473,7 +473,27 @@ ou `mock` (simulado, sem rede nem chave).
   sigiloso nem dados pessoais.
 
 Se a IA responder que o servidor recusou `response_format`/`json_schema`, rode
-o **Provedor de IA** de novo com "Saída estruturada" em `object`.
+o **Provedor de IA** de novo com "Saída estruturada" em `object`. Desde o
+[D-228](DECISIONS.md) a API já desce sozinha para `object` quando o Google recusa
+o schema estrito — o log da máquina diz "O servidor recusou o modo JSON" — e o
+workflow só é preciso para fixar o modo depois de um reinício.
+
+**Conferir a IA em produção (D-228).** Depois do **Deploy da API** e de cada
+troca de provedor ou modelo:
+
+1. Entre no app, abra **Aparência** e, no cartão **Diagnóstico da IA**, clique
+   em **Testar a IA agora**. O cartão mostra o modelo e o host (nunca a chave) e,
+   para **Texto e JSON**, **Embeddings** e **Busca na web**, "Funcionando", "Com
+   erro" ou "Não configurado", com a latência e a mensagem.
+2. Sem navegador, o mesmo pelo terminal (com o cookie de sessão de quem está
+   logado): `curl -X POST -b "msai_session=…" https://materialselect-ai.fly.dev/api/ai/diagnostico`.
+   `GET /api/ai/status` mostra só a configuração, sem chamar o Google.
+3. O diagnóstico **não gasta a cota diária** de quem testa; tem limite próprio de
+   `AI_DIAGNOSTIC_PER_HOUR` (6) por pessoa e hora. "A cota gratuita do Google
+   acabou por agora; tente em X" é o 429 do plano gratuito — espere o tempo
+   dito, ou até o dia seguinte quando a mensagem disser "amanhã".
+4. "Busca na web: Não configurado" é o esperado enquanto `WEB_SEARCH_PROVIDER`
+   não for `gemini` (§5-sexies).
 
 ## 5-sexies. Fontes externas dos Cadernos: as chaves opcionais
 

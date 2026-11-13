@@ -358,6 +358,21 @@ Roteiro completo, com o porquê de cada passo, em
   veio cada número (Você, Cenário com fonte, ou "Sugestão da IA, revise", que
   fica desmarcada até a pessoa confirmar), e "Abrir na Seleção" leva a parte
   para o estudo. Na Seleção, o mesmo plano interpreta o texto enquanto se digita.
+- **Sugestões da IA em todas as ferramentas** (`POST /api/ai/suggest`, D-228):
+  `{tool, context}` para 16 ferramentas (Mapas, Comparar, Catálogo, Ficha,
+  Processos, Glossário, Sintetizar, Painel, Meus registros, Importar,
+  Dimensionar, Custo, Eco, Baterias e as duas telas de Admin) devolve até três
+  sugestões com ações tipadas (`set_axes`, `apply_preset`, `compare`,
+  `set_param`, `map_column`, `fill_text`…). O servidor valida o contexto e o
+  completa a partir do banco ou do próprio cálculo; os números da resposta só
+  vêm daí; nada é aplicado sem o clique; se o modelo falhar, as regras locais
+  respondem. `GET /api/ai/status` diz o modelo, o host e as capacidades
+  configuradas, e `POST /api/ai/diagnostico` testa texto/JSON, embeddings e
+  busca na web ao vivo — na interface, em Aparência → "Testar a IA agora".
+  Na interface (D-229), o botão **"Sugestão da IA"** de Mapas, Comparar, Catálogo,
+  Ficha do material, Glossário, Processos e Importar só consulta o modelo ao
+  clicar; cada sugestão é um cartão e cada botão dele aplica a ação na tela
+  (eixos do mapa, filtro do catálogo, coluna do arquivo…) só quando você clica.
 - Outros provedores (`claude-api`, `claude-cli`, Groq, Ollama local) são troca
   de variável; serviço, guardrails e interface não mudam.
 

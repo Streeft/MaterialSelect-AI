@@ -130,6 +130,36 @@ local e a classificação do nome).
 
 **Para quem retoma.** Só frontend; deploy pela Vercel no merge. Achado ao regravar o vídeo da banca, que usa o par
 "Cobre × Alumínio" — esse par resolve para os mesmos dois materiais de antes.
+## Sessão 186 — 12/11/26 — Painel "Sugestão da IA" em sete telas (D-229)
+
+**O que mudou.** Frontend: `components/ai/AISuggestPanel.tsx` (+ `useAISuggest.ts`, `lib/ai/suggest.ts`, `lib/i18n-suggest.ts`,
+consulta de contêiner `.ai-suggest` em `globals.css`) e o painel ligado em Mapas, Comparar, Catálogo, Ficha do material,
+Glossário, Processos (lista e ficha) e Importar, cada tela com o seu `onAction` real; `mapHrefForAxes` em `mapas/mapUrl.ts`;
+`i18n.ts` (`ptBR.map`) e `i18n-compare-view.ts` com as frases novas. O botão só consulta a IA ao clicar. Testes novos:
+`AISuggestPanel.test.tsx`, `lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em `mapas.test.tsx`, `comparar-ia.test.tsx`,
+`catalogo.test.tsx`, `ficha-layout.test.tsx`, `glossario.test.tsx`, `processos.test.tsx` e `importar.test.tsx`, e
+`e2e/sugestao-ia.spec.ts` (Mapas troca os eixos na URL; Catálogo aplica um filtro).
+
+**Para quem retoma.** Só frontend: sem deploy da API, migração ou seed. A IA-2b (Dimensionar, Custo, Eco, Baterias, Sintetizar,
+Painel, Meus registros e Admin) reutiliza `AISuggestPanel` (`tool`, `context`, `actions`, `onAction`, `linkFor`,
+`disabledReason`).
+
+## Sessão 185 — 12/11/26 — IA gratuita do Google em todas as funções e sugestões em todas as ferramentas (D-228)
+
+**O que mudou.** Backend: `GET /api/ai/status` ampliado (modelo, host, modo JSON, embeddings e as quatro capacidades);
+`POST /api/ai/diagnostico` (`app/services/ai_diagnostics.py`, `probe()` nos provedores, contador próprio por hora);
+`POST /api/ai/suggest` com 16 ferramentas (`app/ai/suggest.py` — contrato, leitura e guardrails; `app/services/ai_suggest.py` —
+contexto validado e enriquecido por ferramenta; `suggest()` no mock e no `ModelProviderBase`); `openai_compat` desce sozinho de
+`schema` para `object`/`prompt` quando o servidor recusa o formato e traduz o 429 do Google (`app/ai/google_quota.py`,
+`QuotaExhaustedError`); orçamento de tempo na recuperação dos Cadernos (`embed_query` compartilhado). Configuração nova:
+`AI_SUGGEST_TIMEOUT_SECONDS`, `AI_SUGGEST_MAX_OUTPUT_TOKENS`, `AI_SUGGEST_CACHE_SECONDS`, `AI_DIAGNOSTIC_PER_HOUR`,
+`NOTEBOOK_RETRIEVAL_BUDGET_SECONDS`. Frontend: tipos em `packages/shared-types`, `runAIDiagnostico` e `suggestNextSteps` em
+`lib/api.ts`, cartão "Diagnóstico da IA" em Aparência (`AIDiagnosticsCard`). Testes novos: `test_ai_suggest.py`,
+`test_ai_diagnostico.py`, `test_ai_gemini.py`, dois em `test_notebook_retrieval.py`, `AIDiagnosticsCard.test.tsx`; dois testes de
+`test_ai_openai_compat.py` passaram a fixar a descida automática do modo JSON.
+
+**Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Em produção, Aparência → "Testar a IA agora"
+(ou `POST /api/ai/diagnostico`). As 15 telas recebem o painel de sugestões nas etapas IA-2a e IA-2b.
 
 ## Sessão 184 — 12/11/26 — Banco sem conexões ociosas (D-227)
 

@@ -5,6 +5,10 @@
  * so the parallel lanes that edit that file do not collide with this one.
  */
 export const compareViewText = {
+  /** D-229: the "Sugestão da IA" button of this screen. */
+  ai: {
+    needMaterials: "Escolha ao menos um material para pedir sugestões.",
+  },
   best: "Melhor",
   /** Why that one is the best: the property's own declared direction, in words. */
   bestHint: (direction: string) => `Melhor valor entre os comparados (${direction.toLowerCase()})`,

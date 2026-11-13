@@ -27,6 +27,7 @@ import type {
   PropertyMapRequest,
   SavedChartIn,
   SelectionUniverse,
+  SuggestAction,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
@@ -38,6 +39,7 @@ import { useDebounced } from "@/lib/useDebounced";
 import { useWindowClass } from "@/lib/useWindowClass";
 import { atLeast } from "@/lib/design/breakpoints";
 import { useDepthLevel } from "@/components/DepthLevelPicker";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
   Alert,
@@ -649,6 +651,26 @@ function MapsPageContent() {
     announce(t.presetApplied(preset.name));
   }
 
+  /**
+   * D-229: what a click on an AI suggestion changes. Each action goes through
+   * the same setters the controls use, so the map and its address follow
+   * exactly as if the reader had set it by hand.
+   */
+  function applyAiAction(action: SuggestAction) {
+    if (action.type === "set_axes") {
+      setLive({ box: null, line: null });
+      setXAxis({ ...EMPTY_AXIS, property: action.x });
+      setYAxis({ ...EMPTY_AXIS, property: action.y });
+      announce(t.axesApplied);
+    } else if (action.type === "apply_preset") {
+      const preset = presets.data?.find((p) => p.slug === action.id);
+      if (preset) applyPreset(preset);
+    } else if (action.type === "set_index") {
+      setIndexMode(action.slug);
+      announce(t.indexApplied);
+    }
+  }
+
   // --- saved and shared maps ---------------------------------------------
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -872,6 +894,18 @@ function MapsPageContent() {
             </Button>
           </>
         }
+      />
+
+      <AISuggestPanel
+        tool="mapas"
+        context={{
+          x: xAxis.mode === "property" && effectiveXProperty ? effectiveXProperty : null,
+          y: yAxis.mode === "property" && effectiveYProperty ? effectiveYProperty : null,
+          index_slug: indexMode !== "none" && indexMode !== "custom" ? indexMode : null,
+        }}
+        actions={["set_axes", "apply_preset", "set_index", "open_route"]}
+        onAction={applyAiAction}
+        disabledReason={universe === "process" ? t.aiMaterialsOnly : undefined}
       />
 
       <Dialog

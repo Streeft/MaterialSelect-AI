@@ -19,10 +19,12 @@ import type {
   CommitResult,
   ImportMapping,
   ImportTemplate,
+  SuggestAction,
   UploadResult,
   ValidationReport,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { cn } from "@/lib/cn";
 import { IconUpload } from "@/components/ui/icons";
 import {
@@ -275,6 +277,29 @@ export default function ImportPage() {
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  /**
+   * D-229: a click on "map this column" fills that column's row of the mapping,
+   * and nothing else: the person still checks the unit and starts the import
+   * themselves. The unit is kept only when the column already pointed at this
+   * property; a unit that belonged to another property is cleared, never carried.
+   */
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "map_column") return;
+    setColumns((current) =>
+      current.map((c) =>
+        c.column === action.col
+          ? {
+              ...c,
+              target: "property",
+              propertySlug: action.prop,
+              role: c.target === "property" ? c.role : "value",
+              unit: c.target === "property" && c.propertySlug === action.prop ? c.unit : "",
+            }
+          : c,
+      ),
+    );
+  }
+
   function handleValidate() {
     const built = buildMapping(columns, defaultClassId, sourceLabel);
     if (built.error || !built.mapping) {
@@ -412,6 +437,13 @@ export default function ImportPage() {
               </Select>
             )}
           </div>
+
+          <AISuggestPanel
+            tool="importar"
+            context={{ columns: upload.headers.slice(0, 200) }}
+            actions={["map_column", "open_route"]}
+            onAction={applyAiAction}
+          />
 
           {doPreviewSheet.isPending && (
             <p role="status" className="text-caption text-ink-muted">
