@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import type { GlossaryEntry, PropertyDefinition } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
+import type { GlossaryEntry, PropertyDefinition, SuggestionsOut } from "@/lib/types";
 
 const t = ptBR.glossary;
 
@@ -36,7 +37,11 @@ const api = {
   properties: (): Promise<PropertyDefinition[]> => Promise.resolve(props),
 };
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   listGlossary: () => api.glossary(),
   listProperties: () => api.properties(),
 }));
@@ -150,6 +155,48 @@ describe("página do glossário (D-130b)", () => {
     await screen.findByShadowRole("button", { name: t.openEntry("Durabilidade em água doce") });
     // "ausente" vem do endereço: Densidade tem verbete, então fica de fora.
     expect(screen.queryByShadowRole("button", { name: t.openEntry("Densidade") })).not.toBeInTheDocument();
+    window.history.replaceState(null, "", "/app/glossario");
+  });
+});
+
+describe("glossário — Sugestão da IA (D-229)", () => {
+  it("só consulta ao clicar; “Buscar” põe o termo na caixa e no endereço; a rota é um link", async () => {
+    window.history.replaceState(null, "", "/app/glossario");
+    const answer: SuggestionsOut = {
+      tool: "glossario",
+      summary: "Termos relacionados.",
+      suggestions: [
+        {
+          title: "Veja a durabilidade",
+          body: "Complementa a densidade.",
+          actions: [
+            { type: "search", label: "Buscar durabilidade", q: "durabilidade" },
+            { type: "open_route", label: "Ver as famílias", path: "/app/glossario/familias" },
+          ],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    };
+    suggest.fn.mockResolvedValue(answer);
+    render(wrap(<GlossaryPage />));
+    await screen.findByShadowRole("button", { name: t.openEntry("Densidade") });
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: suggestText.button }));
+    await userEvent.click(await screen.findByRole("button", { name: "Buscar durabilidade" }));
+    expect(suggest.fn).toHaveBeenCalledWith("glossario", { q: "", slug: null });
+    await waitFor(() => expect(window.location.search).toContain("busca=durabilidade"));
+    expect(screen.getByShadowRole("searchbox", { name: t.filter })).toHaveValue("durabilidade");
+    await userEvent.click(screen.getByRole("button", { name: suggestText.button }));
+    expect(await screen.findByRole("link", { name: "Ver as famílias" })).toHaveAttribute(
+      "href",
+      "/app/glossario/familias",
+    );
     window.history.replaceState(null, "", "/app/glossario");
   });
 });

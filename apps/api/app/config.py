@@ -120,6 +120,16 @@ class Settings(BaseSettings):
     # How long the catalogue summary the prompts carry (properties, indices,
     # classes, ordinal scales) is reused before being read again.
     ai_context_cache_seconds: float = 60.0
+    # Suggestions of every tool (/ai/suggest, D-228): a short call — the
+    # answer is three cards, not a report — reused for the same screen state
+    # within the cache window, which spends no daily quota.
+    ai_suggest_timeout_seconds: float = 20.0
+    ai_suggest_max_output_tokens: int = 1500
+    ai_suggest_cache_seconds: float = 600.0
+    # The AI diagnosis (/ai/diagnostico, D-228) calls the model, the embedding
+    # and the web search once each. It does not spend the daily quota; it has
+    # this own low ceiling per person per hour instead.
+    ai_diagnostic_per_hour: int = Field(default=6, ge=0)
 
     # --- Knowledge base / Cérebro (optional) ------------------------------
     # Root directory of the curated reference corpus, relative to the repo root
@@ -144,6 +154,9 @@ class Settings(BaseSettings):
     # the lexical search alone (D-224). The embedding is a network call; the
     # person waiting on an answer should not pay for a slow provider.
     knowledge_retrieval_budget_seconds: float = 2.0
+    # The same budget for the Cadernos' retrieval (D-228): past it, a
+    # notebook question is ranked by the lexical half alone.
+    notebook_retrieval_budget_seconds: float = 2.0
 
     # Embeddings para busca semântica — estritamente opcional por cima da
     # busca léxica (que não depende de nenhum dos três). Sem padrão de

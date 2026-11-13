@@ -114,3 +114,19 @@ export function mapHrefForAxis(slug: string): string {
   };
   return `/app/mapas?estado=${encodeMapState(state)}`;
 }
+
+/**
+ * D-229: the map with `x` and `y` on the axes, restricted to `materialIds` when
+ * given — what an AI suggestion on Comparar ("veja os comparados num mapa")
+ * opens. Everything else is as the default map opens.
+ */
+export function mapHrefForAxes(x: string, y: string, materialIds: number[] = []): string {
+  const state: MapUrlState = {
+    ...DEFAULT_MAP_STATE,
+    xAxis: { ...DEFAULT_MAP_STATE.xAxis, property: x },
+    yAxis: { ...DEFAULT_MAP_STATE.yAxis, property: y },
+  };
+  const params = new URLSearchParams({ estado: encodeMapState(state) });
+  if (materialIds.length > 0) params.set("materiais", encodeIdList(materialIds));
+  return `/app/mapas?${params.toString().replace(/%2C/g, ",")}`;
+}

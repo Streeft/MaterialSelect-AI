@@ -25,7 +25,7 @@ from app.knowledge.embeddings import (
     unpack_vector,
 )
 from app.knowledge.lexical import tokenize
-from app.knowledge.retrieval import lexical_rank, reciprocal_rank_fusion
+from app.knowledge.retrieval import embed_query, lexical_rank, reciprocal_rank_fusion
 from app.models.notebook import NotebookChunk
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,10 @@ def search(
 
     ``semantic`` is False for the simulated provider: it is offline by
     contract, and an embedding call would make it neither.
+
+    The query's embedding waits at most ``NOTEBOOK_RETRIEVAL_BUDGET_SECONDS``
+    (D-228), the Cérebro's rule (D-224): past it, the passages are ranked by
+    the lexical half alone and the miss is logged.
     """
     if not chunks:
         return Retrieval(chunks=[], fallback=False)
@@ -134,7 +138,9 @@ def _semantic_rank(
     if not embedded:
         return []
     try:
-        query_vector = client.embed([query])[0]
+        query_vector = embed_query(client, query, settings.notebook_retrieval_budget_seconds)
+        if query_vector is None:
+            return []
         # Model *and* the query's actual length (never 0, which would mean
         # "any"): a vector of another size is ignored, not compared — before,
         # one such vector made similarity() raise and dropped the whole

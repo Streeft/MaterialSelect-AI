@@ -13003,7 +13003,7 @@ os Mapas tinham quatro cartões ao lado do mapa, a legenda abaixo de uma figura 
   Aparência) e guarda só id e nome; o Início mostra "Mapas fixados" (sem pino, sem bloco), e `?grafico=<id>` reabre o mapa pedindo
   a configuração de novo ao servidor.
 - **Comparar: pontos de partida e uma barra.** O estado vazio ganha "Pares clássicos" (aço × alumínio, PEAD × PP, titânio × aço,
-  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência; desde a D-229, palavra inteira, na classe certa e preferindo o nome que começa pelo termo);
+  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência; desde a D-230, palavra inteira, na classe certa e preferindo o nome que começa pelo termo);
   par com um lado ausente não aparece (`lib/compareClassics.ts`). Os dois cartões de passo viram uma barra: materiais e
   propriedades adicionados por busca (`Combobox`) e escolhidos como chips removíveis; o nível de leitura fica ao lado da busca.
 
@@ -13282,7 +13282,107 @@ merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que
 
 **Numeração.** D-227/Sessão 184 (D-226/Sessão 183 são o fechamento da revisão das telas, neste mesmo PR).
 
-## D-229 — Pares clássicos do Comparar: palavra inteira, classe e começo do nome
+## D-228 — IA gratuita do Google em todas as funções: diagnóstico, robustez com o Gemini e sugestões em todas as ferramentas (IA-1, backend)
+
+**Contexto.** Em produção a IA é o Gemini gratuito via `openai-compat` (`gemini-flash-lite-latest`, embeddings
+`gemini-embedding-001` com 768 dimensões). Todas as funções de IA (interpretar, plano, explicação/laudo, chat e guia dos
+Cadernos, Estúdio) passam pela mesma fábrica, mas não havia como conferir, de dentro do app, se cada capacidade respondia; a
+recuperação dos Cadernos esperava o embedding da pergunta sem limite; uma recusa do Google ao `json_schema` estrito obrigava a
+trocar `AI_JSON_MODE` à mão; o 429 do plano gratuito virava uma mensagem genérica; e 15 telas não tinham nenhuma IA.
+
+**Decisão.**
+
+1. **Diagnóstico.** `GET /api/ai/status` passa a trazer `model`, `host` (só o host, nunca a chave nem o caminho), `json_mode`,
+   `embedding_model` e `capabilities` (texto, JSON estrito, embeddings, busca na web), cada uma configurada ou não, com o que
+   falta em PT-BR — só lendo a configuração. `POST /api/ai/diagnostico` (pessoa logada, bucket `ai` do limite por minuto)
+   faz as chamadas mínimas — um JSON de dois campos (`probe()` do provedor), o embedding de uma palavra e, se ligada, uma busca
+   na web — e devolve, por capacidade, `ok`/`erro`/`nao_configurado`, latência e mensagem. Não gasta a cota diária; tem contador
+   próprio por pessoa e hora (`AI_DIAGNOSTIC_PER_HOUR=6`, 429 em PT-BR depois). Na interface, cartão "Diagnóstico da IA" em
+   **Aparência**, com "Testar a IA agora".
+2. **Orçamento de tempo nos Cadernos.** `app/notebooks/retrieval.py` usa o mesmo `embed_query` do Cérebro (D-224) com
+   `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS=2`: passou, a pergunta é ranqueada só pela busca léxica, e o estouro fica no log.
+3. **Robustez com o Gemini.** Todas as chamadas (interpret, plan, explain, answer, digest, studio, suggest e o probe) saem em
+   `json_schema` estrito e são lidas do envelope do Gemini (testado com respostas no formato real). Um **400 que reclama do
+   pedido de formato** (`additionalProperties`, `response_schema`, `response_format`…) — e não da geração, que segue o D-89 —
+   faz o provedor descer **sozinho** um degrau do `AI_JSON_MODE` já previsto (`schema` → `object` → `prompt`), uma vez, e lembrar
+   disso por processo (`effective_json_mode()`); a leitura, a coerção e os guardrails não mudam. Um **429 do Google** vira
+   `QuotaExhaustedError` (ainda `AIUnavailableError`) com "A cota gratuita do Google acabou por agora; tente em X", X tirado do
+   `RetryInfo`/`Retry-After`/"retry in" ou "amanhã" quando a cota estourada é diária (`app/ai/google_quota.py`); o plano, as
+   sugestões e o diagnóstico mostram essa frase. Outro host mantém a mensagem genérica do 429.
+4. **Motor de sugestões `POST /api/ai/suggest {tool, context}`.** `tool` é um enum de 16 ferramentas (mapas, comparar, catalogo,
+   ficha, processos, glossario, sintetizar, painel, registros, importar, dimensionar, custo, eco, baterias, admin_classes,
+   admin_propriedades). Um construtor por ferramenta (`app/services/ai_suggest.py`) **valida** o contexto (id inexistente → 404;
+   pedido de calculadora malformado → 400; contexto acima de 20 000 caracteres → 422) e o **enriquece** no servidor: Comparar
+   recebe ids e o servidor monta a tabela; Custo, Eco, Baterias, Dimensionar e Sintetizar recebem o pedido e o resultado é
+   recalculado; o Painel lê os agregados; qualquer "resultado" que o cliente mande é ignorado. A saída `SuggestionsOut` traz
+   `summary` e até 3 `suggestions` (`title`, `body`, até 3 `actions` tipadas com `label` escrito pelo servidor):
+   `set_axes{x,y}`, `apply_preset{id}`, `set_index{slug}`, `add_filter{field,value}`, `sort{prop,dir}`, `search{q}`,
+   `open_route{path}`, `compare{ids}`, `set_param{name,value}`, `map_column{col,prop}`, `fill_text{field,text}` — cada
+   ferramenta com a sua lista. **Guardrails** (`app/ai/suggest.py`): entidade inexistente, rota fora da lista, ação de outra
+   tela ou valor de `set_param` que não vem do contexto nem de um cenário/padrão (D-224) → ação removida com motivo em
+   `rejected`; prosa com número fora do contexto (`ungrounded_numbers`, aceitando os arredondamentos e o percentual de um número
+   do servidor) → cartão descartado. **Nunca vazio**: falha, cota ou nada válido → regras locais da ferramenta com `degraded` e
+   `notice`; camada desligada → as mesmas regras (provedor `regras-locais`). O **mock** responde as regras (determinístico). Cache
+   por (ferramenta, hash do contexto enriquecido, provedor, modelo) por `AI_SUGGEST_CACHE_SECONDS=600`, sem gastar cota;
+   chamada curta (`AI_SUGGEST_TIMEOUT_SECONDS=20`, `AI_SUGGEST_MAX_OUTPUT_TOKENS=1500`, uma repetição), prompt curto (contexto
+   até 2 500 caracteres, até 30 opções por tipo), cota diária (D-179) e bucket `ai` do limite por minuto. Nada é aplicado pela
+   API: a tela mostra cada ação como botão.
+
+**Alternativas recusadas.** Ação como união de onze formatos no schema do modelo (um modelo pequeno erra; o schema do modelo é
+plano — `type`, `target`, `value`, `ids` — e a API devolve o formato tipado). Deixar o cliente mandar a tabela ou o resultado
+(o modelo repetiria números sem conferência). Descer o modo JSON em qualquer 400 (uma requisição inválida não é recusa de
+formato). Contar o diagnóstico na cota diária (testar a IA não pode tirar a IA de quem testa).
+
+**Consequências.** Só backend e o mínimo de interface (cliente em `lib/api.ts` e o cartão em Aparência); as 15 telas ganham o
+painel "Sugestão da IA" nas etapas IA-2a e IA-2b. Tipos novos em `packages/shared-types` (`AIStatus` ampliado,
+`AIDiagnostico`, `SuggestionsOut`, `SuggestAction`). **Deploy da API** depois do merge; sem migração nem seed. Em produção, rodar
+o diagnóstico (§5-quinquies do deploy).
+
+**Numeração.** D-228/Sessão 185.
+
+## D-229 — Painel "Sugestão da IA" em sete telas (IA-2a, frontend)
+
+**Contexto.** O D-228 entregou `POST /api/ai/suggest` e o cliente, mas nenhuma tela o chamava. O plano gratuito do Google tem
+cota diária e por minuto compartilhada com o resto da IA; qualquer desenho que consulte o modelo ao abrir a tela a gastaria à
+toa. As ações devolvidas são propostas: nada pode mudar a tela sem o clique da pessoa.
+
+**Decisão.**
+
+1. **Um componente só.** `components/ai/AISuggestPanel.tsx` (dados em `useAISuggest`, regras puras em `lib/ai/suggest.ts`, textos em
+   `lib/i18n-suggest.ts`). O botão **"Sugestão da IA"** chama `suggestNextSteps` **somente ao clicar**; fechar e reabrir não
+   repete a chamada. Estados: carregando (esqueleto e `aria-live`), erro (`describeApiError`, "Tentar de novo"; no 429 a frase do
+   servidor diz quando tentar), vazio escrito, `degraded`/`notice` como aviso (com texto próprio se o servidor não mandou
+   `notice`), `cached` discreto, `rejected` num bloco recolhido e o `disclaimer`. Com `/ai/status` `enabled=false`, o botão fica
+   desligado com a explicação (status ilegível conta como ligado: a chamada diz o que há). Cor só por token, `min-w-0`/`break-words`
+   e uma consulta de contêiner (`.ai-suggest`) para uma ou duas colunas de cartões.
+2. **Clicar aplica, pela tela.** A tela passa `onAction(action)` e `actions` (os tipos que sabe aplicar). Ação de tipo fora da
+   lista, ou com formato que o tipo não promete (`isWellFormedAction`), **não aparece**; um cartão sem ação utilizável fica como
+   conselho. `open_route` é um link para um caminho interno (nunca `//` nem outro site); `linkFor` deixa a tela transformar outra
+   ação em link (um `search` numa tela sem caixa de busca). Depois do clique o botão vira "aplicado", o leitor de tela ouve a
+   frase e, em janela estreita, o painel se recolhe (a resposta fica). Se o contexto da tela mudar depois da resposta, o painel
+   avisa que ela é antiga e só pede de novo no clique.
+3. **As telas.** Mapas: `set_axes`, `apply_preset` e `set_index` passam pelos mesmos setters dos controles, e a URL (`estado=`)
+   acompanha; desligado no universo de processos. Comparar: `compare` troca `?materiais=` e `set_axes` abre os comparados no Mapa
+   (`mapHrefForAxes`, a única vista com eixos); desligado sem material. Catálogo: `add_filter`, `sort` e `search` escrevem os
+   parâmetros da URL e voltam à página 1; `compare` abre `/app/comparar?materiais=`. Ficha: `compare` abre o Comparar com os
+   parecidos. Glossário e Processos: `search` põe o texto na caixa de busca (na ficha do processo vira link para a lista).
+   Importar: `map_column` preenche a linha da coluna na tela de mapeamento (alvo "propriedade" e a propriedade) e **nada mais**:
+   não valida nem importa, e a unidade só é mantida se a coluna já apontava para a mesma propriedade, senão fica em branco
+   (princípio 1: nunca inventada).
+
+**Alternativas recusadas.** Pedir as sugestões ao abrir a tela (gasta a cota e o Google barra o resto da IA). Aplicar a primeira
+ação sozinha (a IA propõe, a pessoa decide). Um painel por tela (os sete teriam estados de erro e de cota diferentes). Mostrar
+a ação desconhecida como botão sem efeito (um botão que não faz nada ensina a não confiar no painel).
+
+**Consequências.** Só frontend: sem mudança de API, migração ou seed. `AISuggestPanel` é a base da IA-2b (Dimensionar, Custo,
+Eco, Baterias, Sintetizar, Painel, Meus registros e Admin: `set_param`, `fill_text`, `compare`, `open_route`). Os testes de
+página que simulam `@/lib/api` passaram a incluir `getAIStatus`/`suggestNextSteps` onde o painel é exercitado; nos demais a
+ausência do mock é tratada como "status ilegível" e não quebra a tela. Testes novos: `AISuggestPanel.test.tsx` (com axe),
+`lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em cada tela e `e2e/sugestao-ia.spec.ts` (Mapas e Catálogo, com o `mock`).
+
+**Numeração.** D-229/Sessão 186.
+
+## D-230 — Pares clássicos do Comparar: palavra inteira, classe e começo do nome
 
 **Contexto.** Os "Pares clássicos" do D-221 achavam cada lado pelo nome dobrado (sem acento nem caixa) com `includes`, primeira
 ocorrência na ordem do catálogo. Com o catálogo de 678 materiais (`seed` + `seed_extended`), três dos cinco pares traziam outro
@@ -13311,4 +13411,4 @@ com o termo: a varredura por `indexOf` com o teste do vizinho faz o mesmo sem es
 `MaterialListItem` já traz). Sem backend, migração nem seed. Um catálogo sem a classe certa não oferece o par, mesmo que tenha um
 nome parecido em outra classe — é o comportamento querido.
 
-**Numeração.** D-229/Sessão 186 (o #248, aberto em paralelo, usa D-228/Sessão 185).
+**Numeração.** D-230/Sessão 187 (D-228/Sessão 185 e D-229/Sessão 186 entraram no `main` antes, pelo #248 e pela IA-2a).

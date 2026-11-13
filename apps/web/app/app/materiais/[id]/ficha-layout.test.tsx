@@ -7,7 +7,8 @@ import { errorsText } from "@/lib/i18n-errors";
 import { fichaText } from "@/lib/i18n-ficha";
 import { flowText } from "@/lib/i18n-flow";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import type { MaterialDetail, PropertyValueOut } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
+import type { MaterialDetail, PropertyValueOut, SuggestionsOut } from "@/lib/types";
 
 /*
  * D-214: the sheet was over 7.000 px with ~40 "Ler em…" selectors, the similar
@@ -90,6 +91,7 @@ const state = vi.hoisted(() => ({
   getChart: vi.fn(),
   deactivate: vi.fn(),
   canEdit: false,
+  suggest: vi.fn(),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => ({
@@ -103,6 +105,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   getChart: (...args: unknown[]) => state.getChart(...args),
   deactivateMaterial: (id: number) => state.deactivate(id),
   listFamilyNotes: () => Promise.resolve([]),
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => state.suggest(tool, context),
 }));
 vi.mock("@/lib/billing", () => ({ useCanEditCatalog: () => state.canEdit }));
 vi.mock("@/components/my-records/FavoriteButton", () => ({
@@ -366,5 +370,50 @@ describe("ficha: não encontrada não é falha (D-200)", () => {
     expect(await screen.findByRole("button", { name: ptBR.ui.retry })).toBeInTheDocument();
     expect(screen.queryByText(/Failed to fetch/)).toBeNull();
     expect(screen.queryByText(errorsText.materialNotFound.title)).toBeNull();
+  });
+});
+
+describe("ficha: Sugestão da IA (D-229)", () => {
+  function answer(): SuggestionsOut {
+    return {
+      tool: "ficha",
+      summary: "Dois passos.",
+      suggestions: [
+        {
+          title: "Compare com os parecidos",
+          body: "Veja onde diferem.",
+          actions: [{ type: "compare", label: "Comparar com os parecidos", ids: [5, 7, 9] }],
+        },
+        {
+          title: "Veja o processo",
+          body: "Forjamento é o mais usado.",
+          actions: [{ type: "open_route", label: "Abrir Forjamento", path: "/app/processos/forjamento" }],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    };
+  }
+
+  it("só consulta ao clicar, com o id; comparar leva os parecidos ao Comparar e a rota é um link", async () => {
+    state.suggest.mockResolvedValue(answer());
+    const user = userEvent.setup();
+    mount();
+    await loaded();
+    expect(state.suggest).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    const compare = await screen.findByRole("button", { name: "Comparar com os parecidos" });
+    expect(state.suggest).toHaveBeenCalledWith("ficha", { material_id: 5 });
+    expect(screen.getByRole("link", { name: "Abrir Forjamento" })).toHaveAttribute(
+      "href",
+      "/app/processos/forjamento",
+    );
+    await user.click(compare);
+    expect(nav.push).toHaveBeenCalledWith("/app/comparar?materiais=5,7,9");
   });
 });
