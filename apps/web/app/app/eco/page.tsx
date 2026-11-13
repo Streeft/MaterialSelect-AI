@@ -252,7 +252,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   const compareResult = liveCompare.data ?? null;
   const live = individual ? liveAudit : liveCompare;
 
-  // D-230: a suggested parameter is written where the reader would have typed it
+  // D-230b: a suggested parameter is written where the reader would have typed it
   // (the URL) and the audit follows by itself; the field that changed is shown.
   const aiAudit = individual && ready ? buildAuditBrief(resolvedComponents, resolvedLegs, premises) : null;
   const acceptsAiAction = (action: SuggestAction) =>

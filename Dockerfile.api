@@ -41,6 +41,13 @@ COPY apps/api/scripts ./scripts
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
 USER appuser
 
+# D-231: o glibc cria uma arena de malloc por thread que aloca, e as rotas
+# síncronas rodam num pool de até 40 threads. Com o catálogo inteiro passando
+# por elas, cada arena guardava dezenas de MB liberados e nunca devolvidos ao
+# sistema; com duas arenas o pico de oito telas pesadas juntas caiu de ~1 GB
+# para ~0,65 GB na medição local, sem mudar o tempo de resposta.
+ENV MALLOC_ARENA_MAX=2
+
 # 8080 é o que o fly.toml declara como internal_port.
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

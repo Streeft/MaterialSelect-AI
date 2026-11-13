@@ -912,7 +912,7 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
   });
 });
 
-describe("Auditoria ambiental — Sugestão da IA (D-230)", () => {
+describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
   // A wide window keeps the panel open after an action (a narrow one folds it).
   installWideViewport();
   const answer: SuggestionsOut = {

@@ -126,7 +126,7 @@ function briefUrlSpec(defaults: DefaultsResult["baterias"]): UrlSpec<BatteryBrie
 }
 
 /**
- * D-230: the AI's numeric parameter names (the request's), and the brief field each
+ * D-230b: the AI's numeric parameter names (the request's), and the brief field each
  * one writes. `chemistry_slug` is the one text parameter: a slug the catalogue lists.
  */
 const AI_NUMERIC_PARAMS = {
@@ -365,7 +365,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
   const ready = blocked === null;
   const [premisesOpen, setPremisesOpen] = useState(false);
 
-  // D-230: a suggested parameter is written where the reader would have typed it
+  // D-230b: a suggested parameter is written where the reader would have typed it
   // — the URL, and "custom" like any hand edit — and the sizing follows by itself.
   const acceptsAiAction = (action: SuggestAction) => {
     if (action.type !== "set_param") return true;

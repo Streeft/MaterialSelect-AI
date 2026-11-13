@@ -123,7 +123,7 @@ export default function PropertiesAdminPage() {
 
   const sameName = (a: string, b: string) =>
     a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
-  // D-230: the proposed description goes into the form's field and nothing more —
+  // D-230b: the proposed description goes into the form's field and nothing more —
   // it is not saved; the person reads it, edits it and presses the button.
   const acceptsAiAction = (action: SuggestAction) =>
     action.type !== "fill_text" || action.field === "description";

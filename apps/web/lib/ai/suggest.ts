@@ -74,7 +74,7 @@ export function isWellFormedAction(action: unknown): action is SuggestAction {
 /**
  * The actions of one suggestion this screen can apply, in the server's order.
  *
- * `accepts` is the screen's last word (D-230): a `set_param` whose name is not
+ * `accepts` is the screen's last word (D-230b): a `set_param` whose name is not
  * a field this screen has, or a value this field would not take, is dropped
  * like any other action it cannot apply — never shown as a button that does nothing.
  */

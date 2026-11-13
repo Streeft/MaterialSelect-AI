@@ -37,7 +37,7 @@ export interface AISuggestPanelProps {
    */
   linkFor?: (action: SuggestAction) => string | null;
   /**
-   * The screen's last check of an action of a listed type (D-230): a `set_param`
+   * The screen's last check of an action of a listed type (D-230b): a `set_param`
    * for a field this screen does not have, or with a value the field would not
    * take. An action it refuses is not shown, like one of an unlisted type.
    */

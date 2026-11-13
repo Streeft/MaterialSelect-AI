@@ -1,5 +1,5 @@
 /**
- * D-230: showing the person which field an applied suggestion changed.
+ * D-230b: showing the person which field an applied suggestion changed.
  *
  * A screen marks the controls an AI action may write with `aiField("name")`
  * (a `data-ai-field` attribute, which the form controls pass through to the

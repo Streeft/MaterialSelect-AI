@@ -498,7 +498,7 @@ describe("Painel sanduíche", () => {
   });
 });
 
-describe("Sintetizar — Sugestão da IA (D-230)", () => {
+describe("Sintetizar — Sugestão da IA (D-230b)", () => {
   installWideViewport();
   const answer: SuggestionsOut = {
     tool: "sintetizar",

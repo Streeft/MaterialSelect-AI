@@ -19,6 +19,10 @@ from dataclasses import dataclass
 # Above this many keys, windows that have already closed are dropped on the
 # next hit, so the dictionary cannot grow without bound under many IPs.
 _PRUNE_ABOVE = 10_000
+# A hard ceiling (D-231): if every window is still open — that many distinct
+# callers inside one window — the oldest are forgotten. Forgetting a window
+# only lets that caller start counting again; it never refuses anybody.
+MAX_WINDOWS = 50_000
 
 
 @dataclass
@@ -76,3 +80,8 @@ class FixedWindowLimiter:
         ]
         for key in stale:
             del self._windows[key]
+        excess = len(self._windows) - (MAX_WINDOWS - 1)
+        if excess > 0:
+            oldest = sorted(self._windows, key=lambda k: self._windows[k].started_at)[:excess]
+            for key in oldest:
+                del self._windows[key]

@@ -55,7 +55,7 @@ test("Catálogo: uma sugestão aplica um filtro de classe e a lista segue o ende
 });
 
 /**
- * D-230 (IA-2b): the calculator screens and the admin forms. The `mock` provider
+ * D-230b (IA-2b): the calculator screens and the admin forms. The `mock` provider
  * answers with the local rules, so the cards are deterministic: Custo offers to
  * put a premise that left its starting value back, and the admin forms offer a
  * description draft.

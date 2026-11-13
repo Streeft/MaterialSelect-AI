@@ -883,7 +883,7 @@ estreita o painel se recolhe depois de uma ação, para a pessoa ver o que mudou
 | Processos (lista e ficha) | `processos`: `slug` (nulo na lista) | na lista, `search` vai para `?busca=`; na ficha, vira link para a lista com a busca; `open_route` é link |
 | Importar (mapeamento) | `importar`: `columns` | `map_column` preenche a linha da coluna (alvo "propriedade" e a propriedade), sem importar nem validar e **sem inventar a unidade** |
 
-### Painel nas oito telas restantes (D-230, IA-2b) — as 15 telas
+### Painel nas oito telas restantes (D-230b, IA-2b) — as 15 telas
 
 As mesmas regras do painel valem aqui, com uma peça a mais: `accepts(action)`, a última palavra da tela. Um `set_param` de campo que a
 tela não tem, de valor que o campo não aceita ou que **não mudaria nada** não aparece (um botão que não faz nada ensina a não confiar

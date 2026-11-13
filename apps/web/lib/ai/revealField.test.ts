@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { aiField, fieldsFor, revealField } from "./revealField";
 
-describe("lib/ai/revealField (D-230)", () => {
+describe("lib/ai/revealField (D-230b)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     document.body.innerHTML = `

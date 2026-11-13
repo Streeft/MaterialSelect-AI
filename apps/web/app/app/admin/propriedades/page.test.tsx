@@ -79,7 +79,7 @@ describe("admin/propriedades (D-222)", () => {
   });
 });
 
-describe("admin/propriedades — Sugestão da IA (D-230)", () => {
+describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
   const answer: SuggestionsOut = {
     tool: "admin_propriedades",
     summary: "Sugestões para a propriedade que você está editando.",

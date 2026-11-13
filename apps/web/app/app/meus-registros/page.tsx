@@ -253,7 +253,7 @@ export default function MyRecordsPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
 
-      {/* D-230: the server reads this person's own records, so the screen sends nothing;
+      {/* D-230b: the server reads this person's own records, so the screen sends nothing;
           comparing opens the comparison screen and a route opens a sheet — both links. */}
       <AISuggestPanel
         tool="registros"

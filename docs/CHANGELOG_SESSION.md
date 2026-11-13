@@ -128,8 +128,18 @@ três minutos na produção. Um worker continua. Nota em `docs/13-deploy.md` (§
 nas rotas pesadas: a terceira espera e, esgotada a espera, recebe 503 com `Retry-After`. Testes novos:
 `test_heavy_request_gate.py`. **Depois do merge: Deploy da API.**
 
-## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
-## Sessão 187 — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230)
+**Parte 13 (consumo na origem e numeração).** Seleção monta o retrato por duas consultas de colunas
+(`SelectionRepository.active_material_rows`); `ChartRepository.list_materials` com `selectinload` e o filtro `property_slugs`
+(mapa, Dimensionar, Find Similar, rotas de fim de vida); Custo e Eco leem só o material pedido; o catálogo conta proveniência e
+referências no banco (`value_facts`, `sort_values`). `MALLOC_ARENA_MAX=2` no `Dockerfile.api`; teto de 50 000 janelas no limite por
+minuto. Medido (Postgres local, 678 materiais): pico por requisição de 134–166 MB para 0,5–11 MB nas telas pesadas e de 53 para
+7 MB no catálogo; 10 clientes simultâneos, RSS de 1454 para 211 MB; as 41 respostas do roteiro iguais antes e depois. Testes novos:
+`test_memory_per_request.py` (falhava em 14 de 17 rotas antes), `test_ai_cache_bounds.py` e o teto em `test_rate_limit.py`.
+Numeração: o painel "Sugestão da IA" das oito telas (#251) virou **D-230b/Sessão 187b** pela regra do D-226 (os pares clássicos do
+#252 ficam com D-230/187), com as referências do código atualizadas; o corpo da Sessão 187 dos pares, que estava numa "Sessão 186
+… (D-229)" duplicada, voltou para o lugar.
+
+## Sessão 187b — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230b)
 
 **O que mudou.** Frontend: `AISuggestPanel` ganhou `accepts` (a tela recusa a ação que não sabe aplicar) e o painel foi ligado em
 Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros, Admin → Classes e Admin → Propriedades. `set_param` escreve
@@ -142,9 +152,12 @@ conta" da Eco passou de `h4` para `h3` (axe). Testes novos: um bloco "Sugestão 
 `revealField.test.ts`, `suggest.test.ts` e `AISuggestPanel.test.tsx`; `e2e/sugestao-ia.spec.ts` (Custo e Admin, com o `mock`).
 
 **Para quem retoma.** Só frontend: sem **Deploy da API**, migração ou seed. As 15 telas têm o painel. Pendência para o backend:
-`ai_suggest.py` não dá valores alternativos em Sintetizar (ver o D-230).
+`ai_suggest.py` não dá valores alternativos em Sintetizar (ver o D-230b).
 
-## Sessão 186 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-229)
+**Numeração.** Entrou como Sessão 187/D-230 pelo #251, o mesmo número dos pares clássicos (#252); pela regra do D-226 virou
+187b/D-230b no D-231.
+
+## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
 
 **O que mudou.** `apps/web/lib/compareClassics.ts`: cada lado de um par tem classe e termos do mais específico ao mais geral; o
 termo casa só como palavra inteira e o nome que é ou começa pelo termo vence o que só o menciona (`matchRank`). Corrige "aço" →

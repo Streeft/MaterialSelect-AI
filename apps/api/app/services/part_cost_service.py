@@ -53,7 +53,13 @@ class PartCostService:
         self.process_repo = ProcessRepository(db)
 
     def estimate(self, request: CostRequest) -> CostResultOut:
-        materials = {material.id: material for material in self.repo.list_materials()}
+        # Only the material asked for (D-231): the whole catalogue with every
+        # value was read here to keep one, ~170 MB per estimate. Hidden or
+        # inactive records still come back empty and still 404 below.
+        materials = {
+            material.id: material
+            for material in self.repo.list_materials(material_ids=[request.material_id])
+        }
         material = materials.get(request.material_id)
         if material is None:
             # The same 404 a hidden record gets, for the same reason as

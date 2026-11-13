@@ -478,7 +478,7 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
   });
 });
 
-describe("BateriasPage — Sugestão da IA (D-230)", () => {
+describe("BateriasPage — Sugestão da IA (D-230b)", () => {
   installWideViewport();
   const answer: SuggestionsOut = {
     tool: "baterias",
