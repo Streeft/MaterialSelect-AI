@@ -1759,7 +1759,7 @@ export const ptBR = {
       "Traga suas fontes — apostilas, artigos, fichas e estudos — e converse com elas. Toda resposta cita o trecho de onde veio.",
     create: "Criar caderno",
     creating: "Criando…",
-    // D-235: ready-made notebooks.
+    // D-235b: ready-made notebooks.
     fromTemplate: "Criar a partir de um modelo",
     templateHint: (description: string, notes: string[]) =>
       notes.length > 0 ? `${description} Já vem com: ${notes.join(", ")}.` : description,
@@ -1787,7 +1787,7 @@ export const ptBR = {
     unarchived: (title: string) => `Caderno “${title}” de volta à lista.`,
     archivedBanner:
       "Este caderno está arquivado: sai da lista principal, mas nada foi apagado.",
-    // D-235: o aviso do provedor é um chip no cabeçalho; o texto inteiro abre nele.
+    // D-235b: o aviso do provedor é um chip no cabeçalho; o texto inteiro abre nele.
     providerSimulated: "Provedor simulado",
     providerExternal: "Provedor externo",
     providerAbout: "Sobre o provedor de IA",
@@ -2220,7 +2220,7 @@ export const ptBR = {
     noNotes: "Nenhuma nota. Salve uma resposta da conversa ou escreva a sua.",
     noteTitle: "Título",
     noteBody: "Nota",
-    // D-235: "/" in a note, and notes in the student's order.
+    // D-235b: "/" in a note, and notes in the student's order.
     slash: {
       fieldHint: "Digite / no começo de uma linha para inserir título, lista, citação, tabela ou o link de uma ficha.",
       menuLabel: "Inserir na nota",

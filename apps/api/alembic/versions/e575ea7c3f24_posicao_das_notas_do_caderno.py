@@ -1,4 +1,4 @@
-"""posicao das notas do caderno (D-235)
+"""posicao das notas do caderno (D-235b)
 
 Where the student put each note among the others. Additive: existing notes get
 0 and keep their old order through the id tie-break, so nothing is rewritten

@@ -1698,12 +1698,12 @@ export function createNotebook(title?: string, template?: NotebookTemplateId): P
   });
 }
 
-/** D-235: the ready-made notebooks offered when one is created. */
+/** D-235b: the ready-made notebooks offered when one is created. */
 export function listNotebookTemplates(): Promise<NotebookTemplate[]> {
   return request<NotebookTemplate[]>("/api/notebooks/templates");
 }
 
-/** D-235: every note of the notebook, in the student's new order. */
+/** D-235b: every note of the notebook, in the student's new order. */
 export function reorderNotebookNotes(id: number, ids: number[]): Promise<NotebookNote[]> {
   return request<NotebookNote[]>(`${nb(id)}/notes/order`, {
     method: "PUT",

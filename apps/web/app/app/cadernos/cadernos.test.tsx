@@ -216,7 +216,7 @@ describe("lista de cadernos", () => {
   });
 });
 
-describe("modelos de caderno (D-235)", () => {
+describe("modelos de caderno (D-235b)", () => {
   const prova = {
     id: "prova",
     title: "Revisão para prova",
@@ -369,7 +369,7 @@ describe("caderno", () => {
     expect(await screen.findByRole("heading", { name: t.panels.sources })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: t.panels.chat })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: t.panels.studio })).toBeInTheDocument();
-    // D-235: the provider notice is a chip in the header; its text opens from it.
+    // D-235b: the provider notice is a chip in the header; its text opens from it.
     expect(screen.queryByText("Provedor simulado: nada sai do servidor.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /^Provedor simulado\./ }));
     expect(await screen.findByText("Provedor simulado: nada sai do servidor.")).toBeInTheDocument();

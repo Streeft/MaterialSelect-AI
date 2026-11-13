@@ -200,7 +200,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `saved_view`, linha `kind="layout"`); bloco sem conteúdo fica no lugar com uma linha (`emptyLabel`), nunca escondido. Favoritos
   (estrela, conta) têm seção na barra lateral, distinta de Fixados (páginas, aparelho).
 
-- **Cadernos ([D-235](docs/DECISIONS.md))**: modelos vêm de `GET /api/notebooks/templates` (nunca uma lista no React); a ordem das
+- **Cadernos ([D-235b](docs/DECISIONS.md))**: modelos vêm de `GET /api/notebooks/templates` (nunca uma lista no React); a ordem das
   notas é da conta (`PUT …/notes/order`, `Block` + `useReorder`); "/" num campo de nota é `SlashTextarea` (ficha entra como link,
   nunca como valor copiado); `ToolTile` é monocromático — cor só para estado; aviso do provedor é chip no cabeçalho.
 

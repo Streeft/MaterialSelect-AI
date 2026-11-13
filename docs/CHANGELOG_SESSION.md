@@ -120,7 +120,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 192 — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235)
+## Sessão 192b — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235b)
 
 **O que mudou.** Backend: `app/domain/notebook_templates.py` (Disciplina de Materiais, Revisão para prova, Projeto de TCC, Em branco),
 `GET /api/notebooks/templates`, `template` no `POST /api/notebooks` (objetivo da conversa e notas de partida), coluna

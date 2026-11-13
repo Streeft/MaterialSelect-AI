@@ -1,4 +1,4 @@
-"""Cadernos, D-235 (F7): ready-made notebooks and notes in the student's order."""
+"""Cadernos, D-235b (F7): ready-made notebooks and notes in the student's order."""
 
 from __future__ import annotations
 

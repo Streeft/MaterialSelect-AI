@@ -49,7 +49,7 @@ export default function NotebooksPage() {
     queryKey: [...NOTEBOOKS_KEY, archived ? "arquivados" : "ativos"],
     queryFn: () => listNotebooks(archived),
   });
-  // D-235: the ready-made notebooks. If they do not load, "Criar caderno" still
+  // D-235b: the ready-made notebooks. If they do not load, "Criar caderno" still
   // creates a blank one — the gallery is a shortcut, never the only door.
   const templates = useQuery({
     queryKey: [...NOTEBOOKS_KEY, "modelos"],
@@ -238,7 +238,7 @@ export default function NotebooksPage() {
           description={archived ? t.archivedEmptyDescription : t.emptyDescription}
           // The models are already on the page below: the button is the blank one.
           action={archived ? undefined : blankButton}
-          // D-235: Notion's empty page — start from a model, not from a blank.
+          // D-235b: Notion's empty page — start from a model, not from a blank.
           templates={
             archived
               ? undefined

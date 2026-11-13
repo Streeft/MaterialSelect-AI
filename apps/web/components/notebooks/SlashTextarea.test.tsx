@@ -40,7 +40,7 @@ function mount(onValue?: (v: string) => void) {
   );
 }
 
-describe("nota com / (D-235)", () => {
+describe("nota com / (D-235b)", () => {
   it("/ no começo da linha abre a lista; filtra, e Enter insere o bloco no lugar do /", async () => {
     let last = "";
     const user = userEvent.setup();

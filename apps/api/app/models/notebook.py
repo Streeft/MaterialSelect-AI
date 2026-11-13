@@ -244,7 +244,7 @@ class NotebookNote(Base):
     origin: Mapped[str] = mapped_column(String(12), default="manual", nullable=False)
     #: The passages a saved answer cited, copied with it.
     citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    #: D-235: where the student put the note among the others (0-based); ties
+    #: D-235b: where the student put the note among the others (0-based); ties
     #: fall back to the id, the order notes had before positions existed.
     position: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

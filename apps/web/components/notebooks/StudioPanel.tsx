@@ -138,7 +138,7 @@ export function StudioPanel({
     },
   });
 
-  // D-235: the notes in the student's order. The list moves at once (the
+  // D-235b: the notes in the student's order. The list moves at once (the
   // cache), the server keeps it; a refusal brings the server's order back.
   const reorder = useMutation({
     mutationFn: (ids: number[]) => reorderNotebookNotes(notebook.id, ids),
@@ -475,7 +475,7 @@ function NoteEditor({
       }}
     >
       <Input label={t.noteTitle} value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
-      {/* D-235: "/" inserts a block (heading, list, quote, table, a sheet link). */}
+      {/* D-235b: "/" inserts a block (heading, list, quote, table, a sheet link). */}
       <SlashTextarea label={t.noteBody} rows={8} value={body} onChange={setBody} />
       {note.citations && note.citations.length > 0 ? (
         <ol className="flex flex-col gap-1 text-2xs text-ink-muted">

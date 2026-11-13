@@ -7,7 +7,7 @@ export type ToolTone = "brand" | "info" | "success" | "warning" | "danger";
 
 /**
  * One tool of a grid (the notebook's Studio): a quiet tile with its glyph and
- * name. D-235: the tiles are monochrome — the glyph tells them apart, and
+ * name. D-235b: the tiles are monochrome — the glyph tells them apart, and
  * colour is kept for state (a tool not ready yet). `tone` is still accepted so
  * older call sites compile; it no longer paints the tile.
  *

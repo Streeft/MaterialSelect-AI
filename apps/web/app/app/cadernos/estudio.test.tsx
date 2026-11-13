@@ -560,7 +560,7 @@ describe("Estúdio: áudio, vídeo, slides e infográfico (D-98)", () => {
 });
 
 
-describe("notas em ordem (D-235)", () => {
+describe("notas em ordem (D-235b)", () => {
   it("Alt+↓ na alça de uma nota manda a nova ordem ao servidor", async () => {
     const note = (id: number, title: string) => ({
       id,

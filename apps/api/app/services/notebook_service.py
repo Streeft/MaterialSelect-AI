@@ -159,7 +159,7 @@ class NotebookService:
         title = payload.title.strip()
         emoji = payload.emoji
         if template is not None:
-            # D-235: the template names the notebook unless the request did.
+            # D-235b: the template names the notebook unless the request did.
             title = title if "title" in sent else template.title
             emoji = emoji if "emoji" in sent else template.emoji
         notebook = self.repo.add(Notebook(title=title, emoji=emoji))
@@ -181,7 +181,7 @@ class NotebookService:
 
     @staticmethod
     def templates() -> list[NotebookTemplateOut]:
-        """D-235: the ready-made notebooks the "Criar caderno" gallery offers."""
+        """D-235b: the ready-made notebooks the "Criar caderno" gallery offers."""
         return [
             NotebookTemplateOut(
                 id=t.id,  # type: ignore[arg-type]
@@ -700,7 +700,7 @@ class NotebookService:
             title=payload.title.strip(),
             body=payload.body,
             origin="manual",
-            # D-235: a new note goes at the end of the student's order.
+            # D-235b: a new note goes at the end of the student's order.
             position=max((n.position for n in notebook.notes), default=-1) + 1,
         )
         self.db.add(note)
@@ -718,7 +718,7 @@ class NotebookService:
         return _note_out(note)
 
     def reorder_notes(self, notebook_id: int, payload: NoteOrderIn) -> list[NoteOut]:
-        """D-235: put the notes in the order the student dragged them into.
+        """D-235b: put the notes in the order the student dragged them into.
 
         The list must name every note of the notebook once — a partial or
         repeated order would leave two notes claiming one place, or one note

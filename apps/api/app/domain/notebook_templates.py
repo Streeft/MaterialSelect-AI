@@ -1,4 +1,4 @@
-"""Ready-made notebooks (D-235, F7 of the screen review): a starting point.
+"""Ready-made notebooks (D-235b, F7 of the screen review): a starting point.
 
 A template gives a new notebook its name, its emoji, how the chat answers
 (``chat_goal`` and the brief in ``chat_instructions``) and a few empty notes

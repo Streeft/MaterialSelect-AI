@@ -36,7 +36,7 @@ const COMMANDS: readonly SlashCommand[] = [
 const SHOWN_SHEETS = 8;
 
 /**
- * D-235: a note's text with Notion's "/" — typed at the start of a line or
+ * D-235b: a note's text with Notion's "/" — typed at the start of a line or
  * after a space, it opens a short list of blocks to insert (heading, list,
  * quote, a table skeleton, a divider) and "Ficha de material", which turns
  * the list into a search of the catalogue and inserts a link to the sheet.

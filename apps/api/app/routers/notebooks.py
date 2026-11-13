@@ -124,7 +124,7 @@ def list_notebooks(
 
 @router.get("/templates", response_model=list[NotebookTemplateOut])
 def list_notebook_templates() -> list[NotebookTemplateOut]:
-    """D-235: the ready-made notebooks offered when one is created."""
+    """D-235b: the ready-made notebooks offered when one is created."""
     return NotebookService.templates()
 
 
@@ -367,7 +367,7 @@ def update_note(
 def reorder_notes(
     notebook_id: int, payload: NoteOrderIn, service: NotebookService = Depends(_service)
 ) -> list[NoteOut]:
-    """D-235: every note of the notebook, in the student's new order."""
+    """D-235b: every note of the notebook, in the student's new order."""
     return service.reorder_notes(notebook_id, payload)
 
 

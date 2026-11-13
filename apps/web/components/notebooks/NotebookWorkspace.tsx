@@ -213,7 +213,7 @@ function Workspace({ data }: { data: Notebook }) {
         />
 
         {data.archived ? <Alert tone="info">{t.archivedBanner}</Alert> : null}
-        {/* D-235: with the AI off the notice explains why the chat is closed, so
+        {/* D-235b: with the AI off the notice explains why the chat is closed, so
             it stays in the page; otherwise it is a chip in the header. */}
         {data.ai_enabled ? null : <Alert tone="warning">{data.ai_notice}</Alert>}
 
@@ -354,7 +354,7 @@ function Workspace({ data }: { data: Notebook }) {
 }
 
 /**
- * D-235: which AI answers this notebook, as a chip beside the actions — colour
+ * D-235b: which AI answers this notebook, as a chip beside the actions — colour
  * only for the state that asks for care (an external provider receives the
  * text). The full notice opens from the chip, so nothing is hidden behind a
  * hover title.
