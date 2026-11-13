@@ -102,7 +102,7 @@ const RECIPE_URL: UrlSpec<Recipe> = {
 };
 
 /**
- * D-230: the AI's parameter names (the request's) and the recipe field each writes.
+ * D-230b: the AI's parameter names (the request's) and the recipe field each writes.
  * A name is offered only while its field is on screen: the kind of the recipe decides.
  */
 const AI_PARAMS: Record<string, { field: keyof Recipe; kind: SynthesisKind }> = {
@@ -433,7 +433,7 @@ export default function SintetizarPage() {
   ]);
   const recipeReady = recipeBlocked === null;
 
-  // D-230: a suggested number goes where the reader would have typed it (the URL)
+  // D-230b: a suggested number goes where the reader would have typed it (the URL)
   // and the preview follows by itself. The server proposes only values it holds
   // (the current one among them), so an action that would change nothing, one for
   // a field of another kind of recipe, or one that is not a number is not shown.

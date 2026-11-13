@@ -95,7 +95,7 @@ describe("ecoBrief: o que a tela manda", () => {
   });
 });
 
-describe("ecoBrief: o que uma sugestão da IA pode mudar (D-230)", () => {
+describe("ecoBrief: o que uma sugestão da IA pode mudar (D-230b)", () => {
   const brief = readUrlState(spec, "?material=7&massa=2");
 
   it("escreve o parâmetro em todos os componentes e trechos, sem deixar linha para trás", () => {

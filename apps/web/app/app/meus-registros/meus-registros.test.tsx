@@ -238,7 +238,7 @@ describe("estrela de favorito", () => {
   });
 });
 
-describe("meus registros — Sugestão da IA (D-230)", () => {
+describe("meus registros — Sugestão da IA (D-230b)", () => {
   const answer: SuggestionsOut = {
     tool: "registros",
     summary: "O que fazer com os seus registros.",

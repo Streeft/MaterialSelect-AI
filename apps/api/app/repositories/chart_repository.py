@@ -4,13 +4,13 @@ Charts need more of a property value than the selection snapshot keeps: the
 original value and unit, the interval bounds, the uncertainty, the data quality
 and the source. This repository therefore loads the full rows, eager-loading
 class, definition and source so a map of N materials stays a constant number of
-queries.
+queries — by ``selectinload``, never a join, for the values (D-231).
 """
 
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -38,31 +38,58 @@ class ChartRepository:
         self,
         material_ids: list[int] | None = None,
         class_slugs: list[str] | None = None,
+        property_slugs: list[str] | None = None,
     ) -> list[Material]:
         """Return active materials with values, definitions, class and source.
 
         ``material_ids`` and ``class_slugs`` are optional narrowing filters;
         an empty ``class_slugs`` list means "every class" (not "no class"), so
         an unset filter never silently empties the chart.
+
+        ``property_slugs`` narrows the **values** loaded, never the materials
+        (D-231): every visible material still comes back, with
+        ``property_values`` holding only the rows of those properties. For a
+        caller that reads nothing else — a two-axis map, the solver's basis —
+        this is the same answer for a fraction of the memory. The collection is
+        then deliberately partial, so the query refreshes the materials it
+        touches (``populate_existing``) and the caller must not read other
+        properties from them.
         """
+        values_loader = (
+            Material.property_values.and_(
+                MaterialPropertyValue.property_id.in_(
+                    select(PropertyDefinition.id).where(PropertyDefinition.slug.in_(property_slugs))
+                )
+            )
+            if property_slugs is not None
+            else Material.property_values
+        )
         stmt = (
             select(Material)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
             .options(
                 joinedload(Material.material_class),
-                joinedload(Material.property_values).joinedload(
-                    MaterialPropertyValue.property_definition
-                ),
-                joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
+                # ``selectinload``, not a join, for the values (D-231): joined,
+                # every one of the ~32 thousand value rows of the full demo
+                # catalogue came back carrying its material's, definition's and
+                # source's columns too, and the driver buffered all of it — about
+                # twice the memory, per request. Definitions and sources are a
+                # few dozen rows, loaded once and shared through the identity map.
+                selectinload(values_loader).selectinload(MaterialPropertyValue.property_definition),
+                selectinload(values_loader).selectinload(MaterialPropertyValue.source),
             )
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
-            .order_by(Material.name)
+            # ``id`` breaks ties: the demo catalogue repeats names (the releases
+            # of D-108), and two queries must list them in the same order.
+            .order_by(Material.name, Material.id)
         )
         if material_ids is not None:
             stmt = stmt.where(Material.id.in_(material_ids))
         if class_slugs:
             stmt = stmt.where(MaterialClass.slug.in_(class_slugs))
+        if property_slugs is not None:
+            stmt = stmt.execution_options(populate_existing=True)
         return list(self.db.execute(stmt).scalars().unique().all())
 
     def visible_class_names(self) -> list[tuple[str, str]]:

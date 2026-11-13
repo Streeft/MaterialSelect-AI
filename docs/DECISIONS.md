@@ -13412,7 +13412,7 @@ com o termo: a varredura por `indexOf` com o teste do vizinho faz o mesmo sem es
 nome parecido em outra classe — é o comportamento querido.
 
 **Numeração.** D-230/Sessão 187 (D-228/Sessão 185 e D-229/Sessão 186 entraram no `main` antes, pelo #248 e pela IA-2a).
-## D-230 — Painel "Sugestão da IA" nas oito telas restantes (IA-2b, frontend)
+## D-230b — Painel "Sugestão da IA" nas oito telas restantes (IA-2b, frontend)
 
 **Contexto.** O D-229 entregou o `AISuggestPanel` e o ligou em sete telas; faltavam as quatro calculadoras e o dimensionamento
 (Dimensionar, Custo, Eco, Baterias, Sintetizar), o Painel, Meus registros e as duas telas de Admin. Aqui as ações mexem em
@@ -13462,7 +13462,9 @@ da IA" (com axe) em `custo`, `eco`, `baterias`, `dimensionar`, `sintetizar`, `pa
 dois testes em `e2e/sugestao-ia.spec.ts` (Custo aplica um parâmetro e o valor muda no endereço; Admin preenche a descrição sem
 gravar). Correção que o axe achou: o título "Premissas desta conta" da Eco passou de `h4` para `h3`.
 
-**Numeração.** D-230/Sessão 187.
+**Numeração.** D-230b/Sessão 187b. Entrou como D-230/Sessão 187 pelo #251, no mesmo dia em que o #252 usou os mesmos números
+para os pares clássicos; pela regra do D-226 (item 4) o #252 ficou com eles e esta ganhou o sufixo, com as referências do código e
+dos documentos atualizadas no D-231.
 
 ## D-231 — Memória da API em produção: VM de 1 GB e consumo medido por tela
 
@@ -13487,14 +13489,63 @@ mortes). O `fly deploy` aplica o `[[vm]]` do `fly.toml` a cada implantação, en
    o plano da IA (`ai/plan`, `ai/plan/run`). Listas, ficha, saúde e login não passam pelo portão. Semáforo de `threading`
    (as rotas são `def` servidas pelo pool de threads), por processo, como o limite por minuto do D-223.
 
+4. **O catálogo inteiro deixa de ser lido por requisição.** Medição local (Postgres 16 com `seed` + `seed_extended`: 678
+   materiais, 32 395 valores; `tracemalloc`, pico por requisição sobre o que já estava alocado): funil, filtro e execução da
+   seleção, mapa, linha de índice, Dimensionar, Custo, Eco e `/ai/plan` seguravam **134 a 166 MB** cada um, e o catálogo
+   (`GET /materials`, `/materials/busca`, sugestão do Catálogo) **53 MB**, mesmo com `limit=50`. A causa era uma só: um objeto ORM
+   por valor gravado, e nas rotas de gráfico e cálculo com `joinedload`, que trazia as colunas do material, da definição e da fonte
+   repetidas em cada uma das 32 mil linhas. Correções, todas sem mudar resposta (41 respostas de 31 rotas, comparadas antes e
+   depois no mesmo banco, saíram iguais):
+   - **Seleção** (`SelectionRepository.active_material_rows`): duas consultas de colunas — materiais com classe e os valores
+     presentes (`material_id`, `slug`, `normalized_value`, sem ausência declarada nem número nulo, D-24) — e nenhum objeto ORM por
+     valor.
+   - **Gráficos e calculadoras** (`ChartRepository.list_materials`): `selectinload` no lugar do `joinedload`, e o filtro novo
+     `property_slugs`, que carrega só os valores das propriedades pedidas (os materiais continuam todos). Usado pelo mapa (eixos e
+     variáveis dos índices; expressão inválida cai no carregamento completo, e a validação recusa como antes), pelo Dimensionar e
+     pelo Find Similar (a base do caso) e pela contagem das rotas de fim de vida da Eco. Custo e Eco carregam **só o material
+     pedido** (`material_ids`). Com o filtro, a coleção fica parcial de propósito: a consulta usa `populate_existing` e quem chama
+     não lê outra propriedade daqueles objetos. Ordem por nome e **id**, para os nomes repetidos do demo saírem sempre na mesma ordem.
+   - **Catálogo** (`MaterialRepository.value_facts` e `sort_values`): as contagens por proveniência e de referências vêm somadas
+     pelo banco (`GROUP BY`), e a ordenação por propriedade lê só aquela propriedade; `property_values` nem é carregado.
+     `list_item` aceita as contagens prontas e continua contando sozinho quando recebe o material com os valores (favoritos).
+5. **`MALLOC_ARENA_MAX=2`** no `Dockerfile.api`: as rotas síncronas rodam num pool de threads, e o glibc dá uma arena de malloc
+   por thread, que guarda o que foi liberado. Medido antes das correções acima: pico de 8 telas pesadas simultâneas de ~1 GB para
+   ~0,65 GB.
+6. **Caches limitados.** Os quatro memos da IA (contexto, faixas, plano, sugestão; D-224/D-228) já eram LRU com TTL (256 a 1024
+   entradas) e ganharam teste (`test_ai_cache_bounds.py`). O limite por minuto (D-223) só podava janelas fechadas; ganhou teto
+   rígido (`MAX_WINDOWS = 50 000`, esquece as mais antigas). O ETag (D-223) não guarda nada entre requisições. O Cérebro não
+   carrega nada na partida: o índice léxico e os vetores de um modelo são montados na primeira busca e trocados quando o corpus
+   muda (uma entrada só).
+7. **Sem reciclar o worker** (`--limit-max-requests`): depois das correções o RSS fica estável (~190 MB depois de uma volta por
+   todas as telas, ~210 MB no pico de 10 clientes simultâneos), sem vazamento medido; reciclar custaria uma partida a frio no
+   meio do uso.
+
+**Números (antes → depois, Postgres local, mesmo roteiro).** Pico por requisição (`tracemalloc`): catálogo 53,8 → 7,0 MB
+(paginado 53,0 → 5,2); busca 53,8 → 7,0; funil 133,8 → 10,8; filtro 133,8 → 10,8; executar 133,8 → 10,8; mapa 165,6 → 7,7; mapa
+com índice 165,6 → 8,9; linha de índice 165,6 → 8,9; comparar 0,9 → 0,7; Dimensionar 165,7 → 7,3; Custo 165,6 → 0,6; Eco
+165,6 → 0,5; Baterias 0,1 → 0,1; painel 0,3 → 0,3; `/ai/plan` 133,9 → 10,9; `/ai/suggest` do Catálogo 53,0 → 5,2 (Mapas e Painel
+0,3, sem mudança). Tempo: funil 5,5 → 0,5 s, mapa 5,7 → 0,4 s, Custo 5,6 → 0,09 s. Processo (RSS): 157 MB depois do import
+(igual); depois de uma volta por todas as telas 532 → 190 MB; **10 clientes simultâneos** pelas telas pesadas: pico
+**1454 → 211 MB**, e 182 → 14 s para terminar.
+
 **Alternativas recusadas.** Semáforo `asyncio` (fica preso ao laço de eventos em que foi usado primeiro, e as rotas
-pesadas nem rodam no laço). Limitar só no proxy (uma tela leve e uma pesada contam igual; o portão separa as duas). `fly scale memory` à mão (o próximo deploy o desfaz). Mais workers (multiplicam a memória, o oposto
+pesadas nem rodam no laço). Um cache do catálogo compartilhado entre requisições (objeto ORM não pode sair da sessão que o leu, e
+a invalidação em escrita teria de cobrir registros próprios, importações e a visibilidade por pessoa; com as consultas leves a
+memória por requisição já é pequena). Limitar só no proxy (uma tela leve e uma pesada contam igual; o portão separa as duas). `fly scale memory` à mão (o próximo deploy o desfaz). Mais workers (multiplicam a memória, o oposto
 do que falta). Voltar a versão anterior (o consumo cresce com o catálogo de 678 materiais, não com uma mudança só daquele
 deploy).
 
 **Consequências.** Custo maior da máquina sempre de pé. Um pico de uso vira espera ou 503 com "tente de novo", nunca a API
 fora do ar. Testes: `test_heavy_request_gate.py` (o portão recusa depois da espera e devolve a vaga mesmo com erro; 0 desliga;
 toda rota pesada passa por ele e nenhuma leve; 503 com `Retry-After` enquanto cheio e 200 depois; o `fly.toml` com 1 GB e
-limite de concorrência baixo; um worker no `Dockerfile.api`). Depois do merge: **Deploy da API**. Sem migração nem seed.
+limite de concorrência baixo; um worker no `Dockerfile.api`), `test_memory_per_request.py` (semeia o catálogo demo inteiro na
+transação do teste e exige pico abaixo de 40 MB em 17 rotas; antes da correção 14 delas passavam, de 58 a 169 MB),
+`test_ai_cache_bounds.py` e um teste do teto de janelas em `test_rate_limit.py`. Fica para depois: a exportação
+(`export_service`) ainda lê o catálogo inteiro num caso (protegida pelo limite por minuto), e o import do app custa ~150 MB, ~40 MB
+deles de `openpyxl`, `python-pptx`, `python-docx` e `pypdf`, que poderiam carregar sob demanda. Depois do merge: **Deploy da API**. Sem migração nem seed.
 
-**Numeração.** D-231/Sessão 188 (o `main` tem dois D-230 e duas Sessões 187, dos PRs #251 e #252; este PR não os renumera).
+**Numeração.** D-231/Sessão 188. O `main` chegou com dois D-230 e duas Sessões 187 (#251 e #252); pela regra do D-226 (item 4),
+os pares clássicos (#252) ficam com D-230/Sessão 187 e o painel "Sugestão da IA" nas oito telas (#251, IA-2b) passa a
+**D-230b/Sessão 187b**, com as referências do código e dos documentos atualizadas. O CHANGELOG tinha o cabeçalho da Sessão 187
+dos pares sem corpo (o corpo estava numa "Sessão 186 … (D-229)" duplicada, o número antigo do mesmo PR): o corpo voltou para a
+187 e a duplicata saiu.

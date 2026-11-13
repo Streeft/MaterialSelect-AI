@@ -79,7 +79,7 @@ from app.models.selection import (
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.ordinal_repository import OrdinalRepository
-from app.repositories.selection_repository import SelectionRepository
+from app.repositories.selection_repository import MaterialRow, SelectionRepository
 from app.schemas.selection import (
     CandidateOut,
     ChartAxisIn,
@@ -226,7 +226,7 @@ class SelectionService:
             reach_by_material = self._load_process_reach()
             self._snapshots = [
                 self._to_snapshot(m, lineage_by_slug, reach_by_material)
-                for m in self.repo.list_active_materials_with_values()
+                for m in self.repo.active_material_rows()
             ]
         return self._snapshots
 
@@ -346,22 +346,20 @@ class SelectionService:
 
     @staticmethod
     def _to_snapshot(
-        material,
+        material: MaterialRow,
         lineage_by_slug: dict[str, tuple[str, ...]],
         reach_by_material: dict[int, list[ProcessReach]] | None = None,
     ) -> MaterialSnapshot:
-        values: dict[str, float] = {}
-        for value in material.property_values:
-            if not value.is_missing and value.normalized_value is not None:
-                values[value.property_definition.slug] = value.normalized_value
+        # ``material.values`` already holds only present canonical values (D-24):
+        # the repository leaves declared absences and missing numbers out.
         return MaterialSnapshot(
             id=material.id,
             name=material.name,
-            class_name=material.material_class.name,
-            class_slug=material.material_class.slug,
-            keywords=list(material.keywords or []),
-            values=values,
-            class_path=list(lineage_by_slug.get(material.material_class.slug, ())),
+            class_name=material.class_name,
+            class_slug=material.class_slug,
+            keywords=material.keywords,
+            values=material.values,
+            class_path=list(lineage_by_slug.get(material.class_slug, ())),
             processes=list((reach_by_material or {}).get(material.id, ())),
         )
 

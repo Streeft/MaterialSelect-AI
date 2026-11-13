@@ -2333,7 +2333,7 @@ div[data-surface="rail"] .msds-rail-item {
   .ai-suggest-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* D-230: the field an applied AI suggestion just changed — a ring that fades. */
+/* D-230b: the field an applied AI suggestion just changed — a ring that fades. */
 @keyframes ai-changed-ring {
   from { box-shadow: 0 0 0 3px rgb(var(--info) / 0.6); }
   to { box-shadow: 0 0 0 3px rgb(var(--info) / 0); }

@@ -401,7 +401,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
   }
   const hasExample = selected?.variables.some((variable) => variable.example != null) ?? false;
 
-  // D-230: the AI's names are the request's — `objective` and `inputs.<key>`. A
+  // D-230b: the AI's names are the request's — `objective` and `inputs.<key>`. A
   // value goes where the reader would have typed it (the URL) and the sizing
   // follows by itself. A support condition takes only one of its catalogued
   // constants, a free variable only a number; anything else is not shown.

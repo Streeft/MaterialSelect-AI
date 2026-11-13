@@ -58,7 +58,7 @@ from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
-from app.repositories.material_repository import MaterialRepository, SearchFacts
+from app.repositories.material_repository import MaterialRepository, SearchFacts, ValueFacts
 from app.schemas.material import (
     AtomicCompositionOut,
     AtomicEntryOut,
@@ -126,12 +126,22 @@ def _reference_count(material: Material) -> int:
     return sum(1 for v in material.property_values if v.source_id is not None and not v.is_missing)
 
 
-def _normalized_value(material: Material, slug: str) -> float | None:
-    """The canonical value of ``slug`` for ordering, or ``None`` when absent (never 0)."""
-    for value in material.property_values:
-        if value.property_definition.slug == slug:
-            return None if value.is_missing else value.normalized_value
-    return None
+def _quality_from_facts(facts: ValueFacts) -> DataQualitySummary:
+    """``_summarise_quality`` from counts the database already made (D-231)."""
+    return DataQualitySummary(
+        medido=facts.medido,
+        importado=facts.importado,
+        estimado=facts.estimado,
+        missing=facts.missing,
+    )
+
+
+def _sortable(stored: tuple[bool, float | None] | None) -> float | None:
+    """The canonical value for ordering, or ``None`` when absent (never 0)."""
+    if stored is None:
+        return None
+    is_missing, normalized = stored
+    return None if is_missing else normalized
 
 
 def _subtree(slug: str, ancestors: Mapping[str, list[str]]) -> frozenset[str]:
@@ -352,11 +362,18 @@ class MaterialService:
         give.
         """
         try:
-            materials, facts = self.repo.search_materials(query, com_referencia=com_referencia)
+            materials, facts = self.repo.search_materials(
+                query, com_referencia=com_referencia, with_values=False
+            )
         except SearchQueryError as exc:
             raise ValidationError(str(exc)) from exc
 
-        rows = [self._listing_row(m) for m in materials]
+        # D-231: the counts each row shows come aggregated from the database,
+        # not from an ORM object per stored value (~50 MB per listing with the
+        # full demo catalogue). ``property_values`` is not loaded here.
+        material_ids = [m.id for m in materials]
+        value_facts = self.repo.value_facts(material_ids)
+        rows = [self._listing_row(m, value_facts.get(m.id, ValueFacts())) for m in materials]
         ancestors = self._class_ancestors() if (class_slug or with_facets) else {}
         filters = ListingFilters(
             class_slugs=_subtree(class_slug, ancestors) if class_slug else None,
@@ -367,6 +384,7 @@ class MaterialService:
         passed = apply_filters(rows, filters)
 
         sort_definition: PropertyDefinition | None = None
+        sort_values: dict[int, tuple[bool, float | None]] = {}
         if order in ("relevancia", "nome", "classe"):
             by = {"relevancia": "relevance", "nome": "name", "classe": "class"}[order]
             ordered = order_rows(passed, by, direction)  # type: ignore[arg-type]
@@ -374,9 +392,9 @@ class MaterialService:
             sort_definition = self.repo.get_property_by_slug(order)
             if sort_definition is None:
                 raise ValidationError(f"Não há propriedade '{order}' para ordenar o catálogo.")
-            slug = sort_definition.slug
+            sort_values = self.repo.sort_values(material_ids, sort_definition.slug)
             ordered = order_by_value(
-                passed, lambda row: _normalized_value(row.ref, slug), direction
+                passed, lambda row: _sortable(sort_values.get(row.ref.id)), direction
             )
 
         try:
@@ -386,9 +404,9 @@ class MaterialService:
 
         items = []
         for row in sliced:
-            item = self.list_item(row.ref)
+            item = self.list_item(row.ref, value_facts.get(row.ref.id, ValueFacts()))
             if sort_definition is not None:
-                item.sort_value = self._sort_value(row.ref, sort_definition)
+                item.sort_value = self._sort_value(sort_values.get(row.ref.id), sort_definition)
             items.append(item)
 
         facets = None
@@ -410,8 +428,8 @@ class MaterialService:
         )
 
     @staticmethod
-    def _listing_row(material: Material) -> ListingRow[Material]:
-        quality = _summarise_quality(material)
+    def _listing_row(material: Material, facts: ValueFacts) -> ListingRow[Material]:
+        quality = _quality_from_facts(facts)
         return ListingRow(
             name=material.name,
             class_slug=material.material_class.slug,
@@ -421,7 +439,7 @@ class MaterialService:
             imported=quality.importado,
             estimated=quality.estimado,
             missing=quality.missing,
-            reference_count=_reference_count(material),
+            reference_count=facts.references,
             ref=material,
         )
 
@@ -438,23 +456,28 @@ class MaterialService:
             out[slug] = chain
         return out
 
-    def _sort_value(self, material: Material, definition: PropertyDefinition) -> SortValue:
-        """The ordering value in this reader's unit (D-70); absence stays absence."""
+    def _sort_value(
+        self, stored: tuple[bool, float | None] | None, definition: PropertyDefinition
+    ) -> SortValue:
+        """The ordering value in this reader's unit (D-70); absence stays absence.
+
+        ``stored`` is ``(is_missing, normalized_value)`` of the material's row
+        for the property, ``None`` when it has no row at all (D-231).
+        """
         reading = self.reading_for_definition(definition)
-        for value in material.property_values:
-            if value.property_definition.slug != definition.slug:
-                continue
-            if value.is_missing or value.normalized_value is None:
-                return SortValue(property_slug=definition.slug, unit=reading.label, is_missing=True)
-            return SortValue(
-                property_slug=definition.slug,
-                value=reading.value(value.normalized_value),
-                unit=reading.label,
-            )
-        return SortValue(property_slug=definition.slug, unit=reading.label)
+        if stored is None:
+            return SortValue(property_slug=definition.slug, unit=reading.label)
+        is_missing, normalized = stored
+        if is_missing or normalized is None:
+            return SortValue(property_slug=definition.slug, unit=reading.label, is_missing=True)
+        return SortValue(
+            property_slug=definition.slug,
+            value=reading.value(normalized),
+            unit=reading.label,
+        )
 
     @staticmethod
-    def list_item(material: Material) -> MaterialListItem:
+    def list_item(material: Material, facts: ValueFacts | None = None) -> MaterialListItem:
         """One catalogue row's compact shape.
 
         Public and shared rather than inlined in the listing, because the user's
@@ -462,7 +485,15 @@ class MaterialService:
         builders would let the catalogue and the favourites list disagree about
         what a material looks like.
         """
-        reference_count = _reference_count(material)
+        # ``facts`` comes aggregated from the database on the catalogue listing
+        # (D-231); a caller holding the material with its values loaded (the
+        # favourites) lets them be counted here, by the same rules.
+        if facts is None:
+            quality = _summarise_quality(material)
+            reference_count = _reference_count(material)
+        else:
+            quality = _quality_from_facts(facts)
+            reference_count = facts.references
         return MaterialListItem(
             id=material.id,
             name=material.name,
@@ -472,7 +503,7 @@ class MaterialService:
             is_demo=material.is_demo,
             is_own_record=material.owner_id is not None,
             keywords=list(material.keywords or []),
-            quality=_summarise_quality(material),
+            quality=quality,
             designations=[
                 DesignationBrief(system=d.system, system_label=system_label(d.system), code=d.code)
                 for d in material.designations

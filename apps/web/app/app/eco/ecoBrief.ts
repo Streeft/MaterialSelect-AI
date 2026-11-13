@@ -307,7 +307,7 @@ export function buildComparisonBrief(
   };
 }
 
-// --- What an AI suggestion may change (D-230) -----------------------------------
+// --- What an AI suggestion may change (D-230b) -----------------------------------
 
 /**
  * The patch of the brief that a `set_param` of the server's audit request

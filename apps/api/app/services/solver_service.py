@@ -94,9 +94,12 @@ class SolverService:
                 + ", ".join(unknown)
             )
 
-        materials = self.repo.list_materials()
-        by_id = {material.id: material for material in materials}
         basis = sorted(needed)
+        # Every visible material, but only the values of the case's basis
+        # (D-231): ``_values`` reads nothing else, and the full catalogue with
+        # every value cost ~170 MB per solve.
+        materials = self.repo.list_materials(property_slugs=basis)
+        by_id = {material.id: material for material in materials}
         records: list[RecordValues] = [
             (material.id, material.name, self._values(material, basis)) for material in materials
         ]

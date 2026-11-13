@@ -390,7 +390,7 @@ describe("Custo da peça", () => {
   });
 });
 
-describe("custo — Sugestão da IA (D-230)", () => {
+describe("custo — Sugestão da IA (D-230b)", () => {
   const answer: SuggestionsOut = {
     tool: "custo",
     summary: "Duas ideias para o lote.",

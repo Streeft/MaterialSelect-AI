@@ -48,7 +48,7 @@ describe("lib/ai/suggest (D-229)", () => {
     expect(visibleActions({ actions }, ["compare", "set_axes"]).map((a) => a.label)).toEqual(["a", "c"]);
   });
 
-  it("lets the screen refuse an action of a listed type (D-230), keeping the order", () => {
+  it("lets the screen refuse an action of a listed type (D-230b), keeping the order", () => {
     const actions: SuggestAction[] = [
       { type: "set_param", label: "lote", name: "batch_size", value: 2000 },
       { type: "set_param", label: "campo sem tela", name: "voltagem", value: 3 },

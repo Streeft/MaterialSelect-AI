@@ -369,7 +369,7 @@ Roteiro completo, com o porquê de cada passo, em
   respondem. `GET /api/ai/status` diz o modelo, o host e as capacidades
   configuradas, e `POST /api/ai/diagnostico` testa texto/JSON, embeddings e
   busca na web ao vivo — na interface, em Aparência → "Testar a IA agora".
-  Na interface (D-229, D-230), o botão **"Sugestão da IA"** de Mapas, Comparar, Catálogo,
+  Na interface (D-229, D-230b), o botão **"Sugestão da IA"** de Mapas, Comparar, Catálogo,
   Ficha do material, Glossário, Processos, Importar, Dimensionar, Custo, Eco,
   Baterias, Sintetizar, Painel, Meus registros e das duas telas de Admin (as 15
   telas) só consulta o modelo ao clicar; cada sugestão é um cartão e cada botão

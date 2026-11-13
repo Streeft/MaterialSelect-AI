@@ -173,7 +173,7 @@ function DashboardContent() {
         }
       />
 
-      {/* D-230: the server reads the catalogue's own overview (coverage, gaps, classes), so
+      {/* D-230b: the server reads the catalogue's own overview (coverage, gaps, classes), so
           there is nothing of the screen to send; every action is a route, hence a link. */}
       <AISuggestPanel tool="painel" context={{}} actions={["open_route"]} onAction={() => undefined} />
 

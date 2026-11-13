@@ -655,7 +655,7 @@ describe("painel", () => {
   });
 });
 
-describe("painel — Sugestão da IA (D-230)", () => {
+describe("painel — Sugestão da IA (D-230b)", () => {
   const answer: SuggestionsOut = {
     tool: "painel",
     summary: "Onde o catálogo tem lacunas.",

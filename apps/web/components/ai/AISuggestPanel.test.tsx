@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 describe("AISuggestPanel — Sugestão da IA (D-229)", () => {
-  it("shows only what the screen's own check accepts (D-230)", async () => {
+  it("shows only what the screen's own check accepts (D-230b)", async () => {
     suggestNextSteps.mockResolvedValue(
       answer({
         suggestions: [

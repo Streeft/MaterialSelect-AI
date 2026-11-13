@@ -121,7 +121,7 @@ export default function ClassesAdminPage() {
   const tree = flattenClasses(classes);
   const nameById = new Map(classes.map((c) => [c.id, c.name]));
 
-  // D-230: the proposed description goes into the form's field and nothing more —
+  // D-230b: the proposed description goes into the form's field and nothing more —
   // it is not saved; the person reads it, edits it and presses the button.
   const acceptsAiAction = (action: SuggestAction) =>
     action.type !== "fill_text" || action.field === "description";

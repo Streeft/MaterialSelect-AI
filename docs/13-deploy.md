@@ -171,6 +171,19 @@ Duas travas evitam que um pico de uso volte a matar a máquina:
   desliga). Subir esse número exige memória para mais uma requisição pesada
   inteira ao mesmo tempo.
 
+O consumo também caiu na origem. Medido localmente com o catálogo demo inteiro
+(678 materiais, 32 395 valores, Postgres): cada tela pesada segurava de 134 a
+166 MB por requisição (o catálogo, 53 MB) porque lia todos os valores como
+objetos do ORM; depois do D-231 fica entre 0,5 e 11 MB. Dez clientes
+simultâneos pelas telas pesadas levavam o processo a **1454 MB**; agora a
+**211 MB**. O `Dockerfile.api` define `MALLOC_ARENA_MAX=2`, que impede cada
+thread do pool de guardar a sua própria reserva de memória liberada. Com isso
+1 GB sobra; a VM fica nesse tamanho como margem para o Cérebro (o índice e os
+vetores são montados na primeira busca) e para picos que a medição não cobriu.
+
+Para conferir em produção: `fly logs` sem `exit code 137` / `Out of memory`,
+e `fly machine status <id>` mostrando a máquina de pé desde o último deploy.
+
 ## 3. Google OAuth
 
 No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviços*

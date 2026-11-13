@@ -59,7 +59,7 @@ interface ComparedEstimate {
   error: string | null;
 }
 
-/** D-230: the AI's parameter names (the request's), and the brief field each one writes. */
+/** D-230b: the AI's parameter names (the request's), and the brief field each one writes. */
 const AI_PARAMS = {
   part_mass: "mass",
   batch_size: "batch",
@@ -317,7 +317,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     blockedReason === t.blocked.writeOff || blockedReason === t.blocked.loadFactor;
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
 
-  // D-230: a suggested parameter goes where the reader would have typed it — the
+  // D-230b: a suggested parameter goes where the reader would have typed it — the
   // URL — and the estimate follows by itself, as it does for any change. Nothing
   // here asks the server; the field that changed is shown.
   function applyAiAction(action: SuggestAction) {

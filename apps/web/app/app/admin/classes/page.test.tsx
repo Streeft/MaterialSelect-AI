@@ -123,7 +123,7 @@ describe("admin/classes", () => {
   });
 });
 
-describe("admin/classes — Sugestão da IA (D-230)", () => {
+describe("admin/classes — Sugestão da IA (D-230b)", () => {
   const answer: SuggestionsOut = {
     tool: "admin_classes",
     summary: "Sugestões para a classe que você está editando.",

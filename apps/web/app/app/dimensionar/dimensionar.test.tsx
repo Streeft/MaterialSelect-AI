@@ -507,7 +507,7 @@ describe("Dimensionar", () => {
   });
 });
 
-describe("Dimensionar — Sugestão da IA (D-230)", () => {
+describe("Dimensionar — Sugestão da IA (D-230b)", () => {
   installWideViewport();
   const answer: SuggestionsOut = {
     tool: "dimensionar",
