@@ -113,6 +113,7 @@ const chat: NotebookChat = {
 
 const api = vi.hoisted(() => ({
   listNotebooks: vi.fn(),
+  listNotebookTemplates: vi.fn(() => Promise.resolve([] as unknown[])),
   createNotebook: vi.fn(),
   getNotebook: vi.fn(),
   askNotebook: vi.fn(),
@@ -212,6 +213,46 @@ describe("lista de cadernos", () => {
     expect(await screen.findByText(t.emptyTitle)).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: t.create })[0]!);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/cadernos/9"));
+  });
+});
+
+describe("modelos de caderno (D-235)", () => {
+  const prova = {
+    id: "prova",
+    title: "Revisão para prova",
+    emoji: "📝",
+    description: "Respostas curtas para revisar.",
+    note_titles: ["O que cai na prova"],
+  };
+  const branco = { id: "branco", title: "Caderno sem título", emoji: "📓", description: "Vazio.", note_titles: [] };
+
+  it("a lista vazia oferece os modelos, e um clique cria o caderno daquele modelo", async () => {
+    api.listNotebooks.mockResolvedValue([]);
+    api.listNotebookTemplates.mockResolvedValue([prova, branco]);
+    api.createNotebook.mockResolvedValue(notebook({ id: 12 }));
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    const card = await screen.findByRole("button", { name: /📝 Revisão para prova/ });
+    expect(card).toHaveTextContent("O que cai na prova");
+    // "Em branco" is the main button itself, not one more card.
+    expect(screen.queryByRole("button", { name: /📓 Caderno sem título/ })).toBeNull();
+    await user.click(card);
+    await waitFor(() => expect(api.createNotebook).toHaveBeenCalledWith(undefined, "prova"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/cadernos/12"));
+  });
+
+  it("o botão de criar abre os modelos num menu; o clique principal cria em branco", async () => {
+    api.listNotebooks.mockResolvedValue([
+      { id: 4, title: "Materiais estruturais", emoji: "📓", archived: false, source_count: 0, created_at: "2026-09-25T10:00:00Z", updated_at: "2026-09-25T10:00:00Z" },
+    ]);
+    api.listNotebookTemplates.mockResolvedValue([prova, branco]);
+    api.createNotebook.mockClear();
+    api.createNotebook.mockResolvedValue(notebook({ id: 13 }));
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await user.click(await screen.findByRole("button", { name: t.fromTemplate }));
+    await user.click(await screen.findByRole("menuitem", { name: /Revisão para prova/ }));
+    await waitFor(() => expect(api.createNotebook).toHaveBeenCalledWith(undefined, "prova"));
   });
 });
 

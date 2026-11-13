@@ -1494,6 +1494,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   // e uma resposta na conversa — os três painéis cheios, que é onde moram os
   // rótulos que a auditoria confere.
   listNotebooks: () => Promise.resolve([notebookSummary]),
+  listNotebookTemplates: () => Promise.resolve([]),
   createNotebook: () => Promise.resolve(notebookFull),
   getNotebook: () => Promise.resolve(notebookFull),
   updateNotebook: () => Promise.resolve(notebookFull),

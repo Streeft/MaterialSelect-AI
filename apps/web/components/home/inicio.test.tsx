@@ -18,6 +18,7 @@ const t = ptBR.home;
 const api = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   listNotebooks: vi.fn(),
+  listNotebookTemplates: () => Promise.resolve([]),
   listCatalogReleases: vi.fn(),
 }));
 vi.mock("@/lib/api", () => ({

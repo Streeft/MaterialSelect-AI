@@ -89,6 +89,7 @@ function notebook(overrides: Partial<Notebook> = {}): Notebook {
 
 const api = vi.hoisted(() => ({
   listNotebooks: vi.fn(),
+  listNotebookTemplates: () => Promise.resolve([]),
   createNotebook: vi.fn(),
   getNotebook: vi.fn(),
   updateNotebook: vi.fn(),

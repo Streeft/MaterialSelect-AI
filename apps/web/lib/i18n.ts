@@ -1759,6 +1759,10 @@ export const ptBR = {
       "Traga suas fontes — apostilas, artigos, fichas e estudos — e converse com elas. Toda resposta cita o trecho de onde veio.",
     create: "Criar caderno",
     creating: "Criando…",
+    // D-235: ready-made notebooks.
+    fromTemplate: "Criar a partir de um modelo",
+    templateHint: (description: string, notes: string[]) =>
+      notes.length > 0 ? `${description} Já vem com: ${notes.join(", ")}.` : description,
     listLabel: "Seus cadernos",
     emptyTitle: "Nenhum caderno ainda",
     emptyDescription:

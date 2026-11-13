@@ -85,6 +85,8 @@ import type {
   NotebookChat,
   NotebookMessage,
   NotebookNote,
+  NotebookTemplate,
+  NotebookTemplateId,
   NotebookSearch,
   NotebookSearchRequest,
   NotebookSource,
@@ -1689,10 +1691,23 @@ export function listNotebooks(archived = false): Promise<NotebookSummary[]> {
   return request<NotebookSummary[]>(archived ? "/api/notebooks?archived=true" : "/api/notebooks");
 }
 
-export function createNotebook(title?: string): Promise<Notebook> {
+export function createNotebook(title?: string, template?: NotebookTemplateId): Promise<Notebook> {
   return request<Notebook>("/api/notebooks", {
     method: "POST",
-    body: JSON.stringify(title ? { title } : {}),
+    body: JSON.stringify({ ...(title ? { title } : {}), ...(template ? { template } : {}) }),
+  });
+}
+
+/** D-235: the ready-made notebooks offered when one is created. */
+export function listNotebookTemplates(): Promise<NotebookTemplate[]> {
+  return request<NotebookTemplate[]>("/api/notebooks/templates");
+}
+
+/** D-235: every note of the notebook, in the student's new order. */
+export function reorderNotebookNotes(id: number, ids: number[]): Promise<NotebookNote[]> {
+  return request<NotebookNote[]>(`${nb(id)}/notes/order`, {
+    method: "PUT",
+    body: JSON.stringify({ ids }),
   });
 }
 
