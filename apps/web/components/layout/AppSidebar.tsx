@@ -164,6 +164,7 @@ export function visibleGroups(groups: NavGroup[], canEditCatalog: boolean): NavG
 /** Screens outside the menu that still have a fixed name (D-207). */
 const EXTRA_TITLES: Record<string, string> = {
   "/app/aparencia": ptBR.appearance.title,
+  "/app/conta": ptBR.account.title,
   "/app/materiais/novo": ptBR.actions.new,
 };
 
@@ -623,12 +624,15 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         collapsed ? "flex-col" : "justify-between",
       )}
     >
-      <div
+      {/* D-236: the name opens Conta — profile, access, today's AI use. */}
+      <Link
+        href="/app/conta"
+        aria-label={`${ptBR.account.open}: ${user.name}`}
         className={cn(
-          "flex min-w-0 items-center gap-2",
+          "m3-state flex min-w-0 items-center gap-2 rounded-control px-1 py-0.5 text-rail-ink-muted",
           collapsed && "flex-col",
         )}
-        title={collapsed ? user.name : undefined}
+        title={collapsed ? `${ptBR.account.open}: ${user.name}` : undefined}
       >
         {user.avatar_url ? (
           // Third-party avatar URL, not a local asset that next/image can
@@ -653,7 +657,7 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
             {user.name}
           </span>
         )}
-      </div>
+      </Link>
       <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
         {/* D-196: Aparência, a link with the icon button's look. */}
         <Link

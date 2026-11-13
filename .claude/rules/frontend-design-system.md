@@ -204,6 +204,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   notas é da conta (`PUT …/notes/order`, `Block` + `useReorder`); "/" num campo de nota é `SlashTextarea` (ficha entra como link,
   nunca como valor copiado); `ToolTile` é monocromático — cor só para estado; aviso do provedor é chip no cabeçalho.
 
+- **Entrada e Conta ([D-236](docs/DECISIONS.md))**: `/entrar` e `/assinatura` usam `EntryFrame`; a landing mostra capturas reais em
+  `public/landing/` (refaça-as quando a Seleção mudar de cara). Conta é `/app/conta`, dentro do app; números de uso vêm do servidor e
+  aparecem num `<meter>` nativo, nunca numa barra calculada. Barra lateral clara é `data-rail="light"`, só no tema claro e só sob
+  `[data-surface="rail"]`; elemento novo da moldura leva esse atributo e lê `--rail-*`, nunca branco fixo.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

@@ -1871,11 +1871,11 @@ describe("acessibilidade das telas principais", () => {
   // component. The sales showcase it once sat beside was removed in D-202.
   it("capa de início (/)", async () => {
     const { container } = render(<StartScreen />);
-    await screen.findByRole("heading", { level: 1, name: ptBR.appName });
-    expect(screen.getByRole("link", { name: ptBR.home.start })).toHaveAttribute(
-      "href",
-      "/app/selecao",
-    );
+    // D-236: the hero asks the Início's question; the name is in the bar above.
+    await screen.findByRole("heading", { level: 1, name: ptBR.auth.landing.heroQuestion });
+    for (const link of screen.getAllByRole("link", { name: ptBR.home.start })) {
+      expect(link).toHaveAttribute("href", "/app/selecao");
+    }
     await expectClean(container);
   });
 });

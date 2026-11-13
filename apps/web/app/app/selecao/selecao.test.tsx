@@ -700,7 +700,7 @@ describe("exemplo em um clique (D-85)", () => {
 
     const nameField = screen.getByShadowRole("textbox", { name: t.studyName });
     await user.type(nameField, "Meu estudo");
-    await waitFor(() => expect(listPerformanceIndices).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByShadowRole("button", { name: t.loadExample })).toBeEnabled());
     await user.click(screen.getByShadowRole("button", { name: t.loadExample }));
 
     expect(screen.getByText(t.exampleLoaded)).toBeInTheDocument();
@@ -713,10 +713,19 @@ describe("exemplo em um clique (D-85)", () => {
     expect(stepButton(t.stepConstraints)).not.toHaveTextContent("3 restrições");
   });
 
+  it("waits for the catalogue before checking the example against it (D-236)", async () => {
+    // Before the lists arrive, every slug would read as missing: the button waits.
+    listPerformanceIndices.mockReturnValue(new Promise(() => {}));
+    render(wrap(<SelectionPage />));
+    await waitFor(() => expect(listPerformanceIndices).toHaveBeenCalled());
+    expect(screen.getByShadowRole("button", { name: t.loadExample })).toBeDisabled();
+    expect(screen.queryByText(/O exemplo não pôde ser carregado/)).toBeNull();
+  });
+
   it("refuses to load half an example, naming what the catalogue lacks", async () => {
     const user = userEvent.setup();
     render(wrap(<SelectionPage />));
-    await waitFor(() => expect(listPerformanceIndices).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByShadowRole("button", { name: t.loadExample })).toBeEnabled());
     await user.click(screen.getByShadowRole("button", { name: t.loadExample }));
 
     expect(screen.getByText(/O exemplo não pôde ser carregado/)).toHaveTextContent("viga-leve-rigidez");

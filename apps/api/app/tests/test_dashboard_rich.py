@@ -23,6 +23,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models.audit import AuditEvent
 from app.models.enums import AuditAction, AuditEntityType
 from app.models.notebook import AIUsage
@@ -256,6 +257,8 @@ class TestActivity:
         data = _get(client, "/activity")
         assert data["ai"]["today"]["requests"] == 3
         assert data["ai"]["today"]["artifacts"] == 1
+        # D-236: the Studio limit travels with the others, for the Conta page.
+        assert data["ai"]["artifact_daily_limit"] == settings.notebook_daily_artifacts
         assert len(data["ai"]["days"]) == 14
         assert data["actions"] == {"ATUALIZADO": 1}
         assert [e["entity_label"] for e in data["recent"]] == ["Material de Usuário de teste"]

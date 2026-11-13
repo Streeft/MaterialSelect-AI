@@ -119,6 +119,8 @@ export function BottomNav() {
   return (
     <nav
       aria-label={ptBR.ui.mainNav}
+      // D-236: reads the rail tokens, so "Barra lateral clara" repaints it too.
+      data-surface="rail"
       data-hidden={hide || undefined}
       className={cn(
         "sticky bottom-0 z-30 grid grid-cols-5 gap-0.5 bg-rail px-1.5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-slow ease-emphasized lg:hidden",

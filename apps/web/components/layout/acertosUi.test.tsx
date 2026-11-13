@@ -124,9 +124,10 @@ describe("rótulos de seção do menu", () => {
   it("o token passa de 4,5:1 sobre o trilho nos dois temas", () => {
     const eyebrow = tokenTriples("--rail-eyebrow");
     const rail = tokenTriples("--rail");
-    // One declaration in the light block and one in the dark one.
-    expect(eyebrow).toHaveLength(2);
-    expect(rail).toHaveLength(2);
+    // One declaration in the light block, one in the dark one, and the light
+    // rail of Aparência (D-236), each paired with its own --rail.
+    expect(eyebrow).toHaveLength(3);
+    expect(rail).toHaveLength(3);
     eyebrow.forEach((ink, i) => {
       expect(contrast(ink, rail[i]!)).toBeGreaterThanOrEqual(4.5);
     });

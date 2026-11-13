@@ -9,6 +9,8 @@
 export const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["inicio", "/app"],
   ["aparencia", "/app/aparencia"],
+  // D-236: Conta, inside the app.
+  ["conta", "/app/conta"],
   ["catalogo", "/app/catalogo"],
   ["selecao", "/app/selecao"],
   ["mapas", "/app/mapas"],

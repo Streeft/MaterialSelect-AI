@@ -22,6 +22,7 @@ afterEach(() => {
   delete root.dataset.contrast;
   delete root.dataset.motion;
   delete root.dataset.section;
+  delete root.dataset.rail;
 });
 
 describe("aparência guardada (D-196)", () => {
@@ -32,7 +33,11 @@ describe("aparência guardada (D-196)", () => {
       color: "violeta",
       contrast: "standard",
       motion: "reduced",
+      rail: "dark",
     });
+    // D-236: the light rail is read back; anything else is the dark default.
+    expect(parseAppearance('{"rail":"light"}').rail).toBe("light");
+    expect(parseAppearance('{"rail":"azul"}').rail).toBe("dark");
   });
 
   it("escolhe a paleta: a da tela por padrão, a escolhida em todas as telas", () => {
@@ -50,9 +55,13 @@ describe("aparência guardada (D-196)", () => {
     expect(listener).toHaveBeenCalled();
     expect(readAppearance()).toBe(readAppearance());
 
-    setAppearance({ contrast: "standard", motion: "standard" });
+    setAppearance({ rail: "light" });
+    expect(root.dataset.rail).toBe("light");
+
+    setAppearance({ contrast: "standard", motion: "standard", rail: "dark" });
     expect(root.dataset.contrast).toBeUndefined();
     expect(root.dataset.motion).toBeUndefined();
+    expect(root.dataset.rail).toBeUndefined();
     stop();
   });
 
@@ -66,9 +75,10 @@ describe("aparência guardada (D-196)", () => {
   it("o script do <head> aplica a escolha antes do primeiro quadro", () => {
     window.localStorage.setItem(
       APPEARANCE_STORAGE_KEY,
-      JSON.stringify({ color: "verde-azulado", contrast: "medium", motion: "reduced" }),
+      JSON.stringify({ color: "verde-azulado", contrast: "medium", motion: "reduced", rail: "light" }),
     );
     new Function(APPEARANCE_BOOTSTRAP_SCRIPT)();
+    expect(root.dataset.rail).toBe("light");
     expect(root.dataset.section).toBe("mapas");
     expect(root.dataset.contrast).toBe("medium");
     expect(root.dataset.motion).toBe("reduced");

@@ -3700,7 +3700,7 @@ export const ptBR = {
   },
   appearance: {
     title: "Aparência",
-    description: "Cor, contraste, movimento e densidade. Vale para você, neste aparelho.",
+    description: "Cor, contraste, movimento, barra lateral e densidade. Vale para você, neste aparelho.",
     open: "Aparência",
     themeTitle: "Tema",
     themeHint: "Claro, escuro ou o mesmo do sistema.",
@@ -3728,6 +3728,10 @@ export const ptBR = {
     densityTitle: "Densidade das tabelas",
     densityHint: "Vale para todas as tabelas; cada uma ainda pode trocar na hora.",
     density: { comfortable: "Confortável", compact: "Compacta" },
+    // D-236: the rail is dark by default; light only in the light theme.
+    railTitle: "Barra lateral",
+    railHint: "Escura é o padrão. Clara vale no tema claro; no escuro a barra continua escura.",
+    rail: { dark: "Escura", light: "Clara" },
     previewTitle: "Prévia",
     previewEyebrow: "Início",
     previewHeading: "O que a peça precisa fazer?",
@@ -3886,6 +3890,9 @@ export const ptBR = {
     // D-222: o que a pessoa precisa saber antes de clicar, e a saída para quem chegou por engano.
     loginAccess: "Não é preciso assinar nem pagar: o acesso é aberto a qualquer conta Google.",
     loginBack: "Voltar à página inicial",
+    // D-236: the brand side of /entrar and /assinatura.
+    entryPhrase: "Da função da peça ao material escolhido, com a origem de cada número à vista.",
+    entryCredit: "Trabalho de Conclusão de Curso em Engenharia de Materiais — UFRGS.",
     // D-222: a página inicial em uma tela — o que o app faz e o caminho para entrar.
     landingPoints: [
       { title: "Descreva a função", text: "Do que a peça precisa fazer ao índice de mérito, com cada limite à vista." },
@@ -3893,6 +3900,57 @@ export const ptBR = {
       { title: "Confira a origem", text: "Nenhuma propriedade é inventada: cada número traz a fonte ou o cálculo que o gerou." },
     ],
     landingEnter: "Já tem acesso? Entrar",
+    // D-236: the landing explains the method with the app's own screens.
+    landing: {
+      nav: "Navegação da página inicial",
+      navEnter: "Entrar",
+      heroQuestion: "O que a peça precisa fazer?",
+      heroLead:
+        "Descreva a função, diga o que otimizar e elimine com limites. O MaterialSelect AI ordena os materiais do catálogo pelo método de Ashby e mostra de onde veio cada número.",
+      methodEyebrow: "O método",
+      methodTitle: "Da função ao material, em três passos",
+      methodLead: "O percurso de Ashby, o mesmo de uma disciplina de seleção de materiais. As imagens são telas do próprio app, com o catálogo de demonstração.",
+      steps: [
+        {
+          title: "Função",
+          text: "Diga o que a peça faz e o que se quer otimizar. O estudo vira um documento, com o índice de mérito escrito como fórmula.",
+          image: "/landing/funcao.webp",
+          alt: "Estudo “Viga leve de bicicleta” com função, objetivo, três limites e a variável livre preenchidos, e os quatro passos do estudo.",
+        },
+        {
+          title: "Limites",
+          text: "Cada limite elimina candidatos à vista: o funil diz quantos restam e quantos cada limite tirou, calculado no servidor.",
+          image: "/landing/limites.webp",
+          alt: "Passo Limites com o módulo de Young maior ou igual a 70 GPa e o funil de candidatos: de 678 materiais, 241 continuam.",
+        },
+        {
+          title: "Resultado",
+          text: "O ranking pelo índice, com o vencedor explicado e a origem de cada valor a um toque. Dali, o mapa e o comparador.",
+          image: "/landing/resultado.webp",
+          alt: "Resultado com o vencedor, a nota ponderada e a tabela dos cinco primeiros materiais com índice e pontuação.",
+        },
+      ],
+      guaranteesEyebrow: "O que não muda",
+      guaranteesTitle: "O que o app garante",
+      guarantees: [
+        {
+          title: "Nenhum número inventado",
+          text: "Toda propriedade veio de um valor cadastrado ou de um cálculo determinístico do servidor. A IA interpreta e explica; nunca produz um valor.",
+        },
+        {
+          title: "A origem a um toque",
+          text: "Cada valor leva a fonte, a unidade original e a conversão feita, para conferir e citar.",
+        },
+        {
+          title: "Ausência escrita",
+          text: "Quando um dado falta, a tela diz que falta: nunca zero, traço ou célula vazia.",
+        },
+      ],
+      footer: "Rodapé",
+      footerGlossary: "Glossário",
+      footerEnter: "Entrar",
+      footerStart: "Começar um estudo",
+    },
     // D-198: the API's Google callback never ends in a 500; it redirects here
     // with `?erro=<code>`. One message per code; an unknown code reads as
     // `falha`. The button stays below, so "try again" is one click.
@@ -3914,6 +3972,37 @@ export const ptBR = {
     loggingOut: "Saindo…",
   },
 
+  // D-236: Conta, inside the app — profile, access, today's AI use, Aparência, sair.
+  account: {
+    title: "Conta",
+    description: "Quem está conectado, o que dá acesso à ferramenta e quanto da IA você usou hoje.",
+    open: "Conta",
+    profileTitle: "Perfil",
+    name: "Nome",
+    email: "E-mail",
+    role: "Papel",
+    roleStudent: "Estudante",
+    roleStudentHint: "Cria e edita os próprios registros e estudos; o catálogo compartilhado é somente leitura.",
+    roleCurator: "Curadoria do catálogo",
+    roleCuratorHint: "Pode alterar o catálogo compartilhado: materiais, classes, propriedades e importações.",
+    planTitle: "Acesso",
+    planOpen: "Acesso aberto: a sua conta Google basta, sem assinatura e sem cobrança.",
+    planActive: "Assinatura ativa.",
+    planActiveUntil: (date: string) => `Assinatura ativa até ${date}.`,
+    usageTitle: "Uso da IA hoje",
+    usageHint: "Os limites são por pessoa e por dia, e voltam a zero à meia-noite. Contados pelo servidor.",
+    usedOf: (used: number, limit: number) =>
+      `${used.toLocaleString("pt-BR")} de ${limit.toLocaleString("pt-BR")}`,
+    usageQuestions: "Perguntas aos Cadernos",
+    usageQuestionsHint: (aiLimit: number) =>
+      `Conversa e guia dos Cadernos. As outras chamadas de IA usam o mesmo contador, até ${aiLimit.toLocaleString("pt-BR")} por dia.`,
+    usageArtifacts: "Gerações do Estúdio",
+    usageArtifactsHint: "Resumos, relatórios, testes e demais itens do Estúdio. Uma geração que falha não conta.",
+    usageFetches: "Buscas e links externos",
+    usageFetchesHint: "Páginas, vídeos e buscas na web trazidos para os Cadernos, com sucesso ou não.",
+    appearanceHint: "Tema, contraste, cor do app, barra lateral e densidade. Valem neste aparelho.",
+    appearanceOpen: "Abrir a Aparência",
+  },
   billing: {
     title: "Assinatura",
     // D-222: only said when the server is set to require a subscription; in the

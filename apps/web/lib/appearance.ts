@@ -17,14 +17,17 @@
 export type AppColor = "route" | "azul" | "verde-azulado" | "verde" | "violeta" | "rosa" | "terracota";
 export type ContrastLevel = "standard" | "medium" | "high";
 export type MotionPreference = "standard" | "reduced";
+/** D-236: the rail is dark by default (D-37, D-181); "light" is an option, in the light theme only. */
+export type RailPreference = "dark" | "light";
 
 export interface Appearance {
   color: AppColor;
   contrast: ContrastLevel;
   motion: MotionPreference;
+  rail: RailPreference;
 }
 
-export const DEFAULT_APPEARANCE: Appearance = { color: "route", contrast: "standard", motion: "standard" };
+export const DEFAULT_APPEARANCE: Appearance = { color: "route", contrast: "standard", motion: "standard", rail: "dark" };
 
 /**
  * The palette each colour wears: the `[data-section]` whose block already holds
@@ -44,6 +47,7 @@ export const APP_COLOR_SECTION: Record<Exclude<AppColor, "route">, string> = {
 export const APP_COLORS = ["route", ...Object.keys(APP_COLOR_SECTION)] as AppColor[];
 const CONTRASTS: ContrastLevel[] = ["standard", "medium", "high"];
 const MOTIONS: MotionPreference[] = ["standard", "reduced"];
+const RAILS: RailPreference[] = ["dark", "light"];
 
 export const APPEARANCE_STORAGE_KEY = "msai.appearance";
 
@@ -60,6 +64,7 @@ export function parseAppearance(raw: string | null): Appearance {
       color: isOneOf(data.color, APP_COLORS) ? data.color : DEFAULT_APPEARANCE.color,
       contrast: isOneOf(data.contrast, CONTRASTS) ? data.contrast : DEFAULT_APPEARANCE.contrast,
       motion: isOneOf(data.motion, MOTIONS) ? data.motion : DEFAULT_APPEARANCE.motion,
+      rail: isOneOf(data.rail, RAILS) ? data.rail : DEFAULT_APPEARANCE.rail,
     };
   } catch {
     return DEFAULT_APPEARANCE;
@@ -81,7 +86,7 @@ export const APPEARANCE_BOOTSTRAP_SCRIPT = `!function(){try{var a=JSON.parse(loc
   APPEARANCE_STORAGE_KEY,
 )})||"{}"),r=document.documentElement,s=${JSON.stringify(
   APP_COLOR_SECTION,
-)};if(a.contrast==="medium"||a.contrast==="high")r.dataset.contrast=a.contrast;if(a.motion==="reduced")r.dataset.motion="reduced";if(s[a.color])r.dataset.section=s[a.color]}catch(e){}}()`;
+)};if(a.contrast==="medium"||a.contrast==="high")r.dataset.contrast=a.contrast;if(a.motion==="reduced")r.dataset.motion="reduced";if(a.rail==="light")r.dataset.rail="light";if(s[a.color])r.dataset.section=s[a.color]}catch(e){}}()`;
 
 /** Writes the contrast and motion attributes; the colour goes through `SectionTheme`. */
 export function applyAppearanceToDocument(appearance: Appearance, root: HTMLElement): void {
@@ -89,6 +94,8 @@ export function applyAppearanceToDocument(appearance: Appearance, root: HTMLElem
   else root.dataset.contrast = appearance.contrast;
   if (appearance.motion === "reduced") root.dataset.motion = "reduced";
   else delete root.dataset.motion;
+  if (appearance.rail === "light") root.dataset.rail = "light";
+  else delete root.dataset.rail;
 }
 
 // --- The store, in the shape `useSyncExternalStore` wants (as lib/theme.ts). ---
