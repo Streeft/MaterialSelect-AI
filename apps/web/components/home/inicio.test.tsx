@@ -11,7 +11,7 @@ import { CatalogNews } from "./CatalogNews";
 import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import { draftKey, serializeDraft, type DraftData } from "@/lib/selectionDraft";
-import { RECENTS_KEY, resetNavMemory } from "@/lib/navMemory";
+import { MAP_URL_KEY, RECENTS_KEY, recordMapUrl, resetNavMemory } from "@/lib/navMemory";
 
 const t = ptBR.home;
 
@@ -82,6 +82,30 @@ describe("ResumeWork (D-222)", () => {
 
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+
+  it("'Último mapa' volta ao mapa com os filtros, pelo endereço completo (D-232)", async () => {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify([{ href: "/app/mapas", label: "Mapas" }]));
+    recordMapUrl("/app/mapas?estado=eyJ4Ijoi&sel=1,2&caixa=abc");
+    const { container } = render(<ResumeWork />, { wrapper });
+
+    const open = await screen.findByText(t.resumeMapOpen);
+    expect(open.closest("a")).toHaveAttribute("href", "/app/mapas?estado=eyJ4Ijoi&sel=1,2&caixa=abc");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+
+  it("sem endereço guardado, o mapa volta pelo caminho, como antes", async () => {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify([{ href: "/app/mapas", label: "Mapas" }]));
+    render(<ResumeWork />, { wrapper });
+    expect((await screen.findByText(t.resumeMapOpen)).closest("a")).toHaveAttribute("href", "/app/mapas");
+  });
+
+  it("um endereço guardado que não é do mapa é ignorado", async () => {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify([{ href: "/app/mapas", label: "Mapas" }]));
+    window.localStorage.setItem(MAP_URL_KEY, JSON.stringify(["https://outro.site/app/mapas?x=1"]));
+    render(<ResumeWork />, { wrapper });
+    expect((await screen.findByText(t.resumeMapOpen)).closest("a")).toHaveAttribute("href", "/app/mapas");
   });
 
   it("não oferece o rascunho de outra conta", async () => {

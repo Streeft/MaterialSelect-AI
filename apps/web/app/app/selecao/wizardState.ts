@@ -34,8 +34,10 @@ import {
   boundToField,
   chartAxisFromPayload,
   emptyLimitStage,
+  listStage,
   type StageState,
 } from "@/components/selection/StageList";
+import { materialsFromParams } from "@/lib/selectionList";
 import {
   constraintsUseAdvanced,
   functionUsesAdvanced,
@@ -121,7 +123,10 @@ function resolve<T>(update: Updater<T>, current: T): T {
   return typeof update === "function" ? (update as (c: T) => T)(current) : update;
 }
 
-/** The study the wizard opens with. Deep links (`?novo_estagio=chart`, `?universo=`) seed it. */
+/**
+ * The study the wizard opens with. Deep links (`?novo_estagio=chart`,
+ * `?materiais=`, `?universo=`) seed it.
+ */
 export function initialWizardState(params: {
   get(name: string): string | null;
 }, functionText = ""): WizardState {
@@ -153,6 +158,14 @@ export function initialWizardState(params: {
 
 // P1-2: deep link from chart map (/app/mapas) initializes with a chart stage.
 function initialStages(params: { get(name: string): string | null }): StageState[] {
+  // D-232: a list of materials from the map's lasso, the sizing shortlist or the
+  // catalogue's ticks. The list stage first — it says who is in — and the usual
+  // empty limit stage after it, where the reader's own limits go. Materials
+  // only: a process study has no material ids to restrict to.
+  const listed = params.get("universo") === "process" ? [] : materialsFromParams(params);
+  if (listed.length > 0 && params.get("novo_estagio") !== "chart") {
+    return [listStage(listed), initialLimitStage()];
+  }
   if (params.get("novo_estagio") !== "chart") {
     const stage = initialLimitStage();
     // D-219: the glossary's "Usar como restrição" opens the first limit already
@@ -443,6 +456,12 @@ export function stageFromPayload(
         kind: "material",
         materialClassSlugs: stage.material_class_slugs,
         includeDescendants: stage.include_descendants,
+      };
+    case "list":
+      return {
+        ...common,
+        kind: "list",
+        materialIds: stage.material_ids ?? [],
       };
     case "chart":
       return {

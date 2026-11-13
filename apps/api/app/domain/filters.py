@@ -322,6 +322,26 @@ def matches_linked_tree(
 
 
 @dataclass(frozen=True)
+class IdSelection:
+    """The records a List stage keeps — the universe restricted to a named set (D-232).
+
+    The Map's lasso, the sizing shortcut and the catalogue's cross-page tick
+    each end with *these materials*, not with a rule that describes them, so the
+    stage carries the ids themselves. It is a stage and not a constraint
+    because a constraint is a comparison over a property and an identifier is
+    not one.
+
+    Unlike ``TreeSelection``, an empty list is **not** "no restriction": a stage
+    that names nobody and admits everybody would be the opposite of what it
+    says, so the service refuses an empty one before it gets here. If one ever
+    arrives it admits nothing, which is what the sentence "restricted to none of
+    these" means.
+    """
+
+    record_ids: tuple[int, ...] | list[int] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
 class ProcessSelection:
     """The processes a stage keeps materials for — the join's other direction.
 
@@ -559,9 +579,11 @@ class SelectionStageNode:
       the materials each process serves.
     * ``"chart"`` → ``chart``, a region of one plane — the box and/or the index
       line the reader drew on a map (P1-2).
+    * ``"list"`` → ``ids``, the universe restricted to a named set of materials
+      (D-232), in a material study.
     """
 
-    kind: str  # "limit" | "tree" | "process" | "material" | "chart"
+    kind: str  # "limit" | "tree" | "process" | "material" | "chart" | "list"
     label: str | None
     enabled: bool
     root: ConstraintGroupNode | None = None
@@ -569,6 +591,7 @@ class SelectionStageNode:
     processes: ProcessSelection | None = None
     materials: TreeSelection | None = None
     chart: ChartSelection | None = None
+    ids: IdSelection | None = None
 
 
 def has_value(record: RecordSnapshot, slug: str | None) -> bool:
@@ -881,6 +904,19 @@ def apply_stage(materials: list[RecordSnapshot], stage: SelectionStageNode) -> l
         if stage.chart is None:
             return list(materials)
         return [record for record in materials if matches_chart(record, stage.chart)]
+    if stage.kind == "list":
+        if stage.ids is None:
+            return list(materials)
+        for record in materials:
+            # Raises for a process, like the material stage: a list of material
+            # ids over processes would compare ids of two different tables.
+            if isinstance(record, ProcessSnapshot):
+                raise TypeError(
+                    "A list stage applies only to a material study; "
+                    f"got {type(record).__name__}."
+                )
+        picked = set(stage.ids.record_ids)
+        return [record for record in materials if record.id in picked]
     if stage.root is None:
         return list(materials)
     return apply_constraint_tree(materials, stage.root)

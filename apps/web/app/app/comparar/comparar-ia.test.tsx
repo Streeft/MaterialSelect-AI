@@ -29,6 +29,7 @@ vi.mock("@/lib/api", () => ({
     return new Promise(() => {});
   },
   getMyRecords: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  listStudies: () => Promise.resolve([]),
   listMaterials: () =>
     Promise.resolve([
       { id: 1, name: "Aço 1020", class_name: "Metais", class_slug: "metais" },

@@ -476,6 +476,25 @@ describe("Dimensionar", () => {
     expect(screen.getByText(t.diagram.caption)).toBeInTheDocument();
   });
 
+  it("os candidatos vão para a Seleção como lista, sem violação de acessibilidade (D-232)", async () => {
+    solveBrief.mockResolvedValue({
+      ...result,
+      solved: [
+        ...result.solved,
+        { ...result.solved[0]!, record_id: 3, name: "Aço 1020", rank: 2, objective_value: 0.9 },
+      ],
+    });
+    const user = userEvent.setup();
+    await chooseBeam();
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
+
+    const link = await screen.findByRole("link", { name: t.openCandidatesInSelection(2) });
+    expect(link).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1,3");
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
+
   it("desenha o resultado em barras, com a tabela de origem e o link para comparar", async () => {
     solveBrief.mockResolvedValue({
       ...result,
@@ -499,10 +518,20 @@ describe("Dimensionar", () => {
       "1. Alumínio 6061: 0,402 kg",
       "2. Aço 1020: 0,9 kg",
     ]);
-    // The candidates go to Comparar, which takes a list of ids (Seleção does not).
+    // The candidates go to Comparar, and (D-232) to the Selection as a list stage.
     expect(screen.getByRole("link", { name: t.compareBest(2) })).toHaveAttribute(
       "href",
       expect.stringMatching(/^\/app\/comparar\?materiais=/),
+    );
+    const toSelection = screen.getByRole("link", { name: t.openCandidatesInSelection(2) });
+    expect(toSelection).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/app\/selecao\?etapa=restricoes&materiais=\d+,\d+$/),
+    );
+    // Same ids, same order as the comparison: the shortlist is one thing.
+    const comparar = screen.getByRole("link", { name: t.compareBest(2) }).getAttribute("href");
+    expect(toSelection.getAttribute("href")?.split("materiais=")[1]).toBe(
+      comparar?.split("materiais=")[1],
     );
   });
 });

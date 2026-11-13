@@ -20,6 +20,11 @@ export interface NavEntry {
 export const RECENTS_KEY = "msai.nav.recents";
 export const PINNED_KEY = "msai.nav.pinned";
 export const COLLAPSED_GROUPS_KEY = "msai.nav.groups";
+/** D-232: the whole address of the map last opened, filters and selection included. */
+export const MAP_URL_KEY = "msai.nav.mapUrl";
+
+/** Longest address kept: a lasso of hundreds of ids is not worth a megabyte of storage. */
+export const MAX_MAP_URL_LENGTH = 4000;
 
 /** Stored; the menu shows fewer (see `SHOWN_RECENTS`). */
 export const MAX_RECENTS = 8;
@@ -39,6 +44,15 @@ function isEntry(value: unknown): value is NavEntry {
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+/** The map's own address and nothing else: same site, same page, query string only. */
+function isMapUrl(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= MAX_MAP_URL_LENGTH &&
+    (value === "/app/mapas" || value.startsWith("/app/mapas?"))
+  );
 }
 
 interface ListStore<T> {
@@ -126,12 +140,27 @@ function createListStore<T>(key: string, isItem: (value: unknown) => value is T)
 const recents = createListStore<NavEntry>(RECENTS_KEY, isEntry);
 const pinned = createListStore<NavEntry>(PINNED_KEY, isEntry);
 const collapsedGroups = createListStore<string>(COLLAPSED_GROUPS_KEY, isString);
+// One entry at most: the last map, and what it was asked.
+const mapUrl = createListStore<string>(MAP_URL_KEY, isMapUrl);
 
 /** Forgets the recents, the pins and the folds (and any in-memory fallback). */
 export function resetNavMemory(): void {
   recents.reset();
   pinned.reset();
   collapsedGroups.reset();
+  mapUrl.reset();
+}
+
+/**
+ * Remembers the map as the reader left it (D-232): path *and* query, so the
+ * home's "Último mapa" reopens the same axes, filters and selection and not
+ * just the page. An address that is not the map's, or too long to be worth
+ * storing, is not kept — the card then falls back to the path.
+ */
+export function recordMapUrl(url: string): void {
+  if (!isMapUrl(url)) return;
+  if (mapUrl.get()[0] === url) return;
+  mapUrl.set([url]);
 }
 
 /** Most recent first; a page visited again moves to the top with its newest name. */
@@ -164,6 +193,12 @@ export function toggleGroupCollapsed(id: string): void {
 
 export function useRecents(): readonly NavEntry[] {
   return useSyncExternalStore(recents.subscribe, recents.get, recents.getServer);
+}
+
+/** The last map's whole address, or null when none was kept. */
+export function useMapUrl(): string | null {
+  const list = useSyncExternalStore(mapUrl.subscribe, mapUrl.get, mapUrl.getServer);
+  return list[0] ?? null;
 }
 
 export function usePinned(): readonly NavEntry[] {

@@ -15,6 +15,30 @@ vi.mock("next/navigation", () => ({
 }));
 
 const requests: ComparisonRequest[] = [];
+
+// D-232: the studies the shortcut reads, and what running one answers.
+const studies = vi.hoisted(() => ({
+  list: [] as Record<string, unknown>[],
+  run: vi.fn(),
+}));
+const study = (id: number, name: string, createdAt: string, universe = "material") => ({
+  id,
+  name,
+  description: null,
+  created_at: createdAt,
+  constraint_count: 1,
+  criterion_count: 0,
+  stage_count: 1,
+  universe,
+});
+const candidate = (record_id: number, rank: number | null) => ({
+  record_id,
+  name: `Material ${record_id}`,
+  class_name: "Metais",
+  index_value: null,
+  score: null,
+  rank,
+});
 const bookmark = (id: number, name: string) => ({
   universe: "material",
   at: "2026-11-01T10:00:00Z",
@@ -35,10 +59,14 @@ vi.mock("@/lib/api", () => ({
       recents: [],
       own_records: [],
     }),
+  listStudies: () => Promise.resolve(studies.list),
+  runStudy: (id: number) => studies.run(id),
   listMaterials: () =>
     Promise.resolve([
       { id: 1, name: "Aço 1020", class_name: "Metais", class_slug: "metais" },
       { id: 2, name: "Alumínio 6061", class_name: "Metais", class_slug: "metais" },
+      { id: 3, name: "Titânio Ti-6Al-4V", class_name: "Metais", class_slug: "metais" },
+      { id: 4, name: "PEEK", class_name: "Polímeros", class_slug: "polimeros" },
     ]),
   listProperties: () =>
     Promise.resolve([
@@ -138,5 +166,90 @@ describe("comparador: pares clássicos como ponto de partida (D-221)", () => {
     expect(screen.queryByText(/PEAD × PP/)).toBeNull();
     fireEvent.click(pair);
     await waitFor(() => expect(requests.at(-1)?.material_ids).toEqual([1, 2]));
+  });
+});
+
+describe("comparador: top do último estudo (D-232)", () => {
+  beforeEach(() => {
+    requests.length = 0;
+    nav.query = "";
+    window.history.replaceState(null, "", "/app/comparar");
+    studies.list = [];
+    studies.run.mockReset();
+  });
+
+  it("não oferece o atalho quando o leitor não tem estudo de materiais", async () => {
+    studies.list = [study(9, "De processos", "2026-11-12T10:00:00Z", "process")];
+    mount();
+    await screen.findByRole("heading", { name: compareViewText.empty.title });
+    await waitFor(() => expect(screen.queryByText(compareViewText.empty.loading)).toBeNull());
+    expect(screen.queryByRole("button", { name: /top do estudo/i })).toBeNull();
+    expect(studies.run).not.toHaveBeenCalled();
+  });
+
+  it("executa o estudo salvo mais recente e leva os primeiros ao comparador, na ordem do ranking", async () => {
+    studies.list = [
+      study(5, "Mais antigo", "2026-10-01T10:00:00Z"),
+      study(7, "Viga leve", "2026-11-10T10:00:00Z"),
+      study(9, "De processos", "2026-11-12T10:00:00Z", "process"),
+    ];
+    studies.run.mockResolvedValue({
+      universe: "material",
+      candidates: [candidate(4, 3), candidate(3, 1), candidate(1, 2), candidate(2, null)],
+    });
+    mount();
+
+    const button = await screen.findByRole("button", {
+      name: compareViewText.empty.compareStudyTop("Viga leve"),
+    });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(studies.run).toHaveBeenCalledWith(7));
+    // Ranked first (by rank, never by the order the rows came), the unranked after.
+    await waitFor(() => expect(requests.at(-1)?.material_ids).toEqual([3, 1, 4, 2]));
+    expect(screen.queryByRole("heading", { name: compareViewText.empty.title })).toBeNull();
+  });
+
+  it("leva no máximo os cinco primeiros", async () => {
+    studies.list = [study(7, "Viga leve", "2026-11-10T10:00:00Z")];
+    studies.run.mockResolvedValue({
+      universe: "material",
+      candidates: [1, 2, 3, 4, 5, 6, 7].map((id) => candidate(id, id)),
+    });
+    mount();
+    fireEvent.click(
+      await screen.findByRole("button", { name: compareViewText.empty.compareStudyTop("Viga leve") }),
+    );
+    await waitFor(() => expect(requests.at(-1)?.material_ids).toEqual([1, 2, 3, 4, 5]));
+  });
+
+  it("um estudo sem candidatos suficientes diz isso, em vez de comparar um só", async () => {
+    studies.list = [study(7, "Viga leve", "2026-11-10T10:00:00Z")];
+    studies.run.mockResolvedValue({ universe: "material", candidates: [candidate(1, 1)] });
+    mount();
+    fireEvent.click(
+      await screen.findByRole("button", { name: compareViewText.empty.compareStudyTop("Viga leve") }),
+    );
+    expect(await screen.findByText(compareViewText.empty.studyTooFew("Viga leve"))).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: compareViewText.empty.title })).toBeInTheDocument();
+  });
+
+  it("um erro ao executar o estudo aparece no cartão, e o atalho pode ser tentado de novo", async () => {
+    studies.list = [study(7, "Viga leve", "2026-11-10T10:00:00Z")];
+    studies.run.mockRejectedValue(new Error("falhou"));
+    mount();
+    fireEvent.click(
+      await screen.findByRole("button", { name: compareViewText.empty.compareStudyTop("Viga leve") }),
+    );
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: compareViewText.empty.compareStudyTop("Viga leve") })).toBeEnabled();
+  });
+
+  it("o estado vazio com o atalho passa no axe", async () => {
+    studies.list = [study(7, "Viga leve", "2026-11-10T10:00:00Z")];
+    const { container } = mount();
+    await screen.findByRole("button", { name: compareViewText.empty.compareStudyTop("Viga leve") });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });

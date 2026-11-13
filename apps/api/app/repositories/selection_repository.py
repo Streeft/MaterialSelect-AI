@@ -309,6 +309,37 @@ class SelectionRepository:
         stmt = select(ProcessClass.slug, ProcessClass.name)
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 
+    # --- material lists (D-232) -------------------------------------------
+
+    def existing_material_ids(self, ids: list[int]) -> set[int]:
+        """Which of ``ids`` name an active material this viewer can see.
+
+        Scoped the way the snapshot is, so a list stage cannot be used to probe
+        for a record the catalogue would never have shown: an id that is hidden
+        from this viewer is, to them, an id that names nothing.
+        """
+        if not ids:
+            return set()
+        stmt = (
+            select(Material.id)
+            .where(Material.id.in_(ids))
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+        )
+        return {row[0] for row in self.db.execute(stmt).all()}
+
+    def material_names_by_id(self, ids: list[int]) -> dict[int, str]:
+        """Material id → name for the ones the viewer can see, so a document says
+        "Aço Demo B" and not "material 7"."""
+        if not ids:
+            return {}
+        stmt = (
+            select(Material.id, Material.name)
+            .where(Material.id.in_(ids))
+            .where(visible_materials(self.viewer_id))
+        )
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
     # --- material taxonomy -------------------------------------------------
 
     def existing_class_slugs(self, slugs: list[str]) -> set[str]:

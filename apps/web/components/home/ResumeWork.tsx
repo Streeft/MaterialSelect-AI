@@ -6,7 +6,7 @@ import { listNotebooks } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
-import { useRecents } from "@/lib/navMemory";
+import { useMapUrl, useRecents } from "@/lib/navMemory";
 import { draftKey, parseDraft } from "@/lib/selectionDraft";
 import { useMemo, useSyncExternalStore } from "react";
 import { Section } from "@/components/ui";
@@ -37,6 +37,8 @@ function readStored(key: string): string | null {
 export function ResumeWork() {
   const me = useCurrentUser();
   const recents = useRecents();
+  // D-232: the address the map was left at, with its filters; the path alone is the fallback.
+  const mapUrl = useMapUrl();
   const notebooks = useQuery({ queryKey: ["notebooks", false], queryFn: () => listNotebooks(false) });
 
   // The draft lives in this browser's storage, which the server render cannot see.
@@ -75,7 +77,7 @@ export function ResumeWork() {
         {map && (
           <li>
             <Link
-              href={map.href}
+              href={mapUrl ?? map.href}
               data-interactive="true"
               className="msds-card flex h-full min-w-0 flex-col gap-1 p-4"
             >

@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 189 — 13/11/26 — Fluxos entre telas, parte 14: a Seleção recebe uma lista de materiais (D-232)
+
+**O que mudou.** Backend: sexto tipo de estágio, `list` (`StageIn.material_ids`, 1 a 200; `IdSelection` em `domain/filters.py`; funil
+`in_list`; só estudo de materiais; vazio 400, id desconhecido ou invisível 404 citando o número, teto 422); guardado sem migração
+como inteiros na coluna JSON `material_class_slugs`; relatório e laudo com os nomes; arquivo de estudo recusa a lista (o arquivo não
+leva id de registro). Frontend: `?materiais=` abre a Seleção restrita (estágio de lista + estágio de limites vazio, rascunho,
+`lib/selectionList.ts`); "Abrir na Seleção" no laço e nos pontos marcados do Mapa, nos candidatos do Dimensionar e na seleção do
+Catálogo, que agora **atravessa páginas** (`?sel=`, "N selecionados em várias páginas", "Limpar seleção"); Comparar vazio ganha
+"Comparar o top do estudo …" (executa o estudo salvo mais recente e leva os 5 primeiros); "Último mapa" do Início reabre o
+endereço inteiro do mapa (`msai.nav.mapUrl`). Testes novos: `test_selection_list_stage.py`; vitest com axe nas cinco origens e no
+cartão do estágio; E2E `mapa-para-selecao.spec.ts`. **Depois do merge: Deploy da API.** Sem migração nem seed.
+
 ## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
 
 **O que mudou.** `fly.toml`: `[[vm]] memory` de `512mb` para `1gb`, depois de quatro mortes por falta de memória (exit 137) em

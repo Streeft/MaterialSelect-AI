@@ -392,6 +392,47 @@ describe("páginas, contagens e ordem (D-217)", () => {
     expect(searchSpy.calls.at(-1)).toMatchObject({ limit: 50, offset: 50 });
   });
 
+  it("a seleção atravessa as páginas, fica na URL e abre na Seleção com os ids das duas (D-232)", async () => {
+    search.extra = many(60);
+    const { user, table } = await renderCatalog();
+    await user.click(within(table).getByShadowRole("checkbox", { name: t.selectRow("Aço 1020") }));
+    await waitFor(() => expect(window.location.search).toContain("sel=1"));
+
+    const nav = screen.getByShadowRole("navigation", { name: ptBR.ds.pagination });
+    await user.click(within(nav).getByShadowRole("button", { name: ptBR.ds.nextPage }));
+    await waitFor(() =>
+      expect(within(screen.getByShadowRole("table")).getAllByShadowRole("row")).toHaveLength(14),
+    );
+    // Page 2: the first row is Liga numerada 048 (id 147).
+    await user.click(
+      within(screen.getByShadowRole("table")).getByShadowRole("checkbox", {
+        name: t.selectRow("Liga numerada 048"),
+      }),
+    );
+
+    const bar = screen.getByShadowRole("region", { name: t.selectionBar });
+    expect(within(bar).getByShadowRole("status")).toHaveTextContent(t.selectedAcrossPages(2));
+    expect(within(bar).getByShadowRole("link", { name: t.openInSelection })).toHaveAttribute(
+      "href",
+      "/app/selecao?etapa=restricoes&materiais=1,147",
+    );
+    expect(new URLSearchParams(window.location.search).get("sel")).toBe("1,147");
+
+    await user.click(within(bar).getByShadowRole("button", { name: t.clearSelection }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).has("sel")).toBe(false));
+    expect(screen.queryByShadowRole("region", { name: t.selectionBar })).toBeNull();
+  });
+
+  it("abre de um link com a seleção já marcada", async () => {
+    window.history.replaceState(null, "", "/app/catalogo?sel=1,2");
+    render(wrap(<CatalogPage />));
+    const table = await screen.findByShadowRole("table");
+    expect(within(table).getByShadowRole("checkbox", { name: t.selectRow("Alumina") })).toBeChecked();
+    expect(
+      within(screen.getByShadowRole("region", { name: t.selectionBar })).getByShadowRole("status"),
+    ).toHaveTextContent(t.selectedCount(2));
+  });
+
   it("os chips dizem quantos materiais cada opção deixaria", async () => {
     const { user } = await renderCatalog();
     await user.click(screen.getByShadowRole("button", { name: new RegExp(`^${t.filterClass}: `) }));

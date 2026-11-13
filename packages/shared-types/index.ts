@@ -918,9 +918,10 @@ export interface ConstraintGroupIn {
 /**
  * A stage's kind: a constraint tree, a folder selection over the material
  * taxonomy, (P0-2) a selection over the process universe — the join's other
- * direction — or (P1-2) a region of one plane.
+ * direction — or (P1-2) a region of one plane — or (D-232) a named list of
+ * materials the universe is restricted to.
  */
-export type StageKind = "limit" | "tree" | "process" | "material" | "chart";
+export type StageKind = "limit" | "tree" | "process" | "material" | "chart" | "list";
 
 /**
  * One axis of a chart stage (P1-2) — mirrors the backend's `ChartAxisIn`.
@@ -986,6 +987,9 @@ export interface StageIn {
   material_class_slugs?: string[];
   // kind === "chart" (P1-2): the plane, the box and the line.
   chart?: ChartStageIn | null;
+  // kind === "list" (D-232): the materials the study is restricted to, at
+  // most `MAX_LIST_MATERIALS` (mirrors `MAX_STAGE_MATERIAL_IDS` in the API).
+  material_ids?: number[];
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
   /** D-122: the author's note on this stage — plain text, never markup. */
@@ -1004,6 +1008,8 @@ export interface StageOut {
   process_class_slugs: string[];
   material_class_slugs: string[];
   chart: ChartStageIn | null;
+  /** kind === "list" (D-232); empty for the other kinds. */
+  material_ids?: number[];
   include_descendants: boolean;
   /** D-122: null is "no note was written". */
   notes?: string | null;

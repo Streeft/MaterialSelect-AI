@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { StudyDetail, StudyTemplate } from "@/lib/types";
+import { toStagePayload, type StageState } from "@/components/selection/StageList";
+import { MAX_LIST_MATERIALS } from "@/lib/selectionList";
 import { makeComponent } from "@/lib/testing/planFixtures";
 import {
   initialWizardState,
@@ -77,6 +79,65 @@ describe("estado do assistente (D-210)", () => {
       expect(stage.y).toMatchObject({ mode: "expression", expression: "modulo_young" });
     }
     expect(start({ universo: "process" })).toMatchObject({ universe: "process", advFunction: true });
+  });
+
+  it("opens restricted to the materials of ?materiais= (D-232), with a limit stage after the list", () => {
+    const state = start({ materiais: "1-3,7,2" });
+    expect(state.stages.map((s) => s.kind)).toEqual(["list", "limit"]);
+    const listed = state.stages[0];
+    // Ranges expanded, repeats kept once, the order the link gave.
+    if (listed?.kind === "list") expect(listed.materialIds).toEqual([1, 2, 3, 7]);
+    expect(toStagePayload(listed as StageState)).toMatchObject({
+      kind: "list",
+      material_ids: [1, 2, 3, 7],
+    });
+  });
+
+  it("caps the list at what the API takes and ignores a malformed ?materiais=", () => {
+    const many = start({ materiais: "1-500" }).stages[0];
+    if (many?.kind === "list") expect(many.materialIds).toHaveLength(MAX_LIST_MATERIALS);
+    expect(start({ materiais: "abc,-4" }).stages.map((s) => s.kind)).toEqual(["limit"]);
+  });
+
+  it("does not hand a list of materials to a process study", () => {
+    const state = start({ materiais: "1,2", universo: "process" });
+    expect(state.stages.map((s) => s.kind)).toEqual(["limit"]);
+  });
+
+  it("reopens a saved list stage with its ids", () => {
+    const state = stateFromStudy(start(), {
+      name: "Estudo",
+      function_text: null,
+      objective_text: null,
+      free_variables: [],
+      universe: "material",
+      combinator: "AND",
+      constraints: [],
+      root_group: null,
+      stages: [
+        {
+          position: 0,
+          kind: "list",
+          label: "Do mapa",
+          enabled: true,
+          root_group: null,
+          class_slugs: [],
+          process_slugs: [],
+          process_class_slugs: [],
+          material_class_slugs: [],
+          chart: null,
+          material_ids: [5, 9],
+          include_descendants: true,
+        },
+      ],
+      index: null,
+      normalization: "minmax",
+      method: "weighted_sum",
+      criteria: [],
+      notes: null,
+      created_at: "2026-11-12T00:00:00Z",
+    } as unknown as StudyDetail);
+    expect(state.stages[0]).toMatchObject({ kind: "list", label: "Do mapa", materialIds: [5, 9] });
   });
 
   it("starts the pipeline and the objective over when the universe changes", () => {

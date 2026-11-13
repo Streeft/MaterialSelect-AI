@@ -131,6 +131,11 @@ vi.mock("@/lib/api", () => ({
   listOrdinalProperties: () => Promise.resolve([]),
   listPerformanceIndices: () => listPerformanceIndices(),
   listStudies: () => Promise.resolve([]),
+  listMaterials: () =>
+    Promise.resolve([
+      { id: 1, name: "Aço 1020", class_name: "Metais", class_slug: "metais" },
+      { id: 2, name: "Alumínio 6061", class_name: "Metais", class_slug: "metais" },
+    ]),
   getStudy: (id: number) => getStudy(id),
   createStudy: (payload: StudyIn) => createStudy(payload),
   deleteStudy: () => Promise.resolve(),
@@ -911,6 +916,48 @@ describe("rascunho salvo (D-139)", () => {
 
     await waitFor(() => expect(createStudy).toHaveBeenCalled());
     await waitFor(() => expect(window.localStorage.getItem(draftKey(7))).toBeNull());
+  });
+});
+
+describe("lista de materiais na Seleção (D-232)", () => {
+  it("abre restrita aos materiais de ?materiais=, manda o estágio no funil e guarda no rascunho", async () => {
+    searchParams.set("materiais", "1-2");
+    render(wrap(<SelectionPage />));
+
+    // Lands on the stages, with the list named by material and a limit stage after it.
+    expect(await screen.findByText("Aço 1020")).toBeInTheDocument();
+    expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
+    expect(screen.getByText(t.stageListCount(2))).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(previewFunnel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          universe: "material",
+          stages: [
+            expect.objectContaining({ kind: "list", material_ids: [1, 2] }),
+            expect.objectContaining({ kind: "limit" }),
+          ],
+        }),
+      ),
+    );
+    // The address keeps only where the reader is: Back does not rebuild the list.
+    await waitFor(() => expect(window.location.search).toBe("?etapa=restricoes"));
+
+    // The draft is where the list lives from here on.
+    await waitFor(
+      () => {
+        const draft = parseDraft(window.localStorage.getItem(draftKey(7)));
+        expect(draft?.data.stages[0]).toMatchObject({ kind: "list", materialIds: [1, 2] });
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("não vira estágio de lista quando o endereço não traz materiais válidos", async () => {
+    searchParams.set("materiais", "abc");
+    render(wrap(<SelectionPage />));
+    await screen.findByLabelText(t.studyName);
+    expect(screen.queryByText(t.stageKindList)).not.toBeInTheDocument();
   });
 });
 

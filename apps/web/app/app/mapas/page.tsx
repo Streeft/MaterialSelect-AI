@@ -35,6 +35,7 @@ import { optionsAtLevel } from "@/lib/depth";
 import { encodeIdList, parseIdList } from "@/lib/idList";
 import { formatNumber } from "@/lib/format";
 import { useUrlState } from "@/lib/urlState";
+import { recordMapUrl } from "@/lib/navMemory";
 import { useDebounced } from "@/lib/useDebounced";
 import { useWindowClass } from "@/lib/useWindowClass";
 import { atLeast } from "@/lib/design/breakpoints";
@@ -111,6 +112,12 @@ function MapsPageContent() {
   const announce = useAnnounce();
   const [live, setLive] = useUrlState(MAP_LIVE_URL);
   const wide = atLeast(useWindowClass(), "expanded");
+
+  // D-232: the home's "Último mapa" reopens the map as it was left — the whole
+  // address, not just the path. `live` and `params` change with every write to it.
+  useEffect(() => {
+    recordMapUrl(`${window.location.pathname}${window.location.search}`);
+  }, [live, params]);
 
   // Decode URL state once on mount; the URL should not keep re-driving state
   // after the reader starts interacting (it follows the state instead).

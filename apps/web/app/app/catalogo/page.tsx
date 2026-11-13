@@ -53,6 +53,7 @@ import {
 } from "@/components/ui";
 import { useDatabaseView } from "@/lib/savedViews";
 import { enumCodec, textCodec, useUrlState, type UrlCodec, type UrlSpec } from "@/lib/urlState";
+import { encodeIdList, parseIdList } from "@/lib/idList";
 import { useDebounced } from "@/lib/useDebounced";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 
@@ -81,6 +82,12 @@ const columnsCodec: UrlCodec<string> = {
   serialize: (value) => value,
 };
 
+/** D-232: the ticked materials, as ids in the compact form the comparator's links use. */
+const selectionCodec: UrlCodec<number[]> = {
+  parse: (raw) => parseIdList(raw),
+  serialize: (value) => encodeIdList(value),
+};
+
 interface CatalogUrl {
   busca: string;
   classe: string;
@@ -92,6 +99,8 @@ interface CatalogUrl {
   ordenar: string;
   direcao: "asc" | "desc";
   colunas: string;
+  /** D-232: the selection crosses pages, so it lives in the address and survives a reload. */
+  selecao: number[];
 }
 
 /**
@@ -115,6 +124,7 @@ const CATALOG_URL: UrlSpec<CatalogUrl> = {
   ordenar: { param: "ordenar", codec: textCodec, defaultValue: "relevancia" },
   direcao: { param: "direcao", codec: enumCodec(["asc", "desc"] as const), defaultValue: "asc" },
   colunas: { param: "colunas", codec: columnsCodec, defaultValue: CATALOG_COLUMNS.join(",") },
+  selecao: { param: "sel", codec: selectionCodec, defaultValue: [] },
 };
 
 type FilterKey = "classe" | "subclasse" | "qualidade" | "demo";
@@ -175,6 +185,13 @@ function CatalogPageContent() {
       setKind: (kind) => setUrl({ visao: kind }),
     },
   });
+
+  // D-232: the ticked materials live in the address, so they cross pages and a
+  // filter, and a reload or a pasted link brings them back.
+  const selection = useMemo(
+    () => ({ ids: url.selecao, onChange: (ids: number[]) => setUrl({ selecao: ids }) }),
+    [url.selecao, setUrl],
+  );
 
   const debouncedSearch = useDebounced(url.busca, 300);
   const columns = useMemo(
@@ -547,6 +564,7 @@ function CatalogPageContent() {
                       previewId={previewItem.id}
                       serverSort={headerSort}
                       valueColumn={sortProperty?.name}
+                      selection={selection}
                       compact
                     />
                   }
@@ -575,6 +593,7 @@ function CatalogPageContent() {
                   serverSort={headerSort}
                   columns={columns}
                   valueColumn={sortProperty?.name}
+                  selection={selection}
                 />
               )}
               {pagination}
