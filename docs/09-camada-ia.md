@@ -696,6 +696,14 @@ versões que recusam tudo, e reprova qualquer teste que tenha tentado sair,
 mesmo que o erro tenha sido engolido. Os clientes são testados com
 `httpx.MockTransport`.
 
+**Modelos de caderno ([D-235b](DECISIONS.md)).** "Disciplina de Materiais",
+"Revisão para prova", "Projeto de TCC" e "Em branco" vivem em
+`app/domain/notebook_templates.py`: cada um fixa o objetivo da conversa (`chat_goal`
+e `chat_instructions` do D-94) e cria notas de partida com títulos e tópicos vazios —
+nenhum conteúdo de matéria e nenhum número entra no caderno pelo modelo. O aviso do
+provedor (simulado, externo) aparece como chip no cabeçalho do caderno; com a IA
+desligada ele segue na página, porque explica por que a conversa não responde.
+
 ## Assistente de projeto (`/ai/plan`, [D-224](DECISIONS.md))
 
 Para quem não é engenheiro: "quero fazer uma roupa de esqui", "quero construir um

@@ -3609,6 +3609,17 @@ export interface NotebookSourceDetail extends NotebookSource {
   content: string;
 }
 
+/** D-235b: a ready-made notebook, as the "Criar caderno" gallery shows it. */
+export type NotebookTemplateId = "disciplina" | "prova" | "tcc" | "branco";
+
+export interface NotebookTemplate {
+  id: NotebookTemplateId;
+  title: string;
+  emoji: string;
+  description: string;
+  note_titles: string[];
+}
+
 export interface NotebookNote {
   id: number;
   title: string;

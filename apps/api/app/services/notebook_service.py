@@ -44,6 +44,7 @@ from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ConflictError, NotFoundError, QuotaExceededError, ValidationError
+from app.domain.notebook_templates import NOTEBOOK_TEMPLATES, notebook_template
 from app.knowledge.chunking import chunk_text
 from app.knowledge.embeddings import EmbeddingClient, EmbeddingUnavailableError, pack_vector
 from app.knowledge.lexical import fold
@@ -74,8 +75,10 @@ from app.schemas.notebook import (
     NotebookIn,
     NotebookOut,
     NotebookSummaryOut,
+    NotebookTemplateOut,
     NotebookUpdate,
     NoteIn,
+    NoteOrderIn,
     NoteOut,
     NoteUpdate,
     ParagraphOut,
@@ -151,9 +154,44 @@ class NotebookService:
         ]
 
     def create(self, payload: NotebookIn) -> NotebookOut:
-        notebook = self.repo.add(Notebook(title=payload.title.strip(), emoji=payload.emoji))
+        template = notebook_template(payload.template) if payload.template else None
+        sent = payload.model_fields_set
+        title = payload.title.strip()
+        emoji = payload.emoji
+        if template is not None:
+            # D-235b: the template names the notebook unless the request did.
+            title = title if "title" in sent else template.title
+            emoji = emoji if "emoji" in sent else template.emoji
+        notebook = self.repo.add(Notebook(title=title, emoji=emoji))
+        if template is not None:
+            notebook.chat_goal = template.chat_goal
+            notebook.chat_instructions = template.chat_instructions
+            for position, starter in enumerate(template.notes):
+                self.db.add(
+                    NotebookNote(
+                        notebook_id=notebook.id,
+                        title=starter.title,
+                        body=starter.body,
+                        origin="manual",
+                        position=position,
+                    )
+                )
         self.db.commit()
         return self.get(notebook.id)
+
+    @staticmethod
+    def templates() -> list[NotebookTemplateOut]:
+        """D-235b: the ready-made notebooks the "Criar caderno" gallery offers."""
+        return [
+            NotebookTemplateOut(
+                id=t.id,  # type: ignore[arg-type]
+                title=t.title,
+                emoji=t.emoji,
+                description=t.description,
+                note_titles=[n.title for n in t.notes],
+            )
+            for t in NOTEBOOK_TEMPLATES
+        ]
 
     def get(self, notebook_id: int) -> NotebookOut:
         notebook = self.notebook(notebook_id)
@@ -246,6 +284,7 @@ class NotebookService:
                     body=note.body,
                     origin=note.origin,
                     citations=repoint(note.citations) if with_conversation else None,
+                    position=note.position,
                 )
             )
         if with_conversation:
@@ -657,7 +696,12 @@ class NotebookService:
     def add_note(self, notebook_id: int, payload: NoteIn) -> NoteOut:
         notebook = self.notebook(notebook_id)
         note = NotebookNote(
-            notebook_id=notebook.id, title=payload.title.strip(), body=payload.body, origin="manual"
+            notebook_id=notebook.id,
+            title=payload.title.strip(),
+            body=payload.body,
+            origin="manual",
+            # D-235b: a new note goes at the end of the student's order.
+            position=max((n.position for n in notebook.notes), default=-1) + 1,
         )
         self.db.add(note)
         self._touch(notebook)
@@ -672,6 +716,23 @@ class NotebookService:
             note.body = payload.body
         self.db.commit()
         return _note_out(note)
+
+    def reorder_notes(self, notebook_id: int, payload: NoteOrderIn) -> list[NoteOut]:
+        """D-235b: put the notes in the order the student dragged them into.
+
+        The list must name every note of the notebook once — a partial or
+        repeated order would leave two notes claiming one place, or one note
+        with none, and the screen could no longer say which comes first.
+        """
+        notebook = self.notebook(notebook_id)
+        current = {note.id: note for note in notebook.notes}
+        if len(payload.ids) != len(set(payload.ids)) or set(payload.ids) != set(current):
+            raise ValidationError("A nova ordem precisa listar cada nota do caderno uma vez.")
+        for position, note_id in enumerate(payload.ids):
+            current[note_id].position = position
+        self.db.commit()
+        self.db.refresh(notebook)
+        return [_note_out(note) for note in notebook.notes]
 
     def delete_note(self, notebook_id: int, note_id: int) -> None:
         note = self._note(notebook_id, note_id)

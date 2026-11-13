@@ -13810,7 +13810,9 @@ com o padrão do código). Pendente: o painel de Custo, Dimensionar e Baterias n
 massa da Eco); o `check_property`/`check_chart` sem chamador no serviço; a cascata da diferença para mais de duas alternativas.
 
 **Numeração.** D-234/Sessão 191. (O D-232 e a Sessão 189 aparecem duas vezes na `main`, por duas frentes paralelas, a seleção por lista e o
-F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)
+F6; o sufixo `b` da regra do D-226 fica para o autor aplicar.)
+
+---
 
 ## D-235 — Grupo D (qualidade): numeração, Lighthouse medido, tema escuro no E2E, exportação do catálogo em lotes e bibliotecas pesadas sob demanda
 
@@ -13853,3 +13855,45 @@ relatório do catálogo ainda carregava todos os materiais com todos os valores;
 nenhum workflow de banco. O `pint` continua carregado na partida (o registro de unidades) e é o maior item restante.
 
 **Numeração.** D-235/Sessão 192 (conferidas na `main` e na branch).
+
+---
+
+## D-235b — F7 da revisão das telas: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático
+
+**Contexto.** A F7 do plano ("Cadernos") pedia quatro coisas: uma galeria de modelos ao criar ("Disciplina de Materiais", "Revisão
+para prova", "Projeto de TCC", "Em branco"); a lista em galeria (já existia); as notas em blocos móveis com "/" para inserir texto,
+citação, tabela ou ficha; e o Estúdio monocromático, com o aviso "Provedor simulado" num chip do cabeçalho.
+
+**Decisão.**
+- **Modelos no backend.** `app/domain/notebook_templates.py` é a tabela única: título, emoji, descrição, objetivo da conversa
+  (`chat_goal`/`chat_instructions` dos D-94) e notas de partida (só títulos e tópicos vazios para preencher; nenhum conteúdo de
+  matéria, nenhum número). `GET /api/notebooks/templates` lista; `POST /api/notebooks` aceita `template`, e título ou emoji enviados
+  junto prevalecem sobre os do modelo. "Em branco" é o caderno de antes.
+- **Galeria onde se cria.** "Novo caderno" vira `SplitButton`: o clique cria em branco, a seta abre os três modelos com a descrição.
+  A lista vazia mostra o `EmptyState layout="page"` com os modelos como portas (D-206).
+- **Ordem das notas na conta.** Coluna `notebook_note.position` (migração `e575ea7c3f24`, aditiva com `server_default 0`: as notas
+  antigas ficam na ordem de sempre pelo desempate por id, sem posição adivinhada). `PUT /api/notebooks/{id}/notes/order` recebe a
+  lista inteira dos ids e recusa, em português, lista com nota faltando, sobrando ou repetida. Na tela, a alça e o Alt+↑/↓ do
+  `Block`/`useReorder` (D-206), com a ordem nova aplicada antes da resposta e o erro escrito se o servidor recusar.
+- **"/" no texto da nota.** `SlashTextarea`: "/" no começo da linha ou depois de um espaço abre uma lista (`listbox` ligado ao campo
+  por `aria-controls`/`aria-activedescendant`, setas, Enter, Esc) com título, lista, lista numerada, citação, tabela, divisória e
+  "Ficha de material", que busca no catálogo (`listMaterials`) e insere o link Markdown para a ficha — o valor fica na ficha, nunca
+  copiado para a nota. A nota continua texto Markdown: os "blocos" são as notas, e o "/" escreve a sintaxe por quem não a conhece.
+- **Estúdio monocromático.** `ToolTile` perde as cinco cores: superfície `surface-container-low`, ícone em `ink-muted`, véu de
+  estado no hover (D-134). A cor fica para estado (a ferramenta indisponível segue esmaecida e com rótulo). `tone` continua aceito
+  para não quebrar chamadas antigas, mas não pinta.
+- **Aviso do provedor como chip.** No cabeçalho do caderno, ao lado das ações: "Provedor simulado" (neutro) ou "Provedor externo"
+  (em `warning`, porque o texto sai do servidor); o aviso inteiro abre do chip num `Popover`. Com a IA desligada o aviso segue como
+  `Alert` na página, porque explica por que a conversa não responde.
+
+**Fora.** Blocos de verdade dentro de uma nota (cada parágrafo arrastável, como no Notion): pede um editor estruturado e um formato
+de nota que não seja Markdown, e quebraria a exportação e o "Salvar como nota" do chat; as notas inteiras são os blocos. Modelos do
+próprio aluno ("salvar como modelo"): fica para quando houver pedido.
+
+**Alternativas recusadas.** Modelos só no frontend (o objetivo da conversa e as notas de partida são regra de produto e criam
+linhas; ficam no servidor, testados). Ordem das notas no `localStorage` (a nota é da conta; a ordem também). `role="combobox"` no
+`textarea` do "/" (o axe recusa o papel nesse elemento; o `aria-activedescendant` com o `listbox` basta).
+
+**Numeração.** D-235b, Sessão 192b: a `main` recebeu a D-235/Sessão 192 do Grupo D (#258) antes deste PR, e pela regra do D-226 (item 4) o mais novo ganha o sufixo. Toca `apps/api` **com migração** (`e575ea7c3f24`): depois do merge,
+**Deploy da API** (o `release_command` aplica a migração).
+F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)

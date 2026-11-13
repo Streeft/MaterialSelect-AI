@@ -1759,6 +1759,10 @@ export const ptBR = {
       "Traga suas fontes — apostilas, artigos, fichas e estudos — e converse com elas. Toda resposta cita o trecho de onde veio.",
     create: "Criar caderno",
     creating: "Criando…",
+    // D-235b: ready-made notebooks.
+    fromTemplate: "Criar a partir de um modelo",
+    templateHint: (description: string, notes: string[]) =>
+      notes.length > 0 ? `${description} Já vem com: ${notes.join(", ")}.` : description,
     listLabel: "Seus cadernos",
     emptyTitle: "Nenhum caderno ainda",
     emptyDescription:
@@ -1783,6 +1787,10 @@ export const ptBR = {
     unarchived: (title: string) => `Caderno “${title}” de volta à lista.`,
     archivedBanner:
       "Este caderno está arquivado: sai da lista principal, mas nada foi apagado.",
+    // D-235b: o aviso do provedor é um chip no cabeçalho; o texto inteiro abre nele.
+    providerSimulated: "Provedor simulado",
+    providerExternal: "Provedor externo",
+    providerAbout: "Sobre o provedor de IA",
     listViews: "Cadernos mostrados",
     viewActive: "Ativos",
     viewArchived: "Arquivados",
@@ -2212,6 +2220,26 @@ export const ptBR = {
     noNotes: "Nenhuma nota. Salve uma resposta da conversa ou escreva a sua.",
     noteTitle: "Título",
     noteBody: "Nota",
+    // D-235b: "/" in a note, and notes in the student's order.
+    slash: {
+      fieldHint: "Digite / no começo de uma linha para inserir título, lista, citação, tabela ou o link de uma ficha.",
+      menuLabel: "Inserir na nota",
+      sheetLabel: "Ficha de material",
+      heading: "Título",
+      list: "Lista",
+      numbered: "Lista numerada",
+      quote: "Citação",
+      table: "Tabela",
+      column: "Coluna",
+      divider: "Divisor",
+      sheet: "Ficha de material",
+      sheetHint: "link para a ficha",
+      searching: "Buscando no catálogo…",
+      nothing: "Nada com esse nome.",
+    },
+    notesOrder: "Notas",
+    notesOrderHint: "Arraste pela alça ou use Alt + seta para mudar a ordem.",
+    notesOrderFailed: "A nova ordem das notas não foi gravada. Tente de novo.",
     noteDefaultTitle: "Nova nota",
     editNote: (title: string) => `Editar a nota “${title}”`,
     removeNote: (title: string) => `Excluir a nota “${title}”`,

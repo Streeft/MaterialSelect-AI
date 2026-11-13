@@ -21,12 +21,14 @@ import {
   Input,
   MenuItem,
   PageHeader,
+  Popover,
   Skeleton,
 } from "@/components/ui";
 import {
   IconArchive,
   IconCopy,
   IconGear,
+  IconInfo,
   IconPencil,
   IconPlus,
   IconTrash,
@@ -211,9 +213,9 @@ function Workspace({ data }: { data: Notebook }) {
         />
 
         {data.archived ? <Alert tone="info">{t.archivedBanner}</Alert> : null}
-        <Alert tone={data.ai_simulated ? "info" : "warning"}>
-          {data.ai_notice}
-        </Alert>
+        {/* D-235b: with the AI off the notice explains why the chat is closed, so
+            it stays in the page; otherwise it is a chip in the header. */}
+        {data.ai_enabled ? null : <Alert tone="warning">{data.ai_notice}</Alert>}
 
         <ButtonGroup label={t.panelTabs} className="lg:hidden">
           {(["sources", "chat", "studio"] as const).map((panel) => (
@@ -351,6 +353,35 @@ function Workspace({ data }: { data: Notebook }) {
   );
 }
 
+/**
+ * D-235b: which AI answers this notebook, as a chip beside the actions — colour
+ * only for the state that asks for care (an external provider receives the
+ * text). The full notice opens from the chip, so nothing is hidden behind a
+ * hover title.
+ */
+function ProviderChip({ notebook }: { notebook: Notebook }) {
+  const simulated = notebook.ai_simulated;
+  return (
+    <Popover
+      label={`${simulated ? t.providerSimulated : t.providerExternal}. ${t.providerAbout}`}
+      title={t.providerAbout}
+      align="end"
+      triggerClassName={cn(
+        "msds-chip msds-ripple-host",
+        !simulated && "bg-warning-soft text-warning-fg",
+      )}
+      trigger={
+        <span className="inline-flex items-center gap-1.5">
+          <IconInfo aria-hidden />
+          {simulated ? t.providerSimulated : t.providerExternal}
+        </span>
+      }
+    >
+      <p className="text-body text-ink">{notebook.ai_notice}</p>
+    </Popover>
+  );
+}
+
 function Header({
   notebook,
   onSettings,
@@ -405,6 +436,7 @@ function Header({
             {title}
           </>
         }
+        actions={notebook.ai_enabled ? <ProviderChip notebook={notebook} /> : null}
         primaryAction={
           <Button icon={<IconPlus />} onClick={onAdd} disabled={full}>
             {t.addSources}

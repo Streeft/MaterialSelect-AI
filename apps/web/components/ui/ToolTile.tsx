@@ -5,18 +5,11 @@ import { cn } from "@/lib/cn";
 
 export type ToolTone = "brand" | "info" | "success" | "warning" | "danger";
 
-const TONES: Record<ToolTone, string> = {
-  brand: "bg-brand-50 text-brand-800",
-  info: "bg-info-soft text-info-fg",
-  success: "bg-success-soft text-success-fg",
-  warning: "bg-warning-soft text-warning-fg",
-  danger: "bg-danger-soft text-danger-fg",
-};
-
 /**
- * One tool of a grid (the notebook's Studio): a soft tile with its glyph and
- * name. Colour tells tiles apart at a glance and never carries meaning alone —
- * the name is always written.
+ * One tool of a grid (the notebook's Studio): a quiet tile with its glyph and
+ * name. D-235b: the tiles are monochrome — the glyph tells them apart, and
+ * colour is kept for state (a tool not ready yet). `tone` is still accepted so
+ * older call sites compile; it no longer paints the tile.
  *
  * A tool that is not ready yet stays visible, marked with a written badge and
  * `aria-disabled` rather than `disabled`: it remains focusable, so a keyboard
@@ -26,7 +19,6 @@ const TONES: Record<ToolTone, string> = {
 export function ToolTile({
   icon,
   label,
-  tone = "brand",
   badge,
   unavailable,
   description,
@@ -49,12 +41,12 @@ export function ToolTile({
       onClick={unavailable ? undefined : onClick}
       className={cn(
         "pressable flex min-h-[4.25rem] flex-col items-start justify-between gap-2 rounded-card p-3 text-left transition",
-        TONES[tone],
-        unavailable ? "cursor-not-allowed opacity-70" : "hover:shadow-glow",
+        "m3-state bg-surface-container-low text-ink",
+        unavailable && "cursor-not-allowed opacity-70",
       )}
     >
       <span className="flex w-full items-start justify-between gap-2">
-        <span className="shrink-0 [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+        <span className="shrink-0 text-ink-muted [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
         {badge ? (
           <span className="rounded-full bg-surface px-1.5 py-0.5 text-2xs font-medium text-ink-muted">
             {badge}

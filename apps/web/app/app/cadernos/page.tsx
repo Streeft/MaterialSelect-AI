@@ -4,7 +4,13 @@ import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { batchArchiveNotebooks, createNotebook, listNotebooks } from "@/lib/api";
+import {
+  batchArchiveNotebooks,
+  createNotebook,
+  listNotebookTemplates,
+  listNotebooks,
+} from "@/lib/api";
+import type { NotebookTemplateId } from "@/lib/types";
 import { useUrlState } from "@/lib/urlState";
 import { ptBR } from "@/lib/i18n";
 import { curadoriaText } from "@/lib/i18n-curadoria";
@@ -18,7 +24,9 @@ import {
   ButtonGroup,
   ButtonGroupItem,
   ListSkeleton,
+  MenuItem,
   PageHeader,
+  SplitButton,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
 import { NotebookCard } from "@/components/notebooks/NotebookCard";
@@ -41,8 +49,16 @@ export default function NotebooksPage() {
     queryKey: [...NOTEBOOKS_KEY, archived ? "arquivados" : "ativos"],
     queryFn: () => listNotebooks(archived),
   });
+  // D-235b: the ready-made notebooks. If they do not load, "Criar caderno" still
+  // creates a blank one — the gallery is a shortcut, never the only door.
+  const templates = useQuery({
+    queryKey: [...NOTEBOOKS_KEY, "modelos"],
+    queryFn: listNotebookTemplates,
+    staleTime: Infinity,
+  });
+  const starters = (templates.data ?? []).filter((template) => template.id !== "branco");
   const create = useMutation({
-    mutationFn: () => createNotebook(),
+    mutationFn: (template?: NotebookTemplateId) => createNotebook(undefined, template),
     onSuccess: async (notebook) => {
       client.setQueryData(notebookKey(notebook.id), notebook);
       await client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
@@ -91,15 +107,33 @@ export default function NotebooksPage() {
     if (ids.length > 0) batch.mutate({ ids, archived: !archived });
   };
 
-  const createButton = (
-    <Button
-      icon={<IconPlus />}
-      loading={create.isPending}
-      onClick={() => create.mutate()}
-    >
+  const blankButton = (
+    <Button icon={<IconPlus />} loading={create.isPending} onClick={() => create.mutate(undefined)}>
       {create.isPending ? t.creating : t.create}
     </Button>
   );
+  const createButton =
+    starters.length > 0 ? (
+      <SplitButton
+        variant="primary"
+        loading={create.isPending}
+        onClick={() => create.mutate(undefined)}
+        menuLabel={t.fromTemplate}
+        menu={starters.map((template) => (
+          <MenuItem
+            key={template.id}
+            onSelect={() => create.mutate(template.id)}
+            hint={template.description}
+          >
+            {`${template.emoji} ${template.title}`}
+          </MenuItem>
+        ))}
+      >
+        {create.isPending ? t.creating : t.create}
+      </SplitButton>
+    ) : (
+      blankButton
+    );
 
   return (
     <div className="flex flex-col gap-6">
@@ -199,9 +233,21 @@ export default function NotebooksPage() {
         />
       ) : notebooks.data.length === 0 ? (
         <EmptyState
+          layout={archived ? "inline" : "page"}
           title={archived ? t.archivedEmptyTitle : t.emptyTitle}
           description={archived ? t.archivedEmptyDescription : t.emptyDescription}
-          action={archived ? undefined : createButton}
+          // The models are already on the page below: the button is the blank one.
+          action={archived ? undefined : blankButton}
+          // D-235b: Notion's empty page — start from a model, not from a blank.
+          templates={
+            archived
+              ? undefined
+              : starters.map((template) => ({
+                  label: `${template.emoji} ${template.title}`,
+                  description: t.templateHint(template.description, template.note_titles),
+                  onSelect: () => create.mutate(template.id),
+                }))
+          }
         />
       ) : (
         <ul

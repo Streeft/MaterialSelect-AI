@@ -35,8 +35,10 @@ from app.schemas.notebook import (
     NotebookIn,
     NotebookOut,
     NotebookSummaryOut,
+    NotebookTemplateOut,
     NotebookUpdate,
     NoteIn,
+    NoteOrderIn,
     NoteOut,
     NoteUpdate,
     SearchIn,
@@ -118,6 +120,12 @@ def list_notebooks(
     archived: bool = False, service: NotebookService = Depends(_service)
 ) -> list[NotebookSummaryOut]:
     return service.list_notebooks(archived=archived)
+
+
+@router.get("/templates", response_model=list[NotebookTemplateOut])
+def list_notebook_templates() -> list[NotebookTemplateOut]:
+    """D-235b: the ready-made notebooks offered when one is created."""
+    return NotebookService.templates()
 
 
 @router.post("", response_model=NotebookOut, status_code=status.HTTP_201_CREATED)
@@ -353,6 +361,14 @@ def update_note(
     service: NotebookService = Depends(_service),
 ) -> NoteOut:
     return service.update_note(notebook_id, note_id, payload)
+
+
+@router.put("/{notebook_id}/notes/order", response_model=list[NoteOut])
+def reorder_notes(
+    notebook_id: int, payload: NoteOrderIn, service: NotebookService = Depends(_service)
+) -> list[NoteOut]:
+    """D-235b: every note of the notebook, in the student's new order."""
+    return service.reorder_notes(notebook_id, payload)
 
 
 @router.delete("/{notebook_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
