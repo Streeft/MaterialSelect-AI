@@ -114,6 +114,10 @@ export const ptBR = {
     pin: (label: string) => `Fixar ${label}`,
     unpin: (label: string) => `Desafixar ${label}`,
     pinnedEmpty: "Nada fixado ainda.",
+    // D-232 (F6): the starred records, from the account, under "Fixados".
+    groupFavorites: "Favoritos",
+    favoritesEmpty: "Use a estrela de uma ficha para trazê-la para cá.",
+    favoritesAll: "Ver todos os favoritos",
     recentsEmpty: "As páginas que você abrir aparecem aqui.",
   },
 
@@ -1704,6 +1708,14 @@ export const ptBR = {
     recentsHint:
       "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
     ownRecords: "Registros próprios",
+    // D-232 (F6): the page as a base with views, and the two ways to a record of one's own.
+    views: "Visões",
+    viewAll: "Todos",
+    viewFavorites: "Favoritos",
+    viewRecents: "Recentes",
+    viewOwn: "Registros próprios",
+    newMaterial: "Novo material",
+    synthesize: "Sintetizar",
     ownRecordsEmpty: "Você ainda não cadastrou nenhum registro próprio.",
     ownRecordsHint:
       "Um registro próprio é seu: entra nas suas seleções, mapas e documentos, e ninguém mais o enxerga.",
@@ -3770,6 +3782,23 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
+    // D-232 (F6): the Início as movable blocks, arranged in the account.
+    blocks: {
+      label: "Blocos do Início",
+      hint: "Arraste pela alça ⋮⋮ ou use Alt + seta para mudar a ordem; o olho oculta um bloco. A arrumação fica guardada na sua conta.",
+      reset: "Voltar à arrumação padrão",
+      empty: (name: string) => `${name}: nada por enquanto.`,
+      names: {
+        guia: "Primeiros passos",
+        retomar: "Continue de onde parou",
+        recentes: "Vistos recentemente",
+        estudos: "Retomar um estudo",
+        atalhos: "O que você quer fazer?",
+        novidades: "Novidades do catálogo",
+        mapas: "Mapas fixados",
+        explorar: "Ou explore os dados",
+      },
+    },
     exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",

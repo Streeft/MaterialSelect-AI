@@ -7,7 +7,12 @@ import { enumCodec, textCodec, type UrlSpec } from "@/lib/urlState";
 export const RECORD_KINDS = ["todos", "material", "processo"] as const;
 export type RecordKind = (typeof RECORD_KINDS)[number];
 
+/** D-232 (F6): which of the three lists the page shows; "todos" shows the three. */
+export const RECORD_VIEWS = ["todos", "favoritos", "recentes", "proprios"] as const;
+export type RecordView = (typeof RECORD_VIEWS)[number];
+
 export interface RecordFilters {
+  visao: RecordView;
   q: string;
   /** Class slug; empty is every class. */
   classe: string;
@@ -15,6 +20,7 @@ export interface RecordFilters {
 }
 
 export const MY_RECORDS_URL: UrlSpec<RecordFilters> = {
+  visao: { param: "visao", codec: enumCodec(RECORD_VIEWS), defaultValue: "todos" },
   q: { param: "q", codec: textCodec, defaultValue: "" },
   classe: { param: "classe", codec: textCodec, defaultValue: "" },
   tipo: {
