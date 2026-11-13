@@ -196,6 +196,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   leva `.ds-fine-pointer-only`. Pino e layout começam no aparelho (`lib/pinnedMaps.ts`) e só guardam id e nome — abrir pede ao
   servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo. O nome casa por palavra inteira, na classe do lado, e o que começa pelo termo vence ([D-230](docs/DECISIONS.md)).
 
+- **Blocos que a pessoa arruma ficam na conta** ([D-232](docs/DECISIONS.md)): Início e Painel usam `LayoutBlocks` (escopo do
+  `saved_view`, linha `kind="layout"`); bloco sem conteúdo fica no lugar com uma linha (`emptyLabel`), nunca escondido. Favoritos
+  (estrela, conta) têm seção na barra lateral, distinta de Fixados (páginas, aparelho).
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

@@ -14,6 +14,12 @@ from app.schemas.saved_view import SavedViewIn, SavedViewOut, SavedViewPatch
 MAX_VIEWS_PER_SCOPE = 20
 
 
+#: The screens whose blocks a reader rearranges (D-209 the dashboard, F6 the home page).
+LAYOUT_SCOPES = frozenset({"painel", "inicio"})
+#: Screens with blocks and no views: a layout is all they keep.
+LAYOUT_ONLY_SCOPES = frozenset({"inicio"})
+
+
 class SavedViewService:
     """Every method is scoped to one user: another reader's view is a 404,
     never a 403, so its existence is not disclosed (same as D-42)."""
@@ -33,8 +39,10 @@ class SavedViewService:
             )
         if payload.kind == "layout" and any(v.kind == "layout" for v in existing):
             raise ConflictError("Esta tela já tem um layout salvo; altere o existente.")
-        if payload.kind == "layout" and payload.scope != "painel":
-            raise ValidationError("Só o Painel guarda layout de blocos.")
+        if payload.kind == "layout" and payload.scope not in LAYOUT_SCOPES:
+            raise ValidationError("Só o Painel e o Início guardam layout de blocos.")
+        if payload.kind != "layout" and payload.scope in LAYOUT_ONLY_SCOPES:
+            raise ValidationError("O Início guarda só o layout dos blocos, não visões.")
         view = SavedView(
             user_id=self.user_id,
             scope=payload.scope,

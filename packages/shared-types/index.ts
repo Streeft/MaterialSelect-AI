@@ -2486,7 +2486,7 @@ export interface SavedChartListItem {
 // `app/schemas/saved_view.py`; `config` never carries a number about a
 // material, only slugs the server lists.
 
-export type SavedViewScope = "catalogo" | "processos" | "glossario" | "painel";
+export type SavedViewScope = "catalogo" | "processos" | "glossario" | "painel" | "inicio";
 export type SavedViewKind = "table" | "gallery" | "list" | "layout";
 
 export interface SavedViewConfig {

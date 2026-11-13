@@ -146,6 +146,15 @@ Catálogo, que agora **atravessa páginas** (`?sel=`, "N selecionados em várias
 "Comparar o top do estudo …" (executa o estudo salvo mais recente e leva os 5 primeiros); "Último mapa" do Início reabre o
 endereço inteiro do mapa (`msai.nav.mapUrl`). Testes novos: `test_selection_list_stage.py`; vitest com axe nas cinco origens e no
 cartão do estágio; E2E `mapa-para-selecao.spec.ts`. **Depois do merge: Deploy da API.** Sem migração nem seed.
+## Sessão 189 — 13/11/26 — F6: Início em blocos, Favoritos na barra lateral e Meus registros com visões (D-232)
+
+**O que mudou.** O Início vira blocos móveis e ocultáveis abaixo da caixa de escrever (`components/home/HomeBlocks.tsx`), com a
+arrumação na conta: `LayoutBlocks` generaliza o `OverviewBlocks` do Painel e o backend aceita o escopo `inicio` (só layout; sem
+migração). Bloco sem conteúdo diz isso numa linha. A barra lateral ganha "Favoritos" (registros com estrela, da conta). "Meus
+registros" ganha visões em `?visao=` e o vazio dos registros próprios leva a "Novo material" e "Sintetizar". As sugestões do composer
+ficam numa linha rolável no celular. Testes: `test_saved_views_api.py` (+1: Início guarda um layout e nenhuma visão),
+`layoutBlocks.test.tsx` (ordem da conta, bloco vazio, Alt+↓ grava no escopo `inicio`), "Favoritos" no `shellNav.test.tsx`, visões e
+portas do vazio em `meus-registros.test.tsx`, `?visao=` em `myRecordsFilter.test.ts`. Depois do merge: **Deploy da API**.
 
 ## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
 

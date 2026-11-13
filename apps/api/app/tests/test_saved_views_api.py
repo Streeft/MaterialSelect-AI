@@ -97,3 +97,21 @@ def test_dashboard_layout_is_one_per_reader_and_only_on_the_dashboard(client):
     assert (
         client.patch(f"/api/saved-views/{view['id']}", json={"kind": "layout"}).status_code == 400
     )
+
+
+def test_home_keeps_one_layout_and_no_views(client):
+    """D-232 (F6): the Início rearranges its blocks like the dashboard, and keeps
+    nothing else — a table view there would be a promise no screen reads back."""
+    layout = {
+        "scope": "inicio",
+        "name": "Layout",
+        "kind": "layout",
+        "config": {"blocks": ["estudos", "retomar", "recentes"], "hidden": ["novidades"]},
+    }
+    created = client.post("/api/saved-views", json=layout)
+    assert created.status_code == 201
+    assert created.json()["config"]["blocks"][0] == "estudos"
+    assert client.post("/api/saved-views", json=layout).status_code == 409
+    listing = client.get("/api/saved-views", params={"scope": "inicio"}).json()
+    assert [v["kind"] for v in listing] == ["layout"]
+    assert client.post("/api/saved-views", json=_view(scope="inicio")).status_code == 400

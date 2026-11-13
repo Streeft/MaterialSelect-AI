@@ -314,3 +314,34 @@ describe("meus registros — Sugestão da IA (D-230b)", () => {
     expect(violations, describeViolations(violations)).toEqual([]);
   }, 30_000);
 });
+
+describe("Meus registros como base com visões (D-232)", () => {
+  it("uma visão mostra só a sua lista, e fica no endereço", async () => {
+    window.history.replaceState(null, "", "/app/meus-registros");
+    state.data = empty;
+    const user = userEvent.setup();
+    render(wrap(<MyRecordsPage />));
+
+    await screen.findByShadowText(t.favoritesEmpty);
+    await user.click(screen.getByRole("button", { name: t.viewOwn }));
+    expect(screen.getByRole("button", { name: t.viewOwn })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByShadowText(t.favoritesEmpty)).toBeNull();
+    expect(screen.getByShadowText(t.ownRecordsEmpty)).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.get("visao")).toBe("proprios");
+    window.history.replaceState(null, "", "/app/meus-registros");
+  });
+
+  it("sem registro próprio, oferece as duas portas: novo material e sintetizar", async () => {
+    window.history.replaceState(null, "", "/app/meus-registros");
+    state.data = empty;
+    render(wrap(<MyRecordsPage />));
+    expect(await screen.findByShadowRole("link", { name: t.newMaterial })).toHaveAttribute(
+      "href",
+      "/app/materiais/novo",
+    );
+    expect(screen.getByShadowRole("link", { name: t.synthesize })).toHaveAttribute(
+      "href",
+      "/app/sintetizar",
+    );
+  });
+});

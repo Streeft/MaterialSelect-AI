@@ -347,8 +347,8 @@ coluna da direita.
 | Designações, composição e curvas dos 593 | 1 249 designações, 3 276 linhas de composição, 1 779 curvas | [D-185](DECISIONS.md) |
 | Processos demo | **144**, em 20 famílias (13 originais + 131 novos) | [D-192](DECISIONS.md) |
 | Valores de atributo de processo / vínculos material–processo | 1 407 / 13 439 (todo material demo tem processo; mín. 2, média 19,8, máx. 49) | [D-192](DECISIONS.md) |
-| Testes de backend | **5 550** coletados em 200 arquivos (6 pulam sem `POSTGRES_TEST_URL`) | `pytest --collect-only` em `apps/api`; [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §3 |
-| Testes de frontend | **1 997** passaram em 187 arquivos (medido em 12/11/26, D-221) | `vitest run` em `apps/web` |
+| Testes de backend | **5 809** coletados em 214 arquivos (6 pulam sem `POSTGRES_TEST_URL`) | `pytest --collect-only` em `apps/api`; [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §3 |
+| Testes de frontend | **2 190** passaram em 204 arquivos (medido em 13/11/26, D-232) | `vitest run` em `apps/web` |
 | Testes de E2E | 8 arquivos de especificação em `apps/web/e2e/` (Playwright), incluindo a suíte de larguras 375/768/1280/1920 px | `apps/web/e2e/` |
 | Migrations Alembic | 43 | `apps/api/alembic/versions/` |
 | Módulos de router / arquivos `.py` de aplicação (sem testes) | 31 / 311 | `apps/api/app/` |

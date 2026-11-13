@@ -38,7 +38,12 @@ const getCurrentUser = vi.fn(() => Promise.resolve(user));
 const logoutMock = vi.fn(() => Promise.resolve());
 // D-86: the menu depends on whether this reader may curate the catalogue.
 const billing = { can_edit_catalog: true, open: false };
+// D-232: the rail's "Favoritos" reads the account's records.
+const myRecords = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ favorites: [] as unknown[], recents: [] as unknown[], own_records: [] as unknown[] })),
+);
 vi.mock("@/lib/api", () => ({
+  getMyRecords: () => myRecords(),
   getCurrentUser: () => getCurrentUser(),
   logout: () => logoutMock(),
   getBillingStatus: () =>

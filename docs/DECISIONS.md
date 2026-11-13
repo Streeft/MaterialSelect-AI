@@ -13699,3 +13699,41 @@ de cadernos; E2E `curadoria.spec.ts` (citar fonte; mover classe). Depois do merg
 antes de publicar a API). Sem seed.
 
 **Numeração.** D-233/Sessão 190.
+## D-232 — F6 da revisão das telas: Início em blocos móveis, Favoritos na barra lateral e Meus registros com visões
+
+**Contexto.** A F6 do plano ("Início e pessoal") pedia três coisas: o Início em blocos que a pessoa reordena e oculta, com a
+arrumação guardada; os favoritos numa seção fixa da barra lateral, como no Notion; e "Meus registros" como base com visões. Parte
+do Início já tinha sido refeita no #245 (D-222: "Continue de onde parou", "Primeiros passos", tarefas e novidades) e "Meus
+registros" ganhou busca, filtros e ações em lote no #243 (D-219). Ficaram de fora deles a arrumação do Início, os favoritos no trilho
+e as visões.
+
+**Decisão.**
+- **Início em blocos.** Tudo o que vem abaixo da caixa de escrever vira bloco: Primeiros passos, Continue de onde parou, Vistos
+  recentemente, Estudos salvos, Tarefas, Novidades do catálogo, Mapas fixados, Explore os dados. Alça ⋮⋮, Alt+↑/↓ anunciado e o
+  olho que oculta (o `Block`/`useReorder` da D-206). A caixa de escrever fica fixa no topo: é o `primary` da tela (D-195), não um bloco.
+- **Arrumação na conta, não no aparelho.** O plano recomendava começar no aparelho, mas o Painel já guarda os seus blocos na conta
+  (D-209, linha `kind="layout"`), e duas regras para a mesma peça seriam piores que uma. `OverviewBlocks` vira `LayoutBlocks`
+  (escopo, rótulos), e o backend aceita o escopo novo `inicio`, que guarda **só** layout: visão de tabela ali seria promessa que
+  nenhuma tela lê. Sem migração: `scope` é texto validado no contrato (`SavedViewScope`).
+- **Bloco vazio fica no lugar.** Um bloco cujo conteúdo não desenha nada (sem rascunho para retomar, sem mapa fixado) mostra uma
+  linha, "Mapas fixados: nada por enquanto.", escrita pela CSS sobre o corpo vazio (`data-empty`). Escondê-lo faria o Alt+↓ passar
+  por cima de algo invisível.
+- **Favoritos na barra lateral.** Seção "Favoritos" entre Fixados e Recentes, com os registros de estrela da conta (a mesma
+  `/my-records` da estrela, do Início e de "Meus registros"), até 6 e "Ver todos os favoritos" (`?visao=favoritos`). Diferente de
+  "Fixados" (páginas, no aparelho, D-207): favoritos seguem a conta. Enquanto carrega ou se falha, a seção não aparece: atalho não
+  mostra erro.
+- **Meus registros com visões.** "Todos · Favoritos · Recentes · Registros próprios" em botões `aria-pressed` (como o
+  `SavedViewsBar`), em `?visao=`; busca e filtros da D-219 valem em todas. Sem registro próprio, o vazio oferece "Novo material" e
+  "Sintetizar".
+- **Sugestões do Início em linha no celular.** As quatro sugestões do composer viram uma linha rolável abaixo de `sm`.
+
+**Fora.** "Barra lateral clara" na Aparência e a página Conta (Assinatura + Aparência) ficam para a F8, que trata da entrada e da
+conta. Duas colunas de blocos no Início (o plano sugeria): a ordem do teclado e do leitor de tela é uma só, e duas colunas
+desalinhariam a ordem visual da ordem gravada; fica uma coluna.
+
+**Alternativas recusadas.** Layout do Início no `localStorage` (duas regras para a mesma peça). Esconder blocos vazios (ver acima).
+Visões salvas de verdade em "Meus registros" (filtros nomeados na conta): as quatro visões fixas cobrem o que a tela mostra; nomear
+filtros fica para quando houver pedido.
+
+**Numeração.** D-232, Sessão 189 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+

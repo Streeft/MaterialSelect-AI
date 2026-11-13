@@ -35,7 +35,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 
+// D-232: the rail's "Favoritos" reads the account's records.
+const myRecords = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ favorites: [] as unknown[], recents: [] as unknown[], own_records: [] as unknown[] })),
+);
 vi.mock("@/lib/api", () => ({
+  getMyRecords: () => myRecords(),
   getCurrentUser: () =>
     Promise.resolve({ id: 1, email: "a@example.com", name: "Ana", avatar_url: null, project_id: 1 }),
   logout: () => Promise.resolve(),
@@ -261,5 +266,25 @@ describe("atalhos (D-169, D-207)", () => {
     const violations = await findA11yViolations(document.body);
     expect(violations, describeViolations(violations)).toEqual([]);
     await user.keyboard("{Escape}");
+  });
+});
+
+describe("Favoritos na barra lateral (D-232)", () => {
+  it("lista os registros com estrela, cada um levando à ficha", async () => {
+    myRecords.mockResolvedValueOnce({
+      favorites: [
+        {
+          universe: "material",
+          at: "2026-11-13T10:00:00Z",
+          material: { id: 7, name: "Alumínio 6061", class_name: "Metais", class_slug: "metais" },
+          process: null,
+        },
+      ],
+      recents: [],
+      own_records: [],
+    });
+    renderWithClient(<AppSidebar />);
+    const link = await rail().findByRole("link", { name: "Alumínio 6061" });
+    expect(link).toHaveAttribute("href", "/app/materiais/7");
   });
 });
