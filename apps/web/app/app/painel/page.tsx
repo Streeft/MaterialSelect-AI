@@ -83,6 +83,7 @@ import {
   Tr,
 } from "@/components/ui";
 import { IconDownload } from "@/components/ui/icons";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 
 const t = ptBR.dashboard;
 
@@ -171,6 +172,10 @@ function DashboardContent() {
           </ButtonLink>
         }
       />
+
+      {/* D-230: the server reads the catalogue's own overview (coverage, gaps, classes), so
+          there is nothing of the screen to send; every action is a route, hence a link. */}
+      <AISuggestPanel tool="painel" context={{}} actions={["open_route"]} onAction={() => undefined} />
 
       {/* D-209: the filters as chips, still in the address (D-193): a link
           reproduces the view. Level 3 is "all", so it reads "Qualquer". */}

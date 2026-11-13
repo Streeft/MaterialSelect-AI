@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useLiveResult } from "@/lib/useLiveResult";
-import type { CostResult, DefaultsResult } from "@/lib/types";
+import type { CostResult, DefaultsResult, SuggestAction } from "@/lib/types";
 import { estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatTyped } from "@/lib/format";
@@ -34,6 +34,10 @@ import {
   Tr,
 } from "@/components/ui";
 import { CostCurveChart } from "@/components/charts/CostCurveChart";
+import { suggestText } from "@/lib/i18n-suggest";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { aiField, revealField } from "@/lib/ai/revealField";
+import { isOwnKey } from "@/lib/ai/suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
@@ -53,6 +57,29 @@ interface ComparedEstimate {
   id: number;
   result: CostResult | null;
   error: string | null;
+}
+
+/** D-230: the AI's parameter names (the request's), and the brief field each one writes. */
+const AI_PARAMS = {
+  part_mass: "mass",
+  batch_size: "batch",
+  write_off_years: "writeOff",
+  load_factor: "loadFactor",
+} as const;
+
+type AiParam = keyof typeof AI_PARAMS;
+
+const isAiParam = (name: string): name is AiParam => isOwnKey(AI_PARAMS, name);
+
+/**
+ * A `set_param` is shown only for a parameter this screen has and a finite number;
+ * anything else is not a button. Other types (`open_route`) are not this check's.
+ */
+function acceptsAiAction(action: SuggestAction): boolean {
+  return (
+    action.type !== "set_param" ||
+    (isAiParam(action.name) && typeof action.value === "number" && Number.isFinite(action.value))
+  );
 }
 
 interface CostBrief {
@@ -290,6 +317,31 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     blockedReason === t.blocked.writeOff || blockedReason === t.blocked.loadFactor;
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
 
+  // D-230: a suggested parameter goes where the reader would have typed it — the
+  // URL — and the estimate follows by itself, as it does for any change. Nothing
+  // here asks the server; the field that changed is shown.
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "set_param" || !isAiParam(action.name) || !acceptsAiAction(action)) return;
+    const value = String(action.value);
+    switch (AI_PARAMS[action.name]) {
+      case "mass":
+        setBrief({ mass: value });
+        break;
+      case "batch":
+        setBrief({ batch: value });
+        break;
+      case "writeOff":
+        setBrief({ writeOff: value });
+        setAssumptionsOpen(true);
+        break;
+      case "loadFactor":
+        setBrief({ loadFactor: value });
+        setAssumptionsOpen(true);
+        break;
+    }
+    revealField(action.name);
+  }
+
   const materialOptions = useMemo(
     () =>
       (materials.data ?? []).map((material) => ({
@@ -319,6 +371,28 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
+      <AISuggestPanel
+        tool="custo"
+        // The request of the estimate the page shows, never its numbers (D-229).
+        context={
+          ready
+            ? {
+                request: {
+                  material_id: Number(selectedId),
+                  part_mass: Number(mass),
+                  batch_size: Number(batch),
+                  write_off_years: Number(writeOff),
+                  load_factor: Number(loadFactor),
+                },
+              }
+            : {}
+        }
+        actions={["set_param", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        disabledReason={blockedReason ? suggestText.needsBrief : undefined}
+      />
+
       <ParamsResultLayout>
         <ParamsPanel>
           <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
@@ -338,6 +412,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
               value={mass}
               min={0}
               step="any"
+              {...aiField("part_mass")}
               onChange={(event) => setBrief({ mass: event.target.value })}
             />
             {!mass ? (
@@ -354,6 +429,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
               value={batch}
               min={1}
               step="any"
+              {...aiField("batch_size")}
               onChange={(event) => setBrief({ batch: event.target.value })}
             />
             <div className="flex flex-col gap-2 sm:col-span-2">
@@ -407,6 +483,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                   value={writeOff}
                   min={0}
                   step="any"
+                  {...aiField("write_off_years")}
                   onChange={(event) => setBrief({ writeOff: event.target.value })}
                 />
                 <NumberInput
@@ -416,6 +493,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                   min={0}
                   max={1}
                   step="any"
+                  {...aiField("load_factor")}
                   onChange={(event) => setBrief({ loadFactor: event.target.value })}
                 />
               </div>

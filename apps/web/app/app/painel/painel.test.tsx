@@ -9,7 +9,9 @@ import { useSyncExternalStore, type ReactNode } from "react";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { ptBR } from "@/lib/i18n";
 import { dashboardText as d } from "@/lib/i18n-dashboard";
+import { suggestText } from "@/lib/i18n-suggest";
 import type {
+  SuggestionsOut,
   DashboardActivity,
   DashboardComposition,
   DashboardCorrelation,
@@ -324,7 +326,11 @@ const getDashboardPropertyStats = vi.fn((slug: string) =>
 );
 const getDashboardActivity = vi.fn(() => Promise.resolve(activity));
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   listSavedViews: () => Promise.resolve([]),
   createSavedView: (payload: Record<string, unknown>) => createSavedView(payload),
   updateSavedView: () => Promise.resolve({}),
@@ -647,4 +653,69 @@ describe("painel", () => {
       view.unmount();
     }
   });
+});
+
+describe("painel — Sugestão da IA (D-230)", () => {
+  const answer: SuggestionsOut = {
+    tool: "painel",
+    summary: "Onde o catálogo tem lacunas.",
+    suggestions: [
+      {
+        title: "Revise a classe Cerâmicas",
+        body: "É a classe menos preenchida.",
+        actions: [
+          { type: "open_route", label: "Abrir o catálogo de Cerâmicas", path: "/app/catalogo?classe=ceramicas" },
+          // An action of a type this screen does not apply is not shown.
+          { type: "set_param", label: "sem efeito aqui", name: "x", value: 1 },
+          // Never a way out of the app.
+          { type: "open_route", label: "Outro site", path: "//example.com/x" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  it("só consulta ao clicar; cada rota é um link para dentro do app", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    const user = userEvent.setup();
+    await renderDashboard();
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    const link = await screen.findByRole("link", { name: "Abrir o catálogo de Cerâmicas" });
+    expect(link).toHaveAttribute("href", "/app/catalogo?classe=ceramicas");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("painel", {});
+    expect(screen.queryByRole("button", { name: "sem efeito aqui" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Outro site" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Outro site" })).toBeNull();
+  });
+
+  it("um erro da IA fica no painel e a tela segue inteira", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockRejectedValue(new Error("falhou"));
+    const user = userEvent.setup();
+    await renderDashboard();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    expect(await screen.findByText(suggestText.errorTitle)).toBeInTheDocument();
+    expect(screen.getByText(t.materials)).toBeInTheDocument();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    const user = userEvent.setup();
+    const view = await renderDashboard();
+    await waitFor(() => expect(screen.queryAllByText(d.loading)).toHaveLength(0));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByRole("link", { name: "Abrir o catálogo de Cerâmicas" });
+    const violations = await findA11yViolations(view.container);
+    expect(describeViolations(violations)).toBe("");
+  }, 30_000);
 });

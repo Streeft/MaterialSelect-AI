@@ -307,6 +307,44 @@ export function buildComparisonBrief(
   };
 }
 
+// --- What an AI suggestion may change (D-230) -----------------------------------
+
+/**
+ * The patch of the brief that a `set_param` of the server's audit request
+ * stands for, or `null` when this screen has no such field or the value is not
+ * one the field takes. The audit's names are the request's: a product is a list,
+ * so a parameter that every component (or every leg) has is written on all of
+ * them — a suggestion to go back to the default fraction does not leave one line
+ * behind. Never invents a value: the number or route is the server's.
+ */
+export function aiParamPatch(
+  brief: EcoBrief,
+  defaults: DefaultsResult["eco"],
+  name: string,
+  value: number | string,
+): Partial<EcoBrief> | null {
+  const number = typeof value === "number" && Number.isFinite(value) ? value : null;
+  switch (name) {
+    case "recycled_fraction":
+      if (number === null || number < 0 || number > 1) return null;
+      return {
+        components: effectiveComponents(brief, defaults).map((c) => ({ ...c, recycled: String(number) })),
+      };
+    case "end_of_life":
+      if (!isRoute(value)) return null;
+      return {
+        components: effectiveComponents(brief, defaults).map((c) => ({ ...c, endOfLife: value })),
+      };
+    case "transport_distance_km":
+      if (number === null || number < 0) return null;
+      return {
+        legs: effectiveLegs(brief, defaults).map((leg) => ({ ...leg, distance: String(number) })),
+      };
+    default:
+      return null;
+  }
+}
+
 // --- Why the run button is disabled (D-86) ------------------------------------
 
 export interface Blocked {

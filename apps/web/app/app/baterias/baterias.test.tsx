@@ -8,7 +8,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { suggestText } from "@/lib/i18n-suggest";
+import { installWideViewport } from "@/lib/testing/viewport";
 import type {
+  SuggestionsOut,
   ApplicationArchetype,
   BatteryChemistry,
   BatteryComparisonResult,
@@ -214,13 +217,17 @@ vi.mock("react-plotly.js", () => ({
 }));
 
 const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+const designBatteryPack = vi.hoisted(() => vi.fn());
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
   getBatteryRagone: () => Promise.resolve(mockRagone),
   listBatteryChemistries: () => Promise.resolve(mockChemistries),
   listBatteryArchetypes: () => Promise.resolve(mockArchetypes),
-  designBatteryPack: () => Promise.resolve(mockDesignResult),
+  designBatteryPack: (payload: unknown) => designBatteryPack(payload),
   compareBatteries: () => Promise.resolve(mockComparisonResult),
 }));
 
@@ -236,6 +243,7 @@ const { default: BateriasPage } = await import("./page");
 describe("BateriasPage (dimensionamento de bateria)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    designBatteryPack.mockImplementation(() => Promise.resolve(mockDesignResult));
     // The brief and the tab live in the URL (D-212): each test starts clean.
     window.history.replaceState(null, "", "/app/baterias");
   });
@@ -468,4 +476,120 @@ describe("BateriasPage (dimensionamento de bateria)", () => {
     expect(row!.textContent).toContain(lfp.name);
     expect(screen.getByRole("region", { name: t.compareResultAria })).toBeDefined();
   });
+});
+
+describe("BateriasPage — Sugestão da IA (D-230)", () => {
+  installWideViewport();
+  const answer: SuggestionsOut = {
+    tool: "baterias",
+    summary: "Duas ideias para o pacote.",
+    suggestions: [
+      {
+        title: "Experimente NMC-811",
+        body: "Com os mesmos requisitos, dá o pacote mais leve.",
+        actions: [
+          { type: "set_param", label: "química: NMC-811", name: "chemistry_slug", value: "nmc-811" },
+          { type: "set_param", label: "química: inventada", name: "chemistry_slug", value: "ferro-ar" },
+        ],
+      },
+      {
+        title: "Volte o empacotamento ao padrão",
+        body: "O valor de partida é 0,65.",
+        actions: [
+          { type: "set_param", label: "fator de empacotamento (massa): 0,65", name: "mass_packing_factor", value: 0.65 },
+          { type: "set_param", label: "potência alvo: 90", name: "target_power_kw", value: 90 },
+          { type: "set_param", label: "campo sem tela", name: "cell_capacity_ah", value: 3 },
+          { type: "open_route", label: "Ver os cuidados térmicos", path: "/app/baterias" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    window.history.replaceState(null, "", "/app/baterias");
+  });
+
+  async function ask() {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+    await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` });
+    await waitFor(() => expect(designBatteryPack).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Experimente NMC-811");
+    return user;
+  }
+
+  it("só consulta ao clicar, com o pedido de dimensionamento que a tela mostra", async () => {
+    const user = userEvent.setup();
+    render(wrap(<BateriasPage />));
+    await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` });
+    await waitFor(() => expect(designBatteryPack).toHaveBeenCalled());
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Experimente NMC-811");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("baterias", { request: designBatteryPack.mock.calls[0]![0] });
+    expect(screen.getByRole("link", { name: "Ver os cuidados térmicos" })).toHaveAttribute(
+      "href",
+      "/app/baterias",
+    );
+  });
+
+  it("trocar a química muda o select e o endereço; o que não existe não é botão", async () => {
+    const user = await ask();
+    expect(screen.queryByRole("button", { name: "química: inventada" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "campo sem tela" })).toBeNull();
+    // Nothing applied by the answer arriving.
+    expect(new URLSearchParams(window.location.search).has("quimica")).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "química: NMC-811" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("quimica")).toBe("nmc-811"));
+    const select = screen.getByShadowRole("combobox", { name: t.chemistryTitle });
+    expect(select).toHaveValue("nmc-811");
+    await waitFor(() => expect(select).toHaveAttribute("data-ai-changed", "true"));
+    // Like a hand edit, it leaves the preset.
+    expect(new URLSearchParams(window.location.search).get("arquetipo")).toBe("custom");
+    await waitFor(() =>
+      expect(designBatteryPack.mock.calls.at(-1)![0]).toMatchObject({ chemistry_slug: "nmc-811" }),
+    );
+  });
+
+  it("um fator de empacotamento sugerido abre as premissas e escreve o valor", async () => {
+    const user = await ask();
+    const summary = screen.getByText(t.premisesSummary(t.typicalCell, "0,7", "0,6", "0,75"));
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    await user.click(screen.getByRole("button", { name: "fator de empacotamento (massa): 0,65" }));
+    await waitFor(() => expect(details.open).toBe(true));
+    expect(new URLSearchParams(window.location.search).get("emp_massa")).toBe("0.65");
+    expect(screen.getByShadowLabelText(t.massPackingFactor)).toHaveValue(0.65);
+  });
+
+  it("um requisito sugerido muda o campo e a potência no pedido", async () => {
+    const user = await ask();
+    await user.click(screen.getByRole("button", { name: "potência alvo: 90" }));
+    await waitFor(() =>
+      expect(designBatteryPack.mock.calls.at(-1)![0]).toMatchObject({ target_power_kw: 90 }),
+    );
+    expect(screen.getByShadowRole("spinbutton", { name: `${t.targetPower} (kW)` })).toHaveValue(90);
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    const user = userEvent.setup();
+    const { container } = render(wrap(<BateriasPage />));
+    await screen.findByShadowRole("spinbutton", { name: `${t.targetEnergy} (kWh)` });
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Experimente NMC-811");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

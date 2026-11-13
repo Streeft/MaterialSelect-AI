@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SuggestAction } from "@/lib/types";
-import { isInternalPath, isWellFormedAction, visibleActions } from "./suggest";
+import { isInternalPath, isOwnKey, isWellFormedAction, visibleActions } from "./suggest";
 
 describe("lib/ai/suggest (D-229)", () => {
   it("accepts only internal paths", () => {
@@ -46,5 +46,31 @@ describe("lib/ai/suggest (D-229)", () => {
       { type: "compare", label: "c", ids: [1] },
     ];
     expect(visibleActions({ actions }, ["compare", "set_axes"]).map((a) => a.label)).toEqual(["a", "c"]);
+  });
+
+  it("lets the screen refuse an action of a listed type (D-230), keeping the order", () => {
+    const actions: SuggestAction[] = [
+      { type: "set_param", label: "lote", name: "batch_size", value: 2000 },
+      { type: "set_param", label: "campo sem tela", name: "voltagem", value: 3 },
+      { type: "open_route", label: "rota", path: "/app/catalogo" },
+    ];
+    const accepts = (action: SuggestAction) => action.type !== "set_param" || action.name === "batch_size";
+    expect(visibleActions({ actions }, ["set_param", "open_route"], accepts).map((a) => a.label)).toEqual([
+      "lote",
+      "rota",
+    ]);
+    // Without a check, only the type decides.
+    expect(visibleActions({ actions }, ["set_param", "open_route"]).map((a) => a.label)).toEqual([
+      "lote",
+      "campo sem tela",
+      "rota",
+    ]);
+  });
+
+  it("knows an own key from an inherited one", () => {
+    const table = { part_mass: "mass" };
+    expect(isOwnKey(table, "part_mass")).toBe(true);
+    expect(isOwnKey(table, "constructor")).toBe(false);
+    expect(isOwnKey(table, "toString")).toBe(false);
   });
 });

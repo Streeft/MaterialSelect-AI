@@ -26,6 +26,7 @@ import {
   bookmarkName,
 } from "@/components/my-records/bookmark";
 import { MaterialCards } from "@/components/catalog/MaterialCards";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import {
   Alert,
   Badge,
@@ -251,6 +252,18 @@ export default function MyRecordsPage() {
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} />
+
+      {/* D-230: the server reads this person's own records, so the screen sends nothing;
+          comparing opens the comparison screen and a route opens a sheet — both links. */}
+      <AISuggestPanel
+        tool="registros"
+        context={{}}
+        actions={["compare", "open_route"]}
+        linkFor={(action) =>
+          action.type === "compare" ? `/app/comparar?materiais=${encodeIdList(action.ids)}` : null
+        }
+        onAction={() => undefined}
+      />
 
       {query.isLoading && <ListSkeleton variant="rows" count={4} />}
       {query.isError && (

@@ -81,6 +81,42 @@ afterEach(() => {
 });
 
 describe("AISuggestPanel — Sugestão da IA (D-229)", () => {
+  it("shows only what the screen's own check accepts (D-230)", async () => {
+    suggestNextSteps.mockResolvedValue(
+      answer({
+        suggestions: [
+          {
+            title: "Ajuste o lote",
+            body: "Dois parâmetros.",
+            actions: [
+              { type: "set_param", label: "lote: 2000", name: "batch_size", value: 2000 },
+              { type: "set_param", label: "tensão: 3", name: "voltagem", value: 3 },
+              { type: "open_route", label: "Ver o catálogo", path: "/app/catalogo" },
+            ],
+          },
+        ],
+      }),
+    );
+    const accepts = (action: SuggestAction) => action.type !== "set_param" || action.name === "batch_size";
+    const user = userEvent.setup();
+    render(
+      wrap(
+        <AISuggestPanel
+          tool="custo"
+          context={{}}
+          actions={["set_param", "open_route"]}
+          accepts={accepts}
+          onAction={vi.fn()}
+        />,
+      ),
+    );
+    await user.click(await screen.findByRole("button", { name: t.button }));
+    expect(await screen.findByRole("button", { name: "lote: 2000" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "tensão: 3" })).toBeNull();
+    // The check is not for a route: it stays a link.
+    expect(screen.getByRole("link", { name: "Ver o catálogo" })).toBeTruthy();
+  });
+
   it("asks only when the button is clicked, with the tool and the context", async () => {
     suggestNextSteps.mockResolvedValue(answer());
     const user = userEvent.setup();

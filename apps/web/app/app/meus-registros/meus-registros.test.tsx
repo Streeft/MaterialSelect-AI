@@ -6,7 +6,8 @@ import { render, waitFor } from "@testing-library/react";
 import { screen } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { MaterialListItem, MyRecords, Process } from "@/lib/types";
+import type { MaterialListItem, MyRecords, Process, SuggestionsOut } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
 import { ptBR } from "@/lib/i18n";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -62,7 +63,11 @@ const empty: MyRecords = { favorites: [], recents: [], own_records: [] };
 const state = { data: populated };
 const removeFavorite = vi.fn(() => Promise.resolve(empty));
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getMyRecords: () => Promise.resolve(state.data),
   addFavorite: () => Promise.resolve(state.data),
   removeFavorite: () => removeFavorite(),
@@ -231,4 +236,81 @@ describe("estrela de favorito", () => {
     await waitFor(() => expect(removeFavorite).toHaveBeenCalled());
     expect(await screen.findByShadowRole("button", { name: t.addFavorite })).toBeInTheDocument();
   });
+});
+
+describe("meus registros — Sugestão da IA (D-230)", () => {
+  const answer: SuggestionsOut = {
+    tool: "registros",
+    summary: "O que fazer com os seus registros.",
+    suggestions: [
+      {
+        title: "Compare seus favoritos",
+        body: "Seus materiais favoritos lado a lado mostram onde cada um se destaca.",
+        actions: [
+          { type: "compare", label: "Comparar 3 materiais", ids: [4, 5, 6] },
+          { type: "open_route", label: "Voltar à Liga da Ana", path: "/app/materiais/7" },
+          // The screen applies nothing of this type: no button that does nothing.
+          { type: "set_param", label: "sem efeito aqui", name: "x", value: 1 },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  it("só consulta ao clicar; comparar e abrir a ficha são links, e nada é aplicado", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    state.data = populated;
+    const user = userEvent.setup();
+    render(wrap(<MyRecordsPage />));
+    await screen.findAllByShadowRole("link", { name: "Liga da Ana" });
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    expect(await screen.findByRole("link", { name: "Comparar 3 materiais" })).toHaveAttribute(
+      "href",
+      "/app/comparar?materiais=4-6",
+    );
+    expect(screen.getByRole("link", { name: "Voltar à Liga da Ana" })).toHaveAttribute(
+      "href",
+      "/app/materiais/7",
+    );
+    expect(screen.queryByRole("button", { name: "sem efeito aqui" })).toBeNull();
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("registros", {});
+    // The lists are untouched by the answer.
+    expect(removeFavorite).not.toHaveBeenCalled();
+  });
+
+  it("com a IA desligada o botão diz por quê e a tela segue inteira", async () => {
+    suggest.fn.mockReset();
+    state.data = populated;
+    const api = await import("@/lib/api");
+    const spy = vi
+      .spyOn(api, "getAIStatus")
+      .mockResolvedValue({ enabled: false, provider: "none", simulated: false, disclaimer: "" } as never);
+    render(wrap(<MyRecordsPage />));
+    await screen.findAllByShadowRole("link", { name: "Liga da Ana" });
+    await waitFor(() => expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled());
+    expect(screen.getByText(suggestText.off)).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    state.data = populated;
+    const user = userEvent.setup();
+    const { container } = render(wrap(<MyRecordsPage />));
+    await screen.findAllByShadowRole("link", { name: "Liga da Ana" });
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByRole("link", { name: "Comparar 3 materiais" });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });
