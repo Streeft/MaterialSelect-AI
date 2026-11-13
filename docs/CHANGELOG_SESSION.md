@@ -120,6 +120,20 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 186 — 12/11/26 — Painel "Sugestão da IA" em sete telas (D-229)
+
+**O que mudou.** Frontend: `components/ai/AISuggestPanel.tsx` (+ `useAISuggest.ts`, `lib/ai/suggest.ts`, `lib/i18n-suggest.ts`,
+consulta de contêiner `.ai-suggest` em `globals.css`) e o painel ligado em Mapas, Comparar, Catálogo, Ficha do material,
+Glossário, Processos (lista e ficha) e Importar, cada tela com o seu `onAction` real; `mapHrefForAxes` em `mapas/mapUrl.ts`;
+`i18n.ts` (`ptBR.map`) e `i18n-compare-view.ts` com as frases novas. O botão só consulta a IA ao clicar. Testes novos:
+`AISuggestPanel.test.tsx`, `lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em `mapas.test.tsx`, `comparar-ia.test.tsx`,
+`catalogo.test.tsx`, `ficha-layout.test.tsx`, `glossario.test.tsx`, `processos.test.tsx` e `importar.test.tsx`, e
+`e2e/sugestao-ia.spec.ts` (Mapas troca os eixos na URL; Catálogo aplica um filtro).
+
+**Para quem retoma.** Só frontend: sem deploy da API, migração ou seed. A IA-2b (Dimensionar, Custo, Eco, Baterias, Sintetizar,
+Painel, Meus registros e Admin) reutiliza `AISuggestPanel` (`tool`, `context`, `actions`, `onAction`, `linkFor`,
+`disabledReason`).
+
 ## Sessão 185 — 12/11/26 — IA gratuita do Google em todas as funções e sugestões em todas as ferramentas (D-228)
 
 **O que mudou.** Backend: `GET /api/ai/status` ampliado (modelo, host, modo JSON, embeddings e as quatro capacidades);

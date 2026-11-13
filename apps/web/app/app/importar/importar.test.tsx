@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import { ptBR } from "@/lib/i18n";
+import { suggestText } from "@/lib/i18n-suggest";
 
 const t = ptBR.importer;
 
@@ -54,6 +55,7 @@ const api = vi.hoisted(() => ({
   validateImport: vi.fn(),
   listImports: vi.fn(),
   cancelImport: vi.fn(),
+  suggest: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -69,6 +71,8 @@ vi.mock("@/lib/api", () => ({
   listClasses: vi.fn().mockResolvedValue([{ id: 1, name: "Metais", slug: "metais", parent_id: null }]),
   listProperties: vi.fn().mockResolvedValue([{ id: 1, name: "Densidade", slug: "densidade" }]),
   listImportTemplates: vi.fn().mockResolvedValue([]),
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => api.suggest(tool, context),
 }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/importar" }));
 vi.mock("@/components/auth/CatalogReadOnlyNotice", () => ({ CatalogReadOnlyNotice: () => null }));
@@ -159,5 +163,56 @@ describe("Importar (D-222)", () => {
     await waitFor(() => expect(screen.getByRole("region", { name: t.cellsTitle })).toBeInTheDocument());
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});
+
+describe("Importar — Sugestão da IA (D-229)", () => {
+  const unmapped = {
+    ...upload,
+    headers: ["nome", "classe", "rho"],
+    sample_rows: [["Liga A", "Metais", "2,7"]],
+    suggestions: [
+      { column: "nome", suggested_target: "name" },
+      { column: "classe", suggested_target: "class" },
+      { column: "rho", suggested_target: "ignore" },
+    ],
+  };
+
+  it("“Mapear” preenche a linha da coluna na tela de mapeamento, sem importar nem validar", async () => {
+    api.uploadImportFile.mockResolvedValue(unmapped);
+    api.suggest.mockResolvedValue({
+      tool: "importar",
+      summary: "Uma coluna reconhecida.",
+      suggestions: [
+        {
+          title: "Colunas reconhecidas",
+          body: "A coluna «rho» parece corresponder a Densidade. Confira as unidades antes de importar.",
+          actions: [{ type: "map_column", label: "Mapear «rho» como Densidade", col: "rho", prop: "densidade" }],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await sendFile(user, new File(["nome;classe;rho"], "ligas.csv"));
+    await screen.findByRole("heading", { name: t.mappingTitle });
+    expect(api.suggest).not.toHaveBeenCalled();
+    expect(screen.queryByRole("combobox", { name: t.ariaProperty("rho") })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Mapear «rho» como Densidade" }));
+
+    expect(api.suggest).toHaveBeenCalledWith("importar", { columns: ["nome", "classe", "rho"] });
+    expect(screen.getByRole("combobox", { name: t.ariaProperty("rho") })).toHaveValue("densidade");
+    expect(screen.getByRole("combobox", { name: t.ariaTarget("rho") })).toHaveValue("property");
+    // The unit is the person's to fill: none was invented.
+    expect(screen.getByRole("textbox", { name: t.ariaUnit("rho") })).toHaveValue("");
+    expect(api.validateImport).not.toHaveBeenCalled();
   });
 });

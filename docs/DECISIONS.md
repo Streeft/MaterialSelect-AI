@@ -13339,3 +13339,45 @@ painel "Sugestão da IA" nas etapas IA-2a e IA-2b. Tipos novos em `packages/shar
 o diagnóstico (§5-quinquies do deploy).
 
 **Numeração.** D-228/Sessão 185.
+
+## D-229 — Painel "Sugestão da IA" em sete telas (IA-2a, frontend)
+
+**Contexto.** O D-228 entregou `POST /api/ai/suggest` e o cliente, mas nenhuma tela o chamava. O plano gratuito do Google tem
+cota diária e por minuto compartilhada com o resto da IA; qualquer desenho que consulte o modelo ao abrir a tela a gastaria à
+toa. As ações devolvidas são propostas: nada pode mudar a tela sem o clique da pessoa.
+
+**Decisão.**
+
+1. **Um componente só.** `components/ai/AISuggestPanel.tsx` (dados em `useAISuggest`, regras puras em `lib/ai/suggest.ts`, textos em
+   `lib/i18n-suggest.ts`). O botão **"Sugestão da IA"** chama `suggestNextSteps` **somente ao clicar**; fechar e reabrir não
+   repete a chamada. Estados: carregando (esqueleto e `aria-live`), erro (`describeApiError`, "Tentar de novo"; no 429 a frase do
+   servidor diz quando tentar), vazio escrito, `degraded`/`notice` como aviso (com texto próprio se o servidor não mandou
+   `notice`), `cached` discreto, `rejected` num bloco recolhido e o `disclaimer`. Com `/ai/status` `enabled=false`, o botão fica
+   desligado com a explicação (status ilegível conta como ligado: a chamada diz o que há). Cor só por token, `min-w-0`/`break-words`
+   e uma consulta de contêiner (`.ai-suggest`) para uma ou duas colunas de cartões.
+2. **Clicar aplica, pela tela.** A tela passa `onAction(action)` e `actions` (os tipos que sabe aplicar). Ação de tipo fora da
+   lista, ou com formato que o tipo não promete (`isWellFormedAction`), **não aparece**; um cartão sem ação utilizável fica como
+   conselho. `open_route` é um link para um caminho interno (nunca `//` nem outro site); `linkFor` deixa a tela transformar outra
+   ação em link (um `search` numa tela sem caixa de busca). Depois do clique o botão vira "aplicado", o leitor de tela ouve a
+   frase e, em janela estreita, o painel se recolhe (a resposta fica). Se o contexto da tela mudar depois da resposta, o painel
+   avisa que ela é antiga e só pede de novo no clique.
+3. **As telas.** Mapas: `set_axes`, `apply_preset` e `set_index` passam pelos mesmos setters dos controles, e a URL (`estado=`)
+   acompanha; desligado no universo de processos. Comparar: `compare` troca `?materiais=` e `set_axes` abre os comparados no Mapa
+   (`mapHrefForAxes`, a única vista com eixos); desligado sem material. Catálogo: `add_filter`, `sort` e `search` escrevem os
+   parâmetros da URL e voltam à página 1; `compare` abre `/app/comparar?materiais=`. Ficha: `compare` abre o Comparar com os
+   parecidos. Glossário e Processos: `search` põe o texto na caixa de busca (na ficha do processo vira link para a lista).
+   Importar: `map_column` preenche a linha da coluna na tela de mapeamento (alvo "propriedade" e a propriedade) e **nada mais**:
+   não valida nem importa, e a unidade só é mantida se a coluna já apontava para a mesma propriedade, senão fica em branco
+   (princípio 1: nunca inventada).
+
+**Alternativas recusadas.** Pedir as sugestões ao abrir a tela (gasta a cota e o Google barra o resto da IA). Aplicar a primeira
+ação sozinha (a IA propõe, a pessoa decide). Um painel por tela (os sete teriam estados de erro e de cota diferentes). Mostrar
+a ação desconhecida como botão sem efeito (um botão que não faz nada ensina a não confiar no painel).
+
+**Consequências.** Só frontend: sem mudança de API, migração ou seed. `AISuggestPanel` é a base da IA-2b (Dimensionar, Custo,
+Eco, Baterias, Sintetizar, Painel, Meus registros e Admin: `set_param`, `fill_text`, `compare`, `open_route`). Os testes de
+página que simulam `@/lib/api` passaram a incluir `getAIStatus`/`suggestNextSteps` onde o painel é exercitado; nos demais a
+ausência do mock é tratada como "status ilegível" e não quebra a tela. Testes novos: `AISuggestPanel.test.tsx` (com axe),
+`lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em cada tela e `e2e/sugestao-ia.spec.ts` (Mapas e Catálogo, com o `mock`).
+
+**Numeração.** D-229/Sessão 186.

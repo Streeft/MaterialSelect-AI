@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { suggestText } from "@/lib/i18n-suggest";
 import type {
   Process,
   ProcessClass,
@@ -234,7 +235,11 @@ const matrixData: ProcessMatrix = {
   without_data: { massa: 1 },
 };
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getProcessMatrix: (query: unknown) => {
     matrixCalls.push(query);
     const q = query as { massa?: string };
@@ -449,5 +454,62 @@ describe("a ficha da família de processo", () => {
 
     // Sem o total da subárvore o leitor vê zero e não tem por que abrir o galho.
     expect(await screen.findByText(new RegExp(t.countBelow(1)))).toBeInTheDocument();
+  });
+});
+
+describe("processos — Sugestão da IA (D-229)", () => {
+  const answer = {
+    tool: "processos",
+    summary: "Para explorar.",
+    suggestions: [
+      {
+        title: "Família Conformação",
+        body: "Liste os processos da família.",
+        actions: [
+          { type: "search", label: "Buscar Conformação", q: "Conformação" },
+          { type: "open_route", label: "Ver Solda", path: "/app/processos/solda" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  it("na lista, “Buscar” põe o texto na busca do endereço; só consulta ao clicar", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    route.pathname = "/app/processos";
+    window.history.replaceState(null, "", "/app/processos");
+    const user = userEvent.setup();
+    render(wrap(<ProcessesPage />));
+    await screen.findByShadowRole("link", { name: "Fundição" });
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Buscar Conformação" }));
+    expect(suggest.fn).toHaveBeenCalledWith("processos", { slug: null });
+    await waitFor(() => expect(decodeURIComponent(window.location.search)).toContain("busca=Conformação"));
+    window.history.replaceState(null, "", "/app/processos");
+  });
+
+  it("na ficha, envia o slug e a busca vira um link para a lista, a rota para o processo", async () => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+    route.pathname = "/app/processos/fundicao";
+    route.slug = "fundicao";
+    const user = userEvent.setup();
+    render(wrap(<ProcessDetailPage />));
+    await screen.findByText("Faixa de massa");
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    expect(await screen.findByRole("link", { name: "Buscar Conformação" })).toHaveAttribute(
+      "href",
+      "/app/processos?busca=Conforma%C3%A7%C3%A3o",
+    );
+    expect(screen.getByRole("link", { name: "Ver Solda" })).toHaveAttribute("href", "/app/processos/solda");
+    expect(suggest.fn).toHaveBeenCalledWith("processos", { slug: "fundicao" });
   });
 });
