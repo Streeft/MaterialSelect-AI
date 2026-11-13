@@ -29,6 +29,7 @@ from pydantic import ValidationError as PydanticValidationError
 from app.ai.guardrails import numbers_in
 from app.ai.suggest import (
     Allowed,
+    NumberRange,
     SuggestContext,
     act,
     card,
@@ -91,6 +92,10 @@ class _ImportarIn(_ScreenContext):
 
 class _CalculatorIn(_ScreenContext):
     request: dict[str, Any]
+
+
+class _EcoCompareIn(_ScreenContext):
+    comparison: dict[str, Any]
 
 
 class _AdminClassIn(_ScreenContext):
@@ -857,6 +862,8 @@ class SuggestContextBuilder:
         )
 
     def _eco(self, raw: Mapping[str, Any]) -> SuggestContext:
+        if "comparison" in raw:
+            return self._eco_compare(raw)
         from app.schemas.eco import EcoAuditRequest
         from app.services.defaults_service import DefaultsService
         from app.services.eco_service import EcoService
@@ -875,9 +882,8 @@ class SuggestContextBuilder:
             "transport_distance_km": [defaults.transport_distance_km],
             "end_of_life": [defaults.end_of_life],
         }
-        params = _params(
-            request.model_dump(exclude={"use", "components", "transport_legs"}), scenario, labels
-        )
+        current = _eco_current(request)
+        params = _params(current, scenario, labels)
         dominance = result.energy_dominance
         lines = [
             f"Material: {result.material_name or 'vários'}; massa na peça {fmt(result.mass_in_part)} kg",
@@ -905,7 +911,7 @@ class SuggestContextBuilder:
                     act("open_route", "/app/eco"),
                 )
             )
-        rules.extend(_back_to_defaults(request.model_dump(), params, labels))
+        rules.extend(_back_to_defaults(current, params, labels))
         if result.material_id is not None:
             rules.append(
                 card(
@@ -929,6 +935,128 @@ class SuggestContextBuilder:
             routes,
             rules,
             "O que a auditoria ecológica calculada mostra.",
+            ranges={"part_mass": _POSITIVE_MASS},
+        )
+
+    def _eco_compare(self, raw: Mapping[str, Any]) -> SuggestContext:
+        """The A × B comparison (D-234): recomputed here from the brief, like the audit."""
+        from app.schemas.eco import EcoComparisonRequest
+        from app.services.defaults_service import DefaultsService
+        from app.services.eco_service import EcoService
+
+        context = _read(_EcoCompareIn, raw, "eco")
+        try:
+            request = EcoComparisonRequest.model_validate(context.comparison)
+        except PydanticValidationError as exc:
+            first = exc.errors()[0] if exc.errors() else {}
+            where = ".".join(str(part) for part in first.get("loc", ())) or "comparação"
+            raise ValidationError(
+                f"Contexto inválido para a ferramenta eco: {where} — {first.get('msg', 'inválido')}."
+            ) from exc
+        result = EcoService(self.db, self.viewer_id).compare(request)
+        defaults = DefaultsService().get().eco
+        a, b = result.material_a, result.material_b
+        name_a, name_b = a.material_name or "A", b.material_name or "B"
+        labels = {
+            "material_a.part_mass": f"massa da peça A ({name_a})",
+            "material_b.part_mass": f"massa da peça B ({name_b})",
+            "material_a.recycled_fraction": f"fração reciclada de A ({name_a})",
+            "material_b.recycled_fraction": f"fração reciclada de B ({name_b})",
+            "material_a.end_of_life": f"fim de vida de A ({name_a})",
+            "material_b.end_of_life": f"fim de vida de B ({name_b})",
+            "transport_distance_km": "distância de transporte",
+        }
+        scenario: dict[str, list[float | str]] = {
+            "material_a.recycled_fraction": [defaults.recycled_fraction],
+            "material_b.recycled_fraction": [defaults.recycled_fraction],
+            "material_a.end_of_life": [defaults.end_of_life],
+            "material_b.end_of_life": [defaults.end_of_life],
+            "transport_distance_km": [defaults.transport_distance_km],
+        }
+        current = request.model_dump(exclude={"use"})
+        params = _params(current, scenario, labels)
+
+        def total(value: float | None, unit: str) -> str:
+            return f"{fmt(value)} {unit}" if value is not None else "indefinida"
+
+        lines = [
+            f"A: {name_a}, processo {a.process_name}; massa {fmt(a.mass_in_part)} kg",
+            f"B: {name_b}, processo {b.process_name}; massa {fmt(b.mass_in_part)} kg",
+            f"Energia total: A {total(a.total_energy, a.energy_unit)}; "
+            f"B {total(b.total_energy, b.energy_unit)}",
+            f"Carbono total: A {total(a.total_carbon, a.carbon_unit)}; "
+            f"B {total(b.total_carbon, b.carbon_unit)}",
+        ]
+        extra: list[float] = []
+        rules: list[dict] = []
+        verdicts = (
+            ("energia", result.winner_energy, result.delta_energy_percent),
+            ("carbono", result.winner_carbon, result.delta_carbon_percent),
+        )
+        for quantity, winner, percent in verdicts:
+            if winner in ("material_a", "material_b") and percent is not None:
+                better, worse = (name_a, name_b) if winner == "material_a" else (name_b, name_a)
+                lines.append(
+                    f"Menor {quantity}: {better} ({fmt(abs(percent))}% de diferença para {worse})"
+                )
+                extra.append(abs(percent))
+        if result.winner_energy in ("material_a", "material_b") and (
+            result.delta_energy_percent is not None
+        ):
+            better = name_a if result.winner_energy == "material_a" else name_b
+            rules.append(
+                card(
+                    f"{better} usa menos energia",
+                    f"Em energia, a diferença entre as duas alternativas é de "
+                    f"{fmt(abs(result.delta_energy_percent))}% no ciclo de vida inteiro.",
+                    act("open_route", "/app/eco"),
+                )
+            )
+        deltas = [d for d in result.phase_deltas if d.delta_energy is not None]
+        if deltas:
+            biggest = max(deltas, key=lambda d: abs(d.delta_energy or 0.0))
+            size = abs(biggest.delta_energy or 0.0)
+            lines.append(
+                f"Fase que mais separa as alternativas em energia: {biggest.label} "
+                f"({fmt(size)} {a.energy_unit} de diferença)"
+            )
+            extra.append(size)
+            rules.append(
+                card(
+                    f"A diferença está em {biggest.label}",
+                    f"A fase {biggest.label} é a que mais separa A e B em energia "
+                    f"({fmt(size)} {a.energy_unit}): é onde mudar rende mais.",
+                    act("open_route", "/app/eco"),
+                )
+            )
+        rules.extend(_back_to_defaults(current, params, labels))
+        routes = {}
+        for side in (a, b):
+            if side.material_id is not None:
+                routes[f"/app/materiais/{side.material_id}"] = f"a ficha de {side.material_name}"
+        if a.material_id is not None:
+            rules.append(
+                card(
+                    "Confira os dados dos materiais",
+                    "A energia e o carbono de cada alternativa vêm da ficha do material.",
+                    act("open_route", f"/app/materiais/{a.material_id}"),
+                )
+            )
+        return _calculator_context(
+            "eco",
+            lines,
+            result,
+            request,
+            params,
+            labels,
+            routes,
+            rules,
+            "O que a comparação A × B calculada mostra.",
+            extra_numbers=extra,
+            ranges={
+                "material_a.part_mass": _POSITIVE_MASS,
+                "material_b.part_mass": _POSITIVE_MASS,
+            },
         )
 
     def _baterias(self, raw: Mapping[str, Any]) -> SuggestContext:
@@ -1144,6 +1272,7 @@ class SuggestContextBuilder:
             rules,
             "O que a prévia da síntese mostra.",
             extra_numbers=extra,
+            ranges=_SYNTHESIS_RANGES,
         )
 
     # --- Admin ---------------------------------------------------------------------------------
@@ -1297,6 +1426,43 @@ class SuggestContextBuilder:
 # --- helpers ---------------------------------------------------------------------------------------
 
 
+#: The ranges the calculators accept (their request validation), inside which a
+#: model's own number is kept as a "Sugestão da IA, revise" (D-234). They say what
+#: the calculator takes, never what is a good value.
+_POSITIVE_MASS = NumberRange(low=0.0, high=1.0e6, open_low=True)
+_SYNTHESIS_RANGES: dict[str, NumberRange] = {
+    "volume_fraction": NumberRange(0.0, 1.0, open_low=True, open_high=True),
+    "relative_density": NumberRange(0.0, 1.0, open_low=True, open_high=True),
+    "face_thickness": NumberRange(low=0.0, open_low=True),
+    "core_thickness": NumberRange(low=0.0, open_low=True),
+}
+
+
+def _same(values: Iterable[Any]) -> Any:
+    """The one value every item shares, or None when they differ (or there are none)."""
+    distinct = set(values)
+    return distinct.pop() if len(distinct) == 1 else None
+
+
+def _eco_current(request) -> dict[str, Any]:
+    """The audit's parameters as the screen holds them, product shape included.
+
+    The product has no ``part_mass`` of its own: it is offered only for a product
+    of ONE component (its unit mass), and the other parameters are shared by every
+    component or leg or not offered at all — a suggestion never leaves one line behind.
+    """
+    current = request.model_dump(exclude={"use", "components", "transport_legs"})
+    components = request.components or []
+    if components:
+        current["part_mass"] = components[0].unit_mass if len(components) == 1 else None
+        current["recycled_fraction"] = _same(c.recycled_fraction for c in components)
+        current["end_of_life"] = _same(c.end_of_life for c in components)
+    legs = request.transport_legs or []
+    if legs:
+        current["transport_distance_km"] = _same(leg.distance_km for leg in legs)
+    return current
+
+
 def _percent(coverage) -> float:
     """Filled share of a coverage, in percent with one decimal (computed here)."""
     slots = getattr(coverage, "slots", None)
@@ -1379,6 +1545,7 @@ def _calculator_context(
     materials: Mapping[int, str] | None = None,
     extra_numbers: Iterable[float] = (),
     value_labels: Mapping[str, str] | None = None,
+    ranges: Mapping[str, NumberRange] | None = None,
 ) -> SuggestContext:
     numbers = expand_numbers(
         [*numbers_of(result.model_dump()), *numbers_of(request.model_dump()), *extra_numbers]
@@ -1392,6 +1559,8 @@ def _calculator_context(
         allowed=Allowed(
             params=dict(params),
             param_labels={k: v for k, v in labels.items() if k in params},
+            # A range only for a parameter this screen really has (D-234).
+            param_ranges={k: v for k, v in (ranges or {}).items() if k in params},
             value_labels=dict(value_labels or {}),
             routes=dict(routes),
             materials=dict(materials or {}),

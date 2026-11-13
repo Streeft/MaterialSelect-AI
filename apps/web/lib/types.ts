@@ -5,7 +5,12 @@
 // call site switching to the workspace package name.
 export * from "@materialselect/shared-types";
 
-import type { EcoAuditResult, EcoUseIn, EndOfLifeRoute } from "@materialselect/shared-types";
+import type {
+  EcoAuditResult,
+  EcoUseIn,
+  EcoWaterfall,
+  EndOfLifeRoute,
+} from "@materialselect/shared-types";
 
 export interface EcoMaterialInput {
   material_id: number;
@@ -34,6 +39,9 @@ export interface EcoComparisonResult {
   winner_carbon: "material_a" | "material_b" | "tie" | null;
   /** B minus A per phase, from the server; `null` when either side is absent. */
   phase_deltas: EcoPhaseDelta[];
+  /** B minus A, step by step, in data coordinates; the total bar is the audits' totals subtracted (D-234). */
+  energy_difference_waterfall: EcoWaterfall;
+  carbon_difference_waterfall: EcoWaterfall;
 }
 
 export interface EcoPhaseDelta {

@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 from app.ai import claude_cli, factory
 from app.ai.claude_api import ClaudeAPIProvider
 from app.ai.claude_cli import ClaudeCLIProvider, _read_payload
+from app.ai.guardrails import check_constraint
 from app.ai.model_base import ModelProviderBase, parse_json_object
 from app.ai.prompts import explain_user, format_decimal, interpret_schema
 from app.ai.provider import (
@@ -33,6 +34,7 @@ from app.ai.provider import (
     ResultContext,
 )
 from app.config import Settings
+from app.schemas.selection import ConstraintIn
 from app.services import ai_service
 
 STATEMENT = (
@@ -269,45 +271,42 @@ class TestCaveatsAreNotTheModels:
         assert all("ótimo" not in caveat for caveat in result["caveats"])
 
 
-class TestThroughTheService:
-    """A scripted model held to the same rules as any other provider."""
+class TestTheModelsReadingIsHeldToTheSameRules:
+    """A scripted model's reading goes through the guardrails of the plan (D-224).
 
-    def _use(self, monkeypatch: pytest.MonkeyPatch, answer: dict) -> _ScriptedClaude:
-        provider = _ScriptedClaude(answer)
-        monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: provider)
-        return provider
+    ``POST /api/ai/interpret`` left the API (D-234); the rules it applied are the
+    guardrails the project assistant still uses, so they are pinned here on their own.
+    """
 
-    def test_a_correct_conversion_is_still_refused(
-        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        # 300 °C really is 573.15 K. The rule is not about arithmetic: only the
+    def _read(self, answer: dict, statement: str = STATEMENT) -> tuple[dict, ProblemContext]:
+        context = _context(statement)
+        return _ScriptedClaude(answer).interpret(context), context
+
+    def test_a_correct_conversion_is_still_refused(self) -> None:
+        # 3 g/cm³ really is 3000 kg/m³. The rule is not about arithmetic: only the
         # backend converts, because only the backend records the trail.
-        self._use(
-            monkeypatch,
+        read, context = self._read(
             {
                 "constraints": [
                     {
                         "constraint": {
-                            "operator": "gte",
-                            "property_slug": "temp_max_servico",
-                            "value": 573.15,
-                            "unit": "K",
+                            "operator": "lte",
+                            "property_slug": "densidade",
+                            "value": 3000.0,
+                            "unit": "kg/m**3",
                         },
-                        "evidence": "no mínimo 300 °C",
+                        "evidence": "densidade no máximo 3 g/cm3",
                         "rationale": "convertido",
                     }
                 ]
-            },
+            }
         )
-        body = client.post("/api/ai/interpret", json={"statement": STATEMENT}).json()
-        assert body["constraints"] == []
-        assert any("não aparece no enunciado" in reason for reason in body["rejected"])
+        constraint = ConstraintIn(**read["constraints"][0]["constraint"])
+        reason = check_constraint(constraint, STATEMENT, context.catalogue())
+        assert reason is not None and "não aparece no enunciado" in reason
 
-    def test_a_grounded_reading_is_accepted_and_runs(
-        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        self._use(
-            monkeypatch,
+    def test_a_grounded_reading_is_accepted_and_runs(self, client: TestClient) -> None:
+        read, context = self._read(
             {
                 "function_text": "Viga em flexão",
                 "constraints": [
@@ -322,25 +321,24 @@ class TestThroughTheService:
                         "rationale": "limite lido",
                     }
                 ],
-            },
+            }
         )
-        body = client.post("/api/ai/interpret", json={"statement": STATEMENT}).json()
-        assert body["rejected"] == []
-        assert body["simulated"] is False
+        constraints = [ConstraintIn(**c["constraint"]) for c in read["constraints"]]
+        assert constraints
+        for constraint in constraints:
+            assert check_constraint(constraint, STATEMENT, context.catalogue()) is None
         run = client.post(
             "/api/selection/run",
             json={
                 "combinator": "AND",
-                "constraints": [c["constraint"] for c in body["constraints"]],
+                "constraints": [c.model_dump(mode="json") for c in constraints],
             },
         )
         assert run.status_code == 200, run.text
 
-    def test_the_model_never_sees_a_database_or_an_evaluator(
-        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        provider = self._use(monkeypatch, {})
-        client.post("/api/ai/interpret", json={"statement": STATEMENT})
+    def test_the_model_never_sees_a_database_or_an_evaluator(self) -> None:
+        provider = _ScriptedClaude({})
+        provider.interpret(_context())
         sent = provider.requests[0]["user"]
         assert STATEMENT in sent
         # The catalogue is metadata; not one property *value* is in the prompt.

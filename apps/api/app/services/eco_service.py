@@ -31,6 +31,7 @@ from app.calculations.eco_audit import (
     TransportLeg,
     UseAssumptions,
     audit_product,
+    build_difference_waterfall,
     build_waterfall,
 )
 from app.domain.errors import NotFoundError, ValidationError
@@ -393,6 +394,26 @@ class EcoService:
             winner_energy=winner_energy,
             winner_carbon=winner_carbon,
             phase_deltas=phase_deltas,
+            energy_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    res_a.phases,
+                    res_b.phases,
+                    "energy",
+                    res_a.energy_unit,
+                    res_a.total_energy,
+                    res_b.total_energy,
+                )
+            ),
+            carbon_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    res_a.phases,
+                    res_b.phases,
+                    "carbon",
+                    res_a.carbon_unit,
+                    res_a.total_carbon,
+                    res_b.total_carbon,
+                )
+            ),
         )
 
     # --- shaping ----------------------------------------------------------

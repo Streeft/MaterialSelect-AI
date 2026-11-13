@@ -81,79 +81,6 @@ class AIDiagnosticoOut(BaseModel):
     remaining: int = Field(description="Diagnósticos que esta pessoa ainda pode rodar nesta hora")
 
 
-class InterpretRequest(BaseModel):
-    """A free-text engineering problem to be structured."""
-
-    statement: str = Field(min_length=1, max_length=MAX_STATEMENT_LENGTH)
-
-
-class SuggestedConstraint(BaseModel):
-    """A constraint the layer believes the statement expresses.
-
-    ``evidence`` quotes the fragment of the user's own text the reading came
-    from, so the person reviewing it can check the interpretation instead of
-    trusting it.
-    """
-
-    constraint: ConstraintIn
-    evidence: str = Field(max_length=300)
-    rationale: str = Field(max_length=300)
-
-
-class SuggestedIndex(BaseModel):
-    """A performance index proposed from the catalogue.
-
-    ``slug`` must name an index that already exists: the layer selects, it does
-    not author expressions.
-    """
-
-    slug: str
-    name: str
-    expression: str
-    goal: GoalLiteral
-    rationale: str = Field(max_length=300)
-
-
-class SuggestedProperty(BaseModel):
-    """A catalogue property the statement seems to care about."""
-
-    slug: str
-    name: str
-    rationale: str = Field(max_length=300)
-
-
-class SuggestedChart(BaseModel):
-    """A property map worth opening for this problem."""
-
-    x: str
-    y: str
-    scale: Literal["linear", "log"]
-    rationale: str = Field(max_length=300)
-
-
-class InterpretationOut(BaseModel):
-    """The structured, editable reading of a problem statement.
-
-    Nothing here is applied. The client shows it for review; the user accepts,
-    edits or discards each item before it becomes part of a selection.
-    """
-
-    statement: str
-    function_text: str | None = None
-    objective_text: str | None = None
-    free_variables: list[str] = Field(default_factory=list)
-    constraints: list[SuggestedConstraint] = Field(default_factory=list)
-    properties: list[SuggestedProperty] = Field(default_factory=list)
-    indices: list[SuggestedIndex] = Field(default_factory=list)
-    chart: SuggestedChart | None = None
-    # What the layer could not read, and what it discarded on the way out.
-    open_questions: list[str] = Field(default_factory=list)
-    rejected: list[str] = Field(default_factory=list)
-    provider: str
-    simulated: bool
-    disclaimer: str
-
-
 class ExplainRequest(BaseModel):
     """Ask for prose about an already-computed selection.
 
@@ -490,12 +417,18 @@ class CompareAction(_ActionBase):
 
 
 class SetParamAction(_ActionBase):
-    """A parameter of the screen set to a value the context or a scenario holds
-    (D-224) — never one the model chose."""
+    """A parameter of the screen set to a value.
+
+    ``origin`` says where the value comes from (D-224, D-234): ``contexto`` is a
+    figure the screen or a curated scenario holds; ``sugestao_ia`` is a number the
+    model chose inside the range the calculator accepts — shown as "Sugestão da
+    IA, revise" and applied by the screen only after the person confirms.
+    """
 
     type: Literal["set_param"] = "set_param"
     name: str
     value: float | str
+    origin: Literal["contexto", "sugestao_ia"] = "contexto"
 
 
 class MapColumnAction(_ActionBase):

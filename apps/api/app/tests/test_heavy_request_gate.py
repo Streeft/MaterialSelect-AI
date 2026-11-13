@@ -52,6 +52,7 @@ HEAVY_ROUTES = {
     ("POST", "/api/charts/compare"),
     ("POST", "/api/solver/resolver"),
     ("POST", "/api/custo/estimar"),
+    ("POST", "/api/custo/curvas"),
     ("POST", "/api/eco/auditar"),
     ("POST", "/api/eco/comparar"),
     ("POST", "/api/baterias/dimensionar"),

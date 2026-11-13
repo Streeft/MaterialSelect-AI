@@ -1454,7 +1454,6 @@ vi.mock("@/lib/api", async (importOriginal) => ({
     ]),
   diffRuns: () => Promise.resolve(null),
   getAIStatus: () => Promise.resolve(aiStatus),
-  interpretStatement: () => Promise.resolve(null),
   explainStudy: () => Promise.resolve(null),
   listImports: () => Promise.resolve([]),
   listImportTemplates: () => Promise.resolve([]),

@@ -29,12 +29,7 @@ from datetime import UTC, date, datetime
 from app.ai import openai_compat
 from app.ai.factory import SIMULATED_NOTE, disclaimer_for, get_provider
 from app.ai.guardrails import (
-    Catalogue,
-    check_chart,
     check_citations,
-    check_constraint,
-    check_index,
-    check_property,
     numbers_in,
     ungrounded_numbers,
 )
@@ -74,20 +69,13 @@ from app.schemas.ai import (
     AIStatusOut,
     CitedSourceOut,
     ExplanationOut,
-    InterpretationOut,
-    InterpretRequest,
     PlanRequest,
     PlanRunRequest,
     PlanRunResponse,
     ProjectPlanOut,
-    SuggestedChart,
-    SuggestedConstraint,
-    SuggestedIndex,
-    SuggestedProperty,
     SuggestionsOut,
     SuggestRequest,
 )
-from app.schemas.selection import ConstraintIn
 from app.services import ai_diagnostics
 from app.services.ai_plan import PlanBuilder, PlanCatalogue, grounded_prose, scenarios_out
 from app.services.ai_suggest import SuggestContextBuilder
@@ -462,17 +450,6 @@ class AIService:
         _RANGE_CACHE.put(key, ranges, self.settings.ai_context_cache_seconds)
         return ranges
 
-    def _context(self, statement: str, provider: AIProvider) -> ProblemContext:
-        facts = self._catalogue_facts()
-        retrieved = self._retrieve(statement, provider)
-        return ProblemContext(
-            statement=statement,
-            properties=list(facts.properties),
-            indices=list(facts.indices),
-            classes=list(facts.classes),
-            retrieved=tuple(retrieved),
-        )
-
     def _retrieve(self, query: str, provider: AIProvider) -> list:
         """Trechos do Cérebro para dar contexto ao provedor — nunca ao mock.
 
@@ -498,110 +475,6 @@ class AIService:
                 self.settings.knowledge_retrieval_budget_seconds,
             )
         return chunks
-
-    def interpret(self, request: InterpretRequest) -> InterpretationOut:
-        provider = self._provider()
-        statement = request.statement.strip()
-        if not statement:
-            raise ValidationError("Informe o enunciado do problema.")
-
-        context = self._context(statement, provider)
-        catalogue = context.catalogue()
-        with self._spending(provider):
-            raw = provider.interpret(context)
-        rejected: list[str] = []
-
-        return InterpretationOut(
-            statement=statement,
-            function_text=_text_or_none(raw.get("function_text")),
-            objective_text=_text_or_none(raw.get("objective_text")),
-            free_variables=[str(v) for v in raw.get("free_variables", [])][:10],
-            constraints=self._accept_constraints(raw, statement, catalogue, rejected),
-            properties=self._accept_properties(raw, catalogue, rejected),
-            indices=self._accept_indices(raw, catalogue, rejected),
-            chart=self._accept_chart(raw, catalogue, rejected),
-            open_questions=[str(q) for q in raw.get("open_questions", [])],
-            rejected=rejected,
-            provider=provider.name,
-            simulated=provider.simulated,
-            disclaimer=disclaimer_for(provider),
-        )
-
-    @staticmethod
-    def _accept_constraints(
-        raw: dict, statement: str, catalogue: Catalogue, rejected: list[str]
-    ) -> list[SuggestedConstraint]:
-        accepted: list[SuggestedConstraint] = []
-        for item in raw.get("constraints", []):
-            try:
-                suggestion = SuggestedConstraint(
-                    constraint=ConstraintIn(**item["constraint"]),
-                    evidence=item.get("evidence", ""),
-                    rationale=item.get("rationale", ""),
-                )
-            except Exception as exc:  # malformed provider output
-                rejected.append(f"Restrição descartada por formato inválido: {exc}")
-                continue
-            reason = check_constraint(suggestion.constraint, statement, catalogue)
-            if reason:
-                rejected.append(reason)
-                continue
-            accepted.append(suggestion)
-        return accepted
-
-    @staticmethod
-    def _accept_properties(
-        raw: dict, catalogue: Catalogue, rejected: list[str]
-    ) -> list[SuggestedProperty]:
-        accepted: list[SuggestedProperty] = []
-        for item in raw.get("properties", []):
-            slug = str(item.get("slug", ""))
-            reason = check_property(slug, catalogue)
-            if reason:
-                rejected.append(reason)
-                continue
-            accepted.append(
-                SuggestedProperty(
-                    slug=slug,
-                    name=str(item.get("name", slug)),
-                    rationale=str(item.get("rationale", "")),
-                )
-            )
-        return accepted
-
-    @staticmethod
-    def _accept_indices(
-        raw: dict, catalogue: Catalogue, rejected: list[str]
-    ) -> list[SuggestedIndex]:
-        accepted: list[SuggestedIndex] = []
-        for item in raw.get("indices", []):
-            slug = str(item.get("slug", ""))
-            reason = check_index(slug, catalogue)
-            if reason:
-                rejected.append(reason)
-                continue
-            try:
-                accepted.append(SuggestedIndex(**item))
-            except Exception as exc:
-                rejected.append(f"Índice descartado por formato inválido: {exc}")
-        return accepted
-
-    @staticmethod
-    def _accept_chart(
-        raw: dict, catalogue: Catalogue, rejected: list[str]
-    ) -> SuggestedChart | None:
-        item = raw.get("chart")
-        if not item:
-            return None
-        reason = check_chart(str(item.get("x", "")), str(item.get("y", "")), catalogue)
-        if reason:
-            rejected.append(reason)
-            return None
-        try:
-            return SuggestedChart(**item)
-        except Exception as exc:
-            rejected.append(f"Gráfico descartado por formato inválido: {exc}")
-            return None
 
     # --- project assistant (D-224) -----------------------------------------
 

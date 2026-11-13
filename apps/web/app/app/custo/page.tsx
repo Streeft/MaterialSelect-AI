@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useLiveResult } from "@/lib/useLiveResult";
-import type { CostResult, DefaultsResult, SuggestAction } from "@/lib/types";
-import { estimatePartCost, listMaterials } from "@/lib/api";
+import type { CostCurves, CostResult, DefaultsResult, SuggestAction } from "@/lib/types";
+import { estimateCostCurves, estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatTyped } from "@/lib/format";
 import { encodeIdList, parseIdList } from "@/lib/idList";
@@ -34,6 +34,7 @@ import {
   Tr,
 } from "@/components/ui";
 import { CostCurveChart } from "@/components/charts/CostCurveChart";
+import { MaterialCostCurvesChart } from "@/components/charts/MaterialCostCurvesChart";
 import { suggestText } from "@/lib/i18n-suggest";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { aiField, revealField } from "@/lib/ai/revealField";
@@ -232,6 +233,23 @@ interface CostBundleRequest {
 }
 
 async function estimateBundle(request: CostBundleRequest) {
+  // D-234: with more than one material, the server also draws each one's whole
+  // cost × batch curve on a shared frame. A failure of that request is the figure's
+  // alone: the estimates above it still stand.
+  const curves: Promise<CostCurves | null> =
+    request.ids.length > 1
+      ? Promise.resolve()
+          .then(() =>
+            estimateCostCurves({
+              material_ids: request.ids,
+              part_mass: request.mass,
+              batch_size: request.batch,
+              write_off_years: request.writeOff,
+              load_factor: request.loadFactor,
+            }),
+          )
+          .catch(() => null)
+      : Promise.resolve(null);
   const settled = await Promise.allSettled(
     request.ids.map((id) =>
       estimatePartCost({
@@ -247,6 +265,7 @@ async function estimateBundle(request: CostBundleRequest) {
   if (!first || first.status === "rejected") throw first?.reason ?? new Error("estimate");
   return {
     main: first.value,
+    curves: await curves,
     others: rest.map(
       (outcome, index): ComparedEstimate => ({
         id: request.ids[index + 1] ?? 0,
@@ -295,7 +314,10 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   // part, batch and premises (D-216). The first is the answer the page is about;
   // a failure of one of the others is written on its row and never sinks the rest.
   // The numbers are still the server's.
-  const live = useLiveResult<CostBundleRequest, { main: CostResult; others: ComparedEstimate[] }>({
+  const live = useLiveResult<
+    CostBundleRequest,
+    { main: CostResult; others: ComparedEstimate[]; curves: CostCurves | null }
+  >({
     key: "custo-ao-vivo",
     request: ready
       ? {
@@ -310,6 +332,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   });
   const result = live.data?.main ?? null;
   const compared = live.data?.others ?? [];
+  const materialCurves = live.data?.curves ?? null;
   // D-220: the mass handed over by Dimensionar says where it came from.
   const fromSolver = useSearchParams().get("origem") === "dimensionar";
   // An assumption that blocks the estimate is never left folded away.
@@ -522,6 +545,9 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                 <ResultTable result={result} />
                 <CostCurveChart result={result} />
                 {compared.length > 0 ? <ComparedTable main={result} others={compared} /> : null}
+                {compared.length > 0 && materialCurves ? (
+                  <MaterialCostCurvesChart curves={materialCurves} />
+                ) : null}
                 {result.uncosted.length > 0 ? (
                   <div className="well flex flex-col gap-2">
                     <span className="text-body font-medium text-ink">{t.uncostedTitle}</span>

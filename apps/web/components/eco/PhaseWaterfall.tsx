@@ -47,11 +47,22 @@ export function PhaseWaterfall({
   waterfall,
   title,
   exportName,
+  variant = "contribution",
 }: {
   waterfall: EcoWaterfall;
   title: string;
   exportName: string;
+  /**
+   * `difference` (D-234): the steps are B − A of each phase and the total bar is the
+   * difference of the two audits. A step below zero is B saving in that phase
+   * (the success colour, with the words "B abaixo de A"); above zero, B costing more.
+   * The server computed all of it; the words only change.
+   */
+  variant?: "contribution" | "difference";
 }) {
+  const diff = variant === "difference";
+  const words = diff ? t.difference : t;
+  const lowerWord = diff ? t.difference.below : t.credit;
   const [measure, width] = useChartWidth();
   const [active, setActive] = useState<number | null>(null);
 
@@ -82,13 +93,13 @@ export function PhaseWaterfall({
   const tableColumns: FigureColumn<Column>[] = [
     {
       key: "contribution",
-      header: `${t.columnContribution} (${waterfall.unit})`,
+      header: `${words.columnContribution} (${waterfall.unit})`,
       numeric: true,
       cell: ({ step }) => (step.value === null ? null : formatNumber(step.value)),
     },
     {
       key: "running",
-      header: `${t.columnRunning} (${waterfall.unit})`,
+      header: `${words.columnRunning} (${waterfall.unit})`,
       numeric: true,
       cell: ({ step, isTotal }) =>
         isTotal ? null : step.end === null || step.value === null ? null : formatNumber(step.end),
@@ -113,9 +124,17 @@ export function PhaseWaterfall({
       rows: [
         {
           key: "value",
-          label: t.tipContribution,
+          label: words.tipContribution,
           value: tipValue(step.value, waterfall.unit),
-          color: tok(step.value < 0 ? "--success" : column.isTotal ? "--ink" : "--brand-600"),
+          color: tok(
+            step.value < 0
+              ? "--success"
+              : column.isTotal
+                ? "--ink"
+                : diff && step.value > 0
+                  ? "--danger"
+                  : "--brand-600",
+          ),
           symbol: "square" as const,
         },
         ...(column.isTotal || step.end === null
@@ -128,7 +147,7 @@ export function PhaseWaterfall({
   return (
     <ChartFrame
       title={title}
-      description={t.description}
+      description={words.description}
       headingLevel={4}
       exportName={exportName}
       table={
@@ -145,7 +164,7 @@ export function PhaseWaterfall({
         <svg
           data-chart-figure
           role="figure"
-          aria-label={t.figureLabel(quantityName)}
+          aria-label={words.figureLabel(quantityName)}
           className="chart-svg select-none"
           width={W}
           height={HEIGHT}
@@ -235,7 +254,13 @@ export function PhaseWaterfall({
             const end = isTotal ? step.value : (step.end ?? step.value);
             const top = Math.min(y(start), y(end));
             const height = Math.max(2, Math.abs(y(start) - y(end)));
-            const fill = isTotal ? tok("--ink-muted") : step.value < 0 ? tok("--success") : tok("--brand-600");
+            const fill = isTotal
+              ? tok("--ink-muted")
+              : step.value < 0
+                ? tok("--success")
+                : diff && step.value > 0
+                  ? tok("--danger")
+                  : tok("--brand-600");
             const runningText = formatNumber(isTotal ? step.value : end);
             return (
               <g
@@ -247,9 +272,9 @@ export function PhaseWaterfall({
                 aria-label={
                   isTotal
                     ? `${step.label}: ${formatNumber(step.value)} ${waterfall.unit}`
-                    : t.stepAria(
+                    : words.stepAria(
                         step.label,
-                        `${formatNumber(step.value)} ${waterfall.unit}${step.value < 0 ? ` (${t.credit})` : ""}`,
+                        `${formatNumber(step.value)} ${waterfall.unit}${step.value < 0 ? ` (${lowerWord})` : diff && step.value > 0 ? ` (${t.difference.above})` : ""}`,
                         `${runningText} ${waterfall.unit}`,
                       )
                 }

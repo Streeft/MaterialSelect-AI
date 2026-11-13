@@ -9,11 +9,19 @@ import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { suggestText } from "@/lib/i18n-suggest";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import type { CostRequest, CostResult, MaterialListItem, SuggestionsOut } from "@/lib/types";
+import type {
+  CostCurves,
+  CostCurvesRequest,
+  CostRequest,
+  CostResult,
+  MaterialListItem,
+  SuggestionsOut,
+} from "@/lib/types";
 
 const t = ptBR.cost;
 
 const estimatePartCost = vi.fn<(payload: CostRequest) => Promise<CostResult>>();
+const estimateCostCurves = vi.fn<(payload: CostCurvesRequest) => Promise<CostCurves>>();
 
 const materials: MaterialListItem[] = [
   {
@@ -102,6 +110,38 @@ const result: CostResult = {
   ],
 };
 
+/** The server's curves (D-234): one per material, on one frame, with the current batch marked. */
+const point = (batch_size: number, cost: number, process_slug = "fundicao-areia", process_name = "Fundição em areia") => ({
+  batch_size,
+  cost,
+  process_id: 1,
+  process_slug,
+  process_name,
+});
+const curveA = [point(1, 12028.03), point(100, 148.03), point(1000, 40.03), point(1000000, 28.04)];
+const curveB = [
+  point(1, 900, "usinagem", "Usinagem"),
+  point(100, 140, "usinagem", "Usinagem"),
+  point(1000, 55.5, "usinagem", "Usinagem"),
+  point(1000000, 50, "usinagem", "Usinagem"),
+];
+const curves: CostCurves = {
+  batch_size: 1000,
+  curves: [
+    { material_id: 7, material_name: "Liga Alumínio Demo A", points: curveA, current: curveA[2]!, reason: null },
+    { material_id: 8, material_name: "Aço Demo B", points: curveB, current: curveB[2]!, reason: null },
+    {
+      material_id: 9,
+      material_name: "Polímero Demo C",
+      points: [],
+      current: null,
+      reason: "Nenhum processo tem os dados econômicos para estimar este material.",
+    },
+  ],
+  domain: { x: [1, 1000000], y: [20, 15000], batch_sizes: [1, 100, 1000, 1000000] },
+  monetary_unit_note: "Os valores estão em unidade monetária não especificada.",
+};
+
 // The brief lives in the URL (D-212): a test opens the page at an address.
 function setQuery(query: string) {
   window.history.replaceState(null, "", `/app/custo${query ? `?${query}` : ""}`);
@@ -124,6 +164,7 @@ vi.mock("@/lib/api", () => ({
   getDefaults: () => getDefaults(),
   listMaterials: () => Promise.resolve(materials),
   estimatePartCost: (payload: CostRequest) => estimatePartCost(payload),
+  estimateCostCurves: (payload: CostCurvesRequest) => estimateCostCurves(payload),
 }));
 
 function wrap(node: ReactNode) {
@@ -143,6 +184,8 @@ beforeEach(() => {
   getDefaults.mockClear();
   estimatePartCost.mockReset();
   estimatePartCost.mockResolvedValue(result);
+  estimateCostCurves.mockReset();
+  estimateCostCurves.mockResolvedValue(curves);
 });
 
 describe("Custo da peça", () => {
@@ -357,6 +400,66 @@ describe("Custo da peça", () => {
     // A material with no costable process is said in words, never a zero.
     expect(within(table).getByText(t.compareNoProcess)).toBeInTheDocument();
   });
+
+  it("desenha a curva de cada material comparado, calculada no servidor, com o lote atual marcado (D-234)", async () => {
+    setQuery("material=7&massa=2&comparar=8,9");
+    await open();
+
+    await waitFor(() => expect(estimateCostCurves).toHaveBeenCalledTimes(1));
+    // One request for all the materials, with the same brief.
+    expect(estimateCostCurves.mock.calls[0]![0]).toEqual({
+      material_ids: [7, 8, 9],
+      part_mass: 2,
+      batch_size: 1000,
+      write_off_years: 5,
+      load_factor: 0.5,
+    });
+    const figure = await screen.findByRole("figure", {
+      name: "Curva Custo versus Tamanho do Lote, um material por curva",
+    });
+    // Each drawn curve says its own material, the current batch, its cost and the process behind it.
+    expect(
+      within(figure).getByRole("img", {
+        name: "Liga Alumínio Demo A no lote atual de 1.000: custo 40,03, no processo Fundição em areia",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(figure).getByRole("img", {
+        name: "Aço Demo B no lote atual de 1.000: custo 55,5, no processo Usinagem",
+      }),
+    ).toBeInTheDocument();
+    // A material the server could not price is a written reason under the figure, not a flat line.
+    expect(
+      screen.getByText(/Polímero Demo C: Nenhum processo tem os dados econômicos/),
+    ).toBeInTheDocument();
+    expect(within(figure).queryByRole("img", { name: /Polímero Demo C/ })).toBeNull();
+  });
+
+  it("sem comparação não pede as curvas dos materiais", async () => {
+    setQuery("material=7&massa=2");
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalled());
+    expect(estimateCostCurves).not.toHaveBeenCalled();
+    expect(screen.queryByRole("figure", { name: /um material por curva/ })).toBeNull();
+  });
+
+  it("se as curvas falham, as estimativas continuam na tela", async () => {
+    setQuery("material=7&massa=2&comparar=8");
+    estimateCostCurves.mockRejectedValue(new Error("falhou"));
+    await open();
+    await screen.findByRole("table", { name: t.compareCaption });
+    expect(screen.queryByRole("figure", { name: /um material por curva/ })).toBeNull();
+  });
+
+  it("não tem violação de acessibilidade com a figura dos materiais", async () => {
+    setQuery("material=7&massa=2&comparar=8,9");
+    const { container } = render(wrap(<CustoPage />));
+    await screen.findByRole("figure", {
+      name: "Curva Custo versus Tamanho do Lote, um material por curva",
+    });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 
   it("guarda os materiais comparados na URL e trava em cinco", async () => {
     setQuery("material=7&massa=2&comparar=8");

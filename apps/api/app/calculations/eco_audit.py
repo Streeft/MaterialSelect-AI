@@ -61,7 +61,7 @@ said it.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from app.calculations.part_cost import HOURS_PER_YEAR
@@ -461,6 +461,57 @@ def build_waterfall(
     return Waterfall(
         quantity=attribute, unit=unit, steps=tuple(steps), total=total, domain=(low, high)
     )
+
+
+def build_difference_waterfall(
+    phases_a: Sequence[PhaseResult],
+    phases_b: Sequence[PhaseResult],
+    attribute: str,
+    unit: str,
+    total_a: float | None,
+    total_b: float | None,
+) -> Waterfall:
+    """The waterfall of B minus A, one step per phase (D-234).
+
+    A step is that phase's ``b - a``: positive when B costs more in the phase,
+    negative when it saves. The steps walk from 0 to the difference of the two
+    audits, and the total bar is **the audits' own totals subtracted**
+    (``total_b - total_a``), not a re-sum of the steps — summing floats in another
+    order differs in the last digit, and Python 3.12 sums them differently from
+    3.11, so a test (and a reader) compares the two with a tolerance, never ``==``.
+
+    A phase either side could not compute has no difference — ``value=None``
+    with the written reason, never a zero (principle 3) — and, as in
+    :func:`build_waterfall`, the total bar is refused: the other four phases
+    would sum to a difference that is not the difference.
+    """
+    reason_attribute = f"{attribute}_reason"
+    steps: list[PhaseResult] = []
+    for a, b in zip(phases_a, phases_b, strict=True):
+        value_a, value_b = getattr(a, attribute), getattr(b, attribute)
+        if value_a is None or value_b is None:
+            reasons = [
+                f"{side}: {getattr(phase, reason_attribute) or 'não calculada'}"
+                for side, phase, value in (("A", a, value_a), ("B", b, value_b))
+                if value is None
+            ]
+            reason = f"Sem diferença: a fase não foi calculada em todas as alternativas ({'; '.join(reasons)})."
+            fields = {attribute: None, reason_attribute: reason}
+        else:
+            fields = {attribute: value_b - value_a}
+        steps.append(
+            PhaseResult(
+                phase=a.phase,
+                label=a.label,
+                energy=fields.get("energy"),
+                carbon=fields.get("carbon"),
+                detail="B menos A",
+                energy_reason=fields.get("energy_reason"),
+                carbon_reason=fields.get("carbon_reason"),
+            )
+        )
+    audited = None if total_a is None or total_b is None else total_b - total_a
+    return build_waterfall(tuple(steps), attribute, unit, audited)
 
 
 @dataclass(frozen=True)

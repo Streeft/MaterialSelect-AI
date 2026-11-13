@@ -12,8 +12,6 @@ export const suggestText = {
   off: "A IA está desligada neste servidor; a tela funciona sem ela.",
   /** A calculator screen whose request is not complete yet: the reason the result card gives is not repeated. */
   needsBrief: "Complete os dados da tela para pedir sugestões.",
-  /** Eco, in the comparison view: the server answers for one audit, not for an A × B. */
-  individualOnly: "As sugestões valem para a auditoria individual; volte a ela para pedir.",
   /** Admin: the server needs the name of what is being written. */
   needsName: "Escreva o nome primeiro: a sugestão parte dele.",
   /** Beside the button, before the first ask: the quota is spent only on a click. */
@@ -40,4 +38,13 @@ export const suggestText = {
   applied: (label: string) => `Aplicado: ${label}`,
   appliedMark: "aplicado",
   listLabel: "Sugestões da IA",
+  /**
+   * D-234: a number the model chose itself, inside the range the calculator takes
+   * (the third origin of D-224). It is applied only after the person confirms.
+   */
+  confirmTitle: "Aplicar a sugestão da IA?",
+  confirmMessage: (label: string) =>
+    `A IA propôs «${label}». Esse número não vem de um cálculo, de um cenário nem do que você escreveu: é uma sugestão a revisar. Ao aplicar, o servidor refaz a conta com ele e você pode voltar ao valor anterior.`,
+  confirmAction: "Aplicar e revisar",
+  reviewMark: "revise antes de usar",
 } as const;

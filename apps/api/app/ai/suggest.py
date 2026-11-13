@@ -14,7 +14,11 @@ The guarantees are the layer's, the same as everywhere else in ``app/ai``:
   ``rejected``.
 * **Numbers come from the context.** The prose may only cite figures the server
   read or computed for this context (D-224) — ``ungrounded_numbers`` decides —
-  and a ``set_param`` value must be one the context or a scenario holds.
+  and a ``set_param`` value must be one the context or a scenario holds. The one
+  exception is the third origin of D-224, "Sugestão da IA, revise" (D-234): on a
+  parameter the server gave a *range* for, a number the model chose inside it is
+  kept, marked ``origin="sugestao_ia"``, and the screen applies it only after
+  the person confirms. Outside the range it is removed with the reason.
 * **Actions of another screen are removed.** Each tool has its own list.
 * **Nothing is applied here.** An action is a proposal the screen shows as a
   button; the person clicks it, or not.
@@ -117,7 +121,7 @@ ACTION_DOCS: dict[str, str] = {
     "search": "value = texto curto a buscar",
     "open_route": "target = rota do app",
     "compare": "ids = ids dos materiais (2 a 5)",
-    "set_param": "target = nome do parâmetro; value = um dos valores listados",
+    "set_param": "target = nome do parâmetro; value = um dos valores listados ou, onde houver faixa, um número dentro dela",
     "map_column": "target = nome da coluna do arquivo; value = slug da propriedade",
     "fill_text": "target = campo do formulário; value = texto proposto",
 }
@@ -146,6 +150,12 @@ STATIC_ROUTES: dict[str, str] = {
     "/app/admin/propriedades": "as propriedades",
 }
 
+#: Where a ``set_param`` value comes from (D-224, D-234): a figure the screen or
+#: a scenario holds, or the model's own number inside a range ("Sugestão da IA,
+#: revise"), which a screen applies only after the person confirms.
+ORIGIN_CONTEXT = "contexto"
+ORIGIN_SUGGESTION = "sugestao_ia"
+
 MAX_SUGGESTIONS = 3
 MAX_ACTIONS = 3
 MAX_TITLE = 90
@@ -156,6 +166,37 @@ MAX_QUERY = 80
 MAX_FACTS = 2500
 #: How many allowed values of one kind the prompt lists (the check uses all).
 MAX_LISTED = 30
+
+
+@dataclass(frozen=True)
+class NumberRange:
+    """The numbers a parameter may take: what a model's suggestion must fall in.
+
+    The bounds are the request's own validation (a fraction is in (0, 1), a mass
+    above 0): the range never says what is a *good* value, only what the
+    calculator would accept. ``open_low``/``open_high`` leave the bound out.
+    """
+
+    low: float | None = None
+    high: float | None = None
+    open_low: bool = False
+    open_high: bool = False
+
+    def contains(self, number: float) -> bool:
+        if not math.isfinite(number):
+            return False
+        if self.low is not None and (number <= self.low if self.open_low else number < self.low):
+            return False
+        return not (
+            self.high is not None
+            and (number >= self.high if self.open_high else number > self.high)
+        )
+
+    def describe(self) -> str:
+        """The range in words, for the prompt and for the refusal."""
+        low = "" if self.low is None else f"{'>' if self.open_low else '≥'} {fmt(self.low)}"
+        high = "" if self.high is None else f"{'<' if self.open_high else '≤'} {fmt(self.high)}"
+        return " e ".join(part for part in (low, high) if part) or "qualquer número"
 
 
 @dataclass(frozen=True)
@@ -175,6 +216,10 @@ class Allowed:
     #: Parameter → the values the context or a scenario holds (D-224).
     params: Mapping[str, tuple[float | str, ...]] = field(default_factory=dict)
     param_labels: Mapping[str, str] = field(default_factory=dict)
+    #: Parameter → the range inside which a model's own number is kept as a
+    #: "Sugestão da IA, revise" (D-234). A parameter with no range takes only the
+    #: values in ``params``.
+    param_ranges: Mapping[str, NumberRange] = field(default_factory=dict)
     #: How a button names a text value of a parameter (a chemistry's slug → name).
     value_labels: Mapping[str, str] = field(default_factory=dict)
     columns: tuple[str, ...] = ()
@@ -190,6 +235,7 @@ class Allowed:
             "filters": sorted((k, sorted(v.items())) for k, v in self.filters.items()),
             "sort_keys": sorted(self.sort_keys.items()),
             "params": sorted((k, [str(x) for x in v]) for k, v in self.params.items()),
+            "param_ranges": sorted((k, r.describe()) for k, r in self.param_ranges.items()),
             "columns": list(self.columns),
             "text_fields": sorted(self.text_fields.items()),
         }
@@ -309,7 +355,9 @@ de ensino de seleção de materiais. Escreva em português do Brasil, curto e di
 Regras:
 1. No máximo 3 sugestões; título de até 8 palavras; texto de até 2 frases.
 2. Números: cite apenas números que aparecem no CONTEXTO. Nunca estime nem invente \
-valores de materiais, custos ou resultados.
+valores de materiais, custos ou resultados. Única exceção: o valor de uma ação \
+set_param pode ser um número dentro da faixa que AÇÕES indica para o parâmetro; ele \
+aparece ao usuário como «Sugestão da IA, revise» e só vale se ele confirmar.
 3. Ações: só os tipos e identificadores listados em AÇÕES; campos que não se \
 aplicam ficam vazios. Nada é aplicado sem o clique do usuário.
 4. Sem sugestão útil, devolva "suggestions": []."""
@@ -359,6 +407,11 @@ def _options_for(type_: str, allowed: Allowed) -> str:
     if type_ == "set_param":
         return "; ".join(
             f"{name} ∈ {{{', '.join(_plain(v) for v in values)}}}"
+            + (
+                f" ou um número {allowed.param_ranges[name].describe()}"
+                if name in allowed.param_ranges
+                else ""
+            )
             for name, values in allowed.params.items()
         )
     if type_ == "map_column":
@@ -476,13 +529,6 @@ def check_suggestions(raw: Mapping, context: SuggestContext) -> Checked:
         if not title or not body:
             rejected.append("Sugestão descartada: sem título ou sem texto.")
             continue
-        invented = ungrounded_numbers(f"{title}\n{body}", allowed_numbers)
-        if invented:
-            rejected.append(
-                f"Sugestão «{title}» descartada: cita números que não estão no contexto "
-                f"({', '.join(f'{v:g}' for v in invented)})."
-            )
-            continue
         actions: list[dict] = []
         for action in _as_list(item.get("actions")):
             if not isinstance(action, Mapping):
@@ -492,6 +538,20 @@ def check_suggestions(raw: Mapping, context: SuggestContext) -> Checked:
                 rejected.append(reason)
             elif typed is not None and typed not in actions and len(actions) < MAX_ACTIONS:
                 actions.append(typed)
+        # A number the model chose inside a range (D-234) may be written in the
+        # card that proposes it — it is the card's own suggestion, marked as such.
+        proposed = expand_numbers(
+            _to_float(str(a["value"]))
+            for a in actions
+            if a["type"] == "set_param" and a.get("origin") == ORIGIN_SUGGESTION
+        )
+        invented = ungrounded_numbers(f"{title}\n{body}", allowed_numbers | proposed)
+        if invented:
+            rejected.append(
+                f"Sugestão «{title}» descartada: cita números que não estão no contexto "
+                f"({', '.join(f'{v:g}' for v in invented)})."
+            )
+            continue
         accepted.append({"title": title, "body": body, "actions": actions})
         if len(accepted) == MAX_SUGGESTIONS:
             break
@@ -591,19 +651,44 @@ def check_action(
         options = allowed.params.get(target)
         if options is None:
             return None, f"Parâmetro removido: «{target}» não existe nesta tela."
+        name = allowed.param_labels.get(target, target)
         chosen = _match_option(value, options)
-        if chosen is None:
+        if chosen is not None:
+            shown = (
+                allowed.value_labels.get(chosen, fmt(chosen))
+                if isinstance(chosen, str)
+                else fmt(chosen)
+            )
+            return {
+                "type": type_,
+                "name": target,
+                "value": chosen,
+                "origin": ORIGIN_CONTEXT,
+                "label": f"{name}: {shown}",
+            }, None
+        window = allowed.param_ranges.get(target)
+        number = _to_float(value)
+        if window is None or number is None:
             return None, (
                 f"Parâmetro «{target}» removido: o valor «{value}» não vem do contexto "
                 "nem de um cenário."
             )
-        shown = (
-            allowed.value_labels.get(chosen, fmt(chosen))
-            if isinstance(chosen, str)
-            else fmt(chosen)
-        )
-        label = f"{allowed.param_labels.get(target, target)}: {shown}"
-        return {"type": type_, "name": target, "value": chosen, "label": label}, None
+        if not window.contains(number):
+            return None, (
+                f"Parâmetro «{target}» removido: o valor «{value}» está fora da faixa "
+                f"permitida ({window.describe()})."
+            )
+        # The third origin of D-224: the model's own number, inside the range the
+        # calculator accepts. Marked, and applied only when the person confirms.
+        number = float(f"{number:.6g}")
+        label = f"{name}: {fmt(number)} (sugestão da IA, revise)"
+        return {
+            "type": type_,
+            "name": target,
+            "value": number,
+            "origin": ORIGIN_SUGGESTION,
+            "label": label,
+        }, None
 
     if type_ == "map_column":
         if target not in allowed.columns:

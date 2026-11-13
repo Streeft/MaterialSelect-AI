@@ -249,3 +249,104 @@ def test_part_cost_returns_curve_points_for_costed_processes(
     # Cost is monotonically non-increasing
     for i in range(len(first["curve"]) - 1):
         assert first["curve"][i]["cost"] >= first["curve"][i + 1]["cost"]
+
+
+# --- the curve of each compared material (D-234) -------------------------------------
+
+
+def _curves(client: TestClient, ids: list[int], **overrides):
+    payload = {
+        "material_ids": ids,
+        "part_mass": 2.0,
+        "batch_size": 1000.0,
+        "write_off_years": 5.0,
+        "load_factor": 0.5,
+        **overrides,
+    }
+    return client.post("/api/custo/curvas", json=payload)
+
+
+def test_each_material_gets_its_curve_with_the_marker_of_the_current_batch(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _aluminium_id(db_session)
+    other_id = (
+        db_session.execute(
+            select(Material.id).where(Material.id != material_id, Material.name.like("%Aço%"))
+        )
+        .scalars()
+        .first()
+    )
+    assert other_id is not None
+    response = _curves(client, [material_id, other_id])
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert [c["material_id"] for c in body["curves"]] == [material_id, other_id]
+    priced = [c for c in body["curves"] if c["points"]]
+    assert priced, "the seeded aluminium is costable"
+    for curve in priced:
+        sizes = [p["batch_size"] for p in curve["points"]]
+        assert sizes == sorted(sizes) and sizes[0] == 1.0
+        costs = [p["cost"] for p in curve["points"]]
+        assert costs == sorted(costs, reverse=True)
+        # The marker is the point at the batch the reader asked for, and it is
+        # the same number the single estimate gives for the best process.
+        assert curve["current"]["batch_size"] == 1000.0
+        single = _estimate(client, curve["material_id"]).json()["costed"][0]
+        assert curve["current"]["cost"] == pytest.approx(single["terms"]["total"])
+        assert curve["current"]["process_slug"] == single["process_slug"]
+    # One frame for all of them, holding every point and the current batch.
+    domain = body["domain"]
+    assert domain is not None
+    every = [p for c in priced for p in c["points"]]
+    assert domain["x"][0] <= min(p["batch_size"] for p in every)
+    assert domain["x"][1] >= max(p["batch_size"] for p in every)
+    assert domain["y"][0] < min(p["cost"] for p in every)
+    assert domain["y"][1] > max(p["cost"] for p in every)
+    assert 1000.0 in domain["batch_sizes"]
+
+
+def test_a_material_that_cannot_be_priced_keeps_its_row_with_the_reason(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _aluminium_id(db_session)
+    response = _curves(client, [material_id, 987654321])
+    assert response.status_code == 200, response.text
+    good, bad = response.json()["curves"]
+    assert good["points"]
+    assert bad["points"] == [] and bad["current"] is None
+    assert bad["material_id"] == 987654321 and bad["reason"]
+    # A hidden record answers as a missing one does: it never says it exists.
+
+
+def test_the_curves_of_nobody_priced_have_no_frame(
+    client: TestClient,
+) -> None:
+    body = _curves(client, [987654321]).json()
+    assert body["domain"] is None
+    assert body["curves"][0]["reason"]
+
+
+def test_someone_elses_record_has_no_curve(
+    client: TestClient, db_session: Session, other_user: User
+) -> None:
+    material = _own_material(db_session, other_user, "Superliga alheia de curva")
+    curve = _curves(client, [material.id]).json()["curves"][0]
+    assert curve["points"] == [] and curve["material_name"] is None
+    assert material.name not in str(curve)
+
+
+def test_the_curves_validate_the_brief_and_cap_the_comparison(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _aluminium_id(db_session)
+    assert _curves(client, [material_id], batch_size=0).status_code == 422
+    assert _curves(client, [material_id], part_mass=-1).status_code == 422
+    assert _curves(client, []).status_code == 422
+    assert _curves(client, [material_id] * 6).status_code == 422
+
+
+def test_a_repeated_material_is_drawn_once(client: TestClient, db_session: Session) -> None:
+    material_id = _aluminium_id(db_session)
+    curves = _curves(client, [material_id, material_id]).json()["curves"]
+    assert len(curves) == 1
