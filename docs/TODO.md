@@ -1815,7 +1815,9 @@ Registrados para não voltarem por engano:
 
 **IA em todas as ferramentas — pendências (D-228).**
 - ~~Etapa IA-2a (frontend)~~ — feita na D-229 (`AISuggestPanel` em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações só no clique).
-- Etapa IA-2b (frontend, reutiliza o `AISuggestPanel` da D-229): Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin (`set_param`, `fill_text`, `compare`, `open_route`).
+- ~~Etapa IA-2b (frontend)~~ — feita na D-230 (Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e as duas telas de Admin; as 15 telas têm o painel).
+- Sugestão da IA em Sintetizar: o servidor só guarda o valor atual de cada parâmetro (`_params` sem cenário), então um `set_param` nunca muda nada e o painel o esconde; para sugerir receitas o backend precisa de valores alternativos (D-230).
+- Sugestão da IA na Eco: no modo A × B o painel fica desligado (o servidor sugere sobre uma auditoria individual) e `part_mass` não é oferecido no formato de produto (D-230).
 - Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
 - Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
 - A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).

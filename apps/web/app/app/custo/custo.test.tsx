@@ -7,7 +7,9 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { CostRequest, CostResult, MaterialListItem } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import type { CostRequest, CostResult, MaterialListItem, SuggestionsOut } from "@/lib/types";
 
 const t = ptBR.cost;
 
@@ -114,8 +116,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
   listMaterials: () => Promise.resolve(materials),
   estimatePartCost: (payload: CostRequest) => estimatePartCost(payload),
@@ -383,4 +388,115 @@ describe("Custo da peça", () => {
     // The first material's answer is still on screen.
     expect(screen.getAllByRole("table")[0]).toBeInTheDocument();
   });
+});
+
+describe("custo — Sugestão da IA (D-230)", () => {
+  const answer: SuggestionsOut = {
+    tool: "custo",
+    summary: "Duas ideias para o lote.",
+    suggestions: [
+      {
+        title: "Aumente o lote",
+        body: "Um lote maior dilui o ferramental por peça.",
+        actions: [
+          { type: "set_param", label: "tamanho do lote: 2000", name: "batch_size", value: 2000 },
+          { type: "set_param", label: "tamanho do lote: texto", name: "batch_size", value: "mil" },
+          { type: "set_param", label: "parâmetro que a tela não tem", name: "voltagem", value: 3 },
+        ],
+      },
+      {
+        title: "Amortize em mais anos",
+        body: "Um prazo maior reduz o capital por peça.",
+        actions: [
+          { type: "set_param", label: "anos de amortização: 8", name: "write_off_years", value: 8 },
+          { type: "open_route", label: "Ver o processo", path: "/app/processos/fundicao-areia" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+  });
+
+  it("só consulta ao clicar, com o pedido da estimativa que a tela mostra", async () => {
+    setQuery("material=7&massa=2&lote=500");
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalled());
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente o lote");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("custo", {
+      request: { material_id: 7, part_mass: 2, batch_size: 500, write_off_years: 5, load_factor: 0.5 },
+    });
+    // Nothing was applied by the answer arriving; a route is a link.
+    expect(new URLSearchParams(window.location.search).get("lote")).toBe("500");
+    expect(screen.getByRole("link", { name: "Ver o processo" })).toHaveAttribute(
+      "href",
+      "/app/processos/fundicao-areia",
+    );
+  });
+
+  it("aplicar um parâmetro muda o endereço e o campo, e a estimativa acompanha", async () => {
+    setQuery("material=7&massa=2&lote=500");
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    // A value that is not a number, and a parameter the screen does not have, are not buttons.
+    await screen.findByText("Aumente o lote");
+    expect(screen.queryByRole("button", { name: "tamanho do lote: texto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "parâmetro que a tela não tem" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "tamanho do lote: 2000" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("lote")).toBe("2000"));
+    const batch = screen.getByShadowRole("spinbutton", { name: /Peças no lote/ });
+    expect(batch).toHaveValue(2000);
+    // The field that changed is marked for a moment.
+    await waitFor(() => expect(batch).toHaveAttribute("data-ai-changed", "true"));
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(2));
+    expect(estimatePartCost.mock.calls[1]![0]).toMatchObject({ batch_size: 2000 });
+  });
+
+  it("uma premissa sugerida abre as premissas recolhidas e mostra o campo", async () => {
+    setQuery("material=7&massa=2");
+    const user = userEvent.setup();
+    await open();
+    const summary = screen.getByText(t.assumptionsSummary("5", "0,5"));
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "anos de amortização: 8" }));
+    await waitFor(() => expect(details.open).toBe(true));
+    expect(new URLSearchParams(window.location.search).get("amortizacao")).toBe("8");
+    expect(screen.getByShadowRole("spinbutton", { name: /Amortização/i })).toHaveValue(8);
+  });
+
+  it("sem a massa não há o que perguntar: o botão fica desligado e diz por quê", async () => {
+    await open();
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(suggest.fn).not.toHaveBeenCalled();
+    expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    setQuery("material=7&massa=2");
+    const user = userEvent.setup();
+    const { container } = render(wrap(<CustoPage />));
+    await screen.findByRole("heading", { name: t.briefStep });
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente o lote");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

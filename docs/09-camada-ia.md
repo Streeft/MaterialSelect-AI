@@ -883,7 +883,28 @@ estreita o painel se recolhe depois de uma ação, para a pessoa ver o que mudou
 | Processos (lista e ficha) | `processos`: `slug` (nulo na lista) | na lista, `search` vai para `?busca=`; na ficha, vira link para a lista com a busca; `open_route` é link |
 | Importar (mapeamento) | `importar`: `columns` | `map_column` preenche a linha da coluna (alvo "propriedade" e a propriedade), sem importar nem validar e **sem inventar a unidade** |
 
-Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e Admin ficam para a IA-2b, que reutiliza o mesmo painel.
+### Painel nas oito telas restantes (D-230, IA-2b) — as 15 telas
+
+As mesmas regras do painel valem aqui, com uma peça a mais: `accepts(action)`, a última palavra da tela. Um `set_param` de campo que a
+tela não tem, de valor que o campo não aceita ou que **não mudaria nada** não aparece (um botão que não faz nada ensina a não confiar
+no painel). `set_param` escreve na URL (`useUrlState`, como se a pessoa digitasse) e a tela recalcula só o que já recalcularia ao
+mudar o campo; o campo que mudou recebe um anel breve (`lib/ai/revealField.ts`, `data-ai-field` e `[data-ai-changed]`, sem
+movimento sob `prefers-reduced-motion`), e o foco só vai a ele quando seria perdido (painel recolhido em janela estreita).
+
+| Tela | `tool` e contexto enviado | O que cada ação faz na tela |
+|---|---|---|
+| Dimensionar | `dimensionar`: `{request}` = o pedido de `/api/solver/solve` (caso, entradas, objetivo, limite); desligado até o pedido estar completo | `set_param` `objective` e `inputs.<chave>` (apoio só entre as constantes do caso; variável livre só número); `compare` é link para `/app/comparar?materiais=`; `open_route` é link |
+| Custo | `custo`: `{request}` = o pedido da estimativa (material, massa, lote, amortização, fator de carga) | `set_param` `part_mass`, `batch_size`, `write_off_years`, `load_factor` (as premissas recolhidas abrem) |
+| Eco | `eco`: `{request}` = a auditoria individual; desligado no modo A × B | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem para todos os componentes ou trechos do produto |
+| Baterias | `baterias`: `{request}` = o pedido de dimensionamento | `set_param` `chemistry_slug` (só química do catálogo) e os requisitos e fatores de empacotamento (abrem as premissas); vira "personalizado" como uma edição manual |
+| Sintetizar | `sintetizar`: `{request}` = o pedido da prévia (com o nome provisório) | `set_param` `volume_fraction`, `relative_density`, `face_thickness`, `core_thickness`, só o campo do tipo de receita aberto e só se o valor mudar |
+| Painel | `painel`: `{}` (o servidor lê o panorama) | só `open_route` (links) |
+| Meus registros | `registros`: `{}` (o servidor lê os registros da pessoa) | `compare` e `open_route` (links) |
+| Admin → Classes | `admin_classes`: `name`, `description` | `fill_text` `description` preenche o formulário **sem gravar**; `open_route` é link; desligado sem nome |
+| Admin → Propriedades | `admin_propriedades`: `name`, `canonical_unit`, `description` | idem; o formulário ganhou o campo de descrição |
+
+Com isso, as 15 telas têm o painel. Pendência do backend: em Sintetizar o servidor só oferece o valor atual de cada parâmetro, e o
+painel esconde o `set_param` que não mudaria nada.
 
 ## Provedor simulado (`app/ai/mock.py`)
 

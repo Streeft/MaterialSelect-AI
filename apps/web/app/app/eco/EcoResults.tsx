@@ -367,7 +367,7 @@ export function PremisesSummary({
   if (transportKm !== null) rows.push([p.transport, number(transportKm, "km")]);
   return (
     <section aria-label={p.title} className="well flex flex-col gap-2">
-      <h4 className="text-body font-medium text-ink">{p.title}</h4>
+      <h3 className="text-body font-medium text-ink">{p.title}</h3>
       <p className="text-caption text-ink-muted">{p.hint}</p>
       <dl className="grid gap-x-6 gap-y-1 text-caption sm:grid-cols-2">
         {rows.map(([label, value]) => (

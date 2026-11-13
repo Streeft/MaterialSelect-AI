@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultsFixture } from "@/lib/defaults.fixture";
 import { encodeUrlJson, readUrlState, writeUrlState } from "@/lib/urlState";
 import {
+  aiParamPatch,
   blankComponent,
   buildAuditBrief,
   buildUse,
@@ -91,5 +92,41 @@ describe("ecoBrief: o que a tela manda", () => {
     expect(compareBlocked(scenario, { ...scenario, process: "" }, transport, premises)?.reason).toMatch(
       /^Material B/,
     );
+  });
+});
+
+describe("ecoBrief: o que uma sugestão da IA pode mudar (D-230)", () => {
+  const brief = readUrlState(spec, "?material=7&massa=2");
+
+  it("escreve o parâmetro em todos os componentes e trechos, sem deixar linha para trás", () => {
+    const two = {
+      ...brief,
+      components: [
+        { ...blankComponent(eco), material: "7", mass: "2" },
+        { ...blankComponent(eco), material: "8", mass: "3", recycled: "0.4" },
+      ],
+    };
+    const recycled = aiParamPatch(two, eco, "recycled_fraction", 0.25);
+    expect(recycled?.components?.map((c) => c.recycled)).toEqual(["0.25", "0.25"]);
+    // What the patch did not name stays as typed.
+    expect(recycled?.components?.map((c) => c.mass)).toEqual(["2", "3"]);
+    expect(aiParamPatch(two, eco, "end_of_life", "aterro")?.components?.map((c) => c.endOfLife)).toEqual([
+      "aterro",
+      "aterro",
+    ]);
+    expect(aiParamPatch(brief, eco, "transport_distance_km", 800)?.legs).toEqual([
+      { mode: "", distance: "800" },
+    ]);
+  });
+
+  it("recusa um campo que a tela não tem e um valor que o campo não aceita", () => {
+    expect(aiParamPatch(brief, eco, "part_mass", 3)).toBeNull();
+    expect(aiParamPatch(brief, eco, "constructor", 1)).toBeNull();
+    expect(aiParamPatch(brief, eco, "recycled_fraction", 1.5)).toBeNull();
+    expect(aiParamPatch(brief, eco, "recycled_fraction", "0.3")).toBeNull();
+    expect(aiParamPatch(brief, eco, "end_of_life", "magia")).toBeNull();
+    expect(aiParamPatch(brief, eco, "end_of_life", 1)).toBeNull();
+    expect(aiParamPatch(brief, eco, "transport_distance_km", -1)).toBeNull();
+    expect(aiParamPatch(brief, eco, "transport_distance_km", Number.NaN)).toBeNull();
   });
 });

@@ -121,6 +121,22 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 ---
 
 ## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
+## Sessão 187 — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230)
+
+**O que mudou.** Frontend: `AISuggestPanel` ganhou `accepts` (a tela recusa a ação que não sabe aplicar) e o painel foi ligado em
+Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros, Admin → Classes e Admin → Propriedades. `set_param` escreve
+na URL (`useUrlState`) e a tela recalcula só o que já recalcularia; o campo que mudou recebe um anel breve (`lib/ai/revealField.ts`,
+`data-ai-field`, `[data-ai-changed]` em `globals.css`); `fill_text` preenche a descrição do formulário sem gravar (a descrição virou
+`Textarea`, e o formulário de propriedades ganhou o campo, que o contrato já aceitava); `compare` e `open_route` são links.
+`aiParamPatch` em `eco/ecoBrief.ts`; `i18n-suggest.ts` com `needsBrief`, `individualOnly` e `needsName`; título "Premissas desta
+conta" da Eco passou de `h4` para `h3` (axe). Testes novos: um bloco "Sugestão da IA" em `custo`, `eco`, `baterias`,
+`dimensionar`, `sintetizar`, `painel`, `meus-registros` e `admin/classes` e `admin/propriedades`; `ecoBrief.test.ts`,
+`revealField.test.ts`, `suggest.test.ts` e `AISuggestPanel.test.tsx`; `e2e/sugestao-ia.spec.ts` (Custo e Admin, com o `mock`).
+
+**Para quem retoma.** Só frontend: sem **Deploy da API**, migração ou seed. As 15 telas têm o painel. Pendência para o backend:
+`ai_suggest.py` não dá valores alternativos em Sintetizar (ver o D-230).
+
+## Sessão 186 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-229)
 
 **O que mudou.** `apps/web/lib/compareClassics.ts`: cada lado de um par tem classe e termos do mais específico ao mais geral; o
 termo casa só como palavra inteira e o nome que é ou começa pelo termo vence o que só o menciona (`matchRank`). Corrige "aço" →
