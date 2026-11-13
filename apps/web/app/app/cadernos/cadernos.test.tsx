@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -369,7 +369,10 @@ describe("caderno", () => {
     expect(await screen.findByRole("heading", { name: t.panels.sources })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: t.panels.chat })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: t.panels.studio })).toBeInTheDocument();
-    expect(screen.getByText("Provedor simulado: nada sai do servidor.")).toBeInTheDocument();
+    // D-235: the provider notice is a chip in the header; its text opens from it.
+    expect(screen.queryByText("Provedor simulado: nada sai do servidor.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Provedor simulado\./ }));
+    expect(await screen.findByText("Provedor simulado: nada sai do servidor.")).toBeInTheDocument();
     // The guide, with its citation chip.
     expect(screen.getByText("aços").tagName).toBe("STRONG");
     expect(screen.getAllByRole("button", { name: t.citation(1, "Aula de aços") })).toHaveLength(1);

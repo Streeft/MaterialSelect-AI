@@ -35,7 +35,6 @@ import {
   Block,
   useReorder,
   ToolTile,
-  type ToolTone,
 } from "@/components/ui";
 import {
   IconAudio,
@@ -64,16 +63,16 @@ type ToolId = keyof typeof t.studioTools;
 /** The Studio's tools, in NotebookLM's order. Tone tells tiles apart; the name
  * always says what the tool is. Every one is in the API's catalogue since D-98;
  * a tile waits for the catalogue before it opens anything. */
-const TOOLS: { id: ToolId; icon: ReactNode; tone: ToolTone }[] = [
-  { id: "audio", icon: <IconAudio />, tone: "brand" },
-  { id: "slides", icon: <IconSlides />, tone: "warning" },
-  { id: "video", icon: <IconVideo />, tone: "success" },
-  { id: "mindmap", icon: <IconMindMap />, tone: "danger" },
-  { id: "report", icon: <IconReport />, tone: "warning" },
-  { id: "flashcards", icon: <IconCards />, tone: "danger" },
-  { id: "quiz", icon: <IconQuiz />, tone: "info" },
-  { id: "infographic", icon: <IconInfographic />, tone: "brand" },
-  { id: "table", icon: <IconTable />, tone: "info" },
+const TOOLS: { id: ToolId; icon: ReactNode }[] = [
+  { id: "audio", icon: <IconAudio /> },
+  { id: "slides", icon: <IconSlides /> },
+  { id: "video", icon: <IconVideo /> },
+  { id: "mindmap", icon: <IconMindMap /> },
+  { id: "report", icon: <IconReport /> },
+  { id: "flashcards", icon: <IconCards /> },
+  { id: "quiz", icon: <IconQuiz /> },
+  { id: "infographic", icon: <IconInfographic /> },
+  { id: "table", icon: <IconTable /> },
 ];
 
 const ICONS: Record<StudioTool, ReactNode> = {
@@ -199,7 +198,6 @@ export function StudioPanel({
                       key={tool.id}
                       icon={tool.icon}
                       label={t.studioTools[tool.id]}
-                      tone={tool.tone}
                       unavailable={!spec}
                       description={spec?.description}
                       onClick={spec ? () => setCreating(spec) : undefined}

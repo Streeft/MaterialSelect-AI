@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 192 — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235)
+
+**O que mudou.** Backend: `app/domain/notebook_templates.py` (Disciplina de Materiais, Revisão para prova, Projeto de TCC, Em branco),
+`GET /api/notebooks/templates`, `template` no `POST /api/notebooks` (objetivo da conversa e notas de partida), coluna
+`notebook_note.position` com a migração `e575ea7c3f24` e `PUT /api/notebooks/{id}/notes/order` (lista inteira, sem repetir); duplicar
+copia a posição. Frontend: "Novo caderno" em `SplitButton` com os modelos e a lista vazia com eles como portas; notas do Estúdio em
+`Block` com alça e Alt+↑/↓; `SlashTextarea` com "/" (título, listas, citação, tabela, divisória, ficha de material como link);
+`ToolTile` monocromático; aviso do provedor como chip no cabeçalho (o `Alert` fica só com a IA desligada). Testes novos: pytest
+`test_notebook_templates_notes_order` e vitest em `cadernos`, `estudio` e `SlashTextarea` (com axe). **Depois do merge: Deploy da API
+(com migração).**
+
+---
+
 ## Sessão 191 — 13/11/26 — Fluxos entre telas, parte 16: a IA marca o número que escolheu, A × B na Eco, curva de custo por material e fim do `/ai/interpret` (D-234)
 
 **O que mudou.** Backend: `set_param` ganha `origin` (`contexto` | `sugestao_ia`) e `NumberRange` (faixa da validação do pedido) em

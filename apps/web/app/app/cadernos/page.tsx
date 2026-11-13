@@ -107,6 +107,11 @@ export default function NotebooksPage() {
     if (ids.length > 0) batch.mutate({ ids, archived: !archived });
   };
 
+  const blankButton = (
+    <Button icon={<IconPlus />} loading={create.isPending} onClick={() => create.mutate(undefined)}>
+      {create.isPending ? t.creating : t.create}
+    </Button>
+  );
   const createButton =
     starters.length > 0 ? (
       <SplitButton
@@ -127,9 +132,7 @@ export default function NotebooksPage() {
         {create.isPending ? t.creating : t.create}
       </SplitButton>
     ) : (
-      <Button icon={<IconPlus />} loading={create.isPending} onClick={() => create.mutate(undefined)}>
-        {create.isPending ? t.creating : t.create}
-      </Button>
+      blankButton
     );
 
   return (
@@ -233,7 +236,8 @@ export default function NotebooksPage() {
           layout={archived ? "inline" : "page"}
           title={archived ? t.archivedEmptyTitle : t.emptyTitle}
           description={archived ? t.archivedEmptyDescription : t.emptyDescription}
-          action={archived ? undefined : createButton}
+          // The models are already on the page below: the button is the blank one.
+          action={archived ? undefined : blankButton}
           // D-235: Notion's empty page — start from a model, not from a blank.
           templates={
             archived

@@ -1787,6 +1787,10 @@ export const ptBR = {
     unarchived: (title: string) => `Caderno “${title}” de volta à lista.`,
     archivedBanner:
       "Este caderno está arquivado: sai da lista principal, mas nada foi apagado.",
+    // D-235: o aviso do provedor é um chip no cabeçalho; o texto inteiro abre nele.
+    providerSimulated: "Provedor simulado",
+    providerExternal: "Provedor externo",
+    providerAbout: "Sobre o provedor de IA",
     listViews: "Cadernos mostrados",
     viewActive: "Ativos",
     viewArchived: "Arquivados",
