@@ -113,6 +113,10 @@ export const ptBR = {
     pin: (label: string) => `Fixar ${label}`,
     unpin: (label: string) => `Desafixar ${label}`,
     pinnedEmpty: "Nada fixado ainda.",
+    // D-232 (F6): the starred records, from the account, under "Fixados".
+    groupFavorites: "Favoritos",
+    favoritesEmpty: "Use a estrela de uma ficha para trazê-la para cá.",
+    favoritesAll: "Ver todos os favoritos",
     recentsEmpty: "As páginas que você abrir aparecem aqui.",
   },
 
@@ -1685,6 +1689,14 @@ export const ptBR = {
     recentsHint:
       "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
     ownRecords: "Registros próprios",
+    // D-232 (F6): the page as a base with views, and the two ways to a record of one's own.
+    views: "Visões",
+    viewAll: "Todos",
+    viewFavorites: "Favoritos",
+    viewRecents: "Recentes",
+    viewOwn: "Registros próprios",
+    newMaterial: "Novo material",
+    synthesize: "Sintetizar",
     ownRecordsEmpty: "Você ainda não cadastrou nenhum registro próprio.",
     ownRecordsHint:
       "Um registro próprio é seu: entra nas suas seleções, mapas e documentos, e ninguém mais o enxerga.",

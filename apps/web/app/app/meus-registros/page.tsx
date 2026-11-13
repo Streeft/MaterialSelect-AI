@@ -42,6 +42,7 @@ import {
   PageHeader,
   Section,
   StepCard,
+  ToggleChip,
 } from "@/components/ui";
 
 const t = ptBR.myRecords;
@@ -156,8 +157,22 @@ function BookmarkList({
 
 function OwnRecords({ records }: { records: MaterialListItem[] }) {
   if (records.length === 0) {
+    // D-232 (F6): the two doors to a record of one's own, where its absence is said.
     return (
-      <EmptyState title={t.ownRecordsEmpty} description={t.ownRecordsHint} />
+      <EmptyState
+        title={t.ownRecordsEmpty}
+        description={t.ownRecordsHint}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/app/materiais/novo" size="sm" variant="secondary">
+              {t.newMaterial}
+            </ButtonLink>
+            <ButtonLink href="/app/sintetizar" size="sm" variant="ghost">
+              {t.synthesize}
+            </ButtonLink>
+          </div>
+        }
+      />
     );
   }
   return (
@@ -193,6 +208,9 @@ export default function MyRecordsPage() {
   const classes = data
     ? classOptions([...data.favorites, ...data.recents], data.own_records)
     : [];
+  const showFavorites = filters.visao === "todos" || filters.visao === "favoritos";
+  const showRecents = filters.visao === "todos" || filters.visao === "recentes";
+  const showOwn = filters.visao === "todos" || filters.visao === "proprios";
   const filtering =
     filters.q.trim() !== "" ||
     filters.classe !== "" ||
@@ -283,7 +301,11 @@ export default function MyRecordsPage() {
                 onChange={(e) => setFilters({ q: e.target.value })}
               />
               <p className="text-body text-ink-muted" aria-live="polite">
-                {t.count(favorites.length + recents.length + own.length)}
+                {t.count(
+                  (showFavorites ? favorites.length : 0) +
+                    (showRecents ? recents.length : 0) +
+                    (showOwn ? own.length : 0),
+                )}
               </p>
             </div>
             <FilterBar
@@ -321,9 +343,39 @@ export default function MyRecordsPage() {
             />
           </div>
 
+          {/* D-232 (F6): the page is a base with views — Notion's tabs, the
+              SavedViewsBar's buttons (`aria-pressed`, not tabs: each one only
+              changes which lists show, in the address). */}
+          <div role="group" aria-label={t.views} className="flex flex-wrap gap-2">
+            {(
+              [
+                ["todos", t.viewAll],
+                ["favoritos", t.viewFavorites],
+                ["recentes", t.viewRecents],
+                ["proprios", t.viewOwn],
+              ] as const
+            ).map(([id, label]) => (
+              <ToggleChip
+                key={id}
+                selected={filters.visao === id}
+                onClick={() => setFilters({ visao: id })}
+              >
+                {label}
+              </ToggleChip>
+            ))}
+          </div>
+
           {/* Side by side: two short lists stacked left most of the screen
               blank, and favourites and recents are read together anyway. */}
-          <div className="grid items-start gap-6 lg:grid-cols-2">
+          {showFavorites || showRecents ? (
+          <div
+            className={
+              showFavorites && showRecents
+                ? "grid items-start gap-6 lg:grid-cols-2"
+                : "grid items-start gap-6"
+            }
+          >
+            {showFavorites ? (
             <StepCard title={t.favorites} description={t.favoritesHint}>
               {picked.length > 0 ? (
                 <div
@@ -369,15 +421,20 @@ export default function MyRecordsPage() {
                 onToggle={toggle}
               />
             </StepCard>
+            ) : null}
 
+            {showRecents ? (
             <StepCard title={t.recents} description={t.recentsHint}>
               <BookmarkList
                 bookmarks={recents}
                 emptyTitle={filtering ? t.noMatch : t.recentsEmpty}
               />
             </StepCard>
+            ) : null}
           </div>
+          ) : null}
 
+          {showOwn ? (
           <Section title={t.ownRecords} description={t.ownRecordsHint}>
             {filtering && own.length === 0 ? (
               <EmptyState title={t.noMatch} />
@@ -385,6 +442,7 @@ export default function MyRecordsPage() {
               <OwnRecords records={own} />
             )}
           </Section>
+          ) : null}
         </>
       )}
 

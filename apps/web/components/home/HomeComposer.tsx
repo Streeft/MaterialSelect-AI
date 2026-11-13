@@ -160,7 +160,12 @@ export function HomeComposer() {
             {pending ? p.homeSubmitting : t.submit}
           </Button>
         </div>
-        <ul aria-label={t.suggestionsLabel} className="flex flex-wrap gap-2">
+        {/* D-232 (F6): one scrolling row on a phone — four wrapped chips used
+            to stack into a column taller than the box above them. */}
+        <ul
+          aria-label={t.suggestionsLabel}
+          className="flex flex-wrap gap-2 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pb-1 max-sm:[scrollbar-width:none] [&>li]:max-sm:shrink-0"
+        >
           {t.suggestions.map((suggestion) => (
             <li key={suggestion}>
               <button
