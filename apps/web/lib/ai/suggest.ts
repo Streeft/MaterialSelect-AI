@@ -24,6 +24,11 @@ export const ALL_ACTION_TYPES: readonly SuggestActionType[] = [
 
 const isText = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
 
+/** True when `name` is an own key of `table` — never one inherited ("constructor"). */
+export function isOwnKey<T extends object>(table: T, name: string): name is Extract<keyof T, string> {
+  return Object.prototype.hasOwnProperty.call(table, name);
+}
+
 /** An internal path only: `/app/...`, never another site and never `//host`. */
 export function isInternalPath(path: unknown): path is string {
   return typeof path === "string" && path.startsWith("/") && !path.startsWith("//") && !path.includes("\\");
@@ -66,12 +71,20 @@ export function isWellFormedAction(action: unknown): action is SuggestAction {
   }
 }
 
-/** The actions of one suggestion this screen can apply, in the server's order. */
+/**
+ * The actions of one suggestion this screen can apply, in the server's order.
+ *
+ * `accepts` is the screen's last word (D-230): a `set_param` whose name is not
+ * a field this screen has, or a value this field would not take, is dropped
+ * like any other action it cannot apply — never shown as a button that does nothing.
+ */
 export function visibleActions(
   suggestion: Pick<Suggestion, "actions">,
   supported: readonly SuggestActionType[],
+  accepts?: (action: SuggestAction) => boolean,
 ): SuggestAction[] {
   return (suggestion.actions ?? []).filter(
-    (action) => isWellFormedAction(action) && supported.includes(action.type),
+    (action) =>
+      isWellFormedAction(action) && supported.includes(action.type) && (accepts ? accepts(action) : true),
   );
 }

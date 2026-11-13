@@ -9,7 +9,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { suggestText } from "@/lib/i18n-suggest";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { installWideViewport } from "@/lib/testing/viewport";
 import type {
+  SuggestionsOut,
   EcoAuditRequest,
   EcoAuditResult,
   EcoComparisonRequest,
@@ -308,7 +312,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
   compareEcoAudits: (payload: EcoComparisonRequest) => compareEcoAudits(payload),
   listMaterials: () => Promise.resolve(materials),
@@ -902,4 +910,140 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     expect(screen.getByText(t.winnerEnergy)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: ecoPhaseI18n.premises.title })).toBeInTheDocument();
   });
+});
+
+describe("Auditoria ambiental — Sugestão da IA (D-230)", () => {
+  // A wide window keeps the panel open after an action (a narrow one folds it).
+  installWideViewport();
+  const answer: SuggestionsOut = {
+    tool: "eco",
+    summary: "Duas ideias para a auditoria.",
+    suggestions: [
+      {
+        title: "Aumente a fração reciclada",
+        body: "Mais material reciclado reduz a energia de produção.",
+        actions: [
+          { type: "set_param", label: "fração reciclada: 0,3", name: "recycled_fraction", value: 0.3 },
+          { type: "set_param", label: "fração reciclada: 7", name: "recycled_fraction", value: 7 },
+          { type: "set_param", label: "fim de vida: aterro", name: "end_of_life", value: "aterro" },
+          { type: "set_param", label: "fim de vida: inventado", name: "end_of_life", value: "magia" },
+        ],
+      },
+      {
+        title: "Encurte o transporte",
+        body: "A distância pesa na fase de transporte.",
+        actions: [
+          { type: "set_param", label: "distância de transporte: 800", name: "transport_distance_km", value: 800 },
+          { type: "set_param", label: "massa da peça: 3", name: "part_mass", value: 3 },
+          { type: "open_route", label: "Ver a ficha do material", path: "/app/materiais/7" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+  });
+
+  async function ask() {
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração reciclada");
+    return user;
+  }
+
+  it("só consulta ao clicar, com o mesmo pedido que a rota de auditoria recebe", async () => {
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração reciclada");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("eco", { request: runEcoAudit.mock.calls[0]![0] });
+    expect(screen.getByRole("link", { name: "Ver a ficha do material" })).toHaveAttribute(
+      "href",
+      "/app/materiais/7",
+    );
+  });
+
+  it("aplica a fração, a rota e a distância no endereço, e a auditoria acompanha", async () => {
+    const user = await ask();
+    // A value outside the field's range, an unknown route and a field this
+    // screen does not have are not buttons.
+    expect(screen.queryByRole("button", { name: "fração reciclada: 7" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "fim de vida: inventado" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
+    // Nothing changed by the answer arriving.
+    expect(runEcoAudit).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "fração reciclada: 0,3" }));
+    const recycled = await screen.findByShadowLabelText(
+      new RegExp(`^${t.cellLabel(t.colRecycled, t.componentLegend(1))}`),
+    );
+    await waitFor(() => expect(recycled).toHaveValue(0.3));
+    await waitFor(() => expect(recycled).toHaveAttribute("data-ai-changed", "true"));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ recycled_fraction: 0.3 }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "fim de vida: aterro" }));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ end_of_life: "aterro" }),
+    );
+    await user.click(screen.getByRole("button", { name: "distância de transporte: 800" }));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].transport_legs![0]).toMatchObject({ distance_km: 800 }),
+    );
+  });
+
+  it("um parâmetro de produto vale para todos os componentes, sem deixar linha para trás", async () => {
+    const componentes = encodeUrlJson([
+      { name: "tampa", material: "7", process: "1", mass: "2", quantity: "1", recycled: "0", endOfLife: "reciclagem" },
+      { name: "corpo", material: "7", process: "1", mass: "3", quantity: "1", recycled: "0.1", endOfLife: "reciclagem" },
+    ]);
+    setQuery(`componentes=${componentes}`);
+    const user = await ask();
+    await user.click(screen.getByRole("button", { name: "fração reciclada: 0,3" }));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].components!.map((c) => c.recycled_fraction)).toEqual([0.3, 0.3]),
+    );
+  });
+
+  it("na comparação A × B o botão fica desligado e diz por quê", async () => {
+    setQuery("modo=compare");
+    render(wrap(<EcoPage />));
+    await screen.findByText(t.materialA);
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(screen.getByText(suggestText.individualOnly)).toBeInTheDocument();
+    expect(suggest.fn).not.toHaveBeenCalled();
+  });
+
+  it("sem a massa não há o que perguntar", async () => {
+    setQuery("");
+    await open();
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    const user = userEvent.setup();
+    const { container } = render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.productStep });
+    await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração reciclada");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

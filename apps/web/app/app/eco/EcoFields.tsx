@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { EndOfLifeRoute, EndOfLifeRouteInfo, TransportMode } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { aiField } from "@/lib/ai/revealField";
 import {
   Alert,
   Combobox,
@@ -274,6 +275,7 @@ export function ComponentsTable({
                 min={0}
                 max={1}
                 step="any"
+                {...aiField("recycled_fraction")}
                 onChange={(event) => patch({ recycled: event.target.value })}
               />
             );
@@ -282,6 +284,7 @@ export function ComponentsTable({
               <Select
                 label={cell(t.colEol)}
                 value={draft.endOfLife}
+                {...aiField("end_of_life")}
                 onChange={(event) =>
                   patch({ endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute })
                 }
@@ -418,6 +421,7 @@ export function LegsTable({
             value={draft.distance}
             min={0}
             step="any"
+            {...aiField("transport_distance_km")}
             onChange={(event) => onPatch(index, { distance: event.target.value })}
           />
         );

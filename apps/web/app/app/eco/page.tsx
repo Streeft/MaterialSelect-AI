@@ -10,6 +10,7 @@ import type {
   EcoAuditResult,
   EcoComparisonRequest,
   EcoComparisonResult,
+  SuggestAction,
 } from "@/lib/types";
 import {
   compareEcoAudits,
@@ -41,6 +42,9 @@ import {
   SheetSkeleton,
   StepCard,
 } from "@/components/ui";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { revealField } from "@/lib/ai/revealField";
+import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import {
@@ -61,6 +65,7 @@ import {
   PremisesSummary,
 } from "./EcoResults";
 import {
+  aiParamPatch,
   blankComponent,
   blankLeg,
   buildAuditBrief,
@@ -247,6 +252,17 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   const compareResult = liveCompare.data ?? null;
   const live = individual ? liveAudit : liveCompare;
 
+  // D-230: a suggested parameter is written where the reader would have typed it
+  // (the URL) and the audit follows by itself; the field that changed is shown.
+  const aiAudit = individual && ready ? buildAuditBrief(resolvedComponents, resolvedLegs, premises) : null;
+  const acceptsAiAction = (action: SuggestAction) =>
+    action.type !== "set_param" || aiParamPatch(brief, defaults, action.name, action.value) !== null;
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "set_param") return;
+    setBrief((current) => aiParamPatch(current, defaults, action.name, action.value) ?? {});
+    revealField(action.name);
+  }
+
   // D-220: rows of the product and of the legs, edited in place.
   const setComponents = (next: (list: ComponentDraft[]) => ComponentDraft[]) =>
     setBrief((current) => ({ components: next(effectiveComponents(current, defaults)) }));
@@ -292,6 +308,18 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
           />
         </ButtonGroup>
       </div>
+
+      <AISuggestPanel
+        tool="eco"
+        // The audit's own request (D-229); the comparison has no server-side suggestion.
+        context={aiAudit ? { request: aiAudit } : {}}
+        actions={["set_param", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        disabledReason={
+          !individual ? suggestText.individualOnly : !ready ? suggestText.needsBrief : undefined
+        }
+      />
 
       <ParamsResultLayout>
         <ParamsPanel>

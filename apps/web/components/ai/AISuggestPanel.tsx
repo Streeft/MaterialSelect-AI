@@ -36,6 +36,12 @@ export interface AISuggestPanelProps {
    * "open in a new tab" a link has. Return `null` to use `onAction` instead.
    */
   linkFor?: (action: SuggestAction) => string | null;
+  /**
+   * The screen's last check of an action of a listed type (D-230): a `set_param`
+   * for a field this screen does not have, or with a value the field would not
+   * take. An action it refuses is not shown, like one of an unlisted type.
+   */
+  accepts?: (action: SuggestAction) => boolean;
   /** The screen has nothing to ask about yet; the button is off and this says why. */
   disabledReason?: string;
   className?: string;
@@ -57,6 +63,7 @@ export function AISuggestPanel({
   onAction,
   actions = ALL_ACTION_TYPES,
   linkFor,
+  accepts,
   disabledReason,
   className,
 }: AISuggestPanelProps) {
@@ -160,6 +167,7 @@ export function AISuggestPanel({
                 stale={stale}
                 supported={actions}
                 linkFor={linkFor}
+                accepts={accepts}
                 applied={applied}
                 onAskAgain={again}
                 onApply={apply}
@@ -177,6 +185,7 @@ function Answer({
   stale,
   supported,
   linkFor,
+  accepts,
   applied,
   onAskAgain,
   onApply,
@@ -185,6 +194,7 @@ function Answer({
   stale: boolean;
   supported: readonly SuggestActionType[];
   linkFor?: (action: SuggestAction) => string | null;
+  accepts?: (action: SuggestAction) => boolean;
   applied: ReadonlySet<string>;
   onAskAgain: () => void;
   onApply: (id: string, action: SuggestAction) => void;
@@ -223,6 +233,7 @@ function Answer({
                 prefix={String(index)}
                 supported={supported}
                 linkFor={linkFor}
+                accepts={accepts}
                 applied={applied}
                 onApply={onApply}
               />
@@ -257,6 +268,7 @@ function SuggestionCard({
   prefix,
   supported,
   linkFor,
+  accepts,
   applied,
   onApply,
 }: {
@@ -264,10 +276,11 @@ function SuggestionCard({
   prefix: string;
   supported: readonly SuggestActionType[];
   linkFor?: (action: SuggestAction) => string | null;
+  accepts?: (action: SuggestAction) => boolean;
   applied: ReadonlySet<string>;
   onApply: (id: string, action: SuggestAction) => void;
 }) {
-  const actions = visibleActions(card, supported);
+  const actions = visibleActions(card, supported, accepts);
   return (
     <article className="flex h-full min-w-0 flex-col gap-2 rounded-card border border-line bg-panel p-3">
       <h3 className="min-w-0 break-words text-body font-semibold text-ink">{card.title}</h3>

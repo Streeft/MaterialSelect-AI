@@ -10,6 +10,12 @@ export const suggestText = {
     "Próximos passos para esta tela. Nada é aplicado sozinho: cada botão só age quando você clica, e todo número vem do servidor.",
   /** Why the button is off while the layer is off. */
   off: "A IA está desligada neste servidor; a tela funciona sem ela.",
+  /** A calculator screen whose request is not complete yet: the reason the result card gives is not repeated. */
+  needsBrief: "Complete os dados da tela para pedir sugestões.",
+  /** Eco, in the comparison view: the server answers for one audit, not for an A × B. */
+  individualOnly: "As sugestões valem para a auditoria individual; volte a ela para pedir.",
+  /** Admin: the server needs the name of what is being written. */
+  needsName: "Escreva o nome primeiro: a sugestão parte dele.",
   /** Beside the button, before the first ask: the quota is spent only on a click. */
   idleHint: "Só consulta a IA quando você clica.",
   loading: "Pedindo sugestões à IA…",

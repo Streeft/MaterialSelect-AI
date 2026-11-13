@@ -7,7 +7,11 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
+import { suggestText } from "@/lib/i18n-suggest";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import { installWideViewport } from "@/lib/testing/viewport";
 import type {
+  SuggestionsOut,
   MaterialClass,
   MaterialListItem,
   SynthesisKindInfo,
@@ -174,7 +178,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   listMaterials: () => Promise.resolve(materials),
   listClasses: () => Promise.resolve(classes),
   listSynthesisKinds: () => Promise.resolve(kinds),
@@ -488,4 +496,116 @@ describe("Painel sanduíche", () => {
       (await screen.findAllByShadowText(/só a razão/)).length,
     ).toBeGreaterThan(0);
   });
+});
+
+describe("Sintetizar — Sugestão da IA (D-230)", () => {
+  installWideViewport();
+  const answer: SuggestionsOut = {
+    tool: "sintetizar",
+    summary: "Duas ideias para a receita.",
+    suggestions: [
+      {
+        title: "Aumente a fração de fibra",
+        body: "Mais fibra eleva a rigidez da mistura.",
+        actions: [
+          { type: "set_param", label: "fração volumétrica: 0,5", name: "volume_fraction", value: 0.5 },
+          // The value the recipe already has: applying it would change nothing.
+          { type: "set_param", label: "fração volumétrica: 0,6", name: "volume_fraction", value: 0.6 },
+          // A field of another kind of recipe is not on this screen.
+          { type: "set_param", label: "densidade relativa: 0,2", name: "relative_density", value: 0.2 },
+          { type: "set_param", label: "espessura da face: 2", name: "face_thickness", value: 2 },
+        ],
+      },
+      {
+        title: "Veja no mapa",
+        body: "Depois de gravar, o material aparece nos Mapas.",
+        actions: [{ type: "open_route", label: "Abrir os Mapas", path: "/app/mapas" }],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+  });
+
+  async function ask() {
+    const user = userEvent.setup();
+    await open();
+    await runPreview(user);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração de fibra");
+    return user;
+  }
+
+  it("só consulta ao clicar, com o mesmo pedido que a prévia recebe", async () => {
+    const user = userEvent.setup();
+    await open();
+    await runPreview(user);
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração de fibra");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("sintetizar", { request: previewSynthesis.mock.calls[0]![0] });
+    expect(screen.getByRole("link", { name: "Abrir os Mapas" })).toHaveAttribute("href", "/app/mapas");
+  });
+
+  it("a fração sugerida muda o campo e o endereço; o que não mudaria nada, ou é de outro tipo, não é botão", async () => {
+    const user = await ask();
+    expect(screen.queryByRole("button", { name: "fração volumétrica: 0,6" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "densidade relativa: 0,2" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "espessura da face: 2" })).toBeNull();
+    expect(new URLSearchParams(window.location.search).has("fracao")).toBe(false);
+    const callsBefore = previewSynthesis.mock.calls.length;
+
+    await user.click(screen.getByRole("button", { name: "fração volumétrica: 0,5" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("fracao")).toBe("0.5"));
+    const fraction = screen.getByShadowLabelText(t.fractionLabel);
+    expect(fraction).toHaveValue(0.5);
+    await waitFor(() => expect(fraction).toHaveAttribute("data-ai-changed", "true"));
+    await waitFor(() => expect(previewSynthesis.mock.calls.length).toBeGreaterThan(callsBefore));
+    expect(lastSent().volume_fraction).toBe(0.5);
+    // Applying a suggestion saves nothing.
+    expect(createSynthesis).not.toHaveBeenCalled();
+  });
+
+  it("no painel, a espessura sugerida vale e a fração não aparece", async () => {
+    const user = userEvent.setup();
+    await open();
+    await chooseKind(t.kindPanel);
+    await screen.findByShadowLabelText(new RegExp(t.faceThicknessLabel));
+    await runPreview(user);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração de fibra");
+    expect(screen.queryByRole("button", { name: "fração volumétrica: 0,5" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "espessura da face: 2" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("face")).toBe("2"));
+    await waitFor(() => expect(lastSent().face_thickness).toBe(2));
+  });
+
+  it("receita incompleta: o botão fica desligado e nada é perguntado", async () => {
+    window.history.replaceState(null, "", "/app/sintetizar?fracao=2");
+    await open();
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
+    expect(suggest.fn).not.toHaveBeenCalled();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    const user = userEvent.setup();
+    const { container } = render(wrap(<SintetizarPage />));
+    await screen.findByRole("heading", { name: t.kindStep });
+    await runPreview(user);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente a fração de fibra");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

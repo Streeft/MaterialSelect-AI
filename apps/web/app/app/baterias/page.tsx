@@ -11,6 +11,7 @@ import type {
   ChemistryComparisonItem,
   DefaultsResult,
   PackDesignRequest,
+  SuggestAction,
   ThermalSafetyLevel,
 } from "@/lib/types";
 import {
@@ -56,6 +57,10 @@ import {
 } from "@/components/ui";
 import { IconBattery } from "@/components/ui/icons";
 import { RagoneChart } from "@/components/charts/RagoneChart";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { aiField, revealField } from "@/lib/ai/revealField";
+import { isOwnKey } from "@/lib/ai/suggest";
+import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 
@@ -119,6 +124,23 @@ function briefUrlSpec(defaults: DefaultsResult["baterias"]): UrlSpec<BatteryBrie
     },
   };
 }
+
+/**
+ * D-230: the AI's numeric parameter names (the request's), and the brief field each
+ * one writes. `chemistry_slug` is the one text parameter: a slug the catalogue lists.
+ */
+const AI_NUMERIC_PARAMS = {
+  target_voltage_v: "voltage",
+  target_energy_kwh: "energy",
+  target_power_kw: "power",
+  dod: "dod",
+  mass_packing_factor: "massPacking",
+  volume_packing_factor: "volPacking",
+  cost_packing_factor: "costPacking",
+} as const satisfies Record<string, keyof BatteryBrief>;
+
+/** The packing factors are the folded premises: a suggestion for one opens them. */
+const AI_PREMISE_FIELDS: readonly string[] = ["massPacking", "volPacking", "costPacking"];
 
 const TAB_ITEMS: readonly TabItem<TabView>[] = [
   { id: "design", label: t.tabDesign },
@@ -343,6 +365,29 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
   const ready = blocked === null;
   const [premisesOpen, setPremisesOpen] = useState(false);
 
+  // D-230: a suggested parameter is written where the reader would have typed it
+  // — the URL, and "custom" like any hand edit — and the sizing follows by itself.
+  const acceptsAiAction = (action: SuggestAction) => {
+    if (action.type !== "set_param") return true;
+    if (action.name === "chemistry_slug")
+      return (
+        typeof action.value === "string" &&
+        (chemistries.data ?? []).some((chem: BatteryChemistry) => chem.slug === action.value)
+      );
+    return isOwnKey(AI_NUMERIC_PARAMS, action.name) && typeof action.value === "number" && Number.isFinite(action.value);
+  };
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "set_param" || !acceptsAiAction(action)) return;
+    if (action.name === "chemistry_slug") {
+      setCustom({ chemistry: String(action.value) });
+    } else if (isOwnKey(AI_NUMERIC_PARAMS, action.name)) {
+      const field = AI_NUMERIC_PARAMS[action.name];
+      setCustom({ [field]: String(action.value) });
+      if (AI_PREMISE_FIELDS.includes(field)) setPremisesOpen(true);
+    }
+    revealField(action.name);
+  }
+
   // Design query
   const designRequest = useMemo<PackDesignRequest | null>(() => {
     if (!ready) return null;
@@ -432,6 +477,16 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
+      <AISuggestPanel
+        tool="baterias"
+        // The request of the sizing the page shows, never its numbers (D-229).
+        context={designRequest ? { request: designRequest } : {}}
+        actions={["set_param", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        disabledReason={designRequest ? undefined : suggestText.needsBrief}
+      />
+
       <ParamsResultLayout>
         <ParamsPanel>
           {/* Archetype and Requirements Section */}
@@ -454,6 +509,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
               <Select
                 label={t.chemistryTitle}
                 value={chemistrySlug}
+                {...aiField("chemistry_slug")}
                 onChange={(e) => setCustom({ chemistry: (e.target as HTMLSelectElement).value })}
               >
                 {(chemistries.data ?? []).map((chem: BatteryChemistry) => (
@@ -465,6 +521,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
               <NumberInput
                 label={t.targetVoltage}
                 unit="V"
+                {...aiField("target_voltage_v")}
                 value={targetVoltage}
                 min={1}
                 step="any"
@@ -473,6 +530,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
               <NumberInput
                 label={t.targetEnergy}
                 unit="kWh"
+                {...aiField("target_energy_kwh")}
                 value={targetEnergy}
                 min={0.01}
                 step="any"
@@ -481,6 +539,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
               <NumberInput
                 label={t.targetPower}
                 unit="kW"
+                {...aiField("target_power_kw")}
                 value={targetPower}
                 min={0.1}
                 step="any"
@@ -488,6 +547,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
               />
               <NumberInput
                 label={t.dod}
+                {...aiField("dod")}
                 value={dod}
                 min={0.1}
                 max={1.0}
@@ -527,6 +587,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                   />
                   <NumberInput
                     label={t.massPackingFactor}
+                    {...aiField("mass_packing_factor")}
                     value={massPacking}
                     min={0.1}
                     max={1.0}
@@ -536,6 +597,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                   />
                   <NumberInput
                     label={t.volumePackingFactor}
+                    {...aiField("volume_packing_factor")}
                     value={volPacking}
                     min={0.1}
                     max={1.0}
@@ -545,6 +607,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                   />
                   <NumberInput
                     label={t.costPackingFactor}
+                    {...aiField("cost_packing_factor")}
                     value={costPacking}
                     min={0.1}
                     max={1.0}

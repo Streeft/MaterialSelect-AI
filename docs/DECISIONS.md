@@ -13381,3 +13381,55 @@ ausência do mock é tratada como "status ilegível" e não quebra a tela. Teste
 `lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em cada tela e `e2e/sugestao-ia.spec.ts` (Mapas e Catálogo, com o `mock`).
 
 **Numeração.** D-229/Sessão 186.
+
+## D-230 — Painel "Sugestão da IA" nas oito telas restantes (IA-2b, frontend)
+
+**Contexto.** O D-229 entregou o `AISuggestPanel` e o ligou em sete telas; faltavam as quatro calculadoras e o dimensionamento
+(Dimensionar, Custo, Eco, Baterias, Sintetizar), o Painel, Meus registros e as duas telas de Admin. Aqui as ações mexem em
+**números e textos de formulário**, não em filtros: era preciso decidir o que "aplicar" quer dizer sem que a IA passe a digitar
+por quem calcula, e como mostrar o que mudou.
+
+**Decisão.**
+
+1. **O contexto é o pedido da rota de cálculo.** Custo, Eco, Baterias, Dimensionar e Sintetizar mandam `{request}` no **mesmo**
+   formato que a tela já envia ao cálculo (o servidor o valida e refaz a conta, D-228); nunca um resultado. Enquanto o pedido não
+   estiver completo, o botão fica desligado com `suggestText.needsBrief` (o motivo detalhado já está no cartão de resultado e não
+   se repete). Painel e Meus registros mandam `{}`: o servidor lê o panorama do catálogo e os registros da pessoa por conta
+   própria. Admin manda `{name, description}` (propriedades: também `canonical_unit`), cortados nos limites do servidor; sem nome
+   o botão fica desligado (`needsName`).
+2. **`set_param` escreve onde a pessoa digitaria: a URL.** O nome do parâmetro é o do pedido (`batch_size`, `inputs.comprimento`,
+   `objective`, `chemistry_slug`…), e cada tela o traduz para o seu campo (`useUrlState`); a tela **recalcula só o que já
+   recalcularia** ao mudar aquele campo. Nada é gravado nem consultado de novo pela ação. Premissas recolhidas (amortização,
+   fator de carga, fatores de empacotamento) abrem. Na Eco o parâmetro vale para **todos** os componentes ou trechos (um produto é
+   uma lista; "voltar ao padrão" não deixa uma linha para trás); em Baterias vale como edição manual (o arquétipo vira "custom").
+3. **O que a tela não sabe aplicar não aparece.** `AISuggestPanel` ganhou `accepts(action)`, a última palavra da tela: um
+   `set_param` de campo que ela não tem, de valor fora do que o campo aceita (fração fora de 0–1, rota de fim de vida que não
+   existe, apoio fora do catálogo do caso) ou **que não mudaria nada** (Sintetizar: o servidor só oferece o valor atual) é descartado
+   como qualquer ação de tipo não listado. `compare` (Dimensionar, Meus registros) e `open_route` são links
+   (`/app/comparar?materiais=`, via `linkFor`); a Eco, no modo A × B, fica desligada com a razão (o servidor sugere sobre uma
+   auditoria, não sobre uma comparação).
+4. **Mostrar o campo que mudou.** `lib/ai/revealField.ts`: o campo leva `data-ai-field="<nome do parâmetro>"`, e depois de escrever a
+   tela chama `revealField(nome)` — um anel que se desfaz em ~2,5 s (`[data-ai-changed]` em `globals.css`, só com tokens; sem
+   movimento sob `prefers-reduced-motion`) e `scrollIntoView` mais próximo. O foco só vai para o campo quando seria perdido (em
+   janela estreita o painel se recolhe e leva o foco): em janela larga o foco fica no botão da sugestão, e a seguinte está a um Tab.
+5. **Admin: `fill_text` preenche o campo `description` do formulário e não grava.** A descrição fica editável (virou `Textarea`) e quem
+   grava é a pessoa, depois de ler. O formulário de **propriedades não tinha o campo** de descrição, embora o contrato (`PropertyDefinitionIn.description`)
+   o aceitasse: passou a ter, e é enviado só quando preenchido (`null` como antes).
+6. **Painel e Meus registros** só têm links. O contexto vazio não faz a resposta envelhecer com os filtros do painel (o servidor
+   não os lê).
+
+**Alternativas recusadas.** Aplicar `set_param` direto no estado sem passar pela URL (a ação não seria reabrível por link, como
+todo parâmetro de D-212). Dar foco sempre ao campo (tira a pessoa de dentro do painel a cada clique). Recalcular ao aplicar
+(a tela já o faz ao mudar o campo; uma segunda via duplicaria a chamada). Salvar a descrição ao preencher (a IA propõe, a pessoa
+decide). Mandar o resultado da tela no contexto (o servidor o refaz; número do cliente nunca entra, D-228).
+
+**Consequências.** Só frontend: sem mudança de API, migração ou seed (**Deploy da API** não é necessário). Com isso as **15 telas**
+têm o painel. Observação para o backend (não mexida aqui): em Sintetizar o `_params` de `ai_suggest.py` só guarda o valor atual de
+cada parâmetro (sem cenário), então um `set_param` dali nunca muda nada e o painel o esconde; se se quiser sugestão de receita, o
+servidor precisa de valores alternativos. Na Eco, `part_mass` não é oferecido no formato de produto. Testes novos: um bloco "Sugestão
+da IA" (com axe) em `custo`, `eco`, `baterias`, `dimensionar`, `sintetizar`, `painel`, `meus-registros` e nas duas telas de Admin;
+`aiParamPatch` em `ecoBrief.test.ts`; `lib/ai/revealField.test.ts`; `accepts` em `AISuggestPanel.test.tsx` e `suggest.test.ts`; e
+dois testes em `e2e/sugestao-ia.spec.ts` (Custo aplica um parâmetro e o valor muda no endereço; Admin preenche a descrição sem
+gravar). Correção que o axe achou: o título "Premissas desta conta" da Eco passou de `h4` para `h3`.
+
+**Numeração.** D-230/Sessão 187.

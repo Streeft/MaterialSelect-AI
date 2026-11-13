@@ -11,7 +11,7 @@ import {
 } from "@/lib/api";
 import { dimensionName } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
-import type { PropertyCategory, PropertyDefinition } from "@/lib/types";
+import type { PropertyCategory, PropertyDefinition, SuggestAction } from "@/lib/types";
 import {
   Alert,
   Button,
@@ -27,6 +27,7 @@ import {
   RowHeader,
   Select,
   SelectOption,
+  Textarea,
   TBody,
   THead,
   Table,
@@ -37,6 +38,14 @@ import {
   Tr,
 } from "@/components/ui";
 import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { aiField, revealField } from "@/lib/ai/revealField";
+import { suggestText } from "@/lib/i18n-suggest";
+
+/** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
+const NAME_MAX = 120;
+const UNIT_MAX = 60;
+const DESCRIPTION_MAX = 2000;
 
 const CATEGORIES: PropertyCategory[] = [
   "FISICA",
@@ -59,6 +68,7 @@ export default function PropertiesAdminPage() {
   const [canonicalUnit, setCanonicalUnit] = useState("");
   const [physicalDimension, setPhysicalDimension] = useState("");
   const [acceptedUnits, setAcceptedUnits] = useState("");
+  const [description, setDescription] = useState("");
   const [isInterval, setIsInterval] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -70,6 +80,7 @@ export default function PropertiesAdminPage() {
         name,
         category,
         canonical_unit: canonicalUnit,
+        description: description.trim() || null,
         physical_dimension: physicalDimension,
         accepted_units: acceptedUnits
           .split(",")
@@ -84,6 +95,7 @@ export default function PropertiesAdminPage() {
       setCanonicalUnit("");
       setPhysicalDimension("");
       setAcceptedUnits("");
+      setDescription("");
       setIsInterval(false);
       setError(null);
       setSubmitted(false);
@@ -111,6 +123,16 @@ export default function PropertiesAdminPage() {
 
   const sameName = (a: string, b: string) =>
     a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
+  // D-230: the proposed description goes into the form's field and nothing more —
+  // it is not saved; the person reads it, edits it and presses the button.
+  const acceptsAiAction = (action: SuggestAction) =>
+    action.type !== "fill_text" || action.field === "description";
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "fill_text" || action.field !== "description") return;
+    setDescription(action.text.slice(0, DESCRIPTION_MAX));
+    revealField("description");
+  }
+
   const nameError = !name.trim()
     ? ptBR.admin.errorNameRequired
     : properties.some((p) => sameName(p.name, name))
@@ -122,6 +144,20 @@ export default function PropertiesAdminPage() {
     <div className="flex flex-col gap-5">
       <PageHeader title={ptBR.admin.propertiesTitle} />
       <CatalogReadOnlyNotice />
+
+      <AISuggestPanel
+        tool="admin_propriedades"
+        // What the form holds now: the server reads the catalogue's properties itself.
+        context={{
+          name: name.trim().slice(0, NAME_MAX),
+          ...(canonicalUnit.trim() ? { canonical_unit: canonicalUnit.trim().slice(0, UNIT_MAX) } : {}),
+          description: description.slice(0, DESCRIPTION_MAX),
+        }}
+        actions={["fill_text", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        disabledReason={name.trim() ? undefined : suggestText.needsName}
+      />
 
       <form
         noValidate
@@ -177,6 +213,15 @@ export default function PropertiesAdminPage() {
               checked={isInterval}
               onChange={(e) => setIsInterval(e.target.checked)}
               className="self-end pb-2"
+            />
+            <Textarea
+              label={ptBR.form.description}
+              className="sm:col-span-3"
+              rows={2}
+              maxLength={DESCRIPTION_MAX}
+              value={description}
+              {...aiField("description")}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </CardBody>
           <CardFooter>
