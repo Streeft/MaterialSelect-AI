@@ -93,7 +93,7 @@ export function CompareSuggestions({
 }: {
   chosen: readonly number[];
   onAdd: (ids: number[]) => void;
-  /** D-221/D-229: the catalogue the classic pairs are looked up in, by name and class. */
+  /** D-221/D-230: the catalogue the classic pairs are looked up in, by name and class. */
   catalogue?: readonly { id: number; name: string; class_slug: string }[];
 }) {
   const classics = resolveClassicPairs(catalogue);

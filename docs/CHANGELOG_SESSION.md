@@ -120,6 +120,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
 ## Sessão 187 — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230)
 
 **O que mudou.** Frontend: `AISuggestPanel` ganhou `accepts` (a tela recusa a ação que não sabe aplicar) e o painel foi ligado em
@@ -145,6 +146,7 @@ local e a classificação do nome).
 
 **Para quem retoma.** Só frontend; deploy pela Vercel no merge. Achado ao regravar o vídeo da banca, que usa o par
 "Cobre × Alumínio" — esse par resolve para os mesmos dois materiais de antes.
+
 ## Sessão 186 — 12/11/26 — Painel "Sugestão da IA" em sete telas (D-229)
 
 **O que mudou.** Frontend: `components/ai/AISuggestPanel.tsx` (+ `useAISuggest.ts`, `lib/ai/suggest.ts`, `lib/i18n-suggest.ts`,

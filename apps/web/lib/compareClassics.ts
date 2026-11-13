@@ -9,7 +9,7 @@
  * does not hold. Choosing a pair only fills the materials; the comparison is
  * the same request as one built by hand.
  *
- * D-229: a term matches whole words only ("aço" is not inside "traço"), only
+ * D-230: a term matches whole words only ("aço" is not inside "traço"), only
  * among the side's class (steel is a metal, not a mortar), and a name that
  * *is* the term or *starts* with it beats one that merely mentions it ("Aço
  * Inoxidável … Estabilizado ao Titânio" is not titanium).

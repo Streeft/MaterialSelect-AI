@@ -194,7 +194,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   como propriedades que levam ao passo; "Meus estudos" num `SidePeek`, nunca faixa na página); `Stepper compact` no celular. O mapa
   tem um inspetor de seções que dobram (`InspectorSection`), folha inferior padrão abaixo de `lg`; controle que só serve ao mouse
   leva `.ds-fine-pointer-only`. Pino e layout começam no aparelho (`lib/pinnedMaps.ts`) e só guardam id e nome — abrir pede ao
-  servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo. O nome casa por palavra inteira, na classe do lado, e o que começa pelo termo vence ([D-229](docs/DECISIONS.md)).
+  servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo. O nome casa por palavra inteira, na classe do lado, e o que começa pelo termo vence ([D-230](docs/DECISIONS.md)).
 
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de

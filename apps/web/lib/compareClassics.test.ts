@@ -37,7 +37,7 @@ describe("pares clássicos do comparador (D-221)", () => {
   });
 });
 
-describe("palavra inteira, classe e começo do nome (D-229)", () => {
+describe("palavra inteira, classe e começo do nome (D-230)", () => {
   it("“aço” não acha “Traço” numa argamassa", () => {
     const pairs = resolveClassicPairs([
       m(1, "Alumínio 1050A-O Recozido", "metais"),
