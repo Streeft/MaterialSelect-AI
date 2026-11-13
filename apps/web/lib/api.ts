@@ -2,6 +2,7 @@
 // Base URL comes from NEXT_PUBLIC_API_URL (default: http://localhost:8000).
 
 import type {
+  SourceReference,
   FunnelPreview,
   FunnelPreviewRequest,
   RunDiff,
@@ -773,6 +774,18 @@ export function patchProperty(
   patch: { name?: string; description?: string | null; display_unit?: string | null },
 ): Promise<PropertyDefinition> {
   return request<PropertyDefinition>(`/api/properties/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+/** D-236: the bibliographic fields a curator corrects on a source; a field left out is kept, `null` clears. */
+export type SourcePatch = Partial<
+  Pick<SourceReference, "authors" | "title" | "publisher" | "year" | "url" | "accessed_on">
+>;
+
+export function patchSource(id: number, patch: SourcePatch): Promise<SourceReference> {
+  return request<SourceReference>(`/api/sources/${id}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
@@ -1734,6 +1747,16 @@ export function batchArchiveNotebooks(
   return request<NotebookSummary[]>("/api/notebooks/batch-archive", {
     method: "POST",
     body: JSON.stringify({ ids, archived }),
+  });
+}
+
+/**
+ * D-236: delete for good every archived notebook of the caller, all or none. `expected` is the
+ * count the person confirmed; the server answers 409 (and deletes nothing) if it changed.
+ */
+export function emptyNotebookArchive(expected: number): Promise<{ deleted: number }> {
+  return request<{ deleted: number }>(`/api/notebooks/archived?expected=${expected}`, {
+    method: "DELETE",
   });
 }
 

@@ -9,7 +9,7 @@ export const curadoriaText = {
   cite: {
     title: "Fontes desta ficha",
     hint:
-      "As fontes dos valores, da composição e das designações desta ficha. A citação em ABNT é montada pelo servidor só com o que está cadastrado: o que ninguém registrou fica de fora, sem “s.d.” nem autor inventado.",
+      "As fontes dos valores, da composição, das designações, das curvas e das equivalências desta ficha. A citação em ABNT é montada pelo servidor só com o que está cadastrado: o que ninguém registrou fica de fora, sem “s.d.” nem autor inventado.",
     none: "Esta ficha ainda não cita nenhuma fonte.",
     button: "Citar fonte (ABNT)",
     buttonFor: (label: string) => `Citar fonte (ABNT): ${label}`,
@@ -17,6 +17,32 @@ export const curadoriaText = {
     failed: "O navegador não permitiu copiar. Selecione a citação e copie manualmente.",
     listLabel: "Fontes citadas nesta ficha",
     citationLabel: "Citação em ABNT",
+  },
+  // The curator's correction of a source's bibliographic fields (D-236), from the sheet.
+  editSource: {
+    action: "Editar fonte",
+    actionFor: (label: string) => `Editar fonte: ${label}`,
+    title: (label: string) => `Editar a fonte “${label}”`,
+    hint:
+      "Só os dados da referência. O rótulo, a licença e quem revisou não mudam por aqui. Campo em branco fica como “ninguém registrou”: nada é preenchido por você ou pelo sistema.",
+    authors: "Autores",
+    authorsHint: "Como a referência imprime: SOBRENOME, Nome; SOBRENOME, Nome. Ou uma instituição.",
+    titleField: "Título",
+    publisher: "Editora ou instituição",
+    year: "Ano de publicação",
+    url: "Endereço (URL)",
+    urlHint: "Começa com http:// ou https://.",
+    accessedOn: "Acessado em",
+    accessedOnHint: "Só vale com um endereço; a citação não escreve “Acesso em” sem ele.",
+    errorYear: (max: number) => `Informe um ano inteiro entre 1000 e ${max}, ou deixe em branco.`,
+    errorUrl: "Informe um endereço que comece com http:// ou https:// e tenha um domínio.",
+    errorAccessedFuture: "A data de acesso não pode estar no futuro.",
+    errorAccessedBeforeYear: "A data de acesso não pode ser anterior ao ano de publicação.",
+    errorTooLong: (max: number) => `No máximo ${max} caracteres.`,
+    save: "Salvar fonte",
+    saved: (label: string) => `Fonte “${label}” atualizada.`,
+    failed: "Não foi possível salvar a fonte.",
+    nothingToSave: "Nada mudou.",
   },
   // Admin › Classes: "Mover para…", the tree edit that touches only the parent.
   move: {
@@ -32,6 +58,16 @@ export const curadoriaText = {
     moved: (name: string, parent: string | null) =>
       parent === null ? `“${name}” agora é uma classe raiz.` : `“${name}” agora está em “${parent}”.`,
     failed: "Não foi possível mover a classe.",
+    // Drag and drop (D-236): the same move as the dialog, by the pointer.
+    dragHint:
+      "Arraste uma linha para cima de outra para torná-la subclasse dela, ou para a faixa “Classe raiz” para soltá-la na raiz. Pelo teclado, use “Mover para…”.",
+    dragHandle: (name: string) => `Arrastar a classe ${name}`,
+    dropOnto: (name: string) => `Soltar aqui para mover para dentro de “${name}”`,
+    dropRoot: "Solte aqui para tornar classe raiz",
+    cycleRefused: (name: string, target: string) =>
+      `Não dá para mover “${name}” para dentro de “${target}”: ela está dentro de “${name}” e isso criaria um ciclo.`,
+    sameParent: (name: string) => `“${name}” já está nesse lugar.`,
+    dragFailed: "Não foi possível mover a classe. Nada mudou.",
   },
   // Admin › Propriedades: the edit that cannot change a stored number.
   editProperty: {
@@ -73,6 +109,16 @@ export const curadoriaText = {
     unarchivedMany: (n: number) =>
       n === 1 ? "1 caderno de volta à lista." : `${n} cadernos de volta à lista.`,
     batchFailed: "Não foi possível mudar os cadernos escolhidos. Nenhum foi alterado.",
+    // "Esvaziar o arquivo" (D-236): deleting the archived ones for good.
+    emptyArchive: "Esvaziar o arquivo",
+    emptyArchiveTitle: (n: number) =>
+      n === 1 ? "Apagar de vez 1 caderno arquivado?" : `Apagar de vez ${n} cadernos arquivados?`,
+    emptyArchiveMessage:
+      "Os cadernos arquivados são apagados com as fontes, a conversa, as notas e os itens do Estúdio. Não há como desfazer. Os cadernos da lista de ativos não são tocados.",
+    emptyArchiveConfirm: "Apagar de vez",
+    emptiedArchive: (n: number) =>
+      n === 1 ? "1 caderno apagado de vez." : `${n} cadernos apagados de vez.`,
+    emptyArchiveFailed: "Não foi possível esvaziar o arquivo. Nenhum caderno foi apagado.",
   },
   // Meus registros: deleting several own records at once.
   records: {

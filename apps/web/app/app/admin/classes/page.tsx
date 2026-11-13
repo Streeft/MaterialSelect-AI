@@ -3,7 +3,7 @@
 import { describeApiError } from "@/lib/errors";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createClass, deleteClass, listClasses } from "@/lib/api";
+import { createClass, deleteClass, listClasses, moveClass } from "@/lib/api";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import { ptBR } from "@/lib/i18n";
 import type { MaterialClass, SuggestAction } from "@/lib/types";
@@ -37,6 +37,9 @@ import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { curadoriaText } from "@/lib/i18n-curadoria";
 import { MoveClassDialog } from "@/components/admin/MoveClassDialog";
+import { useClassDrag, type DropTarget } from "@/components/admin/useClassDrag";
+import { useOptionalSnackbar } from "@/components/ui/Snackbar";
+import { IconGrip } from "@/components/ui/icons";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
 const NAME_MAX = 120;
@@ -122,6 +125,35 @@ export default function ClassesAdminPage() {
   const [moving, setMoving] = useState<MaterialClass | null>(null);
 
   const classes: MaterialClass[] = data ?? [];
+
+  // D-236: dragging a row onto another makes it a subclass of it (onto the root strip, a root).
+  // The same `PATCH` as "Mover para…"; a refusal from the server (a cycle, a class that is gone)
+  // is shown in words, and the tree is reloaded so it shows what is true now.
+  const snackbar = useOptionalSnackbar();
+  const [dragError, setDragError] = useState<string | null>(null);
+  const drag = useMutation({
+    mutationFn: ({ cls, target }: { cls: MaterialClass; target: DropTarget }) =>
+      moveClass(cls.id, target === "root" ? null : target),
+    onSuccess: (_moved, { cls, target }) => {
+      setDragError(null);
+      const parentName =
+        target === "root" ? null : (classes.find((c) => c.id === target)?.name ?? null);
+      snackbar?.notify({ message: curadoriaText.move.moved(cls.name, parentName) });
+    },
+    onError: (err) => setDragError(describeApiError(err, curadoriaText.move.dragFailed)),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["classes"] }),
+  });
+  const classDrag = useClassDrag({
+    classes,
+    onMove: (cls, target) => {
+      if ((target === "root" ? null : target) === cls.parent_id) {
+        snackbar?.notify({ message: curadoriaText.move.sameParent(cls.name) });
+        return;
+      }
+      setDragError(null);
+      drag.mutate({ cls, target });
+    },
+  });
   const tree = flattenClasses(classes);
   const nameById = new Map(classes.map((c) => [c.id, c.name]));
 
@@ -234,6 +266,18 @@ export default function ClassesAdminPage() {
       {data && (
         <>
         <p className="text-caption text-ink-muted">{ptBR.admin.treeHint}</p>
+        <p className="text-caption text-ink-muted">{curadoriaText.move.dragHint}</p>
+        {dragError ? (
+          <Alert tone="danger" role="alert">
+            {dragError}
+          </Alert>
+        ) : null}
+        <div
+          {...classDrag.dropProps("root")}
+          className="ds-drop rounded-control border border-dashed border-line px-3 py-2 text-caption text-ink-muted"
+        >
+          {curadoriaText.move.dropRoot}
+        </div>
         <TableScroll label={ptBR.admin.classesTitle}>
           <Table>
             <TableCaption>{ptBR.admin.classesTitle}</TableCaption>
@@ -250,11 +294,27 @@ export default function ClassesAdminPage() {
             </THead>
             <TBody>
               {tree.map(({ cls: c, depth }) => (
-                <Tr key={c.id}>
+                <Tr
+                  key={c.id}
+                  {...classDrag.dropProps(c.id)}
+                  className="ds-drop"
+                >
                   <RowHeader>
-                    <span style={{ paddingInlineStart: `${depth * 1.25}rem` }} className="block min-w-0 break-words">
-                      {depth > 0 && <span aria-hidden="true" className="text-ink-subtle">↳ </span>}
-                      {c.name}
+                    <span className="flex items-start gap-1">
+                      {/* The grip is for the pointer only: "Mover para…" is the way by keyboard. */}
+                      <span
+                        {...classDrag.handleProps(c)}
+                        title={curadoriaText.move.dragHandle(c.name)}
+                        className="ds-block-grip"
+                        data-visible=""
+                        aria-hidden="true"
+                      >
+                        <IconGrip className="h-4 w-4" aria-hidden />
+                      </span>
+                      <span style={{ paddingInlineStart: `${depth * 1.25}rem` }} className="block min-w-0 break-words">
+                        {depth > 0 && <span aria-hidden="true" className="text-ink-subtle">↳ </span>}
+                        {c.name}
+                      </span>
                     </span>
                   </RowHeader>
                   <Td className="text-ink-muted">

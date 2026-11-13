@@ -238,6 +238,7 @@ export const dashboardText = {
       performance_index: "índice",
       selection_study: "estudo",
       equivalence_group: "grupo de equivalência",
+      source: "fonte",
     } as Record<string, string>,
     actionsSummary: (counts: Record<string, number>) => {
       const parts = Object.entries(counts).map(([k, v]) => `${v.toLocaleString("pt-BR")} ${k.toLowerCase()}`);

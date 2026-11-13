@@ -13897,3 +13897,66 @@ linhas; ficam no servidor, testados). Ordem das notas no `localStorage` (a nota 
 **Numeração.** D-235b, Sessão 192b: a `main` recebeu a D-235/Sessão 192 do Grupo D (#258) antes deste PR, e pela regra do D-226 (item 4) o mais novo ganha o sufixo. Toca `apps/api` **com migração** (`e575ea7c3f24`): depois do merge,
 **Deploy da API** (o `release_command` aplica a migração).
 F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)
+
+---
+
+## D-236 — Fluxos entre telas, parte 18: editar a fonte, arrastar a classe, esvaziar o arquivo e duas figuras no E2E
+
+**Contexto.** O D-233 deixou quatro pendências que o D-234 e o D-235 não tocaram: os campos bibliográficos de `source` só eram
+preenchidos pelo manifesto do catálogo oficial (nenhuma tela os editava); a seção "Fontes desta ficha" não listava as fontes das curvas
+nem das equivalências; a árvore de classes só se movia pelo "Mover para…"; e o arquivo de cadernos só crescia. O D-234 entregou a curva
+Custo × Lote por material e a cascata da diferença B − A sem E2E.
+
+**Decisão.**
+1. **`PATCH /api/sources/{id}`** (só curador, `require_catalog_curator`). Corpo com os seis campos bibliográficos; vale só o que veio
+   (`model_fields_set`) e `null` ou texto em branco limpa o campo (volta a "ninguém registrou"). A validação é uma função pura em
+   `app/domain/citation.py` (`edit_bibliography`), com recusa 400 escrita em português: ano entre 1000 e o ano corrente (UTC), endereço
+   `http`/`https` com domínio e sem espaço (**nada é completado**: "exemplo.org" não vira "https://exemplo.org"), data de acesso não
+   futura e não anterior ao ano de publicação (a regra olha o resultado, então vale qualquer dos dois que chegue), tamanhos iguais aos
+   das colunas (recusa, nunca corta). Tudo ou nada: um campo recusado não deixa gravar os outros do mesmo pedido. Nenhum campo é
+   inferido (um endereço não traz data de acesso, um ano não traz editora). Rótulo, licença e revisor **não** estão no corpo: são o que
+   a fonte é, decididos no cadastro. Auditoria nova: `AuditEntityType.SOURCE = "source"` (a coluna é `VARCHAR(20)` sem `CHECK`, então
+   **sem migração**); evento só se algo mudou. `SourceOut` passou a trazer `abnt` (o texto montado no servidor). Lógica em
+   `SourceService`, o router fica fino.
+2. **A ficha cita também as fontes das curvas e das equivalências.** `MaterialRepository.curve_and_equivalence_sources` lê, em duas
+   consultas de ids e uma de linhas, as fontes de `MaterialCurve` e dos grupos de equivalência com designação do material; entram em
+   `MaterialDetail.sources` junto com as de valor, composição e designação, uma vez cada, ordenadas pelo rótulo. O texto da seção diz
+   as cinco origens.
+3. **Tela de edição pela ficha.** "Editar fonte" em cada fonte da seção (só com `useCanEditCatalog`; a fonte é dado compartilhado),
+   num `Dialog` com seis campos rotulados, validação ao lado do campo depois da primeira tentativa de enviar (a mesma regra do servidor,
+   como cortesia), `maxLength`, estado de envio, erro do servidor em `Alert` e `invalidateQueries(["material"])` ao salvar, para a ficha
+   mostrar a citação que o **servidor** montou. A tela nunca monta a citação. Vai só o que mudou.
+4. **Arrastar para mover a classe.** `useClassDrag`: HTML5 nativo, sem biblioteca, como o `useReorder` (D-206/D-221). A alça de cada
+   linha arrasta; a linha de destino acende (`.ds-drop[data-drop-target]`, token `--m3-primary`); a faixa "Classe raiz" recebe quem vai
+   para a raiz. É o mesmo `PATCH /api/classes/{id}` só com `parent_id`. A própria classe e as de dentro dela **não são oferecidas** como
+   destino (o `dragover` não é cancelado, o navegador mostra o cursor de proibido), como a lista do "Mover para…"; se o servidor recusar
+   mesmo assim (ciclo, classe que já não existe), o texto dele aparece num `Alert` e a árvore é recarregada. Soltar onde a classe já está
+   não chama o servidor e avisa. A alça é `aria-hidden`: teclado e leitor de tela usam o "Mover para…", que continua em cada linha.
+   Toque também (o HTML5 drag não funciona em tela de toque).
+5. **"Esvaziar o arquivo" dos cadernos.** `DELETE /api/notebooks/archived?expected=N`: apaga de vez os cadernos **arquivados do próprio
+   usuário** (a lista vem de uma consulta com `owner_id`), com fontes, trechos, vetores, mensagens, notas e itens do Estúdio, devolvendo
+   a cota de uma geração em andamento (`_discard`, o mesmo caminho do `DELETE` de um caderno). Tudo ou nada: uma transação só. `expected`
+   é a contagem que a pessoa confirmou: se o arquivo tem outro número agora (outra aba arquivou ou desarquivou), **409 e nada é
+   apagado**, porque um caderno que a pessoa não viu na confirmação não é dela para ser destruído por ela. Na lista de arquivados, botão
+   "Esvaziar o arquivo" → `ConfirmDialog` com a contagem, o que se perde e "não há como desfazer"; sem Desfazer, de propósito (o
+   Desfazer do D-130 adia o commit no cliente, e aqui a operação é de volume e irreversível). A rota fica antes de
+   `DELETE /{notebook_id}` para `archived` não ser lido como id.
+6. **E2E.** `e2e/figuras-custo-eco.spec.ts`: a curva por material no Custo (dois materiais que o servidor sabe precificar, uma curva por
+   material, o lote atual marcado, um material só não desenha a figura) e a cascata da diferença B − A na Eco (um degrau por fase, "B
+   acima de A" dito em palavras, a barra do total, nenhuma fase sem dado como zero), ambas com axe no navegador. `curadoria.spec.ts`
+   ganhou o arrastar (linha, raiz e ciclo recusado), a edição da fonte pela ficha e o esvaziar do arquivo. `e2e/axe.ts` passou a ser a
+   injeção do axe compartilhada com `a11y.spec.ts`.
+
+**Fora.** Tela de fontes no Admin (listar fontes que nenhuma ficha cita): a edição vive na ficha, onde a fonte aparece; uma lista
+própria pede rota, item de menu e a decisão de quem pode ver fontes sem material. Editar rótulo e licença. Arquivar em lote pela
+página do caderno. Arrastar por teclado (o "Mover para…" cobre). Esvaziar o arquivo em mais de uma etapa quando houver milhares de
+cadernos (hoje é uma transação).
+
+**Alternativas recusadas.** `DELETE /notebooks/archived` sem `expected` (um caderno arquivado em outra aba entre o clique e a
+confirmação seria apagado sem ter sido visto). Lista de ids no corpo do `DELETE` (proxies descartam o corpo; e o teto de 100 ids
+partiria o "tudo ou nada"). Bloquear o ciclo só no cliente (o servidor é quem decide; o cliente só poupa o caminho). Preencher
+`accessed_on` com a data do dia ao informar um endereço (escreveria uma data que ninguém declarou).
+
+**Numeração.** D-236/Sessão 193 (conferidas na `main` e na branch). Toca `apps/api` **sem migração** nem seed: depois do merge, só o
+**Deploy da API**.
+
