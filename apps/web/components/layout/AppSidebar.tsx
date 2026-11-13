@@ -9,8 +9,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { logout } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMyRecords, logout } from "@/lib/api";
+import { MY_RECORDS_KEY } from "@/components/my-records/FavoriteButton";
+import { bookmarkHref, bookmarkName } from "@/components/my-records/bookmark";
 import { useCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
@@ -448,6 +450,7 @@ function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: st
           )
         ) : null}
       </div>
+      <FavoritesSection pathname={pathname} idPrefix={idPrefix} />
       {shownRecents.length > 0 ? (
         <div className="flex flex-col gap-0.5">
           <GroupTitle
@@ -478,6 +481,70 @@ function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: st
         </div>
       ) : null}
     </>
+  );
+}
+
+/** D-232: how many starred records the rail lists; the rest are one link away. */
+const SHOWN_FAVORITES = 6;
+
+/**
+ * D-232 (F6): "Favoritos" — the records starred on a sheet (the account's
+ * `/my-records`, the same query the star, the Início and "Meus registros"
+ * read), as Notion's favourites in its sidebar. Unlike "Fixados" (pages pinned
+ * on this device) they follow the account to another device. While the list
+ * loads or if it fails, the section is not drawn: the rail never shows a
+ * spinner or an error for a shortcut.
+ */
+function FavoritesSection({ pathname, idPrefix }: { pathname: string; idPrefix: string }) {
+  const records = useQuery({ queryKey: MY_RECORDS_KEY, queryFn: getMyRecords });
+  const collapsedGroups = useCollapsedGroups();
+  if (!records.data) return null;
+  const favorites = records.data.favorites.filter((b) => bookmarkHref(b) !== null);
+  const listId = `${idPrefix}-list-favorites`;
+  const open = !collapsedGroups.includes("favorites");
+  return (
+    <div className="flex flex-col gap-0.5">
+      <GroupTitle
+        id={`${idPrefix}-favorites`}
+        label={t.groupFavorites}
+        listId={listId}
+        foldKey="favorites"
+        open={open}
+        railCollapsed={false}
+      />
+      {open ? (
+        favorites.length > 0 ? (
+          <ul id={listId} aria-labelledby={`${idPrefix}-favorites`} className="flex flex-col gap-0.5">
+            {favorites.slice(0, SHOWN_FAVORITES).map((bookmark) => {
+              const href = bookmarkHref(bookmark)!;
+              return (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    aria-current={href === pathname ? "page" : undefined}
+                    className="msds-rail-item text-body"
+                  >
+                    <IconStar filled className={cn("msds-rail-icon", href === pathname && "text-rail-accent")} />
+                    <span className="msds-rail-label truncate">{bookmarkName(bookmark)}</span>
+                  </Link>
+                </li>
+              );
+            })}
+            {favorites.length > SHOWN_FAVORITES ? (
+              <li>
+                <Link href="/app/meus-registros?visao=favoritos" className="msds-rail-item text-caption">
+                  <span className="msds-rail-label text-rail-ink-muted">{t.favoritesAll}</span>
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <p id={listId} className="px-2.5 text-caption text-rail-ink-muted">
+            {t.favoritesEmpty}
+          </p>
+        )
+      ) : null}
+    </div>
   );
 }
 

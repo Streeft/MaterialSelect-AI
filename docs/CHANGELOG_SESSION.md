@@ -120,6 +120,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 189 — 13/11/26 — F6: Início em blocos, Favoritos na barra lateral e Meus registros com visões (D-232)
+
+**O que mudou.** O Início vira blocos móveis e ocultáveis abaixo da caixa de escrever (`components/home/HomeBlocks.tsx`), com a
+arrumação na conta: `LayoutBlocks` generaliza o `OverviewBlocks` do Painel e o backend aceita o escopo `inicio` (só layout; sem
+migração). Bloco sem conteúdo diz isso numa linha. A barra lateral ganha "Favoritos" (registros com estrela, da conta). "Meus
+registros" ganha visões em `?visao=` e o vazio dos registros próprios leva a "Novo material" e "Sintetizar". As sugestões do composer
+ficam numa linha rolável no celular. Testes: `test_saved_views_api.py` (+1: Início guarda um layout e nenhuma visão),
+`layoutBlocks.test.tsx` (ordem da conta, bloco vazio, Alt+↓ grava no escopo `inicio`), "Favoritos" no `shellNav.test.tsx`, visões e
+portas do vazio em `meus-registros.test.tsx`, `?visao=` em `myRecordsFilter.test.ts`. Depois do merge: **Deploy da API**.
+
 ## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
 
 **O que mudou.** `fly.toml`: `[[vm]] memory` de `512mb` para `1gb`, depois de quatro mortes por falta de memória (exit 137) em

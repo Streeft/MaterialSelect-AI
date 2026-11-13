@@ -47,16 +47,20 @@ const proc: Bookmark = {
   },
 };
 const all = [material(aco), material(pet), proc];
-const none = { q: "", classe: "", tipo: "todos" as const };
+const none = { visao: "todos" as const, q: "", classe: "", tipo: "todos" as const };
 
 describe("filtros de Meus registros", () => {
   it("lê q, classe e tipo do endereço e ignora tipo desconhecido", () => {
     expect(readUrlState(MY_RECORDS_URL, "?q=aco&classe=metais&tipo=processo")).toEqual({
+      visao: "todos",
       q: "aco",
       classe: "metais",
       tipo: "processo",
     });
     expect(readUrlState(MY_RECORDS_URL, "?tipo=xyz").tipo).toBe("todos");
+    // D-232: the view is in the address too; an unknown one is "Todos".
+    expect(readUrlState(MY_RECORDS_URL, "?visao=favoritos").visao).toBe("favoritos");
+    expect(readUrlState(MY_RECORDS_URL, "?visao=xyz").visao).toBe("todos");
   });
 
   it("busca sem acento nem caixa", () => {

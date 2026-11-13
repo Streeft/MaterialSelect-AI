@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 #: The screens that keep views. A new screen joins here, on purpose: a scope
 #: is a promise that some screen reads these rows back.
-SavedViewScope = Literal["catalogo", "processos", "glossario", "painel"]
+#: D-232 (F6): "inicio" keeps only the home page's layout of blocks.
+SavedViewScope = Literal["catalogo", "processos", "glossario", "painel", "inicio"]
 SavedViewKind = Literal["table", "gallery", "list", "layout"]
 
 _KEY = r"^[a-z0-9_.:-]{1,64}$"
