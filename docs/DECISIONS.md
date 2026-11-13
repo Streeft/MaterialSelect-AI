@@ -13737,3 +13737,77 @@ filtros fica para quando houver pedido.
 
 **Numeração.** D-232, Sessão 189 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
+
+
+---
+
+## D-234 — Fluxos entre telas (parte 16): a IA marca o número que escolheu, A × B e massa na Eco, cascata da diferença, curva de custo por material, recaída do 429 da busca e fim do `/ai/interpret`
+
+**Contexto.** Pendências deixadas pelos D-224 (`/ai/interpret` sem uso na interface), D-230 (Sintetizar: o servidor só guardava o valor
+atual de cada parâmetro, então um `set_param` nunca mudava nada e o painel o escondia), D-230b (Eco: o painel ficava desligado no modo
+A × B e `part_mass` não era oferecido no formato de produto), D-96/D-216 (a curva Custo × Lote só existia por processo, de um material) e
+D-97/D-228 (a busca na web dos Cadernos parava no 429 do plano gratuito).
+
+**Decisão.**
+
+1. **O terceiro grau de origem do D-224 chega ao `set_param`.** A ação ganha `origin`: `contexto` (um valor que a tela ou um cenário
+   curado guarda, como até aqui) ou `sugestao_ia` (um número que o **modelo** escolheu). O servidor só aceita o segundo onde deu uma
+   **faixa** para o parâmetro (`NumberRange` em `app/ai/suggest.py`: a validação do próprio pedido da calculadora, nunca um juízo de
+   "bom valor"); fora da faixa, não-numérico ou parâmetro sem faixa, a ação sai com o motivo em `rejected`. O número marcado entra
+   arredondado a 6 algarismos, o botão diz "(sugestão da IA, revise)" e o cartão que o propõe pode escrevê-lo na prosa (os outros
+   números continuam sendo só os do contexto; `ungrounded_numbers` segue valendo). No `AISuggestPanel`, qualquer `set_param` com
+   `origin: "sugestao_ia"` abre o `ConfirmDialog` ("Aplicar a sugestão da IA?") e **só age depois do "Aplicar e revisar"**; recusar não
+   muda nada. O prompt lista a faixa só onde há uma, e a regra 2 ganhou essa única exceção.
+   *Faixas.* Sintetizar: `volume_fraction` e `relative_density` em (0, 1) aberto, `face_thickness` e `core_thickness` > 0 (como o
+   `SynthesisRequest`). Eco: `part_mass` em (0, 10⁶] kg. Custo, Dimensionar e Baterias **não** ganharam faixa: seguem só com valores do
+   contexto ou de cenário.
+2. **Eco: A × B e a massa da peça.** O contexto de `eco` aceita `{comparison}` (o `EcoComparisonRequest`, recalculado no servidor como a
+   auditoria; chave desconhecida é ignorada, pedido malformado é 400). Os nomes são `material_a.part_mass`, `material_b.part_mass`,
+   `material_{a,b}.recycled_fraction`, `material_{a,b}.end_of_life` e `transport_distance_km`; os fatos trazem os dois totais, o vencedor
+   com a diferença percentual e a fase que mais separa as alternativas (números do servidor; o módulo da diferença é o do servidor). No formato de produto, `part_mass` é a massa unitária **de um produto de um só componente** (com vários não há "a massa da
+   peça": não é oferecido, e nenhuma linha fica para trás); fração reciclada, fim de vida e distância valem quando todos os componentes
+   ou trechos concordam, o que também fez o "volte ao padrão" funcionar no produto. Na tela, o painel deixou de ficar desligado na
+   comparação, os campos de cada lado são marcados para o realce (`aiField("material_a.part_mass")`) e `aiParamPatch` escreve só o
+   cenário do lado certo; nomes do produto não valem na comparação, nem o contrário.
+3. **Eco: cascata da diferença A × B.** `build_difference_waterfall` (`app/calculations/eco_audit.py`) reusa `build_waterfall` com o `b - a`
+   de cada fase; `EcoComparisonResultOut` devolve `energy_difference_waterfall` e `carbon_difference_waterfall`. A barra de total é
+   **o total auditado de B menos o de A**, nunca uma segunda soma dos degraus (a soma em outra ordem difere no último dígito, e o
+   Python 3.12 soma `float` de outro jeito que o 3.11: os testes comparam com tolerância, nunca com `==`). Fase sem dado em A ou em B
+   é um degrau com o motivo escrito (A, B ou os dois), sem zero, e o total é recusado. No navegador, `PhaseWaterfall` ganhou
+   `variant="difference"`: degrau abaixo de zero é "B abaixo de A" (cor de sucesso), acima é "B acima de A" (cor de perigo), sempre com
+   as palavras; a figura traz tabela, moldura e exportação como as outras.
+4. **Custo: a curva inteira de cada material.** `POST /api/custo/curvas` (`material_ids` de 1 a 5, a mesma peça, lote e premissas;
+   no portão de requisições pesadas) devolve, por material, a **envoltória inferior** das curvas dos seus processos
+   (`cheapest_envelope` em `app/calculations/part_cost.py`: o custo do jeito mais barato em cada lote, com o processo vencedor em cada
+   ponto, empate para o primeiro), o ponto do lote atual (`current`) e um quadro log-log **comum** (`domain`, a geometria é do servidor,
+   ADR 0004). Material que não pode ser estimado (sem custo por massa, sem processo com dado econômico, invisível ao leitor) fica na
+   resposta com `reason`, sem derrubar os outros e sem curva. Na tela, com comparação, `MaterialCostCurvesChart` desenha uma curva por
+   material com o marcador do lote atual, tabela, legenda e exportação; a falha dessa chamada some só a figura.
+5. **Busca na web dos Cadernos: recaída no 429.** Ao receber 429 do modelo da busca, `gemini_search.search` tenta **uma vez**
+   `WEB_SEARCH_FALLBACK_MODEL` (padrão `gemini-flash-lite-latest`; vazio ou igual ao principal desliga) e registra no log o modelo que
+   estourou, o `quotaId`, a métrica e o limite (`quotaValue`) lidos de `error.details[].violations[]` (`describe_violations` em
+   `app/ai/google_quota.py`; só esses três campos, cortados, nunca a mensagem do Google nem a chave). O 429 do segundo modelo vira a
+   mensagem de cota de sempre; só o 429 aciona a recaída. O workflow **Provedor de IA** ganhou a entrada `modelo_busca_web`
+   (`manter` | `gemini-flash-latest` | `gemini-flash-lite-latest`, tabela fechada) que grava `WEB_SEARCH_MODEL` junto dos outros
+   segredos (só para `gemini`); `WEB_SEARCH_MODEL` já existia em `config.py` e no `.env.example`, que ganhou a variável da recaída.
+6. **Fim do `POST /api/ai/interpret`.** Nenhuma tela o chamava desde o D-225. Saíram a rota, `AIService.interpret`, o `_context` e os
+   `_accept_*` que só ele usava, os esquemas `InterpretRequest`, `InterpretationOut` e `Suggested{Constraint,Index,Property,Chart}`, e no
+   frontend `interpretStatement`, o tipo `Interpretation` e os mocks. **Ficaram**: o método `interpret` dos provedores (o `rule_plan` e o
+   `mock` usam a mesma leitura por regras, e os testes dos provedores o exercitam), os guardrails de `app/ai/guardrails.py` (o plano usa
+   `check_constraint` e `check_index`; `check_property` e `check_chart` ficaram sem chamador no serviço, mas continuam testados) e os
+   textos `ptBR.ai.*` (o `AIAssistPanel` ainda os usa). Os testes que usavam a rota como veículo passaram a usar `/ai/explain` (cota) ou o
+   provedor direto (leitura do `mock`, guardrails, recuperação do Cérebro).
+
+**Alternativas recusadas.** Deixar a IA escolher números sem faixa ou aplicá-los e deixar desfazer (é o que a D-224 recusou). Oferecer
+`part_mass` para produto com vários componentes escolhendo o primeiro (seria um número que a soma não leva em conta). Somar os degraus da
+cascata no navegador ou no servidor para a barra de total (o total auditado é a fonte). Curva de custo da envoltória no navegador
+(geometria é cálculo, ADR 0004) ou domínio por material (as curvas não seriam comparáveis). Recair para o modelo mais leve em qualquer erro
+(só a cota é "tentar o mais leve"). Remover o método `interpret` dos provedores (o `rule_plan` depende dele).
+
+**Consequências.** `SuggestAction` ganha `origin?` e o contrato de custo e Eco ganha tipos em `packages/shared-types`. Não há migração nem
+seed. Depois do merge: **Deploy da API**; o workflow **Provedor de IA** só se o autor quiser fixar `WEB_SEARCH_MODEL` (a recaída já vale
+com o padrão do código). Pendente: o painel de Custo, Dimensionar e Baterias não propõe número fora do contexto (decisão: só Sintetizar e a
+massa da Eco); o `check_property`/`check_chart` sem chamador no serviço; a cascata da diferença para mais de duas alternativas.
+
+**Numeração.** D-234/Sessão 191. (O D-232 e a Sessão 189 aparecem duas vezes na `main`, por duas frentes paralelas, a seleção por lista e o
+F6; o sufixo `b` da regra do D-226 fica para o autor aplicar.)

@@ -1838,18 +1838,24 @@ Registrados para não voltarem por engano:
 **IA em todas as ferramentas — pendências (D-228).**
 - ~~Etapa IA-2a (frontend)~~ — feita na D-229 (`AISuggestPanel` em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações só no clique).
 - ~~Etapa IA-2b (frontend)~~ — feita na D-230b (Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e as duas telas de Admin; as 15 telas têm o painel).
-- Sugestão da IA em Sintetizar: o servidor só guarda o valor atual de cada parâmetro (`_params` sem cenário), então um `set_param` nunca muda nada e o painel o esconde; para sugerir receitas o backend precisa de valores alternativos (D-230).
-- Sugestão da IA na Eco: no modo A × B o painel fica desligado (o servidor sugere sobre uma auditoria individual) e `part_mass` não é oferecido no formato de produto (D-230b).
+- ~~Sugestão da IA em Sintetizar~~ — feita no D-234: o `set_param` aceita um número que o modelo escolheu dentro da faixa do pedido (`origin: "sugestao_ia"`), marcado "revise" e só aplicado depois do `ConfirmDialog` do painel.
+- ~~Sugestão da IA na Eco, A × B e `part_mass`~~ — feitas no D-234 (`{comparison}` no contexto; `part_mass` = massa unitária de um produto de um só componente; faixa (0, 10⁶] kg).
 - Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
 - Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
 - A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
 - `claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída; só o `openai-compat` o aplica.
 - O 429 dos embeddings fora do diagnóstico ainda usa a mensagem genérica de `EmbeddingClient` (a busca cai para a léxica sem aviso na tela, como antes).
 
+**Fluxos entre telas, parte 16 — pendências (D-234).**
+- ~~Cascata da diferença A × B na Eco~~, ~~curva Custo × Lote de cada material comparado~~ e ~~recaída do 429 da busca na web~~ (`WEB_SEARCH_FALLBACK_MODEL`; entrada `modelo_busca_web` no workflow Provedor de IA) — feitas no D-234.
+- Custo, Dimensionar e Baterias seguem sem número escolhido pelo modelo (só valores do contexto ou de cenário); dar faixa a um parâmetro é uma decisão por parâmetro.
+- Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido (hoje é sempre o mais barato em cada lote).
+- Em produção, depois do **Deploy da API**: `fly logs` ao esgotar a cota da busca deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId`.
+
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
-- `/ai/interpret` e `interpretStatement` ficaram sem uso na interface (D-225); remover o endpoint, o provedor `interpret` e os textos `ptBR.ai.*` do painel antigo numa limpeza própria, ou manter para clientes externos.
+- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa), `check_property`/`check_chart` sem chamador no serviço e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair.
 - Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
 - Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
 - Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.

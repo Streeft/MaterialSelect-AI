@@ -425,7 +425,7 @@ As regras que pesam:
   (`NotebookRepository.reserve`) e devolvida se a chamada falhar — uma pergunta
   que falha continua de graça, e uma rajada não passa do teto.
 - **A mesma cota vale fora dos Cadernos** ([D-179](DECISIONS.md)):
-  `/ai/interpret`, `/ai/explain` e a narrativa do laudo usam a mesma chave, então
+  `/ai/explain` e a narrativa do laudo usam a mesma chave, então
   reservam no **mesmo contador** `requests` do `AIUsage` (por usuário e por dia
   UTC), com teto próprio `AI_DAILY_REQUESTS` (padrão 100). O Caderno continua
   parando no seu teto (`NOTEBOOK_DAILY_REQUESTS`) sobre o mesmo contador: a
@@ -648,6 +648,7 @@ externas"):
 | `WEB_SEARCH_PROVIDER` | vazio | busca na web **desligada**; `gemini` liga |
 | `WEB_SEARCH_API_KEY` | vazio | vazia usa `AI_API_KEY` **só** se `AI_BASE_URL` for o Gemini — a chave de outro fornecedor nunca vai ao Google |
 | `WEB_SEARCH_MODEL` | `gemini-flash-latest` | modelo que faz a busca |
+| `WEB_SEARCH_FALLBACK_MODEL` | `gemini-flash-lite-latest` | no 429 do modelo acima a busca tenta **uma vez** este (D-234), registrando no log o `quotaId` e o limite; vazio desliga |
 | `WEB_SEARCH_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | API nativa do Gemini |
 | `WEB_SEARCH_TIMEOUT_SECONDS` | `25` | uma chamada com *grounding* pesquisa antes de responder |
 | `WEB_SEARCH_MAX_RESULTS` | `8` | resultados por busca |
@@ -799,7 +800,6 @@ código, o `mock`.
 
 | Função | Rota / onde | Método do provedor | Gemini (produção) | `mock` | Se o modelo falhar |
 |---|---|---|---|---|---|
-| Interpretar enunciado | `POST /ai/interpret` | `interpret` | JSON estrito | regras léxicas | 503 com a mensagem |
 | Assistente de projeto | `POST /ai/plan` (Início, Seleção) | `plan` (teto próprio) | JSON estrito | `rule_plan` | regras locais, `degraded` |
 | Rodar o plano de novo | `POST /ai/plan/run` | — (sem modelo) | — | — | — |
 | Explicar estudo / laudo | `POST /ai/explain`, relatórios | `explain` | JSON estrito | prosa determinística | 503 / laudo sem narrativa |
@@ -860,7 +860,11 @@ Formatos das ações (todas com `label`, o texto do botão escrito pelo servidor
 
 **Guardrails.** Entidade que não existe (propriedade, índice, mapa, material fora do contexto, rota fora da lista), ação de
 outra ferramenta e `set_param` com valor que não vem do contexto, de um cenário ou de um padrão (D-224) → a ação sai, com o
-motivo em `rejected`. Prosa com número fora do contexto (`ungrounded_numbers`; os arredondamentos e o percentual de um número
+motivo em `rejected`. **Exceção marcada (D-234):** onde o servidor deu uma faixa ao parâmetro (`NumberRange`: a validação do pedido
+da calculadora), um número que o modelo escolheu dentro dela fica, com `origin: "sugestao_ia"` e o rótulo "(sugestão da IA, revise)";
+fora da faixa a ação sai com o motivo. A tela só o aplica depois de o `ConfirmDialog` do painel ser confirmado (o terceiro grau de
+origem do D-224). As faixas existem em Sintetizar (frações em (0, 1), espessuras > 0) e na massa da Eco (0, 10⁶] kg; o cartão que
+propõe o número pode escrevê-lo, e nenhum outro número fora do contexto. Prosa com número fora do contexto (`ungrounded_numbers`; os arredondamentos e o percentual de um número
 do servidor contam como dele) → o cartão inteiro sai. **Nunca vazio**: falha do modelo, cota esgotada ou nenhuma sugestão
 válida → as regras locais da ferramenta, com `degraded: true` e `notice`; com a camada desligada, as mesmas regras (provedor
 `regras-locais`). Cache de 10 minutos por (ferramenta, hash do contexto enriquecido, provedor, modelo), sem gastar cota;
@@ -902,16 +906,16 @@ movimento sob `prefers-reduced-motion`), e o foco só vai a ele quando seria per
 |---|---|---|
 | Dimensionar | `dimensionar`: `{request}` = o pedido de `/api/solver/solve` (caso, entradas, objetivo, limite); desligado até o pedido estar completo | `set_param` `objective` e `inputs.<chave>` (apoio só entre as constantes do caso; variável livre só número); `compare` é link para `/app/comparar?materiais=`; `open_route` é link |
 | Custo | `custo`: `{request}` = o pedido da estimativa (material, massa, lote, amortização, fator de carga) | `set_param` `part_mass`, `batch_size`, `write_off_years`, `load_factor` (as premissas recolhidas abrem) |
-| Eco | `eco`: `{request}` = a auditoria individual; desligado no modo A × B | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem para todos os componentes ou trechos do produto |
+| Eco | `eco`: `{request}` = a auditoria individual, ou `{comparison}` = o pedido do A × B (D-234; o servidor recalcula os dois lados) | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem quando todos os componentes ou trechos concordam; `part_mass` só para um produto de um componente (faixa (0, 10⁶] kg, marcada para revisão); na comparação, `material_a.*` e `material_b.*` (`part_mass`, `recycled_fraction`, `end_of_life`) e `transport_distance_km` |
 | Baterias | `baterias`: `{request}` = o pedido de dimensionamento | `set_param` `chemistry_slug` (só química do catálogo) e os requisitos e fatores de empacotamento (abrem as premissas); vira "personalizado" como uma edição manual |
-| Sintetizar | `sintetizar`: `{request}` = o pedido da prévia (com o nome provisório) | `set_param` `volume_fraction`, `relative_density`, `face_thickness`, `core_thickness`, só o campo do tipo de receita aberto e só se o valor mudar |
+| Sintetizar | `sintetizar`: `{request}` = o pedido da prévia (com o nome provisório) | `set_param` `volume_fraction`, `relative_density`, `face_thickness`, `core_thickness`, só o campo do tipo de receita aberto e só se o valor mudar; o número pode ser o que o modelo escolheu na faixa do pedido (D-234), marcado e confirmado |
 | Painel | `painel`: `{}` (o servidor lê o panorama) | só `open_route` (links) |
 | Meus registros | `registros`: `{}` (o servidor lê os registros da pessoa) | `compare` e `open_route` (links) |
 | Admin → Classes | `admin_classes`: `name`, `description` | `fill_text` `description` preenche o formulário **sem gravar**; `open_route` é link; desligado sem nome |
 | Admin → Propriedades | `admin_propriedades`: `name`, `canonical_unit`, `description` | idem; o formulário ganhou o campo de descrição |
 
-Com isso, as 15 telas têm o painel. Pendência do backend: em Sintetizar o servidor só oferece o valor atual de cada parâmetro, e o
-painel esconde o `set_param` que não mudaria nada.
+Com isso, as 15 telas têm o painel. (Pendência antiga resolvida no D-234: em Sintetizar o servidor só oferecia o valor atual, e o
+`set_param` nunca mudava nada; agora há a sugestão marcada dentro da faixa do pedido. `POST /ai/interpret` saiu no mesmo D-234.)
 
 ## Provedor simulado (`app/ai/mock.py`)
 
@@ -1086,7 +1090,6 @@ alto, cada uma com a mensagem que diz qual botão girar.
 | GET | `/api/ai/status` | a camada está ligada? é simulada? qual modelo e host, e cada capacidade configurada (D-228) |
 | POST | `/api/ai/diagnostico` | testa ao vivo o JSON, o embedding e a busca na web, com latência; sem gastar cota (D-228) |
 | POST | `/api/ai/suggest` | `{tool, context}` → até 3 sugestões com ações tipadas e checadas para a tela (D-228) |
-| POST | `/api/ai/interpret` | enunciado → proposta editável |
 | POST | `/api/ai/explain` | estudo salvo → prosa sobre o resultado calculado |
 | POST | `/api/ai/plan` | pedido em linguagem comum → proposta de projeto checada e executada (D-224) |
 | POST | `/api/ai/plan/run` | a proposta de novo, com as escolhas da pessoa; sem modelo, sem cota |
@@ -1104,7 +1107,7 @@ Esse tratador foi acrescentado depois de o defeito aparecer em produção, na
 primeira vez que a instância publicada falou com um provedor real. Sem ele a
 exceção subia como `RuntimeError` não tratado e virava um **500 com corpo de
 texto puro** — que o frontend não consegue ler, porque ele lê `detail` do JSON —,
-então o usuário via um genérico "Falha na requisição /api/ai/interpret" e perdia
+então o usuário via um genérico "Falha na requisição /api/ai/explain" e perdia
 exatamente a mensagem que diz o que corrigir. O provedor se dá ao trabalho de
 nomear o host e a causa; jogar isso fora era o pior desfecho possível.
 
