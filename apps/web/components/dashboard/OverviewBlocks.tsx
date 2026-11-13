@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Block, Button, useReorder } from "@/components/ui";
 import { dashboardText as d } from "@/lib/i18n-dashboard";
 import { useSavedViews } from "@/lib/savedViews";
+import type { SavedViewScope } from "@/lib/types";
 
 export interface OverviewBlock {
   id: string;
@@ -21,7 +22,41 @@ export interface OverviewBlock {
  * with the page's filters as before.
  */
 export function OverviewBlocks({ blocks }: { blocks: readonly OverviewBlock[] }) {
-  const saved = useSavedViews("painel");
+  return (
+    <LayoutBlocks
+      scope="painel"
+      blocks={blocks}
+      label={d.blocks.label}
+      hint={d.blocks.hint}
+      resetLabel={d.blocks.reset}
+    />
+  );
+}
+
+/**
+ * D-232 (F6): the same movable blocks for any screen whose arrangement is kept
+ * in the account — the dashboard (D-209) and the Início. A block whose content
+ * renders nothing (a "Retomar" with nothing to resume) keeps its place and says
+ * so in one line (`emptyLabel`, written by the CSS on the empty body): hiding
+ * it would make Alt+↓ move a block past something the reader cannot see.
+ */
+export function LayoutBlocks({
+  scope,
+  blocks,
+  label,
+  hint,
+  resetLabel,
+  emptyLabel,
+}: {
+  scope: SavedViewScope;
+  blocks: readonly OverviewBlock[];
+  label: string;
+  hint: string;
+  resetLabel: string;
+  /** What a block whose content renders nothing says, in one line. */
+  emptyLabel?: (name: string) => string;
+}) {
+  const saved = useSavedViews(scope);
   const defaults = blocks.map((block) => block.id);
   const stored = saved.layout?.config;
   // A local copy answers at once; the account catches up behind it.
@@ -50,16 +85,16 @@ export function OverviewBlocks({ blocks }: { blocks: readonly OverviewBlock[] })
     hidden.length > 0 || order.some((id, index) => id !== defaults[index]);
 
   return (
-    <section aria-label={d.blocks.label} className="flex flex-col gap-2">
+    <section aria-label={label} className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-caption text-ink-muted">{d.blocks.hint}</p>
+        <p className="text-caption text-ink-muted">{hint}</p>
         {customised ? (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => persist({ order: defaults, hidden: [] })}
           >
-            {d.blocks.reset}
+            {resetLabel}
           </Button>
         ) : null}
       </div>
@@ -82,7 +117,12 @@ export function OverviewBlocks({ blocks }: { blocks: readonly OverviewBlock[] })
             {isHidden ? (
               <span className="text-body text-ink-muted">{block.name}</span>
             ) : (
-              <div className="flex flex-col gap-4">{block.node}</div>
+              <div
+                className="ds-block-body flex flex-col gap-4"
+                data-empty={emptyLabel ? emptyLabel(block.name) : undefined}
+              >
+                {block.node}
+              </div>
             )}
           </Block>
         );

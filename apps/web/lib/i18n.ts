@@ -3740,6 +3740,23 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
+    // D-232 (F6): the Início as movable blocks, arranged in the account.
+    blocks: {
+      label: "Blocos do Início",
+      hint: "Arraste pela alça ⋮⋮ ou use Alt + seta para mudar a ordem; o olho oculta um bloco. A arrumação fica guardada na sua conta.",
+      reset: "Voltar à arrumação padrão",
+      empty: (name: string) => `${name}: nada por enquanto.`,
+      names: {
+        guia: "Primeiros passos",
+        retomar: "Continue de onde parou",
+        recentes: "Vistos recentemente",
+        estudos: "Estudos salvos",
+        atalhos: "Tarefas",
+        novidades: "Novidades do catálogo",
+        mapas: "Mapas fixados",
+        explorar: "Explore os dados",
+      },
+    },
     exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",
