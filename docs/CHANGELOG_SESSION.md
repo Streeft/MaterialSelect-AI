@@ -135,6 +135,16 @@ conta" da Eco passou de `h4` para `h3` (axe). Testes novos: um bloco "Sugestão 
 **Para quem retoma.** Só frontend: sem **Deploy da API**, migração ou seed. As 15 telas têm o painel. Pendência para o backend:
 `ai_suggest.py` não dá valores alternativos em Sintetizar (ver o D-230).
 
+## Sessão 186 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-229)
+
+**O que mudou.** `apps/web/lib/compareClassics.ts`: cada lado de um par tem classe e termos do mais específico ao mais geral; o
+termo casa só como palavra inteira e o nome que é ou começa pelo termo vence o que só o menciona (`matchRank`). Corrige "aço" →
+argamassa "Traço 1:3", "titânio" → aço inoxidável estabilizado ao titânio, "PP" → compósito NFRP de cânhamo e "vidro" → BMC
+Vidro-E. `CompareSuggestions` passa a pedir `class_slug`. Testes: `compareClassics.test.ts` ganhou 6 (os casos errados do catálogo
+local e a classificação do nome).
+
+**Para quem retoma.** Só frontend; deploy pela Vercel no merge. Achado ao regravar o vídeo da banca, que usa o par
+"Cobre × Alumínio" — esse par resolve para os mesmos dois materiais de antes.
 ## Sessão 186 — 12/11/26 — Painel "Sugestão da IA" em sete telas (D-229)
 
 **O que mudou.** Frontend: `components/ai/AISuggestPanel.tsx` (+ `useAISuggest.ts`, `lib/ai/suggest.ts`, `lib/i18n-suggest.ts`,
