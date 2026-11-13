@@ -34,6 +34,7 @@ afterEach(() => {
   window.localStorage.clear();
   delete root.dataset.contrast;
   delete root.dataset.motion;
+  delete root.dataset.rail;
   pathname = "/app/mapas";
 });
 
@@ -77,6 +78,16 @@ describe("Aparência (D-196)", () => {
     const contrast = screen.getByRole("group", { name: t.contrastTitle });
     await user.click(within(contrast).getByRole("button", { name: t.contrast.standard }));
     expect(root.dataset.contrast).toBeUndefined();
+  });
+
+  it("offers the light rail, and back to the dark default (D-236)", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const rail = screen.getByRole("group", { name: t.railTitle });
+    await user.click(within(rail).getByRole("button", { name: t.rail.light }));
+    expect(root.dataset.rail).toBe("light");
+    await user.click(within(rail).getByRole("button", { name: t.rail.dark }));
+    expect(root.dataset.rail).toBeUndefined();
   });
 
   it("sets the table density for every table", async () => {

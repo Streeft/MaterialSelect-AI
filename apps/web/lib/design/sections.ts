@@ -95,6 +95,8 @@ export const ROUTE_LABELS = [
   { route: "/app/materiais", label: "Catálogo" },
   { route: "/app/estilo", label: "Estilo" },
   { route: "/app/aparencia", label: "Aparência" },
+  // D-236: Conta, with Aparência as its sub-page (a breadcrumb there).
+  { route: "/app/conta", label: "Conta" },
 ] as const;
 
 /** What the page header's eyebrow calls the route: its section, else its own label, else the initial section. */

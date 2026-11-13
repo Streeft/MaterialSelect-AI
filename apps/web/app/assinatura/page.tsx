@@ -5,7 +5,8 @@ import { useState } from "react";
 import { ApiError, createCheckoutSession, createPortalSession } from "@/lib/api";
 import { useBillingStatus } from "@/lib/billing";
 import { ptBR } from "@/lib/i18n";
-import { Button, ButtonLink, Card, CardBody, ErrorState, LoadingState } from "@/components/ui";
+import { Button, ButtonLink, ErrorState, LoadingState } from "@/components/ui";
+import { EntryFrame } from "@/components/marketing/EntryFrame";
 
 const t = ptBR.billing;
 
@@ -48,44 +49,43 @@ export default function BillingPage() {
   }
 
   return (
-    // D-202: outside the app shell, so the page brings its own `<main>` landmark.
-    <main id="conteudo" className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-sm">
-        <CardBody className="flex flex-col items-center gap-4 py-8 text-center">
-          <h1 className="text-xl font-semibold text-ink">{t.title}</h1>
-          {isLoading ? (
-            <LoadingState label={ptBR.auth.checkingSubscription} />
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : data?.active ? (
-            <>
-              <p className="text-body text-ink-muted">{t.activeSubtitle}</p>
-              <Button variant="primary" onClick={handlePortal} disabled={redirecting}>
-                {redirecting ? t.redirecting : t.manageButton}
-              </Button>
-            </>
-          ) : data?.access_mode === "open" ? (
-            // D-83: no checkout while the tool is open to a class — the
-            // student has nothing to buy to get in.
-            <>
-              <p className="text-body text-ink-muted">{t.openSubtitle}</p>
-              <ButtonLink href="/app" variant="primary">
-                {t.openButton}
-              </ButtonLink>
-            </>
-          ) : (
-            <>
-              <p className="text-body text-ink-muted">{t.inactiveSubtitle}</p>
-              <Button variant="primary" onClick={handleCheckout} disabled={redirecting}>
-                {redirecting ? t.redirecting : t.subscribeButton}
-              </Button>
-            </>
-          )}
-          {actionError ? (
-            <ErrorState description={actionError} onRetry={() => setActionError(null)} />
-          ) : null}
-        </CardBody>
-      </Card>
-    </main>
+    // D-236: the same split frame as /entrar. Signed in with access, the
+    // student finds all of this in Conta (/app/conta), inside the app.
+    <EntryFrame>
+      <div className="flex flex-col items-start gap-4">
+        <h1 className="text-display text-ink">{t.title}</h1>
+        {isLoading ? (
+          <LoadingState label={ptBR.auth.checkingSubscription} />
+        ) : isError ? (
+          <ErrorState onRetry={() => refetch()} />
+        ) : data?.active ? (
+          <>
+            <p className="text-body text-ink-muted">{t.activeSubtitle}</p>
+            <Button variant="primary" onClick={handlePortal} disabled={redirecting}>
+              {redirecting ? t.redirecting : t.manageButton}
+            </Button>
+          </>
+        ) : data?.access_mode === "open" ? (
+          // D-83: no checkout while the tool is open to a class — the
+          // student has nothing to buy to get in.
+          <>
+            <p className="text-body text-ink-muted">{t.openSubtitle}</p>
+            <ButtonLink href="/app" variant="primary">
+              {t.openButton}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <p className="text-body text-ink-muted">{t.inactiveSubtitle}</p>
+            <Button variant="primary" onClick={handleCheckout} disabled={redirecting}>
+              {redirecting ? t.redirecting : t.subscribeButton}
+            </Button>
+          </>
+        )}
+        {actionError ? (
+          <ErrorState description={actionError} onRetry={() => setActionError(null)} />
+        ) : null}
+      </div>
+    </EntryFrame>
   );
 }

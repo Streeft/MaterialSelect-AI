@@ -13897,3 +13897,49 @@ linhas; ficam no servidor, testados). Ordem das notas no `localStorage` (a nota 
 **Numeração.** D-235b, Sessão 192b: a `main` recebeu a D-235/Sessão 192 do Grupo D (#258) antes deste PR, e pela regra do D-226 (item 4) o mais novo ganha o sufixo. Toca `apps/api` **com migração** (`e575ea7c3f24`): depois do merge,
 **Deploy da API** (o `release_command` aplica a migração).
 F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)
+
+---
+
+## D-236 — F8 da revisão das telas: landing com o método, Entrar dividido, Conta dentro do app e barra lateral clara
+
+**Contexto.** A F8 do plano ("Entrada") pedia: a landing com o método e capturas; o Entrar em tela dividida; e a Assinatura virando
+uma página de Conta dentro do app (plano, uso do mês das buscas e gerações dos Cadernos, Aparência e Sair). Da F6 (D-232b) ficou
+para cá a opção "Barra lateral clara". As duas decisões do autor sobre esta fase (quanto investir na landing; barra lateral clara)
+seguiram a recomendação do plano: landing depois das fases de uso, e barra escura por padrão com a clara como opção.
+
+**Decisão.**
+- **Landing (`/`).** Barra com a marca e "Entrar"; herói no trilho escuro com a pergunta do Início ("O que a peça precisa
+  fazer?"), uma frase, "Começar um estudo" e o mapa de Ashby estático de antes (D-91). Abaixo, o método em três passos — Função,
+  Limites, Resultado — cada um com uma **captura real** do app (`public/landing/*.webp`, 992 × 530, ~25 KB cada, tirada do exemplo
+  da viga de bicicleta sobre o catálogo de demonstração, dito na própria página) e um texto alternativo que descreve o que a
+  captura mostra; a faixa "O que o app garante" (nenhum número inventado, a origem a um toque, ausência escrita); rodapé com o
+  crédito do TCC, "Começar um estudo", "Glossário" e "Entrar". Continua estática (sem busca de dado, sem Plotly), sem planos nem
+  preços (D-202).
+- **Entrar e Assinatura em tela dividida** (`EntryFrame`): à esquerda, no trilho, a marca (link para `/`), uma frase do método e
+  os três pontos; à direita, o cartão centralizado na altura. "Voltar à página inicial" fica acima do título e o aviso de
+  privacidade vira texto de apoio sob o botão. Abaixo de `lg` a marca encolhe para uma faixa e o cartão vem logo depois.
+- **Conta (`/app/conta`), dentro do app.** Perfil (nome, e-mail, papel: estudante ou curadoria, de `can_edit_catalog`); Acesso
+  (aberto, ou assinatura ativa até a data, com "Gerenciar assinatura" como ação secundária); **Uso da IA hoje**, como o servidor
+  conta: perguntas aos Cadernos (de `notebook_daily_requests`), gerações do Estúdio (de `notebook_daily_artifacts`, que passou a
+  vir em `/dashboard/activity` como `artifact_daily_limit`) e buscas e links externos (de `notebook_daily_fetches`), cada um com um
+  `<meter>` nativo; Aparência como link; "Sair" no cabeçalho. O nome na barra lateral abre a Conta; Aparência vira subpágina, com a
+  trilha "Conta / Aparência". `/assinatura` continua sendo só a página do portão para quem entrou sem acesso.
+- **Uso de hoje, não do mês.** Os limites são diários e o servidor só guarda contagens por dia; um total do mês seria uma soma
+  feita no cliente. Fica o dia, com os limites ao lado.
+- **Barra lateral clara.** `Appearance.rail` (`dark` | `light`, no aparelho, `data-rail` no `<html>` pelo script do `<head>`).
+  Vale **só no tema claro** e **só dentro da moldura** (`[data-surface="rail"]`: barra lateral, gaveta e navegação inferior), de
+  modo que a landing, que também usa `bg-rail`, fica escura. Tons medidos sobre 233 228 219: texto 13,8:1, secundário 6,3:1,
+  sutil 4,8:1, rótulo de grupo 5,5:1. Os itens do MSDS, que usam branco fixo, leem os tokens do trilho nessa variante.
+- **"Carregar exemplo" espera o catálogo.** Clicado antes de chegarem os índices e as propriedades, o exemplo da viga dizia que o
+  catálogo "não tem" nenhum deles. O botão fica em carregamento até as duas listas chegarem (achado ao tirar as capturas).
+
+**Fora.** Glossário público (o link do rodapé leva ao Glossário do app, que pede login). "Baixar modelo CSV" do Importar, que a
+D-205 deixou para a F8: pede decidir o formato do modelo e fica pendente. Total do mês no uso da IA (ver acima).
+
+**Alternativas recusadas.** Capturas desenhadas à mão ou em SVG (o plano pede telas reais; envelhecem, mas a regra de olhar no
+navegador, D-149, vale para elas). Barra lateral clara também no tema escuro (o trilho já é a superfície escura da página).
+Conta como diálogo (é uma página de leitura, com endereço próprio).
+
+**Numeração.** D-236, Sessão 193 (conferidas em `origin/main`). Toca `apps/api` sem migração (um campo a mais na resposta de
+`/dashboard/activity`): depois do merge, **Deploy da API**.
+

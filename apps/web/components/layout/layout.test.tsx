@@ -219,8 +219,11 @@ describe("AppSidebar", () => {
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
       // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
       // Dezoito desde o D-130b: "Glossário", em "Dados".
-      // D-196: mais o atalho de Aparência no rodapé da conta.
-      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(20); // 18 + o wordmark + Aparência
+      // D-196: mais o atalho de Aparência no rodapé da conta; D-236: o nome abre a Conta.
+      expect(within(drawer).getAllByShadowRole("link")).toHaveLength(21); // 18 + o wordmark + Aparência + Conta
+      expect(
+        within(drawer).getByShadowRole("link", { name: new RegExp(`^${ptBR.account.open}:`) }),
+      ).toHaveAttribute("href", "/app/conta");
       expect(within(drawer).getByShadowRole("link", { name: ptBR.appearance.open })).toHaveAttribute(
         "href",
         "/app/aparencia",

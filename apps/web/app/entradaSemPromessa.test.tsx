@@ -37,23 +37,36 @@ function withClient(node: React.ReactNode) {
 }
 
 describe("página inicial pública", () => {
-  it("explica o app em três pontos e oferece o caminho para entrar", async () => {
+  it("explica o método em três passos com capturas e oferece o caminho para entrar", async () => {
     const { container } = render(<StartScreen />);
-    for (const point of ptBR.auth.landingPoints) {
-      expect(screen.getByText(point.title)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: ptBR.auth.landing.heroQuestion })).toBeInTheDocument();
+    for (const step of ptBR.auth.landing.steps) {
+      expect(screen.getByRole("heading", { level: 3, name: step.title })).toBeInTheDocument();
+      // D-236: the captures are real screens, described for whoever cannot see them.
+      expect(screen.getByRole("img", { name: step.alt })).toBeInTheDocument();
+    }
+    for (const item of ptBR.auth.landing.guarantees) {
+      expect(screen.getByRole("heading", { level: 3, name: item.title })).toBeInTheDocument();
     }
     expect(screen.getByRole("link", { name: ptBR.auth.landingEnter })).toHaveAttribute("href", "/entrar");
-    expect(screen.getByRole("link", { name: new RegExp(ptBR.home.start) })).toHaveAttribute("href", "/app/selecao");
+    const starts = screen.getAllByRole("link", { name: new RegExp(ptBR.home.start) });
+    expect(starts.every((link) => link.getAttribute("href") === "/app/selecao")).toBe(true);
+    const footer = screen.getByRole("navigation", { name: ptBR.auth.landing.footer });
+    expect(footer).toBeInTheDocument();
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
   });
 });
 
 describe("/entrar", () => {
-  it("diz que não há assinatura e deixa voltar à página inicial", () => {
-    render(<LoginPage />);
+  it("diz que não há assinatura e deixa voltar à página inicial", async () => {
+    const { container } = render(<LoginPage />);
     expect(screen.getByText(ptBR.auth.loginAccess)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: ptBR.auth.loginBack })).toHaveAttribute("href", "/");
+    // D-236: the split frame — the brand side links home and says the method.
+    expect(screen.getByText(ptBR.auth.entryPhrase)).toBeInTheDocument();
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
   });
 });
 

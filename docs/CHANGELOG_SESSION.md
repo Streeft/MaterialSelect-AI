@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 193 — 13/11/26 — F8: landing com o método, Entrar dividido, Conta no app e barra lateral clara (D-236)
+
+**O que mudou.** Backend: `artifact_daily_limit` em `AIUsageOut` (`/dashboard/activity`), lido de `notebook_daily_artifacts`.
+Frontend: `StartScreen` com barra, herói, os três passos com capturas reais (`public/landing/`), "O que o app garante" e rodapé;
+`EntryFrame` em `/entrar` e `/assinatura`; página `/app/conta` (perfil, acesso, uso da IA de hoje com `<meter>`, Aparência, Sair),
+o nome na barra lateral leva a ela e Aparência ganha a trilha "Conta / Aparência"; `Appearance.rail` e a variante clara do trilho
+(`data-rail`, só no tema claro, só em `[data-surface="rail"]`, também na navegação inferior); "Carregar exemplo" da Seleção espera o
+catálogo. Testes novos: vitest em `conta`, `entradaSemPromessa` (landing e Entrar com axe), `aparencia`, `appearance` e `selecao`;
+pytest em `test_dashboard_rich`; E2E `entrada.spec.ts` (landing e Entrar a 375 e 1280 px, axe, capturas carregadas) e `/app/conta`
+em `rotas.ts`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 192b — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235b)
 
 **O que mudou.** Backend: `app/domain/notebook_templates.py` (Disciplina de Materiais, Revisão para prova, Projeto de TCC, Em branco),

@@ -12,6 +12,7 @@ import {
   type AppColor,
   type ContrastLevel,
   type MotionPreference,
+  type RailPreference,
 } from "@/lib/appearance";
 import { setTableDensity, useTableDensity, type TableDensity } from "@/lib/density";
 import { OKABE_ITO } from "@/lib/design/palette";
@@ -147,6 +148,19 @@ export default function AppearancePage() {
         </ButtonGroup>
       </Setting>
 
+      <Setting title={t.railTitle} hint={t.railHint}>
+        <ButtonGroup label={t.railTitle}>
+          {(["dark", "light"] as RailPreference[]).map((rail) => (
+            <ButtonGroupItem
+              key={rail}
+              label={t.rail[rail]}
+              selected={appearance.rail === rail}
+              onClick={() => setAppearance({ rail })}
+            />
+          ))}
+        </ButtonGroup>
+      </Setting>
+
       <Setting title={t.densityTitle} hint={t.densityHint}>
         <ButtonGroup label={t.densityTitle}>
           {(["comfortable", "compact"] as TableDensity[]).map((option) => (
@@ -195,7 +209,13 @@ export default function AppearancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t.title} description={t.description} />
+      {/* D-236: a sub-page of Conta — the trail says so and leads back. */}
+      <PageHeader
+        eyebrow={false}
+        breadcrumb={[{ label: ptBR.account.title, href: "/app/conta" }, { label: t.title }]}
+        title={t.title}
+        description={t.description}
+      />
       <PaneScaffold
         layout="supporting-pane"
         primary={settings}

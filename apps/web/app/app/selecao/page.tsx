@@ -1044,6 +1044,7 @@ function SelectionWizard() {
               state={state}
               dispatch={dispatch}
               onExample={applyExample}
+              exampleLoading={indices.isPending || properties.isPending}
               templates={
                 <TemplatePicker
                   templates={templates.data}

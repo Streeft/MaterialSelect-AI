@@ -357,6 +357,8 @@ class AIUsageOut(BaseModel):
     today: AIDayOut
     ai_daily_limit: int
     notebook_daily_limit: int
+    #: D-236: Studio generations per day, shown in Conta beside the other two.
+    artifact_daily_limit: int
     fetch_daily_limit: int
     days: list[AIDayOut]
 

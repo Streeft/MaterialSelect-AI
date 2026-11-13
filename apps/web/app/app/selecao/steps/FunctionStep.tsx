@@ -28,11 +28,15 @@ export function FunctionStep({
   state,
   dispatch,
   onExample,
+  exampleLoading = false,
   templates,
 }: {
   state: WizardState;
   dispatch: Dispatch<WizardAction>;
   onExample: () => void;
+  /** The catalogue's indices and properties are still on their way: checking the
+   * example against nothing would call every slug missing (D-236). */
+  exampleLoading?: boolean;
   /** The ready-made studies (D-210), rendered by the page that applies them. */
   templates: ReactNode;
 }) {
@@ -43,7 +47,7 @@ export function FunctionStep({
     <>
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-body text-ink-muted">{t.exampleIntro}</span>
-        <Button variant="secondary" onClick={onExample}>
+        <Button variant="secondary" onClick={onExample} loading={exampleLoading}>
           {t.loadExample}
         </Button>
       </div>
