@@ -120,6 +120,11 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
+
+**O que mudou.** `fly.toml`: `[[vm]] memory` de `512mb` para `1gb`, depois de quatro mortes por falta de memória (exit 137) em
+três minutos na produção. Um worker continua. Nota em `docs/13-deploy.md` (§2, "Memória da VM"). **Depois do merge: Deploy da API.**
+
 ## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
 ## Sessão 187 — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230)
 

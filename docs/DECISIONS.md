@@ -13463,3 +13463,23 @@ dois testes em `e2e/sugestao-ia.spec.ts` (Custo aplica um parâmetro e o valor m
 gravar). Correção que o axe achou: o título "Premissas desta conta" da Eco passou de `h4` para `h3`.
 
 **Numeração.** D-230/Sessão 187.
+
+## D-231 — Memória da API em produção: VM de 1 GB e consumo medido por tela
+
+**Contexto.** Depois do deploy das 11:49 UTC de 13/11/26, a máquina única do Fly (`shared-cpu-1x`, 512 MB, um worker uvicorn)
+foi morta por falta de memória (exit 137) quatro vezes em três minutos. Seleção, Mapas, Comparar, Dimensionar, Custo, Eco e
+Baterias não abriam; `/api/health` e `/api/health/db` respondiam em ~0,7 s (o banco estava bem; o processo reiniciava entre as
+mortes). O `fly deploy` aplica o `[[vm]]` do `fly.toml` a cada implantação, então subir a memória à mão não duraria.
+
+**Decisão.**
+
+1. **VM de 1 GB** (`[[vm]] memory = "1gb"` no `fly.toml`), primeiro e sozinho, para a produção voltar enquanto o consumo é
+   investigado. **Um worker continua**: cada worker a mais é uma cópia inteira do processo na mesma memória.
+
+**Alternativas recusadas.** `fly scale memory` à mão (o próximo deploy o desfaz). Mais workers (multiplicam a memória, o oposto
+do que falta). Voltar a versão anterior (o consumo cresce com o catálogo de 678 materiais, não com uma mudança só daquele
+deploy).
+
+**Consequências.** Custo maior da máquina sempre de pé. Depois do merge: **Deploy da API**. Sem migração nem seed.
+
+**Numeração.** D-231/Sessão 188 (o `main` tem dois D-230 e duas Sessões 187, dos PRs #251 e #252; este PR não os renumera).

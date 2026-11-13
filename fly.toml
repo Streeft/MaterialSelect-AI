@@ -63,6 +63,12 @@ primary_region = "gru"
     method = "GET"
     path = "/api/health"
 
+# 1 GB desde o D-231. Com 512 MB a máquina única foi morta por falta de
+# memória (exit 137, quatro vezes em três minutos depois do deploy de
+# 13/11/26): o processo Python, com o catálogo de 678 materiais carregado
+# por requisição e algumas telas abertas ao mesmo tempo, passava do teto.
+# Um worker só, de propósito: mais workers multiplicam a memória.
+# Números medidos e o motivo em docs/13-deploy.md (§2, "Memória da VM").
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"
