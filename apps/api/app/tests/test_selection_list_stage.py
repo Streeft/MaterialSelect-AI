@@ -246,6 +246,8 @@ def test_the_report_names_the_listed_materials(client, db_session):
     assert "Liga Alumínio Demo A" in text
     assert "Aço Demo B" in text
     assert "lista de 2 materiais" in text
+    # The stage table names its kind in words, not by the raw slug.
+    assert "Lista" in text.split("Estágios")[1]
 
 
 def test_a_study_with_a_list_stage_is_not_exported_as_a_file(client, db_session):

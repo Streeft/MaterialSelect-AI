@@ -44,7 +44,8 @@ test("laço no mapa, 'Abrir na Seleção' e o funil só com esses materiais", as
   await expect(page.getByText(`${picked} ${picked === 1 ? "material na lista" : "materiais na lista"}`)).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByText("Estágio 1 (lista)")).toBeVisible();
+  // O nome do estágio aparece também no funil: o título do cartão é o que se confere aqui.
+  await expect(page.getByRole("heading", { name: "Estágio 1 (lista)" })).toBeVisible();
   await expect(page).toHaveURL(/etapa=restricoes/);
   expect(new URL(page.url()).searchParams.has("materiais")).toBe(false);
 
