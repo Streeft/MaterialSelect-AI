@@ -274,7 +274,8 @@ export default function ClassesAdminPage() {
         ) : null}
         <div
           {...classDrag.dropProps("root")}
-          className="ds-drop rounded-control border border-dashed border-line px-3 py-2 text-caption text-ink-muted"
+          // Sticky: in a long tree the strip would scroll away from a row being dragged.
+          className="ds-drop sticky top-16 z-10 rounded-control border border-dashed border-line bg-page px-3 py-2 text-caption text-ink-muted"
         >
           {curadoriaText.move.dropRoot}
         </div>

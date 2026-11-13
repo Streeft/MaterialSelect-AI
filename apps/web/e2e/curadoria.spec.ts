@@ -129,6 +129,9 @@ test("admin/classes: arrastar uma linha sobre outra a move; a raiz recebe; um ci
   await grip(`Meio Arrasta ${stamp}`).dragTo(row(`Outra Arrasta ${stamp}`));
   await expect(page.getByText(`“Meio Arrasta ${stamp}” agora está em “Outra Arrasta ${stamp}”.`)).toBeVisible();
   expect(await parentOf(middle.slug)).toBe(other.id);
+  // The tree reloads after the move; the next drag starts only once the rows show the new place,
+  // or it would begin on rows that are about to be replaced (and the browser drops the gesture).
+  await expect(row(`Meio Arrasta ${stamp}`)).toContainText(`Outra Arrasta ${stamp}`);
 
   // Soltar o Meio na faixa da raiz o devolve à raiz.
   await grip(`Meio Arrasta ${stamp}`).dragTo(page.getByText("Solte aqui para tornar classe raiz"));
@@ -137,6 +140,7 @@ test("admin/classes: arrastar uma linha sobre outra a move; a raiz recebe; um ci
   await expect(page.getByText(`“Meio Arrasta ${stamp}” agora é uma classe raiz.`)).toBeVisible({
     timeout: 15_000,
   });
+  await expect(row(`Meio Arrasta ${stamp}`)).toContainText("raiz");
 
   // Um ciclo (soltar o Meio sobre o próprio Fundo) não é aceito: nada muda no servidor.
   await grip(`Meio Arrasta ${stamp}`).dragTo(row(`Fundo Arrasta ${stamp}`));
