@@ -92,6 +92,22 @@ class ChartRepository:
             stmt = stmt.execution_options(populate_existing=True)
         return list(self.db.execute(stmt).scalars().unique().all())
 
+    def list_material_ids(self) -> list[int]:
+        """Ids of the active, visible materials, in the order :meth:`list_materials` lists them.
+
+        One column instead of the materials with every value: a caller that
+        walks the whole catalogue (the catalogue export, D-235) takes these ids
+        and loads them in batches, so the ORM objects of a batch can be freed
+        before the next one is read.
+        """
+        stmt = (
+            select(Material.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .order_by(Material.name, Material.id)
+        )
+        return list(self.db.execute(stmt).scalars().all())
+
     def visible_class_names(self) -> list[tuple[str, str]]:
         """``(slug, name)`` of every class an active, visible material is in.
 

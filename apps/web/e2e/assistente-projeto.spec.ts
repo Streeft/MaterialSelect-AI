@@ -46,7 +46,7 @@ test("roupa de esqui: três partes com a origem de cada número, e uma delas abr
   }
 
   await outer.getByRole("button", { name: /^Abrir na Seleção/ }).click();
-  await expect(page).toHaveURL(/\/app\/selecao\?etapa=restricoes/);
+  await expect(page).toHaveURL(/\/app\/selecao\?etapa=restricoes/, { timeout: 45_000 });
   // The marker for the draft leaves the address once the wizard took it.
   await expect(page).not.toHaveURL(/rascunho=/);
   // The study is already filled: no "continue the draft?" question, and the
@@ -69,7 +69,7 @@ test("prédio para 50 pessoas: estrutura, vedação e isolamento, com materiais 
   await expect(page.getByText(/não filtram materiais/)).toBeVisible();
 
   await structure.getByRole("button", { name: /^Abrir na Seleção/ }).click();
-  await expect(page).toHaveURL(/\/app\/selecao\?etapa=restricoes/);
+  await expect(page).toHaveURL(/\/app\/selecao\?etapa=restricoes/, { timeout: 45_000 });
   await page.getByRole("navigation", { name: "Etapas" }).getByRole("button", { name: /Função/ }).click();
   await expect(page.getByLabel("Nome do estudo")).toHaveValue(/Estrutura/, { timeout: 30_000 });
 });
@@ -78,8 +78,11 @@ test("comparar os materiais de uma parte leva ao comparador com os registros", a
   await ask(page, "prédio para 50 pessoas");
   const structure = page.getByRole("article", { name: /^Estrutura/ });
   await expect(structure).toBeVisible({ timeout: 30_000 });
+  // `next dev` compiles /app/comparar on this first visit, which can take far
+  // longer than the 5 s of a default assertion: wait for the address, not a delay.
   await structure.getByRole("link", { name: /^Comparar estes materiais/ }).click();
-  await expect(page).toHaveURL(/\/app\/comparar\?materiais=/);
+  await expect(page).toHaveURL(/\/app\/comparar\?materiais=/, { timeout: 60_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 60_000 });
 });
 
 test("na Seleção, o assistente interpreta o texto e só aplica ao estudo depois do clique", async ({ page }) => {

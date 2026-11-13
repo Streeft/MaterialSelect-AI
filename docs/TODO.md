@@ -88,6 +88,7 @@ quitados".
 ## Média prioridade
 
 **Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F7 entregues** (F7, D-235: Cadernos com galeria de modelos ao criar e na lista vazia, notas em blocos com a alça, Alt+↑/↓ e "/" para inserir, ordem na conta, Estúdio monocromático e aviso do provedor como chip; F6, D-232: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
+**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F6 entregues** (F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,
 menu com grupos recolhíveis, Fixados e Recentes, migalhas no material e no caderno, título da aba por página). Pendente do 2.1:
 se o catálogo passar de dezenas de milhares de registros, trocar a dobra de acento em Python por coluna normalizada indexada
@@ -1818,21 +1819,20 @@ Registrados para não voltarem por engano:
 **Banco — pendências (D-227).**
 - Depois do Deploy da API, confirmar no painel do Neon que a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue`.
 **Fechamento da revisão das telas — pendências (D-226).**
-- Lighthouse: ver as medições no D-226; os limiares do `lighthouserc.json` só sobem até onde as medições sustentam.
+- ~~Lighthouse: limiares só sobem até onde as medições sustentam~~ — medido e subido no D-235 (performance 0,9, acessibilidade 0,95, boas práticas 0,9; tabela em `13-deploy.md`).
 - Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
-- axe roda a 1280 e 390 px no tema claro; o tema escuro tem contraste medido em nível de token (D-29) mas não passa pelo axe do E2E. Acrescentar uma passada escura quando o tempo do E2E permitir.
+- ~~axe só no tema claro~~ — passada escura em todas as rotas no `a11y.spec.ts` (D-235); a auditoria a 1920 px não achou estouro nem corte. Resta: as amostras de cor de seção do `/app/estilo` mostram os tons claros no tema escuro (só especímen).
 - ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
 - ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
+- ~~Numeração repetida D-232 / Sessão 189 (seleção por lista × F6)~~ — desambiguada no D-235: o F6 é **D-232b/189b**.
 - ~~Numeração repetida D-230 / Sessão 187 (#251 × #252)~~ — desambiguada no D-231: o painel das oito telas é **D-230b/187b**.
 
 **Memória da API (D-231).**
 - ~~Mortes por falta de memória em produção (exit 137)~~ — VM de 1 GB, concorrência 5/8 no proxy, portão `HEAVY_REQUEST_CONCURRENCY`,
   consultas leves na seleção, nos gráficos, nas calculadoras e no catálogo, `MALLOC_ARENA_MAX=2`; pico por requisição de 134–166 MB
   para 0,5–11 MB.
-- Exportação: `export_service` ainda lê o catálogo inteiro com todos os valores num caso (o relatório do catálogo, `catalogue_report`); levar para o
-  filtro `property_slugs`/`material_ids` quando a exportação for revista.
-- Partida do processo: ~150 MB depois do import, ~40 MB de `openpyxl`, `python-pptx`, `python-docx` e `pypdf`, usados só por
-  exportações e Cadernos; importar sob demanda dentro dos exportadores.
+- ~~Exportação: `catalogue_report` lia o catálogo inteiro~~ — em lotes de 100 e XLSX em fluxo no D-235 (pico 82,4 → 33,4 MB no CSV, 93,8 → 22,0 MB no XLSX; teto de 40 MB no `test_memory_per_request.py`). Resta o CSV, que ainda monta o texto inteiro antes de responder.
+- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). Resta o `pint` (registro de unidades), carregado na partida.
 - Medir em produção depois do **Deploy da API**: `fly logs` sem `exit code 137`, e a memória da máquina no painel do Fly.
 
 **IA em todas as ferramentas — pendências (D-228).**

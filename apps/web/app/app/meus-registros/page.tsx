@@ -165,7 +165,7 @@ function OwnRecords({
   selection?: CardSelection;
 }) {
   if (records.length === 0) {
-    // D-232 (F6): the two doors to a record of one's own, where its absence is said.
+    // D-232b (F6): the two doors to a record of one's own, where its absence is said.
     return (
       <EmptyState
         title={t.ownRecordsEmpty}
@@ -398,7 +398,7 @@ export default function MyRecordsPage() {
             />
           </div>
 
-          {/* D-232 (F6): the page is a base with views — Notion's tabs, the
+          {/* D-232b (F6): the page is a base with views — Notion's tabs, the
               SavedViewsBar's buttons (`aria-pressed`, not tabs: each one only
               changes which lists show, in the address). */}
           <div role="group" aria-label={t.views} className="flex flex-wrap gap-2">

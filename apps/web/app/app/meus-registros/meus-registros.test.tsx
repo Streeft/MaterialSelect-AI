@@ -315,7 +315,7 @@ describe("meus registros — Sugestão da IA (D-230b)", () => {
   }, 30_000);
 });
 
-describe("Meus registros como base com visões (D-232)", () => {
+describe("Meus registros como base com visões (D-232b)", () => {
   it("uma visão mostra só a sua lista, e fica no endereço", async () => {
     window.history.replaceState(null, "", "/app/meus-registros");
     state.data = empty;

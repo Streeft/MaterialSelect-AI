@@ -100,7 +100,7 @@ def test_dashboard_layout_is_one_per_reader_and_only_on_the_dashboard(client):
 
 
 def test_home_keeps_one_layout_and_no_views(client):
-    """D-232 (F6): the Início rearranges its blocks like the dashboard, and keeps
+    """D-232b (F6): the Início rearranges its blocks like the dashboard, and keeps
     nothing else — a table view there would be a promise no screen reads back."""
     layout = {
         "scope": "inicio",

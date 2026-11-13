@@ -15,10 +15,6 @@ from __future__ import annotations
 import csv
 import io
 
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
-from openpyxl.utils import get_column_letter
-
 from app.exporters.cells import safe_number, safe_text
 from app.exporters.report import Report, Sheet
 from app.exporters.xml_text import xml_legal
@@ -82,43 +78,74 @@ def _unique_sheet_name(raw: str, taken: set[str]) -> str:
 
 
 def _write_sheet(worksheet, sheet: Sheet) -> None:
-    bold = Font(bold=True)
-    for note in sheet.notes:
-        worksheet.append([safe_text(note)])
-    if sheet.header:
-        worksheet.append([safe_text(column) for column in sheet.header])
-        for cell in worksheet[worksheet.max_row]:
-            cell.font = bold
-    for row in sheet.rows:
-        worksheet.append([_cell(value) for value in row])
+    """Write ``sheet`` into a write-only worksheet: streamed, never held as cells.
 
-    # Width from the longest value in each column, so the trail is readable
-    # without the reader having to resize anything.
+    A normal workbook keeps one Python object per cell — a catalogue export has
+    ~330 thousand — and the peak was that, not the data (D-235). The write-only
+    mode streams each row to the file. The column widths (longest value per
+    column, so the trail is readable without resizing) must then be known before
+    the first row, so they are measured over the same values in a first pass.
+    """
+    # openpyxl is imported inside the functions that use it (D-235): the module
+    # loads at boot, and the library is memory the API only needs to export.
+    from openpyxl.cell import WriteOnlyCell
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+
+    notes = [[safe_text(note)] for note in sheet.notes]
+    header = [safe_text(column) for column in sheet.header] if sheet.header else None
+
     widths: dict[int, int] = {}
-    for row in worksheet.iter_rows():
-        for cell in row:
-            if cell.value is not None:
-                widths[cell.column] = max(widths.get(cell.column, 0), len(str(cell.value)))
+
+    def measure(values: list[object]) -> None:
+        for column, value in enumerate(values, start=1):
+            if value is not None:
+                widths[column] = max(widths.get(column, 0), len(str(value)))
+
+    for note in notes:
+        measure(note)
+    if header is not None:
+        measure(header)
+    for row in sheet.rows:
+        measure([_cell(value) for value in row])
     for column, width in widths.items():
         worksheet.column_dimensions[get_column_letter(column)].width = min(max(width + 2, 10), 60)
+
+    bold = Font(bold=True)
+    for note in notes:
+        worksheet.append(note)
+    if header is not None:
+        cells = []
+        for value in header:
+            cell = WriteOnlyCell(worksheet, value=value)
+            cell.font = bold
+            cells.append(cell)
+        worksheet.append(cells)
+    for row in sheet.rows:
+        worksheet.append([_cell(value) for value in row])
 
 
 def to_xlsx(report: Report) -> bytes:
     """Render the report as a workbook, one worksheet per section plus a cover."""
-    workbook = Workbook()
-    cover = workbook.active
-    cover.title = "Aviso"
-    cover.append([safe_text(report.title)])
-    cover["A1"].font = Font(bold=True, size=14)
+    from openpyxl import Workbook
+    from openpyxl.cell import WriteOnlyCell
+    from openpyxl.styles import Alignment, Font
+
+    workbook = Workbook(write_only=True)
+    cover = workbook.create_sheet(title="Aviso")
+    cover.column_dimensions["A"].width = 110
+    title = WriteOnlyCell(cover, value=safe_text(report.title))
+    title.font = Font(bold=True, size=14)
+    cover.append([title])
     if report.subtitle:
         cover.append([safe_text(report.subtitle)])
     cover.append([])
     for notice in report.notices:
-        cover.append([safe_text(notice)])
-        cover[f"A{cover.max_row}"].alignment = Alignment(wrap_text=True, vertical="top")
-    cover.column_dimensions["A"].width = 110
+        cell = WriteOnlyCell(cover, value=safe_text(notice))
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
+        cover.append([cell])
 
-    taken = {cover.title}
+    taken = {"Aviso"}
     for sheet in report.sheets:
         name = _unique_sheet_name(sheet.name, taken)
         taken.add(name)

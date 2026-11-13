@@ -114,7 +114,7 @@ export const ptBR = {
     pin: (label: string) => `Fixar ${label}`,
     unpin: (label: string) => `Desafixar ${label}`,
     pinnedEmpty: "Nada fixado ainda.",
-    // D-232 (F6): the starred records, from the account, under "Fixados".
+    // D-232b (F6): the starred records, from the account, under "Fixados".
     groupFavorites: "Favoritos",
     favoritesEmpty: "Use a estrela de uma ficha para trazê-la para cá.",
     favoritesAll: "Ver todos os favoritos",
@@ -1708,7 +1708,7 @@ export const ptBR = {
     recentsHint:
       "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
     ownRecords: "Registros próprios",
-    // D-232 (F6): the page as a base with views, and the two ways to a record of one's own.
+    // D-232b (F6): the page as a base with views, and the two ways to a record of one's own.
     views: "Visões",
     viewAll: "Todos",
     viewFavorites: "Favoritos",
@@ -3810,7 +3810,7 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
-    // D-232 (F6): the Início as movable blocks, arranged in the account.
+    // D-232b (F6): the Início as movable blocks, arranged in the account.
     blocks: {
       label: "Blocos do Início",
       hint: "Arraste pela alça ⋮⋮ ou use Alt + seta para mudar a ordem; o olho oculta um bloco. A arrumação fica guardada na sua conta.",

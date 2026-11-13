@@ -33,14 +33,15 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from io import BytesIO
+from typing import TYPE_CHECKING
 
-from pptx import Presentation
-from pptx.dml.color import RGBColor
-from pptx.slide import Slide
-from pptx.util import Inches, Pt
-
+from app.exporters.emu import Inches, Pt
 from app.exporters.pptx import MARGIN, SLIDE_HEIGHT, SLIDE_WIDTH, add_notices_slide
 from app.schemas.notebook import CitationOut
+
+if TYPE_CHECKING:
+    from pptx.presentation import Presentation
+    from pptx.slide import Slide
 
 DECK_SUBTITLE = "Gerado por IA a partir das fontes do caderno"
 NARRATION_LABEL = "Narração:"
@@ -54,7 +55,16 @@ REFERENCES_PER_SLIDE = 8
 #: Characters XML cannot carry (the same set as ``studio._NOT_XML``).
 _NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
 
-_SUBTLE = RGBColor(71, 85, 105)
+_SUBTLE_RGB = (71, 85, 105)
+
+
+def _subtle():
+    """The muted ink as a python-pptx color (imported here, not at boot, D-235)."""
+    from pptx.dml.color import RGBColor
+
+    return RGBColor(*_SUBTLE_RGB)
+
+
 _WIDTH = SLIDE_WIDTH - 2 * MARGIN
 
 
@@ -105,6 +115,8 @@ def deck_to_pptx(
     "Narração:". ``subtitle`` (the notebook line) goes under the AI line on
     the title slide.
     """
+    from pptx import Presentation
+
     presentation = Presentation()
     presentation.slide_width = SLIDE_WIDTH
     presentation.slide_height = SLIDE_HEIGHT
@@ -146,7 +158,7 @@ def _title_slide(presentation: Presentation, title: str, subtitle: str | None) -
         frame.add_paragraph().text = _clean(subtitle)
     for paragraph in frame.paragraphs:
         paragraph.font.size = Pt(20)
-        paragraph.font.color.rgb = _SUBTLE
+        paragraph.font.color.rgb = _subtle()
 
 
 def _content_slide(
@@ -184,7 +196,7 @@ def _content_slide(
         ).text_frame
         marks.text = " ".join(f"[{n}]" for n in numbers)
         marks.paragraphs[0].font.size = Pt(12)
-        marks.paragraphs[0].font.color.rgb = _SUBTLE
+        marks.paragraphs[0].font.color.rgb = _subtle()
 
     notes = slide.notes_slide.notes_text_frame
     spoken = _clean(content.get("notes", "")).strip()
@@ -236,7 +248,7 @@ def _reference_slides(presentation: Presentation, citations: list[CitationOut]) 
                     line = frame.add_paragraph()
                     line.text = text
                     line.font.size = Pt(10)
-                    line.font.color.rgb = _SUBTLE
+                    line.font.color.rgb = _subtle()
 
 
 def _text_slide(presentation: Presentation, heading: str, lines: list[str]) -> None:

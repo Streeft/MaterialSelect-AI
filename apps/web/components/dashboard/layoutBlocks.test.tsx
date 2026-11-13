@@ -35,7 +35,7 @@ function mount() {
   );
 }
 
-describe("LayoutBlocks no Início (D-232)", () => {
+describe("LayoutBlocks no Início (D-232b)", () => {
   it("segue a ordem guardada na conta, sob o escopo do Início", async () => {
     stored.splice(0, stored.length, {
       id: 1,

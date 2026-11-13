@@ -33,9 +33,6 @@ import io
 import re
 from html import escape
 
-from docx import Document
-from docx.shared import Pt, RGBColor
-
 # How a line of the audio script names who says it. The hosts are unnamed
 # (D-98): the screen says "Apresentador(a) 1/2", and so does every file and a
 # note saved from the artifact — one constant, in the reader's module.
@@ -86,8 +83,7 @@ NO_ATTRIBUTION_LABEL = "sem atribuição registrada"
 #: student typed and anything stored before the reader did.
 _NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 
-_INK = RGBColor(15, 23, 42)
-_SUBTLE = RGBColor(100, 116, 139)
+# python-docx is imported inside `_docx` (D-235): this module loads at boot.
 
 
 def render(artifact: ArtifactOut, fmt: str, notebook_title: str) -> tuple[bytes, str]:
@@ -269,17 +265,21 @@ def _xml_sheet(sheet: Sheet) -> Sheet:
 def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
     """Every string goes through :func:`_xml`: python-docx raises on a control
     character, and one in a title would turn the whole download into a 500."""
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+
+    ink, subtle = RGBColor(15, 23, 42), RGBColor(100, 116, 139)
     doc = Document()
     title = doc.add_paragraph()
     run = title.add_run(_xml(artifact.title))
-    run.font.size, run.font.bold, run.font.color.rgb = Pt(20), True, _INK
+    run.font.size, run.font.bold, run.font.color.rgb = Pt(20), True, ink
     sub = doc.add_paragraph()
     run = sub.add_run(_xml(subtitle))
-    run.font.size, run.font.color.rgb = Pt(11), _SUBTLE
+    run.font.size, run.font.color.rgb = Pt(11), subtle
     for notice in [*NOTICES, *artifact.withheld]:
         paragraph = doc.add_paragraph()
         run = paragraph.add_run(_xml(notice))
-        run.font.size, run.font.italic, run.font.color.rgb = Pt(9.5), True, _SUBTLE
+        run.font.size, run.font.italic, run.font.color.rgb = Pt(9.5), True, subtle
 
     body = artifact.content or {}
     if artifact.tool == "report":
@@ -334,7 +334,7 @@ def _docx(artifact: ArtifactOut, subtitle: str) -> bytes:
                 credit = paragraph.add_run(f"\n{line}")
                 credit.font.size = Pt(9)
         excerpt = paragraph.add_run(f"\n{_xml(citation.excerpt)}")
-        excerpt.font.size, excerpt.font.color.rgb = Pt(9), _SUBTLE
+        excerpt.font.size, excerpt.font.color.rgb = Pt(9), subtle
 
     buffer = io.BytesIO()
     doc.save(buffer)
