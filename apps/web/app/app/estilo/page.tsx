@@ -405,7 +405,10 @@ function StyleGuide() {
                     <span className="text-body font-semibold text-ink">{sec.label}</span>
                     <span className="ml-2 font-mono text-2xs text-ink-muted">{sec.route}</span>
                   </div>
-                  <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-brand-700">
+                  {/* `text-ink`, not `text-brand-700`: the card sets only the section's
+                      light tokens on itself (the dark ones are scoped to `<html>`), so in
+                      the dark theme brand-700 was #5d408a over #0f1116, 2.3:1 (D-235). */}
+                  <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-ink">
                     {sec.hue}{"°"}
                   </span>
                 </div>

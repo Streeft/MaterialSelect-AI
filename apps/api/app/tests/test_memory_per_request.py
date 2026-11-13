@@ -173,6 +173,9 @@ def _routes(ids: dict[str, int]) -> list[tuple[str, str, str, dict | None]]:
         ("plano da IA", "POST", "/api/ai/plan", {"text": "Quero fazer uma roupa de esqui"}),
         ("sugestão do catálogo", "POST", "/api/ai/suggest", {"tool": "catalogo", "context": {}}),
         ("painel", "GET", "/api/dashboard/overview", None),
+        # D-235: the whole catalogue as a file, built from batches of materials.
+        ("exportar o catálogo (csv)", "GET", "/api/exports/catalogo.csv", None),
+        ("exportar o catálogo (xlsx)", "GET", "/api/exports/catalogo.xlsx", None),
     ]
 
 

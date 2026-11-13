@@ -37,7 +37,7 @@ function Explore() {
 }
 
 /**
- * D-232 (F6): everything under the composer is a block the reader moves and
+ * D-232b (F6): everything under the composer is a block the reader moves and
  * hides — Notion's home, the dashboard's blocks (D-209). The arrangement is the
  * account's `inicio` layout row; a block with nothing to show (no draft to
  * resume, no pinned map) says so in one line instead of a large empty state. The composer stays first and fixed: it

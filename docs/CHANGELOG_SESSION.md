@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 192 — 13/11/26 — Grupo D (qualidade): numeração, Lighthouse medido, tema escuro no E2E, catálogo exportado em lotes e imports sob demanda (D-235)
+
+**O que mudou.** Numeração: o F6 virou D-232b/Sessão 189b (regra do D-226) e as referências foram atualizadas. `lighthouserc.json` com
+limiares medidos (performance 0,9; acessibilidade 0,95; boas práticas 0,9; SEO 0,9; FCP 2000, LCP 3000, TTI 4000, TBT 300 ms; CLS 0,05).
+Auditoria do tema escuro e de 1920 px (25 rotas): um defeito de contraste no `/app/estilo` corrigido; passada escura de axe no E2E. O
+teste `assistente-projeto.spec.ts` espera o estado da tela de destino em vez dos 5 s do padrão. `catalogue_report` lê os materiais em
+lotes de 100 (`list_material_ids`) e `to_xlsx` usa o modo `write_only`: pico de 82,4 → 33,4 MB (CSV) e 93,8 → 22,0 MB (XLSX). `openpyxl`,
+`python-docx` e `python-pptx` importados dentro das funções (`app/exporters/emu.py` no lugar de `pptx.util`): RSS na partida 137,0 → 115,8 MB.
+Testes novos: duas rotas de exportação no `test_memory_per_request.py` e as 31 rotas no tema escuro do `a11y.spec.ts`; o teste do
+`read_xlsx` agora troca `openpyxl.load_workbook`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 191 — 13/11/26 — Fluxos entre telas, parte 16: a IA marca o número que escolheu, A × B na Eco, curva de custo por material e fim do `/ai/interpret` (D-234)
 
 **O que mudou.** Backend: `set_param` ganha `origin` (`contexto` | `sugestao_ia`) e `NumberRange` (faixa da validação do pedido) em
@@ -164,7 +177,7 @@ Catálogo, que agora **atravessa páginas** (`?sel=`, "N selecionados em várias
 "Comparar o top do estudo …" (executa o estudo salvo mais recente e leva os 5 primeiros); "Último mapa" do Início reabre o
 endereço inteiro do mapa (`msai.nav.mapUrl`). Testes novos: `test_selection_list_stage.py`; vitest com axe nas cinco origens e no
 cartão do estágio; E2E `mapa-para-selecao.spec.ts`. **Depois do merge: Deploy da API.** Sem migração nem seed.
-## Sessão 189 — 13/11/26 — F6: Início em blocos, Favoritos na barra lateral e Meus registros com visões (D-232)
+## Sessão 189b — 13/11/26 — F6: Início em blocos, Favoritos na barra lateral e Meus registros com visões (D-232b)
 
 **O que mudou.** O Início vira blocos móveis e ocultáveis abaixo da caixa de escrever (`components/home/HomeBlocks.tsx`), com a
 arrumação na conta: `LayoutBlocks` generaliza o `OverviewBlocks` do Painel e o backend aceita o escopo `inicio` (só layout; sem

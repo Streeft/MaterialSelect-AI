@@ -160,7 +160,7 @@ export function HomeComposer() {
             {pending ? p.homeSubmitting : t.submit}
           </Button>
         </div>
-        {/* D-232 (F6): one scrolling row on a phone — four wrapped chips used
+        {/* D-232b (F6): one scrolling row on a phone — four wrapped chips used
             to stack into a column taller than the box above them. */}
         <ul
           aria-label={t.suggestionsLabel}
