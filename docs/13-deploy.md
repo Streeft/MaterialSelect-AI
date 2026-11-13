@@ -184,6 +184,35 @@ vetores são montados na primeira busca) e para picos que a medição não cobri
 Para conferir em produção: `fly logs` sem `exit code 137` / `Out of memory`,
 e `fly machine status <id>` mostrando a máquina de pé desde o último deploy.
 
+**D-235 (partida e exportação do catálogo).** O processo recém-iniciado (`import app.main`) caiu de 137,0 para 115,8 MB de RSS porque
+`openpyxl`, `python-docx` e `python-pptx` (com `lxml` e `PIL`) passaram a ser importados dentro das funções que os usam; a primeira
+exportação de cada formato paga o import. A exportação do catálogo (`/api/exports/catalogo.{csv,xlsx}`) lê os materiais em lotes de
+100 e o XLSX é escrito em fluxo: pico por requisição, com o catálogo demo inteiro, de 82,4 → 33,4 MB (CSV) e 93,8 → 22,0 MB (XLSX).
+O ganho só vale depois do **Deploy da API**.
+
+### Lighthouse: o que a CI exige e o que se mediu (D-235)
+
+O job `Lighthouse` sobe a API (SQLite, sessão fixa) e o build de produção do frontend e mede 13 rotas (`/`, `/entrar`, catálogo, importar,
+seleção, mapas, comparar, painel, cadernos, processos, estilo e as duas telas de Admin), 3 rodadas cada, com o preset `desktop`. Os
+limiares ficam em `apps/web/lighthouserc.json`. Medição local de 13/11/26 com o `lhci` 0.15.1 do repositório (a mesma configuração, sem as
+asserções), pior das 3 rodadas de cada rota:
+
+| | Medido (pior rota) | Limiar antes | Limiar depois (D-235) |
+|---|---|---|---|
+| Performance | 0,99 | 0,7 | 0,9 |
+| Acessibilidade | 1,00 | 0,9 | 0,95 |
+| Boas práticas | 0,96 | 0,8 | 0,9 |
+| SEO (aviso) | 1,00 | 0,8 | 0,9 |
+| First Contentful Paint | 340 ms | 2500 ms | 2000 ms |
+| Largest Contentful Paint | 992 ms | 4000 ms | 3000 ms |
+| Tempo até interativo | 992 ms | 5000 ms | 4000 ms |
+| Total Blocking Time | 66 ms | 500 ms | 300 ms |
+| Cumulative Layout Shift | 0,001 | 0,1 | 0,05 |
+
+Os limiares ficam bem acima do medido de propósito: o runner do GitHub é mais lento e mais ruidoso que a máquina da medição. Se o job
+falhar por uma folga estreita, abra o artefato `lighthouse-report` (7 dias) e leia o valor antes de mexer no limiar. O `/app/painel` e as
+telas que carregam o Plotly são as de maior TBT.
+
 ## 3. Google OAuth
 
 No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviços*

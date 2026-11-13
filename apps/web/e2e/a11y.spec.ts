@@ -67,6 +67,28 @@ for (const [slug, path] of ROUTES) {
   });
 }
 
+// D-235: the dark theme, which the loop above never saw — its contrast was only
+// measured at token level (D-29), and a screen that overrides a token for its own
+// section can break it (the Estilo specimen cards did). One width: axe's colour
+// check does not depend on it, and the 1920 px layout is covered by `larguras`.
+for (const [slug, path] of ROUTES) {
+  test(`${path} passa no axe no tema escuro`, async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        window.localStorage.setItem("materialselect:theme", "dark");
+      } catch {
+        /* a private window: the test then runs in whatever theme the browser gives */
+      }
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(path);
+    await settle(page);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    const found = await runAxe(page);
+    expect(found, `${slug} no tema escuro:\n${describeFound(found)}`).toEqual([]);
+  });
+}
+
 test("a ficha de um material passa no axe (aberta, com os semelhantes)", async ({ page }) => {
   await page.goto("/app/catalogo");
   const firstMaterial = page.locator('main table a[href^="/app/materiais/"]').first();

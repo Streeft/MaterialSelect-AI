@@ -34,7 +34,7 @@ export function OverviewBlocks({ blocks }: { blocks: readonly OverviewBlock[] })
 }
 
 /**
- * D-232 (F6): the same movable blocks for any screen whose arrangement is kept
+ * D-232b (F6): the same movable blocks for any screen whose arrangement is kept
  * in the account — the dashboard (D-209) and the Início. A block whose content
  * renders nothing (a "Retomar" with nothing to resume) keeps its place and says
  * so in one line (`emptyLabel`, written by the CSS on the empty body): hiding

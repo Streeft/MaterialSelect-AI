@@ -484,11 +484,11 @@ function MemorySections({ pathname, idPrefix }: { pathname: string; idPrefix: st
   );
 }
 
-/** D-232: how many starred records the rail lists; the rest are one link away. */
+/** D-232b: how many starred records the rail lists; the rest are one link away. */
 const SHOWN_FAVORITES = 6;
 
 /**
- * D-232 (F6): "Favoritos" — the records starred on a sheet (the account's
+ * D-232b (F6): "Favoritos" — the records starred on a sheet (the account's
  * `/my-records`, the same query the star, the Início and "Meus registros"
  * read), as Notion's favourites in its sidebar. Unlike "Fixados" (pages pinned
  * on this device) they follow the account to another device. While the list

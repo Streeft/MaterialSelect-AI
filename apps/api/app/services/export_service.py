@@ -871,9 +871,15 @@ class ExportService:
 
     # --- catalogue --------------------------------------------------------
 
+    #: How many materials the catalogue export loads at a time (D-235). Each
+    #: batch's ORM objects (a material with its ~50 values, composition and
+    #: designations) are dropped before the next is read, so the peak is the
+    #: batch plus the finished text rows, not the whole catalogue as objects.
+    CATALOGUE_BATCH = 100
+
     def catalogue_report(self) -> Report:
         """Every active material and its property values, with the full trail."""
-        materials = self.chart_repo.list_materials()
+        material_ids = self.chart_repo.list_material_ids()
         definitions = self.chart_repo.list_properties()
 
         readings = readings_for(definitions, self.unit_choices)
@@ -882,47 +888,55 @@ class ExportService:
         ]
         rows: list[list[object]] = []
         provenance: list[list[object]] = []
+        composition: list[tuple[str, list]] = []
+        designations: list[tuple[str, list]] = []
+        includes_own_records = False
 
-        for material in materials:
-            by_slug = {v.property_definition.slug: v for v in material.property_values}
-            row: list[object] = [
-                material.name,
-                material.material_class.name,
-                self._is_own_record(material),
-            ]
-            for definition in definitions:
-                value = by_slug.get(definition.slug)
-                row.append(
-                    _MISSING
-                    if value is None or value.is_missing
-                    else format_number(readings[definition.slug].value(value.normalized_value))
-                )
-                if value is not None and not value.is_missing:
-                    provenance.append(
-                        [
-                            material.name,
-                            definition.name,
-                            format_number(
-                                value.value_scalar
-                                if value.value_scalar is not None
-                                else value.value_typical
-                            ),
-                            pretty_unit(value.original_unit) if value.original_unit else "—",
-                            format_number(value.normalized_value),
-                            pretty_unit(definition.canonical_unit),
-                            value.conversion_method or "—",
-                            value.data_quality.value,
-                            value.source.label if value.source else "—",
-                        ]
+        for start in range(0, len(material_ids), self.CATALOGUE_BATCH):
+            batch = self.chart_repo.list_materials(
+                material_ids=material_ids[start : start + self.CATALOGUE_BATCH]
+            )
+            for material in batch:
+                own = self._is_own_record(material)
+                includes_own_records = includes_own_records or own
+                by_slug = {v.property_definition.slug: v for v in material.property_values}
+                row: list[object] = [material.name, material.material_class.name, own]
+                for definition in definitions:
+                    value = by_slug.get(definition.slug)
+                    row.append(
+                        _MISSING
+                        if value is None or value.is_missing
+                        else format_number(readings[definition.slug].value(value.normalized_value))
                     )
-            rows.append(row)
+                    if value is not None and not value.is_missing:
+                        provenance.append(
+                            [
+                                material.name,
+                                definition.name,
+                                format_number(
+                                    value.value_scalar
+                                    if value.value_scalar is not None
+                                    else value.value_typical
+                                ),
+                                pretty_unit(value.original_unit) if value.original_unit else "—",
+                                format_number(value.normalized_value),
+                                pretty_unit(definition.canonical_unit),
+                                value.conversion_method or "—",
+                                value.data_quality.value,
+                                value.source.label if value.source else "—",
+                            ]
+                        )
+                rows.append(row)
+                composition.append((material.name, composition_lines(material)))
+                designations.append((material.name, designation_lines(material)))
+            # The batch's objects are clean and nothing here keeps them: the
+            # session only holds them weakly, so they go with the next collection.
+            del batch
 
         return Report(
             title="Catálogo de materiais",
-            subtitle=f"{len(materials)} materiais ativos, {len(definitions)} propriedades",
-            notices=standard_notices(
-                includes_own_records=any(self._is_own_record(m) for m in materials),
-            ),
+            subtitle=f"{len(rows)} materiais ativos, {len(definitions)} propriedades",
+            notices=standard_notices(includes_own_records=includes_own_records),
             sheets=[
                 Sheet(
                     name="Materiais",
@@ -930,8 +944,8 @@ class ExportService:
                     rows=rows,
                     notes=["Valores em unidade canônica. 'ausente' significa dado não cadastrado."],
                 ),
-                composition_sheet([(m.name, composition_lines(m)) for m in materials]),
-                designation_sheet([(m.name, designation_lines(m)) for m in materials]),
+                composition_sheet(composition),
+                designation_sheet(designations),
                 Sheet(
                     name="Proveniência",
                     header=[

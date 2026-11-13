@@ -35,7 +35,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 
-// D-232: the rail's "Favoritos" reads the account's records.
+// D-232b: the rail's "Favoritos" reads the account's records.
 const myRecords = vi.hoisted(() =>
   vi.fn(() => Promise.resolve({ favorites: [] as unknown[], recents: [] as unknown[], own_records: [] as unknown[] })),
 );
@@ -269,7 +269,7 @@ describe("atalhos (D-169, D-207)", () => {
   });
 });
 
-describe("Favoritos na barra lateral (D-232)", () => {
+describe("Favoritos na barra lateral (D-232b)", () => {
   it("lista os registros com estrela, cada um levando à ficha", async () => {
     myRecords.mockResolvedValueOnce({
       favorites: [

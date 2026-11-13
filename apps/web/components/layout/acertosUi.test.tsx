@@ -27,7 +27,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
-// D-232: the rail's "Favoritos" reads the account's records.
+// D-232b: the rail's "Favoritos" reads the account's records.
 const myRecords = vi.hoisted(() =>
   vi.fn(() => Promise.resolve({ favorites: [] as unknown[], recents: [] as unknown[], own_records: [] as unknown[] })),
 );

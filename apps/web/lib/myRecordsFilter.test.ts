@@ -58,7 +58,7 @@ describe("filtros de Meus registros", () => {
       tipo: "processo",
     });
     expect(readUrlState(MY_RECORDS_URL, "?tipo=xyz").tipo).toBe("todos");
-    // D-232: the view is in the address too; an unknown one is "Todos".
+    // D-232b: the view is in the address too; an unknown one is "Todos".
     expect(readUrlState(MY_RECORDS_URL, "?visao=favoritos").visao).toBe("favoritos");
     expect(readUrlState(MY_RECORDS_URL, "?visao=xyz").visao).toBe("todos");
   });

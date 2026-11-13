@@ -13699,7 +13699,7 @@ de cadernos; E2E `curadoria.spec.ts` (citar fonte; mover classe). Depois do merg
 antes de publicar a API). Sem seed.
 
 **Numeração.** D-233/Sessão 190.
-## D-232 — F6 da revisão das telas: Início em blocos móveis, Favoritos na barra lateral e Meus registros com visões
+## D-232b — F6 da revisão das telas: Início em blocos móveis, Favoritos na barra lateral e Meus registros com visões
 
 **Contexto.** A F6 do plano ("Início e pessoal") pedia três coisas: o Início em blocos que a pessoa reordena e oculta, com a
 arrumação guardada; os favoritos numa seção fixa da barra lateral, como no Notion; e "Meus registros" como base com visões. Parte
@@ -13735,7 +13735,7 @@ desalinhariam a ordem visual da ordem gravada; fica uma coluna.
 Visões salvas de verdade em "Meus registros" (filtros nomeados na conta): as quatro visões fixas cobrem o que a tela mostra; nomear
 filtros fica para quando houver pedido.
 
-**Numeração.** D-232, Sessão 189 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
 
@@ -13810,4 +13810,46 @@ com o padrão do código). Pendente: o painel de Custo, Dimensionar e Baterias n
 massa da Eco); o `check_property`/`check_chart` sem chamador no serviço; a cascata da diferença para mais de duas alternativas.
 
 **Numeração.** D-234/Sessão 191. (O D-232 e a Sessão 189 aparecem duas vezes na `main`, por duas frentes paralelas, a seleção por lista e o
-F6; o sufixo `b` da regra do D-226 fica para o autor aplicar.)
+F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)
+
+## D-235 — Grupo D (qualidade): numeração, Lighthouse medido, tema escuro no E2E, exportação do catálogo em lotes e bibliotecas pesadas sob demanda
+
+**Contexto.** Sobras dos D-226 e D-231: a `main` tinha D-232 e Sessão 189 duas vezes; os limiares do Lighthouse estavam abaixo das metas
+porque nunca foram medidos; o tema escuro não passava pelo axe do E2E; `e2e/assistente-projeto.spec.ts` falhava de vez em quando; o
+relatório do catálogo ainda carregava todos os materiais com todos os valores; e a API subia com `openpyxl`, `python-pptx` e
+`python-docx` (com `lxml`) na memória sem exportar nada.
+
+**Decisão.**
+1. **Numeração.** Pela regra do D-226 (item 4), o mais novo ganha o sufixo: o F6 (Início em blocos) virou **D-232b/Sessão 189b**; a seleção
+   por lista fica com D-232/Sessão 189. As referências do código, dos testes, do `.claude/rules/frontend-design-system.md` e dos documentos
+   que falavam do F6 foram trocadas (as que falam da lista, do `?materiais=` e do "Último mapa" ficam em D-232).
+2. **Lighthouse medido.** Rodei o `lhci` 0.15.1 do próprio repositório (instalado fora dele) contra o build de produção, API em SQLite com a
+   sessão fixa, 13 URLs x 3 rodadas, como no job. Pior de cada nota: performance 0,99; acessibilidade 1,00; boas práticas 0,96 (1,00 em `/`
+   e `/entrar`); SEO 1,00. Pior de cada tempo: FCP 340 ms, LCP 992 ms, TBT 66 ms, TTI 992 ms, CLS 0,001. Limiares novos, com folga para o
+   runner do GitHub, mais lento que esta máquina: performance 0,7 → **0,9**, acessibilidade 0,9 → **0,95**, boas práticas 0,8 → **0,9**, SEO
+   (aviso) 0,8 → **0,9**; FCP 2500 → **2000** ms, LCP 4000 → **3000** ms, TTI 5000 → **4000** ms, TBT 500 → **300** ms, CLS 0,1 → **0,05**.
+   `lhci assert` com a configuração nova sobre as 39 rodadas medidas passa.
+3. **Tema escuro e 1920 px.** Auditoria com Playwright em 25 rotas x (escuro 1280, escuro 1920, claro 1920): sem estouro horizontal nem
+   elemento cortado; um defeito real, o chip do matiz dos cartões de seção do `/app/estilo` (2,3:1 no escuro, porque o cartão só recebe os
+   tokens claros da seção; os escuros são escopados em `<html>`), agora em `text-ink`. O E2E ganhou uma passada de axe no tema escuro em
+   todas as rotas de `e2e/rotas.ts` (`a11y.spec.ts`), fechando a pendência do D-226.
+4. **Teste instável.** `assistente-projeto.spec.ts`, "comparar os materiais de uma parte": o clique no link leva a `/app/comparar`, que o
+   `next dev` compila na primeira visita; o `toHaveURL` de 5 s do padrão vencia antes. A espera agora é pelo estado (endereço e título da
+   tela de destino, com 60 s de teto) e não por um tempo; os `toHaveURL` da Seleção nos outros dois testes ganharam o mesmo teto.
+5. **Exportação do catálogo em lotes.** `ExportService.catalogue_report` pede só os ids (`ChartRepository.list_material_ids`) e lê os
+   materiais de 100 em 100 (`CATALOGUE_BATCH`), largando os objetos do lote antes do seguinte. `to_xlsx` passou ao modo `write_only` do
+   openpyxl (as linhas vão para o arquivo, sem uma célula-objeto por valor; a largura das colunas é medida numa primeira passada sobre os
+   mesmos valores, o conteúdo do arquivo é o mesmo). Pico por requisição com o catálogo demo inteiro (678 materiais, ~32 mil valores),
+   medido com `tracemalloc`: CSV 82,4 → 33,4 MB; XLSX 93,8 → 22,0 MB. As duas rotas entram no `test_memory_per_request.py` (teto de 40 MB,
+   que o código antigo não cumpria).
+6. **Bibliotecas pesadas sob demanda.** `openpyxl` (`exporters/spreadsheet.py`, `importers/readers.py`), `python-docx` (`exporters/docx.py`,
+   `exporters/studio.py`) e `python-pptx` (`exporters/pptx.py`, `exporters/studio_pptx.py`) passaram a ser importados dentro das funções que
+   os usam; `pypdf` e o `docx` de `knowledge/readers.py` já eram. As medidas em EMU de `pptx.util` viraram `app/exporters/emu.py` (a
+   mesma aritmética, sem importar a biblioteca), e as constantes de cor viraram cores criadas na função. RSS do processo logo depois de
+   `import app.main`, medido três vezes: **137,0 → 115,8 MB** (−21 MB; `openpyxl`, `docx`, `pptx`, `lxml` e `PIL` deixam de estar
+   carregados). A primeira exportação de cada formato paga o import (dezenas de ms).
+
+**Consequências.** Sem migração nem seed. Toca `apps/api`: depois do merge, **Deploy da API** (o ganho de memória só vale depois dele);
+nenhum workflow de banco. O `pint` continua carregado na partida (o registro de unidades) e é o maior item restante.
+
+**Numeração.** D-235/Sessão 192 (conferidas na `main` e na branch).

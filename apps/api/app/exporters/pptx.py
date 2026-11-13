@@ -14,13 +14,15 @@ narratives (AI interpretation) are rendered natively when present.
 from __future__ import annotations
 
 import io
-
-from pptx import Presentation
-from pptx.util import Inches, Pt
+from typing import TYPE_CHECKING
 
 from app.exporters.cells import format_number
+from app.exporters.emu import Inches, Pt
 from app.exporters.report import Report
 from app.exporters.xml_text import xml_legal_report
+
+if TYPE_CHECKING:
+    from pptx.presentation import Presentation
 
 #: 16:9. Public because the Studio deck (``studio_pptx``) is drawn on the same
 #: page, and its closing slide is this module's notices slide.
@@ -60,6 +62,9 @@ def to_pptx(report: Report) -> bytes:
     narrative slide (when present), and closing notice slide."""
     # python-pptx writes "_x0001_" for a character XML 1.0 forbids (D-177).
     report = xml_legal_report(report)
+    # python-pptx is imported here, not at the top (D-235): the module loads at boot.
+    from pptx import Presentation
+
     presentation = Presentation()
     presentation.slide_width = SLIDE_WIDTH
     presentation.slide_height = SLIDE_HEIGHT
