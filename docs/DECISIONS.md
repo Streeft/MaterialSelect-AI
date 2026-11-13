@@ -13960,3 +13960,44 @@ partiria o "tudo ou nada"). Bloquear o ciclo só no cliente (o servidor é quem 
 **Numeração.** D-236/Sessão 193 (conferidas na `main` e na branch). Toca `apps/api` **sem migração** nem seed: depois do merge, só o
 **Deploy da API**.
 
+
+## D-237 — Fluxos entre telas, parte 19: o CSV do catálogo em fluxo, o registro do pint sob demanda e a limpeza dos guardrails
+
+**Contexto.** O D-235 deixou duas dívidas de desempenho na API: o CSV do catálogo ainda montava o texto inteiro antes de responder (pico
+de 33,3 MB por requisição, com o catálogo demo de 678 materiais), e o registro de unidades do `pint` era criado no `import` do módulo. E o
+D-234 deixou `check_property` e `check_chart` (guardrails da IA) sem chamador no serviço.
+
+**Decisão.**
+1. **CSV do catálogo em fluxo.** `GET /api/exports/catalogo.csv` devolve um `StreamingResponse`. `ExportService.catalogue_csv_stream()`
+   resolve antes do primeiro byte tudo o que pode falhar (ids por `ChartRepository.list_material_ids`, definições, leituras de unidade e
+   o aviso de registro próprio, que sobe ao topo do arquivo e por isso vem de `ChartRepository.has_own_materials`, uma consulta com
+   `LIMIT 1`) e depois lê os materiais em lotes de 100 (D-235). As linhas de "Materiais" saem a cada lote; as três seções seguintes
+   (Composição, Designações, Proveniência) cobrem os mesmos materiais e são escritas numa só passada em arquivos temporários
+   (`SpooledTemporaryFile`: em memória até 1 MB por seção, em disco acima) e lidas de volta na ordem. O conteúdo, o escape e a ordem são
+   os mesmos: `to_csv` passou a ser composto pelas mesmas três funções (`csv_preamble`, `csv_sheet_head`, `csv_rows`) que o fluxo usa, e
+   `catalogue_report` e o fluxo partilham o gerador `_catalogue_entries`, de modo que não há duas cópias da regra. Os cabeçalhos são os
+   mesmos (`text/csv`, `nosniff`, `attachment`, nome `catalogo-de-materiais.csv`); a resposta deixa de ter `Content-Length`. O pico caiu de
+   33,3 para 13,2 MB (o que resta é o arquivo, que o cliente de teste também segura para ler); `test_memory_per_request.py` ganhou o teto
+   próprio de 20 MB para o CSV (o de 40 MB não distinguia os dois).
+2. **Registro do `pint` sob demanda.** `app/calculations/units.py` cria o `UnitRegistry` na primeira chamada de `get_registry()` (duplo
+   teste com `threading.Lock`: o caminho comum não toma o cadeado e duas requisições simultâneas numa máquina fria constroem um só
+   registro, o que preserva a identidade das unidades). `ureg` continua importável como atributo do módulo (`__getattr__` do PEP 562) e
+   devolve o mesmo registro; `expressions.py` passou a chamar `get_registry()`. Nenhum outro módulo importa `UnitRegistry` no topo (os
+   demais só tocam `pint.errors`/`pint.util`). **Medido** (`import app.main`, três medições cada): 116,2 → 114,4 MB de RSS. O ganho é
+   pequeno porque o `pint` 0.25 já adia a leitura das definições; o grosso do custo (~14 MB) é o próprio `import pint`, que o D-237 não
+   toca (ver **Fora**).
+3. **`check_property` e `check_chart` removidos.** A busca por chamadores (`rg`) mostrou só os testes; o plano usa `check_constraint` e
+   `check_index`, e a sugestão do catálogo valida eixos e propriedades pelos próprios cartões (`app/ai/suggest.py`). Saíram as duas funções
+   e os três testes que só as exercitavam; o guardrail que vale (a propriedade de uma restrição existir no catálogo) continua em
+   `check_constraint`.
+
+**Fora.** Adiar o `import pint` inteiro (as classes de erro são usadas em `except` de `units.py` e `expressions.py`; exige importá-las
+dentro das funções ou um módulo de erros próprio): pede uma passada que mexe em muitas linhas por ~14 MB. Streaming do XLSX/DOCX/PPTX/HTML
+(formatos que exigem o arquivo inteiro para fechar). Um erro no meio do fluxo do CSV entrega um arquivo truncado com status 200 (o que
+pode falhar foi resolvido antes do primeiro byte; o resto é leitura do mesmo banco).
+
+**Alternativas recusadas.** Quatro passadas pelo banco, uma por seção (leria o catálogo quatro vezes). Guardar as seções em listas até o
+fim (era o pico que se queria tirar). Trocar `ureg` por `get_registry()` em todos os testes (o atributo preguiçoso mantém a API pública).
+
+**Numeração.** D-237/Sessão 194 (conferidas na `main` e na branch). Toca `apps/api` **sem migração** nem seed: depois do merge, só o
+**Deploy da API**.

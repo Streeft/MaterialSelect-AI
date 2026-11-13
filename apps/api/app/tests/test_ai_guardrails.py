@@ -11,10 +11,8 @@ import pytest
 
 from app.ai.guardrails import (
     Catalogue,
-    check_chart,
     check_constraint,
     check_index,
-    check_property,
     is_grounded,
     numbers_in,
     ungrounded_numbers,
@@ -89,26 +87,12 @@ class TestUngroundedNumbers:
 
 
 class TestEntityChecks:
-    def test_known_property_passes(self) -> None:
-        assert check_property("densidade", CATALOGUE) is None
-
-    def test_invented_property_is_rejected(self) -> None:
-        reason = check_property("tenacidade_fratura", CATALOGUE)
-        assert reason and "não existe" in reason
-
     def test_known_index_passes(self) -> None:
         assert check_index("rigidez-especifica", CATALOGUE) is None
 
     def test_invented_index_is_rejected(self) -> None:
         # The layer selects from the catalogue; it never authors an expression.
         assert check_index("indice-inventado", CATALOGUE) is not None
-
-    def test_chart_axes_must_exist(self) -> None:
-        assert check_chart("densidade", "modulo_young", CATALOGUE) is None
-        assert check_chart("densidade", "inexistente", CATALOGUE) is not None
-
-    def test_chart_rejects_the_same_property_twice(self) -> None:
-        assert check_chart("densidade", "densidade", CATALOGUE) is not None
 
 
 class TestUnitCompatibility:
