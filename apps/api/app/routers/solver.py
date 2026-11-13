@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, heavy_request
 from app.models.user import User
 from app.schemas.solver import LoadCaseOut, SolveRequest, SolveResultOut
 from app.services.solver_service import SolverService
@@ -42,7 +42,7 @@ def get_case(
     return SolverService(db, user.id).get_case(key)
 
 
-@router.post("/resolver", response_model=SolveResultOut)
+@router.post("/resolver", response_model=SolveResultOut, dependencies=[Depends(heavy_request)])
 def solve_brief(
     payload: SolveRequest,
     db: Session = Depends(get_db),

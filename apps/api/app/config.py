@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     # classes, processes, glossary, defaults): how long a browser may reuse
     # them before asking again with ``If-None-Match``.
     static_list_max_age_seconds: int = 300
+    # How many heavy requests (selection funnel/run, maps, calculators, the AI
+    # plan) one process serves at once (D-231); the next waits up to
+    # ``heavy_request_wait_seconds`` for a slot, then gets 503 + Retry-After.
+    # Each holds tens of MB while it runs; 0 turns the gate off.
+    heavy_request_concurrency: int = 2
+    heavy_request_wait_seconds: float = 20.0
 
     # --- Import uploads ---------------------------------------------------
     # Directory where uploaded files are kept while an import job is open.

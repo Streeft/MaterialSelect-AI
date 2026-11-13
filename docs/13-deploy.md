@@ -158,6 +158,19 @@ worker** (`Dockerfile.api`), e continua assim: cada worker a mais é uma cópia
 inteira do processo na mesma memória. Os números medidos por tela e o que foi
 cortado no consumo estão no [D-231](DECISIONS.md).
 
+Duas travas evitam que um pico de uso volte a matar a máquina:
+
+- **No proxy:** `[http_service.concurrency]` com `soft_limit = 5` e
+  `hard_limit = 8` (eram 40/60). Acima de 8 requisições em andamento o proxy
+  do Fly segura a próxima na fila em vez de entregá-la.
+- **No app:** só `HEAVY_REQUEST_CONCURRENCY` (padrão 2) requisições pesadas —
+  funil e execução da seleção, mapas, calculadoras e o plano da IA — rodam ao
+  mesmo tempo. A seguinte espera até `HEAVY_REQUEST_WAIT_SECONDS` (padrão 20)
+  e então recebe 503 com `Retry-After`; a tela mostra o erro e a pessoa tenta
+  de novo. Para mudar: `fly secrets set HEAVY_REQUEST_CONCURRENCY=3` (0
+  desliga). Subir esse número exige memória para mais uma requisição pesada
+  inteira ao mesmo tempo.
+
 ## 3. Google OAuth
 
 No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviços*

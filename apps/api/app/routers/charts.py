@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user, get_unit_choices
+from app.dependencies import get_current_user, get_unit_choices, heavy_request
 from app.models.user import User
 from app.schemas.charts import (
     CompareOut,
@@ -33,7 +33,7 @@ from app.services.chart_service import ChartService
 router = APIRouter(prefix="/charts", tags=["charts"])
 
 
-@router.post("/property-map", response_model=PropertyMapOut)
+@router.post("/property-map", response_model=PropertyMapOut, dependencies=[Depends(heavy_request)])
 def property_map(
     payload: PropertyMapRequest,
     db: Session = Depends(get_db),
@@ -44,7 +44,7 @@ def property_map(
     return ChartService(db, user.id, unit_choices).property_map(payload)
 
 
-@router.post("/map-box", response_model=MapBoxOut)
+@router.post("/map-box", response_model=MapBoxOut, dependencies=[Depends(heavy_request)])
 def map_box(
     payload: MapBoxRequest,
     db: Session = Depends(get_db),
@@ -64,7 +64,7 @@ def map_presets(
     return ChartService(db, user.id).map_presets()
 
 
-@router.post("/index-line", response_model=IndexLineOut)
+@router.post("/index-line", response_model=IndexLineOut, dependencies=[Depends(heavy_request)])
 def move_index_line(
     payload: IndexLineRequest,
     db: Session = Depends(get_db),
@@ -75,7 +75,7 @@ def move_index_line(
     return ChartService(db, user.id, unit_choices).index_line(payload)
 
 
-@router.post("/compare", response_model=CompareOut)
+@router.post("/compare", response_model=CompareOut, dependencies=[Depends(heavy_request)])
 def compare(
     payload: CompareRequest,
     db: Session = Depends(get_db),

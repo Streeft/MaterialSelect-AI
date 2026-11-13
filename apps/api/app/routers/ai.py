@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_project, get_current_user
+from app.dependencies import get_current_project, get_current_user, heavy_request
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.ai import (
@@ -83,7 +83,7 @@ def explain(
     return AIService(db, user=user).explain(payload.study_id, project.id)
 
 
-@router.post("/plan", response_model=ProjectPlanOut)
+@router.post("/plan", response_model=ProjectPlanOut, dependencies=[Depends(heavy_request)])
 def plan(
     payload: PlanRequest,
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ def plan(
     return AIService(db, user=user).plan(payload)
 
 
-@router.post("/plan/run", response_model=PlanRunResponse)
+@router.post("/plan/run", response_model=PlanRunResponse, dependencies=[Depends(heavy_request)])
 def run_plan(
     payload: PlanRunRequest,
     db: Session = Depends(get_db),

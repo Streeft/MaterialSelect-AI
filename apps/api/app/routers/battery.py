@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, heavy_request
 from app.models.user import User
 from app.schemas.battery import (
     ApplicationArchetypeOut,
@@ -68,7 +68,9 @@ def list_archetypes(
     return BatteryService(db, user.id).list_archetypes()
 
 
-@router.post("/dimensionar", response_model=PackDesignResultOut)
+@router.post(
+    "/dimensionar", response_model=PackDesignResultOut, dependencies=[Depends(heavy_request)]
+)
 def design_pack_endpoint(
     payload: PackDesignRequest,
     db: Session = Depends(get_db),
@@ -78,7 +80,9 @@ def design_pack_endpoint(
     return BatteryService(db, user.id).design(payload)
 
 
-@router.post("/comparar", response_model=BatteryComparisonResultOut)
+@router.post(
+    "/comparar", response_model=BatteryComparisonResultOut, dependencies=[Depends(heavy_request)]
+)
 def compare_chemistries_endpoint(
     payload: BatteryComparisonRequest,
     db: Session = Depends(get_db),

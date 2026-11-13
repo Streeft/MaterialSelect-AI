@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_project, get_current_user
+from app.dependencies import get_current_project, get_current_user, heavy_request
 from app.domain.ahp import derive_weights
 from app.models.project import Project
 from app.models.user import User
@@ -47,7 +47,7 @@ router = APIRouter(prefix="/selection", tags=["selection"])
 indices_router = APIRouter(prefix="/performance-indices", tags=["selection"])
 
 
-@router.post("/filter", response_model=FilterResultOut)
+@router.post("/filter", response_model=FilterResultOut, dependencies=[Depends(heavy_request)])
 def filter_materials(
     payload: FilterRequest,
     db: Session = Depends(get_db),
@@ -58,7 +58,7 @@ def filter_materials(
     return SelectionService(db, project.id, user).filter(payload)
 
 
-@router.post("/funnel", response_model=FunnelPreviewOut)
+@router.post("/funnel", response_model=FunnelPreviewOut, dependencies=[Depends(heavy_request)])
 def preview_funnel(
     payload: FilterRequest,
     db: Session = Depends(get_db),
@@ -69,7 +69,7 @@ def preview_funnel(
     return SelectionService(db, project.id, user).funnel_preview(payload)
 
 
-@router.post("/index", response_model=IndexResultOut)
+@router.post("/index", response_model=IndexResultOut, dependencies=[Depends(heavy_request)])
 def evaluate_index(
     payload: IndexRequest,
     db: Session = Depends(get_db),
@@ -107,7 +107,7 @@ def derive_ahp_weights(
     )
 
 
-@router.post("/run", response_model=RunResultOut)
+@router.post("/run", response_model=RunResultOut, dependencies=[Depends(heavy_request)])
 def run_selection(
     payload: RunRequest,
     db: Session = Depends(get_db),
@@ -144,7 +144,7 @@ def list_templates(
     return SelectionService(db, project.id, user).list_templates()
 
 
-@router.post("/run-diff", response_model=RunDiffOut)
+@router.post("/run-diff", response_model=RunDiffOut, dependencies=[Depends(heavy_request)])
 def diff_two_runs(
     payload: RunDiffRequest,
     project: Project = Depends(get_current_project),
@@ -260,7 +260,9 @@ def delete_study(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/studies/{study_id}/run", response_model=RunResultOut)
+@router.post(
+    "/studies/{study_id}/run", response_model=RunResultOut, dependencies=[Depends(heavy_request)]
+)
 def run_study(
     study_id: int,
     db: Session = Depends(get_db),

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, heavy_request
 from app.models.user import User
 from app.schemas.part_cost import CostRequest, CostResultOut
 from app.services.part_cost_service import PartCostService
@@ -20,7 +20,7 @@ from app.services.part_cost_service import PartCostService
 router = APIRouter(prefix="/custo", tags=["custo"])
 
 
-@router.post("/estimar", response_model=CostResultOut)
+@router.post("/estimar", response_model=CostResultOut, dependencies=[Depends(heavy_request)])
 def estimate_part_cost(
     payload: CostRequest,
     db: Session = Depends(get_db),
