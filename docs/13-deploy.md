@@ -145,6 +145,32 @@ e pior aqui porque a primeira coisa que a aplicação faz é `/auth/me`: o
 avaliador ficaria olhando para "Verificando sessão…" enquanto a máquina liga.
 Manter uma máquina de pé custa mais que zero, e é uma troca consciente.
 
+### Memória da VM: 1 GB (D-231)
+
+O `[[vm]]` do `fly.toml` pede `shared-cpu-1x` com **1 GB**, e o `fly deploy`
+aplica esse valor a cada implantação (um `fly scale memory` feito à mão é
+desfeito no deploy seguinte; mude o arquivo). Até 13/11/26 eram 512 MB: depois
+do deploy das 11:49 UTC daquele dia a máquina única foi morta por falta de
+memória (exit 137) quatro vezes em três minutos, e Seleção, Mapas, Comparar e
+as calculadoras deixaram de abrir, enquanto `/api/health` respondia (o
+processo reiniciava entre uma morte e outra). O processo serve com **um
+worker** (`Dockerfile.api`), e continua assim: cada worker a mais é uma cópia
+inteira do processo na mesma memória. Os números medidos por tela e o que foi
+cortado no consumo estão no [D-231](DECISIONS.md).
+
+Duas travas evitam que um pico de uso volte a matar a máquina:
+
+- **No proxy:** `[http_service.concurrency]` com `soft_limit = 5` e
+  `hard_limit = 8` (eram 40/60). Acima de 8 requisições em andamento o proxy
+  do Fly segura a próxima na fila em vez de entregá-la.
+- **No app:** só `HEAVY_REQUEST_CONCURRENCY` (padrão 2) requisições pesadas —
+  funil e execução da seleção, mapas, calculadoras e o plano da IA — rodam ao
+  mesmo tempo. A seguinte espera até `HEAVY_REQUEST_WAIT_SECONDS` (padrão 20)
+  e então recebe 503 com `Retry-After`; a tela mostra o erro e a pessoa tenta
+  de novo. Para mudar: `fly secrets set HEAVY_REQUEST_CONCURRENCY=3` (0
+  desliga). Subir esse número exige memória para mais uma requisição pesada
+  inteira ao mesmo tempo.
+
 ## 3. Google OAuth
 
 No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviços*
@@ -677,7 +703,7 @@ idênticos entram uma vez só.
      ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload
      dos Cadernos tem um teto ainda menor, de propósito (4 MB por fluxo, 32 MB
      por arquivo cobrados a cada decodificação, 4 MB lidos de uma vez, sob
-     medida para a VM de 512 MB). O orçamento de 15 min é conferido a cada
+     medida para a VM pequena, hoje de 1 GB). O orçamento de 15 min é conferido a cada
      decodificação e entre páginas, nunca no meio da leitura de um fluxo.
    - **Reextrair um livro indexado com páginas de fora**, depois de uma
      correção (pypdf novo, teto novo): o livro está `inalterado` para a

@@ -6,7 +6,7 @@ the SHA-256 of the cookie token (D-223).
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session
@@ -24,6 +24,7 @@ from app.models.user import User
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.subscription_repository import SubscriptionRepository
 from app.services.auth_service import AuthService
+from app.services.heavy_request_gate import get_gate
 from app.services.rate_limit_service import Bucket, check_rate_limit
 
 # Named ``msai_*`` to avoid colliding with any cookie a proxy or the browser
@@ -139,3 +140,16 @@ def rate_limit(bucket: Bucket, *, writes_only: bool = False) -> Callable[[Reques
         )
 
     return _dependency
+
+
+def heavy_request() -> Iterator[None]:
+    """Hold a heavy-request slot while the route runs and serialises (D-231).
+
+    Put on the routes that read a large share of the catalogue — the selection
+    funnel and run, the maps, the calculators and the AI plan — so a burst of
+    them queues instead of adding up past the VM's memory. A full gate answers
+    503 with ``Retry-After`` (``ServerBusyError``) after
+    ``HEAVY_REQUEST_WAIT_SECONDS``.
+    """
+    with get_gate().slot():
+        yield

@@ -90,3 +90,15 @@ class RateLimitedError(DomainError):
     def __init__(self, message: str, retry_after: int) -> None:
         super().__init__(message)
         self.retry_after = retry_after
+
+
+class ServerBusyError(DomainError):
+    """Every slot for heavy requests is taken and the wait ran out (D-231).
+
+    -> HTTP 503 with ``Retry-After``: the request was fine, the process is
+    protecting its memory. ``retry_after`` is whole seconds.
+    """
+
+    def __init__(self, message: str, retry_after: int) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after

@@ -120,6 +120,14 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
+
+**O que mudou.** `fly.toml`: `[[vm]] memory` de `512mb` para `1gb`, depois de quatro mortes por falta de memória (exit 137) em
+três minutos na produção. Um worker continua. Nota em `docs/13-deploy.md` (§2, "Memória da VM"). Concorrência do proxy de
+40/60 para 5/8, e um portão no app (`heavy_request_gate.py`, `HEAVY_REQUEST_CONCURRENCY=2`, `HEAVY_REQUEST_WAIT_SECONDS=20`)
+nas rotas pesadas: a terceira espera e, esgotada a espera, recebe 503 com `Retry-After`. Testes novos:
+`test_heavy_request_gate.py`. **Depois do merge: Deploy da API.**
+
 ## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
 ## Sessão 187 — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230)
 

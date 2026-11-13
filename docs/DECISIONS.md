@@ -13463,3 +13463,38 @@ dois testes em `e2e/sugestao-ia.spec.ts` (Custo aplica um parâmetro e o valor m
 gravar). Correção que o axe achou: o título "Premissas desta conta" da Eco passou de `h4` para `h3`.
 
 **Numeração.** D-230/Sessão 187.
+
+## D-231 — Memória da API em produção: VM de 1 GB e consumo medido por tela
+
+**Contexto.** Depois do deploy das 11:49 UTC de 13/11/26, a máquina única do Fly (`shared-cpu-1x`, 512 MB, um worker uvicorn)
+foi morta por falta de memória (exit 137) quatro vezes em três minutos. Seleção, Mapas, Comparar, Dimensionar, Custo, Eco e
+Baterias não abriam; `/api/health` e `/api/health/db` respondiam em ~0,7 s (o banco estava bem; o processo reiniciava entre as
+mortes). O `fly deploy` aplica o `[[vm]]` do `fly.toml` a cada implantação, então subir a memória à mão não duraria.
+
+**Decisão.**
+
+1. **VM de 1 GB** (`[[vm]] memory = "1gb"` no `fly.toml`), primeiro e sozinho, para a produção voltar enquanto o consumo é
+   investigado. **Um worker continua**: cada worker a mais é uma cópia inteira do processo na mesma memória.
+2. **Menos requisições por máquina no proxy.** `[http_service.concurrency]` de 40/60 para `soft_limit = 5`,
+   `hard_limit = 8`: acima disso o proxy do Fly segura a requisição na fila em vez de entregá-la. Uma tela abre com até ~6
+   pedidos paralelos; 8 deixa uma tela inteira passar enquanto a próxima espera.
+3. **Portão de requisições pesadas no app** (`app/services/heavy_request_gate.py`, dependência `heavy_request`):
+   `HEAVY_REQUEST_CONCURRENCY` (padrão 2) rotas pesadas rodam juntas por processo; a próxima espera até
+   `HEAVY_REQUEST_WAIT_SECONDS` (padrão 20) e recebe **503 com `Retry-After`** ("O servidor está ocupado…"), em vez de o
+   processo inteiro morrer e levar as leves junto. Pesadas são as que leem boa parte do catálogo: seleção (`filter`,
+   `funnel`, `index`, `run`, `run-diff`, execução de estudo), mapas (`property-map`, `map-box`, `index-line`, `compare`),
+   as calculadoras (`solver/resolver`, `custo/estimar`, `eco/auditar` e `comparar`, `baterias/dimensionar` e `comparar`) e
+   o plano da IA (`ai/plan`, `ai/plan/run`). Listas, ficha, saúde e login não passam pelo portão. Semáforo de `threading`
+   (as rotas são `def` servidas pelo pool de threads), por processo, como o limite por minuto do D-223.
+
+**Alternativas recusadas.** Semáforo `asyncio` (fica preso ao laço de eventos em que foi usado primeiro, e as rotas
+pesadas nem rodam no laço). Limitar só no proxy (uma tela leve e uma pesada contam igual; o portão separa as duas). `fly scale memory` à mão (o próximo deploy o desfaz). Mais workers (multiplicam a memória, o oposto
+do que falta). Voltar a versão anterior (o consumo cresce com o catálogo de 678 materiais, não com uma mudança só daquele
+deploy).
+
+**Consequências.** Custo maior da máquina sempre de pé. Um pico de uso vira espera ou 503 com "tente de novo", nunca a API
+fora do ar. Testes: `test_heavy_request_gate.py` (o portão recusa depois da espera e devolve a vaga mesmo com erro; 0 desliga;
+toda rota pesada passa por ele e nenhuma leve; 503 com `Retry-After` enquanto cheio e 200 depois; o `fly.toml` com 1 GB e
+limite de concorrência baixo; um worker no `Dockerfile.api`). Depois do merge: **Deploy da API**. Sem migração nem seed.
+
+**Numeração.** D-231/Sessão 188 (o `main` tem dois D-230 e duas Sessões 187, dos PRs #251 e #252; este PR não os renumera).
