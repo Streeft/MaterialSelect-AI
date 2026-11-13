@@ -18,6 +18,7 @@ import {
   deleteStudioArtifact,
   getStudioCatalog,
   listStudio,
+  reorderNotebookNotes,
   updateNotebookNote,
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
@@ -31,7 +32,8 @@ import {
   Input,
   PanelHeader,
   Spinner,
-  Textarea,
+  Block,
+  useReorder,
   ToolTile,
   type ToolTone,
 } from "@/components/ui";
@@ -52,6 +54,7 @@ import {
 import { notebookKey, STUDIO_CATALOG_KEY, studioKey } from "./keys";
 import { ArtifactViewer } from "./studio/ArtifactViewer";
 import { CreateArtifactDialog } from "./studio/CreateArtifactDialog";
+import { SlashTextarea } from "./SlashTextarea";
 
 const t = ptBR.notebooks;
 const s = t.studio;
@@ -136,6 +139,30 @@ export function StudioPanel({
     },
   });
 
+  // D-235: the notes in the student's order. The list moves at once (the
+  // cache), the server keeps it; a refusal brings the server's order back.
+  const reorder = useMutation({
+    mutationFn: (ids: number[]) => reorderNotebookNotes(notebook.id, ids),
+    onMutate: (ids) => {
+      client.setQueryData<Notebook>(notebookKey(notebook.id), (old) =>
+        old
+          ? {
+              ...old,
+              notes: ids
+                .map((id) => old.notes.find((n) => n.id === id))
+                .filter((n): n is NotebookNote => Boolean(n)),
+            }
+          : old,
+      );
+    },
+    onSettled: refresh,
+  });
+  const noteOrder = useReorder({
+    items: notebook.notes,
+    onReorder: (next) => reorder.mutate(next.map((n) => n.id)),
+    nameOf: (note) => note.title,
+  });
+
   const specs = new Map((catalog.data?.tools ?? []).map((tool) => [tool.slug as string, tool]));
   const artifacts = studio.data?.artifacts ?? [];
 
@@ -208,12 +235,23 @@ export function StudioPanel({
 
               <div className="flex flex-col gap-2 border-t border-edge-subtle pt-3">
                 <h3 className="text-body font-semibold text-ink">{t.notes}</h3>
+                {notebook.notes.length > 1 ? (
+                  <p id="notas-ordem-dica" className="text-caption text-ink-muted">
+                    {t.notesOrderHint}
+                  </p>
+                ) : null}
+                {reorder.error ? (
+                  <Alert tone="danger" role="alert">
+                    {t.notesOrderFailed}
+                  </Alert>
+                ) : null}
                 {notebook.notes.length === 0 ? (
                   <p className="text-caption text-ink-muted">{t.noNotes}</p>
                 ) : (
-                  <ul className="flex flex-col gap-1.5">
-                    {notebook.notes.map((note) => (
+                  <ul className="flex flex-col gap-1.5" aria-describedby="notas-ordem-dica">
+                    {notebook.notes.map((note, index) => (
                       <li key={note.id}>
+                        <Block name={note.title} handle={noteOrder.handleProps(index)} item={noteOrder.itemProps(index)}>
                         <button
                           type="button"
                           onClick={() => setEditing(note)}
@@ -235,6 +273,7 @@ export function StudioPanel({
                             <span className="line-clamp-2 text-caption text-ink-muted">{note.body}</span>
                           ) : null}
                         </button>
+                        </Block>
                       </li>
                     ))}
                   </ul>
@@ -438,7 +477,8 @@ function NoteEditor({
       }}
     >
       <Input label={t.noteTitle} value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
-      <Textarea label={t.noteBody} rows={8} value={body} onChange={(e) => setBody(e.target.value)} />
+      {/* D-235: "/" inserts a block (heading, list, quote, table, a sheet link). */}
+      <SlashTextarea label={t.noteBody} rows={8} value={body} onChange={setBody} />
       {note.citations && note.citations.length > 0 ? (
         <ol className="flex flex-col gap-1 text-2xs text-ink-muted">
           {note.citations.map((citation) => (

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -86,6 +86,8 @@ const api = vi.hoisted(() => ({
   deleteStudioArtifact: vi.fn(),
   saveStudioArtifactAsNote: vi.fn(),
   askNotebook: vi.fn(),
+  reorderNotebookNotes: vi.fn(),
+  getNotebook: vi.fn(),
 }));
 
 // D-98: the PNG is made in the browser; here only the call and its failure matter.
@@ -97,7 +99,6 @@ vi.mock("@/lib/rasterize", async (importOriginal) => ({
 
 vi.mock("@/lib/api", () => ({
   ...api,
-  getNotebook: vi.fn(() => Promise.resolve(notebook)),
   listNotebookMessages: vi.fn(() => Promise.resolve([])),
   getStudioCatalog: vi.fn(() => Promise.resolve(studioCatalog)),
   renameStudioArtifact: vi.fn(),
@@ -133,6 +134,10 @@ vi.mock("@/lib/api", () => ({
   searchSources: vi.fn(),
   addExternalSource: vi.fn(),
 }));
+
+beforeEach(() => {
+  api.getNotebook.mockImplementation(() => Promise.resolve(notebook));
+});
 
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -551,5 +556,29 @@ describe("Estúdio: áudio, vídeo, slides e infográfico (D-98)", () => {
     await user.click(await screen.findByRole("button", { name: s.open(title) }));
     await screen.findByRole("heading", { name: title });
     await expectAccessible(container);
+  });
+});
+
+
+describe("notas em ordem (D-235)", () => {
+  it("Alt+↓ na alça de uma nota manda a nova ordem ao servidor", async () => {
+    const note = (id: number, title: string) => ({
+      id,
+      title,
+      body: "",
+      origin: "manual",
+      citations: null,
+      created_at: "2026-11-13T10:00:00Z",
+      updated_at: "2026-11-13T10:00:00Z",
+    });
+    api.getNotebook.mockImplementation(() =>
+      Promise.resolve({ ...notebook, notes: [note(1, "Plano"), note(2, "Dúvidas")] }),
+    );
+    api.listStudio.mockResolvedValue({ artifacts: [], usage: { used: 0, limit: 10, remaining: 10 } });
+    api.reorderNotebookNotes.mockResolvedValue([note(2, "Dúvidas"), note(1, "Plano")]);
+    render(wrap(<NotebookWorkspace id={4} />));
+    const grip = await screen.findByRole("button", { name: ptBR.ds.dragHandle("Plano") });
+    fireEvent.keyDown(grip, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(api.reorderNotebookNotes).toHaveBeenCalledWith(4, [2, 1]));
   });
 });
