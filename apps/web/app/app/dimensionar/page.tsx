@@ -27,6 +27,11 @@ import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { encodeIdList } from "@/lib/idList";
+import {
+  MAX_LIST_MATERIALS,
+  listForSelection,
+  selectionHrefForMaterials,
+} from "@/lib/selectionList";
 import { classVisual } from "@/lib/design/palette";
 import {
   Alert,
@@ -601,15 +606,30 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                 <SolveResultChart result={result} />
                 {result.solved.length > 1 ? (
                   <div className="flex flex-col gap-1">
-                    <div>
+                    <div className="flex flex-wrap gap-2">
                       <ButtonLink
                         variant="secondary"
                         href={`/app/comparar?materiais=${encodeIdList(result.solved.map((r) => r.record_id))}`}
                       >
                         {t.compareBest(result.solved.length)}
                       </ButtonLink>
+                      {/* D-232: the same shortlist, as a list stage — the study is
+                          restricted to these and the reader's limits narrow from there. */}
+                      <ButtonLink
+                        variant="secondary"
+                        href={selectionHrefForMaterials(result.solved.map((r) => r.record_id))}
+                      >
+                        {t.openCandidatesInSelection(
+                          listForSelection(result.solved.map((r) => r.record_id)).ids.length,
+                        )}
+                      </ButtonLink>
                     </div>
                     <p className="text-caption text-ink-muted">{t.compareBestHint}</p>
+                    {listForSelection(result.solved.map((r) => r.record_id)).truncated ? (
+                      <p className="text-caption text-ink-muted">
+                        {t.openCandidatesCapped(MAX_LIST_MATERIALS)}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
                 {result.excluded.length > 0 ? (

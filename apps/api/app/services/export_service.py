@@ -454,6 +454,7 @@ class ExportService:
             "process": "Processos",
             "material": "Materiais",
             "chart": "Gráfico",
+            "list": "Lista",
         }
         if universe == "process":
             kinds = {**kinds, "tree": "Famílias"}

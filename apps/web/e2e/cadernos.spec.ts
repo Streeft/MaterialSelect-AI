@@ -424,13 +424,35 @@ test("abrir o caderno pelo endereço na aba certa, citar no trecho, duplicar e a
   await page.getByRole("button", { name: "Abrir “Aula de aços” no trecho citado" }).click();
   const reader = page.getByRole("dialog", { name: "Aula de aços" });
   await expect(reader.locator("mark")).toContainText("7850 kg/m³");
-  await expect(page).toHaveURL(/\?fonte=\d+$/);
+  // D-233: the server's position for the passage goes in the address (`?trecho=início-fim`) ...
+  await expect(page).toHaveURL(/\?fonte=\d+&trecho=\d+-\d+$/);
+  // ... and with it the mark survives a reload, with no passage text at hand to search for.
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "Aula de aços" }).locator("mark")).toContainText(
+    "7850 kg/m³",
+  );
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/fonte=/);
 
-  // Duplicate from the ⋯ menu: the copy opens with its sources.
+  // D-233: "Duplicar com conversa" carries the chat too, its citations pointed at the copy.
   await page.getByRole("button", { name: "Ações do caderno" }).click();
-  await page.getByRole("menuitem", { name: "Duplicar" }).click();
+  await page.getByRole("menuitem", { name: /^Duplicar com conversa/ }).click();
+  await page.waitForURL((url) => url.pathname !== base && /\/app\/cadernos\/\d+$/.test(url.pathname), {
+    timeout: 20_000,
+  });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Cópia de");
+  const copiedLog = page.getByRole("log", { name: "Conversa com as fontes" });
+  await expect(copiedLog.getByText("Segundo as fontes", { exact: false })).toBeVisible({ timeout: 20_000 });
+  // ... and its citation opens the copy's own source at the passage.
+  await copiedLog.getByRole("button", { name: "Trecho 1, de “Aula de aços”" }).last().click();
+  await page.getByRole("button", { name: "Abrir “Aula de aços” no trecho citado" }).click();
+  await expect(page.getByRole("dialog", { name: "Aula de aços" }).locator("mark")).toContainText("7850 kg/m³");
+  await page.keyboard.press("Escape");
+
+  // Duplicate from the ⋯ menu: the copy opens with its sources.
+  await page.goto(base);
+  await page.getByRole("button", { name: "Ações do caderno" }).click();
+  await page.getByRole("menuitem", { name: "Duplicar", exact: true }).click();
   await page.waitForURL((url) => url.pathname !== base && /\/app\/cadernos\/\d+$/.test(url.pathname), {
     timeout: 20_000,
   });
@@ -446,5 +468,6 @@ test("abrir o caderno pelo endereço na aba certa, citar no trecho, duplicar e a
   const list = page.getByRole("list", { name: "Seus cadernos" });
   await expect(list.getByRole("link", { name: /Cópia de/ })).toBeVisible({ timeout: 20_000 });
   await page.getByRole("button", { name: "Ativos" }).click();
-  await expect(list.getByRole("link", { name: /Cópia de/ })).toHaveCount(0);
+  // Only the copy made with the conversation is still active: the archived one left the list.
+  await expect(list.getByRole("link", { name: /Cópia de/ })).toHaveCount(1);
 });

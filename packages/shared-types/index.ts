@@ -379,6 +379,28 @@ export interface MaterialDetail {
   atomic_composition?: AtomicComposition[];
   /** D-122: the record this one was duplicated from, while it is still readable. */
   copied_from?: { id: number; name: string } | null;
+  /**
+   * D-233: each source the sheet cites, once, with the recorded bibliographic
+   * fields and the ABNT text the **server** built from them. Optional on the wire
+   * for cached payloads written before D-233.
+   */
+  sources?: SourceReference[];
+}
+
+/** A source as the sheet cites it (D-233). Every field but `label`/`abnt` is `null` when not recorded. */
+export interface SourceReference {
+  id: number;
+  label: string;
+  reference: string | null;
+  authors: string | null;
+  title: string | null;
+  publisher: string | null;
+  year: number | null;
+  url: string | null;
+  /** ISO date (`2026-11-13`). */
+  accessed_on: string | null;
+  /** The reference in ABNT form, only from recorded fields. The screen copies it, never edits it. */
+  abnt: string;
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */
@@ -918,9 +940,10 @@ export interface ConstraintGroupIn {
 /**
  * A stage's kind: a constraint tree, a folder selection over the material
  * taxonomy, (P0-2) a selection over the process universe — the join's other
- * direction — or (P1-2) a region of one plane.
+ * direction — or (P1-2) a region of one plane — or (D-232) a named list of
+ * materials the universe is restricted to.
  */
-export type StageKind = "limit" | "tree" | "process" | "material" | "chart";
+export type StageKind = "limit" | "tree" | "process" | "material" | "chart" | "list";
 
 /**
  * One axis of a chart stage (P1-2) — mirrors the backend's `ChartAxisIn`.
@@ -986,6 +1009,9 @@ export interface StageIn {
   material_class_slugs?: string[];
   // kind === "chart" (P1-2): the plane, the box and the line.
   chart?: ChartStageIn | null;
+  // kind === "list" (D-232): the materials the study is restricted to, at
+  // most `MAX_LIST_MATERIALS` (mirrors `MAX_STAGE_MATERIAL_IDS` in the API).
+  material_ids?: number[];
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
   /** D-122: the author's note on this stage — plain text, never markup. */
@@ -1004,6 +1030,8 @@ export interface StageOut {
   process_class_slugs: string[];
   material_class_slugs: string[];
   chart: ChartStageIn | null;
+  /** kind === "list" (D-232); empty for the other kinds. */
+  material_ids?: number[];
   include_descendants: boolean;
   /** D-122: null is "no note was written". */
   notes?: string | null;
@@ -3500,6 +3528,13 @@ export interface NotebookCitation {
   heading: string | null;
   page_start: number | null;
   page_end: number | null;
+  /**
+   * Where the passage sits in the source's text, half-open (D-233). `null`/absent
+   * for a passage stored before the positions existed: the reader then looks the
+   * excerpt up by words, as before. Never a guessed number.
+   */
+  char_start?: number | null;
+  char_end?: number | null;
   excerpt: string;
 }
 

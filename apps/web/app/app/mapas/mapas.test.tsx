@@ -10,6 +10,7 @@ import { installWideViewport } from "@/lib/testing/viewport";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
 import { suggestText } from "@/lib/i18n-suggest";
+import { MAP_URL_KEY } from "@/lib/navMemory";
 import { decodeMapState } from "./url-state";
 import type {
   IndexLineOut,
@@ -242,6 +243,12 @@ function query(): URLSearchParams {
   return new URLSearchParams(window.location.search);
 }
 
+/** What the home's "Último mapa" will open (D-232): the whole address, not just the path. */
+function readMapUrl(): string | null {
+  const raw = window.localStorage.getItem(MAP_URL_KEY);
+  return raw ? ((JSON.parse(raw) as string[])[0] ?? null) : null;
+}
+
 function wrap(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
@@ -276,6 +283,7 @@ function line(overrides: Partial<IndexLineOut> = {}): IndexLineOut {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   setQuery("");
   push.mockReset();
   getPropertyMap.mockClear();
@@ -284,6 +292,18 @@ beforeEach(() => {
     Promise.resolve(line(request.level ? { value: request.level, step_index: request.level - 1 } : {})),
   );
   convertMapBox.mockReset();
+});
+
+describe("Mapas — lembra o último mapa com os filtros (D-232)", () => {
+  it("guarda o endereço completo do mapa, e o atualiza quando o leitor mexe", async () => {
+    const user = userEvent.setup();
+    setQuery("sel=1");
+    await open();
+    await waitFor(() => expect(readMapUrl()).toBe("/app/mapas?sel=1"));
+
+    await user.click(screen.getByRole("button", { name: "simular laço" }));
+    await waitFor(() => expect(readMapUrl()).toBe("/app/mapas?sel=1%2C2"));
+  });
 });
 
 describe("Mapas — seleção que vira filtro (D-213)", () => {
@@ -298,8 +318,29 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     expect(screen.getByText(t.selectionCount(2))).toBeInTheDocument();
     const compare = screen.getByShadowRole("link", { name: `${t.compareSelection} →` });
     expect(compare).toHaveAttribute("href", "/app/comparar?materiais=1,2");
-    // A lasso is a set of records, not a region: the Chart Stage needs a box.
-    expect(screen.getByText(t.openInSelectionNeedsBox)).toBeInTheDocument();
+    // D-232: a lasso is a set of records, so it opens the Selection as a list
+    // stage (`?materiais=`); the Chart Stage is for a box.
+    const toSelection = screen.getByShadowRole("link", { name: `${t.openInSelection} →` });
+    expect(toSelection).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1,2");
+    expect(screen.getByText(t.openInSelectionListHint)).toBeInTheDocument();
+    expect(screen.queryByText(t.openInSelectionNeedsBox)).not.toBeInTheDocument();
+  });
+
+  it("a lista de pontos marcados também abre a Seleção, e a seleção acima do limite avisa que corta", async () => {
+    setQuery("sel=1-250");
+    await open();
+    const link = await screen.findByShadowRole("link", { name: `${t.openInSelection} →` });
+    expect(link).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1-200");
+    expect(screen.getByText(t.openInSelectionCapped(200))).toBeInTheDocument();
+  });
+
+  it("o painel da seleção passa no axe com o laço e com a caixa", async () => {
+    const user = userEvent.setup();
+    const { container } = await open();
+    await user.click(screen.getByRole("button", { name: "simular laço" }));
+    await screen.findByShadowRole("link", { name: `${t.openInSelection} →` });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 
   it("“Mostrar só estes no mapa” restringe o mapa pelos mesmos ids, e “Mostrar todos” desfaz", async () => {

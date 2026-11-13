@@ -442,10 +442,17 @@ As regras que pesam:
   (item do Estúdio aberto); a lista, `?arquivados=1`. Tudo pelo `useUrlState`, parâmetro inválido cai no padrão.
 - **Citação.** O chip abre o trecho e, abaixo dele, "Abrir a fonte no trecho": o leitor marca o `excerpt` no texto da fonte.
   Texto localizado, nunca calculado: a IA continua sem produzir número nenhum, e o trecho marcado é o que o backend já tinha
-  checado. Sem posição guardada no servidor (ver TODO), a busca é por palavras.
+  checado. Desde o D-233 o servidor guarda **onde** o trecho está (`notebook_chunk.char_start`/`char_end`, intervalo meio-aberto
+  no `content` da fonte, sem a sobreposição repetida do trecho anterior) e a citação o devolve; o leitor marca por posição e o
+  endereço leva `?trecho=ini-fim`, então a marca sobrevive ao recarregar. Trecho gravado antes não tem posição (NULL, nunca um
+  palpite): para esse, e se a posição não couber no texto, a busca por palavras continua como recaída.
 - **Duplicar** (`POST /api/notebooks/{id}/duplicate`): copia fontes, trechos, vetores e notas; não copia a conversa nem os itens
-  do Estúdio; não gasta a cota diária. **Arquivar** (`PATCH` com `archived`): `notebook.archived_at`; o caderno some da lista
-  padrão (`GET /api/notebooks?archived=true` lista os arquivados) e segue abrindo.
+  do Estúdio; não gasta a cota diária. Com `?with_conversation=true` ("Duplicar com conversa", D-233) leva também as mensagens,
+  os itens **prontos** do Estúdio e as citações das notas, reapontando cada `chunk_id`/`source_id` para a cópia (citação de fonte
+  já removida vira id 0, nunca outra linha); também não gasta cota. **Arquivar** (`PATCH` com `archived`): `notebook.archived_at`;
+  o caderno some da lista padrão (`GET /api/notebooks?archived=true` lista os arquivados) e segue abrindo. Em lote (D-233),
+  `POST /api/notebooks/batch-archive` (1 a 100 ids, tudo ou nada, 404 se algum não for do dono), com "Selecionar", confirmação
+  e "Desfazer" na lista.
 
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 

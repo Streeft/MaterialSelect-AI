@@ -92,6 +92,20 @@ class PropertyDefinitionIn(BaseModel):
     allows_log_scale: bool = True
 
 
+class PropertyDefinitionPatch(BaseModel):
+    """What the Admin may change on a property without touching a stored number (D-233).
+
+    Only the fields **sent** are applied (``model_fields_set``), so ``description:
+    null`` clears the text and leaving it out keeps it. No slug and no dimension
+    on purpose: the slug names the property in URLs and saved studies, and the
+    dimension is what every conversion is checked against.
+    """
+
+    name: str | None = Field(default=None, max_length=160)
+    description: str | None = Field(default=None, max_length=500)
+    display_unit: str | None = Field(default=None, max_length=60)
+
+
 class PropertyDefinitionOut(BaseModel):
     """A property definition as returned by the API."""
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { deleteNotebook, getNotebook } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
 import { useUrlState } from "@/lib/urlState";
 import type { Notebook, NotebookCitation } from "@/lib/types";
 import { cn } from "@/lib/cn";
@@ -41,7 +42,7 @@ import { SourceReader } from "./SourceReader";
 import { SourcesPanel } from "./SourcesPanel";
 import { StudioPanel } from "./StudioPanel";
 import { useNotebookActions } from "./useNotebookActions";
-import { notebookUrlSpec, type NotebookPanel as Panel } from "./urlState";
+import { notebookUrlSpec, type NotebookPanel as Panel, type PassageRange } from "./urlState";
 
 const t = ptBR.notebooks;
 
@@ -176,16 +177,29 @@ function Workspace({ data }: { data: Notebook }) {
   const [excerpt, setExcerpt] = useState<string | null>(null);
   const reading =
     data.sources.find((source) => source.id === url.source) ?? null;
-  // A `?fonte=` that is no source of this notebook (removed, or someone else's link) is dropped.
+  // A `?fonte=` that is no source of this notebook (removed, or someone else's link) is dropped,
+  // and a `?trecho=` without a source marks nothing.
   useEffect(() => {
-    if (url.source !== null && reading === null) setUrl({ source: null });
-  }, [url.source, reading, setUrl]);
-  const readSource = (sourceId: number | null, passage: string | null) => {
+    if (url.source !== null && reading === null) setUrl({ source: null, passage: null });
+    else if (url.source === null && url.passage !== null) setUrl({ passage: null });
+  }, [url.source, url.passage, reading, setUrl]);
+  const readSource = (
+    sourceId: number | null,
+    passage: string | null,
+    range: PassageRange | null = null,
+  ) => {
     setExcerpt(passage);
-    setUrl({ source: sourceId });
+    // D-233: the position the server stored goes in the address, so a reload keeps the mark.
+    setUrl({ source: sourceId, passage: sourceId === null ? null : range });
   };
   const openCited = (citation: NotebookCitation) =>
-    readSource(citation.source_id, citation.excerpt);
+    readSource(
+      citation.source_id,
+      citation.excerpt,
+      citation.char_start != null && citation.char_end != null
+        ? { start: citation.char_start, end: citation.char_end }
+        : null,
+    );
 
   return (
     <OpenSourceProvider value={openCited}>
@@ -329,6 +343,7 @@ function Workspace({ data }: { data: Notebook }) {
           notebookId={id}
           source={reading}
           excerpt={excerpt}
+          position={url.passage}
           onClose={() => readSource(null, null)}
         />
       </div>
@@ -408,9 +423,18 @@ function Header({
                 <IconPencil /> {t.rename}
               </span>
             </MenuItem>
-            <MenuItem onSelect={() => duplicate.mutate()}>
+            <MenuItem onSelect={() => duplicate.mutate(false)}>
               <span className="inline-flex items-center gap-2">
                 <IconCopy /> {duplicate.isPending ? t.duplicating : t.duplicate}
+              </span>
+            </MenuItem>
+            <MenuItem
+              hint={curadoriaText.notebooks.duplicateWithChatHint}
+              disabled={duplicate.isPending}
+              onSelect={() => duplicate.mutate(true)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <IconCopy /> {curadoriaText.notebooks.duplicateWithChat}
               </span>
             </MenuItem>
             <MenuItem onSelect={() => archive.mutate(!notebook.archived)}>

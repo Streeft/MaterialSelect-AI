@@ -24,6 +24,7 @@ from app.domain.catalog_listing import (
     order_rows,
     page,
 )
+from app.domain.citation import SourceParts, abnt_reference
 from app.domain.composition import (
     RULE_TEXT,
     CompositionError,
@@ -86,6 +87,7 @@ from app.schemas.material import (
     UndeterminedBreakdown,
 )
 from app.schemas.property import PropertyGroup, PropertyValueOut
+from app.schemas.sources import SourceReferenceOut
 from app.services.audit_service import diff_fields, record_change
 from app.services.process_service import ProcessService
 from app.services.record_permissions import ensure_identity_writable
@@ -534,7 +536,37 @@ class MaterialService:
             composition=[_composition_entry_out(e) for e in material.composition],
             atomic_composition=_atomic_composition(list(material.composition)),
             copied_from=self._copied_from(material),
+            sources=self._cited_sources(material),
         )
+
+    @staticmethod
+    def _cited_sources(material: Material) -> list[SourceReferenceOut]:
+        """Every source the sheet cites, once each, with its ABNT text (D-233).
+
+        Read off rows the sheet already loaded — no extra query. Ordered by label
+        so the list does not shuffle between two reads of the same sheet.
+        """
+        found: dict[int, Source] = {}
+        for value in material.property_values:
+            if value.source is not None:
+                found[value.source.id] = value.source
+        for entry in (*material.composition, *material.designations):
+            found[entry.source.id] = entry.source
+        return [
+            SourceReferenceOut(
+                id=source.id,
+                label=source.label,
+                reference=source.reference,
+                authors=source.authors,
+                title=source.title,
+                publisher=source.publisher,
+                year=source.year,
+                url=source.url,
+                accessed_on=source.accessed_on,
+                abnt=abnt_reference(SourceParts.from_source(source)),
+            )
+            for source in sorted(found.values(), key=lambda s: (s.label.casefold(), s.id))
+        ]
 
     def _copied_from(self, material: Material) -> CopiedFromOut | None:
         """Where a copy came from, when the original is still readable by this reader.
@@ -744,6 +776,39 @@ class MaterialService:
                 action=AuditAction.EXCLUIDO,
             )
         self.repo.commit()
+
+    def delete_own_batch(self, ids: list[int]) -> list[int]:
+        """Withdraw several of the viewer's **own** records in one go, all or none (D-233).
+
+        Own records only: a shared-catalogue record is refused here even for a viewer
+        who may edit it elsewhere, because this is the "Meus registros" screen. Every
+        id is checked before anything is written, so one refusal leaves the rest
+        untouched. A stranger's record, a missing one and one already withdrawn are all
+        the same 404 (D-62). Each deletion is audited like the single one.
+        """
+        materials: list[Material] = []
+        for material_id in ids:
+            material = self.repo.get_material(material_id)
+            if material is None or not material.is_active:
+                raise NotFoundError(f"Material não encontrado: {material_id}")
+            if material.owner_id is None or material.owner_id != self.viewer_id:
+                raise ValidationError(
+                    "Só é possível excluir registros próprios por aqui. Um material do "
+                    "catálogo não é excluído em lote."
+                )
+            materials.append(material)
+        for material in materials:
+            material.is_active = False
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL,
+                entity_id=material.id,
+                entity_label=material.name,
+                action=AuditAction.EXCLUIDO,
+            )
+        self.repo.commit()
+        return [material.id for material in materials]
 
     # --- composition and designations (TM2-a, D-105) -----------------------
 

@@ -49,6 +49,14 @@ export const compareViewText = {
     classics: "Pares clássicos",
     classicsHint: "Achados no catálogo pelo nome; só aparece o par que o catálogo tem.",
     comparePair: (a: string, b: string) => `Comparar ${a} com ${b}`,
+    // D-232: o atalho "top do último estudo" — o estudo salvo mais recente, executado de novo.
+    lastStudy: "Do seu último estudo",
+    lastStudyHint: (n: number) =>
+      `Executa de novo o estudo salvo mais recente e leva os ${n} primeiros candidatos, na ordem do resultado.`,
+    compareStudyTop: (name: string) => `Comparar o top do estudo ${name}`,
+    studyRunning: "Executando o estudo…",
+    studyTooFew: (name: string) =>
+      `O estudo ${name} não deixou 2 candidatos para comparar. Abra-o na Seleção para afrouxar um limite.`,
   },
   // D-221: one bar for what is compared, instead of two step cards.
   bar: {

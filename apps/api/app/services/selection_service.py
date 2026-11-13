@@ -27,6 +27,7 @@ from app.domain.filters import (
     ChartSelection,
     Constraint,
     ConstraintGroupNode,
+    IdSelection,
     MaterialSnapshot,
     Operator,
     ProcessReach,
@@ -150,6 +151,7 @@ _STAGE_KIND_LABELS = {
     "process": "processos",
     "material": "materiais",
     "chart": "gráfico",
+    "list": "lista",
 }
 
 #: The operator a single-question stage reports on its funnel line. `in_tree`
@@ -165,6 +167,9 @@ _STAGE_FUNNEL_OPERATORS = {
     # `in_tree` for a chart stage would tell the reader the selection filtered by
     # class when it filtered by a region of a plane.
     "chart": "in_chart",
+    # D-232: a list is neither a folder nor a process, and saying `in_tree` would
+    # tell the reader of the funnel the selection went by class.
+    "list": "in_list",
 }
 
 
@@ -725,7 +730,7 @@ class SelectionService:
     #: both because a plane is a plane: a process has had magnitudes since P0-4,
     #: so a region of one is as selectable there as it is over materials.
     _KINDS_BY_UNIVERSE = {
-        "material": {"limit", "tree", "process", "chart"},
+        "material": {"limit", "tree", "process", "chart", "list"},
         "process": {"limit", "tree", "material", "chart"},
     }
 
@@ -748,6 +753,11 @@ class SelectionService:
             raise ValidationError(
                 "Num estudo de materiais, use um estágio de classes para escolher classes "
                 "de material; o estágio de materiais serve a um estudo de processos."
+            )
+        if universe == "process" and stage_in.kind == "list":
+            raise ValidationError(
+                "O estágio de lista restringe materiais; um estudo de processos escolhe "
+                "famílias de processo num estágio de árvore."
             )
         raise ValidationError(f"Tipo de estágio desconhecido: {stage_in.kind}")
 
@@ -796,6 +806,30 @@ class SelectionService:
             )
         if stage_in.kind != "chart" and stage_in.chart is not None:
             raise ValidationError("Só um estágio de gráfico leva um plano nesse campo.")
+        if stage_in.kind != "list" and stage_in.material_ids:
+            raise ValidationError("Só um estágio de lista leva materiais nesse campo.")
+
+        if stage_in.kind == "list":
+            if has_constraints:
+                raise ValidationError(
+                    "Um estágio de lista não leva restrições; use um estágio de limites."
+                )
+            if has_processes:
+                raise ValidationError(
+                    "Um estágio de lista não leva processos; use um estágio de processos."
+                )
+            if stage_in.class_slugs or stage_in.material_class_slugs:
+                raise ValidationError(
+                    "Um estágio de lista não leva classes; use um estágio de classes."
+                )
+            if stage_in.chart is not None:
+                raise ValidationError("Um estágio de lista não leva um plano.")
+            if not stage_in.material_ids:
+                # An empty list that meant "everything" would be the opposite of
+                # what the stage says; refusing it is the honest reading.
+                raise ValidationError("Um estágio de lista precisa de ao menos um material.")
+            self._check_material_ids(stage_in.material_ids)
+            return
 
         if stage_in.kind == "chart":
             if has_constraints:
@@ -938,6 +972,14 @@ class SelectionService:
                 ),
             )
 
+        if stage_in.kind == "list":
+            return SelectionStageNode(
+                kind="list",
+                label=stage_in.label,
+                enabled=stage_in.enabled,
+                ids=IdSelection(record_ids=self._distinct_ids(stage_in.material_ids)),
+            )
+
         if stage_in.kind == "process":
             return SelectionStageNode(
                 kind="process",
@@ -977,6 +1019,31 @@ class SelectionService:
         unknown = sorted(set(slugs) - self.repo.existing_class_slugs(slugs))
         if unknown:
             raise NotFoundError(f"Classes desconhecidas: {', '.join(unknown)}")
+
+    @staticmethod
+    def _distinct_ids(ids: list[int]) -> list[int]:
+        """The ids once each, in the order the reader gave them."""
+        return list(dict.fromkeys(ids))
+
+    def _check_material_ids(self, ids: list[int]) -> None:
+        """An id that names no visible material is a 404 naming it, the same
+        posture as an unknown class slug: a list that quietly admits fewer
+        records than were asked for reads as "these did not pass", when the truth
+        is "these were never there"."""
+        unknown = sorted(set(ids) - self.repo.existing_material_ids(self._distinct_ids(ids)))
+        if unknown:
+            raise NotFoundError(f"Materiais desconhecidos: {', '.join(str(i) for i in unknown)}")
+
+    @staticmethod
+    def _stored_material_ids(stage: SelectionStage) -> list[int]:
+        """The ids of a stored list stage, from its own column (D-233).
+
+        Anything in the column that is not an integer is dropped rather than
+        trusted: a stray string must not become a record id.
+        """
+        return [
+            i for i in (stage.material_ids or []) if isinstance(i, int) and not isinstance(i, bool)
+        ]
 
     def _check_process_selection(
         self, process_slugs: list[str], process_class_slugs: list[str]
@@ -1416,6 +1483,16 @@ class SelectionService:
                     )
                 )
                 continue
+            if stage.kind == "list":
+                nodes.append(
+                    SelectionStageNode(
+                        kind="list",
+                        label=stage.label,
+                        enabled=stage.enabled,
+                        ids=IdSelection(record_ids=self._stored_material_ids(stage)),
+                    )
+                )
+                continue
             if stage.kind == "material":
                 nodes.append(
                     SelectionStageNode(
@@ -1573,6 +1650,9 @@ class SelectionService:
         if stage.kind == "chart":
             return f"{name}{state}: {self._describe_chart(stage)}"
 
+        if stage.kind == "list":
+            return f"{name}{state}: {self._describe_list(stage)}"
+
         if stage.kind == "material":
             selection = stage.materials or TreeSelection()
             if not selection.class_slugs:
@@ -1595,6 +1675,33 @@ class SelectionService:
         scope = "com descendentes" if selection.include_descendants else "sem descendentes"
         label = "famílias de processo" if universe == "process" else "classes"
         return f"{name}{state}: {label} {picked} ({scope})"
+
+    #: How many names a document lists before saying "e mais N" — a laudo with
+    #: two hundred names in one sentence is not a sentence anyone reads.
+    _LIST_NAMES_SHOWN = 12
+
+    def _describe_list(self, stage: SelectionStageNode) -> str:
+        """A list stage in words, for the report and the laudo (D-232).
+
+        Names the materials, because a document that says "ids 3, 7" is
+        unreadable to whoever was not in the session, and says how many the list
+        holds so a name that no longer resolves is not a silent shrink.
+        """
+        record_ids = list((stage.ids or IdSelection()).record_ids)
+        if not record_ids:
+            return "nenhum material na lista"
+        names = self.repo.material_names_by_id(record_ids)
+        listed = [names[i] for i in record_ids if i in names]
+        shown = ", ".join(listed[: self._LIST_NAMES_SHOWN])
+        extra = len(listed) - self._LIST_NAMES_SHOWN
+        if extra > 0:
+            shown += f" e mais {extra}"
+        noun = "material" if len(record_ids) == 1 else "materiais"
+        return (
+            f"lista de {len(record_ids)} {noun}: {shown}"
+            if shown
+            else (f"lista de {len(record_ids)} {noun}")
+        )
 
     @classmethod
     def _describe_chart(cls, stage: SelectionStageNode) -> str:
@@ -2569,7 +2676,14 @@ class SelectionService:
             class_slugs=list(stage_in.class_slugs),
             process_slugs=list(stage_in.process_slugs),
             process_class_slugs=list(stage_in.process_class_slugs),
-            material_class_slugs=list(stage_in.material_class_slugs),
+            material_class_slugs=(
+                [] if stage_in.kind == "list" else list(stage_in.material_class_slugs)
+            ),
+            # D-233: the list stage's ids have their own column (D-232 kept them
+            # as integers in `material_class_slugs`, which holds folder slugs).
+            material_ids=(
+                self._distinct_ids(stage_in.material_ids) if stage_in.kind == "list" else []
+            ),
             include_descendants=stage_in.include_descendants,
             notes=stage_in.notes,
             # NULL when there is no chart, and NULL for each bound the reader did
@@ -2772,6 +2886,7 @@ class SelectionService:
                     process_slugs=list(stage.process_slugs or []),
                     process_class_slugs=list(stage.process_class_slugs or []),
                     material_class_slugs=list(stage.material_class_slugs or []),
+                    material_ids=self._stored_material_ids(stage),
                     chart=self._stage_row_to_chart_in(stage) if stage.kind == "chart" else None,
                     include_descendants=stage.include_descendants,
                     notes=stage.notes,

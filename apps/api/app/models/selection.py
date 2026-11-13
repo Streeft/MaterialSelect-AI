@@ -199,6 +199,13 @@ class SelectionStage(Base):
     # Material-stage payload (P0-3): folders of the material taxonomy, for a
     # process study. Folders only — see the class docstring.
     material_class_slugs: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    # List-stage payload (D-232, own column since D-233): the ids of the materials
+    # the reader handed over. Integers, in the order given; empty for every other
+    # kind. Before D-233 they lived in ``material_class_slugs``, which holds
+    # folder slugs — the migration moved them.
+    material_ids: Mapped[list] = mapped_column(
+        JSON, default=list, server_default="[]", nullable=False
+    )
 
     # --- Chart-stage payload (P1-2) --------------------------------------
     #

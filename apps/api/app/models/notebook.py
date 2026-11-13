@@ -177,6 +177,12 @@ class NotebookChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     #: Folded for matching (see app/knowledge/lexical.py); never shown.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    #: Where the passage sits in the source's ``content`` (D-233): the half-open
+    #: interval ``[char_start, char_end)``, so the reader marks it by position.
+    #: NULL for a passage stored before D-233 — never a guessed position; the
+    #: reader then looks the excerpt up by words, as before.
+    char_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    char_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     source: Mapped[NotebookSource] = relationship(back_populates="chunks")
     embedding: Mapped[NotebookEmbedding | None] = relationship(

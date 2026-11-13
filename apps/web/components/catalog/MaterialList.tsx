@@ -1,6 +1,12 @@
 import type { MaterialListItem } from "@/lib/types";
 import { MaterialCards } from "./MaterialCards";
-import { MaterialTable, type CatalogColumn, type PreviewRequest, type ServerSort } from "./MaterialRows";
+import {
+  MaterialTable,
+  type CatalogColumn,
+  type CrossPageSelection,
+  type PreviewRequest,
+  type ServerSort,
+} from "./MaterialRows";
 
 /**
  * A list of materials — stacked cards on a phone, the table from `sm` up.
@@ -16,8 +22,11 @@ export function MaterialList({
   serverSort,
   columns,
   valueColumn,
+  selection,
 }: {
   materials: MaterialListItem[];
+  /** D-232: a selection the page owns, so it crosses pages. */
+  selection?: CrossPageSelection;
   searchQuery?: string;
   onPreview?: PreviewRequest;
   previewId?: number;
@@ -39,6 +48,7 @@ export function MaterialList({
           serverSort={serverSort}
           columns={columns}
           valueColumn={valueColumn}
+          selection={selection}
         />
       </div>
     </>

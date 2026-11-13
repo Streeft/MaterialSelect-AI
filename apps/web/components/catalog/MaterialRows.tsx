@@ -8,6 +8,7 @@ import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
 import { MAX_COMPARE_MATERIALS, MIN_COMPARE_MATERIALS } from "@/lib/compareLimits";
 import { encodeIdList } from "@/lib/idList";
+import { listForSelection, selectionHrefForMaterials } from "@/lib/selectionList";
 import { ariaSort, nextSort, sortRows, type SortState } from "@/lib/tableSort";
 import { formatNumber } from "@/lib/format";
 import {
@@ -169,6 +170,16 @@ export function SortValueCell({ material }: { material: MaterialListItem }) {
 }
 
 /**
+ * D-232: a selection the page owns, so it can cross pages (and survive a filter
+ * or a reload when the page keeps it in the address). Absent, the table keeps
+ * its own, which never outlives the rows it shows.
+ */
+export interface CrossPageSelection {
+  ids: readonly number[];
+  onChange: (ids: number[]) => void;
+}
+
+/**
  * The catalogue as a table (D-131, after the M3 data-table pattern).
  *
  * - **Sort** by material or class — labels only. Quality and keywords are not
@@ -178,6 +189,8 @@ export function SortValueCell({ material }: { material: MaterialListItem }) {
  *   row *listed*, not every material in the catalogue; a selection never
  *   outlives its row (filtering a material out of the list drops it from the
  *   count), so the bar never acts on something the reader cannot see.
+ *   With `selection` (D-232) the page owns it and it does cross pages: the bar
+ *   then says "N selecionados em várias páginas" and offers "Limpar seleção".
  * - The action bar replaces nothing and moves nothing: it appears above the
  *   table, as a labelled region, and says in words why "Comparar" is off.
  */
@@ -190,9 +203,12 @@ export function MaterialTable({
   serverSort,
   columns,
   valueColumn,
+  selection,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
+  /** D-232: the selection, owned by the page so it crosses pages; absent, the table keeps its own. */
+  selection?: CrossPageSelection;
   /** D-184: open the material beside the list instead of leaving it. */
   onPreview?: PreviewRequest;
   /** The material shown in the detail pane, marked in its row. */
@@ -210,7 +226,7 @@ export function MaterialTable({
   const sort = serverSort ? serverSort.state : localSort;
   const setSort = serverSort ? serverSort.onChange : setLocalSort;
   const show = (column: CatalogColumn) => !columns || columns.has(column);
-  const [picked, setPicked] = useState<ReadonlySet<number>>(new Set());
+  const [localPicked, setLocalPicked] = useState<ReadonlySet<number>>(new Set());
   const allRef = useRef<HTMLInputElement>(null);
 
   const rows = useMemo(() => {
@@ -222,30 +238,59 @@ export function MaterialTable({
     );
   }, [materials, sort, serverSort]);
 
-  const selected = useMemo(() => materials.filter((m) => picked.has(m.id)), [materials, picked]);
-  const allSelected = materials.length > 0 && selected.length === materials.length;
-  const someSelected = selected.length > 0 && !allSelected;
+  // The selection, as ids: the page's when it owns it (it may name materials on
+  // other pages), otherwise the table's own, limited to the rows it still shows.
+  const picked = useMemo<ReadonlySet<number>>(
+    () => (selection ? new Set(selection.ids) : localPicked),
+    [selection, localPicked],
+  );
+  const selectedIds = useMemo(
+    () =>
+      selection
+        ? [...selection.ids]
+        : materials.filter((m) => localPicked.has(m.id)).map((m) => m.id),
+    [selection, materials, localPicked],
+  );
+  const onPage = materials.filter((m) => picked.has(m.id)).length;
+  const allSelected = materials.length > 0 && onPage === materials.length;
+  const someSelected = onPage > 0 && !allSelected;
+  const acrossPages = selectedIds.length > onPage;
+
+  function setPicked(next: ReadonlySet<number>) {
+    if (selection) selection.onChange([...next]);
+    else setLocalPicked(next);
+  }
 
   useEffect(() => {
     if (allRef.current) allRef.current.indeterminate = someSelected;
   }, [someSelected]);
 
   function toggle(id: number, on: boolean) {
-    setPicked((current) => {
-      const next = new Set(current);
-      if (on) next.add(id);
-      else next.delete(id);
-      return next;
-    });
+    const next = new Set(picked);
+    if (on) next.add(id);
+    else next.delete(id);
+    setPicked(next);
   }
 
-  const compareHref = `/app/comparar?materiais=${encodeIdList(selected.map((m) => m.id))}`;
-  const tooFew = selected.length < MIN_COMPARE_MATERIALS;
-  const tooMany = selected.length > MAX_COMPARE_MATERIALS;
+  /** "Selecionar todos" adds the page's rows to the selection, never replaces what other pages hold. */
+  function togglePage(on: boolean) {
+    const next = new Set(picked);
+    for (const m of materials) {
+      if (on) next.add(m.id);
+      else next.delete(m.id);
+    }
+    setPicked(next);
+  }
+
+  const compareHref = `/app/comparar?materiais=${encodeIdList(selectedIds)}`;
+  const tooFew = selectedIds.length < MIN_COMPARE_MATERIALS;
+  const tooMany = selectedIds.length > MAX_COMPARE_MATERIALS;
+  // D-232: the selection also goes to the Selection, as a list of materials.
+  const listCapped = listForSelection(selectedIds).truncated;
 
   return (
     <div className="flex flex-col gap-2">
-      {selected.length > 0 ? (
+      {selectedIds.length > 0 ? (
         // D-184: the M3 floating toolbar. Pinned above the bottom bar on a
         // phone (`--bottom-nav-offset`, D-91), centred, on inverse-surface, so
         // it stays in reach while the reader scrolls the rows they are marking.
@@ -255,7 +300,7 @@ export function MaterialTable({
           className="m3-floating-toolbar"
         >
           <span role="status" className="m3-floating-toolbar-count">
-            {t.selectedCount(selected.length)}
+            {acrossPages ? t.selectedAcrossPages(selectedIds.length) : t.selectedCount(selectedIds.length)}
           </span>
           {tooFew || tooMany ? (
             <>
@@ -271,6 +316,14 @@ export function MaterialTable({
               {t.compareSelected}
             </ButtonLink>
           )}
+          <ButtonLink size="sm" variant="tonal" href={selectionHrefForMaterials(selectedIds)}>
+            {t.openInSelection}
+          </ButtonLink>
+          {listCapped ? (
+            <span className="m3-floating-toolbar-note">
+              {t.openInSelectionCapped(listForSelection(selectedIds).ids.length)}
+            </span>
+          ) : null}
           <Button
             size="sm"
             variant="ghost"
@@ -295,9 +348,7 @@ export function MaterialTable({
                   aria-label={t.selectAll}
                   label=""
                   checked={allSelected}
-                  onChange={(e) =>
-                    setPicked(e.target.checked ? new Set(materials.map((m) => m.id)) : new Set())
-                  }
+                  onChange={(e) => togglePage(e.target.checked)}
                 />
               </Th>
               <SortTh

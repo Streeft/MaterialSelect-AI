@@ -8,7 +8,7 @@ import { getNotebookSource } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { Alert, Dialog, LoadingState } from "@/components/ui";
 import { notebookKey } from "./keys";
-import { locateExcerpt } from "./locateExcerpt";
+import { locateExcerpt, validPosition, type Span } from "./locateExcerpt";
 
 const t = ptBR.notebooks;
 
@@ -24,12 +24,18 @@ export function SourceReader({
   notebookId,
   source,
   excerpt = null,
+  position = null,
   onClose,
 }: {
   notebookId: number;
   source: NotebookSource | null;
   /** The cited passage to find and mark in the text (D-218); none opens the source from its top. */
   excerpt?: string | null;
+  /**
+   * Where the server says the passage sits, half-open (D-233). Preferred over the word
+   * search, which stays as the fallback for a passage stored without a position.
+   */
+  position?: Span | null;
   onClose: () => void;
 }) {
   const detail = useQuery({
@@ -38,10 +44,12 @@ export function SourceReader({
     enabled: source !== null,
   });
   const content = detail.data?.content ?? "";
-  const span = useMemo(
-    () => (excerpt && content ? locateExcerpt(content, excerpt) : null),
-    [excerpt, content],
-  );
+  const span = useMemo(() => {
+    if (!content) return null;
+    // By position when the server stored one and it fits the text; by words otherwise.
+    if (position && validPosition(position, content.length)) return position;
+    return excerpt ? locateExcerpt(content, excerpt) : null;
+  }, [position, excerpt, content]);
   const mark = useRef<HTMLElement>(null);
   useEffect(() => {
     // jsdom has no scrollIntoView; a browser always does.

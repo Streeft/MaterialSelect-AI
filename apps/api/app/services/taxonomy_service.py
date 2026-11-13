@@ -144,6 +144,35 @@ class TaxonomyService:
         self.repo.commit()
         return self._to_out(obj, self.repo.material_count(class_id))
 
+    def move_class(self, class_id: int, parent_id: int | None) -> MaterialClassOut:
+        """Change only the parent of a class (D-233).
+
+        Unlike ``update_class`` this leaves the name, the slug, the description
+        and the family prose alone, so a client that only knows where the folder
+        should go cannot wipe them. A move into the class itself or into one of
+        its descendants would close a cycle and is refused (the whole subtree
+        travels with the class, so those are the only impossible targets).
+        """
+        obj = self.repo.get(class_id)
+        if obj is None:
+            raise NotFoundError(f"Classe não encontrada: {class_id}")
+        before = self._snapshot(obj)
+        self._validate_parent(parent_id, class_id=class_id)
+        obj.parent_id = parent_id
+        changes = diff_fields(before, self._snapshot(obj))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.MATERIAL_CLASS,
+                entity_id=obj.id,
+                entity_label=obj.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
+        self.repo.commit()
+        return self._to_out(obj, self.repo.material_count(class_id))
+
     def delete_class(self, class_id: int) -> None:
         obj = self.repo.get(class_id)
         if obj is None:

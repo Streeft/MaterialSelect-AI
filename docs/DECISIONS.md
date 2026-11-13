@@ -13550,6 +13550,155 @@ os pares clássicos (#252) ficam com D-230/Sessão 187 e o painel "Sugestão da 
 dos pares sem corpo (o corpo estava numa "Sessão 186 … (D-229)" duplicada, o número antigo do mesmo PR): o corpo voltou para a
 187 e a duplicata saiu.
 
+## D-232 — A Seleção recebe uma lista de materiais, e três atalhos que dependiam disso
+
+**Contexto.** O laço do Mapa (D-213), o atalho do Dimensionar (D-216) e "Comparar selecionados" do Catálogo (D-217) terminavam com
+um **conjunto de materiais** e só tinham para onde levá-lo o Comparar, porque a Seleção não aceitava lista de ids: o pipeline
+tinha estágio de limites (propriedade), de classes, de processos, de materiais (pastas, só em estudo de processos) e de gráfico
+(região de um plano), e nenhum que dissesse "estes materiais". As três entradas ficaram no TODO como pendência. Junto vieram duas
+sobras do mesmo fluxo entre telas: o Comparar vazio não sabia continuar do último estudo, e o "Último mapa" do Início guardava só
+o caminho (`/app/mapas`), perdendo eixos, filtros e seleção.
+
+**Decisão.**
+
+1. **Um sexto tipo de estágio, `list`** (`StageIn.material_ids`, 1 a 200 ids; `MAX_STAGE_MATERIAL_IDS`). Regra pura em
+   `app/domain/filters.py` (`IdSelection`, `apply_stage`: o registro passa se o id está na lista); o funil o chama `in_list`.
+   Usa o que já existia — `StageIn`/`StageOut`, `SelectionStageNode`, o funil por estágio, o relatório e o laudo — e inventa o mínimo:
+   um tipo, um campo, uma regra de uma linha. **Só em estudo de materiais**: os ids são de `material`, e um estudo de processos
+   recebe 400 com o caminho certo (estágio de árvore).
+2. **Recusas, no lugar de ignorar** (a postura de todo estágio): lista vazia é 400 (um estágio que nomeia ninguém e admite todos
+   diria o contrário do que é), id que não é de material ativo e visível a quem pede é 404 que o cita (`existing_material_ids` usa
+   `visible_materials`, então o estágio não serve para sondar registro alheio), mais de 200 ids é 422, campos de outro tipo no
+   estágio de lista e `material_ids` em outro tipo são 400. Repetição conta uma vez, na ordem dada.
+3. **Salvar sem migração.** Os ids ficam, como inteiros, na coluna JSON `material_class_slugs` do estágio (nos demais tipos ela
+   guarda pastas); a leitura escolhe por `kind` e descarta o que não é inteiro. Uma coluna `material_ids` própria é o desenho certo e
+   pede migração, o que esta etapa não faz: fica no TODO. O estágio é guardado cru e só a **entrada** é conferida: um estudo salvo
+   cujo material saiu do catálogo continua executando, com a lista encolhida, em vez de ficar ilegível (a mesma postura da
+   restrição por propriedade renomeada). O relatório e o laudo trazem **nomes** ("lista de 5 materiais: …", até 12 e "e mais N"),
+   nunca os números.
+4. **Arquivo de estudo recusa a lista.** O arquivo do D-122 "não carrega id de registro": o id de um material só vale no catálogo
+   que o emitiu, e importar noutro lugar restringiria o estudo aos registros que tivessem aqueles números lá. Exportar um estudo
+   com estágio de lista é 400 dizendo isso e o que fazer (trocar por limites ou classes, ou usar o relatório).
+5. **Entrada por endereço: `?materiais=`** na Seleção, no mesmo formato compacto do Comparar (`lib/idList.ts`, `1-3,7`), no máximo
+   200. O assistente abre nos limites com o estágio de lista seguido do estágio de limites vazio; depois de montar, o endereço
+   guarda só `?etapa=restricoes` (como a caixa do Mapa, para o Voltar não refazer o estágio sobre as edições) e a lista segue no
+   estudo e **no rascunho** (chegar com uma lista conta como mudança em relação ao formulário em branco, então o rascunho a grava).
+   O cartão do estágio nomeia os materiais pelo mesmo catálogo do Comparar, diz quantos são e deixa tirar um a um; uma lista
+   esvaziada avisa que não executa. `lib/selectionList.ts` é o único lugar do teto e do endereço.
+6. **Os três pontos de origem.** *Mapa:* o laço e os pontos marcados na lista (sem caixa), num mapa de materiais, ganham "Abrir na
+   Seleção" (primário; o Comparar passa a secundário); a caixa continua virando estágio de gráfico, e num mapa de processos o aviso
+   diz que só a caixa vai. *Dimensionar:* "Abrir os N na Seleção" ao lado de "Comparar os N melhores", com os mesmos ids na mesma
+   ordem. *Catálogo:* a seleção passa a **atravessar páginas**: mora no endereço (`?sel=`, `lib/idList`), a tabela deixa de ser dona
+   dela (`CrossPageSelection`), "Selecionar todos" soma a página ao que as outras guardam, e a barra diz "N selecionados em várias
+   páginas" com "Limpar seleção" que esvazia tudo; "Comparar selecionados" e "Abrir na Seleção" levam todos. Acima de 200 a barra avisa
+   que vão os 200 primeiros. Sem `selection` a tabela mantém a seleção local de sempre (que não sobrevive à linha).
+7. **Comparar: "top do último estudo".** No estado vazio, um cartão "Do seu último estudo" com um botão que **executa de novo** o
+   estudo salvo de materiais mais recente (`GET /api/selection/studies`, depois `POST …/run`) e leva os 5 primeiros candidatos, na
+   ordem do ranking do servidor (sem posição, depois dos com posição, na ordem em que vieram). Nada é calculado na tela: ela fatia a
+   resposta. Menos de 2 candidatos diz isso e aponta a Seleção; erro de rede aparece no cartão e o botão tenta de novo. "Último" é o
+   salvo mais recente (`created_at`): não há registro de execução por estudo no servidor, e guardá-lo pede tabela.
+8. **Início: "Último mapa" guarda o endereço inteiro.** `recordMapUrl` (`lib/navMemory.ts`, chave `msai.nav.mapUrl`, no aparelho,
+   como o resto da memória do menu) grava `caminho + query` a cada mudança do mapa; só aceita `/app/mapas` ou `/app/mapas?…`, até
+   4000 caracteres (laço enorme não vale um megabyte de armazenamento). O cartão abre esse endereço; sem ele, o caminho, como antes.
+
+**Alternativas recusadas.** Um operador `in_ids` nas restrições (restrição compara propriedade; um identificador não é uma, e o
+funil ficaria sem nome certo). A coluna `material_ids` com migração (certa, mas fora desta etapa; ver 3). Guardar a lista só no
+endereço (a Seleção é editada por minutos e a lista tem de acompanhar o estudo salvo e o rascunho). Levar o catálogo inteiro (2 000
+a 5 000 ids no endereço; o teto de 200 é o que um navegador e um proxy leem sem susto, e uma lista de 200 já passou do que se
+argumenta). Deixar o Comparar vazio buscar "o último estudo" sem executar (o atalho promete candidatos, e candidato é resultado).
+
+**Consequências.** Fica pendente: a coluna própria (migração), registro de execução por estudo (para "último executado"), e a
+lista de materiais num estudo de **processos** (só faria sentido com ids de processo, e é outro estágio). Testes novos:
+`test_selection_list_stage.py` (19: motor, API, funil, interseção, estágio desligado, 404 que cita o id, lista vazia, teto, ids
+repetidos, campos misturados, estudo de processos, ida e volta salva, material apagado depois de salvo, relatório com nomes, arquivo
+de estudo recusado); vitest com axe para cada origem (`listStage`, `SelectionPanel`/Mapas, Dimensionar, `materialTable` e Catálogo,
+Comparar vazio, Início), `wizardState`, `selecao` (chegada por `?materiais=`, funil e rascunho); E2E `mapa-para-selecao.spec.ts`
+(laço no Mapa → "Abrir na Seleção" → o funil conta só esses materiais). Depois do merge: **Deploy da API** (acrescenta um tipo de
+estágio; sem migração nem seed).
+
+**Numeração.** D-232/Sessão 189.
+
+---
+
+## D-233 — Ficha, Admin, Cadernos e Registros: citar fonte, mover classe, posição do trecho e lotes
+
+**Contexto.** Pendências deixadas pelos D-214 ("Citar fonte (ABNT)"), D-218 (Cadernos: posição do trecho, duplicar com conversa,
+arquivar em lote), D-219 (excluir registros próprios em lote), D-222 (árvore de classes editável, editar propriedade) e D-232 (a
+coluna própria `material_ids`). Nenhuma mexe em cálculo; todas mexem em dado de registro ou de fonte, e por isso cada uma recusa o
+que não pode afirmar: a citação não inventa autor nem ano, a árvore não deixa fazer ciclo, o trecho não ganha posição que ninguém
+mediu, o lote não faz metade.
+
+**Decisão.**
+
+1. **Citar fonte (ABNT) com um clique.** O modelo `Source` só tinha `label`, `reference` (texto livre) e licença: **nenhum campo
+   estruturado** de autor, título, editora, ano, endereço ou data de acesso. Em vez de montar a citação de texto livre (que seria
+   chute), `source` ganhou seis colunas **nuláveis**: `authors`, `title`, `publisher`, `year`, `url`, `accessed_on`. Ninguém as
+   preenche por inferência: nascem NULL para toda fonte que já existe; o importador do catálogo oficial lê as chaves opcionais do
+   manifesto (`_bibliography`, só com o formato certo; ano ou data malformados são descartados, não coagidos) e o `POST` de
+   fonte segue como era. O texto é **montado no backend**, puro e determinístico (`app/domain/citation.py`, `abnt_reference`):
+   `AUTORES. Título. Editora, ano. {referência}. Disponível em: URL. Acesso em: d mmm. aaaa.` Sem autor, a entrada é o título com a
+   primeira palavra em maiúsculas (artigo e a palavra seguinte, como a norma); sem título, o `label`, que toda fonte tem. A ficha
+   (`MaterialDetail.sources`, uma por fonte citada em valor, composição ou designação, sem repetir, ordenada por rótulo)
+   devolve os campos e o `abnt`; a tela só copia (`copyText`) e diz se o navegador deixou. **A norma e o "s.d.":** a NBR
+   6023:2018 pede uma data aproximada entre colchetes quando a data não se acha e mantém `[S. l.]` e `[s. n.]` para local e editora;
+   os três escreveriam algo que o registro não diz (uma data estimada é dado inventado, princípio 1), então **não são
+   escritos** — a parte ausente fica de fora. "Acesso em" só sai com "Disponível em". A seção "Fontes desta ficha" vem aberta, para
+   ser um clique de fato.
+2. **Árvore de classes editável.** `PATCH /api/classes/{id}` com **só** `parent_id` (obrigatório no corpo; `null` é a raiz) —
+   nome, slug e a prosa da família (`applications`, `characteristics`) ficam como estão, o que o `PUT` não garante. Recusa a
+   própria classe e qualquer descendente como destino (400, o mesmo `_validate_parent` do `PUT`), pai inexistente é 404, mover para
+   onde já está não grava evento. Entra na auditoria como `ATUALIZADO` com só `parent_id`. Na tela, "Mover para…" por linha: um
+   diálogo com **um select** (a própria classe e as descendentes nem aparecem), que vale de teclado e de leitor de tela; arrastar
+   ficou de fora (opcional, e um gesto que só o mouse faz).
+3. **Editar propriedade no Admin.** `PATCH /api/properties/{id}` com `name`, `description` e `display_unit`, só os enviados
+   (`model_fields_set`: `description: null` limpa, omitir mantém). O slug e a dimensão não estão no corpo; a unidade de leitura
+   passa pelas mesmas peneiras da criação (compatível com a dimensão **da propriedade**, entre as aceitas). Nome em branco é 400,
+   nome de outra propriedade (sem diferenciar caixa) é 409.
+4. **Posição exata do trecho citado.** `notebook_chunk.char_start`/`char_end` (migração), preenchidos no `chunk_text`, em
+   coordenadas do `content` da fonte (páginas aparadas e unidas por linha em branco). O chunker normaliza o texto (une hifenização,
+   desfaz quebras duras), então o trecho não é substring do texto: `_normalise_with_map` devolve, para cada caractere normalizado, de
+   onde ele veio; um teste mantém o texto igual a `normalise`. O intervalo cobre o texto **próprio** do trecho, sem a sobreposição
+   repetida do anterior; pedaço de parágrafo longo é achado por suas palavras dentro do parágrafo. A citação devolve
+   `char_start`/`char_end`; o leitor marca **por posição** quando ela cabe no texto, e **cai na busca por palavras** (`locateExcerpt`)
+   quando não há posição (trecho gravado antes) ou ela não cabe. Nada foi preenchido retroativamente: NULL é "não sei". `?trecho=ini-fim`
+   no endereço do caderno faz a marca sobreviver ao recarregar.
+5. **Duplicar com conversa.** `POST /api/notebooks/{id}/duplicate?with_conversation=true` copia também as mensagens, os itens
+   **prontos** do Estúdio e as citações das notas, **reapontando** cada citação (`chunk_id`, `source_id`) para os trechos e a fonte
+   da cópia; uma citação cuja fonte já saíra do caderno vira id 0 (que nenhuma linha tem), nunca o número de outra linha. Não gasta
+   geração nem cota. O padrão segue o do D-218.
+6. **Arquivar e desarquivar em lote.** `POST /api/notebooks/batch-archive` (`ids` de 1 a 100, repetidos contam uma vez,
+   `archived` verdadeiro ou falso): **tudo ou nada** (um id que não é do dono ou não existe é 404 que não confirma se existe, D-62),
+   idempotente e mantendo a primeira hora de arquivo. Na lista: "Selecionar" abre as caixas, a barra pede confirmação e depois
+   oferece "Desfazer" (a mesma chamada ao contrário).
+7. **Excluir registros próprios em lote.** `POST /api/materials/batch-delete` (1 a 100 ids): **só registro próprio** (um do
+   catálogo compartilhado recusa o lote inteiro, mesmo para quem pode editá-lo; o alheio e o já excluído são 404), tudo ou
+   nada, uma auditoria `EXCLUIDO` por registro. Na tela: caixas nos registros próprios, `ConfirmDialog` e `useUndoableDelete`
+   (a chamada só sai quando o prazo do "Desfazer" acaba). Aproveitando: a seção usava `MaterialCards` na disposição
+   `responsive`, que **some de `sm` para cima** — os registros próprios ficavam invisíveis no computador; passou a `gallery`.
+8. **Coluna própria `material_ids`** (dívida do D-232). `selection_stage.material_ids` (JSON, NOT NULL, padrão `[]`); a migração
+   **move** os inteiros de `material_class_slugs` para ela nos estágios `list` e esvazia a antiga; a descida os devolve, na
+   mesma ordem. `material_class_slugs` volta a guardar só pastas e a leitura deixa de escolher por `kind`.
+
+**Migração.** Uma só, `d461fbef4da2`, gerada com `alembic --autogenerate` e editada para copiar os dados; subida, descida e subida
+de novo testadas (`test_migration_ficha_admin_cadernos.py`), e `alembic check` sem diferença. Aditiva: nenhuma coluna removida.
+
+**Alternativas recusadas.** Montar a citação de `reference` (texto livre: sairia chute com cara de norma). Escrever "[s.d.]",
+"[S. l.]" e "[s. n.]" (a norma pede, o princípio 1 não deixa estimar). Mover classe pelo `PUT` (apaga a prosa). Arrastar como único
+modo de mover (não acessível). Preencher `char_start` das fontes antigas relendo o texto (um palpite de posição é pior que a busca
+por palavras). Copiar a conversa sem reapontar as citações (a cópia apontaria para linhas do original e quebraria quando ele fosse
+apagado). Lote em chamadas separadas por id (um erro no meio deixaria metade feita).
+
+**Consequências.** Fica pendente: telas para **cadastrar** os campos bibliográficos de uma fonte (hoje só o manifesto do catálogo
+oficial os preenche), citação das fontes de curva e de equivalência na ficha (a seção lista as de valor, composição e designação),
+arrastar na árvore, "esvaziar o arquivo" dos cadernos. Testes novos: `test_migration_ficha_admin_cadernos.py`,
+`test_source_citation.py`, `test_class_move.py`, `test_property_edit.py`, `test_chunk_positions.py`,
+`test_notebooks_positions_duplicate_batch.py`, `test_materials_batch_delete.py` (e um caso em `test_selection_list_stage.py`);
+vitest com axe em `SourcesSection`, `ficha-fontes`, `mover`, `editar`, `SourceReader.position`, `urlState`, `excluir-lote` e na lista
+de cadernos; E2E `curadoria.spec.ts` (citar fonte; mover classe). Depois do merge: **Deploy da API** (o `release_command` do
+`fly.toml` roda `alembic upgrade head`, então a migração sobe junto; a **Administração do banco** só serve se o autor quiser migrar
+antes de publicar a API). Sem seed.
+
+**Numeração.** D-233/Sessão 190.
 ## D-232 — F6 da revisão das telas: Início em blocos móveis, Favoritos na barra lateral e Meus registros com visões
 
 **Contexto.** A F6 do plano ("Início e pessoal") pedia três coisas: o Início em blocos que a pessoa reordena e oculta, com a

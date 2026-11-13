@@ -35,6 +35,8 @@ import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
+import { curadoriaText } from "@/lib/i18n-curadoria";
+import { MoveClassDialog } from "@/components/admin/MoveClassDialog";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
 const NAME_MAX = 120;
@@ -116,6 +118,8 @@ export default function ClassesAdminPage() {
     id: number;
     name: string;
   } | null>(null);
+  // D-233: the class being moved ("Mover para…").
+  const [moving, setMoving] = useState<MaterialClass | null>(null);
 
   const classes: MaterialClass[] = data ?? [];
   const tree = flattenClasses(classes);
@@ -225,6 +229,8 @@ export default function ClassesAdminPage() {
         }}
       />
 
+      <MoveClassDialog cls={moving} classes={classes} onClose={() => setMoving(null)} />
+
       {data && (
         <>
         <p className="text-caption text-ink-muted">{ptBR.admin.treeHint}</p>
@@ -265,6 +271,14 @@ export default function ClassesAdminPage() {
                     {c.material_count}
                   </Td>
                   <Td className="text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setMoving(c)}
+                      aria-label={curadoriaText.move.actionFor(c.name)}
+                    >
+                      {curadoriaText.move.action}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

@@ -41,6 +41,8 @@ import { CatalogReadOnlyNotice } from "@/components/auth/CatalogReadOnlyNotice";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
+import { curadoriaText } from "@/lib/i18n-curadoria";
+import { EditPropertyDialog } from "@/components/admin/EditPropertyDialog";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
 const NAME_MAX = 120;
@@ -118,6 +120,9 @@ export default function PropertiesAdminPage() {
     id: number;
     name: string;
   } | null>(null);
+
+  // D-233: the property being edited (name, description, reading unit).
+  const [editing, setEditing] = useState<PropertyDefinition | null>(null);
 
   const properties: PropertyDefinition[] = data ?? [];
 
@@ -259,6 +264,8 @@ export default function PropertiesAdminPage() {
         }}
       />
 
+      <EditPropertyDialog property={editing} onClose={() => setEditing(null)} />
+
       {data && (
         <TableScroll label={ptBR.admin.propertiesTitle}>
           <Table>
@@ -292,6 +299,14 @@ export default function PropertiesAdminPage() {
                     {p.value_count}
                   </Td>
                   <Td className="text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditing(p)}
+                      aria-label={curadoriaText.editProperty.actionFor(p.name)}
+                    >
+                      {curadoriaText.editProperty.action}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

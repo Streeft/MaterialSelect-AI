@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { locateExcerpt } from "./locateExcerpt";
+import { locateExcerpt, validPosition } from "./locateExcerpt";
 
 describe("locateExcerpt (D-218)", () => {
   const content =
@@ -28,5 +28,24 @@ describe("locateExcerpt (D-218)", () => {
   it("says null when the passage is not there, and never invents a position", () => {
     expect(locateExcerpt(content, "cobre com 8960 kg/m³")).toBeNull();
     expect(locateExcerpt(content, "   ")).toBeNull();
+  });
+});
+
+
+describe("validPosition (D-233)", () => {
+  it("aceita um intervalo inteiro, crescente e dentro do texto", () => {
+    expect(validPosition({ start: 0, end: 10 }, 10)).toBe(true);
+    expect(validPosition({ start: 3, end: 4 }, 10)).toBe(true);
+  });
+
+  it.each([
+    [{ start: 5, end: 5 }],
+    [{ start: 6, end: 5 }],
+    [{ start: -1, end: 5 }],
+    [{ start: 0, end: 11 }],
+    [{ start: 0.5, end: 5 }],
+    [{ start: 0, end: Number.NaN }],
+  ])("recusa %j", (position) => {
+    expect(validPosition(position, 10)).toBe(false);
   });
 });

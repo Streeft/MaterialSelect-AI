@@ -55,6 +55,7 @@ from app.models.notebook import (
     NotebookMessage,
     NotebookNote,
     NotebookSource,
+    StudioArtifact,
 )
 from app.models.user import User
 from app.notebooks import app_sources
@@ -66,6 +67,7 @@ from app.schemas.notebook import (
     AnswerOut,
     AppSourceIn,
     AskIn,
+    BatchArchiveIn,
     ChatOut,
     CitationOut,
     MessageOut,
@@ -99,6 +101,23 @@ SIMULATED_NOTICE = (
     "Provedor simulado: as respostas citam o começo dos trechos mais relevantes, "
     "sem nenhum serviço externo. Nada sai do servidor."
 )
+
+
+def _repoint_citations(value: Any, chunk_map: dict[int, int], source_map: dict[int, int]) -> Any:
+    """A deep copy of a stored JSON value with every citation pointed at the copy (D-233).
+
+    A citation is any object that has both ``chunk_id`` and ``source_id``. An id with
+    no counterpart in the copy (its source was removed from the original) becomes 0.
+    """
+    if isinstance(value, list):
+        return [_repoint_citations(item, chunk_map, source_map) for item in value]
+    if isinstance(value, dict):
+        out = {key: _repoint_citations(item, chunk_map, source_map) for key, item in value.items()}
+        if "chunk_id" in value and "source_id" in value:
+            out["chunk_id"] = chunk_map.get(value["chunk_id"], 0)
+            out["source_id"] = source_map.get(value["source_id"], 0)
+        return out
+    return value
 
 
 class NotebookService:
@@ -183,14 +202,22 @@ class NotebookService:
         self.db.commit()
         return self.get(notebook_id)
 
-    def duplicate(self, notebook_id: int) -> NotebookOut:
+    def duplicate(self, notebook_id: int, with_conversation: bool = False) -> NotebookOut:
         """A copy of the notebook's sources, passages and notes (D-218).
 
         Nothing is re-read, re-embedded or re-generated: the text and the
         vectors are copied as stored, so a copy costs no daily quota and
-        cannot differ from what the original answers on. The chat and the
-        Studio's artifacts are *not* copied — an answer's citations point at
-        the original's passages, and an artifact spent a generation.
+        cannot differ from what the original answers on.
+
+        By default the chat and the Studio's artifacts are *not* copied — an
+        answer's citations point at the original's passages, and an artifact
+        spent a generation. With ``with_conversation`` (D-233) they are, and
+        every citation is **re-pointed** at the copy's own source and passage
+        (``chunk_id`` / ``source_id``), so deleting the original leaves the copy
+        whole. A citation whose source had already left the notebook keeps no id
+        of the copy (it becomes 0, which no row has): it stays "source removed"
+        instead of borrowing a row that merely shares a number. Only finished
+        artifacts are copied, and no generation is spent.
         """
         original = self.notebook(notebook_id)
         title = f"Cópia de {original.title}"[:200]
@@ -203,8 +230,14 @@ class NotebookService:
                 response_length=original.response_length,
             )
         )
+        chunk_map: dict[int, int] = {}
+        source_map: dict[int, int] = {}
         for source in original.sources:
-            self.repo.copy_source(source, copy)
+            source_map[source.id] = self.repo.copy_source(source, copy, chunk_map).id
+
+        def repoint(value: Any) -> Any:
+            return _repoint_citations(value, chunk_map, source_map)
+
         for note in original.notes:
             self.db.add(
                 NotebookNote(
@@ -212,11 +245,71 @@ class NotebookService:
                     title=note.title,
                     body=note.body,
                     origin=note.origin,
-                    citations=None,
+                    citations=repoint(note.citations) if with_conversation else None,
                 )
             )
+        if with_conversation:
+            for message in self.repo.messages(original.id):
+                self.db.add(
+                    NotebookMessage(
+                        notebook_id=copy.id,
+                        role=message.role,
+                        content=repoint(message.content),
+                        created_at=message.created_at,
+                    )
+                )
+            for artifact in reversed(self.repo.artifacts(original.id)):
+                if artifact.status != "pronto":
+                    continue
+                self.db.add(
+                    StudioArtifact(
+                        notebook_id=copy.id,
+                        tool=artifact.tool,
+                        format=artifact.format,
+                        template=artifact.template,
+                        title=artifact.title,
+                        options=repoint(artifact.options),
+                        status="pronto",
+                        content=repoint(artifact.content),
+                        source_ids=[
+                            source_map[i] for i in artifact.source_ids or [] if i in source_map
+                        ],
+                    )
+                )
         self.db.commit()
         return self.get(copy.id)
+
+    def batch_archive(self, payload: BatchArchiveIn) -> list[NotebookSummaryOut]:
+        """Archive or bring back several notebooks at once (D-233).
+
+        All or nothing: if any id is not the owner's (a stranger's or a missing
+        one, the same 404 — D-62), nothing changes. A notebook already in the
+        wanted state is left as it is, so its first archive time is kept.
+        """
+        found = {notebook.id: notebook for notebook in self.repo.owned(payload.ids)}
+        missing = [i for i in payload.ids if i not in found]
+        if missing:
+            raise NotFoundError(f"Caderno não encontrado: {missing[0]}")
+        now = datetime.now(UTC)
+        for notebook_id in payload.ids:
+            notebook = found[notebook_id]
+            if payload.archived and notebook.archived_at is None:
+                notebook.archived_at = now
+            elif not payload.archived and notebook.archived_at is not None:
+                notebook.archived_at = None
+        self.db.commit()
+        return [
+            NotebookSummaryOut(
+                id=found[i].id,
+                title=found[i].title,
+                emoji=found[i].emoji,
+                source_count=len(found[i].sources),
+                archived=found[i].archived_at is not None,
+                created_at=found[i].created_at,
+                updated_at=found[i].updated_at,
+            )
+            for i in payload.ids
+        ]
 
     def delete(self, notebook_id: int) -> None:
         notebook = self.notebook(notebook_id)
@@ -368,6 +461,8 @@ class NotebookService:
                 heading=chunk.heading[:300] if chunk.heading else None,
                 text=chunk.text,
                 search_text=fold(chunk.text),
+                char_start=chunk.char_start,
+                char_end=chunk.char_end,
             )
             for chunk in chunks
         ]
@@ -736,6 +831,8 @@ def passages_for(chunks: list[NotebookChunk]) -> tuple[Passage, ...]:
             page_start=chunk.page_start,
             page_end=chunk.page_end,
             text=chunk.text,
+            char_start=chunk.char_start,
+            char_end=chunk.char_end,
         )
         for position, chunk in enumerate(chunks, start=1)
     )
@@ -795,6 +892,8 @@ def citations_for(passages: tuple[Passage, ...], chunks: list[NotebookChunk]) ->
             heading=passage.heading,
             page_start=passage.page_start,
             page_end=passage.page_end,
+            char_start=passage.char_start,
+            char_end=passage.char_end,
             excerpt=passage.text,
         )
         for passage, chunk in zip(passages, chunks, strict=True)

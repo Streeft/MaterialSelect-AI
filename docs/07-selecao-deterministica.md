@@ -71,13 +71,14 @@ estágios **habilitados**, na ordem em que estão ([D-56](DECISIONS.md)).
 `material` (o padrão, e todo estudo salvo antes disso) ou `process`. É coluna e
 não inferência — uma pilha de um único estágio de limites não nomeia universo
 nenhum. Os tipos de estágio disponíveis decorrem dele: um estudo de materiais
-aceita `limit`/`tree`/`process`, um de processos aceita `limit`/`tree`/`material`.
+aceita `limit`/`tree`/`process`/`list` (e `chart`), um de processos aceita
+`limit`/`tree`/`material` (e `chart`).
 
 `tree` sempre anda a taxonomia do **próprio** universo do estudo, e o estágio de
 travessia é o que nomeia o outro. Por isso **qual taxonomia valida `class_slugs`
 decorre do universo, não do nome do campo**, que é o mesmo nos dois.
 
-Há **cinco** tipos, e um estágio é uma pergunta só — enviar os campos de outro
+Há **seis** tipos, e um estágio é uma pergunta só — enviar os campos de outro
 tipo é recusado, não ignorado:
 
 - **`limit`** — uma árvore de restrições, exatamente a do M6 acima. O estágio é
@@ -109,6 +110,23 @@ tipo é recusado, não ignorado:
 
 - **`chart`** — uma **região de um plano** (P1-2, [D-60](DECISIONS.md)), e o
   único tipo que vale nos dois universos sem mudar de nome. Ver abaixo.
+
+- **`list`** — o universo **restrito a uma lista de materiais** ([D-232](DECISIONS.md)), só num estudo de materiais: `material_ids`, de 1 a 200
+  ids, sem repetição. É o que o laço do Mapa, os candidatos do Dimensionar e a
+  seleção do Catálogo entregam à Seleção (`?materiais=` no endereço). Diz **quem
+  entra**, não uma regra: os limites que o leitor acrescenta estreitam a partir
+  da lista. Lista vazia é recusada (400) — "ninguém" valendo "todos" seria o
+  contrário do que o estágio diz —, id que não nomeia um material ativo e visível
+  a quem pede é 404 que o cita, e um estágio de outro tipo com `material_ids` é
+  400. Um estudo **salvo** cujo material saiu do catálogo continua executando,
+  com a lista encolhida: o estágio é guardado cru e só a entrada nova é
+  conferida, a mesma postura dos demais. O funil o chama `in_list`; o relatório
+  e o laudo dizem "lista de N materiais" e os **nomes** (até 12, depois "e mais
+  N"), nunca os números. Os ids ficam na coluna própria `material_ids`
+  (D-233; no D-232 moravam como inteiros em `material_class_slugs`, que volta a
+  guardar só pastas, e a migração `d461fbef4da2` moveu os dados); um
+  estudo com estágio de lista **não sai em arquivo de estudo**, que não carrega
+  id de registro (D-122).
 
 ### Atributos de processo (P0-4)
 
@@ -231,7 +249,8 @@ em vez de admitir o catálogo todo em silêncio.
 
 O funil nomeia **qual** pergunta cada estágio de pergunta única fez:
 `in_tree` para o de árvore, `in_process` para o de processos, `in_material`
-para o de materiais e `in_chart` para o de gráfico. Chamar os quatro da mesma
+para o de materiais, `in_chart` para o de gráfico e `in_list` para o de lista.
+Chamar os cinco da mesma
 coisa diria ao leitor que a seleção filtrou por algo que ela não filtrou.
 
 ## Índices de desempenho (`app/calculations/expressions.py`)
@@ -652,6 +671,13 @@ se edita:
   variável livre, índice e limites `exists` nas propriedades que o índice lê — **nenhum
   número de material**. O serviço confere cada modelo contra o catálogo vivo e diz o que
   falta (`available`, `missing_properties`).
+- **Entradas por endereço** — `?novo_estagio=chart&x_prop=…` (caixa do Mapa, D-60) e, desde o
+  D-232, `?materiais=1-3,7` (laço do Mapa, candidatos do Dimensionar, seleção do Catálogo):
+  o assistente abre nos limites com um estágio de **lista** seguido do estágio de limites
+  vazio, onde o leitor acrescenta os seus. O endereço guarda só `?etapa=restricoes` depois
+  de montar (o Voltar não refaz o estágio sobre as edições); a lista fica no estudo e, por
+  isso, no rascunho ("Continuar de onde parou"). Máximo de 200 materiais (`lib/selectionList.ts`
+  espelha `MAX_STAGE_MATERIAL_IDS`); só estudo de materiais.
 - **O que falta para executar** — calculado na tela só como *onde ir* (`runReadiness.ts`):
   o veredito dos pesos continua sendo o `can_run` do `/weights-preview` (D-87); cada
   bloqueio leva ao campo (peso, critério, expressão do índice).

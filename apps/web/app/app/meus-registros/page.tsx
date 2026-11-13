@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import type { Bookmark, MaterialListItem, MyRecords } from "@/lib/types";
-import { getMyRecords, removeFavorite } from "@/lib/api";
+import { deleteOwnMaterials, getMyRecords, removeFavorite } from "@/lib/api";
 import { encodeIdList } from "@/lib/idList";
 import {
   MY_RECORDS_URL,
@@ -18,6 +18,7 @@ import {
 import { useUrlState } from "@/lib/urlState";
 import { useUndoableDelete } from "@/lib/useUndoableDelete";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
 import { classVisual } from "@/lib/design/palette";
 import { MY_RECORDS_KEY } from "@/components/my-records/FavoriteButton";
 import {
@@ -25,7 +26,7 @@ import {
   bookmarkHref,
   bookmarkName,
 } from "@/components/my-records/bookmark";
-import { MaterialCards } from "@/components/catalog/MaterialCards";
+import { MaterialCards, type CardSelection } from "@/components/catalog/MaterialCards";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import {
   Alert,
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui";
 
 const t = ptBR.myRecords;
+const rec = curadoriaText.records;
 
 /**
  * One bookmarked record as a row.
@@ -155,7 +157,13 @@ function BookmarkList({
   );
 }
 
-function OwnRecords({ records }: { records: MaterialListItem[] }) {
+function OwnRecords({
+  records,
+  selection,
+}: {
+  records: MaterialListItem[];
+  selection?: CardSelection;
+}) {
   if (records.length === 0) {
     // D-232 (F6): the two doors to a record of one's own, where its absence is said.
     return (
@@ -182,7 +190,9 @@ function OwnRecords({ records }: { records: MaterialListItem[] }) {
           review, and the one place that must not be quiet about it is the
           screen that presents them as a collection. */}
       <Alert tone="info">{t.ownNotice}</Alert>
-      <MaterialCards materials={records} />
+      {/* The gallery layout at every width: the default one is the phone's stand-in for the
+          catalogue table and is hidden from `sm` up, which left this section empty on a desktop. */}
+      <MaterialCards materials={records} layout="gallery" selection={selection} />
     </div>
   );
 }
@@ -199,6 +209,9 @@ export default function MyRecordsPage() {
   const [filters, setFilters] = useUrlState(MY_RECORDS_URL);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
+  // D-233: the own records ticked for deletion — a selection of its own, apart from the favourites'.
+  const [ownSelected, setOwnSelected] = useState<ReadonlySet<number>>(new Set());
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const undoableDelete = useUndoableDelete();
 
   const data = query.data;
@@ -222,6 +235,48 @@ export default function MyRecordsPage() {
   const pickedMaterials = picked.flatMap((b) =>
     b.material ? [b.material.id] : [],
   );
+
+  // As with the favourites: what the filter hides is not acted on.
+  const ownPicked = own.filter((record) => ownSelected.has(record.id));
+  const toggleOwn = (id: number) =>
+    setOwnSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const deleteOwn = () => {
+    const doomed = ownPicked.map((record) => record.id);
+    setConfirmingDelete(false);
+    setOwnSelected(new Set());
+    if (doomed.length === 0) return;
+    const gone = new Set(doomed);
+    undoableDelete({
+      what: t.ownRecords,
+      message: rec.deleted(doomed.length),
+      hide: [
+        {
+          queryKey: MY_RECORDS_KEY,
+          remove: (old) => {
+            const records = old as MyRecords | undefined;
+            return records
+              ? {
+                  ...records,
+                  own_records: records.own_records.filter((r) => !gone.has(r.id)),
+                  favorites: records.favorites.filter((b) => !gone.has(b.material?.id ?? -1)),
+                  recents: records.recents.filter((b) => !gone.has(b.material?.id ?? -1)),
+                }
+              : old;
+          },
+        },
+        // Refetched once the deletion resolves, so the catalogue stops listing them too.
+        { queryKey: ["materials"], remove: (old) => old },
+      ],
+      // One call, all or none: the server refuses the whole batch if any id is not an own record.
+      commit: () => deleteOwnMaterials(doomed),
+    });
+  };
 
   const toggle = (key: string) =>
     setSelected((current) => {
@@ -436,16 +491,48 @@ export default function MyRecordsPage() {
 
           {showOwn ? (
           <Section title={t.ownRecords} description={t.ownRecordsHint}>
+            {ownPicked.length > 0 ? (
+              <div
+                role="group"
+                aria-label={rec.selected(ownPicked.length)}
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-control bg-surface-sunken px-3 py-2"
+              >
+                <span className="text-body text-ink" aria-live="polite">
+                  {rec.selected(ownPicked.length)}
+                </span>
+                <Button size="sm" variant="tonal" onClick={() => setConfirmingDelete(true)}>
+                  {rec.deleteSelected}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setOwnSelected(new Set())}>
+                  {rec.clear}
+                </Button>
+              </div>
+            ) : null}
             {filtering && own.length === 0 ? (
               <EmptyState title={t.noMatch} />
             ) : (
-              <OwnRecords records={own} />
+              <OwnRecords
+                records={own}
+                selection={{
+                  isSelected: (id) => ownSelected.has(id),
+                  onToggle: toggleOwn,
+                  label: rec.selectOwn,
+                }}
+              />
             )}
           </Section>
           ) : null}
         </>
       )}
 
+      <ConfirmDialog
+        open={confirmingDelete}
+        title={rec.confirmTitle(ownPicked.length)}
+        message={rec.confirmMessage}
+        confirmLabel={rec.deleteSelected}
+        onConfirm={deleteOwn}
+        onCancel={() => setConfirmingDelete(false)}
+      />
       <ConfirmDialog
         open={confirming}
         title={t.confirmTitle(picked.length)}

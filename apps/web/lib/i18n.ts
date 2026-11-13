@@ -14,7 +14,7 @@
  * to whichever branch is the fallback, and the stage would be labelled wrong
  * instead of visibly unlabelled.
  */
-type StageKindWord = "limit" | "tree" | "process" | "material" | "chart";
+type StageKindWord = "limit" | "tree" | "process" | "material" | "chart" | "list";
 
 const STAGE_KIND_WORDS: Record<StageKindWord, string> = {
   limit: "limites",
@@ -22,6 +22,7 @@ const STAGE_KIND_WORDS: Record<StageKindWord, string> = {
   process: "processos",
   material: "materiais",
   chart: "gráfico",
+  list: "lista",
 };
 
 function stageKindWord(kind: StageKindWord): string {
@@ -212,7 +213,7 @@ export const ptBR = {
     parentColumn: "Classe pai",
     rootClass: "raiz",
     subclassOf: (parent: string) => `Subclasse de ${parent}`,
-    treeHint: "A hierarquia das classes, da raiz para baixo. Mover uma classe de lugar ainda não é possível aqui.",
+    treeHint: "A hierarquia das classes, da raiz para baixo. \"Mover para…\" troca a classe pai e leva as subclasses junto; nada mais muda.",
   },
   direction: {
     HIGHER: "Maior é melhor",
@@ -473,6 +474,9 @@ export const ptBR = {
     // P1-2: o quarto tipo. "Gráfico" e não "Mapa" porque é o gesto que se faz —
     // desenhar no gráfico —, e "Mapa" já nomeia a tela `/app/mapas`.
     stageKindChart: "Gráfico",
+    // D-232: o quinto tipo. "Lista" porque é o que ele é — nomeia quem entra,
+    // não descreve uma regra —; chega do mapa, do catálogo e do Dimensionar.
+    stageKindList: "Lista",
     stageNumber: (n: number, kind: StageKindWord) =>
       `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
@@ -484,6 +488,17 @@ export const ptBR = {
     stageAddProcess: "Estágio de processos",
     stageAddMaterial: "Estágio de materiais",
     stageAddChart: "Estágio de gráfico",
+    // D-232: o estágio de lista não tem botão de adicionar: ele nasce de um
+    // "Abrir na Seleção" (mapa, catálogo, Dimensionar), que é de onde vêm os ids.
+    stageListHint:
+      "O estudo fica restrito a estes materiais. A lista diz quem entra; os limites que você acrescentar estreitam a partir dela. Para mudar a lista, volte ao mapa, ao catálogo ou ao Dimensionar.",
+    stageListTitle: "Materiais da lista",
+    stageListCount: (n: number) => (n === 1 ? "1 material na lista" : `${n} materiais na lista`),
+    stageListUnknown: (id: number) => `Material nº ${id} (fora do catálogo que você vê)`,
+    stageListRemove: "Tirar da lista",
+    stageListEmpty:
+      "Nenhum material na lista — este estágio não pode ser executado. Remova-o ou volte ao mapa, ao catálogo ou ao Dimensionar.",
+    stageListLoading: "Buscando os nomes dos materiais…",
     stageRemove: "Remover estágio",
     stageDuplicate: (n: number) => `Duplicar o estágio ${n}`,
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima` ,
@@ -1139,8 +1154,12 @@ export const ptBR = {
       tooltipSection: "Seção necessária",
     },
     compareBest: (n: number) => `Comparar os ${n} melhores`,
+    // D-232: a Seleção recebe a lista de candidatos como um estágio de lista.
+    openCandidatesInSelection: (n: number) => `Abrir os ${n} na Seleção`,
     compareBestHint:
-      "Abre o Comparar já com estes materiais. A Seleção parte de limites sobre o catálogo inteiro, não de uma lista de candidatos: levar a lista até lá exigiria um filtro por identificador que ela ainda não tem.",
+      "Comparar abre os materiais lado a lado. Abrir na Seleção restringe o estudo a eles, e os limites que você acrescentar estreitam a partir da lista.",
+    openCandidatesCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros, na ordem do resultado.`,
   },
 
   cost: {
@@ -2272,6 +2291,11 @@ export const ptBR = {
     compareTooMany: (max: number) => `O comparador aceita até ${max} materiais por vez.`,
     clearSelection: "Limpar seleção",
     selectionBar: "Ações para os materiais selecionados",
+    // D-232: a seleção atravessa páginas, e a barra diz isso em vez de contar só a página.
+    selectedAcrossPages: (n: number) => `${n} selecionados em várias páginas`,
+    openInSelection: "Abrir na Seleção",
+    openInSelectionCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros.`,
     // D-184: lista e detalhe. Em tela larga o nome abre a ficha resumida ao lado,
     // sem sair da lista; Ctrl/Cmd+clique e telas estreitas abrem a página inteira.
     preview: {
@@ -2951,8 +2975,14 @@ export const ptBR = {
     selectionKindPicked: "Escolhidos no laço ou na lista",
     compareSelection: "Comparar",
     openInSelection: "Abrir na Seleção",
+    // D-232: o laço e a lista agora também vão para a Seleção, como lista de
+    // materiais; a região retangular continua virando um estágio de gráfico.
     openInSelectionNeedsBox:
-      "A Seleção recebe uma região retangular: desenhe uma caixa para criar o estágio. O laço e a lista servem para comparar e filtrar.",
+      "Num mapa de processos a Seleção recebe só uma região retangular: desenhe uma caixa para criar o estágio.",
+    openInSelectionListHint:
+      "Abre a Seleção restrita a estes materiais; os limites que você acrescentar estreitam a partir deles.",
+    openInSelectionCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros.`,
     showOnlySelection: "Mostrar só estes no mapa",
     restrictedNotice: (n: number) =>
       `Mapa restrito a ${n} ${n === 1 ? "registro" : "registros"}.`,

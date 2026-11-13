@@ -599,6 +599,14 @@ export function deactivateMaterial(id: number): Promise<void> {
   return request<void>(`/api/materials/${id}`, { method: "DELETE" });
 }
 
+/** D-233: withdraw several of the caller's own records at once; all or none. */
+export function deleteOwnMaterials(ids: number[]): Promise<{ deleted: number[] }> {
+  return request<{ deleted: number[] }>(`/api/materials/batch-delete`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
 // --- Classes --------------------------------------------------------------
 
 export function listClasses(): Promise<MaterialClass[]> {
@@ -619,6 +627,14 @@ export function updateClass(
   return request<MaterialClass>(`/api/classes/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+/** D-233: change only a class's parent (`null` = to the root); nothing else moves. */
+export function moveClass(id: number, parentId: number | null): Promise<MaterialClass> {
+  return request<MaterialClass>(`/api/classes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ parent_id: parentId }),
   });
 }
 
@@ -745,6 +761,17 @@ export function updateProperty(
   return request<PropertyDefinition>(`/api/properties/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+/** D-233: name, description and reading unit only — slug and dimension are not reachable. */
+export function patchProperty(
+  id: number,
+  patch: { name?: string; description?: string | null; display_unit?: string | null },
+): Promise<PropertyDefinition> {
+  return request<PropertyDefinition>(`/api/properties/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
   });
 }
 
@@ -1675,8 +1702,22 @@ export function updateNotebook(id: number, patch: NotebookUpdate): Promise<Noteb
   return request<Notebook>(nb(id), { method: "PATCH", body: JSON.stringify(patch) });
 }
 
-export function duplicateNotebook(id: number): Promise<Notebook> {
-  return request<Notebook>(`${nb(id)}/duplicate`, { method: "POST" });
+export function duplicateNotebook(id: number, withConversation = false): Promise<Notebook> {
+  return request<Notebook>(
+    `${nb(id)}/duplicate${withConversation ? "?with_conversation=true" : ""}`,
+    { method: "POST" },
+  );
+}
+
+/** D-233: archive (or bring back) several notebooks at once; all or none. */
+export function batchArchiveNotebooks(
+  ids: number[],
+  archived: boolean,
+): Promise<NotebookSummary[]> {
+  return request<NotebookSummary[]>("/api/notebooks/batch-archive", {
+    method: "POST",
+    body: JSON.stringify({ ids, archived }),
+  });
 }
 
 export function deleteNotebook(id: number): Promise<void> {

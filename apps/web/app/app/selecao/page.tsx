@@ -162,6 +162,8 @@ function SelectionWizard() {
   const [fieldRequest, setFieldRequest] = useState<{ id: string; n: number } | null>(null);
   const [step, setStep] = useState<Step>(() => {
     if (params.get("novo_estagio") === "chart") return "constraints";
+    // D-232: a list handed over by "Abrir na Seleção" lands where the stages are.
+    if (params.get("materiais")) return "constraints";
     return stepFromSlug(params.get("etapa")) ?? "function";
   });
 
@@ -527,9 +529,11 @@ function SelectionWizard() {
 
   // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
   useEffect(() => {
-    if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
-      // The stage is built; the URL keeps only where the reader is, so a Back
-      // from here does not rebuild the chart stage on top of their edits.
+    if (typeof window === "undefined") return;
+    // The stage is built; the URL keeps only where the reader is, so a Back from
+    // here does not rebuild the chart (or list) stage on top of their edits. The
+    // list stays in the study, and so in the draft, which is where it is kept.
+    if (params.get("novo_estagio") === "chart" || params.get("materiais")) {
       window.history.replaceState(null, "", `${window.location.pathname}?etapa=restricoes`);
     }
   }, [params]);
@@ -576,7 +580,14 @@ function SelectionWizard() {
   // answer or while a saved study is being edited (that has its own save).
   const currentSerialized = JSON.stringify(snapshotOf(state));
   // What the wizard opened with (and, after a save, what the server now holds).
-  const [draftBaseline, setDraftBaseline] = useState(currentSerialized);
+  // D-232: a list handed over by "Abrir na Seleção" is something the reader
+  // brought, not the blank form, so it counts as a change from the start and
+  // reaches the draft; a chart box deep link and every other opening stay pristine.
+  const [draftBaseline, setDraftBaseline] = useState(() =>
+    state.stages.some((stage) => stage.kind === "list") && params.get("materiais")
+      ? ""
+      : currentSerialized,
+  );
   const [draftAnswered, setDraftAnswered] = useState(false);
   const stored = useMemo(
     () => (draftUserKey && !requestedStudy ? readDraft(draftUserKey) : null),
@@ -662,6 +673,8 @@ function SelectionWizard() {
     stages.some(
       (s) => s.kind === "process" && (s.processSlugs.length > 0 || s.processClassSlugs.length > 0),
     ) ||
+    // A list stage narrows by naming who is in (D-232).
+    stages.some((s) => s.kind === "list" && s.materialIds.length > 0) ||
     // A chart stage with both axes chosen narrows even with no box and no line:
     // "must be plottable here" is a criterion, so the step is done.
     stages.some(

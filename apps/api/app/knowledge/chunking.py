@@ -11,6 +11,11 @@ Every chunk keeps three things a citation needs: the page range it came from,
 the nearest heading above it, and its position in the document. Retrieval
 without those is an answer nobody can check.
 
+Each chunk also carries where its own text sits in the source (``char_start`` /
+``char_end``, D-233): the half-open interval in the document as the notebook
+stores it — pages stripped and joined by a blank line, empty pages left out — so
+a citation can mark its passage by position instead of looking the words up.
+
 Overlap exists because the seam is not always where the meaning is: a definition
 introduced at the end of one chunk is often used at the start of the next, and a
 few hundred characters of shared context costs little and saves that case.
@@ -19,6 +24,7 @@ few hundred characters of shared context costs little and saves that case.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.knowledge.readers import ExtractedText, storable_text
@@ -61,6 +67,11 @@ class Chunk:
     page_start: int | None
     page_end: int | None
     heading: str | None
+    #: Where the passage's own text sits in the source's ``content`` — half-open,
+    #: ``None`` for a chunk nobody placed. The overlap repeated from the previous
+    #: passage is not inside it.
+    char_start: int | None = None
+    char_end: int | None = None
 
     @property
     def char_count(self) -> int:
@@ -69,10 +80,17 @@ class Chunk:
 
 @dataclass(frozen=True)
 class _Block:
-    """One paragraph, tagged with the 1-based page it was found on."""
+    """One paragraph, tagged with the 1-based page it was found on.
+
+    ``origin`` is where the raw paragraph starts in the source's ``content`` and
+    ``index[i]`` is the offset, inside that raw paragraph, of the character ``text[i]``
+    came from (see :func:`_normalise_with_map`).
+    """
 
     text: str
     page: int
+    origin: int = 0
+    index: tuple[int, ...] = ()
 
 
 def normalise(text: str) -> str:
@@ -88,6 +106,73 @@ def normalise(text: str) -> str:
     text = _SOFT_WRAP.sub(" ", text)
     text = _SPACES.sub(" ", text)
     return text.strip()
+
+
+def _resub(
+    text: str,
+    index: list[int],
+    pattern: re.Pattern[str],
+    replace: Callable[[re.Match[str]], list[tuple[str, int]]],
+) -> tuple[str, list[int]]:
+    """``pattern.sub`` that keeps ``index`` in step with the text.
+
+    ``replace`` returns the characters that stand in for one match, each with the
+    position **in ``text``** it came from, so the map follows the character and
+    not the slot.
+    """
+    out: list[str] = []
+    out_index: list[int] = []
+    cursor = 0
+    for match in pattern.finditer(text):
+        out.append(text[cursor : match.start()])
+        out_index.extend(index[cursor : match.start()])
+        for char, source in replace(match):
+            out.append(char)
+            out_index.append(index[source])
+        cursor = match.end()
+    out.append(text[cursor:])
+    out_index.extend(index[cursor:])
+    return "".join(out), out_index
+
+
+def _normalise_with_map(raw: str) -> tuple[str, list[int]]:
+    """:func:`normalise` of ``raw`` plus, for each output character, where it came from.
+
+    The text is exactly ``normalise(raw)`` (a test holds the two together); the list
+    says, for ``text[i]``, the offset in ``raw`` of the character it is or — for a
+    blank that stands for a run, or a ``\n`` turned into a space — of the first one.
+    Same steps, same order as :func:`normalise`.
+    """
+    chars: list[str] = []
+    index: list[int] = []
+    position = 0
+    while position < len(raw):
+        char = raw[position]
+        if char == "\r":
+            chars.append("\n")
+            index.append(position)
+            if raw[position + 1 : position + 2] == "\n":
+                position += 1
+        else:
+            kept = storable_text(char)
+            if kept:
+                chars.append(kept)
+                index.append(position)
+        position += 1
+    text = "".join(chars)
+
+    text, index = _resub(
+        text,
+        index,
+        _HYPHEN_BREAK,
+        lambda m: [(m.group(1), m.start(1)), (m.group(2), m.start(2))],
+    )
+    text, index = _resub(text, index, _SOFT_WRAP, lambda m: [(" ", m.start())])
+    text, index = _resub(text, index, _SPACES, lambda m: [(" ", m.start())])
+
+    lead = len(text) - len(text.lstrip())
+    stripped = text.strip()
+    return stripped, index[lead : lead + len(stripped)]
 
 
 def looks_like_heading(line: str) -> bool:
@@ -111,15 +196,62 @@ def looks_like_heading(line: str) -> bool:
 
 
 def _blocks(extracted: ExtractedText) -> list[_Block]:
-    """Flatten pages into paragraphs that remember which page they came from."""
+    """Flatten pages into paragraphs that remember which page they came from.
+
+    Each paragraph also knows where it starts in the source's ``content``, which is
+    the stripped, non-empty pages joined by ``"\n\n"`` — the text the notebook stores.
+    """
     blocks: list[_Block] = []
-    for index, raw in enumerate(extracted.pages):
-        page = index + 1  # 1-based, as a reader counts
-        for paragraph in _BLANK_LINES.split(raw):
-            cleaned = normalise(paragraph)
+    base = 0
+    for page_index, raw_page in enumerate(extracted.pages):
+        page = page_index + 1  # 1-based, as a reader counts
+        stripped = raw_page.strip()
+        origin = 0
+        if stripped:
+            origin = base - (len(raw_page) - len(raw_page.lstrip()))
+            base += len(stripped) + 2
+        segments: list[tuple[int, str]] = []
+        cursor = 0
+        for gap in _BLANK_LINES.finditer(raw_page):
+            segments.append((cursor, raw_page[cursor : gap.start()]))
+            cursor = gap.end()
+        segments.append((cursor, raw_page[cursor:]))
+        for offset, paragraph in segments:
+            cleaned, index = _normalise_with_map(paragraph)
             if cleaned:
-                blocks.append(_Block(text=cleaned, page=page))
+                blocks.append(
+                    _Block(
+                        text=cleaned,
+                        page=page,
+                        origin=origin + offset,
+                        index=tuple(index),
+                    )
+                )
     return blocks
+
+
+def _locate_pieces(text: str, pieces: list[str]) -> list[tuple[int, int]]:
+    """Where each piece of a split paragraph sits in the paragraph's normalised text.
+
+    The pieces are slices of ``text`` re-joined by single blanks, so they are found
+    by their words with any whitespace between, scanning forward. A piece that cannot
+    be found (it should not happen) is given the whole paragraph rather than a guess.
+    """
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    for piece in pieces:
+        words = piece.split()
+        match = (
+            re.compile(r"\s+".join(re.escape(word) for word in words)).search(text, cursor)
+            if words
+            else None
+        )
+        if match is None:
+            spans.append((0, len(text)))
+        else:
+            spans.append(match.span())
+            cursor = match.end()
+    return spans
 
 
 def _split_long(text: str, target: int) -> list[str]:
@@ -189,10 +321,14 @@ def chunk_text(
     first_page: int | None = None
     last_page: int | None = None
     buffer_heading: str | None = None
+    #: Where the buffer's own pieces (not the carried overlap) start and end in the content.
+    span_start: int | None = None
+    span_end: int | None = None
     carried = ""
 
     def flush() -> None:
         nonlocal buffer, buffer_len, first_page, last_page, buffer_heading, carried
+        nonlocal span_start, span_end
         if not buffer:
             return
         text = " ".join(buffer).strip()
@@ -216,6 +352,8 @@ def chunk_text(
                 page_start=previous.page_start,
                 page_end=last_page or previous.page_end,
                 heading=previous.heading,
+                char_start=previous.char_start,
+                char_end=span_end if span_end is not None else previous.char_end,
             )
             carried = _tail(merged, overlap_chars) if overlap_chars > 0 else ""
         else:
@@ -226,6 +364,8 @@ def chunk_text(
                     page_start=first_page,
                     page_end=last_page,
                     heading=buffer_heading,
+                    char_start=span_start,
+                    char_end=span_end,
                 )
             )
             carried = _tail(text, overlap_chars) if overlap_chars > 0 else ""
@@ -233,6 +373,7 @@ def chunk_text(
         buffer, buffer_len = [], 0
         first_page = last_page = None
         buffer_heading = None
+        span_start = span_end = None
 
     for block in _blocks(extracted):
         if looks_like_heading(block.text):
@@ -249,7 +390,8 @@ def chunk_text(
             if len(block.text) > target_chars
             else [block.text]
         )
-        for piece in pieces:
+        spans = _locate_pieces(block.text, pieces) if len(pieces) > 1 else [(0, len(block.text))]
+        for piece, (piece_start, piece_end) in zip(pieces, spans, strict=True):
             if buffer and buffer_len + len(piece) > target_chars:
                 flush()
             if not buffer:
@@ -262,6 +404,10 @@ def chunk_text(
             buffer.append(piece)
             buffer_len += len(piece)
             last_page = block.page
+            if block.index:
+                if span_start is None:
+                    span_start = block.origin + block.index[piece_start]
+                span_end = block.origin + block.index[piece_end - 1] + 1
 
     flush()
     return chunks

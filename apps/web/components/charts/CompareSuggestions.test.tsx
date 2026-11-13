@@ -12,6 +12,8 @@ vi.mock("@/lib/api", () => ({
     records.fail
       ? Promise.reject(new TypeError("Failed to fetch"))
       : Promise.resolve(records.value as MyRecords),
+  // D-232: the "top do último estudo" shelf reads the saved studies; none here.
+  listStudies: () => Promise.resolve([]),
 }));
 
 const { CompareSuggestions } = await import("./CompareSuggestions");
