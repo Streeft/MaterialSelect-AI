@@ -23,7 +23,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
+
+from app.domain.errors import ValidationError
 
 if TYPE_CHECKING:
     from app.models.source import Source
@@ -129,3 +132,85 @@ def abnt_reference(parts: SourceParts) -> str:
         if parts.accessed_on is not None:
             elements.append(f"Acesso em: {format_access_date(parts.accessed_on)}.")
     return " ".join(elements)
+
+
+#: What the ``source`` table can hold, and the first year a printed reference can plausibly carry.
+_BIBLIOGRAPHY_LIMITS = {"authors": 500, "title": 300, "publisher": 200, "url": 500}
+_BIBLIOGRAPHY_LABELS = {
+    "authors": "Os autores",
+    "title": "O título",
+    "publisher": "A editora",
+    "url": "O endereço",
+}
+_FIRST_YEAR = 1000
+
+
+def _checked_url(url: str) -> str:
+    """``url`` when it is an ``http``/``https`` address with a host; a refusal otherwise.
+
+    The check is of shape only: nothing is fetched and nothing is completed
+    ("exemplo.org" does not become "https://exemplo.org" — that would write an
+    address nobody typed).
+    """
+    parts = urlsplit(url)
+    if (
+        parts.scheme not in ("http", "https")
+        or not parts.hostname
+        or any(ch.isspace() for ch in url)
+    ):
+        raise ValidationError(
+            "O endereço deve começar com http:// ou https:// e ter um domínio, "
+            "como https://exemplo.org/pagina."
+        )
+    return url
+
+
+def edit_bibliography(current: SourceParts, sent: dict[str, Any], *, today: date) -> dict[str, Any]:
+    """The bibliographic fields a curator sent, checked, as the values to store (D-236).
+
+    ``sent`` holds only the keys that came in the request: a key left out stays
+    as it is, a key sent as ``None`` or as blank text clears the field (back to
+    "nobody recorded it"). Nothing is inferred — a URL does not bring an access
+    date, a year does not bring a publisher — and nothing is rounded: a value
+    that does not fit is refused with the reason, in Portuguese, never trimmed to
+    fit. The checks that depend on two fields (an access earlier than the
+    publication year) look at the result, so they hold whichever of the two came.
+    """
+    out: dict[str, Any] = {}
+    for key in ("authors", "title", "publisher", "url"):
+        if key not in sent:
+            continue
+        value = _clean(sent[key])
+        if value is not None:
+            limit = _BIBLIOGRAPHY_LIMITS[key]
+            if len(value) > limit:
+                raise ValidationError(
+                    f"{_BIBLIOGRAPHY_LABELS[key]} passa de {limit} caracteres "
+                    f"({len(value)}); abrevie o texto."
+                )
+            if key == "url":
+                value = _checked_url(value)
+        out[key] = value
+
+    if "year" in sent:
+        year = sent["year"]
+        if year is not None and not _FIRST_YEAR <= year <= today.year:
+            raise ValidationError(
+                f"O ano deve estar entre {_FIRST_YEAR} e {today.year}; "
+                "deixe em branco se ninguém o registrou."
+            )
+        out["year"] = year
+    if "accessed_on" in sent:
+        accessed = sent["accessed_on"]
+        if accessed is not None and accessed > today:
+            raise ValidationError("A data de acesso não pode estar no futuro.")
+        out["accessed_on"] = accessed
+
+    year = out["year"] if "year" in out else current.year
+    accessed = out["accessed_on"] if "accessed_on" in out else current.accessed_on
+    if year is not None and accessed is not None and accessed.year < year:
+        raise ValidationError(
+            "A data de acesso não pode ser anterior ao ano de publicação "
+            f"({accessed.year} < {year})."
+        )
+    return out
