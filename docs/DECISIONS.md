@@ -13003,7 +13003,7 @@ os Mapas tinham quatro cartões ao lado do mapa, a legenda abaixo de uma figura 
   Aparência) e guarda só id e nome; o Início mostra "Mapas fixados" (sem pino, sem bloco), e `?grafico=<id>` reabre o mapa pedindo
   a configuração de novo ao servidor.
 - **Comparar: pontos de partida e uma barra.** O estado vazio ganha "Pares clássicos" (aço × alumínio, PEAD × PP, titânio × aço,
-  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência);
+  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência; desde a D-229, palavra inteira, na classe certa e preferindo o nome que começa pelo termo);
   par com um lado ausente não aparece (`lib/compareClassics.ts`). Os dois cartões de passo viram uma barra: materiais e
   propriedades adicionados por busca (`Combobox`) e escolhidos como chips removíveis; o nível de leitura fica ao lado da busca.
 
@@ -13281,3 +13281,34 @@ direto: o mesmo valor serve a migração).
 merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que a computação volta a suspender nos intervalos sem uso.
 
 **Numeração.** D-227/Sessão 184 (D-226/Sessão 183 são o fechamento da revisão das telas, neste mesmo PR).
+
+## D-229 — Pares clássicos do Comparar: palavra inteira, classe e começo do nome
+
+**Contexto.** Os "Pares clássicos" do D-221 achavam cada lado pelo nome dobrado (sem acento nem caixa) com `includes`, primeira
+ocorrência na ordem do catálogo. Com o catálogo de 678 materiais (`seed` + `seed_extended`), três dos cinco pares traziam outro
+material: "aço" casava com "Argamassa de Cimento e Areia Traço 1:3" (porque "traço" contém "aco"); "titânio" casava com
+"Aço Inoxidável Austenítico AISI 321 Estabilizado ao Titânio"; "PP" casava com "NFRP Cânhamo / Polipropileno (Painel
+Automotivo)". O par "Vidro × Policarbonato" também estava errado sem ninguém notar: "vidro" casava com "BMC Vidro-E / Poliéster",
+um compósito.
+
+**Decisão.** Cada lado de um par tem uma **classe** (`classSlug`: aço, alumínio, titânio e cobre em `metais`; PEAD, PP e
+policarbonato em `polimeros`; vidro em `ceramicas`) e uma lista de **termos, do mais específico ao mais geral** ("aco carbono",
+depois "aco"; "vidro soda-cal", depois "vidro"; "pp", depois "polipropileno"). O primeiro termo com algum acerto decide. Um termo
+só casa **como palavra inteira** (a letra ou o dígito vizinho impede: "traco" não contém a palavra "aco"), e entre os acertos vale
+o melhor grau (`matchRank`): o nome *é* o termo, depois o nome *começa* pelo termo, depois o termo aparece em outro lugar; no
+empate, a ordem do catálogo. Um lado sem acerto continua tirando o par inteiro, e o mesmo registro nunca fica dos dois lados.
+
+Com o catálogo local: Aço Carbono 1045 × Alumínio 1050A-O Recozido; Polietileno de Alta Densidade (PEAD) × Polipropileno (PP);
+Titânio Comercialmente Puro Grau 1 × Aço Carbono 1045; Cobre Desoxidado com Fósforo (DHP) Meio-Duro × Alumínio 1050A-O Recozido
+(o mesmo de antes); Vidro Soda-Cal × Policarbonato (PC).
+
+**Alternativas recusadas.** Id fixo do material (o D-221 já recusou: o catálogo de produção e o local não têm os mesmos ids, e o
+atalho tem de sumir quando o material falta). Pedir ao servidor uma busca por relevância como a do `GET /api/search` (D-207): um
+pedido a mais por lado numa tela que já tem a lista inteira, e a busca global não filtra por classe. Expressão regular montada
+com o termo: a varredura por `indexOf` com o teste do vizinho faz o mesmo sem escapar caracteres.
+
+**Consequências.** Só frontend (`apps/web/lib/compareClassics.ts`; `CompareSuggestions` passa a pedir `class_slug`, que o
+`MaterialListItem` já traz). Sem backend, migração nem seed. Um catálogo sem a classe certa não oferece o par, mesmo que tenha um
+nome parecido em outra classe — é o comportamento querido.
+
+**Numeração.** D-229/Sessão 186 (o #248, aberto em paralelo, usa D-228/Sessão 185).
