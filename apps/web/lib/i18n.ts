@@ -209,7 +209,7 @@ export const ptBR = {
     parentColumn: "Classe pai",
     rootClass: "raiz",
     subclassOf: (parent: string) => `Subclasse de ${parent}`,
-    treeHint: "A hierarquia das classes, da raiz para baixo. Mover uma classe de lugar ainda não é possível aqui.",
+    treeHint: "A hierarquia das classes, da raiz para baixo. \"Mover para…\" troca a classe pai e leva as subclasses junto; nada mais muda.",
   },
   direction: {
     HIGHER: "Maior é melhor",

@@ -8,6 +8,7 @@ import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { Notebook, NotebookSummary } from "@/lib/types";
 import { ApiError } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
 import { installWideViewport } from "@/lib/testing/viewport";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
@@ -92,6 +93,7 @@ const api = vi.hoisted(() => ({
   getNotebook: vi.fn(),
   updateNotebook: vi.fn(),
   duplicateNotebook: vi.fn(),
+  batchArchiveNotebooks: vi.fn(),
   deleteNotebook: vi.fn(),
   getNotebookSource: vi.fn(),
   listNotebookMessages: vi.fn(),
@@ -211,6 +213,45 @@ describe("citação abre a fonte no trecho (D-218)", () => {
     expect(within(reader).queryByText(t.reader.passageNotFound)).toBeNull();
   });
 
+  it("with the server's position it marks that stretch and keeps the range in the address (D-233)", async () => {
+    const start = CONTENT.indexOf(EXCERPT);
+    const end = start + EXCERPT.length;
+    const base = notebook();
+    api.getNotebook.mockResolvedValue({
+      ...base,
+      summary: {
+        ...base.summary!,
+        citations: [{ ...base.summary!.citations[0]!, char_start: start, char_end: end }],
+      },
+    });
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    await user.click(await screen.findByRole("button", { name: t.citation(1, "Aula de aços") }));
+    await user.click(screen.getByRole("button", { name: t.openAtPassageLabel("Aula de aços") }));
+
+    const reader = await screen.findByRole("dialog", { name: "Aula de aços" });
+    const mark = await within(reader).findByText(EXCERPT);
+    expect(mark.tagName).toBe("MARK");
+    expect(window.location.search).toBe(`?fonte=11&trecho=${start}-${end}`);
+  });
+
+  it("a reload on ?fonte=&trecho= marks the passage with no excerpt at hand (D-233)", async () => {
+    const start = CONTENT.indexOf(EXCERPT);
+    const end = start + EXCERPT.length;
+    window.history.replaceState(null, "", `/app/cadernos/4?fonte=11&trecho=${start}-${end}`);
+    render(wrap(<NotebookWorkspace id={4} />));
+    const reader = await screen.findByRole("dialog", { name: "Aula de aços" });
+    const mark = await within(reader).findByText(EXCERPT);
+    expect(mark.tagName).toBe("MARK");
+  });
+
+  it("a ?trecho= with no source is dropped from the address (D-233)", async () => {
+    window.history.replaceState(null, "", "/app/cadernos/4?trecho=3-9");
+    render(wrap(<NotebookWorkspace id={4} />));
+    await screen.findByRole("group", { name: t.panelTabs });
+    await waitFor(() => expect(window.location.search).toBe(""));
+  });
+
   it("when the passage is not in the text it says so and still shows it", async () => {
     api.getNotebookSource.mockResolvedValue({ ...source, content: "Outro texto qualquer." });
     const user = userEvent.setup();
@@ -299,7 +340,7 @@ describe("cabeçalho do caderno: ações (D-218)", () => {
     render(wrap(<NotebookWorkspace id={4} />));
     await user.click(await screen.findByRole("button", { name: t.notebookActions }));
     await user.click(await screen.findByRole("menuitem", { name: t.duplicate }));
-    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4));
+    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4, false));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/cadernos/9"));
   });
 
@@ -332,7 +373,7 @@ describe("lista: duplicar, arquivar e ver os arquivados (D-218)", () => {
       user.click(await screen.findByRole("button", { name: t.cardMenu("Materiais estruturais") }));
     await open();
     await user.click(await screen.findByRole("menuitem", { name: t.duplicate }));
-    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4));
+    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4, false));
     await open();
     await user.click(await screen.findByRole("menuitem", { name: t.archive }));
     await waitFor(() => expect(api.updateNotebook).toHaveBeenCalledWith(4, { archived: true }));
@@ -351,6 +392,130 @@ describe("lista: duplicar, arquivar e ver os arquivados (D-218)", () => {
     expect(window.location.search).toBe("?arquivados=1");
     await user.click(screen.getByRole("button", { name: t.cardMenu("Velho") }));
     expect(await screen.findByRole("menuitem", { name: t.unarchive })).toBeInTheDocument();
+  });
+});
+
+describe("duplicar com conversa e arquivar em lote (D-233)", () => {
+  const c = curadoriaText.notebooks;
+
+  it("the card menu offers 'Duplicar com conversa' and asks the server to carry it", async () => {
+    api.listNotebooks.mockResolvedValue([summary()]);
+    api.duplicateNotebook.mockResolvedValue(notebook({ id: 9 }));
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await user.click(await screen.findByRole("button", { name: t.cardMenu("Materiais estruturais") }));
+    await user.click(await screen.findByRole("menuitem", { name: new RegExp(`^${c.duplicateWithChat}`) }));
+    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4, true));
+  });
+
+  it("the notebook's own menu has it too, and goes into the copy", async () => {
+    api.duplicateNotebook.mockResolvedValue(notebook({ id: 9, title: "Cópia de Materiais estruturais" }));
+    const user = userEvent.setup();
+    render(wrap(<NotebookWorkspace id={4} />));
+    await user.click(await screen.findByRole("button", { name: t.notebookActions }));
+    await user.click(await screen.findByRole("menuitem", { name: new RegExp(`^${c.duplicateWithChat}`) }));
+    await waitFor(() => expect(api.duplicateNotebook).toHaveBeenCalledWith(4, true));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/cadernos/9"));
+  });
+
+  const two = () => [
+    summary({ id: 4, title: "Aços" }),
+    summary({ id: 5, title: "Polímeros" }),
+    summary({ id: 6, title: "Cerâmicas" }),
+  ];
+
+  it("selection mode shows a box per card, and the bar acts only after a confirmation", async () => {
+    window.history.replaceState(null, "", "/app/cadernos");
+    api.listNotebooks.mockResolvedValue(two());
+    api.batchArchiveNotebooks.mockResolvedValue([]);
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Aços/ });
+    // No boxes and no bar until the reader asks for selection.
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    await user.click(screen.getByRole("button", { name: c.select }));
+    expect(screen.getByRole("button", { name: c.selectDone })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("checkbox", { name: c.selectRow("Aços") }));
+    await user.click(screen.getByRole("checkbox", { name: c.selectRow("Polímeros") }));
+    expect(screen.getByText(c.selected(2))).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: c.archiveSelected }));
+    const dialog = await screen.findByRole("dialog", { name: c.confirmArchiveTitle(2) });
+    expect(api.batchArchiveNotebooks).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: c.archiveSelected }));
+
+    await waitFor(() => expect(api.batchArchiveNotebooks).toHaveBeenCalledWith([4, 5], true));
+    // The snackbar says what happened and offers the way back.
+    expect(await screen.findByText(c.archivedMany(2))).toBeInTheDocument();
+    api.batchArchiveNotebooks.mockClear();
+    await user.click(screen.getByRole("button", { name: ptBR.snackbar.undo }));
+    await waitFor(() => expect(api.batchArchiveNotebooks).toHaveBeenCalledWith([4, 5], false));
+  });
+
+  it("cancelling the confirmation changes nothing", async () => {
+    window.history.replaceState(null, "", "/app/cadernos");
+    api.listNotebooks.mockResolvedValue(two());
+    api.batchArchiveNotebooks.mockReset();
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Aços/ });
+    await user.click(screen.getByRole("button", { name: c.select }));
+    await user.click(screen.getByRole("checkbox", { name: c.selectRow("Aços") }));
+    await user.click(screen.getByRole("button", { name: c.archiveSelected }));
+    const dialog = await screen.findByRole("dialog", { name: c.confirmArchiveTitle(1) });
+    await user.click(within(dialog).getByRole("button", { name: ptBR.actions.cancel }));
+    expect(api.batchArchiveNotebooks).not.toHaveBeenCalled();
+  });
+
+  it("'Selecionar todos' picks every card, and in the archive the verb is 'Desarquivar selecionados'", async () => {
+    window.history.replaceState(null, "", "/app/cadernos?arquivados=1");
+    api.listNotebooks.mockImplementation((archived?: boolean) =>
+      Promise.resolve(
+        archived
+          ? [summary({ id: 7, title: "Velho", archived: true }), summary({ id: 8, title: "Antigo", archived: true })]
+          : [],
+      ),
+    );
+    api.batchArchiveNotebooks.mockResolvedValue([]);
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Velho/ });
+    await user.click(screen.getByRole("button", { name: c.select }));
+    await user.click(screen.getByRole("button", { name: c.selectAll }));
+    expect(screen.getByText(c.selected(2))).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: c.unarchiveSelected }));
+    const dialog = await screen.findByRole("dialog", { name: c.confirmUnarchiveTitle(2) });
+    await user.click(within(dialog).getByRole("button", { name: c.unarchiveSelected }));
+    await waitFor(() => expect(api.batchArchiveNotebooks).toHaveBeenCalledWith([7, 8], false));
+    window.history.replaceState(null, "", "/app/cadernos");
+  });
+
+  it("a failure says nothing was changed, in words", async () => {
+    window.history.replaceState(null, "", "/app/cadernos");
+    api.listNotebooks.mockResolvedValue(two());
+    api.batchArchiveNotebooks.mockRejectedValue(new Error("falhou"));
+    const user = userEvent.setup();
+    render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Aços/ });
+    await user.click(screen.getByRole("button", { name: c.select }));
+    await user.click(screen.getByRole("checkbox", { name: c.selectRow("Aços") }));
+    await user.click(screen.getByRole("button", { name: c.archiveSelected }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: c.archiveSelected }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("the list with the selection bar open has no violations", async () => {
+    window.history.replaceState(null, "", "/app/cadernos");
+    api.listNotebooks.mockResolvedValue(two());
+    const user = userEvent.setup();
+    const view = render(wrap(<NotebooksPage />));
+    await screen.findByRole("link", { name: /Aços/ });
+    await user.click(screen.getByRole("button", { name: c.select }));
+    await user.click(screen.getByRole("checkbox", { name: c.selectRow("Aços") }));
+    const violations = await findA11yViolations(view.container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 });
 

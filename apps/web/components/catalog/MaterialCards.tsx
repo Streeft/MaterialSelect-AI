@@ -3,12 +3,20 @@ import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition
 import type { MaterialListItem } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { classVisual } from "@/lib/design/palette";
-import { Badge, Bar, Card, CardBody } from "@/components/ui";
+import { Badge, Bar, Card, CardBody, Checkbox } from "@/components/ui";
 import { QualityBar, SortValueCell } from "@/components/catalog/MaterialRows";
 import { DesignationCodes } from "./DesignationCodes";
 import { HighlightText } from "./HighlightText";
 
 const t = ptBR.catalog;
+
+/** D-233: a box on each card, for screens that act on several at once ("Meus registros"). */
+export interface CardSelection {
+  isSelected: (id: number) => boolean;
+  onToggle: (id: number) => void;
+  /** What the box is called for a screen reader: the record's name is in it. */
+  label: (name: string) => string;
+}
 
 /**
  * One material, stacked.
@@ -27,12 +35,14 @@ function MaterialCard({
   index,
   searchQuery,
   valueLabel,
+  selection,
 }: {
   material: MaterialListItem;
   index: number;
   searchQuery?: string;
   /** D-217: the property the list is ordered by; its value is shown on the card. */
   valueLabel?: string;
+  selection?: CardSelection;
 }) {
   const { quality } = material;
   const filled = quality.medido + quality.importado + quality.estimado;
@@ -44,6 +54,13 @@ function MaterialCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <span className="flex flex-wrap items-center gap-2">
+              {selection ? (
+                <Checkbox
+                  label={<span className="sr-only">{selection.label(material.name)}</span>}
+                  checked={selection.isSelected(material.id)}
+                  onChange={() => selection.onToggle(material.id)}
+                />
+              ) : null}
               <Link
                 href={`/app/materiais/${material.id}`}
                 onClick={markContainerOrigin}
@@ -134,11 +151,13 @@ export function MaterialCards({
   searchQuery,
   layout = "responsive",
   valueLabel,
+  selection,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
   layout?: "responsive" | "gallery";
   valueLabel?: string;
+  selection?: CardSelection;
 }) {
   return (
     <ul
@@ -155,6 +174,7 @@ export function MaterialCards({
             index={index}
             searchQuery={searchQuery}
             valueLabel={valueLabel}
+            selection={selection}
           />
         </li>
       ))}

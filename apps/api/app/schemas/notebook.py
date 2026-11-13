@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 ChatGoal = Literal["padrao", "guia", "personalizado"]
 ResponseLength = Literal["curta", "padrao", "longa"]
@@ -66,6 +66,11 @@ class CitationOut(BaseModel):
     heading: str | None = None
     page_start: int | None = None
     page_end: int | None = None
+    #: Where the passage sits in the source's text, half-open (D-233), so the reader
+    #: marks it by position. ``None`` for a passage stored before the positions
+    #: existed — never a guessed number; the reader then looks the excerpt up by words.
+    char_start: int | None = None
+    char_end: int | None = None
     excerpt: str
 
 
@@ -138,6 +143,19 @@ class UsageOut(BaseModel):
     used: int
     limit: int
     remaining: int
+
+
+class BatchArchiveIn(BaseModel):
+    """Archive (or bring back) several notebooks in one call (D-233)."""
+
+    ids: list[int] = Field(min_length=1, max_length=100)
+    archived: bool = True
+
+    @field_validator("ids")
+    @classmethod
+    def _distinct(cls, ids: list[int]) -> list[int]:
+        """Repeated ids count once, in the order given."""
+        return list(dict.fromkeys(ids))
 
 
 class NotebookSummaryOut(BaseModel):

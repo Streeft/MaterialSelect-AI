@@ -8,9 +8,10 @@ import { deleteNotebook } from "@/lib/api";
 import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
 import { formatDate } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import type { NotebookSummary } from "@/lib/types";
-import { Alert, Card, Input, MenuButton, MenuItem } from "@/components/ui";
+import { Alert, Card, Checkbox, Input, MenuButton, MenuItem } from "@/components/ui";
 import {
   IconArchive,
   IconCopy,
@@ -32,9 +33,12 @@ const t = ptBR.notebooks;
 export function NotebookCard({
   notebook,
   index,
+  selection,
 }: {
   notebook: NotebookSummary;
   index: number;
+  /** D-233: while the list is in selection mode, the box that ticks this card. */
+  selection?: { checked: boolean; onToggle: () => void };
 }) {
   const client = useQueryClient();
   const [draft, setDraft] = useState<string | null>(null);
@@ -105,6 +109,16 @@ export function NotebookCard({
           {meta}
         </div>
       )}
+      {selection ? (
+        // Beside the link, never inside it: a box nested in an anchor is not valid.
+        <div className="absolute left-2 top-2 z-10 rounded-control bg-surface-raised">
+          <Checkbox
+            label={<span className="sr-only">{curadoriaText.notebooks.selectRow(notebook.title)}</span>}
+            checked={selection.checked}
+            onChange={selection.onToggle}
+          />
+        </div>
+      ) : null}
       <div className="absolute right-2 top-2">
         <MenuButton
           iconOnly
@@ -116,9 +130,17 @@ export function NotebookCard({
               <IconPencil /> {t.rename}
             </span>
           </MenuItem>
-          <MenuItem onSelect={() => duplicate.mutate()}>
+          <MenuItem onSelect={() => duplicate.mutate(false)}>
             <span className="inline-flex items-center gap-2">
               <IconCopy /> {t.duplicate}
+            </span>
+          </MenuItem>
+          <MenuItem
+            hint={curadoriaText.notebooks.duplicateWithChatHint}
+            onSelect={() => duplicate.mutate(true)}
+          >
+            <span className="inline-flex items-center gap-2">
+              <IconCopy /> {curadoriaText.notebooks.duplicateWithChat}
             </span>
           </MenuItem>
           <MenuItem onSelect={() => archive.mutate(!notebook.archived)}>

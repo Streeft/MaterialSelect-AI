@@ -120,6 +120,21 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 190 — 13/11/26 — Ficha, Admin e Cadernos, parte 15: citar fonte, mover classe, posição do trecho e lotes (D-233)
+
+**O que mudou.** Backend: `source` ganha autores, título, editora, ano, URL e data de acesso (todos nuláveis; o importador oficial lê
+as chaves opcionais do manifesto) e a ficha devolve `sources` com o texto ABNT montado em `app/domain/citation.py`, sem "s.d." nem
+autor inventado; `PATCH /api/classes/{id}` só com `parent_id` (sem ciclo, sem apagar a prosa); `PATCH /api/properties/{id}` com nome,
+descrição e unidade de leitura; `notebook_chunk.char_start/char_end` preenchidos pelo chunker (mapa de normalização) e devolvidos nas
+citações; `duplicate?with_conversation=true` (conversa, itens prontos do Estúdio e notas, com as citações reapontadas);
+`POST /api/notebooks/batch-archive` e `POST /api/materials/batch-delete`, tudo ou nada; coluna própria
+`selection_stage.material_ids`. **Uma migração** (`d461fbef4da2`, autogenerate editada para mover os dados, subida e descida
+testadas). Frontend: seção "Fontes desta ficha" com "Citar fonte (ABNT)" (copia o texto do servidor); "Mover para…" na árvore de
+classes e "Editar" nas propriedades (diálogos); o leitor marca o trecho por posição (`?trecho=`), com a busca por palavras como
+recaída; "Duplicar com conversa"; "Selecionar" e arquivar/desarquivar em lote com confirmação e Desfazer; excluir registros próprios
+em lote em "Meus registros" (e a seção deixou de sumir no computador). Testes novos: sete arquivos de pytest, vitest com axe em
+cada tela e E2E `curadoria.spec.ts`. **Depois do merge: Deploy da API** (o `release_command` roda `alembic upgrade head`). Sem seed.
+
 ## Sessão 189 — 13/11/26 — Fluxos entre telas, parte 14: a Seleção recebe uma lista de materiais (D-232)
 
 **O que mudou.** Backend: sexto tipo de estágio, `list` (`StageIn.material_ids`, 1 a 200; `IdSelection` em `domain/filters.py`; funil

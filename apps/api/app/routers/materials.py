@@ -29,6 +29,8 @@ from app.schemas.material import (
     ChartData,
     CompositionReplaceIn,
     DesignationsReplaceIn,
+    MaterialBatchDeleteIn,
+    MaterialBatchDeleteOut,
     MaterialCreate,
     MaterialDetail,
     MaterialListItem,
@@ -371,6 +373,20 @@ def replace_designations(
     return MaterialService(db, user, unit_choices, can_edit_shared).replace_designations(
         material_id, payload
     )
+
+
+@router.post("/batch-delete", response_model=MaterialBatchDeleteOut)
+def delete_own_materials(
+    payload: MaterialBatchDeleteIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> MaterialBatchDeleteOut:
+    """Withdraw up to 100 of the caller's own records at once, all or none (D-233)."""
+    deleted = MaterialService(db, user, unit_choices, can_edit_shared=False).delete_own_batch(
+        payload.ids
+    )
+    return MaterialBatchDeleteOut(deleted=deleted)
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)

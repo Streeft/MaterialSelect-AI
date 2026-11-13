@@ -9,9 +9,9 @@ moment the source is first registered (see ``app.importers.service`` and
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -35,6 +35,17 @@ class Source(Base):
     label: Mapped[str] = mapped_column(String(160), unique=True, nullable=False)
     reference: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Bibliographic fields (D-233), the parts of an ABNT reference. All nullable:
+    # NULL is "nobody recorded it", and the citation leaves the part out instead
+    # of writing "s.d." or an invented author. ``authors`` is kept as the
+    # reference prints it ("SOBRENOME, Nome; SOBRENOME, Nome" or an institution).
+    authors: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    publisher: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    accessed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Procedência/licença (M1). ``license_label`` is a short human label, not a
     # controlled vocabulary — "CC-BY-4.0", "Domínio público", "Uso interno

@@ -246,6 +246,7 @@ describe("ficha: sumário lateral e atalhos do topo (D-214)", () => {
       "#equivalencias",
       "#ordinais",
       "#curvas",
+      "#fontes",
     ]);
     await user.click(within(outline).getByRole("link", { name: ptBR.curves.title }));
     expect(detailsOf("curvas").open).toBe(true);

@@ -1036,13 +1036,14 @@ class SelectionService:
 
     @staticmethod
     def _stored_material_ids(stage: SelectionStage) -> list[int]:
-        """The ids of a stored list stage — integers in `material_class_slugs`.
+        """The ids of a stored list stage, from its own column (D-233).
 
         Anything in the column that is not an integer is dropped rather than
-        trusted: the column is shared with the folder slugs of another kind, and
-        a stray string must not become a record id.
+        trusted: a stray string must not become a record id.
         """
-        return [i for i in (stage.material_class_slugs or []) if isinstance(i, int)]
+        return [
+            i for i in (stage.material_ids or []) if isinstance(i, int) and not isinstance(i, bool)
+        ]
 
     def _check_process_selection(
         self, process_slugs: list[str], process_class_slugs: list[str]
@@ -2675,14 +2676,13 @@ class SelectionService:
             class_slugs=list(stage_in.class_slugs),
             process_slugs=list(stage_in.process_slugs),
             process_class_slugs=list(stage_in.process_class_slugs),
-            # D-232: a list stage keeps its ids in this same JSON column, as
-            # integers — a dedicated column would need a migration, and for any
-            # other kind the column still holds folder slugs, so the reader
-            # below picks by `kind`.
             material_class_slugs=(
-                self._distinct_ids(stage_in.material_ids)
-                if stage_in.kind == "list"
-                else list(stage_in.material_class_slugs)
+                [] if stage_in.kind == "list" else list(stage_in.material_class_slugs)
+            ),
+            # D-233: the list stage's ids have their own column (D-232 kept them
+            # as integers in `material_class_slugs`, which holds folder slugs).
+            material_ids=(
+                self._distinct_ids(stage_in.material_ids) if stage_in.kind == "list" else []
             ),
             include_descendants=stage_in.include_descendants,
             notes=stage_in.notes,
@@ -2885,10 +2885,8 @@ class SelectionService:
                     class_slugs=list(stage.class_slugs or []),
                     process_slugs=list(stage.process_slugs or []),
                     process_class_slugs=list(stage.process_class_slugs or []),
-                    material_class_slugs=(
-                        [] if stage.kind == "list" else list(stage.material_class_slugs or [])
-                    ),
-                    material_ids=self._stored_material_ids(stage) if stage.kind == "list" else [],
+                    material_class_slugs=list(stage.material_class_slugs or []),
+                    material_ids=self._stored_material_ids(stage),
                     chart=self._stage_row_to_chart_in(stage) if stage.kind == "chart" else None,
                     include_descendants=stage.include_descendants,
                     notes=stage.notes,

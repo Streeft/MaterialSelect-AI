@@ -24,6 +24,18 @@ class MaterialClassIn(BaseModel):
     characteristics: str | None = Field(default=None, max_length=1000)
 
 
+class MaterialClassMove(BaseModel):
+    """Payload to move a class in the tree (D-233): only its parent.
+
+    ``parent_id`` is **required** and may be ``None`` — "to the root" is an
+    answer, and an empty body is not. The name, the slug and the family prose
+    are not here on purpose: a move that could also rename would be a second way
+    to run the ``PUT`` that wipes them.
+    """
+
+    parent_id: int | None
+
+
 class MaterialClassOut(BaseModel):
     """A material class as returned by the API.
 

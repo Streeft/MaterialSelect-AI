@@ -28,6 +28,7 @@ from app.schemas.notebook import (
     ArtifactOut,
     ArtifactUpdate,
     AskIn,
+    BatchArchiveIn,
     ChatOut,
     ExternalSourceIn,
     MessageOut,
@@ -126,13 +127,25 @@ def create_notebook(
     return service.create(payload)
 
 
+@router.post("/batch-archive", response_model=list[NotebookSummaryOut])
+def batch_archive_notebooks(
+    payload: BatchArchiveIn, service: NotebookService = Depends(_service)
+) -> list[NotebookSummaryOut]:
+    """Archive (``archived: true``) or bring back (``false``) up to 100 notebooks, all or none (D-233)."""
+    return service.batch_archive(payload)
+
+
 @router.post(
     "/{notebook_id}/duplicate", response_model=NotebookOut, status_code=status.HTTP_201_CREATED
 )
 def duplicate_notebook(
-    notebook_id: int, service: NotebookService = Depends(_service)
+    notebook_id: int,
+    with_conversation: bool = False,
+    service: NotebookService = Depends(_service),
 ) -> NotebookOut:
-    return service.duplicate(notebook_id)
+    """A copy of the notebook; ``with_conversation`` also carries the chat and the finished
+    Studio artifacts, with their citations re-pointed at the copy (D-233)."""
+    return service.duplicate(notebook_id, with_conversation=with_conversation)
 
 
 @router.get("/{notebook_id}", response_model=NotebookOut)

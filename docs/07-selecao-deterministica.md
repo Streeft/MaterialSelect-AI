@@ -122,8 +122,9 @@ tipo é recusado, não ignorado:
   com a lista encolhida: o estágio é guardado cru e só a entrada nova é
   conferida, a mesma postura dos demais. O funil o chama `in_list`; o relatório
   e o laudo dizem "lista de N materiais" e os **nomes** (até 12, depois "e mais
-  N"), nunca os números. Os ids ficam como inteiros na coluna JSON
-  `material_class_slugs` (nos demais tipos ela guarda pastas), sem migração; um
+  N"), nunca os números. Os ids ficam na coluna própria `material_ids`
+  (D-233; no D-232 moravam como inteiros em `material_class_slugs`, que volta a
+  guardar só pastas, e a migração `d461fbef4da2` moveu os dados); um
   estudo com estágio de lista **não sai em arquivo de estudo**, que não carrega
   id de registro (D-122).
 

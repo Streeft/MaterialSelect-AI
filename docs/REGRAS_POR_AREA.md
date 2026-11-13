@@ -588,6 +588,15 @@ e o sintetizado (a receita não se copia). Processo não tem dono (D-62 só deu 
 a `Material`), então não há "processo próprio" a duplicar. A rota é isenta no
 canário do D-116 porque não escreve no original.
 
+**Excluir em lote (D-233).** `POST /api/materials/batch-delete` (1 a 100 ids) retira só registros **próprios** do leitor, tudo ou
+nada: um id do catálogo compartilhado recusa o lote (400), o alheio ou já excluído é 404, e cada exclusão entra na auditoria.
+A tela de "Meus registros" pede confirmação e usa `useUndoableDelete` (a chamada só sai quando o "Desfazer" expira).
+
+**Citar fonte, mover classe, editar propriedade (D-233).** O texto ABNT é montado no backend (`app/domain/citation.py`) só com os
+campos de `source` que alguém registrou: parte ausente fica de fora, sem "s.d.", "[S. l.]" nem autor inventado. Mover uma classe
+é `PATCH /api/classes/{id}` com **só** `parent_id` (o `PUT` apagaria a prosa da família; ciclo é 400). Editar propriedade é
+`PATCH /api/properties/{id}` com nome, descrição e unidade de leitura — slug e dimensão não entram no corpo.
+
 ## Demo e seed (D-71, D-72)
 
 **Uma auditoria ao vivo achou os 70 materiais fictícios do PR #59 ausentes em
@@ -731,6 +740,12 @@ e no mesmo modal do D-94. Regras que não se afrouxam:
   menos metade do espaço, nunca dentro de um número (`guardrails.NUMBER_TOKEN`,
   o átomo da conferência), e diz que encurtou (`studio_service.note_body`).
 - **Nenhuma migração**: as quatro cabem nos campos JSON da fase 1.
+
+**Posição do trecho, duplicar com conversa e lote (D-233).** `notebook_chunk.char_start`/`char_end` dizem onde o trecho está no
+`content` da fonte (NULL = gravado antes, nunca um palpite) e a citação os devolve; o leitor marca por posição e cai na busca por
+palavras quando não há. `duplicate?with_conversation=true` copia conversa, itens prontos do Estúdio e citações das notas
+**reapontando** `chunk_id`/`source_id` para a cópia (fonte removida vira 0). `batch-archive` é tudo ou nada e 404 para o que não
+é do dono.
 
 ## Cérebro e ingestão (D-47, D-100, D-101)
 

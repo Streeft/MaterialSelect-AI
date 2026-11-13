@@ -13617,3 +13617,85 @@ Comparar vazio, Início), `wizardState`, `selecao` (chegada por `?materiais=`, f
 estágio; sem migração nem seed).
 
 **Numeração.** D-232/Sessão 189.
+
+---
+
+## D-233 — Ficha, Admin, Cadernos e Registros: citar fonte, mover classe, posição do trecho e lotes
+
+**Contexto.** Pendências deixadas pelos D-214 ("Citar fonte (ABNT)"), D-218 (Cadernos: posição do trecho, duplicar com conversa,
+arquivar em lote), D-219 (excluir registros próprios em lote), D-222 (árvore de classes editável, editar propriedade) e D-232 (a
+coluna própria `material_ids`). Nenhuma mexe em cálculo; todas mexem em dado de registro ou de fonte, e por isso cada uma recusa o
+que não pode afirmar: a citação não inventa autor nem ano, a árvore não deixa fazer ciclo, o trecho não ganha posição que ninguém
+mediu, o lote não faz metade.
+
+**Decisão.**
+
+1. **Citar fonte (ABNT) com um clique.** O modelo `Source` só tinha `label`, `reference` (texto livre) e licença: **nenhum campo
+   estruturado** de autor, título, editora, ano, endereço ou data de acesso. Em vez de montar a citação de texto livre (que seria
+   chute), `source` ganhou seis colunas **nuláveis**: `authors`, `title`, `publisher`, `year`, `url`, `accessed_on`. Ninguém as
+   preenche por inferência: nascem NULL para toda fonte que já existe; o importador do catálogo oficial lê as chaves opcionais do
+   manifesto (`_bibliography`, só com o formato certo; ano ou data malformados são descartados, não coagidos) e o `POST` de
+   fonte segue como era. O texto é **montado no backend**, puro e determinístico (`app/domain/citation.py`, `abnt_reference`):
+   `AUTORES. Título. Editora, ano. {referência}. Disponível em: URL. Acesso em: d mmm. aaaa.` Sem autor, a entrada é o título com a
+   primeira palavra em maiúsculas (artigo e a palavra seguinte, como a norma); sem título, o `label`, que toda fonte tem. A ficha
+   (`MaterialDetail.sources`, uma por fonte citada em valor, composição ou designação, sem repetir, ordenada por rótulo)
+   devolve os campos e o `abnt`; a tela só copia (`copyText`) e diz se o navegador deixou. **A norma e o "s.d.":** a NBR
+   6023:2018 pede uma data aproximada entre colchetes quando a data não se acha e mantém `[S. l.]` e `[s. n.]` para local e editora;
+   os três escreveriam algo que o registro não diz (uma data estimada é dado inventado, princípio 1), então **não são
+   escritos** — a parte ausente fica de fora. "Acesso em" só sai com "Disponível em". A seção "Fontes desta ficha" vem aberta, para
+   ser um clique de fato.
+2. **Árvore de classes editável.** `PATCH /api/classes/{id}` com **só** `parent_id` (obrigatório no corpo; `null` é a raiz) —
+   nome, slug e a prosa da família (`applications`, `characteristics`) ficam como estão, o que o `PUT` não garante. Recusa a
+   própria classe e qualquer descendente como destino (400, o mesmo `_validate_parent` do `PUT`), pai inexistente é 404, mover para
+   onde já está não grava evento. Entra na auditoria como `ATUALIZADO` com só `parent_id`. Na tela, "Mover para…" por linha: um
+   diálogo com **um select** (a própria classe e as descendentes nem aparecem), que vale de teclado e de leitor de tela; arrastar
+   ficou de fora (opcional, e um gesto que só o mouse faz).
+3. **Editar propriedade no Admin.** `PATCH /api/properties/{id}` com `name`, `description` e `display_unit`, só os enviados
+   (`model_fields_set`: `description: null` limpa, omitir mantém). O slug e a dimensão não estão no corpo; a unidade de leitura
+   passa pelas mesmas peneiras da criação (compatível com a dimensão **da propriedade**, entre as aceitas). Nome em branco é 400,
+   nome de outra propriedade (sem diferenciar caixa) é 409.
+4. **Posição exata do trecho citado.** `notebook_chunk.char_start`/`char_end` (migração), preenchidos no `chunk_text`, em
+   coordenadas do `content` da fonte (páginas aparadas e unidas por linha em branco). O chunker normaliza o texto (une hifenização,
+   desfaz quebras duras), então o trecho não é substring do texto: `_normalise_with_map` devolve, para cada caractere normalizado, de
+   onde ele veio; um teste mantém o texto igual a `normalise`. O intervalo cobre o texto **próprio** do trecho, sem a sobreposição
+   repetida do anterior; pedaço de parágrafo longo é achado por suas palavras dentro do parágrafo. A citação devolve
+   `char_start`/`char_end`; o leitor marca **por posição** quando ela cabe no texto, e **cai na busca por palavras** (`locateExcerpt`)
+   quando não há posição (trecho gravado antes) ou ela não cabe. Nada foi preenchido retroativamente: NULL é "não sei". `?trecho=ini-fim`
+   no endereço do caderno faz a marca sobreviver ao recarregar.
+5. **Duplicar com conversa.** `POST /api/notebooks/{id}/duplicate?with_conversation=true` copia também as mensagens, os itens
+   **prontos** do Estúdio e as citações das notas, **reapontando** cada citação (`chunk_id`, `source_id`) para os trechos e a fonte
+   da cópia; uma citação cuja fonte já saíra do caderno vira id 0 (que nenhuma linha tem), nunca o número de outra linha. Não gasta
+   geração nem cota. O padrão segue o do D-218.
+6. **Arquivar e desarquivar em lote.** `POST /api/notebooks/batch-archive` (`ids` de 1 a 100, repetidos contam uma vez,
+   `archived` verdadeiro ou falso): **tudo ou nada** (um id que não é do dono ou não existe é 404 que não confirma se existe, D-62),
+   idempotente e mantendo a primeira hora de arquivo. Na lista: "Selecionar" abre as caixas, a barra pede confirmação e depois
+   oferece "Desfazer" (a mesma chamada ao contrário).
+7. **Excluir registros próprios em lote.** `POST /api/materials/batch-delete` (1 a 100 ids): **só registro próprio** (um do
+   catálogo compartilhado recusa o lote inteiro, mesmo para quem pode editá-lo; o alheio e o já excluído são 404), tudo ou
+   nada, uma auditoria `EXCLUIDO` por registro. Na tela: caixas nos registros próprios, `ConfirmDialog` e `useUndoableDelete`
+   (a chamada só sai quando o prazo do "Desfazer" acaba). Aproveitando: a seção usava `MaterialCards` na disposição
+   `responsive`, que **some de `sm` para cima** — os registros próprios ficavam invisíveis no computador; passou a `gallery`.
+8. **Coluna própria `material_ids`** (dívida do D-232). `selection_stage.material_ids` (JSON, NOT NULL, padrão `[]`); a migração
+   **move** os inteiros de `material_class_slugs` para ela nos estágios `list` e esvazia a antiga; a descida os devolve, na
+   mesma ordem. `material_class_slugs` volta a guardar só pastas e a leitura deixa de escolher por `kind`.
+
+**Migração.** Uma só, `d461fbef4da2`, gerada com `alembic --autogenerate` e editada para copiar os dados; subida, descida e subida
+de novo testadas (`test_migration_ficha_admin_cadernos.py`), e `alembic check` sem diferença. Aditiva: nenhuma coluna removida.
+
+**Alternativas recusadas.** Montar a citação de `reference` (texto livre: sairia chute com cara de norma). Escrever "[s.d.]",
+"[S. l.]" e "[s. n.]" (a norma pede, o princípio 1 não deixa estimar). Mover classe pelo `PUT` (apaga a prosa). Arrastar como único
+modo de mover (não acessível). Preencher `char_start` das fontes antigas relendo o texto (um palpite de posição é pior que a busca
+por palavras). Copiar a conversa sem reapontar as citações (a cópia apontaria para linhas do original e quebraria quando ele fosse
+apagado). Lote em chamadas separadas por id (um erro no meio deixaria metade feita).
+
+**Consequências.** Fica pendente: telas para **cadastrar** os campos bibliográficos de uma fonte (hoje só o manifesto do catálogo
+oficial os preenche), citação das fontes de curva e de equivalência na ficha (a seção lista as de valor, composição e designação),
+arrastar na árvore, "esvaziar o arquivo" dos cadernos. Testes novos: `test_migration_ficha_admin_cadernos.py`,
+`test_source_citation.py`, `test_class_move.py`, `test_property_edit.py`, `test_chunk_positions.py`,
+`test_notebooks_positions_duplicate_batch.py`, `test_materials_batch_delete.py` (e um caso em `test_selection_list_stage.py`);
+vitest com axe em `SourcesSection`, `ficha-fontes`, `mover`, `editar`, `SourceReader.position`, `urlState`, `excluir-lote` e na lista
+de cadernos; E2E `curadoria.spec.ts` (citar fonte; mover classe). Depois do merge: **Deploy da API** (o `release_command` do
+`fly.toml` roda `alembic upgrade head`, então a migração sobe junto; a **Administração do banco** só serve se o autor quiser migrar
+antes de publicar a API). Sem seed.
+
+**Numeração.** D-233/Sessão 190.

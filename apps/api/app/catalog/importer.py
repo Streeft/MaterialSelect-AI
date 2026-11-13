@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -88,6 +88,30 @@ KNOWN_FILES = {
     "ordinal_property_definitions.ndjson",
     "material_ordinal_values.ndjson",
 }
+
+
+def _bibliography(meta: dict) -> dict[str, object]:
+    """The optional bibliographic keys of a manifest, for the source's ABNT text (D-233).
+
+    Only what the manifest wrote, only when it has the right shape: an absent key
+    stays absent (the citation leaves the part out), and a malformed ``year`` or
+    ``accessed_on`` is dropped rather than coerced into a date nobody stated.
+    """
+    out: dict[str, object] = {}
+    for key, limit in (("authors", 500), ("title", 300), ("publisher", 200), ("url", 500)):
+        value = meta.get(key)
+        if isinstance(value, str) and value.strip():
+            out[key] = value.strip()[:limit]
+    year = meta.get("year")
+    if isinstance(year, int) and not isinstance(year, bool) and 1000 <= year <= 2999:
+        out["year"] = year
+    accessed = meta.get("accessed_on")
+    if isinstance(accessed, str):
+        try:
+            out["accessed_on"] = date.fromisoformat(accessed)
+        except ValueError:
+            pass
+    return out
 
 
 class OfficialCatalogImportError(ValueError):
@@ -749,6 +773,7 @@ class OfficialCatalogImporter:
             source = Source(
                 label=source_label,
                 reference=meta.get("provenance"),
+                **_bibliography(meta),
                 is_demo=False,
                 license_label=meta["license_label"],
                 license_url=meta.get("license_url"),

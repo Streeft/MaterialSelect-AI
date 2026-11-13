@@ -22,18 +22,38 @@ export const idCodec: UrlCodec<number | null> = {
   serialize: (value) => (value === null ? "" : String(value)),
 };
 
+/** Where a passage sits in its source (D-233): `120-340`, half-open, start before end. */
+export interface PassageRange {
+  start: number;
+  end: number;
+}
+
+export const rangeCodec: UrlCodec<PassageRange | null> = {
+  parse: (raw) => {
+    const found = /^(\d{1,9})-(\d{1,9})$/.exec(raw);
+    if (!found) return undefined;
+    const start = Number(found[1]);
+    const end = Number(found[2]);
+    return start < end ? { start, end } : undefined;
+  },
+  serialize: (value) => (value === null ? "" : `${value.start}-${value.end}`),
+};
+
 /**
  * A notebook's address (D-218): `?aba=` the panel on a narrow screen,
  * `?fonte=` the source being read, `?artefato=` the Studio item that is open.
- * The notebook itself is the path, `/app/cadernos/4`.
+ * D-233 adds `?trecho=` — where the cited passage sits in that source — so the
+ * mark survives a reload. The notebook itself is the path, `/app/cadernos/4`.
  */
 export const notebookUrlSpec: UrlSpec<{
   panel: NotebookPanel;
   source: number | null;
+  passage: PassageRange | null;
   artifact: number | null;
 }> = {
   panel: { param: "aba", codec: panelCodec, defaultValue: "chat" },
   source: { param: "fonte", codec: idCodec, defaultValue: null },
+  passage: { param: "trecho", codec: rangeCodec, defaultValue: null },
   artifact: { param: "artefato", codec: idCodec, defaultValue: null },
 };
 

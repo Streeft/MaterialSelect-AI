@@ -4,7 +4,8 @@
  * The backend copies the passage into the citation as `excerpt` but not its
  * position, and a passage is the source's paragraphs joined with single spaces
  * (its line breaks are gone), so the match is by words, whitespace-blind and
- * case-sensitive. It is text location, not a calculation: nothing is
+ * case-sensitive. Since D-233 this is the **fallback**: the server also stores where
+ * the passage sits, and the reader marks by that position when it has one. It is text location, not a calculation: nothing is
  * derived, only found. A passage that cannot be found whole is looked for by
  * its opening words (a passage may carry the overlap of its neighbour); one
  * that is not found at all returns `null` and the reader says so.
@@ -28,5 +29,20 @@ export function locateExcerpt(content: string, excerpt: string): Span | null {
   return (
     matchWords(content, words) ??
     (words.length > OPENING_WORDS ? matchWords(content, words.slice(0, OPENING_WORDS)) : null)
+  );
+}
+
+/**
+ * Whether a position stored by the server (D-233) can be used on this text: whole numbers,
+ * start before end, inside the text. Anything else is ignored and the words are searched,
+ * so a stale or malformed position never marks a wrong stretch.
+ */
+export function validPosition(position: Span, length: number): boolean {
+  return (
+    Number.isInteger(position.start) &&
+    Number.isInteger(position.end) &&
+    position.start >= 0 &&
+    position.start < position.end &&
+    position.end <= length
   );
 }

@@ -44,6 +44,9 @@ class Passage:
     page_start: int | None
     page_end: int | None
     text: str
+    #: Where the passage sits in its source (D-233); ``None`` when not recorded.
+    char_start: int | None = None
+    char_end: int | None = None
 
 
 @dataclass(frozen=True)

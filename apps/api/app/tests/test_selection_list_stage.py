@@ -223,6 +223,36 @@ def test_a_saved_list_stage_round_trips_and_runs(client, db_session):
     assert _names(result) == {"Liga Alumínio Demo A", "Aço Demo B"}
 
 
+def test_the_ids_live_in_their_own_column_and_the_folder_column_stays_for_folders(
+    client, db_session
+):
+    """D-233: `material_ids` is a column of its own. Before it, the ids sat as
+    integers in `material_class_slugs`, a column of folder slugs."""
+    from app.models.selection import SelectionStage
+
+    aluminio, aco = _ids(db_session, "Liga Alumínio Demo A", "Aço Demo B")
+    study_id = _save(
+        client,
+        [
+            _list_stage([aco, aluminio, aco]),
+            {"kind": "tree", "class_slugs": ["metais"]},
+        ],
+    )
+
+    rows = (
+        db_session.query(SelectionStage)
+        .filter(SelectionStage.study_id == study_id)
+        .order_by(SelectionStage.position)
+        .all()
+    )
+    list_row, tree_row = rows
+    # Repeated ids collapse, the order the reader gave is kept.
+    assert list_row.material_ids == [aco, aluminio]
+    assert list_row.material_class_slugs == []
+    # Another kind never touches the new column.
+    assert tree_row.material_ids == []
+
+
 def test_a_saved_list_whose_material_was_deleted_still_runs(client, db_session):
     """A saved study is stored raw and validated when it runs on a payload, the
     same posture as every other stage: a record that left the catalogue

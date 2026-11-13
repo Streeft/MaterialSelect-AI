@@ -10,7 +10,7 @@ import { NOTEBOOKS_KEY, notebookKey } from "./keys";
 const t = ptBR.notebooks;
 
 /**
- * Rename, duplicate and archive one notebook (D-218) — the verbs the list's
+ * Rename, duplicate (with or without the conversation, D-233) and archive one notebook (D-218) — the verbs the list's
  * card and the notebook's own header share, so they cannot drift apart. Delete
  * stays with its callers: it navigates differently (D-130).
  *
@@ -34,8 +34,9 @@ export function useNotebookActions(
     },
   });
 
+  // D-233: `true` also carries the chat and the finished Studio items ("Duplicar com conversa").
   const duplicate = useMutation({
-    mutationFn: () => duplicateNotebook(notebook.id),
+    mutationFn: (withConversation: boolean) => duplicateNotebook(notebook.id, withConversation),
     onSuccess: async (copy) => {
       client.setQueryData(notebookKey(copy.id), copy);
       await client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });

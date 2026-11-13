@@ -1,14 +1,18 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createNotebook, listNotebooks } from "@/lib/api";
+import { batchArchiveNotebooks, createNotebook, listNotebooks } from "@/lib/api";
 import { useUrlState } from "@/lib/urlState";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
+import { useOptionalSnackbar } from "@/components/ui/Snackbar";
 import {
   Alert,
   Button,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   ButtonGroup,
@@ -22,6 +26,7 @@ import { NOTEBOOKS_KEY, notebookKey } from "@/components/notebooks/keys";
 import { notebooksListUrlSpec } from "@/components/notebooks/urlState";
 
 const t = ptBR.notebooks;
+const c = curadoriaText.notebooks;
 
 /**
  * Cadernos (D-92): the student's notebooks, newest first. Creating one goes
@@ -45,6 +50,47 @@ export default function NotebooksPage() {
     },
   });
 
+  // D-233: select several, archive (or bring back) them together, with a confirmation and "Desfazer".
+  const snackbar = useOptionalSnackbar();
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<ReadonlySet<number>>(new Set());
+  const [confirming, setConfirming] = useState(false);
+  const visible = notebooks.data ?? [];
+  // A selection the list no longer shows (another view, a refetch) is not acted on.
+  const chosen = visible.filter((notebook) => picked.has(notebook.id));
+  const batch = useMutation({
+    mutationFn: ({ ids, archived }: { ids: number[]; archived: boolean }) =>
+      batchArchiveNotebooks(ids, archived),
+    onSuccess: (_rows, { ids, archived }) => {
+      void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
+      snackbar?.notify({
+        message: archived ? c.archivedMany(ids.length) : c.unarchivedMany(ids.length),
+        // "Desfazer" is the same call the other way round.
+        action: {
+          label: ptBR.snackbar.undo,
+          onAction: () => batch.mutate({ ids, archived: !archived }),
+        },
+      });
+    },
+  });
+  const toggle = (id: number) =>
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const leaveSelection = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+  const runBatch = () => {
+    setConfirming(false);
+    const ids = chosen.map((notebook) => notebook.id);
+    setPicked(new Set());
+    if (ids.length > 0) batch.mutate({ ids, archived: !archived });
+  };
+
   const createButton = (
     <Button
       icon={<IconPlus />}
@@ -66,19 +112,79 @@ export default function NotebooksPage() {
           notebooks.data?.length === 0 && !archived ? undefined : createButton
         }
         secondaryActions={
-          <ButtonGroup label={t.listViews}>
-            <ButtonGroupItem
-              selected={!archived}
-              label={t.viewActive}
-              onClick={() => setView({ archived: false })}
-            />
-            <ButtonGroupItem
-              selected={archived}
-              label={t.viewArchived}
-              onClick={() => setView({ archived: true })}
-            />
-          </ButtonGroup>
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {visible.length > 0 ? (
+              <Button
+                variant="secondary"
+                aria-pressed={selecting}
+                onClick={() => (selecting ? leaveSelection() : setSelecting(true))}
+              >
+                {selecting ? c.selectDone : c.select}
+              </Button>
+            ) : null}
+            <ButtonGroup label={t.listViews}>
+              <ButtonGroupItem
+                selected={!archived}
+                label={t.viewActive}
+                onClick={() => {
+                  leaveSelection();
+                  setView({ archived: false });
+                }}
+              />
+              <ButtonGroupItem
+                selected={archived}
+                label={t.viewArchived}
+                onClick={() => {
+                  leaveSelection();
+                  setView({ archived: true });
+                }}
+              />
+            </ButtonGroup>
+          </span>
         }
+      />
+      {selecting ? (
+        <div
+          role="group"
+          aria-label={c.selected(chosen.length)}
+          className="flex flex-wrap items-center gap-2 rounded-control bg-surface-sunken px-3 py-2"
+        >
+          <span className="text-body text-ink" aria-live="polite">
+            {c.selected(chosen.length)}
+          </span>
+          <Button
+            size="sm"
+            variant="tonal"
+            disabled={chosen.length === 0}
+            loading={batch.isPending}
+            onClick={() => setConfirming(true)}
+          >
+            {archived ? c.unarchiveSelected : c.archiveSelected}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setPicked(new Set(visible.map((notebook) => notebook.id)))}
+          >
+            {c.selectAll}
+          </Button>
+          <Button size="sm" variant="ghost" disabled={chosen.length === 0} onClick={() => setPicked(new Set())}>
+            {c.clear}
+          </Button>
+        </div>
+      ) : null}
+      {batch.error ? (
+        <Alert tone="danger" role="alert">
+          {describeApiError(batch.error, c.batchFailed)}
+        </Alert>
+      ) : null}
+      <ConfirmDialog
+        open={confirming}
+        title={archived ? c.confirmUnarchiveTitle(chosen.length) : c.confirmArchiveTitle(chosen.length)}
+        message={archived ? c.confirmUnarchiveMessage : c.confirmArchiveMessage}
+        confirmLabel={archived ? c.unarchiveSelected : c.archiveSelected}
+        onCancel={() => setConfirming(false)}
+        onConfirm={runBatch}
       />
       {create.error ? (
         <Alert tone="danger" role="alert">
@@ -104,7 +210,15 @@ export default function NotebooksPage() {
         >
           {notebooks.data.map((notebook, index) => (
             <li key={notebook.id}>
-              <NotebookCard notebook={notebook} index={index} />
+              <NotebookCard
+                notebook={notebook}
+                index={index}
+                selection={
+                  selecting
+                    ? { checked: picked.has(notebook.id), onToggle: () => toggle(notebook.id) }
+                    : undefined
+                }
+              />
             </li>
           ))}
         </ul>
