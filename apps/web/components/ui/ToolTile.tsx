@@ -41,7 +41,7 @@ export function ToolTile({
       onClick={unavailable ? undefined : onClick}
       className={cn(
         "pressable flex min-h-[4.25rem] flex-col items-start justify-between gap-2 rounded-card p-3 text-left transition",
-        "m3-state overflow-hidden bg-surface-container-low text-ink",
+        "m3-state bg-surface-container-low text-ink",
         unavailable && "cursor-not-allowed opacity-70",
       )}
     >
