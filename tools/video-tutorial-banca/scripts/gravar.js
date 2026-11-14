@@ -3,7 +3,8 @@
 // Selection screen). A virtual clock only runs while the screen is in a stable state:
 // waits on the server are paused and never reach the video (dry cut).
 //
-// Usage: node gravar.js --saida DIR --narracao DIR [--cenas 2.2,2.3] [--seco]
+// Usage: node gravar.js --saida DIR --narracao DIR [--cenas S1,S2] [--seco] [--spec cenas.json] [--acoes cenas_acoes.js]
+//   PW_CHANNEL=chrome (default) uses the installed Chrome; PW_CHANNEL= uses Playwright Chromium
 //   --cenas  record only these scenes; the others run fast, unrecorded, to build state
 //   --seco   no frames; one screenshot per checkpoint, for debugging selectors
 "use strict";
@@ -11,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
-const BASE = "http://127.0.0.1:3011";
+const BASE = `http://127.0.0.1:${process.env.WEB_PORT ?? 3011}`;
 const TOKEN = process.env.E2E_SESSION_TOKEN || "video-banca-local-session-0001";
 const HERE = path.resolve(__dirname, "..");
 const NARR_OFFSET = 0.5; // s of picture before the first word
@@ -35,6 +36,8 @@ const OUT = path.resolve(arg("--saida", path.join(HERE, "tmp/gravacao")));
 const NARR = path.resolve(arg("--narracao", path.join(HERE, "tmp/narracao")));
 const ONLY = arg("--cenas", "") ? arg("--cenas").split(",") : null;
 const DRY = argv.includes("--seco");
+const FROM = arg("--desde", ""); // skip every scene before this one (already recorded)
+const CAST = { format: "jpeg", quality: 82, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 2 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -73,8 +76,11 @@ class Rec {
         else if (!busy && this.autoPaused) { this.autoPaused = false; await this.resume(); }
       } catch (e) { /* navigation in progress */ }
       this.inBusy = false;
-    }, 150);
+    }, 400);
     // Slow tick: what is visible is checked for forbidden strings and error messages.
+    // On this 2-core machine a continuous scan slows typing to a crawl: the forbidden-text
+    // check runs at every checkpoint instead (at, point, click, zoom, shot, start, end).
+    if (!process.env.VSCAN) return;
     this.watchScan = setInterval(async () => {
       if (!this.recording || this.fast || this.paused || this.inScan) return;
       this.inScan = true;
@@ -83,13 +89,26 @@ class Rec {
     }, 700);
   }
   now() { return (this.vt + (this.since !== null ? Date.now() - this.since : 0)) / 1000; }
-  pause() { if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; } this.paused = true; }
+  pause() {
+    if (this.since !== null) { this.vt += Date.now() - this.since; this.since = null; }
+    this.paused = true;
+    // No frames are kept while paused: stop the encoder so the API gets the CPU.
+    if (this.casting) { this.casting = false; this.cdp.send("Page.stopScreencast").catch(() => {}); }
+  }
+  async cast() {
+    if (this.casting || DRY) return;
+    this.casting = true;
+    await this.cdp.send("Page.startScreencast", CAST).catch(() => { this.casting = false; });
+  }
   async resume() {
     if (!this.recording || this.fast) return;
     if (this.autoPaused) return;
+    await this.cast();
+    // The still of the settled screen is taken while the clock is still stopped, so
+    // the capture time never adds to the video.
+    await this.grab();
     this.paused = false;
     this.since = Date.now();
-    await this.grab();
   }
   // Force a frame of what is on screen now: after a dry cut nothing may change on
   // screen, and the screencast would leave the pre-cut frame showing.
@@ -120,6 +139,7 @@ class Rec {
     this.recording = true;
     this.startWatch();
     await this.stable();
+    await this.cast();
     this.since = Date.now();
     this.paused = false;
     await this.grab();
@@ -168,6 +188,7 @@ class Rec {
     const sched = this.sentenceStart(k);
     await this.until(sched + lead);
     this.events.at[k] = Math.max(sched, this.now() - lead);
+    await this.checkpoint("frase " + k);
   }
   sentenceStart(k) {
     const F = this.narr.frases;
@@ -230,18 +251,26 @@ class Rec {
 
   async goto(url) {
     if (this.recording && !this.paused) this.pause();
-    await this.page.goto(BASE + url, { waitUntil: "domcontentloaded" });
-    await this.page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
-    await this.stable();
+    // This machine has 2 cores: a page can wait a long time for the API. The clock is
+    // paused here, so the wait never reaches the video. A page stuck on its session
+    // check (a request that never got an answer) is loaded again.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await this.page.goto(BASE + url, { waitUntil: "domcontentloaded" });
+      await this.page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+      const ok = await this.page.waitForFunction(() => !/Verificando sessão|Verificando assinatura/.test(document.body.innerText), null, { timeout: 60000 }).then(() => true, () => false);
+      if (ok) break;
+      this.issue(`${url}: verificação de sessão travada; recarregando (${attempt + 1})`);
+    }
+    await this.stable(240000);
     if (this.recording && !this.fast) await this.resume();
   }
   async box(loc) {
-    await loc.waitFor({ state: "visible", timeout: 15000 });
+    await loc.waitFor({ state: "visible", timeout: 60000 });
     await loc.scrollIntoViewIfNeeded();
     return loc.boundingBox();
   }
   async scrollTo(loc, block = "center") {
-    await loc.waitFor({ state: "visible", timeout: 15000 });
+    await loc.waitFor({ state: "visible", timeout: 60000 });
     if (this.fast) { await loc.scrollIntoViewIfNeeded(); return; }
     await loc.evaluate((el, b) => el.scrollIntoView({ behavior: "smooth", block: b }), block);
     await sleep(750);
@@ -266,8 +295,17 @@ class Rec {
     await this.page.mouse.move(x, y);
     return { x, y, b };
   }
+  // Forbidden-text check without stopping the clock for long (the scan is paused time).
+  async checkpoint(where) {
+    if (this.fast) return;
+    const was = !this.paused;
+    if (was) this.pause();
+    try { await this.scan(where + " t=" + this.now().toFixed(1)); } catch (e) { /* navigating */ }
+    if (was) await this.resume();
+  }
   async point(loc, ms = 900) {
     if (this.fast) return;
+    await this.checkpoint("point");
     const { b } = await this.moveTo(loc);
     await this.page.evaluate((r) => window.__vc.ring(r), b);
     await sleep(ms);
@@ -284,23 +322,38 @@ class Rec {
     await sleep(300);
     this.events.clicks.push(this.now());
     await this.page.evaluate(() => window.__vc.ripple());
+    await sleep(120);
     const { pauseAfter, pauseBefore, ...clickOpts } = opts;
-    if (pauseBefore) this.pause();
+    // The app's reaction time (slow on this machine) is not shown: the clock stops
+    // from the press until the screen has settled again (a dry cut on the result).
+    this.pause();
     await loc.click(clickOpts);
-    if (pauseAfter || pauseBefore) { this.pause(); await this.page.evaluate(() => window.__vc.ring(null)); return; }
     await this.page.evaluate(() => window.__vc.ring(null));
-    await sleep(200);
+    if (pauseAfter || pauseBefore) return;
+    await this.stable(240000, { resume: false });
+    await this.resume();
+    await sleep(150);
   }
   async type(loc, text) {
-    await this.click(loc);
     if (this.fast) { await loc.fill(text); return; }
+    // Under load a click on a busy field can wait forever for "stable": focus it instead.
+    try { await this.click(loc, { timeout: 8000 }); } catch (e) { this.issue("campo: clique demorou; foco direto"); await loc.focus(); }
     // Start from an empty field: a click alone leaves what was there (a default "1").
+    // Each key goes in with the clock stopped and the clock runs ~55 ms per key, so
+    // the typing rhythm on screen is steady however slow the app is to re-render.
+    this.pause();
     await this.page.keyboard.press("ControlOrMeta+a");
     await this.page.keyboard.press("Backspace");
     for (const ch of text) {
-      await this.page.keyboard.type(ch);
-      await sleep(rand(40, 70));
+      this.pause();
+      await this.page.keyboard.insertText(ch);
+      await this.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await this.resume();
+      await sleep(rand(45, 65));
     }
+    this.pause();
+    await this.stable(240000, { resume: false });
+    await this.resume();
   }
   // Click the field, then put the whole text at once (like a paste): for fields where
   // every keystroke triggers a heavy re-render (catalog search).
@@ -309,13 +362,13 @@ class Rec {
     await loc.fill(text);
   }
   async select(loc, label) {
-    if (!this.fast) await this.click(loc);
+    if (!this.fast) await this.click(loc, { pauseAfter: true });
     await loc.selectOption({ label });
-    if (!this.fast) await sleep(250);
+    if (!this.fast) { await this.stable(240000, { resume: false }); await this.resume(); await sleep(250); }
   }
   // Box of the nearest ancestor at least minH tall (the card around a control).
   async cardBox(loc, minH = 110) {
-    await loc.first().waitFor({ state: "visible", timeout: 15000 });
+    await loc.first().waitFor({ state: "visible", timeout: 60000 });
     return loc.first().evaluate((el, h) => {
       let e = el;
       while (e.parentElement && e.getBoundingClientRect().height < h) e = e.parentElement;
@@ -334,7 +387,7 @@ class Rec {
   async jump(loc, targetY, opts = {}) {
     const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
-    await loc.waitFor({ state: "attached", timeout: 15000 });
+    await loc.waitFor({ state: "attached", timeout: 60000 });
     // Scroll every scrolling ancestor (an inner panel included) so the target's card
     // starts at the top of its container, then put it at targetY in the window.
     await loc.evaluate((el) => {
@@ -360,6 +413,9 @@ class Rec {
   async waitEnabled(loc, ms) {
     const wasRec = this.recording && !this.fast;
     if (wasRec) this.pause();
+    // The 10 s rule counts from a settled screen: server checks still running
+    // ("Conferindo a soma dos pesos…") are waits, not a disabled button.
+    await this.stable(90000, { resume: false });
     const t0 = Date.now();
     while (await loc.isDisabled()) {
       if (Date.now() - t0 > ms) throw new Error(`botão desabilitado após ${ms / 1000} s: pare e avise o autor`);
@@ -385,7 +441,7 @@ class Rec {
     this.curZoom = r;
     this.events.zooms.push({ t: this.now(), ...r, ...(opts.instant ? { instant: true } : {}) });
   }
-  async zoomOn(loc, scale = 1.25) { const b = await this.box(loc); this.zoom(b, scale); await this.hold(450); }
+  async zoomOn(loc, scale = 1.25) { const b = await this.box(loc); this.zoom(b, scale); await this.hold(450); await this.checkpoint("zoom"); }
   async unzoom(opts = {}) {
     if (this.fast || !this.curZoom) return;
     this.curZoom = null;
@@ -393,6 +449,32 @@ class Rec {
     if (!opts.instant) await this.hold(450);
   }
   confirm() { if (!this.fast) this.events.confirms.push(this.now()); }
+  // Box of an element at this instant, for the motion layer (highlights, arrows, shading).
+  async mark(name, loc) {
+    if (this.fast) return;
+    const b = loc && typeof loc.boundingBox === "function" ? await loc.boundingBox() : loc;
+    if (b) this.events.marks = [...(this.events.marks || []), { t: this.now(), name, ...b }];
+  }
+  // Wait for a word inside sentence k (position estimated from the characters).
+  async atWord(k, word, lead = 0.15) {
+    if (this.fast || !this.narr) return;
+    k = Math.min(k, this.narr.frases.length - 1);
+    const F = this.narr.frases[k];
+    const txt = F.texto || "";
+    const i = Math.max(0, txt.indexOf(word));
+    const frac = txt.length ? i / txt.length : 0;
+    await this.until(this.sentenceStart(k) + frac * (F.fim - F.inicio) - lead);
+  }
+  // Run steps off camera: clock paused, no animation, direct fills and clicks.
+  async off(fn) {
+    const wasRec = this.recording && !this.fast;
+    if (wasRec) this.pause();
+    const f = this.fast;
+    this.fast = true;
+    try { await fn(); } finally { this.fast = f; }
+    await this.stable(15000, { resume: false });
+    if (wasRec) await this.resume();
+  }
   label(text) { if (!this.fast) this.events.labels.push({ t: this.now(), text }); }
   // Read a value from the screen and stop if it differs from what the narration says.
   async expect(loc, re, what) {
@@ -405,37 +487,67 @@ class Rec {
 }
 
 // ---------------------------------------------------------------- scenes
-const SCENES = require("./cenas_acoes.js");
+const SCENES = require(path.resolve(__dirname, arg("--acoes", "cenas_acoes.js")));
 
 (async () => {
-  const spec = JSON.parse(fs.readFileSync(path.join(HERE, "cenas.json"), "utf8"));
+  const spec = JSON.parse(fs.readFileSync(path.resolve(HERE, arg("--spec", "cenas.json")), "utf8"));
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch();
+  const channel = process.env.PW_CHANNEL ?? "chrome";
+  const browser = await chromium.launch(channel ? { channel } : {});
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, locale: "pt-BR" });
   await ctx.addCookies([{ name: "msai_session", value: TOKEN, domain: "127.0.0.1", path: "/", httpOnly: true, secure: false, sameSite: "Lax" }]);
   await ctx.addInitScript({ path: path.join(__dirname, "overlay.js") });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log("  pageerror:", e.message.slice(0, 160)));
+  if (process.env.VNET) {
+    const pend = new Map();
+    page.on("request", (q) => { if (q.url().includes(`:${process.env.API_PORT ?? 8811}`)) pend.set(q, Date.now()); });
+    const done = (q, tag) => { const t = pend.get(q); pend.delete(q); if (t && Date.now() - t > 3000) console.log(`  net ${tag} ${((Date.now() - t) / 1000).toFixed(1)}s ${q.method()} ${q.url().slice(26, 100)}`); };
+    page.on("requestfinished", (q) => done(q, "ok"));
+    page.on("requestfailed", (q) => { console.log("  net FAIL", q.url().slice(26, 100), q.failure()?.errorText); pend.delete(q); });
+    setInterval(() => { for (const [q, t] of pend) if (Date.now() - t > 20000) console.log(`  net PENDENTE ${((Date.now() - t) / 1000).toFixed(0)}s ${q.method()} ${q.url().slice(26, 100)}`); }, 20000);
+  }
   const cdp = await ctx.newCDPSession(page);
-  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 });
+  // The screencast runs only while the clock runs (Rec.cast / Rec.pause).
   const r = new Rec(page, cdp);
   // Fresh state: the selection draft lives in localStorage (D-139).
   await page.goto(BASE + "/app");
   await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
   // Local recording DB only: drop what earlier takes created, so names never collide.
-  const API = "http://127.0.0.1:8811/api";
-  for (const s of await (await page.request.get(API + "/selection/studies")).json()) {
-    if (s.name === "Tirante leve e rígido a 200 °C") await page.request.delete(`${API}/selection/studies/${s.id}`);
+  const API = `http://127.0.0.1:${process.env.API_PORT ?? 8811}/api`;
+  // Uvicorn workers on Windows sometimes drop a connection: retry the setup calls.
+  const retry = async (fn) => { for (let i = 0; ; i++) { try { return await fn(); } catch (e) { if (i >= 5) throw e; await sleep(1500); } } };
+  const getJson = (u) => retry(async () => (await page.request.get(API + u)).json());
+  for (const s of await getJson("/selection/studies")) {
+    if (s.name === "Tirante leve e rígido (vídeo)" || s.name === "Tirante leve") await page.request.delete(`${API}/selection/studies/${s.id}`);
   }
-  for (const m of (await (await page.request.get(API + "/my-records")).json()).own_records || []) {
-    await page.request.delete(`${API}/materials/${m.id}`);
+  for (const m of (await getJson("/my-records")).own_records || []) {
+    await retry(() => page.request.delete(`${API}/materials/${m.id}`));
   }
-  for (const m of await (await page.request.get(API + "/materials?limit=2000")).json()) {
-    if (/\(vídeo\)$/.test(m.name)) await page.request.delete(`${API}/materials/${m.id}`);
+  // Earlier takes' imports of the video's CSV: rolled back with the app's own feature, so
+  // scene D3 imports three new rows instead of finding duplicates.
+  for (const j of await getJson("/imports")) {
+    if (/materiais-ficticios-video/.test(j.filename || j.file_name || "") && /import|commit|conclu/i.test(j.status || "")) {
+      await retry(() => page.request.post(`${API}/imports/${j.id}/rollback`));
+    } else if (/materiais-ficticios-video/.test(j.filename || "") && /VALIDADO|PENDENTE|MAPEADO/i.test(j.status || "")) {
+      await retry(() => page.request.post(`${API}/imports/${j.id}/cancel`));
+    }
+  }
+  // The list is paged (at most 200 per page since D-223).
+  for (let off = 0; off < 5000; off += 200) {
+    const pg = await getJson(`/materials?limit=200&offset=${off}`);
+    const items = Array.isArray(pg) ? pg : pg.items || [];
+    for (const m of items) {
+      if (/\(vídeo\)$/.test(m.name)) await retry(() => page.request.delete(`${API}/materials/${m.id}`));
+    }
+    if (items.length < 200) break;
   }
 
   let failed = false;
+  let started = !FROM;
   for (const cena of spec.cenas) {
+    if (!started && cena.id === FROM) started = true;
+    if (!started) continue;
     const act = SCENES[cena.id];
     if (!act) continue;
     const nf = path.join(NARR, `${cena.id}.json`);

@@ -1,0 +1,448 @@
+{
+ "_doc": "Gerado por scripts/roteiro_v3_para_cenas.py a partir de roteiro-v3.md. Não edite à mão.",
+ "voz": {
+  "servico": "ElevenLabs",
+  "modelo": "eleven_v4",
+  "voz": "Marcio - Viral Hook Narrator",
+  "voice_id": "plASsyS7JE6GCAvx9uIc"
+ },
+ "pronuncia": {
+  "MaterialSelect AI": "Material Select Ei Ai",
+  "Ashby": "Ashbi",
+  "Young": "Yang",
+  "log-log": "log log",
+  "CSV": "cê ésse vê",
+  "XLSX": "xis ele ésse xis",
+  "0,999": "zero vírgula novecentos e noventa e nove"
+ },
+ "cartelas": {
+  "C1": [
+   "1",
+   "O método"
+  ],
+  "C2": [
+   "2",
+   "Seleção"
+  ],
+  "C3": [
+   "3",
+   "Mapas e comparação"
+  ],
+  "C4": [
+   "4",
+   "Dados confiáveis"
+  ],
+  "C5": [
+   "5",
+   "Dimensionar e custo"
+  ],
+  "C6": [
+   "6",
+   "Demais recursos"
+  ],
+  "C7": [
+   "7",
+   "Verificação e limites"
+  ],
+  "C8": [
+   "",
+   "Encerramento"
+  ]
+ },
+ "selo": [
+  "S1",
+  "S2",
+  "S4",
+  "S5",
+  "S6",
+  "S7",
+  "S8",
+  "P1",
+  "P2",
+  "P3",
+  "P4",
+  "K1",
+  "D1",
+  "D2",
+  "D3",
+  "Z1",
+  "Z2",
+  "Z3"
+ ],
+ "cenas": [
+  {
+   "id": "A0",
+   "bloco": "sem narração, 8 s",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "A1",
+   "bloco": "Abertura",
+   "frases": [
+    "E aí!",
+    "Já precisou escolher um material e acabou indo no de sempre?",
+    "Normal.",
+    "Só que escolher por costume esconde o critério da escolha.",
+    "O método de Ashby faz o contrário: parte do que a peça precisa fazer e chega a números que dá pra comparar.",
+    "E o MaterialSelect AI é uma aplicação web pra você aprender e praticar esse método.",
+    "Ah, um aviso importante: os materiais do catálogo são demonstrativos.",
+    "Os valores são fictícios e servem pra mostrar o método."
+   ],
+   "prompt": "[excited] E aí! Já precisou escolher um material e acabou indo no de sempre? [laughs] Normal. Só que escolher por costume esconde o critério da escolha. [warmly] O método de Ashbi faz o contrário: parte do que a peça precisa fazer e chega a números que dá pra comparar. E o Material Select Ei Ai é uma aplicação web pra você aprender e praticar esse método. [short pause] Ah, um aviso importante: os materiais do catálogo são demonstrativos. Os valores são fictícios e servem pra mostrar o método."
+  },
+  {
+   "id": "I1",
+   "bloco": "Abertura",
+   "frases": [
+    "Quando você abre o app, cai aqui no Início, com uma pergunta bem direta: o que a peça precisa fazer?",
+    "Tem um guia de primeiros passos, com três tarefinhas pra marcar.",
+    "E aqui embaixo ficam os estudos salvos, pra retomar de onde parou.",
+    "Bora começar pela Seleção!"
+   ],
+   "prompt": "[curious] Quando você abre o app, cai aqui no Início, com uma pergunta bem direta: o que a peça precisa fazer? [excited] Tem um guia de primeiros passos, com três tarefinhas pra marcar. E aqui embaixo ficam os estudos salvos, pra retomar de onde parou. Bora começar pela Seleção!"
+  },
+  {
+   "id": "C1",
+   "bloco": "cartela: O método",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "M1",
+   "bloco": "1. O método",
+   "frases": [
+    "Antes de clicar em qualquer coisa, deixa eu te mostrar a lógica.",
+    "A seleção tem quatro passos.",
+    "A função diz o que a peça faz.",
+    "O objetivo diz o que você quer minimizar ou maximizar, tipo a massa.",
+    "Os limites dizem o que o material precisa aguentar.",
+    "E o resultado ordena quem sobrou."
+   ],
+   "prompt": "[warmly] Antes de clicar em qualquer coisa, deixa eu te mostrar a lógica. A seleção tem quatro passos. A função diz o que a peça faz. O objetivo diz o que você quer minimizar ou maximizar, tipo a massa. Os limites dizem o que o material precisa aguentar. E o resultado ordena quem sobrou."
+  },
+  {
+   "id": "M2",
+   "bloco": "1. O método",
+   "frases": [
+    "Ashby, em 2017, organiza o problema em função, restrições, objetivo e variáveis livres.",
+    "Olha o tirante leve e rígido: a massa é a área vezes o comprimento vezes a densidade.",
+    "A rigidez exigida fixa a área.",
+    "Substituindo, sobra um grupinho só de propriedades do material: o módulo de Young sobre a densidade.",
+    "Minimizar a massa é maximizar esse índice de desempenho.",
+    "Simples assim!"
+   ],
+   "prompt": "Ashbi, em 2017, organiza o problema em função, restrições, objetivo e variáveis livres. Olha o tirante leve e rígido: a massa é a área vezes o comprimento vezes a densidade. A rigidez exigida fixa a área. [excited] Substituindo, sobra um grupinho só de propriedades do material: o módulo de Yang sobre a densidade. Minimizar a massa é maximizar esse índice de desempenho. Simples assim!"
+  },
+  {
+   "id": "M3",
+   "bloco": "1. O método",
+   "frases": [
+    "Primeiro vem a triagem: os limites eliminam quem não atende.",
+    "Depois, a classificação: o índice ordena quem passou.",
+    "Todo número é calculado no servidor, de forma determinística.",
+    "E a inteligência artificial?",
+    "Ela é opcional: só interpreta o texto do pedido e redige explicações.",
+    "Ela não produz valores e não decide."
+   ],
+   "prompt": "Primeiro vem a triagem: os limites eliminam quem não atende. Depois, a classificação: o índice ordena quem passou. [confident] Todo número é calculado no servidor, de forma determinística. E a inteligência artificial? Ela é opcional: só interpreta o texto do pedido e redige explicações. Ela não produz valores e não decide."
+  },
+  {
+   "id": "C2",
+   "bloco": "cartela: Seleção",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "S1",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na Seleção, o estudo virou um documento.",
+    "O nome é o título: vamos chamar de Tirante leve.",
+    "Logo abaixo, uma linha resume função, objetivo, limites e variáveis livres, e cada item leva direto pro passo dele.",
+    "Na etapa Função, descrevemos a peça: um tirante em tração, com a menor massa para uma rigidez dada.",
+    "E ao lado, o funil começa com o catálogo inteiro: 678 materiais demonstrativos."
+   ],
+   "prompt": "Na Seleção, o estudo virou um documento. O nome é o título: vamos chamar de Tirante leve. Logo abaixo, uma linha resume função, objetivo, limites e variáveis livres, e cada item leva direto pro passo dele. [excited] Na etapa Função, descrevemos a peça: um tirante em tração, com a menor massa para uma rigidez dada. E ao lado, o funil começa com o catálogo inteiro: 678 materiais demonstrativos."
+  },
+  {
+   "id": "S2",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na etapa Objetivo, escolhemos o índice: rigidez específica, E sobre rô.",
+    "O cartão mostra quando ele vale: função, geometria, objetivo e limite."
+   ],
+   "prompt": "Na etapa Objetivo, escolhemos o índice: rigidez específica, E sobre rô. O cartão mostra quando ele vale: função, geometria, objetivo e limite."
+  },
+  {
+   "id": "S3",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Quer montar o seu próprio índice?",
+    "Tem calculadora, com cartões de propriedade e um teclado.",
+    "O servidor confere a expressão e devolve a dimensão e a unidade do resultado.",
+    "Nada de unidade misturada!"
+   ],
+   "prompt": "Quer montar o seu próprio índice? Tem calculadora, com cartões de propriedade e um teclado. O servidor confere a expressão e devolve a dimensão e a unidade do resultado. [laughs] Nada de unidade misturada!"
+  },
+  {
+   "id": "S4",
+   "bloco": "2. Seleção",
+   "frases": [
+    "A classificação pode combinar critérios: o índice pesa 0,7 e o custo por massa, 0,3.",
+    "E os pesos precisam somar um."
+   ],
+   "prompt": "A classificação pode combinar critérios: o índice pesa 0,7 e o custo por massa, 0,3. E os pesos precisam somar um."
+  },
+  {
+   "id": "S5",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Agora, os Limites.",
+    "Cada restrição tem unidade explícita: resistência à tração de pelo menos 100 megapascal.",
+    "A frase embaixo confirma como o app leu.",
+    "Somamos tenacidade à fratura de pelo menos 15 megapascal raiz de metro, e temperatura de serviço de pelo menos 200 graus Celsius.",
+    "E olha o funil recalculando no servidor: de 678 materiais, sobram 364, depois 268 e, no fim, 194!"
+   ],
+   "prompt": "Agora, os Limites. Cada restrição tem unidade explícita: resistência à tração de pelo menos 100 megapascal. A frase embaixo confirma como o app leu. Somamos tenacidade à fratura de pelo menos 15 megapascal raiz de metro, e temperatura de serviço de pelo menos 200 graus Celsius. [excited] E olha o funil recalculando no servidor: de 678 materiais, sobram 364, depois 268 e, no fim, 194!"
+  },
+  {
+   "id": "S6",
+   "bloco": "2. Seleção",
+   "frases": [
+    "E o vencedor é… um compósito de fibras de carbono contínuas, com nota 0,999 numa escala de zero a um!",
+    "A aba Classificação lista os candidatos, com o valor do índice e a nota."
+   ],
+   "prompt": "[excited] E o vencedor é… um compósito de fibras de carbono contínuas, com nota zero vírgula novecentos e noventa e nove numa escala de zero a um! A aba Classificação lista os candidatos, com o valor do índice e a nota."
+  },
+  {
+   "id": "S7",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na aba Eliminados você vê quem saiu e em que etapa.",
+    "E repara: um material sem o dado necessário não ganha zero.",
+    "Ele sai da classificação e aparece listado, com o motivo."
+   ],
+   "prompt": "Na aba Eliminados você vê quem saiu e em que etapa. [warmly] E repara: um material sem o dado necessário não ganha zero. Ele sai da classificação e aparece listado, com o motivo."
+  },
+  {
+   "id": "S8",
+   "bloco": "2. Seleção",
+   "frases": [
+    "A Sensibilidade refaz a classificação com outros pesos.",
+    "Aqui, o primeiro colocado se mantém nos três cenários.",
+    "E a aba Origem dos dados guarda os limites, a expressão do índice e os pesos que geraram esse resultado."
+   ],
+   "prompt": "A Sensibilidade refaz a classificação com outros pesos. Aqui, o primeiro colocado se mantém nos três cenários. E a aba Origem dos dados guarda os limites, a expressão do índice e os pesos que geraram esse resultado."
+  },
+  {
+   "id": "S9",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Gostou do resultado?",
+    "Salve o estudo.",
+    "O botão Meus estudos, lá em cima, abre a lista num painel ao lado, com exportar, laudo, explicação e executar de novo.",
+    "Tudo pronto pra você voltar depois."
+   ],
+   "prompt": "Gostou do resultado? Salve o estudo. O botão Meus estudos, lá em cima, abre a lista num painel ao lado, com exportar, laudo, explicação e executar de novo. [warmly] Tudo pronto pra você voltar depois."
+  },
+  {
+   "id": "C3",
+   "bloco": "cartela: Mapas e comparação",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "P1",
+   "bloco": "3. Mapas e comparação",
+   "frases": [
+    "Bora pros Mapas!",
+    "No mapa de propriedades, os dois eixos estão em escala logarítmica: densidade na horizontal, módulo de Young na vertical.",
+    "Cada ponto é um material, e cada envelope reúne uma classe.",
+    "Aqui, 673 de 678 materiais aparecem.",
+    "Os outros cinco ficam listados abaixo, com o motivo."
+   ],
+   "prompt": "Bora pros Mapas! No mapa de propriedades, os dois eixos estão em escala logarítmica: densidade na horizontal, módulo de Yang na vertical. Cada ponto é um material, e cada envelope reúne uma classe. Aqui, 673 de 678 materiais aparecem. Os outros cinco ficam listados abaixo, com o motivo."
+  },
+  {
+   "id": "P2",
+   "bloco": "3. Mapas e comparação",
+   "frases": [
+    "Agora, a placa leve e rígida.",
+    "O índice é a raiz cúbica do módulo de Young sobre a densidade.",
+    "Em escala log-log, ele vira uma reta de inclinação 3, calculada no servidor a partir da expressão."
+   ],
+   "prompt": "Agora, a placa leve e rígida. O índice é a raiz cúbica do módulo de Yang sobre a densidade. Em escala log log, ele vira uma reta de inclinação 3, calculada no servidor a partir da expressão."
+  },
+  {
+   "id": "P3",
+   "bloco": "3. Mapas e comparação",
+   "frases": [
+    "A reta liga materiais de mesmo desempenho.",
+    "Quem fica acima dela tem índice maior: pra mesma rigidez, faz uma placa mais leve.",
+    "No tirante, com E sobre rô, a mesma leitura vale pra uma reta de inclinação 1."
+   ],
+   "prompt": "A reta liga materiais de mesmo desempenho. [excited] Quem fica acima dela tem índice maior: pra mesma rigidez, faz uma placa mais leve. No tirante, com E sobre rô, a mesma leitura vale pra uma reta de inclinação 1."
+  },
+  {
+   "id": "P4",
+   "bloco": "3. Mapas e comparação",
+   "frases": [
+    "Repara no painel do lado: é um inspetor, com seções que dobram.",
+    "E os mapas clássicos de Ashby trocam os eixos com um clique."
+   ],
+   "prompt": "Repara no painel do lado: é um inspetor, com seções que dobram. E os mapas clássicos de Ashbi trocam os eixos com um clique."
+  },
+  {
+   "id": "K1",
+   "bloco": "3. Mapas e comparação",
+   "frases": [
+    "E pra colocar dois materiais frente a frente?",
+    "O Comparar já sugere pares clássicos, como cobre e alumínio.",
+    "Um clique, e eles aparecem lado a lado, propriedade por propriedade, com o melhor de cada linha marcado."
+   ],
+   "prompt": "E pra colocar dois materiais frente a frente? O Comparar já sugere pares clássicos, como cobre e alumínio. [excited] Um clique, e eles aparecem lado a lado, propriedade por propriedade, com o melhor de cada linha marcado."
+  },
+  {
+   "id": "C4",
+   "bloco": "cartela: Dados confiáveis",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "D1",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "O Catálogo lista os 678 materiais, com a classe e a qualidade de cada dado.",
+    "As famílias ficam logo no topo: cerâmicas, compósitos, elastômeros, metais e polímeros."
+   ],
+   "prompt": "O Catálogo lista os 678 materiais, com a classe e a qualidade de cada dado. As famílias ficam logo no topo: cerâmicas, compósitos, elastômeros, metais e polímeros."
+  },
+  {
+   "id": "D2",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "Abrindo uma ficha, cada valor mostra a unidade original, a unidade de leitura, a conversão, a fonte e a qualidade.",
+    "Neste catálogo, a qualidade é estimada: não há valores medidos.",
+    "E um valor que falta aparece escrito: ausente.",
+    "Ele nunca vira zero."
+   ],
+   "prompt": "Abrindo uma ficha, cada valor mostra a unidade original, a unidade de leitura, a conversão, a fonte e a qualidade. Neste catálogo, a qualidade é estimada: não há valores medidos. E um valor que falta aparece escrito: ausente. [confident] Ele nunca vira zero."
+  },
+  {
+   "id": "D3",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "O Importar recebe planilhas CSV ou XLSX.",
+    "Este arquivo, criado pro vídeo, tem três materiais fictícios.",
+    "A ferramenta sugere o mapeamento das colunas e pede a unidade de cada uma.",
+    "A validação mostra o resultado de cada linha antes de importar.",
+    "No material B, a resistência à tração ficou em branco: na ficha, ela aparece como ausente, não como zero."
+   ],
+   "prompt": "O Importar recebe planilhas cê ésse vê ou xis ele ésse xis. Este arquivo, criado pro vídeo, tem três materiais fictícios. A ferramenta sugere o mapeamento das colunas e pede a unidade de cada uma. A validação mostra o resultado de cada linha antes de importar. No material B, a resistência à tração ficou em branco: na ficha, ela aparece como ausente, não como zero."
+  },
+  {
+   "id": "C5",
+   "bloco": "cartela: Dimensionar e custo",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "Z1",
+   "bloco": "5. Dimensionar e custo",
+   "frases": [
+    "O Dimensionar leva do índice à peça.",
+    "E agora não tem botão de calcular: o resultado aparece enquanto você digita.",
+    "Para um tirante de 0,5 metro e rigidez de 2 vezes 10 à sétima newtons por metro, cada material recebe a massa e a área necessárias.",
+    "A massa é o fator estrutural dividido pelo índice.",
+    "Aqui entra o catálogo inteiro, sem os limites da seleção."
+   ],
+   "prompt": "O Dimensionar leva do índice à peça. E agora não tem botão de calcular: o resultado aparece enquanto você digita. Para um tirante de 0,5 metro e rigidez de 2 vezes 10 à sétima newtons por metro, cada material recebe a massa e a área necessárias. A massa é o fator estrutural dividido pelo índice. Aqui entra o catálogo inteiro, sem os limites da seleção."
+  },
+  {
+   "id": "Z2",
+   "bloco": "5. Dimensionar e custo",
+   "frases": [
+    "Na placa, de 0,4 por 0,3 metro, biapoiada, a variável livre é a espessura.",
+    "E olha que curioso: com o expoente um terço, espumas e madeira de balsa sobem ao topo!",
+    "Elas compensam a baixa rigidez com espessura."
+   ],
+   "prompt": "Na placa, de 0,4 por 0,3 metro, biapoiada, a variável livre é a espessura. [surprised] E olha que curioso: com o expoente um terço, espumas e madeira de balsa sobem ao topo! Elas compensam a baixa rigidez com espessura."
+  },
+  {
+   "id": "Z3",
+   "bloco": "5. Dimensionar e custo",
+   "frases": [
+    "Quer saber quanto custa?",
+    "O botão Estimar custo leva a massa pro Custo, que avisa: massa calculada no Dimensionar.",
+    "Dá pra comparar outros materiais com a mesma massa, lote e premissas."
+   ],
+   "prompt": "Quer saber quanto custa? O botão Estimar custo leva a massa pro Custo, que avisa: massa calculada no Dimensionar. Dá pra comparar outros materiais com a mesma massa, lote e premissas."
+  },
+  {
+   "id": "C6",
+   "bloco": "cartela: Demais recursos",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "R1",
+   "bloco": "6. Demais recursos",
+   "frases": [
+    "E tem mais, em passagem rápida!",
+    "Os Processos têm uma matriz com os materiais.",
+    "O Painel mostra o preenchimento e a qualidade do catálogo.",
+    "Os Cadernos respondem citando a fonte.",
+    "O Eco audita energia e carbono em cinco fases.",
+    "O Baterias dimensiona um conjunto de células.",
+    "O Sintetizar estima compósitos, espumas e painéis sanduíche, cada um com seu desenho.",
+    "O Glossário explica cada propriedade.",
+    "Meus registros guarda os seus materiais.",
+    "E Classes e Propriedades organizam o catálogo."
+   ],
+   "prompt": "E tem mais, em passagem rápida! Os Processos têm uma matriz com os materiais. O Painel mostra o preenchimento e a qualidade do catálogo. Os Cadernos respondem citando a fonte. O Eco audita energia e carbono em cinco fases. O Baterias dimensiona um conjunto de células. O Sintetizar estima compósitos, espumas e painéis sanduíche, cada um com seu desenho. O Glossário explica cada propriedade. Meus registros guarda os seus materiais. E Classes e Propriedades organizam o catálogo."
+  },
+  {
+   "id": "C7",
+   "bloco": "cartela: Verificação e limites",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "V1",
+   "bloco": "7. Verificação e limites",
+   "frases": [
+    "E dá pra confiar nas contas?",
+    "A gente refez à mão os casos do tirante e da placa, em 50 materiais cada.",
+    "A maior diferença relativa ficou na ordem de 10 à menos 16: é o arredondamento do próprio computador."
+   ],
+   "prompt": "E dá pra confiar nas contas? [confident] A gente refez à mão os casos do tirante e da placa, em 50 materiais cada. A maior diferença relativa ficou na ordem de 10 à menos 16: é o arredondamento do próprio computador."
+  },
+  {
+   "id": "V2",
+   "bloco": "7. Verificação e limites",
+   "frases": [
+    "Agora, os limites, com sinceridade: a ferramenta não substitui ensaio, não traz valores medidos e não especifica material pra um projeto real.",
+    "Ela serve pra ensinar o método e pra uma triagem inicial."
+   ],
+   "prompt": "Agora, os limites, com sinceridade: a ferramenta não substitui ensaio, não traz valores medidos e não especifica material pra um projeto real. Ela serve pra ensinar o método e pra uma triagem inicial."
+  },
+  {
+   "id": "C8",
+   "bloco": "cartela: Encerramento",
+   "frases": [],
+   "prompt": ""
+  },
+  {
+   "id": "E1",
+   "bloco": "Encerramento",
+   "frases": [
+    "E aí, curtiu?",
+    "Se você é estudante de Engenharia de Materiais, participe do teste de usabilidade pelo formulário: o link está na descrição.",
+    "O código está no repositório público, no GitHub.",
+    "Valeu demais, e até a próxima!"
+   ],
+   "prompt": "[excited] E aí, curtiu? Se você é estudante de Engenharia de Materiais, participe do teste de usabilidade pelo formulário: o link está na descrição. O código está no repositório público, no GitHub. [warmly] Valeu demais, e até a próxima!"
+  }
+ ]
+}
