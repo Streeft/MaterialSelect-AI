@@ -17,7 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.exporters.report import OWN_RECORD_NOTICE, REPRODUCIBILITY_NOTICE
+from app.exporters.spreadsheet import to_csv
 from app.models.material_class import MaterialClass
+from app.services.export_service import ExportService
 from app.tests.removed_notices import assert_no_removed_notice
 
 
@@ -202,3 +204,49 @@ def test_another_persons_own_record_never_reaches_the_document(
 
     assert "Liga alheia ao relatório" not in text
     assert OWN_RECORD_NOTICE not in text
+
+
+def _streamed_and_built(db_session: Session, user) -> tuple[str, str]:
+    """The catalogue CSV as streamed, and as ``to_csv`` writes the whole report."""
+    service = ExportService(db_session, user)
+    _, chunks = service.catalogue_csv_stream()
+    return "".join(chunks), to_csv(ExportService(db_session, user).catalogue_report())
+
+
+def test_the_streamed_catalogue_csv_is_the_built_one_byte_for_byte(
+    client: TestClient, db_session: Session, test_user, monkeypatch
+) -> None:
+    """D-237: streaming changes how the file is made, not one byte of it."""
+    # Several batches, a hostile name (escaped), a comma and a quote (quoted)
+    # and an own record (the notice at the top): every path of the writer.
+    monkeypatch.setattr(ExportService, "CATALOGUE_BATCH", 2)
+    # A spool this small goes to disk, so the read-back in pieces is exercised.
+    monkeypatch.setattr(ExportService, "_SPOOL_BYTES", 64)
+    _own_record(client, db_session, name='=1+1, "aspas"')
+    _own_record(client, db_session, name="Segunda liga")
+    streamed, built = _streamed_and_built(db_session, test_user)
+
+    assert streamed == built
+    assert streamed.startswith("﻿")
+    assert OWN_RECORD_NOTICE in streamed
+    assert streamed.count("\r\nComposição\r\n") == 1
+    assert streamed.index("\r\nMateriais\r\n") < streamed.index("\r\nProveniência\r\n")
+
+
+def test_the_streamed_catalogue_csv_without_own_records_has_no_such_notice(
+    db_session: Session, test_user
+) -> None:
+    streamed, built = _streamed_and_built(db_session, test_user)
+
+    assert streamed == built
+    assert OWN_RECORD_NOTICE not in streamed
+
+
+def test_the_catalogue_csv_is_sent_in_pieces_with_the_same_headers(client: TestClient) -> None:
+    response = client.get("/api/exports/catalogo.csv")
+
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    disposition = response.headers["content-disposition"]
+    assert disposition.startswith('attachment; filename="catalogo-de-materiais.csv"')
+    assert "content-length" not in response.headers

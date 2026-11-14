@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Iterable, Sequence
 
 from app.exporters.cells import safe_number, safe_text
 from app.exporters.report import Report, Sheet
@@ -37,32 +38,50 @@ def _cell(value: object) -> object:
     return safe_text(value)
 
 
+def _csv_text(rows: Iterable[Sequence[object]]) -> str:
+    """Rows as CSV text: ``\\r\\n`` line endings, QUOTE_MINIMAL, cells as given."""
+    buffer = io.StringIO()
+    csv.writer(buffer, lineterminator="\r\n", quoting=csv.QUOTE_MINIMAL).writerows(rows)
+    return buffer.getvalue()
+
+
+def csv_preamble(title: str, subtitle: str, notices: Sequence[str]) -> str:
+    """The BOM, the title, the subtitle when there is one and the notices."""
+    rows = [[safe_text(title)]]
+    if subtitle:
+        rows.append([safe_text(subtitle)])
+    rows.extend([safe_text(notice)] for notice in notices)
+    return _BOM + _csv_text(rows)
+
+
+def csv_sheet_head(name: str, notes: Sequence[str], header: Sequence[str]) -> str:
+    """The blank line, the section title, its notes and its header row."""
+    rows: list[list[object]] = [[], [safe_text(name)]]
+    rows.extend([safe_text(note)] for note in notes)
+    if header:
+        rows.append([safe_text(column) for column in header])
+    return _csv_text(rows)
+
+
+def csv_rows(rows: Iterable[Sequence[object]]) -> str:
+    """Body rows, every cell escaped for a spreadsheet (``_cell``)."""
+    return _csv_text([_cell(value) for value in row] for row in rows)
+
+
 def to_csv(report: Report) -> str:
     """Render the whole report as one CSV document.
 
     ``\\r\\n`` line endings and QUOTE_MINIMAL match what spreadsheets expect;
     the writer quotes any field containing a separator or newline itself.
+    The pieces are the same ones a streamed export writes one at a time
+    (``csv_preamble``, ``csv_sheet_head``, ``csv_rows``), so the two cannot
+    drift apart (D-237).
     """
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, lineterminator="\r\n", quoting=csv.QUOTE_MINIMAL)
-
-    writer.writerow([safe_text(report.title)])
-    if report.subtitle:
-        writer.writerow([safe_text(report.subtitle)])
-    for notice in report.notices:
-        writer.writerow([safe_text(notice)])
-
+    parts = [csv_preamble(report.title, report.subtitle, report.notices)]
     for sheet in report.sheets:
-        writer.writerow([])
-        writer.writerow([safe_text(sheet.name)])
-        for note in sheet.notes:
-            writer.writerow([safe_text(note)])
-        if sheet.header:
-            writer.writerow([safe_text(column) for column in sheet.header])
-        for row in sheet.rows:
-            writer.writerow([_cell(value) for value in row])
-
-    return _BOM + buffer.getvalue()
+        parts.append(csv_sheet_head(sheet.name, sheet.notes, sheet.header))
+        parts.append(csv_rows(sheet.rows))
+    return "".join(parts)
 
 
 def _unique_sheet_name(raw: str, taken: set[str]) -> str:

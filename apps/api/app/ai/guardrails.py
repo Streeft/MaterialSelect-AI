@@ -164,27 +164,10 @@ def units_compatible(unit: str, canonical_unit: str) -> bool:
     return True
 
 
-def check_property(slug: str, catalogue: Catalogue) -> str | None:
-    """Return a rejection reason, or None when the property is legitimate."""
-    if slug not in catalogue.properties:
-        return f"Propriedade sugerida não existe no catálogo: '{slug}'."
-    return None
-
-
 def check_index(slug: str, catalogue: Catalogue) -> str | None:
     """Return a rejection reason, or None when the index is legitimate."""
     if slug not in catalogue.index_slugs:
         return f"Índice sugerido não existe no catálogo: '{slug}'."
-    return None
-
-
-def check_chart(x: str, y: str, catalogue: Catalogue) -> str | None:
-    """Return a rejection reason, or None when both axes are legitimate."""
-    for axis, slug in (("X", x), ("Y", y)):
-        if slug not in catalogue.properties:
-            return f"Eixo {axis} sugerido não existe no catálogo: '{slug}'."
-    if x == y:
-        return "Gráfico sugerido usa a mesma propriedade nos dois eixos."
     return None
 
 

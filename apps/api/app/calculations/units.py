@@ -9,21 +9,56 @@ Responsibilities:
     appear in the professor's future spreadsheet.
 
 A single shared ``UnitRegistry`` is used process-wide (creating one per call is
-expensive and breaks unit identity comparisons).
+expensive and breaks unit identity comparisons). It is built the first time a
+unit is needed, not when the module is imported (D-237): parsing Pint's unit
+definitions takes tens of megabytes the API does not need until a request
+converts or checks a unit. Use :func:`get_registry`; the name ``ureg`` still
+works as a module attribute and returns the same registry.
 """
 
 from __future__ import annotations
 
 import math
 import re
+import threading
 from functools import lru_cache
 from tokenize import TokenError
+from typing import TYPE_CHECKING
 
-from pint import UnitRegistry
 from pint.errors import DimensionalityError, UndefinedUnitError
 
-# One registry for the whole process.
-ureg = UnitRegistry()
+if TYPE_CHECKING:
+    from pint import UnitRegistry
+
+# One registry for the whole process, created on first use.
+_registry: UnitRegistry | None = None
+_registry_lock = threading.Lock()
+
+
+def get_registry() -> UnitRegistry:
+    """The process-wide registry, built on the first call (thread-safe).
+
+    Double-checked: the common path (already built) takes no lock, and two
+    requests arriving together on a cold process still build it once, so unit
+    identity comparisons keep working.
+    """
+    global _registry
+    registry = _registry
+    if registry is None:
+        with _registry_lock:
+            registry = _registry
+            if registry is None:
+                from pint import UnitRegistry
+
+                registry = _registry = UnitRegistry()
+    return registry
+
+
+def __getattr__(name: str):  # noqa: ANN202 - PEP 562 module attribute
+    """``ureg`` stays importable (``from app.calculations.units import ureg``)."""
+    if name == "ureg":
+        return get_registry()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class UnitError(ValueError):
@@ -168,7 +203,7 @@ def validate_dimension(unit: str, expected_dimension: str) -> bool:
     if not expected_dimension:
         return True
     try:
-        quantity = ureg.Quantity(1.0, unit)
+        quantity = get_registry().Quantity(1.0, unit)
     except _UNIT_PARSE_FAILURES as exc:
         raise UnitError(f"Unidade desconhecida: {unit!r}") from exc
     return quantity.check(expected_dimension)
@@ -187,7 +222,7 @@ def _parsed_unit(unit: str):  # noqa: ANN202 - Pint's Unit type is registry-boun
     time (``lru_cache`` does not cache exceptions). Only called after
     :func:`_reject_pathological_unit`, so nothing unbounded reaches the cache.
     """
-    return ureg.parse_units(unit)
+    return get_registry().parse_units(unit)
 
 
 def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[float, str]:
@@ -213,7 +248,9 @@ def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[flo
     if from_unit == canonical_unit:
         return value, f"identity:{canonical_unit}"
     try:
-        converted = ureg.Quantity(value, _parsed_unit(from_unit)).to(_parsed_unit(canonical_unit))
+        converted = (
+            get_registry().Quantity(value, _parsed_unit(from_unit)).to(_parsed_unit(canonical_unit))
+        )
     # DimensionalityError first and separately: it is itself a TypeError
     # subclass, so it must be caught before the broader parse-failure tuple
     # below (which now includes plain TypeError) or it would be reported as
@@ -278,8 +315,8 @@ def is_ratio_scale(unit: str) -> bool:
         a percentage.
     """
     try:
-        one = float(ureg.Quantity(1.0, unit).to_base_units().magnitude)
-        two = float(ureg.Quantity(2.0, unit).to_base_units().magnitude)
+        one = float(get_registry().Quantity(1.0, unit).to_base_units().magnitude)
+        two = float(get_registry().Quantity(2.0, unit).to_base_units().magnitude)
     except Exception:  # noqa: BLE001 — an unparseable unit is not a ratio scale
         return False
     if not (math.isfinite(one) and math.isfinite(two)):

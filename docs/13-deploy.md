@@ -190,6 +190,13 @@ exportação de cada formato paga o import. A exportação do catálogo (`/api/e
 100 e o XLSX é escrito em fluxo: pico por requisição, com o catálogo demo inteiro, de 82,4 → 33,4 MB (CSV) e 93,8 → 22,0 MB (XLSX).
 O ganho só vale depois do **Deploy da API**.
 
+**D-237 (CSV em fluxo e `pint` sob demanda).** O CSV do catálogo deixou de montar o texto inteiro: é gerado por lotes de 100 materiais e
+enviado à medida que sai (`StreamingResponse`; as seções de Composição, Designações e Proveniência passam por arquivos temporários, em
+memória até 1 MB cada). Pico por requisição, com o catálogo demo inteiro: 33,3 → 13,2 MB. O registro de unidades do `pint` passou a ser
+criado no primeiro uso. RSS logo depois de `import app.main` (três medições cada, `/proc/self/status`): antes 116,2 / 116,0 / 116,2 MB,
+depois 114,4 / 114,5 / 114,4 MB (-1,8 MB); o `pint` 0.25 já adia as definições, e o `import pint` (~14 MB) continua na partida. A resposta
+do CSV não traz `Content-Length`. Só vale depois do **Deploy da API**.
+
 ### Lighthouse: o que a CI exige e o que se mediu (D-235)
 
 O job `Lighthouse` sobe a API (SQLite, sessão fixa) e o build de produção do frontend e mede 13 rotas (`/`, `/entrar`, catálogo, importar,

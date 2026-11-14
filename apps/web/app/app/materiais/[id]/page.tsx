@@ -654,7 +654,8 @@ export default function MaterialDetailPage() {
                   title={curadoriaText.cite.title}
                   description={curadoriaText.cite.hint}
                 >
-                  <SourcesSection sources={data.sources ?? []} />
+                  {/* A source is shared reference data: correcting it is the curator's (D-236). */}
+                  <SourcesSection sources={data.sources ?? []} canEdit={canEditCatalog} />
                 </CollapsibleSection>
               </div>
             </div>
