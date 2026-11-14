@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
 
 /**
- * D-236: the two pages before the app — the landing and /entrar — live outside
+ * D-236b: the two pages before the app — the landing and /entrar — live outside
  * `ROUTES` (that list is the app shell). Each one at a phone and a notebook
  * width: no sideways scroll, axe clean, and the landing's captures loaded.
  */
@@ -47,7 +47,7 @@ for (const [slug, path] of PAGES) {
   }
 }
 
-test("as capturas da página inicial carregam (D-236)", async ({ page }) => {
+test("as capturas da página inicial carregam (D-236b)", async ({ page }) => {
   await page.goto("/");
   const images = page.locator("main figure img");
   await expect(images).toHaveCount(3);

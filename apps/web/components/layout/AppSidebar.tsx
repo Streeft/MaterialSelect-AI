@@ -624,7 +624,7 @@ function UserFooter({ collapsed = false }: { collapsed?: boolean }) {
         collapsed ? "flex-col" : "justify-between",
       )}
     >
-      {/* D-236: the name opens Conta — profile, access, today's AI use. */}
+      {/* D-236b: the name opens Conta — profile, access, today's AI use. */}
       <Link
         href="/app/conta"
         aria-label={`${ptBR.account.open}: ${user.name}`}

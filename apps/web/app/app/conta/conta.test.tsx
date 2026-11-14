@@ -7,7 +7,7 @@ import { ptBR } from "@/lib/i18n";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import AccountPage from "./page";
 
-/** D-236: Conta inside the app — profile, access, today's AI use, Aparência, sair. */
+/** D-236b: Conta inside the app — profile, access, today's AI use, Aparência, sair. */
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -72,7 +72,7 @@ beforeEach(() => {
   api.logout.mockClear();
 });
 
-describe("Conta (D-236)", () => {
+describe("Conta (D-236b)", () => {
   it("mostra o perfil, o acesso aberto e o uso de hoje como o servidor conta", async () => {
     const { container } = renderPage();
     expect(await screen.findByText("ana@exemplo.org")).toBeInTheDocument();

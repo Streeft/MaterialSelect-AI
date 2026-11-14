@@ -35,7 +35,7 @@ describe("aparência guardada (D-196)", () => {
       motion: "reduced",
       rail: "dark",
     });
-    // D-236: the light rail is read back; anything else is the dark default.
+    // D-236b: the light rail is read back; anything else is the dark default.
     expect(parseAppearance('{"rail":"light"}').rail).toBe("light");
     expect(parseAppearance('{"rail":"azul"}').rail).toBe("dark");
   });

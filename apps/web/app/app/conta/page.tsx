@@ -55,7 +55,7 @@ function Usage({ label, used, limit, hint }: { label: string; used: number; limi
 }
 
 /**
- * Conta (D-236): who is signed in, what gives them access, today's use of the
+ * Conta (D-236b): who is signed in, what gives them access, today's use of the
  * AI, and the way out — inside the app, with the rail, where the student looks
  * for it. Replaces reaching `/assinatura`, which stays only as the gate's page
  * for a login with no access. Every number is the server's (`/billing/status`,

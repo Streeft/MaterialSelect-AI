@@ -120,7 +120,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 193 — 13/11/26 — F8: landing com o método, Entrar dividido, Conta no app e barra lateral clara (D-236)
+## Sessão 193b — 13/11/26 — F8: landing com o método, Entrar dividido, Conta no app e barra lateral clara (D-236b)
 
 **O que mudou.** Backend: `artifact_daily_limit` em `AIUsageOut` (`/dashboard/activity`), lido de `notebook_daily_artifacts`.
 Frontend: `StartScreen` com barra, herói, os três passos com capturas reais (`public/landing/`), "O que o app garante" e rodapé;

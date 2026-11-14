@@ -5,7 +5,7 @@ import { ptBR } from "@/lib/i18n";
 const t = ptBR.auth;
 
 /**
- * The frame of the two pages a visitor sees before the app (D-236): `/entrar`
+ * The frame of the two pages a visitor sees before the app (D-236b): `/entrar`
  * and `/assinatura`. Split like Notion's and Linear's login — the brand and one
  * sentence of the method on the dark rail, the card centred in the height on
  * the page colour — so the door reads as the same product as the landing and

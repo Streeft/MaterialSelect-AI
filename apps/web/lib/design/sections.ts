@@ -95,7 +95,7 @@ export const ROUTE_LABELS = [
   { route: "/app/materiais", label: "Catálogo" },
   { route: "/app/estilo", label: "Estilo" },
   { route: "/app/aparencia", label: "Aparência" },
-  // D-236: Conta, with Aparência as its sub-page (a breadcrumb there).
+  // D-236b: Conta, with Aparência as its sub-page (a breadcrumb there).
   { route: "/app/conta", label: "Conta" },
 ] as const;
 

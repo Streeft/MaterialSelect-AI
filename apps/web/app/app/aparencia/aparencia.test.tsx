@@ -80,7 +80,7 @@ describe("Aparência (D-196)", () => {
     expect(root.dataset.contrast).toBeUndefined();
   });
 
-  it("offers the light rail, and back to the dark default (D-236)", async () => {
+  it("offers the light rail, and back to the dark default (D-236b)", async () => {
     const user = userEvent.setup();
     renderPage();
     const rail = screen.getByRole("group", { name: t.railTitle });

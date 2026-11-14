@@ -49,7 +49,7 @@ export default function BillingPage() {
   }
 
   return (
-    // D-236: the same split frame as /entrar. Signed in with access, the
+    // D-236b: the same split frame as /entrar. Signed in with access, the
     // student finds all of this in Conta (/app/conta), inside the app.
     <EntryFrame>
       <div className="flex flex-col items-start gap-4">

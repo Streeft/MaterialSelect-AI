@@ -209,7 +209,7 @@ export default function AppearancePage() {
 
   return (
     <div className="space-y-6">
-      {/* D-236: a sub-page of Conta — the trail says so and leads back. */}
+      {/* D-236b: a sub-page of Conta — the trail says so and leads back. */}
       <PageHeader
         eyebrow={false}
         breadcrumb={[{ label: ptBR.account.title, href: "/app/conta" }, { label: t.title }]}

@@ -713,7 +713,7 @@ describe("exemplo em um clique (D-85)", () => {
     expect(stepButton(t.stepConstraints)).not.toHaveTextContent("3 restrições");
   });
 
-  it("waits for the catalogue before checking the example against it (D-236)", async () => {
+  it("waits for the catalogue before checking the example against it (D-236b)", async () => {
     // Before the lists arrive, every slug would read as missing: the button waits.
     listPerformanceIndices.mockReturnValue(new Promise(() => {}));
     render(wrap(<SelectionPage />));

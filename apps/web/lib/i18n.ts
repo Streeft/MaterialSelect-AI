@@ -3728,7 +3728,7 @@ export const ptBR = {
     densityTitle: "Densidade das tabelas",
     densityHint: "Vale para todas as tabelas; cada uma ainda pode trocar na hora.",
     density: { comfortable: "Confortável", compact: "Compacta" },
-    // D-236: the rail is dark by default; light only in the light theme.
+    // D-236b: the rail is dark by default; light only in the light theme.
     railTitle: "Barra lateral",
     railHint: "Escura é o padrão. Clara vale no tema claro; no escuro a barra continua escura.",
     rail: { dark: "Escura", light: "Clara" },
@@ -3890,7 +3890,7 @@ export const ptBR = {
     // D-222: o que a pessoa precisa saber antes de clicar, e a saída para quem chegou por engano.
     loginAccess: "Não é preciso assinar nem pagar: o acesso é aberto a qualquer conta Google.",
     loginBack: "Voltar à página inicial",
-    // D-236: the brand side of /entrar and /assinatura.
+    // D-236b: the brand side of /entrar and /assinatura.
     entryPhrase: "Da função da peça ao material escolhido, com a origem de cada número à vista.",
     entryCredit: "Trabalho de Conclusão de Curso em Engenharia de Materiais — UFRGS.",
     // D-222: a página inicial em uma tela — o que o app faz e o caminho para entrar.
@@ -3900,7 +3900,7 @@ export const ptBR = {
       { title: "Confira a origem", text: "Nenhuma propriedade é inventada: cada número traz a fonte ou o cálculo que o gerou." },
     ],
     landingEnter: "Já tem acesso? Entrar",
-    // D-236: the landing explains the method with the app's own screens.
+    // D-236b: the landing explains the method with the app's own screens.
     landing: {
       nav: "Navegação da página inicial",
       navEnter: "Entrar",
@@ -3972,7 +3972,7 @@ export const ptBR = {
     loggingOut: "Saindo…",
   },
 
-  // D-236: Conta, inside the app — profile, access, today's AI use, Aparência, sair.
+  // D-236b: Conta, inside the app — profile, access, today's AI use, Aparência, sair.
   account: {
     title: "Conta",
     description: "Quem está conectado, o que dá acesso à ferramenta e quanto da IA você usou hoje.",

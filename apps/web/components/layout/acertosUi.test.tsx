@@ -125,7 +125,7 @@ describe("rótulos de seção do menu", () => {
     const eyebrow = tokenTriples("--rail-eyebrow");
     const rail = tokenTriples("--rail");
     // One declaration in the light block, one in the dark one, and the light
-    // rail of Aparência (D-236), each paired with its own --rail.
+    // rail of Aparência (D-236b), each paired with its own --rail.
     expect(eyebrow).toHaveLength(3);
     expect(rail).toHaveLength(3);
     eyebrow.forEach((ink, i) => {

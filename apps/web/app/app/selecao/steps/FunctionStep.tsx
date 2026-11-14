@@ -35,7 +35,7 @@ export function FunctionStep({
   dispatch: Dispatch<WizardAction>;
   onExample: () => void;
   /** The catalogue's indices and properties are still on their way: checking the
-   * example against nothing would call every slug missing (D-236). */
+   * example against nothing would call every slug missing (D-236b). */
   exampleLoading?: boolean;
   /** The ready-made studies (D-210), rendered by the page that applies them. */
   templates: ReactNode;

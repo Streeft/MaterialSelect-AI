@@ -17,7 +17,7 @@
 export type AppColor = "route" | "azul" | "verde-azulado" | "verde" | "violeta" | "rosa" | "terracota";
 export type ContrastLevel = "standard" | "medium" | "high";
 export type MotionPreference = "standard" | "reduced";
-/** D-236: the rail is dark by default (D-37, D-181); "light" is an option, in the light theme only. */
+/** D-236b: the rail is dark by default (D-37, D-181); "light" is an option, in the light theme only. */
 export type RailPreference = "dark" | "light";
 
 export interface Appearance {

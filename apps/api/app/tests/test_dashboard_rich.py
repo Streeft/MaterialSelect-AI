@@ -257,7 +257,7 @@ class TestActivity:
         data = _get(client, "/activity")
         assert data["ai"]["today"]["requests"] == 3
         assert data["ai"]["today"]["artifacts"] == 1
-        # D-236: the Studio limit travels with the others, for the Conta page.
+        # D-236b: the Studio limit travels with the others, for the Conta page.
         assert data["ai"]["artifact_daily_limit"] == settings.notebook_daily_artifacts
         assert len(data["ai"]["days"]) == 14
         assert data["actions"] == {"ATUALIZADO": 1}

@@ -42,7 +42,7 @@ describe("página inicial pública", () => {
     expect(screen.getByRole("heading", { level: 1, name: ptBR.auth.landing.heroQuestion })).toBeInTheDocument();
     for (const step of ptBR.auth.landing.steps) {
       expect(screen.getByRole("heading", { level: 3, name: step.title })).toBeInTheDocument();
-      // D-236: the captures are real screens, described for whoever cannot see them.
+      // D-236b: the captures are real screens, described for whoever cannot see them.
       expect(screen.getByRole("img", { name: step.alt })).toBeInTheDocument();
     }
     for (const item of ptBR.auth.landing.guarantees) {
@@ -63,7 +63,7 @@ describe("/entrar", () => {
     const { container } = render(<LoginPage />);
     expect(screen.getByText(ptBR.auth.loginAccess)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: ptBR.auth.loginBack })).toHaveAttribute("href", "/");
-    // D-236: the split frame — the brand side links home and says the method.
+    // D-236b: the split frame — the brand side links home and says the method.
     expect(screen.getByText(ptBR.auth.entryPhrase)).toBeInTheDocument();
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);

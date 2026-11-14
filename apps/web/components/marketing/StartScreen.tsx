@@ -7,7 +7,7 @@ import { AshbyPreview } from "./AshbyPreview";
 const t = ptBR.auth.landing;
 
 /**
- * The public front door (D-86, D-222; method and captures in D-236).
+ * The public front door (D-86, D-222; method and captures in D-236b).
  *
  * A student arriving from the professor's link still needs one thing first —
  * the way in — so the hero is the Início's question, one sentence and the

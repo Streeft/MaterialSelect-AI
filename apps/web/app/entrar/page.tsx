@@ -14,7 +14,7 @@ const t = ptBR.auth;
  * is visible on the very next request. A failed attempt comes back here with
  * `?erro=<code>` (D-198): the notice says why, and the same button retries.
  *
- * D-236: split screen (`EntryFrame`); the privacy note is support text under
+ * D-236b: split screen (`EntryFrame`); the privacy note is support text under
  * the button, and the way back to the landing sits above the title.
  */
 export default function LoginPage() {
