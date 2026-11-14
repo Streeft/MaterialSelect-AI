@@ -41,6 +41,38 @@ python scripts/montar.py
 A voz `pt_BR-cadu-medium` vem de `rhasspy/piper-voices` (Hugging Face). Para
 depurar seletores sem gravar quadros: `scripts/tomada.sh --saida tmp/seco --seco`.
 
+## Versão completa v3 (voz Marcio, camada Remotion)
+
+A versão completa publicada é a v3: roteiro em `roteiro-v3.md` (38 cenas, com as
+marcas de entonação da voz), narração ElevenLabs "Marcio" (`eleven_v4`) e a camada
+de movimento em Remotion (`motion/`, fora do repositório). O corte curto continua
+o da v1.
+
+| Arquivo | Papel |
+|---|---|
+| `roteiro-v3.md` | Roteiro e storyboard aprovados da v3 |
+| `scripts/roteiro_v3_para_cenas.py` | Gera `cenas-v3.json` (legendas sem marcas, prompt da voz com as grafias de pronúncia); `--estimar` escreve tempos provisórios para cenas ainda sem áudio |
+| `scripts/tempos_frases.py` | Tempo de cada frase de uma narração já gerada (silencedetect) |
+| `scripts/cenas_acoes_v3.js` | Ações de tela da v3 (reaproveita as da v2 quando a tela não mudou) |
+| `scripts/montar_linha.py` | Linha do tempo do Remotion, MP4 por cena e SRT |
+| `scripts/mixar.py`, `scripts/sons_v2.py` | Mixagem a −16 LUFS e sons extras da camada de movimento (`--v2`) |
+| `scripts/textos_finais.py` | `roteiro-final.md` e `descricao_youtube.txt` a partir das linhas do tempo |
+
+```bash
+python scripts/roteiro_v3_para_cenas.py
+python scripts/tempos_frases.py --pasta ../../../audio/narracao/marcio --spec cenas-v3.json
+WEB_PORT=3012 API_PORT=8812 node scripts/gravar.js --spec cenas-v3.json --acoes cenas_acoes_v3.js \
+  --narracao ../../../audio/narracao/marcio --saida tmp/grav3
+python scripts/montar_linha.py --corte completo --spec cenas-v3.json --gravacoes tmp/grav3 \
+  --narracao ../../../audio/narracao/marcio --videos ../../../motion/public/telas-completo \
+  --saida ../../../motion/src/data/timeline-completo.json --srt out/completo.srt
+python scripts/mixar.py --linha ../../../motion/src/data/timeline-completo.json --narracao ../../../audio/narracao/marcio \
+  --trilha ../../../audio/musica/trilha_completo.wav --sons ../../../audio/sons --saida ../../../audio/mix/completo --v2
+```
+
+Depois de gerar o áudio de uma cena, compare a fala real com a janela gravada; a
+cena cuja frase passa da janela é regravada com `gravar.js --desde ID --cenas ID`.
+
 ## Regras editoriais que o gravador verifica sozinho
 
 - Strings proibidas na área visível (exemplo da viga de bicicleta, linha

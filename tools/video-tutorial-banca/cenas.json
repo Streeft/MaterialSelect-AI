@@ -1,338 +1,297 @@
 {
-  "_doc": "Narração por cena (texto exibido na legenda). 'pronuncia' troca grafias só no texto enviado à voz. 'demo': a cena mostra valores do catálogo e recebe o selo de valores demonstrativos.",
-  "pronuncia": {
-    "MaterialSelect AI": "Material Select Ei Ai",
-    "Ashby": "Ashbi",
-    "log-log": "logarítmica nos dois eixos",
-    "CSV": "cê ésse vê",
-    "XLSX": "xis ele ésse xis",
-    "MPa·m^½": "megapascal raiz de metro",
-    "°C": "graus Célsius",
-    "Young": "Yang"
+ "_doc": "Gerado por scripts/roteiro_para_cenas.py a partir de roteiro-mestre.md. Não edite à mão.",
+ "pronuncia": {
+  "MaterialSelect AI": "Material Select Ei Ai",
+  "Ashby": "Ashbi",
+  "log-log": "log log",
+  "CSV": "cê ésse vê",
+  "XLSX": "xis ele ésse xis",
+  "Young": "Yang",
+  "0,999": "zero vírgula novecentos e noventa e nove"
+ },
+ "curto": [
+  "A0",
+  "A1",
+  "C2",
+  "S1",
+  "S2",
+  "S5",
+  "S6",
+  "C3",
+  "P1",
+  "P2",
+  "C8",
+  "E1"
+ ],
+ "cenas": [
+  {
+   "id": "A0",
+   "bloco": "Abertura",
+   "frases": []
   },
-  "capitulos": [
-    {
-      "id": "abertura",
-      "titulo": "Abertura"
-    },
-    {
-      "id": "parte1",
-      "titulo": "Parte 1 · O método"
-    },
-    {
-      "id": "parte2",
-      "titulo": "Parte 2 · A ferramenta passo a passo"
-    },
-    {
-      "id": "parte3",
-      "titulo": "Parte 3 · Demais recursos"
-    },
-    {
-      "id": "encerramento",
-      "titulo": "Encerramento"
-    }
-  ],
-  "cenas": [
-    {
-      "id": "0.1",
-      "capitulo": "abertura",
-      "tipo": "vinheta",
-      "duracao": 8,
-      "frases": []
-    },
-    {
-      "id": "0.2",
-      "capitulo": "abertura",
-      "frases": [
-        "Escolher um material pela lista do que se conhece costuma esconder o critério.",
-        "O método de Ashby faz o contrário.",
-        "Ele parte do que a peça precisa fazer e transforma isso em números que se comparam.",
-        "O MaterialSelect AI é uma aplicação web para ensinar e praticar esse método."
-      ]
-    },
-    {
-      "id": "0.3",
-      "capitulo": "abertura",
-      "tipo": "cartela-sumario",
-      "frases": [
-        "Este vídeo tem três partes.",
-        "Primeiro, o método.",
-        "Depois, a ferramenta, passo a passo, com dois estudos clássicos: o tirante e a placa, leves e rígidos.",
-        "Por fim, os demais recursos e o que a ferramenta não faz.",
-        "Os materiais do catálogo são demonstrativos.",
-        "Os valores são fictícios e servem para mostrar o método, não para projetar."
-      ]
-    },
-    {
-      "id": "1.1",
-      "capitulo": "parte1",
-      "frases": [
-        "A seleção segue quatro passos.",
-        "A função diz o que a peça faz.",
-        "O objetivo diz o que se quer minimizar ou maximizar, como a massa.",
-        "Os limites dizem o que o material não pode deixar de atender.",
-        "O resultado ordena quem sobrou."
-      ]
-    },
-    {
-      "id": "1.2",
-      "capitulo": "parte1",
-      "frases": [
-        "O objetivo e a restrição se combinam num índice de desempenho, como descreve Ashby, em 2017.",
-        "No tirante, a massa é área vezes comprimento vezes densidade.",
-        "A rigidez fixa a área.",
-        "Substituindo, sobra um grupo só de material: módulo de Young sobre densidade.",
-        "Minimizar a massa é maximizar esse índice."
-      ]
-    },
-    {
-      "id": "1.3",
-      "capitulo": "parte1",
-      "demo": true,
-      "frases": [
-        "Num mapa de propriedades em escala log-log, cada material é um ponto e cada classe é um envelope.",
-        "Um índice desse tipo vira uma reta.",
-        "Os limites funcionam como um funil.",
-        "Cada limite retira candidatos, e a ferramenta mostra quantos e por quê."
-      ]
-    },
-    {
-      "id": "1.4",
-      "capitulo": "parte1",
-      "frases": [
-        "Todo número é calculado no servidor, de forma determinística.",
-        "O mesmo estudo, executado de novo, dá o mesmo resultado.",
-        "A inteligência artificial é opcional.",
-        "Ela só interpreta texto.",
-        "Não produz valores e não decide."
-      ]
-    },
-    {
-      "id": "2.1",
-      "capitulo": "parte2",
-      "frases": [
-        "O Início começa pela função da peça.",
-        "O texto vira a função do estudo.",
-        "Os limites e o índice vêm depois.",
-        "Os estudos salvos ficam aqui, para reabrir e executar de novo."
-      ]
-    },
-    {
-      "id": "2.2",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Na etapa Função, damos nome ao estudo e descrevemos o objetivo.",
-        "Ao lado, o funil começa com o catálogo inteiro: 678 materiais demonstrativos."
-      ]
-    },
-    {
-      "id": "2.3",
-      "capitulo": "parte2",
-      "frases": [
-        "Na etapa Objetivo, escolhemos o índice.",
-        "Para o tirante, é a rigidez específica: módulo de Young sobre densidade.",
-        "Antes de usar, a ferramenta mostra as condições em que o índice vale: função, geometria, objetivo e limite.",
-        "Fora delas, o índice não se aplica."
-      ]
-    },
-    {
-      "id": "2.5",
-      "capitulo": "parte2",
-      "frases": [
-        "A classificação pode combinar critérios.",
-        "Aqui, o índice vale sete décimos da nota e o custo por massa, três décimos.",
-        "Os pesos precisam somar um, e a tabela mostra quanto cada critério vale."
-      ]
-    },
-    {
-      "id": "2.6",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Na etapa Limites, cada linha é uma restrição com unidade explícita.",
-        "Digitamos cem e escolhemos megapascal. A frase abaixo confirma a leitura.",
-        "O segundo limite pede tenacidade à fratura de pelo menos quinze megapascal raiz de metro. Ele afasta os materiais frágeis.",
-        "O terceiro pede que o tirante trabalhe a 200 °C.",
-        "O funil recalcula no servidor: de 678, restam 364, depois 268, e por fim 194."
-      ]
-    },
-    {
-      "id": "2.7",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "O resultado abre no vencedor, com a nota e o que mais pesou nela.",
-        "A aba Classificação lista todos os candidatos, com o valor do índice e a pontuação de zero a um.",
-        "Lembrando: os valores são demonstrativos."
-      ]
-    },
-    {
-      "id": "2.8",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "A aba Eliminados mostra quem saiu, e em que etapa.",
-        "Um material sem o dado necessário não recebe zero.",
-        "Ele sai da classificação e aparece listado, com o motivo."
-      ]
-    },
-    {
-      "id": "2.9",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "A aba Sensibilidade refaz a classificação com outros pesos.",
-        "Neste estudo, o primeiro colocado se mantém em todos os cenários."
-      ]
-    },
-    {
-      "id": "2.10",
-      "capitulo": "parte2",
-      "frases": [
-        "A aba Origem dos dados mostra o que gerou estes números: os limites, a expressão do índice, a dimensão, o método de classificação e os pesos.",
-        "É o mesmo conteúdo que vai para o relatório exportado.",
-        "Salvo, o estudo pode ser reaberto e executado de novo, com o mesmo resultado."
-      ]
-    },
-    {
-      "id": "2.11",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Nos Mapas, escolhemos o nível de detalhe e as propriedades de cada eixo.",
-        "O nível só muda o que se vê, nunca o cálculo.",
-        "Um material sem valor não some em silêncio.",
-        "Ele aparece na lista dos que ficaram fora do mapa, com o motivo."
-      ]
-    },
-    {
-      "id": "2.12",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Agora, a placa leve e rígida.",
-        "O índice é a raiz cúbica do módulo de Young sobre a densidade.",
-        "Em escala log-log, ele vira uma reta de inclinação três.",
-        "A inclinação é calculada no servidor a partir da própria expressão.",
-        "Os materiais acima da reta são melhores que os que estão sobre ela."
-      ]
-    },
-    {
-      "id": "2.4",
-      "capitulo": "parte2",
-      "frases": [
-        "Um índice também pode ser montado na calculadora.",
-        "Os cartões de propriedade e o teclado formam a expressão.",
-        "O servidor confere a validade e devolve a dimensão e a unidade do resultado."
-      ]
-    },
-    {
-      "id": "2.13",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "O Comparar coloca candidatos lado a lado.",
-        "A tabela mantém a origem de cada valor.",
-        "Barras, radar, coordenadas paralelas e mapa de calor usam valores normalizados no servidor."
-      ]
-    },
-    {
-      "id": "2.14",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "O Catálogo lista os materiais e a qualidade de cada dado.",
-        "Na ficha, cada propriedade mostra o valor na unidade de leitura e a unidade original, como foi feita a conversão, de que fonte veio e com que qualidade.",
-        "Neste catálogo, a qualidade é estimada.",
-        "Não há valores medidos."
-      ]
-    },
-    {
-      "id": "2.15",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "O Dimensionar transforma o índice em massa.",
-        "Para um tirante de meio metro e rigidez de dois vezes dez à sétima newtons por metro, cada material recebe a massa e a área necessárias.",
-        "Aqui o catálogo entra inteiro, sem os limites da seleção.",
-        "Por isso aparecem materiais que a seleção já teria afastado."
-      ]
-    },
-    {
-      "id": "2.16",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Na placa, a espessura é a variável livre.",
-        "Com o expoente um terço, materiais muito leves, como espumas e madeira de balsa, sobem na lista, porque compensam a baixa rigidez com espessura."
-      ]
-    },
-    {
-      "id": "2.17",
-      "capitulo": "parte2",
-      "frases": [
-        "O Importar recebe planilhas em CSV ou XLSX.",
-        "Este arquivo tem três materiais fictícios.",
-        "A ferramenta sugere o mapeamento das colunas e pede a unidade de cada uma.",
-        "A validação mostra o resultado de cada linha antes de importar.",
-        "No material B, a célula vazia não vira zero: na ficha, o valor aparece como ausente."
-      ]
-    },
-    {
-      "id": "2.18",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "Os Processos são o segundo universo do método.",
-        "Cada processo tem atributos de capacidade, com fonte e qualidade, e o conjunto de materiais que ele atende, que também entra como etapa da seleção."
-      ]
-    },
-    {
-      "id": "2.19",
-      "capitulo": "parte2",
-      "demo": true,
-      "frases": [
-        "O Painel mostra quanto do catálogo está preenchido, com que qualidade, e como cada propriedade se distribui entre as classes."
-      ]
-    },
-    {
-      "id": "3.1",
-      "capitulo": "parte3",
-      "demo": true,
-      "frases": [
-        "Há outros recursos.",
-        "Os Cadernos guardam fontes próprias e respondem citando o trecho de onde veio a resposta.",
-        "O Custo estima o custo por peça.",
-        "O Eco faz uma auditoria de energia e carbono.",
-        "O Baterias dimensiona um conjunto de células.",
-        "O Sintetizar estima compósitos, espumas e painéis sanduíche, e diz qual lei produziu cada valor.",
-        "O Glossário explica cada propriedade e como ela se mede.",
-        "Em Meus registros ficam os materiais próprios de cada pessoa.",
-        "E em Classes e Propriedades se administra o vocabulário do catálogo."
-      ]
-    },
-    {
-      "id": "4.1",
-      "capitulo": "encerramento",
-      "tipo": "cartela-limites",
-      "frases": [
-        "A ferramenta tem limites claros.",
-        "Ela não substitui ensaio.",
-        "O catálogo atual é demonstrativo, sem valores medidos.",
-        "E ela não especifica material para um projeto real.",
-        "Serve para ensinar o método e para uma triagem inicial."
-      ]
-    },
-    {
-      "id": "4.2",
-      "capitulo": "encerramento",
-      "tipo": "cartela-final",
-      "frases": [
-        "O próximo passo é o teste de usabilidade com estudantes.",
-        "Se você é estudante de Engenharia de Materiais e quer participar, fale com o autor.",
-        "Obrigado."
-      ]
-    }
-  ]
+  {
+   "id": "A1",
+   "bloco": "Abertura",
+   "frases": [
+    "Escolher um material por uma lista do que já se conhece esconde o critério da escolha.",
+    "O método de Ashby faz o contrário: parte do que a peça precisa fazer e chega a números que se comparam.",
+    "O MaterialSelect AI é uma aplicação web para ensinar e praticar esse método.",
+    "Os materiais do catálogo são demonstrativos: os valores são fictícios e servem para mostrar o método."
+   ]
+  },
+  {
+   "id": "C1",
+   "bloco": "1. O método",
+   "frases": []
+  },
+  {
+   "id": "M1",
+   "bloco": "1. O método",
+   "frases": [
+    "A seleção segue quatro passos.",
+    "A função diz o que a peça faz.",
+    "O objetivo diz o que se quer minimizar ou maximizar, como a massa.",
+    "Os limites dizem o que o material precisa atender.",
+    "O resultado ordena os candidatos que sobraram."
+   ]
+  },
+  {
+   "id": "M2",
+   "bloco": "1. O método",
+   "frases": [
+    "Ashby, em 2017, organiza o problema em função, restrições, objetivo e variáveis livres.",
+    "No tirante leve e rígido, a massa é a área vezes o comprimento vezes a densidade.",
+    "A rigidez exigida fixa a área.",
+    "Substituindo, sobra um grupo só de propriedades do material: o módulo de Young sobre a densidade.",
+    "Minimizar a massa é maximizar esse índice de desempenho."
+   ]
+  },
+  {
+   "id": "M3",
+   "bloco": "1. O método",
+   "frases": [
+    "Primeiro vem a triagem: os limites eliminam quem não atende.",
+    "Depois, a classificação: o índice ordena quem passou.",
+    "Todo número é calculado no servidor, de forma determinística.",
+    "A inteligência artificial é opcional: só interpreta o texto do pedido e redige explicações.",
+    "Ela não produz valores e não decide."
+   ]
+  },
+  {
+   "id": "C2",
+   "bloco": "2. Seleção",
+   "frases": []
+  },
+  {
+   "id": "S1",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na etapa Função, damos nome ao estudo e descrevemos a peça: um tirante em tração, com a menor massa para uma rigidez dada.",
+    "Ao lado, o funil começa com o catálogo inteiro: 678 materiais demonstrativos."
+   ]
+  },
+  {
+   "id": "S2",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na etapa Objetivo, escolhemos o índice: rigidez específica, E sobre rô.",
+    "O cartão mostra as condições em que ele vale: função, geometria, objetivo e limite."
+   ]
+  },
+  {
+   "id": "S3",
+   "bloco": "2. Seleção",
+   "frases": [
+    "O índice também pode ser montado na calculadora, com cartões de propriedade e um teclado.",
+    "O servidor confere a expressão e devolve a dimensão e a unidade do resultado."
+   ]
+  },
+  {
+   "id": "S4",
+   "bloco": "2. Seleção",
+   "frases": [
+    "A classificação combina critérios: o índice pesa 0,7 e o custo por massa, 0,3.",
+    "Os pesos precisam somar um."
+   ]
+  },
+  {
+   "id": "S5",
+   "bloco": "2. Seleção",
+   "frases": [
+    "Na etapa Limites, cada restrição tem unidade explícita: resistência à tração de pelo menos 100 megapascal.",
+    "A frase abaixo confirma a leitura.",
+    "Somamos tenacidade à fratura de pelo menos 15 megapascal raiz de metro e temperatura de serviço de pelo menos 200 graus Celsius.",
+    "O funil recalcula no servidor: de 678 materiais, restam 364, depois 268 e, por fim, 194."
+   ]
+  },
+  {
+   "id": "S6",
+   "bloco": "2. Seleção",
+   "frases": [
+    "O resultado abre no vencedor: um compósito de fibras de carbono contínuas, com nota 0,999 numa escala de zero a um.",
+    "A aba Classificação lista os candidatos com o valor do índice e a nota."
+   ]
+  },
+  {
+   "id": "S7",
+   "bloco": "2. Seleção",
+   "frases": [
+    "A aba Eliminados mostra quem saiu e em que etapa.",
+    "Um material sem o dado necessário não recebe zero: ele sai da classificação e aparece listado, com o motivo."
+   ]
+  },
+  {
+   "id": "S8",
+   "bloco": "2. Seleção",
+   "frases": [
+    "A aba Sensibilidade refaz a classificação com outros pesos; aqui, o primeiro colocado se mantém nos três cenários.",
+    "A aba Origem dos dados registra os limites, a expressão do índice e os pesos que geraram o resultado."
+   ]
+  },
+  {
+   "id": "C3",
+   "bloco": "3. Mapas",
+   "frases": []
+  },
+  {
+   "id": "P1",
+   "bloco": "3. Mapas",
+   "frases": [
+    "No mapa de propriedades, os dois eixos estão em escala logarítmica: densidade na horizontal, módulo de Young na vertical.",
+    "Cada ponto é um material, e cada envelope reúne uma classe.",
+    "Aqui, 673 de 678 materiais aparecem.",
+    "Os outros cinco ficam listados abaixo, com o motivo."
+   ]
+  },
+  {
+   "id": "P2",
+   "bloco": "3. Mapas",
+   "frases": [
+    "Agora, a placa leve e rígida.",
+    "O índice é a raiz cúbica do módulo de Young sobre a densidade.",
+    "Em escala log-log, ele vira uma reta de inclinação 3, calculada no servidor a partir da expressão."
+   ]
+  },
+  {
+   "id": "P3",
+   "bloco": "3. Mapas",
+   "frases": [
+    "A reta liga materiais de mesmo desempenho.",
+    "Os que ficam acima dela têm índice maior: para a mesma rigidez, dão uma placa mais leve.",
+    "No tirante, com E sobre rô, a mesma leitura vale para uma reta de inclinação 1."
+   ]
+  },
+  {
+   "id": "C4",
+   "bloco": "4. Dados confiáveis",
+   "frases": []
+  },
+  {
+   "id": "D1",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "O Catálogo lista os 678 materiais, com a classe e a qualidade de cada dado."
+   ]
+  },
+  {
+   "id": "D2",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "Na ficha, cada valor mostra a unidade original, a unidade de leitura, a conversão, a fonte e a qualidade.",
+    "Neste catálogo, a qualidade é estimada: não há valores medidos.",
+    "E um valor que falta aparece escrito como ausente.",
+    "Ele nunca vira zero."
+   ]
+  },
+  {
+   "id": "D3",
+   "bloco": "4. Dados confiáveis",
+   "frases": [
+    "O Importar recebe planilhas CSV ou XLSX.",
+    "Este arquivo, criado para o vídeo, tem três materiais fictícios.",
+    "A ferramenta sugere o mapeamento das colunas e pede a unidade de cada uma.",
+    "A validação mostra o resultado de cada linha antes de importar.",
+    "No material B, a resistência à tração ficou em branco: na ficha, ela aparece como ausente, não como zero."
+   ]
+  },
+  {
+   "id": "C5",
+   "bloco": "5. Dimensionar",
+   "frases": []
+  },
+  {
+   "id": "Z1",
+   "bloco": "5. Dimensionar",
+   "frases": [
+    "O Dimensionar leva do índice à peça.",
+    "Para um tirante de 0,5 metro e rigidez de 2 vezes 10 à sétima newtons por metro, cada material recebe a massa e a área necessárias.",
+    "A massa é o fator estrutural dividido pelo índice.",
+    "Aqui entra o catálogo inteiro, sem os limites da seleção."
+   ]
+  },
+  {
+   "id": "Z2",
+   "bloco": "5. Dimensionar",
+   "frases": [
+    "Na placa, de 0,4 por 0,3 metro, biapoiada, a variável livre é a espessura.",
+    "Com o expoente um terço, espumas e madeira de balsa sobem ao topo: compensam a baixa rigidez com espessura."
+   ]
+  },
+  {
+   "id": "C6",
+   "bloco": "6. Demais recursos",
+   "frases": []
+  },
+  {
+   "id": "R1",
+   "bloco": "6. Demais recursos",
+   "frases": [
+    "Outros recursos, em passagem rápida.",
+    "O Comparar coloca candidatos lado a lado.",
+    "Os Processos reúnem os processos de fabricação e o que cada um atende.",
+    "O Painel mostra o preenchimento e a qualidade do catálogo.",
+    "Os Cadernos respondem citando a fonte.",
+    "O Custo estima o custo por peça; o Eco, energia e carbono; o Baterias dimensiona um conjunto de células.",
+    "O Sintetizar estima compósitos e espumas.",
+    "O Glossário explica cada propriedade.",
+    "Meus registros guarda materiais próprios.",
+    "E Classes e Propriedades organizam o catálogo."
+   ]
+  },
+  {
+   "id": "C7",
+   "bloco": "7. Verificação e limites",
+   "frases": []
+  },
+  {
+   "id": "V1",
+   "bloco": "7. Verificação e limites",
+   "frases": [
+    "Para conferir o cálculo, refizemos à mão os casos do tirante e da placa, em 50 materiais cada.",
+    "A maior diferença relativa ficou na ordem de 10 à menos 16, o arredondamento do próprio computador."
+   ]
+  },
+  {
+   "id": "V2",
+   "bloco": "7. Verificação e limites",
+   "frases": [
+    "A ferramenta não substitui ensaio, não traz valores medidos e não especifica material para um projeto real.",
+    "Serve para ensinar o método e para uma triagem inicial."
+   ]
+  },
+  {
+   "id": "C8",
+   "bloco": "Encerramento",
+   "frases": []
+  },
+  {
+   "id": "E1",
+   "bloco": "Encerramento",
+   "frases": [
+    "Se você é estudante de Engenharia de Materiais, participe do teste de usabilidade pelo formulário.",
+    "O código está no repositório público, no GitHub.",
+    "Obrigado."
+   ]
+  }
+ ]
 }
