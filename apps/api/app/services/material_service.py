@@ -539,12 +539,14 @@ class MaterialService:
             sources=self._cited_sources(material),
         )
 
-    @staticmethod
-    def _cited_sources(material: Material) -> list[SourceReferenceOut]:
+    def _cited_sources(self, material: Material) -> list[SourceReferenceOut]:
         """Every source the sheet cites, once each, with its ABNT text (D-233).
 
-        Read off rows the sheet already loaded — no extra query. Ordered by label
-        so the list does not shuffle between two reads of the same sheet.
+        The values, the composition and the designations are read off rows the
+        sheet already loaded; the curves and the declared equivalences have their
+        own endpoints and are not loaded with it, so their sources come from one
+        extra read (D-236). Ordered by label so the list does not shuffle between
+        two reads of the same sheet.
         """
         found: dict[int, Source] = {}
         for value in material.property_values:
@@ -552,6 +554,8 @@ class MaterialService:
                 found[value.source.id] = value.source
         for entry in (*material.composition, *material.designations):
             found[entry.source.id] = entry.source
+        for source in self.repo.curve_and_equivalence_sources(material.id):
+            found[source.id] = source
         return [
             SourceReferenceOut(
                 id=source.id,

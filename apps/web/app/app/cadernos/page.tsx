@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   batchArchiveNotebooks,
   createNotebook,
+  emptyNotebookArchive,
   listNotebookTemplates,
   listNotebooks,
 } from "@/lib/api";
@@ -89,6 +90,19 @@ export default function NotebooksPage() {
       });
     },
   });
+  // D-236: "Esvaziar o arquivo" — the archived ones, deleted for good, after a confirmation that
+  // names how many. The count travels with the request: the server deletes nothing if it changed.
+  const [emptying, setEmptying] = useState(false);
+  const [emptyCount, setEmptyCount] = useState(0);
+  const emptyArchive = useMutation({
+    mutationFn: (expected: number) => emptyNotebookArchive(expected),
+    onSuccess: ({ deleted }) => {
+      void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
+      snackbar?.notify({ message: c.emptiedArchive(deleted) });
+    },
+    // A 409 means the archive changed under the dialog: show the list as it is now.
+    onError: () => void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY }),
+  });
   const toggle = (id: number) =>
     setPicked((current) => {
       const next = new Set(current);
@@ -156,6 +170,20 @@ export default function NotebooksPage() {
                 {selecting ? c.selectDone : c.select}
               </Button>
             ) : null}
+            {archived && visible.length > 0 ? (
+              <Button
+                variant="secondary"
+                loading={emptyArchive.isPending}
+                onClick={() => {
+                  leaveSelection();
+                  setEmptyCount(visible.length);
+                  emptyArchive.reset();
+                  setEmptying(true);
+                }}
+              >
+                {c.emptyArchive}
+              </Button>
+            ) : null}
             <ButtonGroup label={t.listViews}>
               <ButtonGroupItem
                 selected={!archived}
@@ -212,6 +240,22 @@ export default function NotebooksPage() {
           {describeApiError(batch.error, c.batchFailed)}
         </Alert>
       ) : null}
+      {emptyArchive.error ? (
+        <Alert tone="danger" role="alert">
+          {describeApiError(emptyArchive.error, c.emptyArchiveFailed)}
+        </Alert>
+      ) : null}
+      <ConfirmDialog
+        open={emptying}
+        title={c.emptyArchiveTitle(emptyCount)}
+        message={c.emptyArchiveMessage}
+        confirmLabel={c.emptyArchiveConfirm}
+        onCancel={() => setEmptying(false)}
+        onConfirm={() => {
+          setEmptying(false);
+          emptyArchive.mutate(emptyCount);
+        }}
+      />
       <ConfirmDialog
         open={confirming}
         title={archived ? c.confirmUnarchiveTitle(chosen.length) : c.confirmArchiveTitle(chosen.length)}

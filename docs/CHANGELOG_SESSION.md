@@ -120,6 +120,34 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 194 — 13/11/26 — Fluxos entre telas, parte 19: o CSV do catálogo em fluxo, o registro do pint sob demanda e a limpeza dos guardrails (D-237)
+
+**O que mudou.** Backend: `GET /api/exports/catalogo.csv` vira `StreamingResponse` (`ExportService.catalogue_csv_stream`, lotes de 100,
+seções finais em `SpooledTemporaryFile`; `ChartRepository.has_own_materials` para o aviso do topo); `to_csv` passa a ser composto por
+`csv_preamble`/`csv_sheet_head`/`csv_rows`, as mesmas peças do fluxo, e `catalogue_report` e o fluxo partilham `_catalogue_entries`.
+`app/calculations/units.py` cria o `UnitRegistry` no primeiro uso (`get_registry()`, seguro para threads; `ureg` segue importável) e
+`expressions.py` usa `get_registry()`. Removidos `check_property` e `check_chart` de `app/ai/guardrails.py` (sem chamador). Medido: pico do
+CSV 33,3 → 13,2 MB; RSS do `import app.main` 116,2 → 114,4 MB. Testes novos: pytest `test_units_lazy_registry` (partida sem registro,
+primeiro uso simultâneo, `ureg`), três em `test_exports_own_records` (fluxo igual ao `to_csv` byte a byte com lotes de 2, spool em disco,
+nome escapado e aviso de registro próprio; sem aviso quando não há; cabeçalhos sem `Content-Length`) e o teto de 20 MB do CSV em
+`test_memory_per_request`; saíram quatro de `test_ai_guardrails`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
+## Sessão 193 — 13/11/26 — Fluxos entre telas, parte 18: editar a fonte, arrastar a classe, esvaziar o arquivo e duas figuras no E2E (D-236)
+
+**O que mudou.** Backend: `PATCH /api/sources/{id}` (curador; `SourcePatch`, `edit_bibliography` em `app/domain/citation.py`, `SourceService`,
+auditoria `AuditEntityType.SOURCE`, `SourceOut.abnt`); `MaterialRepository.curve_and_equivalence_sources` e a ficha cita as fontes das curvas
+e das equivalências; `DELETE /api/notebooks/archived?expected=N` (`NotebookService.empty_archive`/`_discard`, `NotebookRepository.archived_ids`).
+Frontend: `EditSourceDialog` + "Editar fonte" em `SourcesSection` (só com `useCanEditCatalog`); `useClassDrag` e a faixa "Classe raiz" em
+`admin/classes` (HTML5 nativo, mesmo `PATCH` do "Mover para…"); "Esvaziar o arquivo" com `ConfirmDialog` na aba de arquivados dos Cadernos;
+`.ds-drop` no `globals.css`. E2E: `figuras-custo-eco.spec.ts` (curva por material no Custo, cascata B − A na Eco, com axe), três casos novos em
+`curadoria.spec.ts` e `e2e/axe.ts` compartilhado. Testes novos: pytest `test_source_edit` e `test_notebooks_empty_archive` (recusa de
+não curador, de ciclo na árvore já era do `test_class_move`, de outro usuário, de contagem diferente) e vitest com axe em `EditSourceDialog`,
+`admin/classes` (`arrastar`, com a recusa do servidor), `cadernosTela` e `ficha-fontes`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 192b — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235b)
 
 **O que mudou.** Backend: `app/domain/notebook_templates.py` (Disciplina de Materiais, Revisão para prova, Projeto de TCC, Em branco),

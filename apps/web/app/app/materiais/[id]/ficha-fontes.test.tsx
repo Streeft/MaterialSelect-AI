@@ -99,7 +99,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listProperties: () => Promise.resolve([]),
   getChart: () => new Promise(() => {}),
 }));
-vi.mock("@/lib/billing", () => ({ useCanEditCatalog: () => false }));
+const curator = vi.hoisted(() => ({ value: false }));
+vi.mock("@/lib/billing", () => ({ useCanEditCatalog: () => curator.value }));
 vi.mock("@/components/my-records/FavoriteButton", () => ({ FavoriteButton: () => null }));
 vi.mock("@/components/my-records/useRecordVisit", () => ({ useRecordVisit: () => undefined }));
 vi.mock("@/components/similar/SimilarPanel", () => ({ SimilarPanel: () => null }));
@@ -113,6 +114,7 @@ const { default: MaterialPage } = await import("./page");
 
 afterEach(() => {
   Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+  curator.value = false;
 });
 
 const t = curadoriaText.cite;
@@ -147,5 +149,27 @@ describe("ficha: Citar fonte (ABNT) (D-233)", () => {
     );
     await screen.findByRole("button", { name: t.buttonFor("Handbook") });
     expect(screen.getAllByRole("link", { name: t.title }).length).toBeGreaterThan(0);
+  });
+
+  it("só o curador vê “Editar fonte” (D-236); quem lê não vê", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <MaterialPage />
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("button", { name: t.buttonFor("Handbook") });
+    expect(screen.queryByRole("button", { name: curadoriaText.editSource.actionFor("Handbook") })).toBeNull();
+    view.unmount();
+
+    curator.value = true;
+    render(
+      <QueryClientProvider client={client}>
+        <MaterialPage />
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByRole("button", { name: curadoriaText.editSource.actionFor("Handbook") }),
+    ).toBeInTheDocument();
   });
 });

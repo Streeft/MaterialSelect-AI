@@ -11,7 +11,16 @@ from collections.abc import Callable, Generator
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
@@ -30,6 +39,7 @@ from app.schemas.notebook import (
     AskIn,
     BatchArchiveIn,
     ChatOut,
+    EmptiedArchiveOut,
     ExternalSourceIn,
     MessageOut,
     NotebookIn,
@@ -141,6 +151,19 @@ def batch_archive_notebooks(
 ) -> list[NotebookSummaryOut]:
     """Archive (``archived: true``) or bring back (``false``) up to 100 notebooks, all or none (D-233)."""
     return service.batch_archive(payload)
+
+
+@router.delete("/archived", response_model=EmptiedArchiveOut)
+def empty_archive(
+    expected: int = Query(ge=0, description="How many archived notebooks the person confirmed."),
+    service: NotebookService = Depends(_service),
+) -> EmptiedArchiveOut:
+    """Delete for good all of the caller's archived notebooks, all or none (D-236).
+
+    Declared before ``DELETE /{notebook_id}`` so ``archived`` is not read as an id.
+    ``expected`` is the count the person confirmed; a different count now is a 409.
+    """
+    return EmptiedArchiveOut(deleted=service.empty_archive(expected))
 
 
 @router.post(

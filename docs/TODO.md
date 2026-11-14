@@ -591,7 +591,7 @@ uso; as três primeiras são decisão ou conferência do autor.
   marca por posição e `?trecho=` mantém a marca ao recarregar. Trecho antigo fica sem posição (NULL) e usa a busca por palavras.
 - ~~**Duplicar leva a conversa e o Estúdio?**~~ Feito no D-233: "Duplicar com conversa" (`?with_conversation=true`), com as citações
   reapontadas para a cópia.
-- ~~**Arquivar em lote**~~ (feito no D-233: `POST /api/notebooks/batch-archive`, com seleção, confirmação e Desfazer) e "esvaziar o arquivo" na lista (segue pendente).
+- ~~**Arquivar em lote**~~ (feito no D-233: `POST /api/notebooks/batch-archive`, com seleção, confirmação e Desfazer) e ~~"esvaziar o arquivo" na lista~~ (feito no D-236).
 
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
@@ -1794,7 +1794,7 @@ Registrados para não voltarem por engano:
   `scripts/protect-main.ps1`, que é idempotente.
 
 **Importar, Admin, Início, Entrar e Assinatura — pendências (D-222).**
-- ~~Árvore de classes editável no Admin~~ (feito no D-233: `PATCH /api/classes/{id}` só com `parent_id` e "Mover para…"; arrastar ficou de fora).
+- ~~Árvore de classes editável no Admin~~ (feito no D-233: `PATCH /api/classes/{id}` só com `parent_id` e "Mover para…"; o arrastar veio no D-236).
 - Início: ~~"Último mapa" com os filtros~~ (feito no D-232: `msai.nav.mapUrl` guarda o endereço inteiro); ~~editar propriedade no Admin~~ (feito no D-233: nome, descrição e unidade de leitura, sem slug nem dimensão).
 
 **Fluxos entre telas — pendências (D-232).**
@@ -1804,10 +1804,10 @@ Registrados para não voltarem por engano:
 - O estágio de lista só existe em estudo de materiais; uma lista de processos seria outro estágio, com ids de processo.
 
 **Ficha, Admin e Cadernos — pendências (D-233).**
-- **Cadastrar os campos bibliográficos de uma fonte.** `authors`, `title`, `publisher`, `year`, `url` e `accessed_on` só são preenchidos pelo manifesto do catálogo oficial; nenhuma tela do Admin os edita, então a citação das demais fontes sai só com o rótulo e a referência em texto livre.
-- A seção "Fontes desta ficha" lista as fontes de valor, composição e designação; as das curvas e das equivalências (que têm endpoint próprio) ainda não entram nela.
-- Árvore de classes: arrastar para mover (opcional; "Mover para…" já cobre teclado e leitor de tela).
-- "Esvaziar o arquivo" de cadernos e arquivar em lote pela página do caderno (só a lista tem seleção).
+- ~~**Cadastrar os campos bibliográficos de uma fonte.**~~ Feito no D-236: `PATCH /api/sources/{id}` (curador, validado, nada inferido) e "Editar fonte" na ficha.
+- ~~A seção "Fontes desta ficha" sem as fontes das curvas e das equivalências~~ — feito no D-236.
+- ~~Árvore de classes: arrastar para mover~~ — feito no D-236 (HTML5 nativo; "Mover para…" segue como alternativa por teclado).
+- ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). Segue pendente arquivar em lote pela página do caderno (só a lista tem seleção).
 - Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end` (NULL) e usam a busca por palavras; reprocessar uma fonte a regravaria com posição.
 
 **Segurança, limite e cache — pendências (D-223).**
@@ -1831,8 +1831,8 @@ Registrados para não voltarem por engano:
 - ~~Mortes por falta de memória em produção (exit 137)~~ — VM de 1 GB, concorrência 5/8 no proxy, portão `HEAVY_REQUEST_CONCURRENCY`,
   consultas leves na seleção, nos gráficos, nas calculadoras e no catálogo, `MALLOC_ARENA_MAX=2`; pico por requisição de 134–166 MB
   para 0,5–11 MB.
-- ~~Exportação: `catalogue_report` lia o catálogo inteiro~~ — em lotes de 100 e XLSX em fluxo no D-235 (pico 82,4 → 33,4 MB no CSV, 93,8 → 22,0 MB no XLSX; teto de 40 MB no `test_memory_per_request.py`). Resta o CSV, que ainda monta o texto inteiro antes de responder.
-- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). Resta o `pint` (registro de unidades), carregado na partida.
+- ~~Exportação: `catalogue_report` lia o catálogo inteiro~~ — em lotes de 100 e XLSX em fluxo no D-235 (pico 82,4 → 33,4 MB no CSV, 93,8 → 22,0 MB no XLSX; teto de 40 MB no `test_memory_per_request.py`). O CSV também saiu em fluxo no D-237 (pico 33,3 → 13,2 MB; teto de 20 MB no mesmo teste).
+- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). O registro de unidades do `pint` passou a ser criado no primeiro uso no D-237 (RSS 116,2 → 114,4 MB); resta o próprio `import pint` (~14 MB), que só sai com as classes de erro importadas dentro das funções.
 - Medir em produção depois do **Deploy da API**: `fly logs` sem `exit code 137`, e a memória da máquina no painel do Fly.
 
 **IA em todas as ferramentas — pendências (D-228).**
@@ -1852,10 +1852,22 @@ Registrados para não voltarem por engano:
 - Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido (hoje é sempre o mais barato em cada lote).
 - Em produção, depois do **Deploy da API**: `fly logs` ao esgotar a cota da busca deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId`.
 
+**Fluxos entre telas, parte 18 — pendências (D-236).**
+- Fontes que nenhuma ficha cita não têm onde ser editadas (a edição vive na ficha): uma tela de fontes no Admin pede rota, item de menu e a decisão de quem vê fonte sem material.
+- Rótulo e licença de uma fonte seguem fixos depois do cadastro (o `PATCH` só leva os seis campos da referência).
+- Arrastar a classe não funciona em tela de toque (o HTML5 drag não existe lá); "Mover para…" cobre.
+- "Esvaziar o arquivo" é uma transação só; com milhares de cadernos arquivados pediria etapas (e a contagem confirmada deixaria de valer de uma vez).
+- Em produção, depois do **Deploy da API** (sem migração): editar uma fonte na ficha e conferir o evento `source` na auditoria.
+
+**Fluxos entre telas, parte 19 — pendências (D-237).**
+- `import pint` (~14 MB de RSS) ainda na partida: pede importar `pint.errors`/`pint.util` dentro das funções de `units.py` e `expressions.py`.
+- Um erro no meio do CSV do catálogo entrega um arquivo truncado com status 200 (o que pode falhar é resolvido antes do primeiro byte); se virar problema, fechar o arquivo com uma linha de erro.
+- Em produção, depois do **Deploy da API** (sem migração): baixar `catalogo.csv` e conferir que abre no Excel (BOM, acentos) e que o `fly logs` não mostra `exit code 137`.
+
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
-- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa), `check_property`/`check_chart` sem chamador no serviço e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair.
+- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa) e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair. (`check_property`/`check_chart` saíram no D-237.)
 - Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
 - Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
 - Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.

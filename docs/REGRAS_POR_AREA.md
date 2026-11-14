@@ -597,6 +597,13 @@ campos de `source` que alguém registrou: parte ausente fica de fora, sem "s.d."
 é `PATCH /api/classes/{id}` com **só** `parent_id` (o `PUT` apagaria a prosa da família; ciclo é 400). Editar propriedade é
 `PATCH /api/properties/{id}` com nome, descrição e unidade de leitura — slug e dimensão não entram no corpo.
 
+**Editar fonte, arrastar classe, esvaziar o arquivo (D-236).** `PATCH /api/sources/{id}` (curador) leva só os seis campos da referência;
+o que veio vale, `null`/branco limpa, e `edit_bibliography` (`app/domain/citation.py`) recusa em 400 ano fora de 1000..ano corrente,
+endereço que não é `http(s)` com domínio (nunca completado), acesso no futuro ou antes do ano e texto além da coluna; tudo ou nada, nada
+inferido; rótulo, licença e revisor não entram. A ficha cita também as fontes das curvas e das equivalências. Arrastar uma classe é o mesmo
+`PATCH` do "Mover para…" (a própria classe e as de dentro não são destino; o servidor ainda recusa ciclo, e o texto dele vai à tela).
+`DELETE /api/notebooks/archived?expected=N` apaga de vez os arquivados **do dono**, tudo ou nada; contagem diferente da confirmada é 409.
+
 ## Demo e seed (D-71, D-72)
 
 **Uma auditoria ao vivo achou os 70 materiais fictícios do PR #59 ausentes em

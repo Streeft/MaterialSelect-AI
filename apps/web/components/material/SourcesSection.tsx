@@ -5,7 +5,8 @@ import type { SourceReference } from "@/lib/types";
 import { copyText } from "@/lib/clipboard";
 import { curadoriaText } from "@/lib/i18n-curadoria";
 import { Button, Card, CardBody, EmptyState } from "@/components/ui";
-import { IconCopy } from "@/components/ui/icons";
+import { IconCopy, IconPencil } from "@/components/ui/icons";
+import { EditSourceDialog } from "@/components/material/EditSourceDialog";
 
 const t = curadoriaText.cite;
 
@@ -37,12 +38,23 @@ export function CiteSourceButton({ source }: { source: SourceReference }) {
   );
 }
 
-/** The sources the sheet cites, each with its ABNT text and the button that copies it. */
-export function SourcesSection({ sources }: { sources: SourceReference[] }) {
+/**
+ * The sources the sheet cites, each with its ABNT text and the button that copies it. With
+ * `canEdit` (a curator: the source is shared reference data) each also has "Editar fonte" (D-236).
+ */
+export function SourcesSection({
+  sources,
+  canEdit = false,
+}: {
+  sources: SourceReference[];
+  canEdit?: boolean;
+}) {
+  const [editing, setEditing] = useState<SourceReference | null>(null);
   if (sources.length === 0) {
     return <EmptyState title={t.none} />;
   }
   return (
+    <>
     <ul aria-label={t.listLabel} className="flex flex-col gap-3">
       {sources.map((source) => (
         <li key={source.id}>
@@ -56,11 +68,26 @@ export function SourcesSection({ sources }: { sources: SourceReference[] }) {
               >
                 {source.abnt}
               </p>
-              <CiteSourceButton source={source} />
+              <div className="flex flex-wrap items-center gap-2">
+                <CiteSourceButton source={source} />
+                {canEdit ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<IconPencil className="h-4 w-4" />}
+                    aria-label={curadoriaText.editSource.actionFor(source.label)}
+                    onClick={() => setEditing(source)}
+                  >
+                    {curadoriaText.editSource.action}
+                  </Button>
+                ) : null}
+              </div>
             </CardBody>
           </Card>
         </li>
       ))}
     </ul>
+    {canEdit ? <EditSourceDialog source={editing} onClose={() => setEditing(null)} /> : null}
+    </>
   );
 }

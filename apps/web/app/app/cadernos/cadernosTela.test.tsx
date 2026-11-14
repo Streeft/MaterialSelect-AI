@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { screen, within } from "shadow-dom-testing-library";
 import userEvent from "@testing-library/user-event";
@@ -95,6 +95,7 @@ const api = vi.hoisted(() => ({
   updateNotebook: vi.fn(),
   duplicateNotebook: vi.fn(),
   batchArchiveNotebooks: vi.fn(),
+  emptyNotebookArchive: vi.fn(),
   deleteNotebook: vi.fn(),
   getNotebookSource: vi.fn(),
   listNotebookMessages: vi.fn(),
@@ -505,6 +506,101 @@ describe("duplicar com conversa e arquivar em lote (D-233)", () => {
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: c.archiveSelected }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  describe("Esvaziar o arquivo (D-236)", () => {
+    const archived = () => [
+      summary({ id: 7, title: "Velho", archived: true }),
+      summary({ id: 8, title: "Antigo", archived: true }),
+    ];
+    const openArchive = () => {
+      window.history.replaceState(null, "", "/app/cadernos?arquivados=1");
+      api.listNotebooks.mockImplementation((isArchived?: boolean) =>
+        Promise.resolve(isArchived ? archived() : []),
+      );
+    };
+
+    it("só aparece na aba de arquivados, e só quando há o que apagar", async () => {
+      window.history.replaceState(null, "", "/app/cadernos");
+      api.listNotebooks.mockResolvedValue(two());
+      render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Aços/ });
+      expect(screen.queryByRole("button", { name: c.emptyArchive })).toBeNull();
+    });
+
+    it("pede confirmação com a contagem e só então apaga, mandando a contagem confirmada", async () => {
+      openArchive();
+      api.emptyNotebookArchive.mockResolvedValue({ deleted: 2 });
+      const user = userEvent.setup();
+      render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Velho/ });
+
+      await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+      const dialog = await screen.findByRole("dialog", { name: c.emptyArchiveTitle(2) });
+      expect(within(dialog).getByText(c.emptyArchiveMessage)).toBeInTheDocument();
+      expect(api.emptyNotebookArchive).not.toHaveBeenCalled();
+
+      await user.click(within(dialog).getByRole("button", { name: c.emptyArchiveConfirm }));
+      await waitFor(() => expect(api.emptyNotebookArchive).toHaveBeenCalledWith(2));
+      expect(await screen.findByText(c.emptiedArchive(2))).toBeInTheDocument();
+    });
+
+    it("cancelar não apaga nada", async () => {
+      openArchive();
+      const user = userEvent.setup();
+      render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Velho/ });
+      await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: ptBR.actions.cancel }));
+      expect(api.emptyNotebookArchive).not.toHaveBeenCalled();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("se o arquivo mudou (409), escreve o motivo e recarrega a lista", async () => {
+      openArchive();
+      api.emptyNotebookArchive.mockRejectedValue(
+        new ApiError("O arquivo mudou: a confirmação era de 2 e agora há 3. Recarregue a lista.", 409),
+      );
+      const user = userEvent.setup();
+      render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Velho/ });
+      const before = api.listNotebooks.mock.calls.length;
+      await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: c.emptyArchiveConfirm }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(/O arquivo mudou/);
+      await waitFor(() => expect(api.listNotebooks.mock.calls.length).toBeGreaterThan(before));
+    });
+
+    it("uma falha sem texto legível diz que nenhum caderno foi apagado", async () => {
+      openArchive();
+      api.emptyNotebookArchive.mockRejectedValue(new Error("falhou"));
+      const user = userEvent.setup();
+      render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Velho/ });
+      await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: c.emptyArchiveConfirm }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(c.emptyArchiveFailed);
+    });
+
+    it("a aba de arquivados com o botão e o diálogo não tem violações", async () => {
+      openArchive();
+      const user = userEvent.setup();
+      const view = render(wrap(<NotebooksPage />));
+      await screen.findByRole("link", { name: /Velho/ });
+      await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+      await screen.findByRole("dialog");
+      // The MSDS dialog titles itself with an h3 in every dialog of the app (a library choice), which
+      // axe reads as a skipped level under the page's h1: that one rule is set aside, as elsewhere.
+      const violations = await findA11yViolations(view.container, {
+        rules: { "heading-order": { enabled: false } },
+      });
+      expect(violations, describeViolations(violations)).toEqual([]);
+    });
+
+    afterEach(() => window.history.replaceState(null, "", "/app/cadernos"));
   });
 
   it("the list with the selection bar open has no violations", async () => {

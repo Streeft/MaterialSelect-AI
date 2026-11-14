@@ -36,9 +36,11 @@ from app.domain.search_query import (
 from app.domain.text_fold import fold_accents
 from app.models.catalog import CatalogRecordRef
 from app.models.enums import DataQuality
+from app.models.equivalence import EquivalenceGroup, EquivalenceMember
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
+from app.models.material_curve import MaterialCurve
 from app.models.material_designation import MaterialDesignation
 from app.models.material_keyword import MaterialKeyword
 from app.models.material_property_value import MaterialPropertyValue
@@ -584,6 +586,33 @@ class MaterialRepository:
 
     def get_source_by_label(self, label: str) -> Source | None:
         return self.db.execute(select(Source).where(Source.label == label)).scalars().one_or_none()
+
+    def curve_and_equivalence_sources(self, material_id: int) -> list[Source]:
+        """The sources behind this material's curves and declared equivalences (D-236).
+
+        Two reads of ids, one of rows: neither relationship is loaded with the
+        sheet (a curve carries its points; an equivalence group lists other
+        materials' designations), so the sheet's own query does not know them.
+        """
+        from_curves = select(MaterialCurve.source_id).where(
+            MaterialCurve.material_id == material_id
+        )
+        from_equivalences = (
+            select(EquivalenceGroup.source_id)
+            .join(EquivalenceMember, EquivalenceMember.group_id == EquivalenceGroup.id)
+            .join(MaterialDesignation, MaterialDesignation.id == EquivalenceMember.designation_id)
+            .where(MaterialDesignation.material_id == material_id)
+        )
+        ids = {
+            *self.db.execute(from_curves).scalars(),
+            *self.db.execute(from_equivalences).scalars(),
+        }
+        if not ids:
+            return []
+        return list(self.db.execute(select(Source).where(Source.id.in_(ids))).scalars())
+
+    def get_source(self, source_id: int) -> Source | None:
+        return self.db.get(Source, source_id)
 
     def list_sources(self) -> list[Source]:
         return list(self.db.execute(select(Source).order_by(Source.label)).scalars().all())

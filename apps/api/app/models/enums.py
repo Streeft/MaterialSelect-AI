@@ -149,6 +149,7 @@ class AuditEntityType(str, enum.Enum):
     PERFORMANCE_INDEX = "performance_index"
     SELECTION_STUDY = "selection_study"
     EQUIVALENCE_GROUP = "equivalence_group"
+    SOURCE = "source"
 
 
 class SourceAuthority(str, enum.Enum):

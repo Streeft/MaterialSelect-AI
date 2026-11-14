@@ -13,7 +13,8 @@ someone else can check.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import tempfile
+from collections.abc import Iterator, Mapping
 
 from app.ai.provider import AIUnavailableError
 from app.calculations.expression_render import friendly_label
@@ -38,6 +39,7 @@ from app.exporters.figures import (
 )
 from app.exporters.identity import composition_sheet, designation_sheet
 from app.exporters.report import Report, Sheet, standard_notices
+from app.exporters.spreadsheet import csv_preamble, csv_rows, csv_sheet_head
 from app.models.enums import ProcessAttributeKind
 from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
@@ -877,30 +879,30 @@ class ExportService:
     #: batch plus the finished text rows, not the whole catalogue as objects.
     CATALOGUE_BATCH = 100
 
-    def catalogue_report(self) -> Report:
-        """Every active material and its property values, with the full trail."""
-        material_ids = self.chart_repo.list_material_ids()
-        definitions = self.chart_repo.list_properties()
+    #: Bytes a section of the streamed CSV may hold in memory before it goes to disk.
+    _SPOOL_BYTES = 1_000_000
+    CATALOGUE_TITLE = "Catálogo de materiais"
 
-        readings = readings_for(definitions, self.unit_choices)
-        header = ["Material", "Classe", "Registro próprio"] + [
-            f"{d.name} [{readings[d.slug].label}]" for d in definitions
-        ]
-        rows: list[list[object]] = []
-        provenance: list[list[object]] = []
-        composition: list[tuple[str, list]] = []
-        designations: list[tuple[str, list]] = []
-        includes_own_records = False
+    def _catalogue_entries(self, material_ids, definitions, readings):
+        """One entry per material, loading them ``CATALOGUE_BATCH`` at a time.
 
+        Yields ``(name, own, row, provenance, composition, designation)``: the
+        material's line of the "Materiais" sheet, its lines of the trail, and
+        its composition and designation lines. The caller decides whether it
+        keeps them (the report) or writes them out at once (the CSV stream).
+        """
         for start in range(0, len(material_ids), self.CATALOGUE_BATCH):
             batch = self.chart_repo.list_materials(
                 material_ids=material_ids[start : start + self.CATALOGUE_BATCH]
             )
             for material in batch:
-                own = self._is_own_record(material)
-                includes_own_records = includes_own_records or own
                 by_slug = {v.property_definition.slug: v for v in material.property_values}
-                row: list[object] = [material.name, material.material_class.name, own]
+                row: list[object] = [
+                    material.name,
+                    material.material_class.name,
+                    self._is_own_record(material),
+                ]
+                provenance: list[list[object]] = []
                 for definition in definitions:
                     value = by_slug.get(definition.slug)
                     row.append(
@@ -926,43 +928,129 @@ class ExportService:
                                 value.source.label if value.source else "—",
                             ]
                         )
-                rows.append(row)
-                composition.append((material.name, composition_lines(material)))
-                designations.append((material.name, designation_lines(material)))
+                yield (
+                    material.name,
+                    row[2],
+                    row,
+                    provenance,
+                    composition_lines(material),
+                    designation_lines(material),
+                )
             # The batch's objects are clean and nothing here keeps them: the
             # session only holds them weakly, so they go with the next collection.
             del batch
 
+    def _catalogue_header(self, definitions, readings) -> list[str]:
+        return ["Material", "Classe", "Registro próprio"] + [
+            f"{d.name} [{readings[d.slug].label}]" for d in definitions
+        ]
+
+    _CATALOGUE_NOTES = ["Valores em unidade canônica. 'ausente' significa dado não cadastrado."]
+    _PROVENANCE_HEADER = [
+        "Material",
+        "Propriedade",
+        "Valor original",
+        "Unidade original",
+        "Valor normalizado",
+        "Unidade canônica",
+        "Método de conversão",
+        "Qualidade do dado",
+        "Fonte",
+    ]
+
+    def catalogue_report(self) -> Report:
+        """Every active material and its property values, with the full trail."""
+        material_ids = self.chart_repo.list_material_ids()
+        definitions = self.chart_repo.list_properties()
+
+        readings = readings_for(definitions, self.unit_choices)
+        rows: list[list[object]] = []
+        provenance: list[list[object]] = []
+        composition: list[tuple[str, list]] = []
+        designations: list[tuple[str, list]] = []
+        includes_own_records = False
+
+        for name, own, row, trail, comp, desig in self._catalogue_entries(
+            material_ids, definitions, readings
+        ):
+            includes_own_records = includes_own_records or own
+            rows.append(row)
+            provenance.extend(trail)
+            composition.append((name, comp))
+            designations.append((name, desig))
+
         return Report(
-            title="Catálogo de materiais",
+            title=self.CATALOGUE_TITLE,
             subtitle=f"{len(rows)} materiais ativos, {len(definitions)} propriedades",
             notices=standard_notices(includes_own_records=includes_own_records),
             sheets=[
                 Sheet(
                     name="Materiais",
-                    header=header,
+                    header=self._catalogue_header(definitions, readings),
                     rows=rows,
-                    notes=["Valores em unidade canônica. 'ausente' significa dado não cadastrado."],
+                    notes=list(self._CATALOGUE_NOTES),
                 ),
                 composition_sheet(composition),
                 designation_sheet(designations),
-                Sheet(
-                    name="Proveniência",
-                    header=[
-                        "Material",
-                        "Propriedade",
-                        "Valor original",
-                        "Unidade original",
-                        "Valor normalizado",
-                        "Unidade canônica",
-                        "Método de conversão",
-                        "Qualidade do dado",
-                        "Fonte",
-                    ],
-                    rows=provenance,
-                ),
+                Sheet(name="Proveniência", header=self._PROVENANCE_HEADER, rows=provenance),
             ],
         )
+
+    def catalogue_csv_stream(self) -> tuple[str, Iterator[str]]:
+        """The catalogue CSV as ``(title, chunks)``, byte for byte what
+        ``to_csv(catalogue_report())`` gives, without building it whole (D-237).
+
+        The "Materiais" rows are written as each batch is read. The three
+        sections that follow cover the same materials, so a single pass over
+        the database feeds them to temporary files (kept in memory up to
+        ``_SPOOL_BYTES``, on disk past it) that are read back in order.
+        Everything that can fail on the request (the ids, the definitions, the
+        notice) is settled before the first chunk, while the status is still
+        open.
+        """
+        material_ids = self.chart_repo.list_material_ids()
+        definitions = self.chart_repo.list_properties()
+        readings = readings_for(definitions, self.unit_choices)
+        notices = standard_notices(includes_own_records=self.chart_repo.has_own_materials())
+        title = self.CATALOGUE_TITLE
+        subtitle = f"{len(material_ids)} materiais ativos, {len(definitions)} propriedades"
+
+        def chunks() -> Iterator[str]:
+            spools = {
+                key: tempfile.SpooledTemporaryFile(
+                    max_size=self._SPOOL_BYTES, mode="w+", encoding="utf-8", newline=""
+                )
+                for key in ("composition", "designations", "provenance")
+            }
+            try:
+                yield csv_preamble(title, subtitle, notices)
+                yield csv_sheet_head(
+                    "Materiais",
+                    self._CATALOGUE_NOTES,
+                    self._catalogue_header(definitions, readings),
+                )
+                for name, _own, row, trail, comp, desig in self._catalogue_entries(
+                    material_ids, definitions, readings
+                ):
+                    yield csv_rows([row])
+                    spools["composition"].write(csv_rows(composition_sheet([(name, comp)]).rows))
+                    spools["designations"].write(csv_rows(designation_sheet([(name, desig)]).rows))
+                    spools["provenance"].write(csv_rows(trail))
+                for key, sheet in (
+                    ("composition", composition_sheet([])),
+                    ("designations", designation_sheet([])),
+                    ("provenance", Sheet("Proveniência", self._PROVENANCE_HEADER)),
+                ):
+                    yield csv_sheet_head(sheet.name, sheet.notes, sheet.header)
+                    spool = spools[key]
+                    spool.seek(0)
+                    while piece := spool.read(self._SPOOL_BYTES):
+                        yield piece
+            finally:
+                for spool in spools.values():
+                    spool.close()
+
+        return title, chunks()
 
     # --- eco audit (D-121, D-172) -----------------------------------------
 

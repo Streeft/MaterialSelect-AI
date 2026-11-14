@@ -180,6 +180,12 @@ class BatchArchiveIn(BaseModel):
         return list(dict.fromkeys(ids))
 
 
+class EmptiedArchiveOut(BaseModel):
+    """How many archived notebooks "Esvaziar o arquivo" deleted for good (D-236)."""
+
+    deleted: int
+
+
 class NotebookSummaryOut(BaseModel):
     id: int
     title: str

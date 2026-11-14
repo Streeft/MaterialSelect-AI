@@ -351,11 +351,17 @@ class NotebookService:
         ]
 
     def delete(self, notebook_id: int) -> None:
-        notebook = self.notebook(notebook_id)
-        # A generation still running holds a reserved unit, and its job will
-        # find no artifact to finish or fail: hand the unit back here, as
-        # deleting the artifact alone does — through the same guarded delete,
-        # so a job failing at this very moment cannot refund it a second time.
+        self._discard(self.notebook(notebook_id))
+        self.db.commit()
+
+    def _discard(self, notebook: Notebook) -> None:
+        """Remove one notebook with everything in it, without committing.
+
+        A generation still running holds a reserved unit, and its job will
+        find no artifact to finish or fail: hand the unit back here, as
+        deleting the artifact alone does — through the same guarded delete,
+        so a job failing at this very moment cannot refund it a second time.
+        """
         for artifact in self.repo.running():
             if artifact.notebook_id != notebook.id:
                 continue
@@ -363,7 +369,28 @@ class NotebookService:
             if self.repo.delete_running(artifact.id):
                 self.repo.release(day, "artifacts")
         self.repo.delete(notebook)
+
+    def empty_archive(self, expected: int) -> int:
+        """Delete for good every archived notebook of the owner; how many (D-236).
+
+        ``expected`` is the number the person saw and confirmed. If the archive
+        holds another number now (another tab archived or brought one back), the
+        call is refused and nothing is deleted: a notebook the person never saw
+        in the confirmation is not theirs to have destroyed by it. All or
+        nothing — one transaction, so a failure half way leaves every notebook.
+        Only the caller's own archived notebooks are ever reached: the ids come
+        from a query scoped to the owner, and an active notebook is not one.
+        """
+        ids = self.repo.archived_ids()
+        if len(ids) != expected:
+            raise ConflictError(
+                f"O arquivo mudou: a confirmação era de {expected} e agora há {len(ids)}. "
+                "Recarregue a lista e confirme de novo."
+            )
+        for notebook_id in ids:
+            self._discard(self.notebook(notebook_id))
         self.db.commit()
+        return len(ids)
 
     def notebook(self, notebook_id: int) -> Notebook:
         notebook = self.repo.get(notebook_id)

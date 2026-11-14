@@ -108,6 +108,22 @@ class ChartRepository:
         )
         return list(self.db.execute(stmt).scalars().all())
 
+    def has_own_materials(self) -> bool:
+        """Whether any active, visible material is someone's own record.
+
+        What :meth:`list_material_ids` would answer to "is any of these owned",
+        without loading them: the catalogue export has to put the own-record
+        notice at the top of the file before it has read the last batch.
+        """
+        stmt = (
+            select(Material.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .where(Material.owner_id.is_not(None))
+            .limit(1)
+        )
+        return self.db.execute(stmt).first() is not None
+
     def visible_class_names(self) -> list[tuple[str, str]]:
         """``(slug, name)`` of every class an active, visible material is in.
 
