@@ -68,6 +68,16 @@ class NotebookRepository:
             ).scalars()
         )
 
+    def archived_ids(self) -> list[int]:
+        """The ids of the owner's archived notebooks, oldest first."""
+        return list(
+            self.db.execute(
+                select(Notebook.id)
+                .where(Notebook.owner_id == self.owner_id, Notebook.archived_at.is_not(None))
+                .order_by(Notebook.id)
+            ).scalars()
+        )
+
     def get(self, notebook_id: int) -> Notebook | None:
         return self.db.execute(
             select(Notebook)
