@@ -1,0 +1,35 @@
+MaterialSelect AI: seleção de materiais pelo método de Ashby
+
+Apresentação da ferramenta desenvolvida no Trabalho de Conclusão de Curso em Engenharia de Materiais (UFRGS).
+Autor: Francisco de Almeida Lemos. Orientador: Prof. Dr. Felipe Antonio Lucca Sánchez.
+
+O vídeo mostra o método (função, objetivo, limites e índice de desempenho), a seleção passo a passo de um tirante leve e rígido, os mapas de propriedades com a reta do índice, a comparação lado a lado, a rastreabilidade dos dados, o dimensionamento com estimativa de custo, um passeio pelos demais recursos e os limites da ferramenta.
+Todo número é calculado no servidor, de forma determinística. A inteligência artificial é opcional: só interpreta o texto do pedido e redige explicações; não produz valores e não decide.
+
+IMPORTANTE: os materiais e valores mostrados são demonstrativos (fictícios). Servem para ensinar o método, não para especificar material para um projeto real.
+
+Teste de usabilidade (estudantes de Engenharia de Materiais): [LINK DO FORMULÁRIO]
+Aplicação: https://material-select-ai-web.vercel.app
+Código: https://github.com/Streeft/MaterialSelect-AI
+
+Capítulos
+0:00 Abertura
+0:57 1. O método
+2:13 2. Seleção
+5:03 3. Mapas e comparação
+6:30 4. Dados confiáveis
+7:39 5. Dimensionar e custo
+8:50 6. Demais recursos
+9:32 7. Verificação e limites
+10:05 Encerramento
+
+Referência do método: ASHBY, M. F. Materials Selection in Mechanical Design. 5. ed. Oxford: Butterworth-Heinemann, 2017.
+
+Créditos
+Música: "Wallpaper" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+Narração: voz sintética "Marcio" (ElevenLabs). Sons de interface: síntese própria. Animações: Remotion.
+Telas: gravação real da aplicação, rodando localmente com dados demonstrativos.
+
+Há também um corte curto (2:59), narrado com a voz sintética "Andre" (ElevenLabs, via Higgsfield).

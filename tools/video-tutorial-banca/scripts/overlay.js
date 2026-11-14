@@ -7,13 +7,16 @@
     #vc-cursor{position:fixed;left:0;top:0;width:30px;height:30px;z-index:2147483647;
       pointer-events:none;transform:translate(-3px,-2px);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
     #vc-ring{position:fixed;z-index:2147483646;pointer-events:none;border-radius:10px;
-      border:3px solid rgba(255,153,0,.95);box-shadow:0 0 0 0 rgba(255,153,0,.45);opacity:0;
+      border:3px solid rgba(115,89,158,.95);box-shadow:0 0 0 0 rgba(115,89,158,.40);opacity:0;
       transition:opacity .18s ease}
     #vc-ring.on{opacity:1;animation:vc-pulse 1.1s ease-out infinite}
-    @keyframes vc-pulse{0%{box-shadow:0 0 0 0 rgba(255,153,0,.45)}100%{box-shadow:0 0 0 14px rgba(255,153,0,0)}}
+    @keyframes vc-pulse{0%{box-shadow:0 0 0 0 rgba(115,89,158,.40)}100%{box-shadow:0 0 0 14px rgba(115,89,158,0)}}
     .vc-ripple{position:fixed;z-index:2147483646;pointer-events:none;width:14px;height:14px;
-      margin:-7px 0 0 -7px;border-radius:50%;background:rgba(255,153,0,.55);animation:vc-rip .45s ease-out forwards}
+      margin:-7px 0 0 -7px;border-radius:50%;background:rgba(115,89,158,.50);animation:vc-rip .45s ease-out forwards}
     @keyframes vc-rip{to{transform:scale(4);opacity:0}}
+    #vc-cursor svg{transform-origin:4px 3px;transition:transform .09s ease-in}
+    #vc-cursor.press svg{transform:scale(.82)}
+    #vc-cursor.release svg{transition:transform .32s cubic-bezier(.34,1.8,.64,1)}
   `;
   const SVG = `<svg viewBox="0 0 24 24" width="30" height="30"><path d="M4 2 L4 19 L8.6 14.8 L11.6 21.6 L14.6 20.3 L11.7 13.6 L18 13.6 Z"
     fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
@@ -32,6 +35,13 @@
       for (const el of root.querySelectorAll("p, div, span")) {
         if (el.childElementCount === 0 && (el.textContent || "").trim().startsWith("Primeira vez? Veja um estudo completo")) {
           el.style.setProperty("display", "none", "important");
+        }
+      }
+      // "Modelos prontos" in the Selection: the beam model card cites the beam's index.
+      for (const h of root.querySelectorAll("h3")) {
+        if ((h.textContent || "").trim() === "Viga leve e rígida") {
+          const li = h.closest("li");
+          if (li) li.style.setProperty("display", "none", "important");
         }
       }
       for (const el of root.querySelectorAll("textarea, input")) {
@@ -96,6 +106,10 @@
       ring.classList.add("on");
     },
     ripple: () => {
+      // The pointer sinks and springs back, like a hand pressing.
+      cursor.classList.remove("release");
+      cursor.classList.add("press");
+      setTimeout(() => { cursor.classList.remove("press"); cursor.classList.add("release"); }, 110);
       const r = document.createElement("div");
       r.className = "vc-ripple";
       r.style.left = pos.x + "px";
