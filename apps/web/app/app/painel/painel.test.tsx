@@ -308,6 +308,7 @@ const activity: DashboardActivity = {
     today: { day: "2026-11-02", requests: 7, artifacts: 1, fetches: 2 },
     ai_daily_limit: 100,
     notebook_daily_limit: 60,
+    artifact_daily_limit: 10,
     fetch_daily_limit: 30,
     days: [{ day: "2026-11-02", requests: 7, artifacts: 1, fetches: 2 }],
   },

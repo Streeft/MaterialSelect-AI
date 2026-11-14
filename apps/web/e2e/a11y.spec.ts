@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { test, expect } from "./session";
 import { ROUTES } from "./rotas";
+import { describeFound, runAxe } from "./axe";
 
 /**
  * D-226: axe on every route the suite covers, in the real browser (the component
@@ -15,38 +15,11 @@ import { ROUTES } from "./rotas";
  * `axe-core` is already a dependency (the component tests use it); the script is
  * injected from the package instead of adding `@axe-core/playwright`.
  */
-const AXE_SOURCE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 
 const WIDTHS = [
   { name: "notebook", width: 1280, height: 800 },
   { name: "telefone", width: 390, height: 844 },
 ] as const;
-
-interface Found {
-  id: string;
-  impact: string | null;
-  help: string;
-  nodes: string[];
-}
-
-async function runAxe(page: Page): Promise<Found[]> {
-  await page.evaluate(AXE_SOURCE);
-  return page.evaluate(async () => {
-    // `window.axe` is injected by the script above.
-    const axe = (window as unknown as { axe: { run: (c: Document) => Promise<{ violations: Array<{ id: string; impact: string | null; help: string; nodes: Array<{ target: unknown[]; html: string }> }> }> } }).axe;
-    const result = await axe.run(document);
-    return result.violations.map((v) => ({
-      id: v.id,
-      impact: v.impact,
-      help: v.help,
-      nodes: v.nodes.slice(0, 3).map((n) => `${n.target.join(" ").slice(0, 100)} | ${n.html.slice(0, 120)}`),
-    }));
-  });
-}
-
-function describeFound(found: Found[]): string {
-  return found.map((v) => `${v.id} (${v.impact}): ${v.help}\n    ${v.nodes.join("\n    ")}`).join("\n");
-}
 
 async function settle(page: Page) {
   await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });

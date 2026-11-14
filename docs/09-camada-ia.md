@@ -1167,8 +1167,10 @@ sugestões perdidas, não para servir de garantia.
 ## Testes
 
 - `test_ai_guardrails.py` — as regras contra saídas hostis: número não ancorado,
-  conversão correta porém não ancorada, unidade incompatível, propriedade e
-  índice inventados, eixos repetidos, prosa com cifra inventada.
+  conversão correta porém não ancorada, unidade incompatível, índice inventado,
+  prosa com cifra inventada. (`check_property` e `check_chart`, sem chamador no
+  serviço, foram removidos no D-237; a propriedade de uma restrição é conferida
+  por `check_constraint`.)
 - `test_ai_api.py` — o provedor simulado ponta a ponta (leitura, determinismo,
   restrições que o pipeline determinístico de fato aceita) e um **provedor
   mentiroso** injetado para provar que tudo que ele inventa é barrado e

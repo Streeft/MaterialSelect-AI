@@ -2419,6 +2419,7 @@ export interface DashboardActivity {
     today: AIDay;
     ai_daily_limit: number;
     notebook_daily_limit: number;
+    artifact_daily_limit: number;
     fetch_daily_limit: number;
     days: AIDay[];
   };

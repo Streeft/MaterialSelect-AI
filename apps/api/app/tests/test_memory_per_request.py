@@ -35,6 +35,12 @@ from app.models.source import Source
 # MB a single request may allocate at its peak, over what was allocated before.
 CEILING_MB = 40.0
 
+# The catalogue as a CSV (D-237) is sent as it is written, so what is left is
+# the file itself, which the test client also has to hold to read it: 13 MB
+# measured against 33 MB when the text was built whole first. The 40 MB above
+# could not tell the two apart; this one can.
+CSV_CEILING_MB = 20.0
+
 DENSITY_LIMIT = {
     "kind": "limit",
     "root_group": {
@@ -207,3 +213,6 @@ def test_no_heavy_screen_holds_the_whole_catalogue_per_request(
     assert all(status == 200 for status, _ in measured.values()), measured
     over = {name: round(mb, 1) for name, (_, mb) in measured.items() if mb > CEILING_MB}
     assert not over, f"acima de {CEILING_MB} MB por requisição: {over}"
+
+    csv_mb = measured["exportar o catálogo (csv)"][1]
+    assert csv_mb <= CSV_CEILING_MB, f"CSV do catálogo: {csv_mb:.1f} MB > {CSV_CEILING_MB} MB"

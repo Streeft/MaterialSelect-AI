@@ -26,6 +26,7 @@ import unicodedata
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -69,7 +70,6 @@ def _ascii_filename(name: str) -> str:
 
 def _file_response(report: Report, fmt: str) -> Response:
     """Serialise a report in the requested format with the right headers."""
-    stem = _ascii_filename(report.title)
     headers = {"X-Content-Type-Options": "nosniff"}
 
     body: bytes | str
@@ -90,13 +90,19 @@ def _file_response(report: Report, fmt: str) -> Response:
         body = to_csv(report)
         media_type = CSV_MEDIA_TYPE
 
+    response = Response(content=body, media_type=media_type, headers=headers)
+    return _download_headers(response, report.title, fmt)
+
+
+def _download_headers(response: Response, title: str, fmt: str) -> Response:
+    """Name the file and say whether the browser shows it or saves it."""
     # HTML opens in the browser so it can be printed; everything else downloads.
     kind = "inline" if fmt == "html" else "attachment"
-    filename = f"{stem}.{fmt}"
-    headers["Content-Disposition"] = (
+    filename = f"{_ascii_filename(title)}.{fmt}"
+    response.headers["Content-Disposition"] = (
         f'{kind}; filename="{filename}"; ' f"filename*=UTF-8''{quote(filename, safe='')}"
     )
-    return Response(content=body, media_type=media_type, headers=headers)
+    return response
 
 
 @router.get("/catalogo.{fmt}")
@@ -109,7 +115,21 @@ def export_catalogue(
 ) -> Response:
     """Export the whole active catalogue with its provenance trail."""
     _require_supported(fmt)
-    return _file_response(ExportService(db, user, unit_choices).catalogue_report(), fmt)
+    service = ExportService(db, user, unit_choices)
+    if fmt == "csv":
+        # The one export that is read batch by batch and sent as it is written
+        # (D-237): the text of the whole catalogue is never held at once.
+        title, chunks = service.catalogue_csv_stream()
+        return _download_headers(
+            StreamingResponse(
+                chunks,
+                media_type=CSV_MEDIA_TYPE,
+                headers={"X-Content-Type-Options": "nosniff"},
+            ),
+            title,
+            fmt,
+        )
+    return _file_response(service.catalogue_report(), fmt)
 
 
 @router.get("/estudos/{study_id}.{fmt}")

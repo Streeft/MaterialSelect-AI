@@ -135,6 +135,10 @@ NULL é "ninguém registrou": a citação (`app/domain/citation.py`, devolvida n
 parte de fora, sem "s.d.", sem "[S. l.]" e sem autor inventado; sem título usa o `label`. A migração `d461fbef4da2` os cria
 vazios para toda fonte que já existe.
 
+Desde o D-236 os seis campos se corrigem pela API (`PATCH /api/sources/{id}`, curador): ano entre 1000 e o ano corrente, endereço `http(s)`
+com domínio, acesso não futuro nem anterior ao ano, sem inferir nada; a mudança vai para a auditoria (`entity_type = "source"`). A ficha
+(`MaterialDetail.sources`) cita as fontes de valor, composição, designação, **curva** e **equivalência**, uma vez cada.
+
 ## Curvas de material (D-106, TM4)
 
 Três tabelas que pendem de `MATERIAL` (herdam a visibilidade do D-62), migração

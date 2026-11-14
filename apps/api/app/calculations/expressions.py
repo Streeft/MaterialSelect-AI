@@ -40,7 +40,7 @@ from functools import lru_cache
 from pint.errors import DimensionalityError, OffsetUnitCalculusError
 from pint.util import UnitsContainer
 
-from app.calculations.units import ureg
+from app.calculations.units import get_registry
 
 _MAX_EXPRESSION_LENGTH = 500
 
@@ -456,7 +456,9 @@ def result_dimension(expression: str, canonical_units: dict[str, str]) -> str:
         ExpressionError: if the expression is dimensionally inconsistent.
     """
     tree = parse(expression)
-    quantities = {name: ureg.Quantity(1.0, unit) for name, unit in canonical_units.items()}
+    quantities = {
+        name: get_registry().Quantity(1.0, unit) for name, unit in canonical_units.items()
+    }
     try:
         result = _walk(tree, quantities)
     except ExpressionError:
@@ -483,7 +485,9 @@ def result_unit(expression: str, canonical_units: dict[str, str]) -> str:
     :func:`result_dimension` first: this assumes the expression is consistent.
     """
     tree = parse(expression)
-    quantities = {name: ureg.Quantity(1.0, unit) for name, unit in canonical_units.items()}
+    quantities = {
+        name: get_registry().Quantity(1.0, unit) for name, unit in canonical_units.items()
+    }
     try:
         result = _walk(tree, quantities)
     except Exception as exc:  # consistency was already checked; be defensive
@@ -492,7 +496,7 @@ def result_unit(expression: str, canonical_units: dict[str, str]) -> str:
         return "dimensionless"
     reduced = result.to_reduced_units()
     terms = [
-        (ureg.get_symbol(name), exponent)
+        (get_registry().get_symbol(name), exponent)
         for name, exponent in dict(reduced.units._units).items()
         if abs(exponent) > _DIMENSION_EPSILON
     ]

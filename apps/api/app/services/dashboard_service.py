@@ -754,6 +754,7 @@ class DashboardService:
                 today=day_out(today),
                 ai_daily_limit=settings.ai_daily_requests,
                 notebook_daily_limit=settings.notebook_daily_requests,
+                artifact_daily_limit=settings.notebook_daily_artifacts,
                 fetch_daily_limit=settings.notebook_daily_fetches,
                 days=[day_out(since + timedelta(days=k)) for k in range(AI_DAYS)],
             ),
