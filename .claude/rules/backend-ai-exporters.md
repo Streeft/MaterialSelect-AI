@@ -52,7 +52,14 @@ regras: **ancoragem numérica** (todo número de uma restrição proposta tem de
 aparecer no enunciado do usuário, inclusive quando uma conversão estaria correta)
 e **unidade explícita** (limiar sobre propriedade dimensionada não pode omitir a
 unidade — unidade ausente vira a canônica e, numa escala com offset, inverte o
-sentido do enunciado).
+sentido do enunciado). As duas valem para a origem `usuario`. No assistente de
+projeto (`/ai/plan`, [D-224](../../docs/DECISIONS.md), decisão do usuário em
+12/11/2026) um número pode vir também de um cenário de `use_scenarios.py` (o
+modelo escolhe o id; o servidor expande da tabela) ou ser `sugestao_ia`, que
+exige unidade compatível e valor dentro de `observed_ranges` e não entra na
+execução sem `confirmed`: `sugestao_ia` segue essas salvaguardas, não a ancoragem
+no texto. Não afrouxe nenhuma das três checagens e não deixe o modelo escrever a
+origem `cenario`.
 
 Há quatro provedores: `mock` (padrão, determinístico, sem rede), `claude-api`
 (API da Anthropic, chave própria), `claude-cli` (o Claude Code instalado na

@@ -9,6 +9,9 @@ import { ptBR } from "@/lib/i18n";
 import { installWideViewport } from "@/lib/testing/viewport";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
+import { suggestText } from "@/lib/i18n-suggest";
+import { MAP_URL_KEY } from "@/lib/navMemory";
+import { decodeMapState } from "./url-state";
 import type {
   IndexLineOut,
   IndexLineRequest,
@@ -17,6 +20,7 @@ import type {
   PropertyDefinition,
   PropertyMap,
   PropertyMapRequest,
+  SuggestionsOut,
 } from "@/lib/types";
 
 allowLoadedRunner();
@@ -210,7 +214,11 @@ const getSavedChart = vi.fn((id: number) =>
   Promise.resolve({ id, name: "Metais leves", created_at: "2026-11-01", configuration: { scale: "linear" } }),
 );
 
+const suggestNextSteps = vi.fn<() => Promise<SuggestionsOut>>();
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: () => suggestNextSteps(),
   listProperties: () => Promise.resolve(properties),
   listClasses: () => Promise.resolve([]),
   listPerformanceIndices: () => Promise.resolve(indices),
@@ -233,6 +241,12 @@ function setQuery(query: string) {
 
 function query(): URLSearchParams {
   return new URLSearchParams(window.location.search);
+}
+
+/** What the home's "Último mapa" will open (D-232): the whole address, not just the path. */
+function readMapUrl(): string | null {
+  const raw = window.localStorage.getItem(MAP_URL_KEY);
+  return raw ? ((JSON.parse(raw) as string[])[0] ?? null) : null;
 }
 
 function wrap(node: ReactNode) {
@@ -269,6 +283,7 @@ function line(overrides: Partial<IndexLineOut> = {}): IndexLineOut {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   setQuery("");
   push.mockReset();
   getPropertyMap.mockClear();
@@ -277,6 +292,18 @@ beforeEach(() => {
     Promise.resolve(line(request.level ? { value: request.level, step_index: request.level - 1 } : {})),
   );
   convertMapBox.mockReset();
+});
+
+describe("Mapas — lembra o último mapa com os filtros (D-232)", () => {
+  it("guarda o endereço completo do mapa, e o atualiza quando o leitor mexe", async () => {
+    const user = userEvent.setup();
+    setQuery("sel=1");
+    await open();
+    await waitFor(() => expect(readMapUrl()).toBe("/app/mapas?sel=1"));
+
+    await user.click(screen.getByRole("button", { name: "simular laço" }));
+    await waitFor(() => expect(readMapUrl()).toBe("/app/mapas?sel=1%2C2"));
+  });
 });
 
 describe("Mapas — seleção que vira filtro (D-213)", () => {
@@ -291,8 +318,29 @@ describe("Mapas — seleção que vira filtro (D-213)", () => {
     expect(screen.getByText(t.selectionCount(2))).toBeInTheDocument();
     const compare = screen.getByShadowRole("link", { name: `${t.compareSelection} →` });
     expect(compare).toHaveAttribute("href", "/app/comparar?materiais=1,2");
-    // A lasso is a set of records, not a region: the Chart Stage needs a box.
-    expect(screen.getByText(t.openInSelectionNeedsBox)).toBeInTheDocument();
+    // D-232: a lasso is a set of records, so it opens the Selection as a list
+    // stage (`?materiais=`); the Chart Stage is for a box.
+    const toSelection = screen.getByShadowRole("link", { name: `${t.openInSelection} →` });
+    expect(toSelection).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1,2");
+    expect(screen.getByText(t.openInSelectionListHint)).toBeInTheDocument();
+    expect(screen.queryByText(t.openInSelectionNeedsBox)).not.toBeInTheDocument();
+  });
+
+  it("a lista de pontos marcados também abre a Seleção, e a seleção acima do limite avisa que corta", async () => {
+    setQuery("sel=1-250");
+    await open();
+    const link = await screen.findByShadowRole("link", { name: `${t.openInSelection} →` });
+    expect(link).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1-200");
+    expect(screen.getByText(t.openInSelectionCapped(200))).toBeInTheDocument();
+  });
+
+  it("o painel da seleção passa no axe com o laço e com a caixa", async () => {
+    const user = userEvent.setup();
+    const { container } = await open();
+    await user.click(screen.getByRole("button", { name: "simular laço" }));
+    await screen.findByShadowRole("link", { name: `${t.openInSelection} →` });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
   });
 
   it("“Mostrar só estes no mapa” restringe o mapa pelos mesmos ids, e “Mostrar todos” desfaz", async () => {
@@ -520,5 +568,85 @@ describe("Mapas — mapas clássicos e linha de índice móvel (D-213)", () => {
     screen.getByTestId("plotly-mock").setAttribute("hidden", "");
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});
+
+describe("Mapas — Sugestão da IA (D-229)", () => {
+  function answer(): SuggestionsOut {
+    return {
+      tool: "mapas",
+      summary: "Três caminhos.",
+      suggestions: [
+        {
+          title: "Troque o eixo Y",
+          body: "A resistência tem mais valores.",
+          actions: [{ type: "set_axes", label: "Usar estes eixos", x: "densidade", y: "limite_escoamento" }],
+        },
+        {
+          title: "Abrir o mapa clássico",
+          body: "Leveza e resistência.",
+          actions: [{ type: "apply_preset", label: "Abrir este mapa", id: "resistencia-densidade" }],
+        },
+        {
+          title: "Índice do mapa",
+          body: "A linha do índice separa os melhores.",
+          actions: [{ type: "set_index", label: "Usar este índice", slug: "viga-leve-rigidez" }],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    };
+  }
+
+  beforeEach(() => {
+    suggestNextSteps.mockReset();
+    suggestNextSteps.mockResolvedValue(answer());
+  });
+
+  it("não consulta a IA ao abrir; “Usar estes eixos” troca os eixos no endereço", async () => {
+    const user = userEvent.setup();
+    await open();
+    expect(suggestNextSteps).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Usar estes eixos" }));
+    await waitFor(() => expect(query().get("estado")).not.toBeNull());
+    const state = decodeMapState(query().get("estado") ?? "");
+    expect(state?.xAxis?.property).toBe("densidade");
+    expect(state?.yAxis?.property).toBe("limite_escoamento");
+    await waitFor(() =>
+      expect(getPropertyMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({ x: "densidade", y: "limite_escoamento" }),
+      ),
+    );
+  });
+
+  it("“Abrir este mapa” aplica o mapa clássico e “Usar este índice” troca o índice", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Abrir este mapa" }));
+    await waitFor(() =>
+      expect(decodeMapState(query().get("estado") ?? "")?.yAxis?.property).toBe("limite_escoamento"),
+    );
+    // On a narrow window the panel folds after an action; the answer is kept.
+    expect(screen.queryByRole("button", { name: "Usar este índice" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Usar este índice" }));
+    await waitFor(() =>
+      expect(decodeMapState(query().get("estado") ?? "")?.indexMode).toBe("viga-leve-rigidez"),
+    );
+  });
+
+  it("o contexto enviado é o que o mapa mostra: eixos e índice", async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole("button", { name: suggestText.button }));
+    await screen.findByText("Troque o eixo Y");
+    expect(suggestNextSteps).toHaveBeenCalledTimes(1);
   });
 });

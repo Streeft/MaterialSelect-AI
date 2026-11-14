@@ -120,6 +120,227 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 192b — 13/11/26 — F7: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático (D-235b)
+
+**O que mudou.** Backend: `app/domain/notebook_templates.py` (Disciplina de Materiais, Revisão para prova, Projeto de TCC, Em branco),
+`GET /api/notebooks/templates`, `template` no `POST /api/notebooks` (objetivo da conversa e notas de partida), coluna
+`notebook_note.position` com a migração `e575ea7c3f24` e `PUT /api/notebooks/{id}/notes/order` (lista inteira, sem repetir); duplicar
+copia a posição. Frontend: "Novo caderno" em `SplitButton` com os modelos e a lista vazia com eles como portas; notas do Estúdio em
+`Block` com alça e Alt+↑/↓; `SlashTextarea` com "/" (título, listas, citação, tabela, divisória, ficha de material como link);
+`ToolTile` monocromático; aviso do provedor como chip no cabeçalho (o `Alert` fica só com a IA desligada). Testes novos: pytest
+`test_notebook_templates_notes_order` e vitest em `cadernos`, `estudio` e `SlashTextarea` (com axe). **Depois do merge: Deploy da API
+(com migração).**
+## Sessão 192 — 13/11/26 — Grupo D (qualidade): numeração, Lighthouse medido, tema escuro no E2E, catálogo exportado em lotes e imports sob demanda (D-235)
+
+**O que mudou.** Numeração: o F6 virou D-232b/Sessão 189b (regra do D-226) e as referências foram atualizadas. `lighthouserc.json` com
+limiares medidos (performance 0,9; acessibilidade 0,95; boas práticas 0,9; SEO 0,9; FCP 2000, LCP 3000, TTI 4000, TBT 300 ms; CLS 0,05).
+Auditoria do tema escuro e de 1920 px (25 rotas): um defeito de contraste no `/app/estilo` corrigido; passada escura de axe no E2E. O
+teste `assistente-projeto.spec.ts` espera o estado da tela de destino em vez dos 5 s do padrão. `catalogue_report` lê os materiais em
+lotes de 100 (`list_material_ids`) e `to_xlsx` usa o modo `write_only`: pico de 82,4 → 33,4 MB (CSV) e 93,8 → 22,0 MB (XLSX). `openpyxl`,
+`python-docx` e `python-pptx` importados dentro das funções (`app/exporters/emu.py` no lugar de `pptx.util`): RSS na partida 137,0 → 115,8 MB.
+Testes novos: duas rotas de exportação no `test_memory_per_request.py` e as 31 rotas no tema escuro do `a11y.spec.ts`; o teste do
+`read_xlsx` agora troca `openpyxl.load_workbook`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
+## Sessão 191 — 13/11/26 — Fluxos entre telas, parte 16: a IA marca o número que escolheu, A × B na Eco, curva de custo por material e fim do `/ai/interpret` (D-234)
+
+**O que mudou.** Backend: `set_param` ganha `origin` (`contexto` | `sugestao_ia`) e `NumberRange` (faixa da validação do pedido) em
+`app/ai/suggest.py` — um número que o modelo escolheu dentro da faixa fica marcado "(sugestão da IA, revise)", fora dela é recusado com
+o motivo; Sintetizar ganha faixas nos quatro parâmetros e a Eco em `part_mass`; o contexto de `eco` aceita `{comparison}` (A × B
+recalculado no servidor) e, no produto, `part_mass` vale só para um componente; `build_difference_waterfall` e os campos
+`energy_difference_waterfall`/`carbon_difference_waterfall` em `/eco/comparar` (total = totais auditados subtraídos); `POST
+/api/custo/curvas` com `cheapest_envelope` (curva de cada material = o processo mais barato em cada lote, quadro log-log comum);
+recaída do 429 da busca na web para `WEB_SEARCH_FALLBACK_MODEL` com `quotaId`/limite no log; removidos `POST /api/ai/interpret`,
+`AIService.interpret` e os esquemas que só ele usava. Workflow **Provedor de IA**: entrada `modelo_busca_web`. Frontend:
+`AISuggestPanel` pede confirmação para `sugestao_ia`; Eco com sugestões na comparação e cascata da diferença
+(`PhaseWaterfall variant="difference"`); Custo com `MaterialCostCurvesChart`; saiu `interpretStatement`. Testes novos: pytest
+(`test_ai_suggest`, `test_eco_waterfall`, `test_part_cost`, `test_part_cost_api`, `test_integrations_gemini_search`, portão
+pesado) e vitest com axe em `AISuggestPanel`, Eco, `ecoBrief`, Custo e Sintetizar; testes que usavam `/ai/interpret` foram
+reescritos sobre o provedor ou `/ai/explain`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
+## Sessão 190 — 13/11/26 — Ficha, Admin e Cadernos, parte 15: citar fonte, mover classe, posição do trecho e lotes (D-233)
+
+**O que mudou.** Backend: `source` ganha autores, título, editora, ano, URL e data de acesso (todos nuláveis; o importador oficial lê
+as chaves opcionais do manifesto) e a ficha devolve `sources` com o texto ABNT montado em `app/domain/citation.py`, sem "s.d." nem
+autor inventado; `PATCH /api/classes/{id}` só com `parent_id` (sem ciclo, sem apagar a prosa); `PATCH /api/properties/{id}` com nome,
+descrição e unidade de leitura; `notebook_chunk.char_start/char_end` preenchidos pelo chunker (mapa de normalização) e devolvidos nas
+citações; `duplicate?with_conversation=true` (conversa, itens prontos do Estúdio e notas, com as citações reapontadas);
+`POST /api/notebooks/batch-archive` e `POST /api/materials/batch-delete`, tudo ou nada; coluna própria
+`selection_stage.material_ids`. **Uma migração** (`d461fbef4da2`, autogenerate editada para mover os dados, subida e descida
+testadas). Frontend: seção "Fontes desta ficha" com "Citar fonte (ABNT)" (copia o texto do servidor); "Mover para…" na árvore de
+classes e "Editar" nas propriedades (diálogos); o leitor marca o trecho por posição (`?trecho=`), com a busca por palavras como
+recaída; "Duplicar com conversa"; "Selecionar" e arquivar/desarquivar em lote com confirmação e Desfazer; excluir registros próprios
+em lote em "Meus registros" (e a seção deixou de sumir no computador). Testes novos: sete arquivos de pytest, vitest com axe em
+cada tela e E2E `curadoria.spec.ts`. **Depois do merge: Deploy da API** (o `release_command` roda `alembic upgrade head`). Sem seed.
+
+## Sessão 189 — 13/11/26 — Fluxos entre telas, parte 14: a Seleção recebe uma lista de materiais (D-232)
+
+**O que mudou.** Backend: sexto tipo de estágio, `list` (`StageIn.material_ids`, 1 a 200; `IdSelection` em `domain/filters.py`; funil
+`in_list`; só estudo de materiais; vazio 400, id desconhecido ou invisível 404 citando o número, teto 422); guardado sem migração
+como inteiros na coluna JSON `material_class_slugs`; relatório e laudo com os nomes; arquivo de estudo recusa a lista (o arquivo não
+leva id de registro). Frontend: `?materiais=` abre a Seleção restrita (estágio de lista + estágio de limites vazio, rascunho,
+`lib/selectionList.ts`); "Abrir na Seleção" no laço e nos pontos marcados do Mapa, nos candidatos do Dimensionar e na seleção do
+Catálogo, que agora **atravessa páginas** (`?sel=`, "N selecionados em várias páginas", "Limpar seleção"); Comparar vazio ganha
+"Comparar o top do estudo …" (executa o estudo salvo mais recente e leva os 5 primeiros); "Último mapa" do Início reabre o
+endereço inteiro do mapa (`msai.nav.mapUrl`). Testes novos: `test_selection_list_stage.py`; vitest com axe nas cinco origens e no
+cartão do estágio; E2E `mapa-para-selecao.spec.ts`. **Depois do merge: Deploy da API.** Sem migração nem seed.
+## Sessão 189b — 13/11/26 — F6: Início em blocos, Favoritos na barra lateral e Meus registros com visões (D-232b)
+
+**O que mudou.** O Início vira blocos móveis e ocultáveis abaixo da caixa de escrever (`components/home/HomeBlocks.tsx`), com a
+arrumação na conta: `LayoutBlocks` generaliza o `OverviewBlocks` do Painel e o backend aceita o escopo `inicio` (só layout; sem
+migração). Bloco sem conteúdo diz isso numa linha. A barra lateral ganha "Favoritos" (registros com estrela, da conta). "Meus
+registros" ganha visões em `?visao=` e o vazio dos registros próprios leva a "Novo material" e "Sintetizar". As sugestões do composer
+ficam numa linha rolável no celular. Testes: `test_saved_views_api.py` (+1: Início guarda um layout e nenhuma visão),
+`layoutBlocks.test.tsx` (ordem da conta, bloco vazio, Alt+↓ grava no escopo `inicio`), "Favoritos" no `shellNav.test.tsx`, visões e
+portas do vazio em `meus-registros.test.tsx`, `?visao=` em `myRecordsFilter.test.ts`. Depois do merge: **Deploy da API**.
+
+## Sessão 188 — 13/11/26 — API: memória e estabilidade em produção (D-231)
+
+**O que mudou.** `fly.toml`: `[[vm]] memory` de `512mb` para `1gb`, depois de quatro mortes por falta de memória (exit 137) em
+três minutos na produção. Um worker continua. Nota em `docs/13-deploy.md` (§2, "Memória da VM"). Concorrência do proxy de
+40/60 para 5/8, e um portão no app (`heavy_request_gate.py`, `HEAVY_REQUEST_CONCURRENCY=2`, `HEAVY_REQUEST_WAIT_SECONDS=20`)
+nas rotas pesadas: a terceira espera e, esgotada a espera, recebe 503 com `Retry-After`. Testes novos:
+`test_heavy_request_gate.py`. **Depois do merge: Deploy da API.**
+
+**Parte 13 (consumo na origem e numeração).** Seleção monta o retrato por duas consultas de colunas
+(`SelectionRepository.active_material_rows`); `ChartRepository.list_materials` com `selectinload` e o filtro `property_slugs`
+(mapa, Dimensionar, Find Similar, rotas de fim de vida); Custo e Eco leem só o material pedido; o catálogo conta proveniência e
+referências no banco (`value_facts`, `sort_values`). `MALLOC_ARENA_MAX=2` no `Dockerfile.api`; teto de 50 000 janelas no limite por
+minuto. Medido (Postgres local, 678 materiais): pico por requisição de 134–166 MB para 0,5–11 MB nas telas pesadas e de 53 para
+7 MB no catálogo; 10 clientes simultâneos, RSS de 1454 para 211 MB; as 41 respostas do roteiro iguais antes e depois. Testes novos:
+`test_memory_per_request.py` (falhava em 14 de 17 rotas antes), `test_ai_cache_bounds.py` e o teto em `test_rate_limit.py`.
+Numeração: o painel "Sugestão da IA" das oito telas (#251) virou **D-230b/Sessão 187b** pela regra do D-226 (os pares clássicos do
+#252 ficam com D-230/187), com as referências do código atualizadas; o corpo da Sessão 187 dos pares, que estava numa "Sessão 186
+… (D-229)" duplicada, voltou para o lugar.
+
+## Sessão 187b — 13/11/26 — Painel "Sugestão da IA" nas oito telas restantes (D-230b)
+
+**O que mudou.** Frontend: `AISuggestPanel` ganhou `accepts` (a tela recusa a ação que não sabe aplicar) e o painel foi ligado em
+Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros, Admin → Classes e Admin → Propriedades. `set_param` escreve
+na URL (`useUrlState`) e a tela recalcula só o que já recalcularia; o campo que mudou recebe um anel breve (`lib/ai/revealField.ts`,
+`data-ai-field`, `[data-ai-changed]` em `globals.css`); `fill_text` preenche a descrição do formulário sem gravar (a descrição virou
+`Textarea`, e o formulário de propriedades ganhou o campo, que o contrato já aceitava); `compare` e `open_route` são links.
+`aiParamPatch` em `eco/ecoBrief.ts`; `i18n-suggest.ts` com `needsBrief`, `individualOnly` e `needsName`; título "Premissas desta
+conta" da Eco passou de `h4` para `h3` (axe). Testes novos: um bloco "Sugestão da IA" em `custo`, `eco`, `baterias`,
+`dimensionar`, `sintetizar`, `painel`, `meus-registros` e `admin/classes` e `admin/propriedades`; `ecoBrief.test.ts`,
+`revealField.test.ts`, `suggest.test.ts` e `AISuggestPanel.test.tsx`; `e2e/sugestao-ia.spec.ts` (Custo e Admin, com o `mock`).
+
+**Para quem retoma.** Só frontend: sem **Deploy da API**, migração ou seed. As 15 telas têm o painel. Pendência para o backend:
+`ai_suggest.py` não dá valores alternativos em Sintetizar (ver o D-230b).
+
+**Numeração.** Entrou como Sessão 187/D-230 pelo #251, o mesmo número dos pares clássicos (#252); pela regra do D-226 virou
+187b/D-230b no D-231.
+
+## Sessão 187 — 12/11/26 — Pares clássicos do Comparar acham o material certo (D-230)
+
+**O que mudou.** `apps/web/lib/compareClassics.ts`: cada lado de um par tem classe e termos do mais específico ao mais geral; o
+termo casa só como palavra inteira e o nome que é ou começa pelo termo vence o que só o menciona (`matchRank`). Corrige "aço" →
+argamassa "Traço 1:3", "titânio" → aço inoxidável estabilizado ao titânio, "PP" → compósito NFRP de cânhamo e "vidro" → BMC
+Vidro-E. `CompareSuggestions` passa a pedir `class_slug`. Testes: `compareClassics.test.ts` ganhou 6 (os casos errados do catálogo
+local e a classificação do nome).
+
+**Para quem retoma.** Só frontend; deploy pela Vercel no merge. Achado ao regravar o vídeo da banca, que usa o par
+"Cobre × Alumínio" — esse par resolve para os mesmos dois materiais de antes.
+
+## Sessão 186 — 12/11/26 — Painel "Sugestão da IA" em sete telas (D-229)
+
+**O que mudou.** Frontend: `components/ai/AISuggestPanel.tsx` (+ `useAISuggest.ts`, `lib/ai/suggest.ts`, `lib/i18n-suggest.ts`,
+consulta de contêiner `.ai-suggest` em `globals.css`) e o painel ligado em Mapas, Comparar, Catálogo, Ficha do material,
+Glossário, Processos (lista e ficha) e Importar, cada tela com o seu `onAction` real; `mapHrefForAxes` em `mapas/mapUrl.ts`;
+`i18n.ts` (`ptBR.map`) e `i18n-compare-view.ts` com as frases novas. O botão só consulta a IA ao clicar. Testes novos:
+`AISuggestPanel.test.tsx`, `lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em `mapas.test.tsx`, `comparar-ia.test.tsx`,
+`catalogo.test.tsx`, `ficha-layout.test.tsx`, `glossario.test.tsx`, `processos.test.tsx` e `importar.test.tsx`, e
+`e2e/sugestao-ia.spec.ts` (Mapas troca os eixos na URL; Catálogo aplica um filtro).
+
+**Para quem retoma.** Só frontend: sem deploy da API, migração ou seed. A IA-2b (Dimensionar, Custo, Eco, Baterias, Sintetizar,
+Painel, Meus registros e Admin) reutiliza `AISuggestPanel` (`tool`, `context`, `actions`, `onAction`, `linkFor`,
+`disabledReason`).
+
+## Sessão 185 — 12/11/26 — IA gratuita do Google em todas as funções e sugestões em todas as ferramentas (D-228)
+
+**O que mudou.** Backend: `GET /api/ai/status` ampliado (modelo, host, modo JSON, embeddings e as quatro capacidades);
+`POST /api/ai/diagnostico` (`app/services/ai_diagnostics.py`, `probe()` nos provedores, contador próprio por hora);
+`POST /api/ai/suggest` com 16 ferramentas (`app/ai/suggest.py` — contrato, leitura e guardrails; `app/services/ai_suggest.py` —
+contexto validado e enriquecido por ferramenta; `suggest()` no mock e no `ModelProviderBase`); `openai_compat` desce sozinho de
+`schema` para `object`/`prompt` quando o servidor recusa o formato e traduz o 429 do Google (`app/ai/google_quota.py`,
+`QuotaExhaustedError`); orçamento de tempo na recuperação dos Cadernos (`embed_query` compartilhado). Configuração nova:
+`AI_SUGGEST_TIMEOUT_SECONDS`, `AI_SUGGEST_MAX_OUTPUT_TOKENS`, `AI_SUGGEST_CACHE_SECONDS`, `AI_DIAGNOSTIC_PER_HOUR`,
+`NOTEBOOK_RETRIEVAL_BUDGET_SECONDS`. Frontend: tipos em `packages/shared-types`, `runAIDiagnostico` e `suggestNextSteps` em
+`lib/api.ts`, cartão "Diagnóstico da IA" em Aparência (`AIDiagnosticsCard`). Testes novos: `test_ai_suggest.py`,
+`test_ai_diagnostico.py`, `test_ai_gemini.py`, dois em `test_notebook_retrieval.py`, `AIDiagnosticsCard.test.tsx`; dois testes de
+`test_ai_openai_compat.py` passaram a fixar a descida automática do modo JSON.
+
+**Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Em produção, Aparência → "Testar a IA agora"
+(ou `POST /api/ai/diagnostico`). As 15 telas recebem o painel de sugestões nas etapas IA-2a e IA-2b.
+
+## Sessão 184 — 12/11/26 — Banco sem conexões ociosas (D-227)
+
+**O que mudou.** `app/db/base.py`: banco de servidor usa `NullPool` (padrão), `DB_POOL_MODE=queue` volta ao pool de 5 + 5; novo
+`db_pool_mode` em `config.py`; `.env.example` (raiz e `apps/api`); nota em `docs/13-deploy.md`. Testes: `test_db_pool_mode.py`
+(5; dois precisam do `psycopg` instalado e pulam sem ele) e o teste do pool em `test_auth_callback_resilience.py` passou a pedir `queue`.
+
+**Para quem retoma.** Depois do merge: **Deploy da API**; sem migração nem seed. Conferir no Neon que a computação suspende.
+## Sessão 183 — 12/11/26 — Fechamento da revisão das telas (D-226)
+
+**O que mudou.** `e2e/a11y.spec.ts` (axe em toda rota de `e2e/rotas.ts`, a 1280 e 390 px, sem regra desligada) e
+`e2e/mobile.spec.ts` (390 px com toque: sem rolagem lateral e alvos de 44 px em 13 páginas e na ficha). Correções que o axe
+achou: barra do Plotly dentro de `role="img"` (agora `usePlotlyResize(figureLabel)` põe a imagem só na camada `.main-svg` e o
+contêiner é `group`), rolagem vertical invisível nas fórmulas (`MathTex`), região focável e contraste em `/app/estilo`. `globals.css`
+ganhou a área de toque de 44 px para todo botão e link fora de texto corrido, e altura mínima para campos, `summary`, abas e
+linhas de checkbox em ponteiro grosso. Numeração antiga desambiguada: glossário passou a D-130b, Sessões 84b, 98b e 115b, a cópia
+repetida da D-199 saiu; regra no D-226. `TCC_GUIA.md` ganhou a seção 4.6 (Fases 0 a 5 e assistente). Teste novo:
+`usePlotlyResize.test.tsx`; `RagoneChart.test.tsx` ajustado ao `group`.
+
+**Para quem retoma.** Sem migração e sem Deploy da API. A auditoria visual antes/depois e as medições do Lighthouse estão no
+relatório do scratchpad da sessão (não vai ao repositório); os números do Lighthouse entram no D-226.
+
+---
+
+## Sessão 182 — 12/11/26 — Assistente de projeto com IA, etapa B: interface (D-225)
+
+**O que mudou.** Início: o `HomeComposer` virou o "Assistente de projeto" (`/ai/plan`, `mode: "project"`, Ctrl/⌘+Enter, fases
+da espera com skeleton e `aria-live`, erro com "Tentar de novo", volta ao comportamento antigo com a IA desligada, chips
+"Roupa de esqui" e "Prédio para 50 pessoas"). Novos `components/ai/PlanView`, `PlanComponentCard` e `ConstraintOriginChip`: a
+proposta mostra resumo, premissas, perguntas, cenários com fonte e, por parte, função, objetivo, índice, limites com a origem
+(Você / Cenário: nome / Sugestão da IA, revise) e até 5 materiais com link e motivo. Sugestão da IA vem desmarcada; marcar pede
+confirmação e chama `/ai/plan/run`. "Abrir na Seleção" grava o `study` no rascunho da Seleção (D-139/D-210) e a Seleção o
+continua sem perguntar (`?rascunho=assistente`); "Comparar estes materiais" e "Ajustar o pedido". Seleção: o `AIAssistPanel` usa
+`mode: "single"`, interpreta ao digitar (1,5 s, 15 caracteres, `AbortController`) e "Aplicar ao estudo" é a ação `plan` do
+reducer. `lib/api.ts`: `planProject(payload, signal)` e `runPlan`. Textos em `lib/i18n-plan.ts`. Princípio 2 aplicado em
+`CLAUDE.md`, `docs/CLAUDE.md` e `.claude/rules/backend-ai-exporters.md`. Testes: `PlanView.test.tsx`, `AIAssistPanel.test.tsx`,
+`composer.test.tsx` (reescrito), `lib/ai/plan.test.ts`, `lib/selection/planDraft.test.ts`, casos novos em `wizardState.test.ts`
+e `selecao.test.tsx`, e `e2e/assistente-projeto.spec.ts` (roupa de esqui, prédio, comparar, Seleção).
+
+**Para quem retoma.** Sem migração e sem Deploy da API próprio. O catálogo do E2E é o seed pequeno: na "roupa de esqui" as três
+partes saem sem material (o cartão diz isso, sem inventar); no "prédio", a estrutura e a vedação trazem dois. O `/ai/interpret`
+segue na API sem uso na interface.
+
+---
+
+## Sessão 181 — 12/11/26 — Assistente de projeto com IA, etapa A: backend e desenho (D-224)
+
+**O que mudou.** Backend: `POST /api/ai/plan` transforma um pedido em linguagem comum ("quero fazer uma roupa de esqui", "um
+prédio que caiba 50 pessoas") numa proposta de projeto (`ProjectPlanOut`): partes, limites com a origem do número (`usuario`,
+`cenario:<id>`, `sugestao_ia`, `indice`), fonte e rótulo, e os 5 primeiros materiais do catálogo pela seleção determinística
+(`SelectionService.run`), com o motivo e um `StudyIn` pronto para a Seleção. `POST /api/ai/plan/run` roda de novo com as escolhas
+da pessoa (sugestão só com `confirmed`; números de cenário relidos da tabela), sem modelo e sem cota. Novos: a tabela curada
+`app/domain/use_scenarios.py` (16 cenários), `app/ai/plan.py` (prompt e schema sem `value`/`unit` obrigatórios),
+`app/ai/rule_plan.py` (o plano por regras do `mock` e da degradação), `app/services/ai_plan.py` (origens, precedência, execução),
+`check_scenario`/`check_level`/`check_suggested_range` em `guardrails.py`, `nearest_template` e palavras-chave nos modelos prontos.
+Desempenho: o contexto dos prompts deixou de ler `list_materials` (quatro consultas leves e cache por leitor), o embedding do
+Cérebro tem orçamento de 2 s e cai na léxica, o plano chama o modelo com 6000 tokens, 30 s e uma tentativa extra, e o mesmo pedido
+reaproveita o plano por 10 min sem gastar cota. `.env.example` da raiz: `AI_TIMEOUT_SECONDS` 20 → 90, como o código. Frontend: só
+os tipos em `packages/shared-types` (`ProjectPlan`, `PlanRunRequest`…). Testes: `test_use_scenarios.py` e `test_ai_plan.py`.
+
+**Para quem retoma.** Não há migração. Depois do merge, **Deploy da API**. A Etapa B (Início e Seleção) usa os tipos novos. O texto
+revisado do princípio 2 para `CLAUDE.md`, `docs/CLAUDE.md` e `.claude/rules/backend-ai-exporters.md` está no PR, para o autor
+aplicar (TODO).
+
+---
+
 ## Sessão 180 — 12/11/26 — Segurança, limite por minuto, cache das listas e escritas sem N+1 (D-223)
 
 **O que mudou.** Backend: o token de sessão é guardado como SHA-256 (`app/domain/session_token.py`), e as linhas antigas, com o token
@@ -660,7 +881,7 @@ documentação: nenhum código, migração ou seed.
 **O que mudou.** `lib/compare-link.ts` lê e escreve `materiais`, `referencia`, `limiar`, `calculadas` (slugs) e `indice` (repetido; uma expressão pode ter vírgula). A página escreve o endereço a cada mudança e traz um "Copiar link". Expressão que chega no link passa pelo mesmo validador de `POST /api/selection/index` antes de entrar no pedido (a tabela espera a resposta); recusada, fica de fora com a mensagem do servidor, escrita. Slug de catálogo que não existe mais é dito. Nada vai para o navegador.
 
 **Resíduos.** Propriedades e normalização fora do link; comparação salva com nome exige backend e decisão do autor.
-## Sessão 115 — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
+## Sessão 115b — 21/10/26 — Tolerância por propriedade no Find Similar (D-158)
 
 **O que mudou.** Fecha o resíduo do D-155. `SimilarRequest` aceita `tolerances` (slug → percentual, 0 < x ≤ 100, finito), que passa por
 cima de `tolerance_pct` só naquela propriedade; propriedade sem nenhuma das duas fica sem faixa. A validação está no schema com mensagem
@@ -911,7 +1132,7 @@ verdadeiro). As mensagens de sintaxe e de construção não permitida do avaliad
 
 ## Sessão 106 — 19/10/26 — Notas de família de materiais (D-151)
 
-**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130): cinco notas autorais, uma por família de
+**O que mudou.** Lacuna do EduPack fechada no desenho do glossário (D-130b): cinco notas autorais, uma por família de
 `seed.CLASSES`, em `apps/api/app/glossary/families.json` (o que a família é, por que se comporta assim, quando escolher, cuidados),
 validadas por `app/domain/family_notes.py` (sem algarismo no texto, campo desconhecido recusado, slug único, cobertura do seed) e
 servidas por `GET /api/familias/notas` e `/{slug}`. No frontend, `lib/familyNotes.ts`, `FamilyNote` dobrada sob a classe na ficha
@@ -993,7 +1214,7 @@ origem (D-31) lista também os passos sem índice com o motivo. Erros 400/404/42
 `packages/shared-types`, `sweepSynthesis` em `lib/api.ts`. +14 de frontend (axe, tabela, passo sem
 índice, faixa, erros, estado vazio). Frontend em 1230. Pós-merge: só o frontend (Vercel).
 
-## Sessão 98 — 17/10/26 — Gráfico de Ragone das baterias (D-143)
+## Sessão 98b — 17/10/26 — Gráfico de Ragone das baterias (D-143)
 
 **O que mudou.** Backend: `ragone_iso_time_lines` e `ragone_bounds` em `calculations/battery.py`
 (linhas E = P·t recortadas à caixa do gráfico), `BatteryService.ragone`, `GET /api/baterias/ragone`
@@ -1180,7 +1401,7 @@ mesclado sem as linhas de documentação, que entram aqui.
 **Pendente (plano de 9 itens).** Tabelas ordenáveis com seleção em massa, home
 estilo Drive, rascunho salvo na Seleção, transições de tela, app instalável,
 Cadernos em grade, regressão visual — em `TODO.md`.
-## Sessão 84 — 15/10/26 — Glossário de propriedades (D-130)
+## Sessão 84b — 15/10/26 — Glossário de propriedades (D-130b)
 
 **O que mudou.** Lacuna nº 7 do relatório do EduPack. Verbetes **conceituais**
 (o que a grandeza significa e como se mede, nunca quanto vale) para os 15 slugs

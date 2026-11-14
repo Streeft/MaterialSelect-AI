@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProcess } from "@/lib/api";
 import type { ProcessAttributeValue } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { AttributeValueText } from "@/components/process/AttributeValueText";
@@ -76,6 +77,17 @@ export default function ProcessDetailPage() {
           { label: data.class_name, href: `/app/processos/familia/${data.class_slug}` },
           { label: data.name },
         ]}
+      />
+
+      <AISuggestPanel
+        tool="processos"
+        context={{ slug }}
+        actions={["search", "open_route"]}
+        // D-229: this page has no search box; a proposed search opens the list with it.
+        linkFor={(action) =>
+          action.type === "search" ? `/app/processos?busca=${encodeURIComponent(action.q)}` : null
+        }
+        onAction={() => {}}
       />
 
       {/* D-215: the process sheet in the material sheet's mould — a document

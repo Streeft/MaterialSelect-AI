@@ -14,8 +14,14 @@ Instruções para agentes/contribuidores trabalhando neste repositório. Esta é
 1. **Não inventar propriedades de materiais.** Só existem valores explicitamente
    cadastrados ou importados.
 2. **Todo cálculo numérico é determinístico e vive no backend** (camadas
-   `calculations` / `domain`). A camada de IA **nunca** produz valores
-   numéricos — apenas interpreta, sugere e explica.
+   `calculations` / `domain`). A camada de IA **nunca** produz valores de
+   propriedade nem resultado de cálculo — interpreta, sugere e explica. Um
+   *limite* de uma proposta tem três origens, nesta ordem (decisão do usuário em
+   12/11/2026, [D-224](docs/DECISIONS.md)): o texto do usuário (ancorado, D-08);
+   um cenário da tabela curada `app/domain/use_scenarios.py`, com fonte; ou, em
+   último recurso, uma faixa sugerida pela IA, conferida contra unidade e faixa
+   do catálogo, marcada "Sugestão da IA, revise" e **nunca aplicada sem
+   confirmação**. A seleção e os materiais vêm sempre do servidor.
 3. **Dado ausente nunca vira zero.** Use `is_missing=True` com campos numéricos
    `NULL`. A regra está centralizada em `app/domain/data_quality.py`.
 4. **Rastreabilidade de unidades:** preserve valor original + unidade original +

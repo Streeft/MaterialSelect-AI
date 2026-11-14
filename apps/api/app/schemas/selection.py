@@ -55,6 +55,11 @@ MAX_CONSTRAINT_GROUP_CHILDREN = 25
 # costs a full pass over the catalogue.
 MAX_STAGES = 20
 
+# The most materials one list stage names (D-232). The ids travel in the address
+# of the Selection page, so the cap is what keeps that address readable by every
+# browser and proxy; 200 is far past a shortlist a reader can still argue about.
+MAX_STAGE_MATERIAL_IDS = 200
+
 #: Which universe a study returns (P0-3). "material" is the default and what
 #: every study saved before P0-3 does.
 UniverseLiteral = Literal["material", "process"]
@@ -198,9 +203,12 @@ class StageIn(BaseModel):
     * ``kind="chart"``: ``chart`` (P1-2) — a region of one plane. The only stage
       that reaches a *derived* quantity, because a limit stage names property
       slugs and an index is not one.
+    * ``kind="list"``: ``material_ids`` (D-232) — the universe restricted to a
+      named set of materials, in a material study. What a lasso on the map, the
+      sizing shortlist and the catalogue's ticks hand to the Selection.
     """
 
-    kind: Literal["limit", "tree", "process", "material", "chart"] = "limit"
+    kind: Literal["limit", "tree", "process", "material", "chart", "list"] = "limit"
     label: str | None = Field(default=None, max_length=200)
     enabled: bool = True
 
@@ -216,6 +224,8 @@ class StageIn(BaseModel):
     material_class_slugs: list[str] = Field(default_factory=list)
     # kind === "chart" (P1-2): the plane, the box and the line.
     chart: ChartStageIn | None = None
+    # kind === "list" (D-232): the materials the study is restricted to.
+    material_ids: list[int] = Field(default_factory=list, max_length=MAX_STAGE_MATERIAL_IDS)
     # Shared by every folder-selecting stage: a folder means what is under it.
     include_descendants: bool = True
     notes: PlainNote = None
@@ -230,7 +240,7 @@ class StageOut(BaseModel):
     """
 
     position: int
-    kind: Literal["limit", "tree", "process", "material", "chart"]
+    kind: Literal["limit", "tree", "process", "material", "chart", "list"]
     label: str | None = None
     enabled: bool
     root_group: ConstraintGroupIn | None = None
@@ -239,6 +249,7 @@ class StageOut(BaseModel):
     process_class_slugs: list[str] = Field(default_factory=list)
     material_class_slugs: list[str] = Field(default_factory=list)
     chart: ChartStageIn | None = None
+    material_ids: list[int] = Field(default_factory=list)
     include_descendants: bool = True
     notes: str | None = None
 

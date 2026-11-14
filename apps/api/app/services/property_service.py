@@ -14,7 +14,11 @@ from app.repositories.audit_repository import AuditRepository
 from app.repositories.property_definition_repository import (
     PropertyDefinitionRepository,
 )
-from app.schemas.property import PropertyDefinitionIn, PropertyDefinitionOut
+from app.schemas.property import (
+    PropertyDefinitionIn,
+    PropertyDefinitionOut,
+    PropertyDefinitionPatch,
+)
 from app.services.audit_service import diff_fields, record_change
 
 
@@ -141,6 +145,59 @@ class PropertyService:
         obj.is_interval = payload.is_interval
         obj.better_direction = payload.better_direction
         obj.allows_log_scale = payload.allows_log_scale
+
+        changes = diff_fields(before, self._snapshot(obj))
+        if changes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.PROPERTY_DEFINITION,
+                entity_id=obj.id,
+                entity_label=obj.name,
+                action=AuditAction.ATUALIZADO,
+                changes=changes,
+            )
+        self.repo.commit()
+        return self._to_out(obj, self.repo.value_count(property_id))
+
+    def patch_property(
+        self, property_id: int, payload: PropertyDefinitionPatch
+    ) -> PropertyDefinitionOut:
+        """Name, description and reading unit — the edits that move no stored number (D-233).
+
+        The reading unit goes through the same checks as on create (compatible
+        with the property's own dimension, and among its accepted units): a
+        convention that does not fit would print plausible, wrong numbers on every
+        screen. Slug, dimension and canonical unit are not reachable from here.
+        """
+        obj = self.repo.get(property_id)
+        if obj is None:
+            raise NotFoundError(f"Propriedade não encontrada: {property_id}")
+        before = self._snapshot(obj)
+        sent = payload.model_fields_set
+
+        if "name" in sent:
+            name = (payload.name or "").strip()
+            if not name:
+                raise ValidationError("O nome da propriedade não pode ficar em branco.")
+            if self.repo.name_exists(name, exclude_id=property_id):
+                raise ConflictError(f"Já existe uma propriedade com o nome: {name}")
+            obj.name = name
+        if "description" in sent:
+            obj.description = (payload.description or "").strip() or None
+        if "display_unit" in sent:
+            display_unit = (payload.display_unit or "").strip() or None
+            self._validate_units(
+                PropertyDefinitionIn(
+                    name=obj.name,
+                    category=obj.category,
+                    physical_dimension=obj.physical_dimension,
+                    canonical_unit=obj.canonical_unit,
+                    accepted_units=list(obj.accepted_units or []),
+                    display_unit=display_unit,
+                )
+            )
+            obj.display_unit = display_unit
 
         changes = diff_fields(before, self._snapshot(obj))
         if changes:

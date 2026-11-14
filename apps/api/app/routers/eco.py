@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, heavy_request
 from app.domain.errors import ValidationError
 from app.models.user import User
 from app.routers.exports import SUPPORTED_FORMATS, _file_response
@@ -52,7 +52,7 @@ def list_end_of_life_routes(
     return EcoService(db, user.id).list_end_of_life_routes()
 
 
-@router.post("/auditar", response_model=EcoAuditResultOut)
+@router.post("/auditar", response_model=EcoAuditResultOut, dependencies=[Depends(heavy_request)])
 def run_eco_audit(
     payload: EcoAuditRequest,
     db: Session = Depends(get_db),
@@ -62,7 +62,9 @@ def run_eco_audit(
     return EcoService(db, user.id).run(payload)
 
 
-@router.post("/comparar", response_model=EcoComparisonResultOut)
+@router.post(
+    "/comparar", response_model=EcoComparisonResultOut, dependencies=[Depends(heavy_request)]
+)
 def compare_eco_audits(
     payload: EcoComparisonRequest,
     db: Session = Depends(get_db),

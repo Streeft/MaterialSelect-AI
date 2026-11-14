@@ -517,3 +517,108 @@ def _assert_safe(message: str) -> None:
 
 def test_module_names_the_only_provider() -> None:
     assert gemini_search.PROVIDER == "gemini"
+
+
+# --- the 429 fallback to the lighter model (D-234) -------------------------------------
+
+_QUOTA_429 = {
+    "error": {
+        "code": 429,
+        "message": f"You exceeded your current quota. {KEY}",
+        "status": "RESOURCE_EXHAUSTED",
+        "details": [
+            {
+                "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                "violations": [
+                    {
+                        "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+                        "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+                        "quotaDimensions": {"model": "gemini-flash-latest"},
+                        "quotaValue": "20",
+                    }
+                ],
+            },
+            {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "37s"},
+        ],
+    }
+}
+
+
+def _model_of(request: httpx.Request) -> str:
+    match = re.search(r"/models/([^:]+):generateContent", str(request.url))
+    assert match is not None
+    return match.group(1)
+
+
+def test_a_429_falls_back_to_the_lite_model_and_returns_its_links(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    payload = _grounded([_web(REDIRECT + "a", "a.org")])
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if _model_of(request) == "gemini-flash-latest":
+            return httpx.Response(429, json=_QUOTA_429)
+        return httpx.Response(200, json=payload)
+
+    recorder = _Recorder(respond)
+    settings = _settings(web_search_fallback_model="gemini-flash-lite-latest")
+    with caplog.at_level("WARNING", logger="app.integrations.gemini_search"):
+        result = search(recorder.client(), settings, "compósitos")
+    assert [_model_of(r) for r in recorder.requests] == [
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+    ]
+    assert [h.url for h in result.hits] == [REDIRECT + "a"]
+    log = caplog.text
+    assert "GenerateRequestsPerDayPerProjectPerModel-FreeTier" in log
+    assert "limit=20" in log
+    assert "gemini-flash-lite-latest" in log
+    # The log says which quota; it never carries the key or Google's own text.
+    assert KEY not in log
+    assert "You exceeded" not in log
+
+
+def test_the_fallback_is_tried_once_and_its_own_429_is_the_quota_message() -> None:
+    recorder = _Recorder(lambda _request: httpx.Response(429, json=_QUOTA_429))
+    settings = _settings(web_search_fallback_model="gemini-flash-lite-latest")
+    with pytest.raises(ExternalUnavailableError) as caught:
+        search(recorder.client(), settings, "compósitos")
+    assert len(recorder.requests) == 2
+    assert _QUOTA in str(caught.value)
+    _assert_safe(str(caught.value))
+
+
+def test_a_429_without_a_fallback_asks_once() -> None:
+    recorder = _Recorder(lambda _request: httpx.Response(429, json=_QUOTA_429))
+    for off in ("", "gemini-flash-latest", "models/gemini-flash-latest"):
+        recorder.requests.clear()
+        with pytest.raises(ExternalUnavailableError):
+            search(recorder.client(), _settings(web_search_fallback_model=off), "x")
+        assert len(recorder.requests) == 1
+
+
+def test_only_a_429_triggers_the_fallback() -> None:
+    recorder = _Recorder(lambda _request: _google_error(503, "UNAVAILABLE", "overloaded"))
+    settings = _settings(web_search_fallback_model="gemini-flash-lite-latest")
+    with pytest.raises(ExternalUnavailableError):
+        search(recorder.client(), settings, "compósitos")
+    assert len(recorder.requests) == 1
+
+
+def test_a_429_without_json_still_falls_back() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if _model_of(request) == "gemini-flash-latest":
+            return httpx.Response(429, text="Too Many Requests")
+        return httpx.Response(200, json=_grounded([_web(REDIRECT + "b")]))
+
+    result = search(
+        _Recorder(respond).client(),
+        _settings(web_search_fallback_model="gemini-flash-lite-latest"),
+        "x",
+    )
+    assert len(result.hits) == 1
+
+
+def test_the_setting_ships_with_the_lite_model_as_the_fallback() -> None:
+    assert Settings.model_fields["web_search_fallback_model"].default == "gemini-flash-lite-latest"
+    assert "gemini-flash-latest" == Settings.model_fields["web_search_model"].default

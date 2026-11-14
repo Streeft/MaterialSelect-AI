@@ -9,13 +9,16 @@ import { SnackbarProvider } from "@/components/ui/Snackbar";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import type { MaterialListItem } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
+import type { MaterialListItem, SuggestionsOut } from "@/lib/types";
 
 // PageHeader reads its section from the current route (Task 1) — the mock
 // needs a real pathname so `sectionForPath` doesn't crash on `null`.
+const router = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/catalogo",
   useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: router.push, replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 const t = ptBR.catalog;
@@ -128,8 +131,14 @@ function answer(q: Question) {
 }
 
 const searchSpy = vi.hoisted(() => ({ calls: [] as unknown[] }));
+const suggest = vi.hoisted(() => ({ calls: [] as unknown[][], answer: null as unknown }));
 
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => {
+    suggest.calls.push([tool, context]);
+    return Promise.resolve(suggest.answer);
+  },
   listMaterials: () => Promise.resolve(materials),
   searchMaterials: (q: Question) => {
     searchSpy.calls.push(q);
@@ -383,6 +392,47 @@ describe("páginas, contagens e ordem (D-217)", () => {
     expect(searchSpy.calls.at(-1)).toMatchObject({ limit: 50, offset: 50 });
   });
 
+  it("a seleção atravessa as páginas, fica na URL e abre na Seleção com os ids das duas (D-232)", async () => {
+    search.extra = many(60);
+    const { user, table } = await renderCatalog();
+    await user.click(within(table).getByShadowRole("checkbox", { name: t.selectRow("Aço 1020") }));
+    await waitFor(() => expect(window.location.search).toContain("sel=1"));
+
+    const nav = screen.getByShadowRole("navigation", { name: ptBR.ds.pagination });
+    await user.click(within(nav).getByShadowRole("button", { name: ptBR.ds.nextPage }));
+    await waitFor(() =>
+      expect(within(screen.getByShadowRole("table")).getAllByShadowRole("row")).toHaveLength(14),
+    );
+    // Page 2: the first row is Liga numerada 048 (id 147).
+    await user.click(
+      within(screen.getByShadowRole("table")).getByShadowRole("checkbox", {
+        name: t.selectRow("Liga numerada 048"),
+      }),
+    );
+
+    const bar = screen.getByShadowRole("region", { name: t.selectionBar });
+    expect(within(bar).getByShadowRole("status")).toHaveTextContent(t.selectedAcrossPages(2));
+    expect(within(bar).getByShadowRole("link", { name: t.openInSelection })).toHaveAttribute(
+      "href",
+      "/app/selecao?etapa=restricoes&materiais=1,147",
+    );
+    expect(new URLSearchParams(window.location.search).get("sel")).toBe("1,147");
+
+    await user.click(within(bar).getByShadowRole("button", { name: t.clearSelection }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).has("sel")).toBe(false));
+    expect(screen.queryByShadowRole("region", { name: t.selectionBar })).toBeNull();
+  });
+
+  it("abre de um link com a seleção já marcada", async () => {
+    window.history.replaceState(null, "", "/app/catalogo?sel=1,2");
+    render(wrap(<CatalogPage />));
+    const table = await screen.findByShadowRole("table");
+    expect(within(table).getByShadowRole("checkbox", { name: t.selectRow("Alumina") })).toBeChecked();
+    expect(
+      within(screen.getByShadowRole("region", { name: t.selectionBar })).getByShadowRole("status"),
+    ).toHaveTextContent(t.selectedCount(2));
+  });
+
   it("os chips dizem quantos materiais cada opção deixaria", async () => {
     const { user } = await renderCatalog();
     await user.click(screen.getByShadowRole("button", { name: new RegExp(`^${t.filterClass}: `) }));
@@ -577,5 +627,93 @@ describe("lista e detalhe (D-184)", () => {
     expect(screen.queryByShadowRole("button", { name: ptBR.ds.saveChanges })).not.toBeInTheDocument();
     await pick(t.filterQuality, t.qualityMeasured);
     expect(screen.getByShadowRole("button", { name: ptBR.ds.saveChanges })).toBeInTheDocument();
+  });
+});
+
+describe("catálogo — Sugestão da IA (D-229)", () => {
+  beforeEach(() => {
+    search.composition = null;
+    search.reject = null;
+    search.extra = [];
+    searchSpy.calls = [];
+    savedViews.list = [];
+    suggest.calls = [];
+    router.push.mockReset();
+    window.history.replaceState(null, "", "/app/catalogo");
+    const answer: SuggestionsOut = {
+      tool: "catalogo",
+      summary: "Três formas de estreitar a lista.",
+      suggestions: [
+        {
+          title: "Comece pela classe Metais",
+          body: "É a classe com mais materiais.",
+          actions: [{ type: "add_filter", label: "Filtrar por Metais", field: "classe", value: "metais" }],
+        },
+        {
+          title: "Ordene por Densidade",
+          body: "Mostra primeiro os mais leves.",
+          actions: [{ type: "sort", label: "Ordenar por Densidade", prop: "densidade", dir: "asc" }],
+        },
+        {
+          title: "Procure aços",
+          body: "Uma busca curta.",
+          actions: [
+            { type: "search", label: "Buscar aço", q: "aço" },
+            { type: "compare", label: "Comparar os dois", ids: [1, 2] },
+          ],
+        },
+      ],
+      rejected: [],
+      degraded: false,
+      cached: false,
+      notice: null,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "",
+    };
+    suggest.answer = answer;
+  });
+
+  async function ask() {
+    const { user } = await renderCatalog();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    return user;
+  }
+
+  it("só consulta ao clicar, com a busca, os filtros e a ordem da tela", async () => {
+    window.history.replaceState(null, "", "/app/catalogo?busca=ferro&qualidade=complete");
+    const { user } = await renderCatalog();
+    expect(suggest.calls).toHaveLength(0);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Comece pela classe Metais");
+    expect(suggest.calls).toEqual([
+      ["catalogo", { busca: "ferro", classe: "", qualidade: "complete", demo: "", ordenar: "relevancia" }],
+    ]);
+  });
+
+  it("um filtro sugerido entra no endereço e na lista, voltando à página 1", async () => {
+    const user = await ask();
+    await user.click(await screen.findByRole("button", { name: "Filtrar por Metais" }));
+    await waitFor(() => expect(window.location.search).toContain("classe=metais"));
+    await waitFor(() =>
+      expect((searchSpy.calls.at(-1) as { classe?: string }).classe).toBe("metais"),
+    );
+  });
+
+  it("uma ordem sugerida e uma busca sugerida mudam o endereço", async () => {
+    const user = await ask();
+    await user.click(await screen.findByRole("button", { name: "Ordenar por Densidade" }));
+    await waitFor(() => expect(window.location.search).toContain("ordenar=densidade"));
+    // On a narrow window the panel folded after the click; the answer is kept.
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "Buscar aço" }));
+    await waitFor(() => expect(decodeURIComponent(window.location.search)).toContain("busca=aço"));
+    expect(suggest.calls).toHaveLength(1);
+  });
+
+  it("“Comparar os dois” abre o Comparar com os ids", async () => {
+    const user = await ask();
+    await user.click(await screen.findByRole("button", { name: "Comparar os dois" }));
+    expect(router.push).toHaveBeenCalledWith("/app/comparar?materiais=1,2");
   });
 });

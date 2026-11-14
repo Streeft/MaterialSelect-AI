@@ -28,14 +28,17 @@ from app.schemas.notebook import (
     ArtifactOut,
     ArtifactUpdate,
     AskIn,
+    BatchArchiveIn,
     ChatOut,
     ExternalSourceIn,
     MessageOut,
     NotebookIn,
     NotebookOut,
     NotebookSummaryOut,
+    NotebookTemplateOut,
     NotebookUpdate,
     NoteIn,
+    NoteOrderIn,
     NoteOut,
     NoteUpdate,
     SearchIn,
@@ -119,6 +122,12 @@ def list_notebooks(
     return service.list_notebooks(archived=archived)
 
 
+@router.get("/templates", response_model=list[NotebookTemplateOut])
+def list_notebook_templates() -> list[NotebookTemplateOut]:
+    """D-235b: the ready-made notebooks offered when one is created."""
+    return NotebookService.templates()
+
+
 @router.post("", response_model=NotebookOut, status_code=status.HTTP_201_CREATED)
 def create_notebook(
     payload: NotebookIn, service: NotebookService = Depends(_service)
@@ -126,13 +135,25 @@ def create_notebook(
     return service.create(payload)
 
 
+@router.post("/batch-archive", response_model=list[NotebookSummaryOut])
+def batch_archive_notebooks(
+    payload: BatchArchiveIn, service: NotebookService = Depends(_service)
+) -> list[NotebookSummaryOut]:
+    """Archive (``archived: true``) or bring back (``false``) up to 100 notebooks, all or none (D-233)."""
+    return service.batch_archive(payload)
+
+
 @router.post(
     "/{notebook_id}/duplicate", response_model=NotebookOut, status_code=status.HTTP_201_CREATED
 )
 def duplicate_notebook(
-    notebook_id: int, service: NotebookService = Depends(_service)
+    notebook_id: int,
+    with_conversation: bool = False,
+    service: NotebookService = Depends(_service),
 ) -> NotebookOut:
-    return service.duplicate(notebook_id)
+    """A copy of the notebook; ``with_conversation`` also carries the chat and the finished
+    Studio artifacts, with their citations re-pointed at the copy (D-233)."""
+    return service.duplicate(notebook_id, with_conversation=with_conversation)
 
 
 @router.get("/{notebook_id}", response_model=NotebookOut)
@@ -340,6 +361,14 @@ def update_note(
     service: NotebookService = Depends(_service),
 ) -> NoteOut:
     return service.update_note(notebook_id, note_id, payload)
+
+
+@router.put("/{notebook_id}/notes/order", response_model=list[NoteOut])
+def reorder_notes(
+    notebook_id: int, payload: NoteOrderIn, service: NotebookService = Depends(_service)
+) -> list[NoteOut]:
+    """D-235b: every note of the notebook, in the student's new order."""
+    return service.reorder_notes(notebook_id, payload)
 
 
 @router.delete("/{notebook_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)

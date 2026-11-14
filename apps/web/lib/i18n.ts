@@ -14,7 +14,7 @@
  * to whichever branch is the fallback, and the stage would be labelled wrong
  * instead of visibly unlabelled.
  */
-type StageKindWord = "limit" | "tree" | "process" | "material" | "chart";
+type StageKindWord = "limit" | "tree" | "process" | "material" | "chart" | "list";
 
 const STAGE_KIND_WORDS: Record<StageKindWord, string> = {
   limit: "limites",
@@ -22,6 +22,7 @@ const STAGE_KIND_WORDS: Record<StageKindWord, string> = {
   process: "processos",
   material: "materiais",
   chart: "gráfico",
+  list: "lista",
 };
 
 function stageKindWord(kind: StageKindWord): string {
@@ -98,7 +99,7 @@ export const ptBR = {
     myRecords: "Meus registros",
     // D-92: o caderno de estudo com fontes próprias (o NotebookLM do app).
     notebooks: "Cadernos",
-    // D-130: o que cada grandeza significa e como se mede — nunca quanto vale.
+    // D-130b: o que cada grandeza significa e como se mede — nunca quanto vale.
     glossary: "Glossário",
     // Eight links in a row said nothing about what belongs with what. The
     // groups are the three things someone does here, in the order they do them.
@@ -113,6 +114,10 @@ export const ptBR = {
     pin: (label: string) => `Fixar ${label}`,
     unpin: (label: string) => `Desafixar ${label}`,
     pinnedEmpty: "Nada fixado ainda.",
+    // D-232b (F6): the starred records, from the account, under "Fixados".
+    groupFavorites: "Favoritos",
+    favoritesEmpty: "Use a estrela de uma ficha para trazê-la para cá.",
+    favoritesAll: "Ver todos os favoritos",
     recentsEmpty: "As páginas que você abrir aparecem aqui.",
   },
 
@@ -208,7 +213,7 @@ export const ptBR = {
     parentColumn: "Classe pai",
     rootClass: "raiz",
     subclassOf: (parent: string) => `Subclasse de ${parent}`,
-    treeHint: "A hierarquia das classes, da raiz para baixo. Mover uma classe de lugar ainda não é possível aqui.",
+    treeHint: "A hierarquia das classes, da raiz para baixo. \"Mover para…\" troca a classe pai e leva as subclasses junto; nada mais muda.",
   },
   direction: {
     HIGHER: "Maior é melhor",
@@ -391,8 +396,8 @@ export const ptBR = {
     draftDiscard: "Descartar",
     exampleUnavailable: (missing: string) =>
       `O exemplo não pôde ser carregado: o catálogo não tem ${missing}. Nada foi alterado.`,
-    aiOpen: "Preencher a partir de um texto (IA)",
-    aiClose: "Fechar o assistente de IA",
+    aiOpen: "Assistente de projeto: descrever em texto (IA)",
+    aiClose: "Fechar o assistente de projeto",
     // Uma linha por campo (D-85): o que ele pede, sem virar parágrafo.
     studyNameHint: "Só para você achar o estudo depois. Ex.: Viga de bicicleta.",
     functionTextHint: "O que a peça faz. Ex.: viga em flexão.",
@@ -469,6 +474,9 @@ export const ptBR = {
     // P1-2: o quarto tipo. "Gráfico" e não "Mapa" porque é o gesto que se faz —
     // desenhar no gráfico —, e "Mapa" já nomeia a tela `/app/mapas`.
     stageKindChart: "Gráfico",
+    // D-232: o quinto tipo. "Lista" porque é o que ele é — nomeia quem entra,
+    // não descreve uma regra —; chega do mapa, do catálogo e do Dimensionar.
+    stageKindList: "Lista",
     stageNumber: (n: number, kind: StageKindWord) =>
       `Estágio ${n} (${stageKindWord(kind)})`,
     stageLabel: "Nome do estágio",
@@ -480,6 +488,17 @@ export const ptBR = {
     stageAddProcess: "Estágio de processos",
     stageAddMaterial: "Estágio de materiais",
     stageAddChart: "Estágio de gráfico",
+    // D-232: o estágio de lista não tem botão de adicionar: ele nasce de um
+    // "Abrir na Seleção" (mapa, catálogo, Dimensionar), que é de onde vêm os ids.
+    stageListHint:
+      "O estudo fica restrito a estes materiais. A lista diz quem entra; os limites que você acrescentar estreitam a partir dela. Para mudar a lista, volte ao mapa, ao catálogo ou ao Dimensionar.",
+    stageListTitle: "Materiais da lista",
+    stageListCount: (n: number) => (n === 1 ? "1 material na lista" : `${n} materiais na lista`),
+    stageListUnknown: (id: number) => `Material nº ${id} (fora do catálogo que você vê)`,
+    stageListRemove: "Tirar da lista",
+    stageListEmpty:
+      "Nenhum material na lista — este estágio não pode ser executado. Remova-o ou volte ao mapa, ao catálogo ou ao Dimensionar.",
+    stageListLoading: "Buscando os nomes dos materiais…",
     stageRemove: "Remover estágio",
     stageDuplicate: (n: number) => `Duplicar o estágio ${n}`,
     stageMoveUp: (n: number) => `Mover o estágio ${n} para cima` ,
@@ -1135,8 +1154,12 @@ export const ptBR = {
       tooltipSection: "Seção necessária",
     },
     compareBest: (n: number) => `Comparar os ${n} melhores`,
+    // D-232: a Seleção recebe a lista de candidatos como um estágio de lista.
+    openCandidatesInSelection: (n: number) => `Abrir os ${n} na Seleção`,
     compareBestHint:
-      "Abre o Comparar já com estes materiais. A Seleção parte de limites sobre o catálogo inteiro, não de uma lista de candidatos: levar a lista até lá exigiria um filtro por identificador que ela ainda não tem.",
+      "Comparar abre os materiais lado a lado. Abrir na Seleção restringe o estudo a eles, e os limites que você acrescentar estreitam a partir da lista.",
+    openCandidatesCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros, na ordem do resultado.`,
   },
 
   cost: {
@@ -1685,6 +1708,14 @@ export const ptBR = {
     recentsHint:
       "Os últimos 20 registros que você abriu, do mais recente ao mais antigo.",
     ownRecords: "Registros próprios",
+    // D-232b (F6): the page as a base with views, and the two ways to a record of one's own.
+    views: "Visões",
+    viewAll: "Todos",
+    viewFavorites: "Favoritos",
+    viewRecents: "Recentes",
+    viewOwn: "Registros próprios",
+    newMaterial: "Novo material",
+    synthesize: "Sintetizar",
     ownRecordsEmpty: "Você ainda não cadastrou nenhum registro próprio.",
     ownRecordsHint:
       "Um registro próprio é seu: entra nas suas seleções, mapas e documentos, e ninguém mais o enxerga.",
@@ -1728,6 +1759,10 @@ export const ptBR = {
       "Traga suas fontes — apostilas, artigos, fichas e estudos — e converse com elas. Toda resposta cita o trecho de onde veio.",
     create: "Criar caderno",
     creating: "Criando…",
+    // D-235b: ready-made notebooks.
+    fromTemplate: "Criar a partir de um modelo",
+    templateHint: (description: string, notes: string[]) =>
+      notes.length > 0 ? `${description} Já vem com: ${notes.join(", ")}.` : description,
     listLabel: "Seus cadernos",
     emptyTitle: "Nenhum caderno ainda",
     emptyDescription:
@@ -1752,6 +1787,10 @@ export const ptBR = {
     unarchived: (title: string) => `Caderno “${title}” de volta à lista.`,
     archivedBanner:
       "Este caderno está arquivado: sai da lista principal, mas nada foi apagado.",
+    // D-235b: o aviso do provedor é um chip no cabeçalho; o texto inteiro abre nele.
+    providerSimulated: "Provedor simulado",
+    providerExternal: "Provedor externo",
+    providerAbout: "Sobre o provedor de IA",
     listViews: "Cadernos mostrados",
     viewActive: "Ativos",
     viewArchived: "Arquivados",
@@ -2181,6 +2220,26 @@ export const ptBR = {
     noNotes: "Nenhuma nota. Salve uma resposta da conversa ou escreva a sua.",
     noteTitle: "Título",
     noteBody: "Nota",
+    // D-235b: "/" in a note, and notes in the student's order.
+    slash: {
+      fieldHint: "Digite / no começo de uma linha para inserir título, lista, citação, tabela ou o link de uma ficha.",
+      menuLabel: "Inserir na nota",
+      sheetLabel: "Ficha de material",
+      heading: "Título",
+      list: "Lista",
+      numbered: "Lista numerada",
+      quote: "Citação",
+      table: "Tabela",
+      column: "Coluna",
+      divider: "Divisor",
+      sheet: "Ficha de material",
+      sheetHint: "link para a ficha",
+      searching: "Buscando no catálogo…",
+      nothing: "Nada com esse nome.",
+    },
+    notesOrder: "Notas",
+    notesOrderHint: "Arraste pela alça ou use Alt + seta para mudar a ordem.",
+    notesOrderFailed: "A nova ordem das notas não foi gravada. Tente de novo.",
     noteDefaultTitle: "Nova nota",
     editNote: (title: string) => `Editar a nota “${title}”`,
     removeNote: (title: string) => `Excluir a nota “${title}”`,
@@ -2260,6 +2319,11 @@ export const ptBR = {
     compareTooMany: (max: number) => `O comparador aceita até ${max} materiais por vez.`,
     clearSelection: "Limpar seleção",
     selectionBar: "Ações para os materiais selecionados",
+    // D-232: a seleção atravessa páginas, e a barra diz isso em vez de contar só a página.
+    selectedAcrossPages: (n: number) => `${n} selecionados em várias páginas`,
+    openInSelection: "Abrir na Seleção",
+    openInSelectionCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros.`,
     // D-184: lista e detalhe. Em tela larga o nome abre a ficha resumida ao lado,
     // sem sair da lista; Ctrl/Cmd+clique e telas estreitas abrem a página inteira.
     preview: {
@@ -2922,6 +2986,10 @@ export const ptBR = {
     presetsError: "Não foi possível carregar os mapas clássicos.",
     presetUnavailable: (names: string) => `O catálogo não define: ${names}.`,
     presetApplied: (name: string) => `Mapa clássico aplicado: ${name}.`,
+    // D-229: the answers to a click on an AI suggestion.
+    axesApplied: "Eixos do mapa trocados pela sugestão da IA.",
+    indexApplied: "Índice do mapa trocado pela sugestão da IA.",
+    aiMaterialsOnly: "As sugestões valem para o mapa de materiais.",
     customizeAlwaysHint:
       "Escala, envelope, camadas, classes e linha de índice. Aqui um eixo também pode virar um índice.",
     selectionTitle: "Seleção no mapa",
@@ -2935,8 +3003,14 @@ export const ptBR = {
     selectionKindPicked: "Escolhidos no laço ou na lista",
     compareSelection: "Comparar",
     openInSelection: "Abrir na Seleção",
+    // D-232: o laço e a lista agora também vão para a Seleção, como lista de
+    // materiais; a região retangular continua virando um estágio de gráfico.
     openInSelectionNeedsBox:
-      "A Seleção recebe uma região retangular: desenhe uma caixa para criar o estágio. O laço e a lista servem para comparar e filtrar.",
+      "Num mapa de processos a Seleção recebe só uma região retangular: desenhe uma caixa para criar o estágio.",
+    openInSelectionListHint:
+      "Abre a Seleção restrita a estes materiais; os limites que você acrescentar estreitam a partir deles.",
+    openInSelectionCapped: (max: number) =>
+      `A Seleção recebe até ${max} materiais por vez; vão os ${max} primeiros.`,
     showOnlySelection: "Mostrar só estes no mapa",
     restrictedNotice: (n: number) =>
       `Mapa restrito a ${n} ${n === 1 ? "registro" : "registros"}.`,
@@ -3453,7 +3527,7 @@ export const ptBR = {
     compareCount: (n: number) => (n === 1 ? "1 selecionado" : `${n} selecionados`),
   },
 
-  // D-130: glossário de propriedades — verbetes conceituais, com fonte e licença.
+  // D-130b: glossário de propriedades — verbetes conceituais, com fonte e licença.
   glossary: {
     title: "Glossário de propriedades",
     subtitle:
@@ -3600,6 +3674,30 @@ export const ptBR = {
   },
 
   // D-196: a tela de Aparência. Tudo fica neste aparelho, como o tema.
+  // D-228: the AI diagnosis — what the server has configured and a live test.
+  aiDiagnostics: {
+    title: "Diagnóstico da IA",
+    hint: "Confere o modelo, os embeddings e a busca na web deste servidor. O teste não gasta a sua cota diária de IA.",
+    run: "Testar a IA agora",
+    running: "Testando…",
+    statusLoading: "Lendo a configuração da IA…",
+    statusError: "Não foi possível ler a configuração da IA.",
+    runError: "O diagnóstico não pôde ser feito.",
+    off: "Camada de IA desativada neste servidor.",
+    simulated: "Provedor simulado: regras locais, sem rede e sem cota.",
+    providerLine: (provider: string, model: string, host: string) =>
+      [provider, model, host].filter(Boolean).join(" · "),
+    configuredTitle: "Configurado",
+    resultTitle: "Resultado do teste",
+    configured: "Configurado",
+    notConfigured: "Não configurado",
+    statusLabel: { ok: "Funcionando", erro: "Com erro", nao_configurado: "Não configurado" },
+    latency: (ms: number) => `${ms.toLocaleString("pt-BR")} ms`,
+    allOk: "Tudo o que está configurado respondeu.",
+    someFailed: "Alguma capacidade configurada falhou; veja abaixo.",
+    remaining: (n: number) =>
+      n === 1 ? "Você pode rodar mais 1 diagnóstico nesta hora." : `Você pode rodar mais ${n} diagnósticos nesta hora.`,
+  },
   appearance: {
     title: "Aparência",
     description: "Cor, contraste, movimento e densidade. Vale para você, neste aparelho.",
@@ -3650,7 +3748,7 @@ export const ptBR = {
     recentEmpty: "Nada visto ainda.",
     recentEmptyHint: "Os materiais e processos que você abrir aparecem aqui.",
     recentError: "Não foi possível carregar o que você viu recentemente.",
-    lead: "Da função do componente ao relatório de seleção, com cada etapa do raciocínio à vista.",
+    lead: "Descreva o que quer projetar e receba uma proposta com os melhores materiais do catálogo, cada limite com a sua origem à vista.",
     lead2:
       "Nenhuma propriedade é inventada: todo número na tela veio de um valor cadastrado ou de " +
       "um cálculo determinístico, e a origem de cada um está a um gesto de distância.",
@@ -3670,16 +3768,20 @@ export const ptBR = {
     stepResultsHint: "Classificação, contribuições, excluídos e sensibilidade.",
     start: "Começar um estudo",
     browse: "Explorar o catálogo",
-    // D-195: começar escrevendo, como num app do Google. O texto vai para a
-    // função do estudo e mais nada: nenhum número sai daqui.
+    // D-195: começar escrevendo, como num app do Google. D-225: o texto vai para o
+    // assistente de projeto, que monta uma proposta; os números dela dizem de onde
+    // vieram e os materiais vêm sempre do catálogo. Sem a IA, volta a ser a função.
     composer: {
-      title: "O que a peça precisa fazer?",
-      label: "Função do componente",
-      placeholder: "Ex.: viga leve que não pode fletir muito, a até 80 °C",
-      hint: "Vira a função do estudo. Os limites e o índice você escolhe nas etapas seguintes.",
-      submit: "Montar a seleção",
+      title: "Assistente de projeto",
+      label: "Descreva o projeto ou a peça",
+      placeholder:
+        "Ex.: quero fazer uma roupa de esqui · quero construir um prédio que caiba algumas pessoas · viga leve a 80 °C",
+      hint: "Escreva do seu jeito, com ou sem números. Ctrl ou ⌘ + Enter envia.",
+      submit: "Montar a proposta",
       suggestionsLabel: "Sugestões para começar",
       suggestions: [
+        "Roupa de esqui",
+        "Prédio para 50 pessoas",
         "Viga leve e rígida em flexão",
         "Mola que guarde muita energia elástica",
         "Painel isolante térmico e barato",
@@ -3708,6 +3810,23 @@ export const ptBR = {
     constraintMany: "limites",
     criterionOne: "critério",
     criterionMany: "critérios",
+    // D-232b (F6): the Início as movable blocks, arranged in the account.
+    blocks: {
+      label: "Blocos do Início",
+      hint: "Arraste pela alça ⋮⋮ ou use Alt + seta para mudar a ordem; o olho oculta um bloco. A arrumação fica guardada na sua conta.",
+      reset: "Voltar à arrumação padrão",
+      empty: (name: string) => `${name}: nada por enquanto.`,
+      names: {
+        guia: "Primeiros passos",
+        retomar: "Continue de onde parou",
+        recentes: "Vistos recentemente",
+        estudos: "Retomar um estudo",
+        atalhos: "O que você quer fazer?",
+        novidades: "Novidades do catálogo",
+        mapas: "Mapas fixados",
+        explorar: "Ou explore os dados",
+      },
+    },
     exploreTitle: "Ou explore os dados",
     catalogHint: "Materiais, propriedades e a proveniência de cada valor.",
     mapsHint: "Mapa de Ashby com envelopes por classe e linhas de índice.",

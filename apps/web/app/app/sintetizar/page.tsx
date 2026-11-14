@@ -17,6 +17,7 @@ import type {
   SynthesisRequest,
   SynthesisResult,
   SynthesizedValue,
+  SuggestAction,
 } from "@/lib/types";
 import {
   createSynthesis,
@@ -62,6 +63,10 @@ import {
   ParamsResultLayout,
   ResultPanel,
 } from "@/components/layout/ParamsResult";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { aiField, revealField } from "@/lib/ai/revealField";
+import { isOwnKey } from "@/lib/ai/suggest";
+import { suggestText } from "@/lib/i18n-suggest";
 import { SweepSection } from "./SweepSection";
 
 const t = ptBR.synthesis;
@@ -94,6 +99,17 @@ const RECIPE_URL: UrlSpec<Recipe> = {
   density: { param: "densidade", codec: textCodec, defaultValue: "0.1" },
   faceThickness: { param: "face", codec: textCodec, defaultValue: "1" },
   coreThickness: { param: "nucleo", codec: textCodec, defaultValue: "18" },
+};
+
+/**
+ * D-230b: the AI's parameter names (the request's) and the recipe field each writes.
+ * A name is offered only while its field is on screen: the kind of the recipe decides.
+ */
+const AI_PARAMS: Record<string, { field: keyof Recipe; kind: SynthesisKind }> = {
+  volume_fraction: { field: "fraction", kind: "composito" },
+  relative_density: { field: "density", kind: "espuma" },
+  face_thickness: { field: "faceThickness", kind: "painel" },
+  core_thickness: { field: "coreThickness", kind: "painel" },
 };
 
 const QUALITY_STATES: readonly string[] = [
@@ -417,6 +433,31 @@ export default function SintetizarPage() {
   ]);
   const recipeReady = recipeBlocked === null;
 
+  // D-230b: a suggested number goes where the reader would have typed it (the URL)
+  // and the preview follows by itself. The server proposes a value it holds or — D-234 —
+  // a number the model chose inside the calculator's range, marked "Sugestão da IA,
+  // revise" and confirmed by the panel before it gets here. An action that would change
+  // nothing, one for a field of another kind of recipe, or one that is not a number
+  // is not shown.
+  const acceptsAiAction = (action: SuggestAction): boolean => {
+    if (action.type !== "set_param") return true;
+    const target = isOwnKey(AI_PARAMS, action.name) ? AI_PARAMS[action.name] : undefined;
+    if (!target || target.kind !== kind) return false;
+    if (typeof action.value !== "number" || !Number.isFinite(action.value)) return false;
+    // The calculator's own range (the server checked it too, D-234): a fraction is
+    // strictly between 0 and 1, a thickness is above 0.
+    const isFraction = target.field === "fraction" || target.field === "density";
+    if (!(action.value > 0) || (isFraction && !(action.value < 1))) return false;
+    return Number(recipe[target.field]) !== action.value;
+  };
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "set_param" || !acceptsAiAction(action)) return;
+    const target = AI_PARAMS[action.name];
+    if (!target) return;
+    setRecipe({ [target.field]: String(action.value) });
+    revealField(action.name);
+  }
+
   // D-220: the preview follows the recipe. It creates nothing, so it asks with
   // the provisional name (the API validates the same body as a save and refuses
   // an empty one) and without the identity: typing the name asks nothing again.
@@ -473,6 +514,16 @@ export default function SintetizarPage() {
         title={t.title}
         description={t.subtitle}
         overflow={<CopyLinkItem />}
+      />
+
+      <AISuggestPanel
+        tool="sintetizar"
+        // The request of the preview the page shows, never its numbers (D-229).
+        context={recipeReady ? { request: { ...body, name: t.previewName, description: null } } : {}}
+        actions={["set_param", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        disabledReason={recipeReady ? undefined : suggestText.needsBrief}
       />
 
       <StepCard title={t.kindStep}>
@@ -535,6 +586,7 @@ export default function SintetizarPage() {
                 min={0}
                 max={1}
                 step="any"
+                {...aiField("relative_density")}
                 onChange={(event) => setRecipe({ density: event.target.value })}
               />
             ) : (
@@ -555,6 +607,7 @@ export default function SintetizarPage() {
                   min={0}
                   max={1}
                   step="any"
+                  {...aiField("volume_fraction")}
                   onChange={(event) =>
                     setRecipe({ fraction: event.target.value })
                   }
@@ -568,6 +621,7 @@ export default function SintetizarPage() {
                   value={faceThickness}
                   min={0}
                   step="any"
+                  {...aiField("face_thickness")}
                   onChange={(event) =>
                     setRecipe({ faceThickness: event.target.value })
                   }
@@ -577,6 +631,7 @@ export default function SintetizarPage() {
                   value={coreThickness}
                   min={0}
                   step="any"
+                  {...aiField("core_thickness")}
                   onChange={(event) =>
                     setRecipe({ coreThickness: event.target.value })
                   }

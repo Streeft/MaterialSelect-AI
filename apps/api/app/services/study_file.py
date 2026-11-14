@@ -72,7 +72,18 @@ def build_study_file(study: StudyOut) -> dict[str, Any]:
 
     Built from ``StudyOut`` — what the owner can already read — and never from
     the ORM row, so the file can only carry what the API already exposes.
+
+    A study with a list stage (D-232) does not leave as a file: the file carries
+    no record ids, and a material's id means something only in the catalogue
+    that issued it — importing it elsewhere would restrict the study to
+    whichever records happen to hold those numbers there.
     """
+    if any(stage.kind == "list" for stage in study.stages):
+        raise ValidationError(
+            "Um estudo com estágio de lista não sai em arquivo: os materiais da lista são "
+            "identificados por números deste catálogo. Troque a lista por um estágio de "
+            "limites ou de classes, ou use o relatório."
+        )
     stages = [
         StageIn(
             **stage.model_dump(exclude={"position"}),

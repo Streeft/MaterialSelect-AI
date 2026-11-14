@@ -13,6 +13,8 @@ import { draftKey, parseDraft, serializeDraft, type DraftData } from "@/lib/sele
 import { flowText } from "@/lib/i18n-flow";
 import type {
   PerformanceIndex,
+  PlanRequest,
+  ProjectPlan,
   ProcessAttribute,
   PropertyDefinition,
   RunDiff,
@@ -27,6 +29,9 @@ import type {
 } from "@/lib/types";
 import { allowLoadedRunner } from "@/lib/testing/loadedRunner";
 import { wizardText } from "@/lib/i18n-selection-wizard";
+import { planText } from "@/lib/i18n-plan";
+import { writePlanDraft } from "@/lib/selection/planDraft";
+import { makeComponent, makePlan } from "@/lib/testing/planFixtures";
 
 // Long, CPU-bound jsdom walks: see lib/testing/loadedRunner.ts.
 allowLoadedRunner();
@@ -41,6 +46,9 @@ const previewWeights = vi.fn<(payload: WeightsPreviewRequest) => Promise<Weights
 const listStudyTemplates = vi.fn<() => Promise<StudyTemplate[]>>();
 const previewFunnel = vi.fn<(payload: RunRequest) => Promise<unknown>>();
 const diffRuns = vi.fn<(payload: RunDiffRequest) => Promise<RunDiff>>();
+const planProject = vi.fn<(payload: PlanRequest, signal?: AbortSignal) => Promise<ProjectPlan>>();
+/** D-225: the assistant is off in every test but the ones that say otherwise. */
+let aiEnabled = false;
 
 /** A budget that closes: every row sound, `can_run` true — the backend's answer
  * to any well-formed set of criteria, unless a test says otherwise. */
@@ -123,13 +131,19 @@ vi.mock("@/lib/api", () => ({
   listOrdinalProperties: () => Promise.resolve([]),
   listPerformanceIndices: () => listPerformanceIndices(),
   listStudies: () => Promise.resolve([]),
+  listMaterials: () =>
+    Promise.resolve([
+      { id: 1, name: "Aço 1020", class_name: "Metais", class_slug: "metais" },
+      { id: 2, name: "Alumínio 6061", class_name: "Metais", class_slug: "metais" },
+    ]),
   getStudy: (id: number) => getStudy(id),
   createStudy: (payload: StudyIn) => createStudy(payload),
   deleteStudy: () => Promise.resolve(),
   runStudy: () => Promise.resolve(null),
   evaluateIndex: () => Promise.resolve({ dimension: "dimensionless" }),
-  getAIStatus: () => Promise.resolve({ enabled: false, simulated: false }),
-  interpretStatement: () => Promise.resolve(null),
+  getAIStatus: () => Promise.resolve({ enabled: aiEnabled, simulated: true, provider: "mock", disclaimer: "x" }),
+  planProject: (payload: PlanRequest, signal?: AbortSignal) => planProject(payload, signal),
+  runPlan: () => Promise.reject(new Error("not used")),
   explainStudy: () => Promise.resolve(null),
   opensInBrowser: () => true,
   studyExportUrl: () => "#",
@@ -208,6 +222,8 @@ beforeEach(() => {
   listStudyTemplates.mockReset();
   listStudyTemplates.mockResolvedValue([]);
   diffRuns.mockReset();
+  planProject.mockReset();
+  aiEnabled = false;
   for (const key of [...searchParams.keys()]) searchParams.delete(key);
   window.history.replaceState(null, "", "/app/selecao");
   window.localStorage.clear();
@@ -899,6 +915,95 @@ describe("rascunho salvo (D-139)", () => {
 
     await waitFor(() => expect(createStudy).toHaveBeenCalled());
     await waitFor(() => expect(window.localStorage.getItem(draftKey(7))).toBeNull());
+  });
+});
+
+describe("lista de materiais na Seleção (D-232)", () => {
+  it("abre restrita aos materiais de ?materiais=, manda o estágio no funil e guarda no rascunho", async () => {
+    searchParams.set("materiais", "1-2");
+    render(wrap(<SelectionPage />));
+
+    // Lands on the stages, with the list named by material and a limit stage after it.
+    expect(await screen.findByText("Aço 1020")).toBeInTheDocument();
+    expect(screen.getByText("Alumínio 6061")).toBeInTheDocument();
+    expect(screen.getByText(t.stageListCount(2))).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(previewFunnel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          universe: "material",
+          stages: [
+            expect.objectContaining({ kind: "list", material_ids: [1, 2] }),
+            expect.objectContaining({ kind: "limit" }),
+          ],
+        }),
+      ),
+    );
+    // The address keeps only where the reader is: Back does not rebuild the list.
+    await waitFor(() => expect(window.location.search).toBe("?etapa=restricoes"));
+
+    // The draft is where the list lives from here on.
+    await waitFor(
+      () => {
+        const draft = parseDraft(window.localStorage.getItem(draftKey(7)));
+        expect(draft?.data.stages[0]).toMatchObject({ kind: "list", materialIds: [1, 2] });
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("não vira estágio de lista quando o endereço não traz materiais válidos", async () => {
+    searchParams.set("materiais", "abc");
+    render(wrap(<SelectionPage />));
+    await screen.findByLabelText(t.studyName);
+    expect(screen.queryByText(t.stageKindList)).not.toBeInTheDocument();
+  });
+});
+
+describe("assistente de projeto na Seleção (D-225)", () => {
+  it("opens the draft 'Abrir na Seleção' wrote without asking, on the limits, and drops the marker", async () => {
+    writePlanDraft(7, makeComponent());
+    searchParams.set("rascunho", "assistente");
+    searchParams.set("etapa", "restricoes");
+    window.history.replaceState(null, "", "/app/selecao?etapa=restricoes&rascunho=assistente");
+    render(wrap(<SelectionPage />));
+
+    // The limits step, with the limits the part brought and no "Continuar" question.
+    await waitFor(() => expect(window.location.search).not.toContain("rascunho"));
+    expect(screen.queryByShadowRole("button", { name: t.draftContinue })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(stepButton(t.stepFunction));
+    await waitFor(() => expect(screen.getByLabelText(t.studyName)).toHaveValue("Camada externa"));
+    expect(screen.getByLabelText(t.functionText)).toHaveValue("Camada externa de roupa de esqui");
+  });
+
+  it("still asks when the draft was not the assistant's", async () => {
+    writePlanDraft(7, makeComponent());
+    render(wrap(<SelectionPage />));
+    expect(await screen.findByShadowRole("button", { name: t.draftContinue })).toBeInTheDocument();
+  });
+
+  it("applies a proposal to the study only after the click: function, objective and limits", async () => {
+    aiEnabled = true;
+    const user = userEvent.setup();
+    planProject.mockResolvedValue(makePlan({ mode: "single", components: [makeComponent()] }));
+    render(wrap(<SelectionPage />));
+
+    await user.click(await screen.findByShadowRole("button", { name: t.aiOpen }));
+    await user.type(
+      await screen.findByLabelText(planText.statementLabel),
+      "camada externa de roupa de esqui que aguente frio",
+    );
+    await user.click(screen.getByShadowRole("button", { name: planText.interpret }));
+    const card = await screen.findByRole("article", { name: "Camada externa" });
+    // Nothing reached the study yet.
+    expect(screen.getByLabelText(t.functionText)).toHaveValue("");
+
+    await user.click(within(card).getByRole("button", { name: planText.apply }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(t.functionText)).toHaveValue("Camada externa de roupa de esqui"),
+    );
+    expect(screen.getByLabelText(t.objectiveText)).toHaveValue("Mínima massa com resistência ao frio");
   });
 });
 

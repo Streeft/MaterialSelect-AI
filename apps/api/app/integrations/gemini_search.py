@@ -54,6 +54,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
+from app.ai.google_quota import describe_violations
 from app.domain.errors import ValidationError
 from app.integrations.errors import ExternalUnavailableError
 
@@ -64,6 +65,10 @@ logger = logging.getLogger(__name__)
 PROVIDER = "gemini"
 
 DEFAULT_MODEL = "gemini-flash-latest"
+#: Where a 429 of the search model falls back to (D-234): the lite model has the
+#: larger free allowance. ``WEB_SEARCH_FALLBACK_MODEL`` replaces it; empty turns
+#: the fallback off.
+DEFAULT_FALLBACK_MODEL = "gemini-flash-lite-latest"
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_TIMEOUT_SECONDS = 25.0
 DEFAULT_MAX_RESULTS = 8
@@ -225,20 +230,34 @@ def search(client: httpx.Client, settings: Any, query: str) -> WebSearchResult:
         getattr(settings, "web_search_timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
         or DEFAULT_TIMEOUT_SECONDS
     )
-    try:
-        response = client.post(
-            _endpoint(settings),
-            json=_body(text),
-            headers={"x-goog-api-key": key},
-            timeout=timeout,
+    models = _models_to_try(settings)
+    response: httpx.Response | None = None
+    for position, model in enumerate(models):
+        try:
+            response = client.post(
+                _endpoint(settings, model),
+                json=_body(text),
+                headers={"x-goog-api-key": key},
+                timeout=timeout,
+            )
+        except httpx.TimeoutException as exc:
+            raise ExternalUnavailableError(
+                f"A busca na web do Google não respondeu em {timeout:g} s. Costuma ser "
+                f"passageiro: tente de novo em alguns minutos. {_ALTERNATIVE}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise ExternalUnavailableError(_TEMPORARY) from exc
+        if response.status_code != 429 or position + 1 >= len(models):
+            break
+        # The model's quota is spent (D-234): say which one in the log, then ask
+        # the lighter model once — a free key's allowance is per model.
+        logger.warning(
+            "Busca na web: o modelo %s respondeu 429 (%s); recaindo para %s.",
+            model,
+            describe_violations(_json_or_none(response)),
+            models[position + 1],
         )
-    except httpx.TimeoutException as exc:
-        raise ExternalUnavailableError(
-            f"A busca na web do Google não respondeu em {timeout:g} s. Costuma ser "
-            f"passageiro: tente de novo em alguns minutos. {_ALTERNATIVE}"
-        ) from exc
-    except httpx.HTTPError as exc:
-        raise ExternalUnavailableError(_TEMPORARY) from exc
+    assert response is not None  # ``models`` is never empty
 
     if response.status_code != 200:
         raise ExternalUnavailableError(_status_message(response, settings))
@@ -296,7 +315,25 @@ def parse_response(payload: dict[str, Any], max_results: int) -> WebSearchResult
 # --- helpers ------------------------------------------------------------------
 
 
-def _endpoint(settings: Any) -> str:
+def _models_to_try(settings: Any) -> list[str]:
+    """The search model, then the fallback when it is set and different."""
+    primary = _model_name(getattr(settings, "web_search_model", "") or DEFAULT_MODEL)
+    fallback = _model_name(getattr(settings, "web_search_fallback_model", "") or "")
+    return [primary] if not fallback or fallback == primary else [primary, fallback]
+
+
+def _model_name(raw: str) -> str:
+    return str(raw).strip().removeprefix("models/")
+
+
+def _json_or_none(response: httpx.Response) -> object:
+    try:
+        return response.json()
+    except ValueError:
+        return None
+
+
+def _endpoint(settings: Any, model: str | None = None) -> str:
     base = str(getattr(settings, "web_search_base_url", "") or DEFAULT_BASE_URL).strip()
     base = base.rstrip("/")
     if urlsplit(base).scheme.lower() not in _ALLOWED_SCHEMES:
@@ -304,8 +341,9 @@ def _endpoint(settings: Any) -> str:
             "A busca na web está mal configurada: WEB_SEARCH_BASE_URL precisa começar "
             f"com https://. {_ALTERNATIVE}"
         )
-    model = str(getattr(settings, "web_search_model", "") or DEFAULT_MODEL).strip()
-    model = model.removeprefix("models/") or DEFAULT_MODEL
+    if model is None:
+        model = _model_name(getattr(settings, "web_search_model", "") or DEFAULT_MODEL)
+    model = model or DEFAULT_MODEL
     return f"{base}/models/{quote(model, safe='')}:generateContent"
 
 

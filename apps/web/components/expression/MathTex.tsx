@@ -43,7 +43,15 @@ export function MathTex({
       role={label ? "img" : undefined}
       aria-label={label || undefined}
       aria-hidden={label ? undefined : true}
-      className={cn("ms-math inline-block max-w-full overflow-x-auto align-middle", className)}
+      // `overflow-x: auto` forces `overflow-y: auto` too, and KaTeX's sub/superscripts
+      // stick out of the line box by a pixel or two: an invisible vertical scroll
+      // that axe reports as a scrollable region nobody can focus. The vertical
+      // overflow is hidden with a little padding (cancelled by the negative margin)
+      // so nothing is cut; only a formula wider than its box scrolls, sideways.
+      className={cn(
+        "ms-math inline-block max-w-full overflow-x-auto overflow-y-hidden py-[0.2em] -my-[0.2em] align-middle",
+        className,
+      )}
       // KaTeX output from backend-built, escaped TeX with `trust: false`.
       dangerouslySetInnerHTML={{ __html: html }}
     />

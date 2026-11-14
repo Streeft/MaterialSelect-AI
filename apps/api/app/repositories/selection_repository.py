@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, aliased, joinedload, selectinload
 
@@ -21,6 +23,18 @@ from app.models.selection import SelectionStudy
 from app.repositories.visibility import visible_materials
 
 
+@dataclass(slots=True)
+class MaterialRow:
+    """What the selection snapshot reads from one material (D-231)."""
+
+    id: int
+    name: str
+    keywords: list[str]
+    class_name: str
+    class_slug: str
+    values: dict[str, float] = field(default_factory=dict)
+
+
 class SelectionRepository:
     """Queries backing filtering, indices, ranking and saved studies.
 
@@ -36,21 +50,62 @@ class SelectionRepository:
 
     # --- snapshot / lookups ----------------------------------------------
 
-    def list_active_materials_with_values(self) -> list[Material]:
-        """Active materials with class, values and property definitions eager-loaded."""
+    def active_material_rows(self) -> list[MaterialRow]:
+        """Every active, visible material as the selection snapshot needs it (D-231).
+
+        Two plain queries — the materials with their class, then the present
+        canonical values — instead of an ORM object per stored value: with the
+        full demo catalogue that is 32 thousand ``MaterialPropertyValue``
+        instances, which made each funnel or run hold well over 100 MB while it
+        ran. The snapshot never read anything else from them: a value counts
+        when it is not a declared absence and has a canonical number (D-24),
+        exactly the ``WHERE`` below.
+        """
         stmt = (
-            select(Material)
-            .options(
-                joinedload(Material.material_class),
-                joinedload(Material.property_values).joinedload(
-                    MaterialPropertyValue.property_definition
-                ),
+            select(
+                Material.id,
+                Material.name,
+                Material.keywords,
+                MaterialClass.name,
+                MaterialClass.slug,
             )
+            .join(MaterialClass, Material.class_id == MaterialClass.id)
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
-            .order_by(Material.name)
+            # ``id`` breaks ties: the demo catalogue repeats names (the releases
+            # of D-108), and two queries must list them in the same order.
+            .order_by(Material.name, Material.id)
         )
-        return list(self.db.execute(stmt).scalars().unique().all())
+        rows = [
+            MaterialRow(
+                id=mid,
+                name=name,
+                keywords=list(keywords or []),
+                class_name=class_name,
+                class_slug=class_slug,
+                values={},
+            )
+            for mid, name, keywords, class_name, class_slug in self.db.execute(stmt).all()
+        ]
+        by_id = {row.id: row for row in rows}
+        values = (
+            select(
+                MaterialPropertyValue.material_id,
+                PropertyDefinition.slug,
+                MaterialPropertyValue.normalized_value,
+            )
+            .join(PropertyDefinition, PropertyDefinition.id == MaterialPropertyValue.property_id)
+            .join(Material, Material.id == MaterialPropertyValue.material_id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .where(MaterialPropertyValue.is_missing.is_(False))
+            .where(MaterialPropertyValue.normalized_value.is_not(None))
+        )
+        for material_id, slug, value in self.db.execute(values):
+            row = by_id.get(material_id)
+            if row is not None:
+                row.values[slug] = value
+        return rows
 
     def composition_facts_by_material(
         self,
@@ -137,7 +192,7 @@ class SelectionRepository:
         every selection run.
 
         Inactive processes are left out, matching what
-        ``list_active_materials_with_values`` does on the other side — a process
+        ``active_material_rows`` does on the other side — a process
         withdrawn from the catalogue must not keep admitting materials.
         """
         stmt = (
@@ -154,7 +209,7 @@ class SelectionRepository:
 
     def list_active_processes_with_class(self) -> list[Process]:
         """Active processes with their class and attribute values eager-loaded —
-        the process universe's answer to ``list_active_materials_with_values``.
+        the process universe's answer to ``active_material_rows``.
 
         The values arrived with P0-4; until then a process had no attribute at
         all, and a limit stage in a process study silently admitted nobody
@@ -252,6 +307,37 @@ class SelectionRepository:
     def process_class_names(self) -> dict[str, str]:
         """Process-class slug → display name."""
         stmt = select(ProcessClass.slug, ProcessClass.name)
+        return {row[0]: row[1] for row in self.db.execute(stmt).all()}
+
+    # --- material lists (D-232) -------------------------------------------
+
+    def existing_material_ids(self, ids: list[int]) -> set[int]:
+        """Which of ``ids`` name an active material this viewer can see.
+
+        Scoped the way the snapshot is, so a list stage cannot be used to probe
+        for a record the catalogue would never have shown: an id that is hidden
+        from this viewer is, to them, an id that names nothing.
+        """
+        if not ids:
+            return set()
+        stmt = (
+            select(Material.id)
+            .where(Material.id.in_(ids))
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+        )
+        return {row[0] for row in self.db.execute(stmt).all()}
+
+    def material_names_by_id(self, ids: list[int]) -> dict[int, str]:
+        """Material id → name for the ones the viewer can see, so a document says
+        "Aço Demo B" and not "material 7"."""
+        if not ids:
+            return {}
+        stmt = (
+            select(Material.id, Material.name)
+            .where(Material.id.in_(ids))
+            .where(visible_materials(self.viewer_id))
+        )
         return {row[0]: row[1] for row in self.db.execute(stmt).all()}
 
     # --- material taxonomy -------------------------------------------------

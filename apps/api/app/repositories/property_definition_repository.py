@@ -44,6 +44,15 @@ class PropertyDefinitionRepository:
             stmt = stmt.where(PropertyDefinition.id != exclude_id)
         return self.db.execute(stmt).first() is not None
 
+    def name_exists(self, name: str, exclude_id: int | None = None) -> bool:
+        """True if another property already carries ``name`` (case-insensitive)."""
+        stmt = select(PropertyDefinition.id).where(
+            func.lower(PropertyDefinition.name) == name.strip().lower()
+        )
+        if exclude_id is not None:
+            stmt = stmt.where(PropertyDefinition.id != exclude_id)
+        return self.db.execute(stmt).first() is not None
+
     def value_count(self, property_id: int) -> int:
         return self.db.execute(
             select(func.count(MaterialPropertyValue.id)).where(

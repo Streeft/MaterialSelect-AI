@@ -379,6 +379,28 @@ export interface MaterialDetail {
   atomic_composition?: AtomicComposition[];
   /** D-122: the record this one was duplicated from, while it is still readable. */
   copied_from?: { id: number; name: string } | null;
+  /**
+   * D-233: each source the sheet cites, once, with the recorded bibliographic
+   * fields and the ABNT text the **server** built from them. Optional on the wire
+   * for cached payloads written before D-233.
+   */
+  sources?: SourceReference[];
+}
+
+/** A source as the sheet cites it (D-233). Every field but `label`/`abnt` is `null` when not recorded. */
+export interface SourceReference {
+  id: number;
+  label: string;
+  reference: string | null;
+  authors: string | null;
+  title: string | null;
+  publisher: string | null;
+  year: number | null;
+  url: string | null;
+  /** ISO date (`2026-11-13`). */
+  accessed_on: string | null;
+  /** The reference in ABNT form, only from recorded fields. The screen copies it, never edits it. */
+  abnt: string;
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */
@@ -918,9 +940,10 @@ export interface ConstraintGroupIn {
 /**
  * A stage's kind: a constraint tree, a folder selection over the material
  * taxonomy, (P0-2) a selection over the process universe — the join's other
- * direction — or (P1-2) a region of one plane.
+ * direction — or (P1-2) a region of one plane — or (D-232) a named list of
+ * materials the universe is restricted to.
  */
-export type StageKind = "limit" | "tree" | "process" | "material" | "chart";
+export type StageKind = "limit" | "tree" | "process" | "material" | "chart" | "list";
 
 /**
  * One axis of a chart stage (P1-2) — mirrors the backend's `ChartAxisIn`.
@@ -986,6 +1009,9 @@ export interface StageIn {
   material_class_slugs?: string[];
   // kind === "chart" (P1-2): the plane, the box and the line.
   chart?: ChartStageIn | null;
+  // kind === "list" (D-232): the materials the study is restricted to, at
+  // most `MAX_LIST_MATERIALS` (mirrors `MAX_STAGE_MATERIAL_IDS` in the API).
+  material_ids?: number[];
   /** Shared by every folder-selecting stage: a folder means what is under it. */
   include_descendants?: boolean;
   /** D-122: the author's note on this stage — plain text, never markup. */
@@ -1004,6 +1030,8 @@ export interface StageOut {
   process_class_slugs: string[];
   material_class_slugs: string[];
   chart: ChartStageIn | null;
+  /** kind === "list" (D-232); empty for the other kinds. */
+  material_ids?: number[];
   include_descendants: boolean;
   /** D-122: null is "no note was written". */
   notes?: string | null;
@@ -1796,53 +1824,131 @@ export interface Comparison {
 // Everything below is a *proposal*. The API never applies any of it, and no
 // numeric property value ever appears here — see app/ai/guardrails.py.
 
+/** D-228: one capability of the AI layer, configured on this server or not. */
+export type AICapabilityKey = "texto" | "json_estrito" | "embeddings" | "busca_web";
+
+export interface AICapability {
+  key: AICapabilityKey;
+  label: string;
+  configured: boolean;
+  /** PT-BR: what is configured, or what to set. */
+  detail: string;
+}
+
 export interface AIStatus {
   enabled: boolean;
   provider: string;
   simulated: boolean;
   disclaimer: string;
+  /**
+   * D-228 — always sent by the API; optional here only so an older answer
+   * (or a test double) still type-checks. The host only, never the key.
+   */
+  model?: string;
+  host?: string;
+  /** "schema", "object" or "prompt" — how the JSON shape is asked for. */
+  json_mode?: string;
+  embedding_model?: string;
+  capabilities?: AICapability[];
 }
 
-export interface SuggestedConstraint {
-  constraint: ConstraintIn;
-  /** The fragment of the user's own text this reading came from. */
-  evidence: string;
-  rationale: string;
+/** D-228: one live check of `POST /api/ai/diagnostico`. */
+export interface AIDiagnosticCheck {
+  key: "json" | "embeddings" | "busca_web";
+  label: string;
+  status: "ok" | "erro" | "nao_configurado";
+  latency_ms: number | null;
+  /** PT-BR, including the free-quota notice when Google answered 429. */
+  message: string;
 }
 
-export interface SuggestedIndex {
-  slug: string;
-  name: string;
-  expression: string;
-  goal: Goal;
-  rationale: string;
+export interface AIDiagnostico {
+  ok: boolean;
+  provider: string;
+  simulated: boolean;
+  model: string;
+  host: string;
+  checked_at: string;
+  checks: AIDiagnosticCheck[];
+  /** Diagnoses this person may still run this hour. */
+  remaining: number;
 }
 
-export interface SuggestedProperty {
-  slug: string;
-  name: string;
-  rationale: string;
+/** D-228: the tools that ask `POST /api/ai/suggest` for next steps. */
+export type SuggestTool =
+  | "mapas"
+  | "comparar"
+  | "catalogo"
+  | "ficha"
+  | "processos"
+  | "glossario"
+  | "sintetizar"
+  | "painel"
+  | "registros"
+  | "importar"
+  | "dimensionar"
+  | "custo"
+  | "eco"
+  | "baterias"
+  | "admin_classes"
+  | "admin_propriedades";
+
+/**
+ * One typed action a suggestion proposes. Never applied by the API: the
+ * screen shows it as a button (`label`, written by the server) and applies it
+ * on the person's click. Every name in it was checked to exist; a `set_param`
+ * value comes from the context or a scenario, never from the model (D-224).
+ */
+export type SuggestAction =
+  | { type: "set_axes"; label: string; x: string; y: string }
+  | { type: "apply_preset"; label: string; id: string }
+  | { type: "set_index"; label: string; slug: string }
+  | { type: "add_filter"; label: string; field: string; value: string }
+  | { type: "sort"; label: string; prop: string; dir: "asc" | "desc" }
+  | { type: "search"; label: string; q: string }
+  | { type: "open_route"; label: string; path: string }
+  | { type: "compare"; label: string; ids: number[] }
+  | {
+      type: "set_param";
+      label: string;
+      name: string;
+      value: number | string;
+      /**
+       * Where the value comes from (D-224, D-234): `contexto` is a figure the screen
+       * or a curated scenario holds; `sugestao_ia` is a number the model chose inside
+       * the range the calculator accepts — "Sugestão da IA, revise", applied only
+       * after the person confirms. Absent means `contexto`.
+       */
+      origin?: "contexto" | "sugestao_ia";
+    }
+  | { type: "map_column"; label: string; col: string; prop: string }
+  | { type: "fill_text"; label: string; field: string; text: string };
+
+export type SuggestActionType = SuggestAction["type"];
+
+export interface Suggestion {
+  title: string;
+  body: string;
+  actions: SuggestAction[];
 }
 
-export interface SuggestedChart {
-  x: string;
-  y: string;
-  scale: ChartScale;
-  rationale: string;
+export interface SuggestRequest {
+  tool: SuggestTool;
+  /** What the screen shows: ids, slugs, parameters — never computed values. */
+  context: Record<string, unknown>;
 }
 
-export interface Interpretation {
-  statement: string;
-  function_text: string | null;
-  objective_text: string | null;
-  free_variables: string[];
-  constraints: SuggestedConstraint[];
-  properties: SuggestedProperty[];
-  indices: SuggestedIndex[];
-  chart: SuggestedChart | null;
-  open_questions: string[];
-  /** Suggestions the guardrails refused, with the reason. */
+export interface SuggestionsOut {
+  tool: SuggestTool;
+  summary: string;
+  suggestions: Suggestion[];
+  /** What the guardrails removed, and why (PT-BR). */
   rejected: string[];
+  /** True when the cards come from the tool's local rules (`notice` says why). */
+  degraded: boolean;
+  /** True when answered from the 10-minute cache: no quota spent. */
+  cached: boolean;
+  notice: string | null;
   provider: string;
   simulated: boolean;
   disclaimer: string;
@@ -1864,6 +1970,150 @@ export interface Explanation {
   provider: string;
   simulated: boolean;
   disclaimer: string;
+}
+
+// --- Project assistant (D-224) ---------------------------------------------
+// `POST /ai/plan` turns a plain request ("quero fazer uma roupa de esqui") into
+// a checked, executed proposal; `POST /ai/plan/run` runs it again with the
+// person's choices. Every limit says where its number came from (`origin`):
+// "usuario" (the person's text), "cenario:<id>" (the curated table, with
+// `source`), "sugestao_ia" (shown as "Sugestão da IA, revise", never run until
+// `confirmed`) or "indice" (the ranking reads the property; no number).
+
+export type PlanMode = "project" | "single";
+export type PlanOperator = "gt" | "gte" | "lt" | "lte" | "between" | "exists" | "level_at_least";
+export type PlanOrigin = "usuario" | "sugestao_ia" | "indice" | `cenario:${string}`;
+
+export interface PlanRequest {
+  text: string;
+  mode?: PlanMode;
+}
+
+export interface PlanScenario {
+  id: string;
+  name: string;
+  source: string;
+}
+
+export interface PlanConstraint {
+  property: string;
+  property_name: string;
+  operator: PlanOperator;
+  value: number | null;
+  value_min: number | null;
+  value_max: number | null;
+  unit: string | null;
+  level: string | null;
+  origin: PlanOrigin;
+  source: string;
+  note: string;
+  label: string;
+  /** Whether the automatic run used it; an AI suggestion never is. */
+  applied: boolean;
+  needs_confirmation: boolean;
+  /** The same limit in the shape every selection endpoint accepts. */
+  constraint: ConstraintIn;
+}
+
+export interface PlanCriterion {
+  property: string;
+  property_name: string;
+  direction: "max" | "min";
+  origin: string;
+}
+
+export interface PlanIndex {
+  slug: string;
+  name: string;
+  expression: string;
+  goal: Goal;
+}
+
+export interface PlanMaterial {
+  record_id: number;
+  name: string;
+  class_name: string;
+  rank: number | null;
+  index_value: number | null;
+  score: number | null;
+  reason: string;
+}
+
+export interface PlanRun {
+  initial_count: number;
+  final_count: number;
+  funnel: { label: string; remaining: number }[];
+  materials: PlanMaterial[];
+  message: string | null;
+  error: string | null;
+}
+
+export interface PlanComponent {
+  key: string;
+  name: string;
+  role: string;
+  function_text: string;
+  objective_text: string;
+  index: PlanIndex | null;
+  criteria: PlanCriterion[];
+  constraints: PlanConstraint[];
+  scenarios: string[];
+  rejected: string[];
+  result: PlanRun | null;
+  /** Ready for `POST /selection/studies` or the wizard: applied limits only. */
+  study: StudyIn;
+}
+
+export interface ProjectPlan {
+  text: string;
+  mode: PlanMode;
+  summary: string;
+  assumptions: string[];
+  open_questions: string[];
+  scenarios_used: PlanScenario[];
+  components: PlanComponent[];
+  rejected: string[];
+  /** The local rules answered because the model did not (see `notice`). */
+  degraded: boolean;
+  /** The model's plan for the same text was reused; no quota spent. */
+  cached: boolean;
+  notice: string | null;
+  provider: string;
+  simulated: boolean;
+  disclaimer: string;
+}
+
+export interface PlanConstraintIn {
+  property: string;
+  operator: PlanOperator;
+  value?: number | null;
+  value_min?: number | null;
+  value_max?: number | null;
+  unit?: string | null;
+  level?: string | null;
+  origin: PlanOrigin;
+  /** An AI suggestion runs only when true. */
+  confirmed?: boolean;
+  note?: string;
+}
+
+export interface PlanComponentRunIn {
+  key?: string | null;
+  name: string;
+  role?: string;
+  function_text?: string;
+  objective_text?: string;
+  index_slug?: string | null;
+  criteria?: { property: string; direction: "max" | "min" }[];
+  constraints?: PlanConstraintIn[];
+}
+
+export interface PlanRunRequest {
+  components: PlanComponentRunIn[];
+}
+
+export interface PlanRunResponse {
+  components: PlanComponent[];
 }
 
 // --- Dashboard ---------------------------------------------------------
@@ -2236,7 +2486,7 @@ export interface SavedChartListItem {
 // `app/schemas/saved_view.py`; `config` never carries a number about a
 // material, only slugs the server lists.
 
-export type SavedViewScope = "catalogo" | "processos" | "glossario" | "painel";
+export type SavedViewScope = "catalogo" | "processos" | "glossario" | "painel" | "inicio";
 export type SavedViewKind = "table" | "gallery" | "list" | "layout";
 
 export interface SavedViewConfig {
@@ -2615,6 +2865,45 @@ export interface CostDomain {
   y: [number, number];
   /** Lotes das curvas mais o atual, em ordem: as linhas da tabela da figura. */
   batch_sizes: number[];
+}
+
+/** `POST /api/custo/curvas`: the materials of a comparison, priced with one part and one batch. */
+export interface CostCurvesRequest {
+  material_ids: number[];
+  part_mass: number;
+  batch_size: number;
+  write_off_years?: number;
+  load_factor?: number;
+}
+
+/** The cheapest way of making the part at one batch size (D-234). */
+export interface MaterialCurvePoint {
+  batch_size: number;
+  cost: number;
+  process_id: number;
+  process_slug: string;
+  process_name: string;
+}
+
+/**
+ * One material's cost × batch curve: the lower envelope of its processes, computed
+ * on the server. `points` is empty, with `reason` in words, when it could not be
+ * priced; `current` is the point at the batch asked for (the figure's marker).
+ */
+export interface MaterialCostCurve {
+  material_id: number;
+  material_name: string | null;
+  points: MaterialCurvePoint[];
+  current: MaterialCurvePoint | null;
+  reason: string | null;
+}
+
+export interface CostCurves {
+  batch_size: number;
+  curves: MaterialCostCurve[];
+  /** Extensão log-log comum a todas as curvas (ADR 0004); `null` sem nenhuma curva. */
+  domain: CostDomain | null;
+  monetary_unit_note: string;
 }
 
 // --- Eco Audit (P3) ----------------------------------------------------------
@@ -3245,6 +3534,13 @@ export interface NotebookCitation {
   heading: string | null;
   page_start: number | null;
   page_end: number | null;
+  /**
+   * Where the passage sits in the source's text, half-open (D-233). `null`/absent
+   * for a passage stored before the positions existed: the reader then looks the
+   * excerpt up by words, as before. Never a guessed number.
+   */
+  char_start?: number | null;
+  char_end?: number | null;
   excerpt: string;
 }
 
@@ -3311,6 +3607,17 @@ export interface NotebookSourceDetails {
 
 export interface NotebookSourceDetail extends NotebookSource {
   content: string;
+}
+
+/** D-235b: a ready-made notebook, as the "Criar caderno" gallery shows it. */
+export type NotebookTemplateId = "disciplina" | "prova" | "tcc" | "branco";
+
+export interface NotebookTemplate {
+  id: NotebookTemplateId;
+  title: string;
+  emoji: string;
+  description: string;
+  note_titles: string[];
 }
 
 export interface NotebookNote {
@@ -4123,7 +4430,7 @@ export interface ReleaseDiff {
   items: ReleaseDiffItem[];
 }
 
-/** Um verbete do glossário de propriedades (D-130): conceitual, nunca numérico. */
+/** Um verbete do glossário de propriedades (D-130b): conceitual, nunca numérico. */
 export interface GlossaryEntry {
   slug: string;
   summary: string;

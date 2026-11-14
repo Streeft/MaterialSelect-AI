@@ -27,6 +27,7 @@ import type {
   PropertyMapRequest,
   SavedChartIn,
   SelectionUniverse,
+  SuggestAction,
 } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
@@ -34,10 +35,12 @@ import { optionsAtLevel } from "@/lib/depth";
 import { encodeIdList, parseIdList } from "@/lib/idList";
 import { formatNumber } from "@/lib/format";
 import { useUrlState } from "@/lib/urlState";
+import { recordMapUrl } from "@/lib/navMemory";
 import { useDebounced } from "@/lib/useDebounced";
 import { useWindowClass } from "@/lib/useWindowClass";
 import { atLeast } from "@/lib/design/breakpoints";
 import { useDepthLevel } from "@/components/DepthLevelPicker";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { AshbyMap, type BoxSelection } from "@/components/charts/AshbyMap";
 import {
   Alert,
@@ -109,6 +112,12 @@ function MapsPageContent() {
   const announce = useAnnounce();
   const [live, setLive] = useUrlState(MAP_LIVE_URL);
   const wide = atLeast(useWindowClass(), "expanded");
+
+  // D-232: the home's "Último mapa" reopens the map as it was left — the whole
+  // address, not just the path. `live` and `params` change with every write to it.
+  useEffect(() => {
+    recordMapUrl(`${window.location.pathname}${window.location.search}`);
+  }, [live, params]);
 
   // Decode URL state once on mount; the URL should not keep re-driving state
   // after the reader starts interacting (it follows the state instead).
@@ -649,6 +658,26 @@ function MapsPageContent() {
     announce(t.presetApplied(preset.name));
   }
 
+  /**
+   * D-229: what a click on an AI suggestion changes. Each action goes through
+   * the same setters the controls use, so the map and its address follow
+   * exactly as if the reader had set it by hand.
+   */
+  function applyAiAction(action: SuggestAction) {
+    if (action.type === "set_axes") {
+      setLive({ box: null, line: null });
+      setXAxis({ ...EMPTY_AXIS, property: action.x });
+      setYAxis({ ...EMPTY_AXIS, property: action.y });
+      announce(t.axesApplied);
+    } else if (action.type === "apply_preset") {
+      const preset = presets.data?.find((p) => p.slug === action.id);
+      if (preset) applyPreset(preset);
+    } else if (action.type === "set_index") {
+      setIndexMode(action.slug);
+      announce(t.indexApplied);
+    }
+  }
+
   // --- saved and shared maps ---------------------------------------------
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -872,6 +901,18 @@ function MapsPageContent() {
             </Button>
           </>
         }
+      />
+
+      <AISuggestPanel
+        tool="mapas"
+        context={{
+          x: xAxis.mode === "property" && effectiveXProperty ? effectiveXProperty : null,
+          y: yAxis.mode === "property" && effectiveYProperty ? effectiveYProperty : null,
+          index_slug: indexMode !== "none" && indexMode !== "custom" ? indexMode : null,
+        }}
+        actions={["set_axes", "apply_preset", "set_index", "open_route"]}
+        onAction={applyAiAction}
+        disabledReason={universe === "process" ? t.aiMaterialsOnly : undefined}
       />
 
       <Dialog

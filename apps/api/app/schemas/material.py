@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.enums import DataQuality, DesignationSystem
 from app.schemas.process import ProcessOut
 from app.schemas.property import PropertyGroup
+from app.schemas.sources import SourceReferenceOut
 
 # The three ways a property value can be provided on input.
 ValueKind = Literal["scalar", "interval", "missing"]
@@ -281,6 +282,22 @@ class MaterialListItem(BaseModel):
     sort_value: SortValue | None = None
 
 
+class MaterialBatchDeleteIn(BaseModel):
+    """The own records to withdraw together from "Meus registros" (D-233)."""
+
+    ids: list[int] = Field(min_length=1, max_length=100)
+
+    @field_validator("ids")
+    @classmethod
+    def _distinct(cls, ids: list[int]) -> list[int]:
+        """Repeated ids count once, in the order given."""
+        return list(dict.fromkeys(ids))
+
+
+class MaterialBatchDeleteOut(BaseModel):
+    deleted: list[int]
+
+
 class CopiedFromOut(BaseModel):
     """The record a copy was duplicated from (D-122)."""
 
@@ -325,6 +342,11 @@ class MaterialDetail(BaseModel):
     # D-122: set on a record made by "duplicate", and only while the original is
     # still readable by this reader. None for everything else.
     copied_from: CopiedFromOut | None = None
+    # D-233: each source the sheet cites (values, composition, designations), once,
+    # by label, with the recorded bibliographic fields and the ABNT text built from
+    # them. ``source_label`` stays what every row names; this is the lookup behind
+    # "Citar fonte (ABNT)".
+    sources: list[SourceReferenceOut] = []
 
 
 class UndeterminedBreakdown(BaseModel):

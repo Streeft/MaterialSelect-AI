@@ -185,8 +185,12 @@ motivo de cada um em [`CLAUDE.md`](CLAUDE.md) e [`docs/CLAUDE.md`](docs/CLAUDE.m
    importado, com fonte.
 2. **Todo cálculo numérico é determinístico e vive no backend** — inclusive o
    que parece apresentação, como a inclinação de uma linha de índice.
-3. **A IA nunca produz números.** Toda saída dela passa por guardrails que
-   recusam número sem âncora no enunciado ou no trecho citado.
+3. **A IA não calcula e não inventa número.** Toda saída dela passa por
+   guardrails. No assistente de projeto, cada limite diz de onde veio o número
+   ([D-224](docs/DECISIONS.md)): do texto do usuário, de um cenário de uso da
+   tabela curada (com fonte) ou, em último caso, de uma faixa sugerida pela IA,
+   conferida contra o catálogo, marcada "Sugestão da IA, revise" e nunca
+   aplicada sem confirmação.
 4. **Ausência nunca vira zero** — nem no banco (`is_missing=True`, campos
    `NULL`), nem na tela, onde ela tem rótulo escrito.
 5. **Rastreabilidade de unidades:** valor e unidade originais, valor
@@ -344,6 +348,34 @@ Roteiro completo, com o porquê de cada passo, em
   cota, a busca cai para as palavras, sem erro na tela. No plano gratuito o
   Google pode usar o texto enviado — o autor aceitou isso para os livros do
   Cérebro ([D-101](docs/DECISIONS.md)).
+- O **assistente de projeto** (`POST /api/ai/plan`, D-224) entende pedidos em
+  linguagem comum ("quero fazer uma roupa de esqui") e devolve as partes do
+  projeto, os limites de cada uma com a origem do número e os primeiros
+  materiais do catálogo pela seleção determinística. `POST /api/ai/plan/run`
+  roda de novo com as escolhas da pessoa. O mesmo pedido reaproveita a resposta
+  sem gastar a cota; se o modelo falhar, as regras locais respondem. No Início
+  ele é o "Assistente de projeto" (D-225): a proposta mostra, em chips, de onde
+  veio cada número (Você, Cenário com fonte, ou "Sugestão da IA, revise", que
+  fica desmarcada até a pessoa confirmar), e "Abrir na Seleção" leva a parte
+  para o estudo. Na Seleção, o mesmo plano interpreta o texto enquanto se digita.
+- **Sugestões da IA em todas as ferramentas** (`POST /api/ai/suggest`, D-228):
+  `{tool, context}` para 16 ferramentas (Mapas, Comparar, Catálogo, Ficha,
+  Processos, Glossário, Sintetizar, Painel, Meus registros, Importar,
+  Dimensionar, Custo, Eco, Baterias e as duas telas de Admin) devolve até três
+  sugestões com ações tipadas (`set_axes`, `apply_preset`, `compare`,
+  `set_param`, `map_column`, `fill_text`…). O servidor valida o contexto e o
+  completa a partir do banco ou do próprio cálculo; os números da resposta só
+  vêm daí; nada é aplicado sem o clique; se o modelo falhar, as regras locais
+  respondem. `GET /api/ai/status` diz o modelo, o host e as capacidades
+  configuradas, e `POST /api/ai/diagnostico` testa texto/JSON, embeddings e
+  busca na web ao vivo — na interface, em Aparência → "Testar a IA agora".
+  Na interface (D-229, D-230b), o botão **"Sugestão da IA"** de Mapas, Comparar, Catálogo,
+  Ficha do material, Glossário, Processos, Importar, Dimensionar, Custo, Eco,
+  Baterias, Sintetizar, Painel, Meus registros e das duas telas de Admin (as 15
+  telas) só consulta o modelo ao clicar; cada sugestão é um cartão e cada botão
+  dele aplica a ação na tela (eixos do mapa, filtro do catálogo, coluna do
+  arquivo, um parâmetro do cálculo, o rascunho de uma descrição…) só quando você
+  clica — e o campo que mudou fica marcado por um instante.
 - Outros provedores (`claude-api`, `claude-cli`, Groq, Ollama local) são troca
   de variável; serviço, guardrails e interface não mudam.
 

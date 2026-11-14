@@ -40,6 +40,7 @@ vi.mock("@/lib/api", () => ({
   },
   // D-214: the empty state offers the reader's favourites and recents.
   getMyRecords: () => Promise.resolve({ favorites: [], recents: [], own_records: [] }),
+  listStudies: () => Promise.resolve([]),
   evaluateIndex: evaluate,
   // D-191: the calculator's palette and the friendly reading of an index.
   getExpressionPalette: () =>

@@ -12,6 +12,10 @@ import type {
   ExpressionUniverse,
   AhpWeightsIn,
   AhpWeightsOut,
+  AIDiagnostico,
+  SuggestRequest,
+  SuggestTool,
+  SuggestionsOut,
   AIStatus,
   ApplicationArchetype,
   BatteryChemistry,
@@ -27,6 +31,8 @@ import type {
   CommitResult,
   Comparison,
   ComparisonRequest,
+  CostCurves,
+  CostCurvesRequest,
   CostRequest,
   CostResult,
   CurrentUser,
@@ -50,7 +56,6 @@ import type {
   EcoComparisonRequest,
   EcoComparisonResult,
   Explanation,
-  Interpretation,
   MaterialEquivalences,
   ReleaseDiff,
   ReleaseDiffItem,
@@ -80,6 +85,8 @@ import type {
   NotebookChat,
   NotebookMessage,
   NotebookNote,
+  NotebookTemplate,
+  NotebookTemplateId,
   NotebookSearch,
   NotebookSearchRequest,
   NotebookSource,
@@ -96,10 +103,14 @@ import type {
   StudioList,
   StudioRequest,
   PerformanceIndex,
+  PlanRequest,
+  PlanRunRequest,
+  PlanRunResponse,
   PortalSession,
   MaterialClassDetail,
   PackDesignRequest,
   PackDesignResult,
+  ProjectPlan,
   Process,
   ProcessAttribute,
   ProcessClass,
@@ -591,6 +602,14 @@ export function deactivateMaterial(id: number): Promise<void> {
   return request<void>(`/api/materials/${id}`, { method: "DELETE" });
 }
 
+/** D-233: withdraw several of the caller's own records at once; all or none. */
+export function deleteOwnMaterials(ids: number[]): Promise<{ deleted: number[] }> {
+  return request<{ deleted: number[] }>(`/api/materials/batch-delete`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
 // --- Classes --------------------------------------------------------------
 
 export function listClasses(): Promise<MaterialClass[]> {
@@ -611,6 +630,14 @@ export function updateClass(
   return request<MaterialClass>(`/api/classes/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+/** D-233: change only a class's parent (`null` = to the root); nothing else moves. */
+export function moveClass(id: number, parentId: number | null): Promise<MaterialClass> {
+  return request<MaterialClass>(`/api/classes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ parent_id: parentId }),
   });
 }
 
@@ -693,7 +720,7 @@ export function getClass(slug: string): Promise<MaterialClassDetail> {
 
 // --- Properties -----------------------------------------------------------
 
-// --- Glossário (D-130) --------------------------------------------------------
+// --- Glossário (D-130b) --------------------------------------------------------
 
 /** Os verbetes conceituais do glossário de propriedades. */
 export function listGlossary(): Promise<GlossaryEntry[]> {
@@ -737,6 +764,17 @@ export function updateProperty(
   return request<PropertyDefinition>(`/api/properties/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+/** D-233: name, description and reading unit only — slug and dimension are not reachable. */
+export function patchProperty(
+  id: number,
+  patch: { name?: string; description?: string | null; display_unit?: string | null },
+): Promise<PropertyDefinition> {
+  return request<PropertyDefinition>(`/api/properties/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
   });
 }
 
@@ -1160,10 +1198,50 @@ export function getAIStatus(): Promise<AIStatus> {
   return request<AIStatus>(`/api/ai/status`);
 }
 
-export function interpretStatement(statement: string): Promise<Interpretation> {
-  return request<Interpretation>(`/api/ai/interpret`, {
+/**
+ * D-228: try the model (a small JSON), the embedding and the web search once
+ * each. Spends no daily quota; limited per person per hour (429 past it).
+ */
+export function runAIDiagnostico(): Promise<AIDiagnostico> {
+  return request<AIDiagnostico>(`/api/ai/diagnostico`, { method: "POST" });
+}
+
+/**
+ * D-228: up to three checked next steps for one tool's screen. The context
+ * carries what the screen shows (ids, slugs, parameters); the server
+ * validates and enriches it. Nothing is applied: each action is a proposal.
+ */
+export function suggestNextSteps(
+  tool: SuggestTool,
+  context: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<SuggestionsOut> {
+  const payload: SuggestRequest = { tool, context };
+  return request<SuggestionsOut>(`/api/ai/suggest`, {
     method: "POST",
-    body: JSON.stringify({ statement }),
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+/**
+ * The project assistant (D-224): a plain request becomes parts, limits with
+ * their origin, and the first materials of the catalogue. `signal` cancels the
+ * call — the wizard interprets while the person types and drops the stale one.
+ */
+export function planProject(payload: PlanRequest, signal?: AbortSignal): Promise<ProjectPlan> {
+  return request<ProjectPlan>(`/api/ai/plan`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+/** The same plan run again with the person's choices — no model, no quota. */
+export function runPlan(payload: PlanRunRequest): Promise<PlanRunResponse> {
+  return request<PlanRunResponse>(`/api/ai/plan/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -1458,6 +1536,14 @@ export function estimatePartCost(body: CostRequest): Promise<CostResult> {
   });
 }
 
+/** The cost × batch curve of each compared material, on one shared frame (D-234). */
+export function estimateCostCurves(body: CostCurvesRequest): Promise<CostCurves> {
+  return request<CostCurves>("/api/custo/curvas", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 // --- Eco Audit (P3) ---------------------------------------------------------
 
 export function listTransportModes(): Promise<TransportMode[]> {
@@ -1605,10 +1691,23 @@ export function listNotebooks(archived = false): Promise<NotebookSummary[]> {
   return request<NotebookSummary[]>(archived ? "/api/notebooks?archived=true" : "/api/notebooks");
 }
 
-export function createNotebook(title?: string): Promise<Notebook> {
+export function createNotebook(title?: string, template?: NotebookTemplateId): Promise<Notebook> {
   return request<Notebook>("/api/notebooks", {
     method: "POST",
-    body: JSON.stringify(title ? { title } : {}),
+    body: JSON.stringify({ ...(title ? { title } : {}), ...(template ? { template } : {}) }),
+  });
+}
+
+/** D-235b: the ready-made notebooks offered when one is created. */
+export function listNotebookTemplates(): Promise<NotebookTemplate[]> {
+  return request<NotebookTemplate[]>("/api/notebooks/templates");
+}
+
+/** D-235b: every note of the notebook, in the student's new order. */
+export function reorderNotebookNotes(id: number, ids: number[]): Promise<NotebookNote[]> {
+  return request<NotebookNote[]>(`${nb(id)}/notes/order`, {
+    method: "PUT",
+    body: JSON.stringify({ ids }),
   });
 }
 
@@ -1620,8 +1719,22 @@ export function updateNotebook(id: number, patch: NotebookUpdate): Promise<Noteb
   return request<Notebook>(nb(id), { method: "PATCH", body: JSON.stringify(patch) });
 }
 
-export function duplicateNotebook(id: number): Promise<Notebook> {
-  return request<Notebook>(`${nb(id)}/duplicate`, { method: "POST" });
+export function duplicateNotebook(id: number, withConversation = false): Promise<Notebook> {
+  return request<Notebook>(
+    `${nb(id)}/duplicate${withConversation ? "?with_conversation=true" : ""}`,
+    { method: "POST" },
+  );
+}
+
+/** D-233: archive (or bring back) several notebooks at once; all or none. */
+export function batchArchiveNotebooks(
+  ids: number[],
+  archived: boolean,
+): Promise<NotebookSummary[]> {
+  return request<NotebookSummary[]>("/api/notebooks/batch-archive", {
+    method: "POST",
+    body: JSON.stringify({ ids, archived }),
+  });
 }
 
 export function deleteNotebook(id: number): Promise<void> {

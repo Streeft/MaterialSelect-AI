@@ -58,7 +58,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
   const [scale, setScale] = useState<Scale>("log");
   const theme = useResolvedTheme();
   const paint = useMemo(() => chartTheme(theme), [theme]);
-  const plotBox = usePlotlyResize<HTMLDivElement>();
+  const plotBox = usePlotlyResize<HTMLDivElement>(t.figureLabel(ptBR.detail.position));
 
   const { plotted, xs, ys, labels, colors, sizes, droppedForLog } = useMemo(() => {
     const plotted: ChartPoint[] = [];
@@ -206,7 +206,7 @@ export function PropertyChart({ data, highlightMaterialId }: PropertyChartProps)
       <div
         ref={plotBox}
         className={`chart-plotly relative ${PLOTLY_HEIGHT.property}`}
-        role="img" aria-label={t.figureLabel(ptBR.detail.position)}>
+        role="group" aria-label={t.figureLabel(ptBR.detail.position)}>
         <Plot
           data={[
             {

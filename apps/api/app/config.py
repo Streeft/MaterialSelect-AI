@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "sqlite:///./materialselect.db"
+    # D-227: how the API holds connections to a server database. "null" opens one
+    # per checkout and closes it on release (no idle connection, so Neon can
+    # suspend its compute); "queue" keeps the old pool of 5 + 5.
+    db_pool_mode: str = "null"
     cors_origins: str = "http://localhost:3000"
     app_name: str = "MaterialSelect AI"
     environment: str = "development"
@@ -51,6 +55,12 @@ class Settings(BaseSettings):
     # classes, processes, glossary, defaults): how long a browser may reuse
     # them before asking again with ``If-None-Match``.
     static_list_max_age_seconds: int = 300
+    # How many heavy requests (selection funnel/run, maps, calculators, the AI
+    # plan) one process serves at once (D-231); the next waits up to
+    # ``heavy_request_wait_seconds`` for a slot, then gets 503 + Retry-After.
+    # Each holds tens of MB while it runs; 0 turns the gate off.
+    heavy_request_concurrency: int = 2
+    heavy_request_wait_seconds: float = 20.0
 
     # --- Import uploads ---------------------------------------------------
     # Directory where uploaded files are kept while an import job is open.
@@ -101,6 +111,31 @@ class Settings(BaseSettings):
     ai_max_output_tokens: int = 16000
     # Executable for claude-cli, resolved on PATH.
     ai_cli_command: str = "claude"
+    # The project assistant (/ai/plan, D-224) is answered while a person waits
+    # on the home page, so it gets a tighter call than the rest: a smaller
+    # ceiling, a shorter timeout and at most one extra attempt. When any of
+    # them runs out, the answer degrades to the rule-based plan instead of
+    # failing — waiting a minute and a half for an error is the worst outcome.
+    ai_plan_timeout_seconds: float = 30.0
+    ai_plan_max_output_tokens: int = 6000
+    ai_plan_max_retries: int = Field(default=1, ge=0, le=1)
+    # How long the same request (same text, same mode, same provider) reuses
+    # the model's last plan instead of asking again. A reused plan spends no
+    # daily quota; 0 turns the cache off.
+    ai_plan_cache_seconds: float = 600.0
+    # How long the catalogue summary the prompts carry (properties, indices,
+    # classes, ordinal scales) is reused before being read again.
+    ai_context_cache_seconds: float = 60.0
+    # Suggestions of every tool (/ai/suggest, D-228): a short call — the
+    # answer is three cards, not a report — reused for the same screen state
+    # within the cache window, which spends no daily quota.
+    ai_suggest_timeout_seconds: float = 20.0
+    ai_suggest_max_output_tokens: int = 1500
+    ai_suggest_cache_seconds: float = 600.0
+    # The AI diagnosis (/ai/diagnostico, D-228) calls the model, the embedding
+    # and the web search once each. It does not spend the daily quota; it has
+    # this own low ceiling per person per hour instead.
+    ai_diagnostic_per_hour: int = Field(default=6, ge=0)
 
     # --- Knowledge base / Cérebro (optional) ------------------------------
     # Root directory of the curated reference corpus, relative to the repo root
@@ -121,6 +156,13 @@ class Settings(BaseSettings):
     # prompt already carries the catalogue, and an answer grounded in three
     # relevant passages is more checkable than one drowning in twenty.
     knowledge_retrieval_top_k: int = 5
+    # Seconds the AI layer waits for the query's embedding before ranking by
+    # the lexical search alone (D-224). The embedding is a network call; the
+    # person waiting on an answer should not pay for a slow provider.
+    knowledge_retrieval_budget_seconds: float = 2.0
+    # The same budget for the Cadernos' retrieval (D-228): past it, a
+    # notebook question is ranked by the lexical half alone.
+    notebook_retrieval_budget_seconds: float = 2.0
 
     # Embeddings para busca semântica — estritamente opcional por cima da
     # busca léxica (que não depende de nenhum dos três). Sem padrão de
@@ -226,6 +268,8 @@ class Settings(BaseSettings):
     # ``app.integrations.gemini_search.resolve_key``.
     web_search_api_key: str = ""
     web_search_model: str = "gemini-flash-latest"
+    # Where a 429 of the search model falls back to (D-234); empty = no fallback.
+    web_search_fallback_model: str = "gemini-flash-lite-latest"
     web_search_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     # A grounded call searches before it answers, so it is slower than a fetch.
     web_search_timeout_seconds: float = 25.0

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { deleteNotebook, getNotebook } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
+import { curadoriaText } from "@/lib/i18n-curadoria";
 import { useUrlState } from "@/lib/urlState";
 import type { Notebook, NotebookCitation } from "@/lib/types";
 import { cn } from "@/lib/cn";
@@ -20,12 +21,14 @@ import {
   Input,
   MenuItem,
   PageHeader,
+  Popover,
   Skeleton,
 } from "@/components/ui";
 import {
   IconArchive,
   IconCopy,
   IconGear,
+  IconInfo,
   IconPencil,
   IconPlus,
   IconTrash,
@@ -41,7 +44,7 @@ import { SourceReader } from "./SourceReader";
 import { SourcesPanel } from "./SourcesPanel";
 import { StudioPanel } from "./StudioPanel";
 import { useNotebookActions } from "./useNotebookActions";
-import { notebookUrlSpec, type NotebookPanel as Panel } from "./urlState";
+import { notebookUrlSpec, type NotebookPanel as Panel, type PassageRange } from "./urlState";
 
 const t = ptBR.notebooks;
 
@@ -176,16 +179,29 @@ function Workspace({ data }: { data: Notebook }) {
   const [excerpt, setExcerpt] = useState<string | null>(null);
   const reading =
     data.sources.find((source) => source.id === url.source) ?? null;
-  // A `?fonte=` that is no source of this notebook (removed, or someone else's link) is dropped.
+  // A `?fonte=` that is no source of this notebook (removed, or someone else's link) is dropped,
+  // and a `?trecho=` without a source marks nothing.
   useEffect(() => {
-    if (url.source !== null && reading === null) setUrl({ source: null });
-  }, [url.source, reading, setUrl]);
-  const readSource = (sourceId: number | null, passage: string | null) => {
+    if (url.source !== null && reading === null) setUrl({ source: null, passage: null });
+    else if (url.source === null && url.passage !== null) setUrl({ passage: null });
+  }, [url.source, url.passage, reading, setUrl]);
+  const readSource = (
+    sourceId: number | null,
+    passage: string | null,
+    range: PassageRange | null = null,
+  ) => {
     setExcerpt(passage);
-    setUrl({ source: sourceId });
+    // D-233: the position the server stored goes in the address, so a reload keeps the mark.
+    setUrl({ source: sourceId, passage: sourceId === null ? null : range });
   };
   const openCited = (citation: NotebookCitation) =>
-    readSource(citation.source_id, citation.excerpt);
+    readSource(
+      citation.source_id,
+      citation.excerpt,
+      citation.char_start != null && citation.char_end != null
+        ? { start: citation.char_start, end: citation.char_end }
+        : null,
+    );
 
   return (
     <OpenSourceProvider value={openCited}>
@@ -197,9 +213,9 @@ function Workspace({ data }: { data: Notebook }) {
         />
 
         {data.archived ? <Alert tone="info">{t.archivedBanner}</Alert> : null}
-        <Alert tone={data.ai_simulated ? "info" : "warning"}>
-          {data.ai_notice}
-        </Alert>
+        {/* D-235b: with the AI off the notice explains why the chat is closed, so
+            it stays in the page; otherwise it is a chip in the header. */}
+        {data.ai_enabled ? null : <Alert tone="warning">{data.ai_notice}</Alert>}
 
         <ButtonGroup label={t.panelTabs} className="lg:hidden">
           {(["sources", "chat", "studio"] as const).map((panel) => (
@@ -329,10 +345,40 @@ function Workspace({ data }: { data: Notebook }) {
           notebookId={id}
           source={reading}
           excerpt={excerpt}
+          position={url.passage}
           onClose={() => readSource(null, null)}
         />
       </div>
     </OpenSourceProvider>
+  );
+}
+
+/**
+ * D-235b: which AI answers this notebook, as a chip beside the actions — colour
+ * only for the state that asks for care (an external provider receives the
+ * text). The full notice opens from the chip, so nothing is hidden behind a
+ * hover title.
+ */
+function ProviderChip({ notebook }: { notebook: Notebook }) {
+  const simulated = notebook.ai_simulated;
+  return (
+    <Popover
+      label={`${simulated ? t.providerSimulated : t.providerExternal}. ${t.providerAbout}`}
+      title={t.providerAbout}
+      align="end"
+      triggerClassName={cn(
+        "msds-chip msds-ripple-host",
+        !simulated && "bg-warning-soft text-warning-fg",
+      )}
+      trigger={
+        <span className="inline-flex items-center gap-1.5">
+          <IconInfo aria-hidden />
+          {simulated ? t.providerSimulated : t.providerExternal}
+        </span>
+      }
+    >
+      <p className="text-body text-ink">{notebook.ai_notice}</p>
+    </Popover>
   );
 }
 
@@ -390,6 +436,7 @@ function Header({
             {title}
           </>
         }
+        actions={notebook.ai_enabled ? <ProviderChip notebook={notebook} /> : null}
         primaryAction={
           <Button icon={<IconPlus />} onClick={onAdd} disabled={full}>
             {t.addSources}
@@ -408,9 +455,18 @@ function Header({
                 <IconPencil /> {t.rename}
               </span>
             </MenuItem>
-            <MenuItem onSelect={() => duplicate.mutate()}>
+            <MenuItem onSelect={() => duplicate.mutate(false)}>
               <span className="inline-flex items-center gap-2">
                 <IconCopy /> {duplicate.isPending ? t.duplicating : t.duplicate}
+              </span>
+            </MenuItem>
+            <MenuItem
+              hint={curadoriaText.notebooks.duplicateWithChatHint}
+              disabled={duplicate.isPending}
+              onSelect={() => duplicate.mutate(true)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <IconCopy /> {curadoriaText.notebooks.duplicateWithChat}
               </span>
             </MenuItem>
             <MenuItem onSelect={() => archive.mutate(!notebook.archived)}>

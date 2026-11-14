@@ -56,6 +56,15 @@ on:
         required: false
         type: string
         default: ""
+      modelo_busca_web:
+        description: "Modelo da busca na web dos Cadernos (WEB_SEARCH_MODEL; só vale para gemini). manter = não mexe. Se o Google responder 429, a API recai sozinha para o gemini-flash-lite-latest (WEB_SEARCH_FALLBACK_MODEL)."
+        required: false
+        type: choice
+        default: manter
+        options:
+          - manter
+          - gemini-flash-latest
+          - gemini-flash-lite-latest
       modo_json:
         description: "Saída estruturada. Troque para object só se a IA disser que o servidor recusou response_format/json_schema."
         required: false
@@ -169,6 +178,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PROVEDOR: ${{ inputs.provedor }}
           MODO_JSON: ${{ inputs.modo_json }}
+          MODELO_BUSCA_WEB: ${{ inputs.modelo_busca_web }}
         run: |
           set -euo pipefail
           if [ -z "${FLY_API_TOKEN:-}" ]; then
@@ -178,6 +188,11 @@ jobs:
           case "$MODO_JSON" in
             schema|object) ;;
             *) echo "::error::Modo JSON desconhecido: $MODO_JSON"; exit 1 ;;
+          esac
+          # Tabela fechada (D-234): nenhum texto digitado vira o modelo da busca.
+          case "$MODELO_BUSCA_WEB" in
+            manter|gemini-flash-latest|gemini-flash-lite-latest) ;;
+            *) echo "::error::Modelo da busca na web desconhecido: $MODELO_BUSCA_WEB"; exit 1 ;;
           esac
           # Sem embeddings, os dois segredos saem juntos: um modelo sem a
           # dimensão (ou o contrário) embedaria a pergunta noutro tamanho.
@@ -204,6 +219,11 @@ jobs:
                 AI_JSON_MODE="$MODO_JSON"
                 AI_API_KEY="$GEMINI_API_KEY"
               )
+              # O modelo da busca na web (grounding) é do mesmo Google, com a
+              # mesma chave; "manter" deixa o segredo como está.
+              if [ "$MODELO_BUSCA_WEB" != "manter" ]; then
+                segredos+=(WEB_SEARCH_MODEL="$MODELO_BUSCA_WEB")
+              fi
               # Num `set` só, para as máquinas reiniciarem uma vez.
               if [ -n "${EMBEDDING:-}" ]; then
                 segredos+=(

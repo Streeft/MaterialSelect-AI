@@ -32,6 +32,7 @@ from app.domain.errors import (
     NotFoundError,
     QuotaExceededError,
     RateLimitedError,
+    ServerBusyError,
     ServiceUnavailableError,
     SubscriptionRequiredError,
     ValidationError,
@@ -186,6 +187,16 @@ async def _handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
 async def _handle_rate_limited(_: Request, exc: RateLimitedError) -> JSONResponse:
     return JSONResponse(
         status_code=429,
+        content={"detail": str(exc)},
+        headers={"Retry-After": str(exc.retry_after)},
+    )
+
+
+@app.exception_handler(ServerBusyError)
+async def _handle_server_busy(_: Request, exc: ServerBusyError) -> JSONResponse:
+    """D-231: the heavy-request gate is full; the caller retries, nobody crashes."""
+    return JSONResponse(
+        status_code=503,
         content={"detail": str(exc)},
         headers={"Retry-After": str(exc.retry_after)},
     )

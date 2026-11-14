@@ -13,8 +13,10 @@ import pytest
 
 from app.calculations.part_cost import (
     DEFAULT_CURVE_BATCH_SIZES,
+    CostCurvePoint,
     PartCostError,
     ShopAssumptions,
+    cheapest_envelope,
     cost_curve,
     cost_terms,
     curve_batch_sizes,
@@ -197,3 +199,45 @@ def test_zero_scrap_and_zero_tooling_are_allowed() -> None:
     terms = _terms(scrap_fraction=0.0, tooling_cost=0.0)
     assert terms.tooling == 0.0
     assert terms.material == pytest.approx(16.0)
+
+
+# --- the cheapest process at every batch (D-234) ---------------------------------------
+
+
+def _curve(base: float, tooling: float) -> list[CostCurvePoint]:
+    return cost_curve(base_cost=base, tooling_cost=tooling, current_batch=1000.0)
+
+
+def test_the_envelope_is_the_lowest_curve_at_each_batch_and_names_who_wins() -> None:
+    # A cheap tool with a dear run (0) against a dear tool with a cheap run (1):
+    # the first wins small batches and the second takes over from some batch on.
+    curves = [_curve(base=10.0, tooling=1_000.0), _curve(base=2.0, tooling=100_000.0)]
+    envelope = cheapest_envelope(curves)
+    assert [p.batch_size for p in envelope] == [c.batch_size for c in curves[0]]
+    assert envelope[0].winner == 0
+    assert envelope[-1].winner == 1
+    for point, a, b in zip(envelope, curves[0], curves[1], strict=True):
+        assert point.cost == min(a.cost, b.cost)
+        assert point.winner == (0 if a.cost <= b.cost else 1)
+    # Never above any curve and never rising with the batch.
+    costs = [p.cost for p in envelope]
+    assert costs == sorted(costs, reverse=True)
+
+
+def test_the_envelope_of_nothing_is_empty_not_zero() -> None:
+    assert cheapest_envelope([]) == []
+    assert cheapest_envelope([[]]) == []
+
+
+def test_a_tie_goes_to_the_first_curve() -> None:
+    same = _curve(base=5.0, tooling=500.0)
+    assert {p.winner for p in cheapest_envelope([same, list(same)])} == {0}
+
+
+def test_a_batch_missing_from_one_curve_is_not_in_its_race() -> None:
+    full = _curve(base=5.0, tooling=500.0)
+    short = [p for p in _curve(base=1.0, tooling=0.0) if p.batch_size >= 100.0]
+    envelope = cheapest_envelope([full, short])
+    by_size = {p.batch_size: p for p in envelope}
+    assert by_size[1.0].winner == 0
+    assert by_size[1000.0].winner == 1

@@ -425,7 +425,7 @@ As regras que pesam:
   (`NotebookRepository.reserve`) e devolvida se a chamada falhar — uma pergunta
   que falha continua de graça, e uma rajada não passa do teto.
 - **A mesma cota vale fora dos Cadernos** ([D-179](DECISIONS.md)):
-  `/ai/interpret`, `/ai/explain` e a narrativa do laudo usam a mesma chave, então
+  `/ai/explain` e a narrativa do laudo usam a mesma chave, então
   reservam no **mesmo contador** `requests` do `AIUsage` (por usuário e por dia
   UTC), com teto próprio `AI_DAILY_REQUESTS` (padrão 100). O Caderno continua
   parando no seu teto (`NOTEBOOK_DAILY_REQUESTS`) sobre o mesmo contador: a
@@ -442,10 +442,17 @@ As regras que pesam:
   (item do Estúdio aberto); a lista, `?arquivados=1`. Tudo pelo `useUrlState`, parâmetro inválido cai no padrão.
 - **Citação.** O chip abre o trecho e, abaixo dele, "Abrir a fonte no trecho": o leitor marca o `excerpt` no texto da fonte.
   Texto localizado, nunca calculado: a IA continua sem produzir número nenhum, e o trecho marcado é o que o backend já tinha
-  checado. Sem posição guardada no servidor (ver TODO), a busca é por palavras.
+  checado. Desde o D-233 o servidor guarda **onde** o trecho está (`notebook_chunk.char_start`/`char_end`, intervalo meio-aberto
+  no `content` da fonte, sem a sobreposição repetida do trecho anterior) e a citação o devolve; o leitor marca por posição e o
+  endereço leva `?trecho=ini-fim`, então a marca sobrevive ao recarregar. Trecho gravado antes não tem posição (NULL, nunca um
+  palpite): para esse, e se a posição não couber no texto, a busca por palavras continua como recaída.
 - **Duplicar** (`POST /api/notebooks/{id}/duplicate`): copia fontes, trechos, vetores e notas; não copia a conversa nem os itens
-  do Estúdio; não gasta a cota diária. **Arquivar** (`PATCH` com `archived`): `notebook.archived_at`; o caderno some da lista
-  padrão (`GET /api/notebooks?archived=true` lista os arquivados) e segue abrindo.
+  do Estúdio; não gasta a cota diária. Com `?with_conversation=true` ("Duplicar com conversa", D-233) leva também as mensagens,
+  os itens **prontos** do Estúdio e as citações das notas, reapontando cada `chunk_id`/`source_id` para a cópia (citação de fonte
+  já removida vira id 0, nunca outra linha); também não gasta cota. **Arquivar** (`PATCH` com `archived`): `notebook.archived_at`;
+  o caderno some da lista padrão (`GET /api/notebooks?archived=true` lista os arquivados) e segue abrindo. Em lote (D-233),
+  `POST /api/notebooks/batch-archive` (1 a 100 ids, tudo ou nada, 404 se algum não for do dono), com "Selecionar", confirmação
+  e "Desfazer" na lista.
 
 ### Estúdio (`app/ai/studio.py`, `app/services/studio_service.py`)
 
@@ -641,6 +648,7 @@ externas"):
 | `WEB_SEARCH_PROVIDER` | vazio | busca na web **desligada**; `gemini` liga |
 | `WEB_SEARCH_API_KEY` | vazio | vazia usa `AI_API_KEY` **só** se `AI_BASE_URL` for o Gemini — a chave de outro fornecedor nunca vai ao Google |
 | `WEB_SEARCH_MODEL` | `gemini-flash-latest` | modelo que faz a busca |
+| `WEB_SEARCH_FALLBACK_MODEL` | `gemini-flash-lite-latest` | no 429 do modelo acima a busca tenta **uma vez** este (D-234), registrando no log o `quotaId` e o limite; vazio desliga |
 | `WEB_SEARCH_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | API nativa do Gemini |
 | `WEB_SEARCH_TIMEOUT_SECONDS` | `25` | uma chamada com *grounding* pesquisa antes de responder |
 | `WEB_SEARCH_MAX_RESULTS` | `8` | resultados por busca |
@@ -687,6 +695,235 @@ passo das chaves está em [13-deploy.md §5-sexies](13-deploy.md).
 versões que recusam tudo, e reprova qualquer teste que tenha tentado sair,
 mesmo que o erro tenha sido engolido. Os clientes são testados com
 `httpx.MockTransport`.
+
+**Modelos de caderno ([D-235b](DECISIONS.md)).** "Disciplina de Materiais",
+"Revisão para prova", "Projeto de TCC" e "Em branco" vivem em
+`app/domain/notebook_templates.py`: cada um fixa o objetivo da conversa (`chat_goal`
+e `chat_instructions` do D-94) e cria notas de partida com títulos e tópicos vazios —
+nenhum conteúdo de matéria e nenhum número entra no caderno pelo modelo. O aviso do
+provedor (simulado, externo) aparece como chip no cabeçalho do caderno; com a IA
+desligada ele segue na página, porque explica por que a conversa não responde.
+
+## Assistente de projeto (`/ai/plan`, [D-224](DECISIONS.md))
+
+Para quem não é engenheiro: "quero fazer uma roupa de esqui", "quero construir um
+prédio que caiba 50 pessoas". O pedido vira uma proposta com partes
+(`mode: "project"`, para o Início) ou com uma parte só (`mode: "single"`, para a
+Seleção), e cada parte já sai com os materiais do catálogo que a seleção
+determinística escolheu.
+
+**De onde vem cada número.** Esta é a revisão do princípio 2 que a D-224
+registra. Um limite tem uma origem (`origin`), nesta ordem:
+
+1. `usuario` — o número está no pedido; a ancoragem da seção acima vale sem
+   mudança (`check_constraint`).
+2. `cenario:<id>` — a faixa vem de `app/domain/use_scenarios.py`, a tabela curada
+   de cenários de uso, com fonte. O modelo escolhe o cenário **pelo id**; o prompt
+   descreve cada um em palavras, sem número, e o servidor expande os limites a
+   partir da tabela. Id fora da tabela é recusado (`check_scenario`).
+3. `sugestao_ia` — último recurso. Exige unidade que converta para a canônica e
+   valor dentro da faixa que o catálogo tem para a propriedade
+   (`check_suggested_range`, sobre `ChartRepository.observed_ranges`). Mostrada
+   como "Sugestão da IA, revise", nunca entra na execução automática nem no
+   estudo pronto; roda só em `/ai/plan/run` com `confirmed: true`.
+
+Há ainda `indice`: a propriedade que o índice ou um critério lê precisa ter dado
+(`exists`, sem número). Num mesmo lado de uma propriedade fica a origem mais
+forte e, entre iguais, o limite mais exigente; o resto vai para `rejected` com o
+porquê. A prosa do modelo com número ausente do pedido é descartada
+(`ungrounded_numbers`).
+
+| Cenário (`id`) | Limite | Fonte |
+|---|---|---|
+| `frio-extremo` | temperatura mínima de serviço ≤ −30 °C | didática |
+| `calor-moderado` | temperatura máxima de serviço ≥ 80 °C | didática |
+| `calor-alto` | temperatura máxima de serviço ≥ 250 °C | didática |
+| `externo-uv` | resistência à radiação UV ≥ "Bom" | didática |
+| `agua-doce` | resistência à água doce ≥ "Bom" | didática |
+| `agua-salgada` | resistência à água salgada ≥ "Bom" | didática |
+| `contato-alimento` | água doce ≥ "Bom"; ácidos fracos ≥ "Bom" | didática (nota sobre o Regulamento (CE) nº 1935/2004) |
+| `contato-pele` | biocompatibilidade ≥ "Contato superficial" | didática (nota sobre a ISO 10993) |
+| `estrutural` | módulo de Young ≥ 10 GPa | didática |
+| `estrutural-leve` | densidade ≤ 3 g/cm³; módulo de Young ≥ 1 GPa | didática |
+| `isolamento-termico` | condutividade térmica ≤ 0,1 W/(m·K) | didática |
+| `isolamento-eletrico` | resistividade ≥ 10¹⁰ Ω·m | Callister & Rethwisch, cap. 18 |
+| `baixo-custo` | custo por massa existe; ordena do mais barato | didática |
+| `acidos-alcalis` | ácidos fracos ≥ "Bom"; álcalis fracos ≥ "Bom" | didática |
+| `impermeavel` | absorção de água ≤ 0,5 % | didática |
+| `flexivel` | módulo de Young ≤ 3 GPa | didática |
+
+"Didática" é o texto "Referência didática do projeto (faixa típica de uso)": a
+tabela não empresta autoridade de norma que não usou. `test_use_scenarios.py`
+prende cada limite ao catálogo — propriedade existente, unidade que converte,
+valor dentro da faixa do catálogo demo, nível na escala e alcançado por algum
+material.
+
+**Nunca vazio.** Sem índice nem critério, a parte ordena pela melhor direção das
+propriedades que limita ou pelo modelo pronto mais próximo
+(`study_templates.nearest_template`). Modelo que estoura o tempo, devolve JSON
+inválido ou nenhuma parte, ou cota do dia esgotada: responde a regra local
+(`app/ai/rule_plan.py`) com `degraded: true` e `notice`, nunca um 400. A regra
+local é a mesma do provedor `mock`: palavras-gatilho → cenários, dois arquétipos
+(vestuário: camada externa, isolante e forro; construção: estrutura, vedação e
+isolamento), os números do texto pelas regras do `interpret` e o modelo pronto
+mais próximo.
+
+**Execução.** `AIService.plan` → `PlanBuilder` (`app/services/ai_plan.py`) →
+`SelectionService.run`, uma carga do catálogo para todas as partes. Cada parte
+devolve os 5 primeiros materiais com o motivo lido da execução ("Passou nos 4
+limites aplicados; 1º pelo índice …"), o funil, uma mensagem quando a lista zera
+(com o passo em que zerou) e um `StudyIn` pronto para `POST /selection/studies`.
+
+**Desempenho e cota.** O resumo do catálogo (propriedades, índices, classes dos
+materiais visíveis, escalas ordinais) é lido em quatro consultas leves e
+guardado por leitor; antes, cada chamada lia todos os materiais com todos os
+valores. O embedding da consulta tem orçamento de tempo. O plano chama o modelo
+com teto, tempo e tentativas próprios (tabela de configuração). O mesmo pedido
+reaproveita o plano do modelo sem gastar a cota diária da D-179; o `/plan/run`
+também não gasta. As duas rotas contam no balde "IA" do limite por minuto (D-223).
+
+### Interface do assistente de projeto ([D-225](DECISIONS.md))
+
+- **Início** (`components/home/HomeComposer.tsx`): chama `/ai/plan` com `mode: "project"` (botão ou Ctrl/⌘+Enter). A espera mostra
+  "Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…" com skeleton e `aria-live`. Com `/ai/status` desligado
+  a caixa só leva o texto à função do estudo, como antes.
+- **Proposta** (`components/ai/PlanView.tsx`, `PlanComponentCard.tsx`, `ConstraintOriginChip.tsx`): resumo, premissas, perguntas em
+  aberto, cenários com fonte e, por parte, os limites e os materiais do servidor (link para a ficha e o motivo). Cada número tem
+  um chip de origem: **Você**, **Cenário: <nome>** (fonte no tooltip e escrita ao lado) ou **Sugestão da IA, revise** (aviso). A
+  sugestão vem **desmarcada**; marcar pede confirmação e roda `/ai/plan/run` com `confirmed: true`. Recusadas ficam recolhidas.
+  `degraded` mostra "Proposta montada por regras locais porque a IA não respondeu"; `cached` aparece em letra pequena. Erro:
+  `describeApiError` e "Tentar de novo"; o 429 traz o tempo de espera que o servidor escreveu.
+- **Abrir na Seleção**: o `study` da parte (só limites aplicados) vira o rascunho da Seleção (D-139/D-210,
+  `lib/selection/planDraft.ts`) e a Seleção o continua sem perguntar (`?rascunho=assistente`). **Comparar** vai a
+  `/app/comparar?materiais=` na ordem do ranking.
+- **Seleção** (`components/ai/AIAssistPanel.tsx`): `mode: "single"`; interpreta ao digitar (pausa de 1,5 s, 15 caracteres, a chamada
+  anterior cancelada por `AbortController`) ou no botão "Interpretar". "Aplicar ao estudo" preenche função, objetivo, índice e
+  limites aplicados; nada entra sem esse clique, e a sugestão da IA só entra se foi marcada e confirmada.
+
+## Todas as funções de IA e o provedor ([D-228](DECISIONS.md))
+
+Toda função passa pela mesma fábrica (`app/ai/factory.py`). Em produção o provedor é o **Gemini gratuito** pelo
+`openai-compat` (`gemini-flash-lite-latest`; embeddings `gemini-embedding-001`, 768 dimensões); nos testes e no padrão do
+código, o `mock`.
+
+| Função | Rota / onde | Método do provedor | Gemini (produção) | `mock` | Se o modelo falhar |
+|---|---|---|---|---|---|
+| Assistente de projeto | `POST /ai/plan` (Início, Seleção) | `plan` (teto próprio) | JSON estrito | `rule_plan` | regras locais, `degraded` |
+| Rodar o plano de novo | `POST /ai/plan/run` | — (sem modelo) | — | — | — |
+| Explicar estudo / laudo | `POST /ai/explain`, relatórios | `explain` | JSON estrito | prosa determinística | 503 / laudo sem narrativa |
+| Chat do Caderno | `POST /notebooks/{id}/chat` | `answer` | JSON estrito + embeddings (orçamento 2 s) | trechos citados | 503 com a mensagem |
+| Guia do Caderno | `POST /notebooks/{id}/guia` | `digest` | JSON estrito | aberturas das fontes | 503 com a mensagem |
+| Estúdio | jobs do Estúdio | `studio` | JSON estrito (SVG por código; áudio/vídeo como roteiro) | montagem determinística | job com erro |
+| Busca na web dos Cadernos | fontes externas | — (grounding do Gemini, `WEB_SEARCH_*`) | `generateContent` com Google Search | desligada | mensagem em PT-BR |
+| Sugestões de 16 ferramentas | `POST /ai/suggest` | `suggest` (teto próprio) | JSON estrito | regras da ferramenta | regras locais, `degraded` |
+| Diagnóstico | `POST /ai/diagnostico` | `probe` + embedding + busca | os três ao vivo | sem rede | erro por capacidade |
+| Cérebro (RAG) | dentro de interpret/plan/explain | — | embeddings (orçamento 2 s) | não roda | só léxica |
+
+**JSON estrito e o Gemini.** Tudo sai em `json_schema` com `strict`. Se o servidor recusar o **pedido de formato** (um 400
+que fala de `additionalProperties`, `response_schema`, `response_format`…), o `openai-compat` desce sozinho para `object` e
+depois `prompt` — os modos do `AI_JSON_MODE` —, uma vez, e lembra disso enquanto o processo vive; a leitura, a coerção e os
+guardrails são os mesmos. Uma geração que erra o schema segue o D-89 (repete uma vez).
+
+**Cota gratuita.** Um 429 do Google vira "A cota gratuita do Google acabou por agora; tente em X", com X tirado do próprio
+Google (`RetryInfo`, `Retry-After` ou "retry in") ou "amanhã" quando a cota estourada é a diária
+(`app/ai/google_quota.py`). Outros hosts mantêm a mensagem genérica do 429.
+
+### Diagnóstico (`/ai/status`, `/ai/diagnostico`)
+
+`/ai/status` só lê a configuração: provedor, `model`, `host` (só o host), `json_mode`, `embedding_model` e as quatro
+`capabilities` — texto, JSON estrito, embeddings, busca na web —, cada uma com o que está configurado ou o que falta.
+`/ai/diagnostico` faz as chamadas mínimas: o `probe()` do provedor (um JSON `{"ok": true, "palavra": "material"}`, 64
+tokens, sem repetição), o embedding da palavra "material" e, se ligada, uma busca na web; cada uma volta com `ok`, `erro` ou
+`nao_configurado`, latência e mensagem em PT-BR. Não gasta a cota diária; tem contador próprio por pessoa e hora. Na
+interface: **Aparência → Diagnóstico da IA → "Testar a IA agora"**.
+
+### Sugestões em todas as ferramentas (`/ai/suggest`)
+
+O contexto que a tela manda é **validado e enriquecido no servidor** (`app/services/ai_suggest.py`); a resposta passa pelos
+guardrails de `app/ai/suggest.py`; nada é aplicado pela API.
+
+| Ferramenta (`tool`) | Contexto que a tela manda | O servidor acrescenta | Ações |
+|---|---|---|---|
+| `mapas` | `x`, `y`, `index_slug` | propriedades com dados, índices, mapas clássicos disponíveis | `set_axes`, `apply_preset`, `set_index`, `open_route` |
+| `comparar` | `material_ids`, `property_slugs` | a tabela de valores (`ChartService.compare`) | `compare`, `set_axes`, `open_route` |
+| `catalogo` | `busca`, `classe`, `qualidade`, `demo`, `ordenar` | classes com contagem, total, primeira página | `add_filter`, `sort`, `search`, `compare`, `open_route` |
+| `ficha` | `material_id` | ficha, ausentes, processos, materiais da mesma classe | `compare`, `open_route` |
+| `processos` | `slug` | processo, família, irmãos | `search`, `open_route` |
+| `glossario` | `q`, `slug` | verbetes encontrados e relacionados | `search`, `open_route` |
+| `sintetizar` | `request` (como `/sintetizar/previa`) | a prévia recalculada | `set_param`, `open_route` |
+| `painel` | — | os agregados e a cobertura | `open_route` |
+| `registros` | — | favoritos, recentes, registros próprios | `compare`, `open_route` |
+| `importar` | `columns` | propriedades do catálogo e o casamento por nome/símbolo | `map_column`, `open_route` |
+| `dimensionar` | `request` (como `/solver/resolver`) | o resultado recalculado e os exemplos do caso | `set_param`, `compare`, `open_route` |
+| `custo` | `request` (como `/custo/estimar`) | o custo recalculado e os padrões (D-216) | `set_param`, `open_route` |
+| `eco` | `request` (como `/eco/auditar`) | a auditoria recalculada e os padrões | `set_param`, `open_route` |
+| `baterias` | `request` (como `/baterias/dimensionar`) | o pacote recalculado, a comparação das químicas e os padrões | `set_param`, `open_route` |
+| `admin_classes` | `name`, `slug`, `description` | classes existentes | `fill_text`, `open_route` |
+| `admin_propriedades` | `name`, `slug`, `symbol`, `canonical_unit`, `description` | propriedades existentes e o verbete do glossário | `fill_text`, `open_route` |
+
+Formatos das ações (todas com `label`, o texto do botão escrito pelo servidor): `set_axes{x,y}`, `apply_preset{id}`,
+`set_index{slug}`, `add_filter{field,value}`, `sort{prop,dir}`, `search{q}`, `open_route{path}`, `compare{ids}`,
+`set_param{name,value}`, `map_column{col,prop}`, `fill_text{field,text}`. Para o modelo, a ação é plana (`type`, `target`,
+`value`, `ids`) — um modelo pequeno preenche um formato fixo com muito mais acerto que uma união de onze.
+
+**Guardrails.** Entidade que não existe (propriedade, índice, mapa, material fora do contexto, rota fora da lista), ação de
+outra ferramenta e `set_param` com valor que não vem do contexto, de um cenário ou de um padrão (D-224) → a ação sai, com o
+motivo em `rejected`. **Exceção marcada (D-234):** onde o servidor deu uma faixa ao parâmetro (`NumberRange`: a validação do pedido
+da calculadora), um número que o modelo escolheu dentro dela fica, com `origin: "sugestao_ia"` e o rótulo "(sugestão da IA, revise)";
+fora da faixa a ação sai com o motivo. A tela só o aplica depois de o `ConfirmDialog` do painel ser confirmado (o terceiro grau de
+origem do D-224). As faixas existem em Sintetizar (frações em (0, 1), espessuras > 0) e na massa da Eco (0, 10⁶] kg; o cartão que
+propõe o número pode escrevê-lo, e nenhum outro número fora do contexto. Prosa com número fora do contexto (`ungrounded_numbers`; os arredondamentos e o percentual de um número
+do servidor contam como dele) → o cartão inteiro sai. **Nunca vazio**: falha do modelo, cota esgotada ou nenhuma sugestão
+válida → as regras locais da ferramenta, com `degraded: true` e `notice`; com a camada desligada, as mesmas regras (provedor
+`regras-locais`). Cache de 10 minutos por (ferramenta, hash do contexto enriquecido, provedor, modelo), sem gastar cota;
+prompts curtos (contexto até 2 500 caracteres) para caber no plano gratuito.
+
+### Painel "Sugestão da IA" nas telas (D-229, IA-2a)
+
+`components/ai/AISuggestPanel.tsx` (dados em `useAISuggest`, regras puras em `lib/ai/suggest.ts`, textos em
+`lib/i18n-suggest.ts`) é o painel único de todas as telas. Um botão **"Sugestão da IA"** só consulta `POST /api/ai/suggest` **ao
+clicar** (a cota gratuita do Google é compartilhada: abrir uma tela nunca chama o modelo). O painel carrega (esqueleto e
+`aria-live`), mostra erro com a razão e **"Tentar de novo"** (um 429 traz a frase do servidor com "tente em X"), o vazio escrito, o
+`degraded`/`notice` como aviso honesto, o `cached` discreto e o `disclaimer`. Cada sugestão é um cartão (título, texto e botões
+cujo rótulo o servidor escreveu). **Clicar aplica a ação pela função `onAction` que a tela passa; nada é aplicado ao chegar a
+resposta.** Ação de tipo que a tela não listou em `actions`, ou com formato que o tipo não promete, **não aparece**; `open_route`
+é um link (e `linkFor` faz de outra ação, por exemplo um `search` numa tela sem busca, um link para o caminho que a tela devolver).
+Se o contexto da tela mudar depois da resposta, o painel diz que a resposta é antiga e só pede de novo no clique. Em janela
+estreita o painel se recolhe depois de uma ação, para a pessoa ver o que mudou; a resposta fica guardada. Com `/ai/status`
+`enabled=false` o botão fica desligado e diz por quê.
+
+| Tela | `tool` e contexto enviado | O que cada ação faz na tela |
+|---|---|---|
+| Mapas | `mapas`: `x`, `y`, `index_slug` (só no mapa de materiais) | `set_axes` e `apply_preset` e `set_index` mudam o estado do mapa, e com ele `estado=` na URL; `open_route` é link |
+| Comparar | `comparar`: `material_ids`, `property_slugs` (desligado sem material) | `compare` troca `?materiais=`; `set_axes` abre os comparados no Mapa (`mapHrefForAxes`), a única vista com eixos |
+| Catálogo | `catalogo`: `busca`, `classe`, `qualidade`, `demo`, `ordenar` | `add_filter`, `sort` e `search` escrevem na URL (e voltam à página 1); `compare` abre `/app/comparar?materiais=` |
+| Ficha do material | `ficha`: `material_id` | `compare` abre o Comparar com os parecidos; `open_route` é link |
+| Glossário | `glossario`: `q`, `slug` (do verbete aberto) | `search` vai para a caixa de busca (`?busca=`); `open_route` é link |
+| Processos (lista e ficha) | `processos`: `slug` (nulo na lista) | na lista, `search` vai para `?busca=`; na ficha, vira link para a lista com a busca; `open_route` é link |
+| Importar (mapeamento) | `importar`: `columns` | `map_column` preenche a linha da coluna (alvo "propriedade" e a propriedade), sem importar nem validar e **sem inventar a unidade** |
+
+### Painel nas oito telas restantes (D-230b, IA-2b) — as 15 telas
+
+As mesmas regras do painel valem aqui, com uma peça a mais: `accepts(action)`, a última palavra da tela. Um `set_param` de campo que a
+tela não tem, de valor que o campo não aceita ou que **não mudaria nada** não aparece (um botão que não faz nada ensina a não confiar
+no painel). `set_param` escreve na URL (`useUrlState`, como se a pessoa digitasse) e a tela recalcula só o que já recalcularia ao
+mudar o campo; o campo que mudou recebe um anel breve (`lib/ai/revealField.ts`, `data-ai-field` e `[data-ai-changed]`, sem
+movimento sob `prefers-reduced-motion`), e o foco só vai a ele quando seria perdido (painel recolhido em janela estreita).
+
+| Tela | `tool` e contexto enviado | O que cada ação faz na tela |
+|---|---|---|
+| Dimensionar | `dimensionar`: `{request}` = o pedido de `/api/solver/solve` (caso, entradas, objetivo, limite); desligado até o pedido estar completo | `set_param` `objective` e `inputs.<chave>` (apoio só entre as constantes do caso; variável livre só número); `compare` é link para `/app/comparar?materiais=`; `open_route` é link |
+| Custo | `custo`: `{request}` = o pedido da estimativa (material, massa, lote, amortização, fator de carga) | `set_param` `part_mass`, `batch_size`, `write_off_years`, `load_factor` (as premissas recolhidas abrem) |
+| Eco | `eco`: `{request}` = a auditoria individual, ou `{comparison}` = o pedido do A × B (D-234; o servidor recalcula os dois lados) | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem quando todos os componentes ou trechos concordam; `part_mass` só para um produto de um componente (faixa (0, 10⁶] kg, marcada para revisão); na comparação, `material_a.*` e `material_b.*` (`part_mass`, `recycled_fraction`, `end_of_life`) e `transport_distance_km` |
+| Baterias | `baterias`: `{request}` = o pedido de dimensionamento | `set_param` `chemistry_slug` (só química do catálogo) e os requisitos e fatores de empacotamento (abrem as premissas); vira "personalizado" como uma edição manual |
+| Sintetizar | `sintetizar`: `{request}` = o pedido da prévia (com o nome provisório) | `set_param` `volume_fraction`, `relative_density`, `face_thickness`, `core_thickness`, só o campo do tipo de receita aberto e só se o valor mudar; o número pode ser o que o modelo escolheu na faixa do pedido (D-234), marcado e confirmado |
+| Painel | `painel`: `{}` (o servidor lê o panorama) | só `open_route` (links) |
+| Meus registros | `registros`: `{}` (o servidor lê os registros da pessoa) | `compare` e `open_route` (links) |
+| Admin → Classes | `admin_classes`: `name`, `description` | `fill_text` `description` preenche o formulário **sem gravar**; `open_route` é link; desligado sem nome |
+| Admin → Propriedades | `admin_propriedades`: `name`, `canonical_unit`, `description` | idem; o formulário ganhou o campo de descrição |
+
+Com isso, as 15 telas têm o painel. (Pendência antiga resolvida no D-234: em Sintetizar o servidor só oferecia o valor atual, e o
+`set_param` nunca mudava nada; agora há a sugestão marcada dentro da faixa do pedido. `POST /ai/interpret` saiu no mesmo D-234.)
 
 ## Provedor simulado (`app/ai/mock.py`)
 
@@ -834,6 +1071,17 @@ isso; o cálculo, esse não varia, porque não passa por aqui.
 | `AI_TIMEOUT_SECONDS` | `90` | o CLI precisa da ponta alta: ele sobe um processo antes de ter um modelo a quem perguntar |
 | `AI_MAX_OUTPUT_TOKENS` | `16000` | teto de uma resposta, raciocínio e texto juntos |
 | `AI_CLI_COMMAND` | `claude` | executável do `claude-cli`, resolvido no PATH |
+| `AI_PLAN_TIMEOUT_SECONDS` | `30` | tempo da chamada do assistente de projeto (`/ai/plan`, D-224) |
+| `AI_PLAN_MAX_OUTPUT_TOKENS` | `6000` | teto de saída do plano |
+| `AI_PLAN_MAX_RETRIES` | `1` | tentativas extras do plano, somando sobrecarga e JSON fora do schema (0 ou 1) |
+| `AI_PLAN_CACHE_SECONDS` | `600` | reuso do plano do modelo para o mesmo pedido, sem gastar cota (0 desliga) |
+| `AI_CONTEXT_CACHE_SECONDS` | `60` | reuso do resumo do catálogo que os prompts levam |
+| `KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS` | `2` | espera máxima pelo embedding da consulta ao Cérebro; passou, segue só a léxica |
+| `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS` | `2` | o mesmo para a pergunta de um Caderno (D-228) |
+| `AI_SUGGEST_TIMEOUT_SECONDS` | `20` | tempo da chamada de sugestões (`/ai/suggest`, D-228) |
+| `AI_SUGGEST_MAX_OUTPUT_TOKENS` | `1500` | teto de saída das sugestões |
+| `AI_SUGGEST_CACHE_SECONDS` | `600` | reuso das sugestões para o mesmo contexto enriquecido, sem gastar cota (0 desliga) |
+| `AI_DIAGNOSTIC_PER_HOUR` | `6` | diagnósticos por pessoa e hora (`/ai/diagnostico`); 0 tira o limite |
 
 O pacote `anthropic` é um extra: `pip install -e ".[ai]"`. Nem `mock` nem
 `claude-cli` precisam dele, e o produto determinístico não precisa de nada.
@@ -847,9 +1095,12 @@ alto, cada uma com a mensagem que diz qual botão girar.
 
 | Método | Rota | Função |
 |---|---|---|
-| GET | `/api/ai/status` | a camada está ligada? é simulada? |
-| POST | `/api/ai/interpret` | enunciado → proposta editável |
+| GET | `/api/ai/status` | a camada está ligada? é simulada? qual modelo e host, e cada capacidade configurada (D-228) |
+| POST | `/api/ai/diagnostico` | testa ao vivo o JSON, o embedding e a busca na web, com latência; sem gastar cota (D-228) |
+| POST | `/api/ai/suggest` | `{tool, context}` → até 3 sugestões com ações tipadas e checadas para a tela (D-228) |
 | POST | `/api/ai/explain` | estudo salvo → prosa sobre o resultado calculado |
+| POST | `/api/ai/plan` | pedido em linguagem comum → proposta de projeto checada e executada (D-224) |
+| POST | `/api/ai/plan/run` | a proposta de novo, com as escolhas da pessoa; sem modelo, sem cota |
 
 `/status` responde mesmo com a camada desligada (dizendo isso); as demais rotas
 retornam 400 — estar desligada é um estado de configuração, não uma falha.
@@ -864,7 +1115,7 @@ Esse tratador foi acrescentado depois de o defeito aparecer em produção, na
 primeira vez que a instância publicada falou com um provedor real. Sem ele a
 exceção subia como `RuntimeError` não tratado e virava um **500 com corpo de
 texto puro** — que o frontend não consegue ler, porque ele lê `detail` do JSON —,
-então o usuário via um genérico "Falha na requisição /api/ai/interpret" e perdia
+então o usuário via um genérico "Falha na requisição /api/ai/explain" e perdia
 exatamente a mensagem que diz o que corrigir. O provedor se dá ao trabalho de
 nomear o host e a causa; jogar isso fora era o pior desfecho possível.
 
@@ -935,6 +1186,14 @@ sugestões perdidas, não para servir de garantia.
   na frente do usuário. Foi ele que revelou que nome de material é saída do
   pipeline como qualquer rótulo: escrever "Aço AISI 1020 lidera" não é inventar
   1020, e sem isso bastaria nomear o vencedor para perder a explicação inteira.
+- `test_ai_plan.py` — o assistente de projeto: proposta não vazia sem número,
+  arquétipos do `mock`, cada origem e seu guardrail (número fora do texto,
+  sugestão fora da faixa do catálogo, unidade incompatível, cenário inventado,
+  modelo tentando escrever a origem `cenario`), materiais reais e iguais aos de
+  `/selection/run`, sugestão não confirmada fora da execução, degradação sem 400,
+  cache sem cota, contexto sem `list_materials` (contando consultas), embedding
+  lento caindo na léxica e o teto da chamada no `openai-compat`.
+  `test_use_scenarios.py` prende a tabela de cenários ao catálogo.
 - `test_knowledge_retrieval.py` — BM25 sozinho, semântico sozinho (com fake de
   embeddings), fusão RRF, degradação para léxico puro quando o embedding falha
   ou quando só há vetor de outro tamanho, `top_k` respeitado.

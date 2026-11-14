@@ -116,7 +116,7 @@ export function FunctionStep({
         </Button>
         {state.aiOpen && (
           <div id="ai-assist-panel">
-            <AIAssistPanel onApply={(accepted) => dispatch({ type: "suggestions", accepted })} />
+            <AIAssistPanel onApply={(component) => dispatch({ type: "plan", component })} />
           </div>
         )}
       </div>

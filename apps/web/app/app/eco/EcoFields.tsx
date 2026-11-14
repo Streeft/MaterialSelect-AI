@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { EndOfLifeRoute, EndOfLifeRouteInfo, TransportMode } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { aiField } from "@/lib/ai/revealField";
 import {
   Alert,
   Combobox,
@@ -74,6 +75,7 @@ export function PartFields({
   massLabel,
   massHint,
   afterMass,
+  aiPrefix,
   onChange,
 }: {
   draft: PartDraft;
@@ -85,8 +87,15 @@ export function PartFields({
   massHint?: string;
   /** A field that sits right after the mass (the component's quantity). */
   afterMass?: ReactNode;
+  /**
+   * The AI parameter names of this part when it is a side of a comparison
+   * (`material_a`, `material_b`, D-234): the fields an action may write are marked
+   * with `material_a.part_mass` and so on. A part with none marks nothing.
+   */
+  aiPrefix?: string;
   onChange: (patch: Partial<PartDraft>) => void;
 }) {
+  const ai = (field: string) => (aiPrefix ? aiField(`${aiPrefix}.${field}`) : {});
   const selectedProcess = draft.process || String(processes[0]?.id ?? "");
   return (
     <>
@@ -124,6 +133,7 @@ export function PartFields({
         value={draft.mass}
         min={0}
         step="any"
+        {...ai("part_mass")}
         onChange={(event) => onChange({ mass: event.target.value })}
       />
       {afterMass}
@@ -134,12 +144,14 @@ export function PartFields({
         min={0}
         max={1}
         step="any"
+        {...ai("recycled_fraction")}
         onChange={(event) => onChange({ recycled: event.target.value })}
       />
       <Select
         label={t.eolLabel}
         hint={t.eolHint}
         value={draft.endOfLife}
+        {...ai("end_of_life")}
         onChange={(event) =>
           onChange({ endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute })
         }
@@ -253,6 +265,7 @@ export function ComponentsTable({
                 value={draft.mass}
                 min={0}
                 step="any"
+                {...aiField("part_mass")}
                 onChange={(event) => patch({ mass: event.target.value })}
               />
             );
@@ -274,6 +287,7 @@ export function ComponentsTable({
                 min={0}
                 max={1}
                 step="any"
+                {...aiField("recycled_fraction")}
                 onChange={(event) => patch({ recycled: event.target.value })}
               />
             );
@@ -282,6 +296,7 @@ export function ComponentsTable({
               <Select
                 label={cell(t.colEol)}
                 value={draft.endOfLife}
+                {...aiField("end_of_life")}
                 onChange={(event) =>
                   patch({ endOfLife: (event.target as HTMLSelectElement).value as EndOfLifeRoute })
                 }
@@ -355,6 +370,7 @@ export function ScenarioFields({
         routes={routes}
         massLabel={t.massLabel}
         massHint={t.massHint}
+        aiPrefix={`material_${name.toLowerCase()}`}
         onChange={onChange}
       />
     </fieldset>
@@ -418,6 +434,7 @@ export function LegsTable({
             value={draft.distance}
             min={0}
             step="any"
+            {...aiField("transport_distance_km")}
             onChange={(event) => onPatch(index, { distance: event.target.value })}
           />
         );

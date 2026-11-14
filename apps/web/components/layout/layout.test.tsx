@@ -38,7 +38,12 @@ const getCurrentUser = vi.fn(() => Promise.resolve(user));
 const logoutMock = vi.fn(() => Promise.resolve());
 // D-86: the menu depends on whether this reader may curate the catalogue.
 const billing = { can_edit_catalog: true, open: false };
+// D-232b: the rail's "Favoritos" reads the account's records.
+const myRecords = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ favorites: [] as unknown[], recents: [] as unknown[], own_records: [] as unknown[] })),
+);
 vi.mock("@/lib/api", () => ({
+  getMyRecords: () => myRecords(),
   getCurrentUser: () => getCurrentUser(),
   logout: () => logoutMock(),
   getBillingStatus: () =>
@@ -213,7 +218,7 @@ describe("AppSidebar", () => {
       // de estudo recebeu "Dimensionar" (P2), "Custo" e "Eco" (P3) e agora
       // "Baterias" (P4), e "Dados" recebeu "Sintetizar" — que cria registro, e
       // por isso mora ali. Dezessete desde o D-92: "Cadernos", em "Estudar".
-      // Dezoito desde o D-130: "Glossário", em "Dados".
+      // Dezoito desde o D-130b: "Glossário", em "Dados".
       // D-196: mais o atalho de Aparência no rodapé da conta.
       expect(within(drawer).getAllByShadowRole("link")).toHaveLength(20); // 18 + o wordmark + Aparência
       expect(within(drawer).getByShadowRole("link", { name: ptBR.appearance.open })).toHaveAttribute(

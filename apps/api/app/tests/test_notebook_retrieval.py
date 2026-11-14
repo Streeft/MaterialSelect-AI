@@ -112,3 +112,44 @@ def test_semantic_ignores_vectors_of_another_dimension(monkeypatch):
 
     found = search([hot, old, cold], "calor", top_k=1, settings=Settings(), semantic=True)
     assert [c.id for c in found.chunks] == [1] and found.fallback is False
+
+
+# --- time budget (D-228): a slow embedding never holds the answer -----------
+
+
+def _embedded(chunk_id: int, source_id: int, text: str):
+    chunk = _chunk(chunk_id, source_id, 0, text)
+    chunk.embedding = SimpleNamespace(model="modelo-emb", dimensions=3, vector=b"")
+    return chunk
+
+
+def test_a_slow_query_embedding_falls_back_to_lexical(monkeypatch):
+    import time
+
+    from app.knowledge.embeddings import EmbeddingClient
+
+    calls: list[str] = []
+
+    def _slow(self, texts):
+        calls.append(texts[0])
+        time.sleep(1.0)
+        return [[1.0, 0.0, 0.0]]
+
+    monkeypatch.setattr(EmbeddingClient, "embed", _slow)
+    settings = Settings(
+        knowledge_embedding_base_url="http://emb.local/v1",
+        knowledge_embedding_model="modelo-emb",
+        notebook_retrieval_budget_seconds=0.05,
+    )
+    chunks = [_embedded(1, 10, "Têmpera aumenta a dureza."), _embedded(2, 20, "Polímeros.")]
+    started = time.monotonic()
+    found = search(chunks, "dureza", top_k=1, settings=settings, semantic=True)
+    elapsed = time.monotonic() - started
+    assert calls == ["dureza"]
+    assert elapsed < 0.6
+    assert [c.id for c in found.chunks] == [1]
+    assert found.fallback is False
+
+
+def test_the_budget_comes_from_settings():
+    assert Settings().notebook_retrieval_budget_seconds > 0

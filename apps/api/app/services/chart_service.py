@@ -183,7 +183,9 @@ class ChartService:
         self._require_classes(request.class_slugs)
 
         materials = self.repo.list_materials(
-            material_ids=request.material_ids, class_slugs=request.class_slugs
+            material_ids=request.material_ids,
+            class_slugs=request.class_slugs,
+            property_slugs=self._map_value_slugs(request),
         )
         variables = self._material_variables(materials)
 
@@ -690,6 +692,37 @@ class ChartService:
             )
 
         return meta, definition.name, get_property
+
+    def _map_value_slugs(self, request: PropertyMapRequest) -> list[str] | None:
+        """The properties a material map reads from each material, or ``None`` for all (D-231).
+
+        The axes' properties plus every property an index on the map names (an
+        index axis or the overlay). Loading only those values gives the same
+        map for a fraction of the memory: the full demo catalogue holds ~32
+        thousand values, a map reads two to four properties of each material.
+        An expression that does not parse, or names something that is not a
+        property, falls back to every value, so the validation further on
+        refuses it exactly as before.
+        """
+        slugs = {slug for slug in (request.x, request.y) if slug}
+        expressions = [
+            index.expression
+            for index in (request.x_index, request.y_index, request.index)
+            if index is not None
+        ]
+        if expressions:
+            by_variable = {safe_variable(p.slug): p.slug for p in self.repo.list_properties()}
+            for expression in expressions:
+                try:
+                    names = variables_in(expression)
+                except ExpressionError:
+                    return None
+                for name in names:
+                    slug = by_variable.get(name)
+                    if slug is None:
+                        return None
+                    slugs.add(slug)
+        return sorted(slugs)
 
     @staticmethod
     def _material_variables(materials: list[Material]) -> dict[int, dict[str, float]]:

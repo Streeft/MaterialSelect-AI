@@ -32,7 +32,7 @@ function wrap(node: ReactNode) {
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
 }
 
-describe("PropertyHint (GL-b, D-130)", () => {
+describe("PropertyHint (GL-b, D-130b)", () => {
   it("mostra a dica com nome acessível quando há verbete, e passa no axe", async () => {
     render(wrap(<PropertyHint slug="modulo_young" name="Módulo de Young" />));
     const trigger = await screen.findByShadowRole("button", {

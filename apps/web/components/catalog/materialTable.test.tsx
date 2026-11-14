@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MaterialListItem } from "@/lib/types";
@@ -133,6 +133,71 @@ describe("MaterialTable — ordenação e seleção (D-131)", () => {
     const user = userEvent.setup();
     render(<MaterialTable materials={LIST} />);
     await user.click(screen.getByRole("checkbox", { name: t.selectRow("Zinco") }));
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  });
+});
+
+describe("MaterialTable — seleção que atravessa páginas (D-232)", () => {
+  it("diz 'em várias páginas' quando a seleção tem materiais que a página não mostra, e abre na Seleção com todos", () => {
+    render(<MaterialTable materials={LIST} selection={{ ids: [1, 99], onChange: vi.fn() }} />);
+    const bar = screen.getByRole("region", { name: t.selectionBar });
+
+    expect(within(bar).getByText(t.selectedAcrossPages(2))).toBeInTheDocument();
+    expect(within(bar).getByRole("link", { name: t.compareSelected })).toHaveAttribute(
+      "href",
+      "/app/comparar?materiais=1,99",
+    );
+    expect(within(bar).getByRole("link", { name: t.openInSelection })).toHaveAttribute(
+      "href",
+      "/app/selecao?etapa=restricoes&materiais=1,99",
+    );
+    // Only the row on this page is ticked.
+    expect(screen.getByRole("checkbox", { name: t.selectRow("Zinco") })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: t.selectRow("Alumina") })).not.toBeChecked();
+  });
+
+  it("marcar e desmarcar uma linha mexe só nela, e 'selecionar todos' soma a página ao que as outras guardam", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<MaterialTable materials={LIST} selection={{ ids: [99], onChange }} />);
+
+    await user.click(screen.getByRole("checkbox", { name: t.selectRow("Alumina") }));
+    expect(onChange).toHaveBeenLastCalledWith([99, 3]);
+
+    await user.click(screen.getByRole("checkbox", { name: t.selectAll }));
+    expect(onChange).toHaveBeenLastCalledWith([99, 1, 2, 3]);
+  });
+
+  it("'Limpar seleção' esvazia a seleção inteira, inclusive o que está em outras páginas", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<MaterialTable materials={LIST} selection={{ ids: [1, 99], onChange }} />);
+    await user.click(screen.getByRole("button", { name: t.clearSelection }));
+    expect(onChange).toHaveBeenLastCalledWith([]);
+  });
+
+  it("a seleção só de outras páginas ainda mostra a barra, e não finge que a página inteira está marcada", () => {
+    render(<MaterialTable materials={LIST} selection={{ ids: [98, 99], onChange: vi.fn() }} />);
+    expect(screen.getByRole("region", { name: t.selectionBar })).toBeInTheDocument();
+    const all = screen.getByRole("checkbox", { name: t.selectAll }) as HTMLInputElement;
+    expect(all.checked).toBe(false);
+    expect(all.indeterminate).toBe(false);
+  });
+
+  it("acima do limite da Seleção avisa que vão os primeiros", () => {
+    const ids = Array.from({ length: 250 }, (_, i) => i + 10);
+    render(<MaterialTable materials={LIST} selection={{ ids, onChange: vi.fn() }} />);
+    const bar = screen.getByRole("region", { name: t.selectionBar });
+    expect(within(bar).getByText(t.openInSelectionCapped(200))).toBeInTheDocument();
+    expect(within(bar).getByRole("link", { name: t.openInSelection })).toHaveAttribute(
+      "href",
+      "/app/selecao?etapa=restricoes&materiais=10-209",
+    );
+  });
+
+  it("não tem violação de acessibilidade com a seleção em várias páginas", async () => {
+    render(<MaterialTable materials={LIST} selection={{ ids: [1, 99], onChange: vi.fn() }} />);
     const violations = await findA11yViolations(document.body);
     expect(violations, describeViolations(violations)).toEqual([]);
   });

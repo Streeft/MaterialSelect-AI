@@ -66,6 +66,7 @@ import {
   type StepStatus,
 } from "@/components/ui";
 import { useAnnounce } from "@/components/ui/Announcer";
+import { PLAN_DRAFT_PARAM, PLAN_DRAFT_VALUE } from "@/lib/selection/planDraft";
 import { IconArrowLeft, IconArrowRight, IconFilter } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { flowText } from "@/lib/i18n-flow";
@@ -161,6 +162,8 @@ function SelectionWizard() {
   const [fieldRequest, setFieldRequest] = useState<{ id: string; n: number } | null>(null);
   const [step, setStep] = useState<Step>(() => {
     if (params.get("novo_estagio") === "chart") return "constraints";
+    // D-232: a list handed over by "Abrir na Seleção" lands where the stages are.
+    if (params.get("materiais")) return "constraints";
     return stepFromSlug(params.get("etapa")) ?? "function";
   });
 
@@ -526,9 +529,11 @@ function SelectionWizard() {
 
   // P1-2: deep link from chart map (/app/mapas) cleans URL after mounting
   useEffect(() => {
-    if (params.get("novo_estagio") === "chart" && typeof window !== "undefined") {
-      // The stage is built; the URL keeps only where the reader is, so a Back
-      // from here does not rebuild the chart stage on top of their edits.
+    if (typeof window === "undefined") return;
+    // The stage is built; the URL keeps only where the reader is, so a Back from
+    // here does not rebuild the chart (or list) stage on top of their edits. The
+    // list stays in the study, and so in the draft, which is where it is kept.
+    if (params.get("novo_estagio") === "chart" || params.get("materiais")) {
       window.history.replaceState(null, "", `${window.location.pathname}?etapa=restricoes`);
     }
   }, [params]);
@@ -575,7 +580,14 @@ function SelectionWizard() {
   // answer or while a saved study is being edited (that has its own save).
   const currentSerialized = JSON.stringify(snapshotOf(state));
   // What the wizard opened with (and, after a save, what the server now holds).
-  const [draftBaseline, setDraftBaseline] = useState(currentSerialized);
+  // D-232: a list handed over by "Abrir na Seleção" is something the reader
+  // brought, not the blank form, so it counts as a change from the start and
+  // reaches the draft; a chart box deep link and every other opening stay pristine.
+  const [draftBaseline, setDraftBaseline] = useState(() =>
+    state.stages.some((stage) => stage.kind === "list") && params.get("materiais")
+      ? ""
+      : currentSerialized,
+  );
   const [draftAnswered, setDraftAnswered] = useState(false);
   const stored = useMemo(
     () => (draftUserKey && !requestedStudy ? readDraft(draftUserKey) : null),
@@ -637,6 +649,22 @@ function SelectionWizard() {
     setDraftAnswered(true);
   }
 
+  // D-225: "Abrir na Seleção" on the home wrote the part's study as the draft and
+  // asked for it by address. The reader's click was the review, so the draft
+  // opens without the "Continuar de onde parou" question — once, and the marker
+  // leaves the address so a reload asks as it always did.
+  const autoContinued = useRef(false);
+  const asksAssistantDraft = params.get(PLAN_DRAFT_PARAM) === PLAN_DRAFT_VALUE;
+  useEffect(() => {
+    if (!asksAssistantDraft || autoContinued.current || !recovered) return;
+    autoContinued.current = true;
+    continueDraft();
+    const query = new URLSearchParams(window.location.search);
+    query.delete(PLAN_DRAFT_PARAM);
+    window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- continueDraft reads `recovered`, which is in the list
+  }, [asksAssistantDraft, recovered]);
+
   // A tree or process stage narrows without carrying a constraint, so "has the
   // reader said anything yet" is not the constraint count alone.
   const hasConstraints =
@@ -645,6 +673,8 @@ function SelectionWizard() {
     stages.some(
       (s) => s.kind === "process" && (s.processSlugs.length > 0 || s.processClassSlugs.length > 0),
     ) ||
+    // A list stage narrows by naming who is in (D-232).
+    stages.some((s) => s.kind === "list" && s.materialIds.length > 0) ||
     // A chart stage with both axes chosen narrows even with no box and no line:
     // "must be plottable here" is a criterion, so the step is done.
     stages.some(

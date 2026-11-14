@@ -7,11 +7,21 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import type { CostRequest, CostResult, MaterialListItem } from "@/lib/types";
+import { suggestText } from "@/lib/i18n-suggest";
+import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
+import type {
+  CostCurves,
+  CostCurvesRequest,
+  CostRequest,
+  CostResult,
+  MaterialListItem,
+  SuggestionsOut,
+} from "@/lib/types";
 
 const t = ptBR.cost;
 
 const estimatePartCost = vi.fn<(payload: CostRequest) => Promise<CostResult>>();
+const estimateCostCurves = vi.fn<(payload: CostCurvesRequest) => Promise<CostCurves>>();
 
 const materials: MaterialListItem[] = [
   {
@@ -100,6 +110,38 @@ const result: CostResult = {
   ],
 };
 
+/** The server's curves (D-234): one per material, on one frame, with the current batch marked. */
+const point = (batch_size: number, cost: number, process_slug = "fundicao-areia", process_name = "Fundição em areia") => ({
+  batch_size,
+  cost,
+  process_id: 1,
+  process_slug,
+  process_name,
+});
+const curveA = [point(1, 12028.03), point(100, 148.03), point(1000, 40.03), point(1000000, 28.04)];
+const curveB = [
+  point(1, 900, "usinagem", "Usinagem"),
+  point(100, 140, "usinagem", "Usinagem"),
+  point(1000, 55.5, "usinagem", "Usinagem"),
+  point(1000000, 50, "usinagem", "Usinagem"),
+];
+const curves: CostCurves = {
+  batch_size: 1000,
+  curves: [
+    { material_id: 7, material_name: "Liga Alumínio Demo A", points: curveA, current: curveA[2]!, reason: null },
+    { material_id: 8, material_name: "Aço Demo B", points: curveB, current: curveB[2]!, reason: null },
+    {
+      material_id: 9,
+      material_name: "Polímero Demo C",
+      points: [],
+      current: null,
+      reason: "Nenhum processo tem os dados econômicos para estimar este material.",
+    },
+  ],
+  domain: { x: [1, 1000000], y: [20, 15000], batch_sizes: [1, 100, 1000, 1000000] },
+  monetary_unit_note: "Os valores estão em unidade monetária não especificada.",
+};
+
 // The brief lives in the URL (D-212): a test opens the page at an address.
 function setQuery(query: string) {
   window.history.replaceState(null, "", `/app/custo${query ? `?${query}` : ""}`);
@@ -114,11 +156,15 @@ vi.mock("next/navigation", () => ({
 }));
 
 const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
   listMaterials: () => Promise.resolve(materials),
   estimatePartCost: (payload: CostRequest) => estimatePartCost(payload),
+  estimateCostCurves: (payload: CostCurvesRequest) => estimateCostCurves(payload),
 }));
 
 function wrap(node: ReactNode) {
@@ -138,6 +184,8 @@ beforeEach(() => {
   getDefaults.mockClear();
   estimatePartCost.mockReset();
   estimatePartCost.mockResolvedValue(result);
+  estimateCostCurves.mockReset();
+  estimateCostCurves.mockResolvedValue(curves);
 });
 
 describe("Custo da peça", () => {
@@ -353,6 +401,66 @@ describe("Custo da peça", () => {
     expect(within(table).getByText(t.compareNoProcess)).toBeInTheDocument();
   });
 
+  it("desenha a curva de cada material comparado, calculada no servidor, com o lote atual marcado (D-234)", async () => {
+    setQuery("material=7&massa=2&comparar=8,9");
+    await open();
+
+    await waitFor(() => expect(estimateCostCurves).toHaveBeenCalledTimes(1));
+    // One request for all the materials, with the same brief.
+    expect(estimateCostCurves.mock.calls[0]![0]).toEqual({
+      material_ids: [7, 8, 9],
+      part_mass: 2,
+      batch_size: 1000,
+      write_off_years: 5,
+      load_factor: 0.5,
+    });
+    const figure = await screen.findByRole("figure", {
+      name: "Curva Custo versus Tamanho do Lote, um material por curva",
+    });
+    // Each drawn curve says its own material, the current batch, its cost and the process behind it.
+    expect(
+      within(figure).getByRole("img", {
+        name: "Liga Alumínio Demo A no lote atual de 1.000: custo 40,03, no processo Fundição em areia",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(figure).getByRole("img", {
+        name: "Aço Demo B no lote atual de 1.000: custo 55,5, no processo Usinagem",
+      }),
+    ).toBeInTheDocument();
+    // A material the server could not price is a written reason under the figure, not a flat line.
+    expect(
+      screen.getByText(/Polímero Demo C: Nenhum processo tem os dados econômicos/),
+    ).toBeInTheDocument();
+    expect(within(figure).queryByRole("img", { name: /Polímero Demo C/ })).toBeNull();
+  });
+
+  it("sem comparação não pede as curvas dos materiais", async () => {
+    setQuery("material=7&massa=2");
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalled());
+    expect(estimateCostCurves).not.toHaveBeenCalled();
+    expect(screen.queryByRole("figure", { name: /um material por curva/ })).toBeNull();
+  });
+
+  it("se as curvas falham, as estimativas continuam na tela", async () => {
+    setQuery("material=7&massa=2&comparar=8");
+    estimateCostCurves.mockRejectedValue(new Error("falhou"));
+    await open();
+    await screen.findByRole("table", { name: t.compareCaption });
+    expect(screen.queryByRole("figure", { name: /um material por curva/ })).toBeNull();
+  });
+
+  it("não tem violação de acessibilidade com a figura dos materiais", async () => {
+    setQuery("material=7&massa=2&comparar=8,9");
+    const { container } = render(wrap(<CustoPage />));
+    await screen.findByRole("figure", {
+      name: "Curva Custo versus Tamanho do Lote, um material por curva",
+    });
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
+
   it("guarda os materiais comparados na URL e trava em cinco", async () => {
     setQuery("material=7&massa=2&comparar=8");
     const user = userEvent.setup();
@@ -383,4 +491,115 @@ describe("Custo da peça", () => {
     // The first material's answer is still on screen.
     expect(screen.getAllByRole("table")[0]).toBeInTheDocument();
   });
+});
+
+describe("custo — Sugestão da IA (D-230b)", () => {
+  const answer: SuggestionsOut = {
+    tool: "custo",
+    summary: "Duas ideias para o lote.",
+    suggestions: [
+      {
+        title: "Aumente o lote",
+        body: "Um lote maior dilui o ferramental por peça.",
+        actions: [
+          { type: "set_param", label: "tamanho do lote: 2000", name: "batch_size", value: 2000 },
+          { type: "set_param", label: "tamanho do lote: texto", name: "batch_size", value: "mil" },
+          { type: "set_param", label: "parâmetro que a tela não tem", name: "voltagem", value: 3 },
+        ],
+      },
+      {
+        title: "Amortize em mais anos",
+        body: "Um prazo maior reduz o capital por peça.",
+        actions: [
+          { type: "set_param", label: "anos de amortização: 8", name: "write_off_years", value: 8 },
+          { type: "open_route", label: "Ver o processo", path: "/app/processos/fundicao-areia" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+  });
+
+  it("só consulta ao clicar, com o pedido da estimativa que a tela mostra", async () => {
+    setQuery("material=7&massa=2&lote=500");
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalled());
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente o lote");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("custo", {
+      request: { material_id: 7, part_mass: 2, batch_size: 500, write_off_years: 5, load_factor: 0.5 },
+    });
+    // Nothing was applied by the answer arriving; a route is a link.
+    expect(new URLSearchParams(window.location.search).get("lote")).toBe("500");
+    expect(screen.getByRole("link", { name: "Ver o processo" })).toHaveAttribute(
+      "href",
+      "/app/processos/fundicao-areia",
+    );
+  });
+
+  it("aplicar um parâmetro muda o endereço e o campo, e a estimativa acompanha", async () => {
+    setQuery("material=7&massa=2&lote=500");
+    const user = userEvent.setup();
+    await open();
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    // A value that is not a number, and a parameter the screen does not have, are not buttons.
+    await screen.findByText("Aumente o lote");
+    expect(screen.queryByRole("button", { name: "tamanho do lote: texto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "parâmetro que a tela não tem" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "tamanho do lote: 2000" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("lote")).toBe("2000"));
+    const batch = screen.getByShadowRole("spinbutton", { name: /Peças no lote/ });
+    expect(batch).toHaveValue(2000);
+    // The field that changed is marked for a moment.
+    await waitFor(() => expect(batch).toHaveAttribute("data-ai-changed", "true"));
+    await waitFor(() => expect(estimatePartCost).toHaveBeenCalledTimes(2));
+    expect(estimatePartCost.mock.calls[1]![0]).toMatchObject({ batch_size: 2000 });
+  });
+
+  it("uma premissa sugerida abre as premissas recolhidas e mostra o campo", async () => {
+    setQuery("material=7&massa=2");
+    const user = userEvent.setup();
+    await open();
+    const summary = screen.getByText(t.assumptionsSummary("5", "0,5"));
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await user.click(await screen.findByRole("button", { name: "anos de amortização: 8" }));
+    await waitFor(() => expect(details.open).toBe(true));
+    expect(new URLSearchParams(window.location.search).get("amortizacao")).toBe("8");
+    expect(screen.getByShadowRole("spinbutton", { name: /Amortização/i })).toHaveValue(8);
+  });
+
+  it("sem a massa não há o que perguntar: o botão fica desligado e diz por quê", async () => {
+    await open();
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(suggest.fn).not.toHaveBeenCalled();
+    expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    setQuery("material=7&massa=2");
+    const user = userEvent.setup();
+    const { container } = render(wrap(<CustoPage />));
+    await screen.findByRole("heading", { name: t.briefStep });
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Aumente o lote");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

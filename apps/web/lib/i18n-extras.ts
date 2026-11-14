@@ -35,6 +35,22 @@ export const ecoPhaseI18n = {
     tipRunning: "Acumulado",
     noTotal: "Sem total: ao menos uma fase não pôde ser calculada.",
     scenarioSummary: (name: string, material: string) => `Cascata do cenário ${name} — ${material}`,
+    // D-234: the waterfall of the B − A difference of a comparison.
+    difference: {
+      energyTitle: "Diferença B − A por fase em energia (cascata)",
+      carbonTitle: "Diferença B − A por fase em carbono (cascata)",
+      description:
+        "Cada degrau é a diferença de uma fase (B menos A): sobe quando B gasta mais naquela fase e desce quando gasta menos. A última coluna é a diferença total entre as duas auditorias. Fase sem dado em A ou em B aparece tracejada, com o motivo escrito: nunca como zero.",
+      figureLabel: (quantity: string) => `Cascata da diferença B − A de ${quantity} por fase`,
+      columnContribution: "Diferença (B − A)",
+      columnRunning: "Acumulado",
+      below: "B abaixo de A",
+      above: "B acima de A",
+      stepAria: (label: string, value: string, running: string) =>
+        `${label}: diferença de ${value}; acumulado ${running}`,
+      tipContribution: "Diferença (B − A)",
+      summary: "Cascata da diferença B − A, fase por fase",
+    },
   },
   premises: {
     title: "Premissas desta conta",

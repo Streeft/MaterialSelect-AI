@@ -88,7 +88,7 @@ build-backend = "setuptools.build_meta"
 packages = ["app"]
 
 [tool.setuptools.package-data]
-# D-130 e D-151: os verbetes do glossário e as notas de família são conteúdo
+# D-130b e D-151: os verbetes do glossário e as notas de família são conteúdo
 # versionado lido em runtime. D-185: os lotes do catálogo demo ampliado, lidos
 # por `python -m app.db.seed_extended`.
 app = ["glossary/*.json", "db/demo_catalog/*.json"]

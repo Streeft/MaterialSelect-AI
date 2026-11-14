@@ -139,6 +139,11 @@ converter, o valor perde proveniência.
 **Alternativa descartada.** Confiar na instrução do prompt. Prompt não é
 verificação; um modelo diferente, ou o mesmo modelo em outro dia, ignora.
 
+**Revisada pela D-224** só no assistente de projeto (`/ai/plan`): ali um número
+pode vir também de um cenário de uso da tabela curada ou, como último recurso,
+de uma sugestão da IA marcada e nunca aplicada sem confirmação. Em `/ai/interpret`
+e em `/ai/explain` esta regra vale como está.
+
 ---
 
 ## D-09 — Limiar dimensionado tem de declarar a unidade
@@ -10396,7 +10401,7 @@ cancelado ao esconder o item (`cancelQueries`).
 
 **O que não muda.** Nada de cálculo e nenhum valor de propriedade em jogo. Frontend
 apenas; não precisa de Deploy da API.
-## D-130 — Glossário de propriedades: verbete conceitual, autoral e versionado
+## D-130b — Glossário de propriedades: verbete conceitual, autoral e versionado
 
 *Decidida pelo assistente por delegação do autor, revisável.*
 
@@ -11019,10 +11024,10 @@ funil". Sem migração. Depois do merge, rodar o Deploy da API.
 
 **Contexto.** Lacuna do EduPack: o leitor não tinha um texto curto sobre cada família de materiais (o que ela é, por que se
 comporta assim, onde se usa, o que conferir ao escolhê-la). O P1-4 deu a `MaterialClass` duas frases editáveis
-(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130) é por propriedade.
+(`characteristics`, `applications`), sem fonte, licença nem estado de revisão; o glossário (D-130b) é por propriedade.
 
 **Decisão.**
-1. **Mesmo desenho do D-130, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
+1. **Mesmo desenho do D-130b, por família.** `apps/api/app/glossary/families.json`, validado por `app/domain/family_notes.py`
    (Pydantic estrito, sem sessão de banco), servido por `GET /api/familias/notas` e `/{slug}` (404 escrito, nomeando o slug), com a
    regra de acesso da lista de classes. Sem migração. Campos: `summary` (≤ 280), `body` em parágrafos curtos (≤ 1200 no total),
    `when_to_use`, `watch_out`, `reference`, `license`, `review_status`, `lang`.
@@ -11569,7 +11574,7 @@ valores corrigidos, 2 materiais substituídos (Zamak por gravidade → ZA-8 e ZA
    regra (D-71) se mantém: mesmo arquivo, mesmo escritor (`seed_extended_materials`, que ganhou `specs`), mesmo `main()` que
    `semear_demo` e `scripts/seed.ps1` já executam — nenhum dos dois mudou. Nenhuma contagem fixa da suíte se moveu.
 2. **Dados em JSON, validador puro.** Os lotes ficam em `apps/api/app/db/demo_catalog/L0*.json` (no `package-data` do
-   `pyproject.toml`, como o glossário do D-130). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
+   `pyproject.toml`, como o glossário do D-130b). O pacote expõe `read_lot_files`, `validate_lot`/`validate_lots` e `load_lots`, sem
    `__main__`. As regras portadas do QA (`qa_global.py` e os nove validadores): estrutura e 15 propriedades por material; unidade
    aceita pela propriedade e conversão pela trilha de `app.calculations.units` (via `app.domain.data_quality`); nenhum zero ou
    negativo (ausência é `missing` com nota, e só em dureza e reciclagem — o escoamento do ferro fundido cinzento é a única exceção
@@ -11671,7 +11676,7 @@ seleção correta". O catálogo tinha 15 definições numéricas e duas ordinais
   (escala de cinco níveis), inflamabilidade (cinco níveis), transparência (quatro) e biocompatibilidade (quatro, "nível de exemplo, não
   qualificação regulatória"). Definições `is_demo`, como as de D-126: o importador oficial já recusa enquanto houver ordinal demo.
 - **Níveis (D-127)**: no Nível 1 entram só tenacidade à fratura, alongamento, fadiga e fusão; 17 no Nível 2; 12 no Nível 3.
-- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130).
+- **Verbete no glossário** para as 45, conceitual e sem número com unidade (D-130b).
 - **Valores** (`app/db/seed_demo_extended_props.py` + faixas em `app/db/demo_extended_data.py`, no padrão de `seed_demo_cae`): cada
   material demo cai num de 358 perfis por uma de 365 regras sobre o **nome** (a subclasse "Concretos e Argamassas" ou "Aramida, Basalto e
   Híbridos" nomeia várias famílias), com sobreposição por nome para 51 graus conhecidos (6061-T6, 304, Ti-6Al-4V, cobre OF, Inconel 718…).
@@ -12487,28 +12492,6 @@ trilho estreito (continua estado de React, como antes: ler o armazenamento na ca
 **Numeração.** D-206/Sessão 163 ficaram com o PR 2.3, que corre em paralelo; esta é a D-207 e a sessão é a 164.
 Mexe em `apps/api` (rota nova): depois do merge, **Deploy da API**. Sem migração nem seed.
 
-## D-199 — Service worker honesto: "Sem conexão" só com o aparelho sem rede
-
-**Contexto.** O `public/sw.js` (D-142, D-152) respondia `/offline.html` a **qualquer** falha de `fetch` de navegação,
-inclusive com o aparelho online: servidor fora do ar, DNS, host bloqueado, reset de conexão. Usuários ficaram presos em
-"Sem conexão" com Wi-Fi funcionando, sem saber o motivo real, porque a página não distinguia as duas situações.
-
-**Decisão.**
-- No `catch` da navegação, o worker serve `/offline.html` **só se `self.navigator.onLine === false`**. Com o aparelho
-  se dizendo online, devolve `Response.error()` e o navegador mostra o erro verdadeiro (ele sabe dizer se é DNS,
-  recusa ou tempo esgotado). Se estiver offline e a página nunca entrou no cache (ou o cache falhar), também
-  `Response.error()`.
-- A falha de `cache.add` na instalação é engolida: o worker ativa do mesmo jeito e o registro não quebra. O pior caso
-  é uma navegação offline sem a página amigável, como antes de existir worker.
-- `CACHE` sobe para `msai-offline-v3`; o `activate` já apaga os anteriores.
-- Continua valendo D-142: o worker só responde navegação e só guarda `/offline.html`.
-
-**Alternativas recusadas.** Tentar `fetch` de uma sonda (`/api/health`) para decidir (mais uma ida à rede, e a API fora do
-ar não significa aparelho sem rede); extrair a decisão para `lib/pwa` (o worker é um arquivo estático em `public/`, sem
-bundler: o teste carrega o próprio `sw.js` num contexto simulado, o que cobre o código que de fato roda).
-
-**Consequências.** Frontend apenas, sem migração. `navigator.onLine` pode dar falso positivo (online numa rede sem
-internet): nesse caso o usuário vê o erro do navegador, não a página offline, o que é preferível a mentir.
 ---
 
 ## D-206 — F1 da revisão das telas: fundações do sistema de design e oito peças novas
@@ -13020,7 +13003,7 @@ os Mapas tinham quatro cartões ao lado do mapa, a legenda abaixo de uma figura 
   Aparência) e guarda só id e nome; o Início mostra "Mapas fixados" (sem pino, sem bloco), e `?grafico=<id>` reabre o mapa pedindo
   a configuração de novo ao servidor.
 - **Comparar: pontos de partida e uma barra.** O estado vazio ganha "Pares clássicos" (aço × alumínio, PEAD × PP, titânio × aço,
-  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência);
+  cobre × alumínio, vidro × policarbonato), cada lado achado no catálogo **pelo nome** (sem acento nem caixa, primeira ocorrência; desde a D-230, palavra inteira, na classe certa e preferindo o nome que começa pelo termo);
   par com um lado ausente não aparece (`lib/compareClassics.ts`). Os dois cartões de passo viram uma barra: materiais e
   propriedades adicionados por busca (`Combobox`) e escolhidos como chips removíveis; o nível de leitura fica ao lado da busca.
 
@@ -13116,3 +13099,801 @@ HTTP em cinco arquivos e poderia divergir do corpo).
 
 **Numeração.** D-223/Sessão 180 (a D-222/Sessão 179 é a etapa anterior do #245). Toca `apps/api` **sem migração**: depois do merge,
 **Deploy da API**, que agora espera a CI da `main` ficar verde.
+
+## D-224 — Assistente de projeto com IA: três origens para cada número (revisa o princípio 2)
+
+**Contexto.** Pessoas comuns e estudantes escrevem "quero fazer uma roupa de esqui" ou "quero construir um prédio que caiba
+algumas pessoas", com ou sem números, e o `/ai/interpret` devolvia vazio ou demorava. As causas estavam medidas: o
+`_context` lia o catálogo inteiro (`list_materials`) a cada chamada; o embedding do Cérebro rodava síncrono antes do modelo;
+16 000 tokens, 90 s e até três tentativas e uma refeita; o schema estrito exigia `value` e `unit` em toda restrição, os
+guardrails mandavam tudo para `rejected` quando o texto não tinha número, e o JSON falho duas vezes virava HTTP 400.
+
+**Decisão (do usuário).** Cada limite numérico de uma proposta tem uma origem, nesta ordem:
+
+1. **`usuario`** — o número está no texto. A ancoragem da D-08 vale sem mudança (`check_constraint`).
+2. **`cenario:<id>`** — a faixa vem de `app/domain/use_scenarios.py`, uma tabela curada de 16 cenários de uso (frio extremo,
+   calor moderado, calor alto/forno, uso externo com sol, água doce, água salgada, contato com alimento, contato com a pele,
+   estrutura que sustenta carga, estrutural leve, isolamento térmico, isolamento elétrico, baixo custo, ácidos e álcalis,
+   impermeável, flexível). Cada limite tem propriedade existente, operador e valor+unidade convertidos por `units.py`, ou um
+   nível ordinal (`level_at_least`, D-126), e cada cenário tem fonte. Só o isolamento elétrico cita publicação (Callister &
+   Rethwisch, cap. 18); os demais dizem "Referência didática do projeto (faixa típica de uso)". A IA escolhe cenários **pelo
+   id**: o prompt mostra o que cada um exige em palavras, sem número, e o servidor expande a partir da tabela. Um id fora da
+   tabela é recusado.
+3. **`sugestao_ia`** — último recurso, quando nenhum cenário cobre o caso. Exige unidade que o Pint converta para a canônica e
+   valor dentro da faixa que o catálogo tem para a propriedade (`ChartRepository.observed_ranges`); fora disso é recusada com o
+   motivo. Aparece como "Sugestão da IA, revise", fica **fora** da execução automática e do estudo pronto, e só roda quando a
+   pessoa a confirma em `POST /api/ai/plan/run` (`confirmed: true`), depois de passar de novo pela mesma checagem. Nível
+   ordinal e `exists` propostos pela IA também são sugestão.
+
+Há ainda `indice`: o servidor exige que exista dado da propriedade que o índice ou um critério lê (o que os modelos prontos da
+D-210 já fazem), sem número. No mesmo lado de uma propriedade fica a origem mais forte (texto > cenário > sugestão) e, entre
+iguais, o limite mais exigente; o que sai vai para `rejected` com o porquê.
+
+**Como funciona.** `POST /api/ai/plan` recebe `text` e `mode` (`project`, várias partes, para o Início; `single`, uma parte, para
+a Seleção) e devolve `ProjectPlanOut`: resumo, premissas, perguntas, cenários usados e componentes. Cada componente traz papel,
+função, objetivo, índice do catálogo ou critérios, limites com origem, fonte e rótulo, `rejected`, o resultado da seleção
+determinística (`SelectionService.run`, os 5 primeiros materiais com o motivo lido da execução e o funil) e um `StudyIn` pronto
+para a Seleção. O schema do modelo não força número: `value`/`unit` são anuláveis. A prosa do modelo (resumo, premissas,
+perguntas, nomes, notas) que traz número ausente do pedido é descartada (`ungrounded_numbers`). **Nunca vazio:** sem índice nem
+critério, o componente ordena pela melhor direção das propriedades que limita ou pelo modelo pronto mais próximo
+(`study_templates.nearest_template`). Se o modelo falhar (tempo, JSON, componente nenhum) ou a cota do dia acabar, responde a
+regra local (`app/ai/rule_plan.py`: palavras-gatilho → cenários, arquétipos de vestuário e de construção, números do texto pelas
+regras do mock, modelo pronto mais próximo), com `degraded: true` e `notice` dizendo por quê. Só a camada desligada continua 400.
+O provedor `mock` responde o plano com essas mesmas regras: "roupa de esqui" vira camada externa, camada isolante e forro;
+"prédio para 50 pessoas" vira estrutura, vedação e isolamento (os 50 ficam como premissa de dimensionamento, não filtram).
+
+**Desempenho.** O contexto dos prompts lê só propriedades, índices, classes dos materiais visíveis (`visible_class_names`, uma
+consulta) e escalas ordinais, e guarda isso por leitor por `AI_CONTEXT_CACHE_SECONDS` (60). O embedding da consulta ao Cérebro
+roda com orçamento (`KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS`, 2 s): estourou, a busca segue só com a léxica e o log registra. O
+plano chama o modelo com teto próprio (`AI_PLAN_MAX_OUTPUT_TOKENS` 6000, `AI_PLAN_TIMEOUT_SECONDS` 30, `AI_PLAN_MAX_RETRIES` 1:
+uma tentativa extra no total, somando sobrecarga e JSON fora do schema). O mesmo pedido (texto normalizado, modo, provedor e
+modelo) reaproveita o plano do modelo por `AI_PLAN_CACHE_SECONDS` (600) sem gastar cota; o plano degradado não entra no cache. O
+`.env.example` da raiz dizia `AI_TIMEOUT_SECONDS=20` e o código 90; ficou 90 nos dois.
+
+**Cota e limite.** A chamada ao modelo usa a cota diária da D-179 (`_spending`); o cache e o `/plan/run` não gastam. As duas
+rotas estão no balde "IA" do limite por minuto da D-223.
+
+**Alternativas recusadas.** Deixar a IA escrever as faixas dos cenários (número sem fonte, que é o que a D-08 existe para
+impedir). Aplicar a sugestão da IA e deixar a pessoa desfazer (o número entraria no resultado antes da revisão). Exigir número
+no texto e devolver pergunta (é o comportamento que deixava o leigo sem nada). Devolver 400 quando o JSON falha (havia o que
+entregar). Cache por usuário (o plano depende só do texto; o resultado da seleção, que depende do leitor, é recalculado a cada
+pedido).
+
+**Fora.** A interface (Etapa B: cartão de proposta no Início, chips de origem, "Abrir na Seleção", painel da Seleção com o mesmo
+plano). Os provedores `claude-api` e `claude-cli` usam o plano sem o teto próprio (só o `openai-compat`, o oficial, o aplica).
+
+**Numeração.** D-224/Sessão 181. Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**.
+
+---
+
+## D-225 — Assistente de projeto com IA, interface: cartão de proposta no Início, painel da Seleção e princípio 2 nos arquivos de instrução
+
+**Contexto.** A D-224 entregou o backend (`POST /ai/plan`, `POST /ai/plan/run`) e deixou a interface e a aplicação do texto
+revisado do princípio 2 como pendências. O Início só navegava para `/app/selecao?funcao=` com o texto digitado, e o painel da
+Seleção ainda usava `/ai/interpret` (resposta vazia sem número no texto, lenta).
+
+**Decisão.**
+
+1. **Início.** O `HomeComposer` é o "Assistente de projeto". Enviar (botão ou Ctrl/⌘+Enter; Enter sozinho quebra a linha, porque
+   o pedido agora tem várias frases e um Enter perdido gastaria uma chamada) chama `/ai/plan` com `mode: "project"`. Durante a
+   espera há três fases ("Entendendo o pedido…", "Montando a proposta…", "Buscando no catálogo…", trocadas a cada ~2 s, a
+   última fica), um skeleton e `aria-live`. A proposta pega o foco ao chegar. Com a IA desligada (`/ai/status`) a caixa volta ao
+   que era (o texto vira a função do estudo). Erro de verdade usa `describeApiError` (o 429 já traz "Tente de novo em N s.", que
+   é o detalhe do servidor) com "Tentar de novo". Os chips de exemplo ganharam "Roupa de esqui" e "Prédio para 50 pessoas".
+2. **Componentes** em `components/ai/`, usados nas duas telas: `PlanView` (resumo, premissas, perguntas em aberto, cenários com
+   fonte, uma parte por cartão, recusadas recolhidas, aviso de `degraded`/`notice`, `cached` discreto), `PlanComponentCard`
+   (função, objetivo, índice ou ordenação, limites, até 5 materiais com link para a ficha e o motivo do servidor, funil em
+   palavras) e `ConstraintOriginChip`. Cada número mostra a origem num chip com palavras: **Você** (texto do usuário),
+   **Cenário: <nome>** (a fonte vai no tooltip e também escrita ao lado do limite, porque tooltip some no toque) e **Sugestão da
+   IA, revise** (tom de aviso por token); `indice` aparece como "Do índice" (sem número). O tom nunca é o único canal.
+3. **Sugestão da IA vem desmarcada.** É um checkbox cujo estado é `applied` do servidor. Marcar pede confirmação
+   (`ConfirmDialog`) e então chama `/ai/plan/run` com `confirmed: true` só para ela; desmarcar refaz sem perguntar. A resposta
+   substitui as partes (resumo, premissas e cenários, que são a leitura do texto, ficam). Nenhum número é calculado no cliente.
+4. **"Abrir na Seleção"** grava o `study` da parte (só limites aplicados; a sugestão não confirmada nunca está nele) no
+   **rascunho** da Seleção, no formato do D-139/D-210 (`stateFromStudy` do próprio assistente de seleção, com o índice do
+   catálogo por slug), e navega para `/app/selecao?etapa=restricoes&rascunho=assistente`. A Seleção continua esse rascunho sem
+   perguntar (o clique foi a revisão) e tira o marcador do endereço; sem o marcador pergunta como sempre. Já havendo rascunho no
+   navegador, o Início pergunta antes de substituí-lo. É rascunho local: nada vai ao servidor até a pessoa salvar. Também há
+   "Comparar estes materiais" (`/app/comparar?materiais=`, na ordem do ranking) e "Ajustar o pedido" (volta o foco à caixa).
+5. **Seleção.** O `AIAssistPanel` usa `mode: "single"`. Interpreta ao digitar: pausa de 1,5 s, mínimo de 15 caracteres,
+   `AbortController` cancelando a chamada anterior (`planProject(payload, signal)`; o `request` de `lib/api.ts` já repassava
+   `signal`), "interpretando…" discreto; o botão "Interpretar" pergunta na hora. A proposta usa o mesmo `PlanView`. "Aplicar ao
+   estudo" (ação `plan` do reducer) preenche função, objetivo, índice e limites aplicados (acrescenta, não substitui; tira a
+   linha em branco do estudo novo e não repete limite igual) e fica desligado enquanto o texto mudou depois da proposta. O
+   `interpretStatement` e o `/ai/interpret` continuam na API, mas nenhuma tela os usa mais.
+6. **Princípio 2 nos arquivos de instrução** (a pendência da D-224, aplicada por decisão do usuário em 12/11/2026, na conversa
+   com o coordenador): `CLAUDE.md` (princípio 2), `docs/CLAUDE.md` §1.5 e `.claude/rules/backend-ai-exporters.md` passam a dizer
+   que a IA não produz valor de propriedade nem resultado de cálculo e que um limite tem três origens, nesta ordem (texto,
+   cenário com fonte, sugestão da IA marcada e nunca aplicada sem confirmação). A ancoragem no texto e a unidade explícita
+   valem para `usuario`; `sugestao_ia` segue as salvaguardas da D-224 (unidade compatível, faixa observada, `confirmed`); o
+   modelo não escreve a origem `cenario`.
+
+**Alternativas recusadas.** Aplicar a sugestão e deixar desfazer (o número entraria antes da revisão, contra a D-224). Levar o
+estudo por endereço (um estudo não cabe num link; o rascunho do D-139 já é o formato que a Seleção sabe abrir). Perguntar
+"Continuar o rascunho?" também depois de "Abrir na Seleção" (um clique a mais depois de a pessoa já ter escolhido a parte).
+Enter envia (um pedido tem várias frases). Guardar a proposta entre navegações (o servidor já reaproveita o mesmo texto por 10
+min sem gastar cota).
+
+**Fora.** O `/ai/interpret` não foi removido (nenhuma tela o usa; fica para uma limpeza do backend). Streaming da resposta.
+
+**Numeração.** D-225/Sessão 182. Só frontend e documentação: sem migração, **sem Deploy da API** próprio (o da D-224 vale).
+
+## D-226 — Fechamento da revisão das telas: axe em toda rota, alvos de toque no celular, Lighthouse e numeração antiga desambiguada
+
+**Contexto.** A revisão das telas (D-205 a D-225) trocou o que a auditoria da Fase 0 apontou. Faltava provar o conjunto: que
+nenhuma rota da suíte E2E tem violação de acessibilidade em navegador real, que o celular (390 px) é utilizável com o dedo, e que
+o Lighthouse sustenta as metas. E a numeração tinha cinco repetições antigas (D-130, D-199, Sessões 84, 98 e 115).
+
+**Decisão.**
+1. **axe em toda rota do E2E** (`e2e/a11y.spec.ts`, lista única em `e2e/rotas.ts`, a mesma de `larguras.spec.ts`), a 1280 e a 390 px.
+   Sem `@axe-core/playwright`: o `axe-core` já é dependência dos testes de componente e o script é injetado a partir do pacote.
+   Nenhuma regra desligada. Violações reais corrigidas: (a) `nested-interactive` na barra do Plotly, porque o `role="img"` estava no
+   contêiner que também guarda os botões de zoom: o contêiner agora é `role="group"` e a imagem é só a primeira camada `.main-svg`
+   (`usePlotlyResize(figureLabel)`; as outras camadas ficam `aria-hidden`); (b) `scrollable-region-focusable` nas fórmulas (`MathTex`):
+   o `overflow-x: auto` forçava rolagem vertical invisível pelos sobrescritos do KaTeX; agora o vertical é `hidden` com folga de
+   `0.2em`; (c) `/app/estilo`: tabela de botões com região focável e rótulos sem `opacity` (contraste).
+2. **Alvos de toque** (`e2e/mobile.spec.ts`, 390 px com `isMobile` e `hasTouch`, 13 páginas e a ficha): sem rolagem lateral e todo
+   controle com 44 px nos dois eixos, medido pela caixa do elemento ou pela área de toque invisível (`::after`). `globals.css`
+   estende a área do D-206 a todo botão e link que não está dentro de um texto corrido (exceção "em linha" do WCAG 2.5.8); campos
+   nativos, `summary`, abas e linhas de caixa de seleção crescem para `--target-min`. Fica de fora, de propósito, a barra de
+   ferramentas do Plotly (biblioteca de terceiros; as mesmas ações estão na barra acima da figura).
+3. **Lighthouse.** Os limiares ficam em performance 0,7, acessibilidade 0,9 e boas práticas 0,8 (ver "Medição").
+4. **Numeração antiga.** A regra: **quando duas entradas têm o mesmo número, a que já era mais citada (ou a mais antiga) fica com ele
+   e a outra ganha um sufixo de letra minúscula (`D-130b`, `Sessão 84b`)**; ninguém renumera para o fim, porque as citações no
+   código, nos documentos e na monografia continuariam apontando para a entrada errada. D-130 = aviso com Desfazer (o glossário passou
+   a **D-130b**, com todas as referências do código e dos documentos atualizadas); D-199 era a mesma entrada colada duas vezes (a
+   cópia foi removida, sem perda de texto); Sessão 84 = busca global e aviso (a do glossário é a **84b**), Sessão 98 = Cadernos
+   (Ragone é a **98b**) e Sessão 115 = fichas offline (tolerância no Find Similar é a **115b**). Número novo nunca repete: antes de
+   escolher, `git grep -n "^## D-NNN" docs/DECISIONS.md` e `origin/main`.
+
+**Medição.** E2E local inteiro: 116 testes passam (eram 71; os 45 novos são `a11y.spec.ts` e `mobile.spec.ts`). axe a 1280 e 390 px, tema
+claro, nas 31 rotas de `e2e/rotas.ts`: 0 violações (antes: `nested-interactive` em Mapas, `scrollable-region-focusable` em Seleção, Mapas,
+Dimensionar e Estilo, `color-contrast` em Estilo). Alvos de toque a 390 px nas 13 páginas e na ficha: 0 abaixo de 44 px (antes: de 5 a 285 por página,
+por exemplo 285 de 293 na ficha e 264 de 711 no catálogo). **Lighthouse:** não consegui rodá-lo localmente (o `lhci` do workspace aponta para o
+checkout principal) e o relatório do job não é baixável com o token da sessão; o log do job `Lighthouse` do CI (13 URLs, 3 rodadas cada) termina em
+"All results processed" sem falha de asserção, então as notas ficaram acima dos limiares atuais (0,7 / 0,9 / 0,8), mas **o valor exato não foi
+medido**. Por isso os limiares não subiram para as metas 0,9 (performance) e 0,95 (acessibilidade): falta ler o `.lighthouseci/report` do artefato
+do CI (7 dias de retenção) e, se as notas sustentarem, subir `lighthouserc.json` num PR próprio.
+
+**Alternativas recusadas.** Renumerar as duplicadas para o fim da lista (quebra links e citações já feitas). Desligar a regra
+`nested-interactive` ou esconder a barra do Plotly (zoom e reinício de eixos só existem nela). Adicionar `@axe-core/playwright`
+(mais uma dependência para o que o `axe-core` já faz). Medir alvos só pela caixa do elemento (reprovaria a área de toque do D-206,
+que é a solução escolhida para não mexer no desenho).
+
+**Consequências.** Frontend e documentação; sem migração e sem Deploy da API. O E2E fica mais longo (axe em 32 rotas × 2 larguras e
+mais 14 páginas de celular).
+
+**Numeração.** D-226/Sessão 183.
+## D-227 — Banco sem conexões ociosas: `NullPool` por padrão fora do SQLite
+
+**Contexto.** A API roda sempre ligada no Fly e o `engine` (D-198) mantinha um pool de 5 + 5 conexões com o Neon. Conexões ociosas
+abertas impedem o Neon de suspender a computação; a cota gratuita de computação estourou.
+
+**Decisão.** `engine_kwargs` usa `poolclass=NullPool` para banco de servidor, controlado por `DB_POOL_MODE=null|queue` (padrão
+`null`; qualquer outro valor é erro na subida). Mantêm-se `pool_pre_ping` e a repetição de `OperationalError` do D-195. `queue`
+preserva o pool antigo (`pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`, que não existem para `NullPool`). SQLite não muda.
+
+**Alternativas recusadas.** Encolher o pool para 1 (ainda deixa uma conexão aberta). `pool_recycle` curto (a conexão continua
+aberta entre as requisições). Trocar para o endpoint com pooler do Neon (o D-198/§1 do deploy já explica por que o endpoint é o
+direto: o mesmo valor serve a migração).
+
+**Consequências.** Um *connect* a cada requisição (e cada sessão de job em segundo plano). Só backend; **Deploy da API** depois do
+merge, sem migração nem seed. Depois do deploy, conferir no painel do Neon que a computação volta a suspender nos intervalos sem uso.
+
+**Numeração.** D-227/Sessão 184 (D-226/Sessão 183 são o fechamento da revisão das telas, neste mesmo PR).
+
+## D-228 — IA gratuita do Google em todas as funções: diagnóstico, robustez com o Gemini e sugestões em todas as ferramentas (IA-1, backend)
+
+**Contexto.** Em produção a IA é o Gemini gratuito via `openai-compat` (`gemini-flash-lite-latest`, embeddings
+`gemini-embedding-001` com 768 dimensões). Todas as funções de IA (interpretar, plano, explicação/laudo, chat e guia dos
+Cadernos, Estúdio) passam pela mesma fábrica, mas não havia como conferir, de dentro do app, se cada capacidade respondia; a
+recuperação dos Cadernos esperava o embedding da pergunta sem limite; uma recusa do Google ao `json_schema` estrito obrigava a
+trocar `AI_JSON_MODE` à mão; o 429 do plano gratuito virava uma mensagem genérica; e 15 telas não tinham nenhuma IA.
+
+**Decisão.**
+
+1. **Diagnóstico.** `GET /api/ai/status` passa a trazer `model`, `host` (só o host, nunca a chave nem o caminho), `json_mode`,
+   `embedding_model` e `capabilities` (texto, JSON estrito, embeddings, busca na web), cada uma configurada ou não, com o que
+   falta em PT-BR — só lendo a configuração. `POST /api/ai/diagnostico` (pessoa logada, bucket `ai` do limite por minuto)
+   faz as chamadas mínimas — um JSON de dois campos (`probe()` do provedor), o embedding de uma palavra e, se ligada, uma busca
+   na web — e devolve, por capacidade, `ok`/`erro`/`nao_configurado`, latência e mensagem. Não gasta a cota diária; tem contador
+   próprio por pessoa e hora (`AI_DIAGNOSTIC_PER_HOUR=6`, 429 em PT-BR depois). Na interface, cartão "Diagnóstico da IA" em
+   **Aparência**, com "Testar a IA agora".
+2. **Orçamento de tempo nos Cadernos.** `app/notebooks/retrieval.py` usa o mesmo `embed_query` do Cérebro (D-224) com
+   `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS=2`: passou, a pergunta é ranqueada só pela busca léxica, e o estouro fica no log.
+3. **Robustez com o Gemini.** Todas as chamadas (interpret, plan, explain, answer, digest, studio, suggest e o probe) saem em
+   `json_schema` estrito e são lidas do envelope do Gemini (testado com respostas no formato real). Um **400 que reclama do
+   pedido de formato** (`additionalProperties`, `response_schema`, `response_format`…) — e não da geração, que segue o D-89 —
+   faz o provedor descer **sozinho** um degrau do `AI_JSON_MODE` já previsto (`schema` → `object` → `prompt`), uma vez, e lembrar
+   disso por processo (`effective_json_mode()`); a leitura, a coerção e os guardrails não mudam. Um **429 do Google** vira
+   `QuotaExhaustedError` (ainda `AIUnavailableError`) com "A cota gratuita do Google acabou por agora; tente em X", X tirado do
+   `RetryInfo`/`Retry-After`/"retry in" ou "amanhã" quando a cota estourada é diária (`app/ai/google_quota.py`); o plano, as
+   sugestões e o diagnóstico mostram essa frase. Outro host mantém a mensagem genérica do 429.
+4. **Motor de sugestões `POST /api/ai/suggest {tool, context}`.** `tool` é um enum de 16 ferramentas (mapas, comparar, catalogo,
+   ficha, processos, glossario, sintetizar, painel, registros, importar, dimensionar, custo, eco, baterias, admin_classes,
+   admin_propriedades). Um construtor por ferramenta (`app/services/ai_suggest.py`) **valida** o contexto (id inexistente → 404;
+   pedido de calculadora malformado → 400; contexto acima de 20 000 caracteres → 422) e o **enriquece** no servidor: Comparar
+   recebe ids e o servidor monta a tabela; Custo, Eco, Baterias, Dimensionar e Sintetizar recebem o pedido e o resultado é
+   recalculado; o Painel lê os agregados; qualquer "resultado" que o cliente mande é ignorado. A saída `SuggestionsOut` traz
+   `summary` e até 3 `suggestions` (`title`, `body`, até 3 `actions` tipadas com `label` escrito pelo servidor):
+   `set_axes{x,y}`, `apply_preset{id}`, `set_index{slug}`, `add_filter{field,value}`, `sort{prop,dir}`, `search{q}`,
+   `open_route{path}`, `compare{ids}`, `set_param{name,value}`, `map_column{col,prop}`, `fill_text{field,text}` — cada
+   ferramenta com a sua lista. **Guardrails** (`app/ai/suggest.py`): entidade inexistente, rota fora da lista, ação de outra
+   tela ou valor de `set_param` que não vem do contexto nem de um cenário/padrão (D-224) → ação removida com motivo em
+   `rejected`; prosa com número fora do contexto (`ungrounded_numbers`, aceitando os arredondamentos e o percentual de um número
+   do servidor) → cartão descartado. **Nunca vazio**: falha, cota ou nada válido → regras locais da ferramenta com `degraded` e
+   `notice`; camada desligada → as mesmas regras (provedor `regras-locais`). O **mock** responde as regras (determinístico). Cache
+   por (ferramenta, hash do contexto enriquecido, provedor, modelo) por `AI_SUGGEST_CACHE_SECONDS=600`, sem gastar cota;
+   chamada curta (`AI_SUGGEST_TIMEOUT_SECONDS=20`, `AI_SUGGEST_MAX_OUTPUT_TOKENS=1500`, uma repetição), prompt curto (contexto
+   até 2 500 caracteres, até 30 opções por tipo), cota diária (D-179) e bucket `ai` do limite por minuto. Nada é aplicado pela
+   API: a tela mostra cada ação como botão.
+
+**Alternativas recusadas.** Ação como união de onze formatos no schema do modelo (um modelo pequeno erra; o schema do modelo é
+plano — `type`, `target`, `value`, `ids` — e a API devolve o formato tipado). Deixar o cliente mandar a tabela ou o resultado
+(o modelo repetiria números sem conferência). Descer o modo JSON em qualquer 400 (uma requisição inválida não é recusa de
+formato). Contar o diagnóstico na cota diária (testar a IA não pode tirar a IA de quem testa).
+
+**Consequências.** Só backend e o mínimo de interface (cliente em `lib/api.ts` e o cartão em Aparência); as 15 telas ganham o
+painel "Sugestão da IA" nas etapas IA-2a e IA-2b. Tipos novos em `packages/shared-types` (`AIStatus` ampliado,
+`AIDiagnostico`, `SuggestionsOut`, `SuggestAction`). **Deploy da API** depois do merge; sem migração nem seed. Em produção, rodar
+o diagnóstico (§5-quinquies do deploy).
+
+**Numeração.** D-228/Sessão 185.
+
+## D-229 — Painel "Sugestão da IA" em sete telas (IA-2a, frontend)
+
+**Contexto.** O D-228 entregou `POST /api/ai/suggest` e o cliente, mas nenhuma tela o chamava. O plano gratuito do Google tem
+cota diária e por minuto compartilhada com o resto da IA; qualquer desenho que consulte o modelo ao abrir a tela a gastaria à
+toa. As ações devolvidas são propostas: nada pode mudar a tela sem o clique da pessoa.
+
+**Decisão.**
+
+1. **Um componente só.** `components/ai/AISuggestPanel.tsx` (dados em `useAISuggest`, regras puras em `lib/ai/suggest.ts`, textos em
+   `lib/i18n-suggest.ts`). O botão **"Sugestão da IA"** chama `suggestNextSteps` **somente ao clicar**; fechar e reabrir não
+   repete a chamada. Estados: carregando (esqueleto e `aria-live`), erro (`describeApiError`, "Tentar de novo"; no 429 a frase do
+   servidor diz quando tentar), vazio escrito, `degraded`/`notice` como aviso (com texto próprio se o servidor não mandou
+   `notice`), `cached` discreto, `rejected` num bloco recolhido e o `disclaimer`. Com `/ai/status` `enabled=false`, o botão fica
+   desligado com a explicação (status ilegível conta como ligado: a chamada diz o que há). Cor só por token, `min-w-0`/`break-words`
+   e uma consulta de contêiner (`.ai-suggest`) para uma ou duas colunas de cartões.
+2. **Clicar aplica, pela tela.** A tela passa `onAction(action)` e `actions` (os tipos que sabe aplicar). Ação de tipo fora da
+   lista, ou com formato que o tipo não promete (`isWellFormedAction`), **não aparece**; um cartão sem ação utilizável fica como
+   conselho. `open_route` é um link para um caminho interno (nunca `//` nem outro site); `linkFor` deixa a tela transformar outra
+   ação em link (um `search` numa tela sem caixa de busca). Depois do clique o botão vira "aplicado", o leitor de tela ouve a
+   frase e, em janela estreita, o painel se recolhe (a resposta fica). Se o contexto da tela mudar depois da resposta, o painel
+   avisa que ela é antiga e só pede de novo no clique.
+3. **As telas.** Mapas: `set_axes`, `apply_preset` e `set_index` passam pelos mesmos setters dos controles, e a URL (`estado=`)
+   acompanha; desligado no universo de processos. Comparar: `compare` troca `?materiais=` e `set_axes` abre os comparados no Mapa
+   (`mapHrefForAxes`, a única vista com eixos); desligado sem material. Catálogo: `add_filter`, `sort` e `search` escrevem os
+   parâmetros da URL e voltam à página 1; `compare` abre `/app/comparar?materiais=`. Ficha: `compare` abre o Comparar com os
+   parecidos. Glossário e Processos: `search` põe o texto na caixa de busca (na ficha do processo vira link para a lista).
+   Importar: `map_column` preenche a linha da coluna na tela de mapeamento (alvo "propriedade" e a propriedade) e **nada mais**:
+   não valida nem importa, e a unidade só é mantida se a coluna já apontava para a mesma propriedade, senão fica em branco
+   (princípio 1: nunca inventada).
+
+**Alternativas recusadas.** Pedir as sugestões ao abrir a tela (gasta a cota e o Google barra o resto da IA). Aplicar a primeira
+ação sozinha (a IA propõe, a pessoa decide). Um painel por tela (os sete teriam estados de erro e de cota diferentes). Mostrar
+a ação desconhecida como botão sem efeito (um botão que não faz nada ensina a não confiar no painel).
+
+**Consequências.** Só frontend: sem mudança de API, migração ou seed. `AISuggestPanel` é a base da IA-2b (Dimensionar, Custo,
+Eco, Baterias, Sintetizar, Painel, Meus registros e Admin: `set_param`, `fill_text`, `compare`, `open_route`). Os testes de
+página que simulam `@/lib/api` passaram a incluir `getAIStatus`/`suggestNextSteps` onde o painel é exercitado; nos demais a
+ausência do mock é tratada como "status ilegível" e não quebra a tela. Testes novos: `AISuggestPanel.test.tsx` (com axe),
+`lib/ai/suggest.test.ts`, um bloco "Sugestão da IA" em cada tela e `e2e/sugestao-ia.spec.ts` (Mapas e Catálogo, com o `mock`).
+
+**Numeração.** D-229/Sessão 186.
+
+## D-230 — Pares clássicos do Comparar: palavra inteira, classe e começo do nome
+
+**Contexto.** Os "Pares clássicos" do D-221 achavam cada lado pelo nome dobrado (sem acento nem caixa) com `includes`, primeira
+ocorrência na ordem do catálogo. Com o catálogo de 678 materiais (`seed` + `seed_extended`), três dos cinco pares traziam outro
+material: "aço" casava com "Argamassa de Cimento e Areia Traço 1:3" (porque "traço" contém "aco"); "titânio" casava com
+"Aço Inoxidável Austenítico AISI 321 Estabilizado ao Titânio"; "PP" casava com "NFRP Cânhamo / Polipropileno (Painel
+Automotivo)". O par "Vidro × Policarbonato" também estava errado sem ninguém notar: "vidro" casava com "BMC Vidro-E / Poliéster",
+um compósito.
+
+**Decisão.** Cada lado de um par tem uma **classe** (`classSlug`: aço, alumínio, titânio e cobre em `metais`; PEAD, PP e
+policarbonato em `polimeros`; vidro em `ceramicas`) e uma lista de **termos, do mais específico ao mais geral** ("aco carbono",
+depois "aco"; "vidro soda-cal", depois "vidro"; "pp", depois "polipropileno"). O primeiro termo com algum acerto decide. Um termo
+só casa **como palavra inteira** (a letra ou o dígito vizinho impede: "traco" não contém a palavra "aco"), e entre os acertos vale
+o melhor grau (`matchRank`): o nome *é* o termo, depois o nome *começa* pelo termo, depois o termo aparece em outro lugar; no
+empate, a ordem do catálogo. Um lado sem acerto continua tirando o par inteiro, e o mesmo registro nunca fica dos dois lados.
+
+Com o catálogo local: Aço Carbono 1045 × Alumínio 1050A-O Recozido; Polietileno de Alta Densidade (PEAD) × Polipropileno (PP);
+Titânio Comercialmente Puro Grau 1 × Aço Carbono 1045; Cobre Desoxidado com Fósforo (DHP) Meio-Duro × Alumínio 1050A-O Recozido
+(o mesmo de antes); Vidro Soda-Cal × Policarbonato (PC).
+
+**Alternativas recusadas.** Id fixo do material (o D-221 já recusou: o catálogo de produção e o local não têm os mesmos ids, e o
+atalho tem de sumir quando o material falta). Pedir ao servidor uma busca por relevância como a do `GET /api/search` (D-207): um
+pedido a mais por lado numa tela que já tem a lista inteira, e a busca global não filtra por classe. Expressão regular montada
+com o termo: a varredura por `indexOf` com o teste do vizinho faz o mesmo sem escapar caracteres.
+
+**Consequências.** Só frontend (`apps/web/lib/compareClassics.ts`; `CompareSuggestions` passa a pedir `class_slug`, que o
+`MaterialListItem` já traz). Sem backend, migração nem seed. Um catálogo sem a classe certa não oferece o par, mesmo que tenha um
+nome parecido em outra classe — é o comportamento querido.
+
+**Numeração.** D-230/Sessão 187 (D-228/Sessão 185 e D-229/Sessão 186 entraram no `main` antes, pelo #248 e pela IA-2a).
+## D-230b — Painel "Sugestão da IA" nas oito telas restantes (IA-2b, frontend)
+
+**Contexto.** O D-229 entregou o `AISuggestPanel` e o ligou em sete telas; faltavam as quatro calculadoras e o dimensionamento
+(Dimensionar, Custo, Eco, Baterias, Sintetizar), o Painel, Meus registros e as duas telas de Admin. Aqui as ações mexem em
+**números e textos de formulário**, não em filtros: era preciso decidir o que "aplicar" quer dizer sem que a IA passe a digitar
+por quem calcula, e como mostrar o que mudou.
+
+**Decisão.**
+
+1. **O contexto é o pedido da rota de cálculo.** Custo, Eco, Baterias, Dimensionar e Sintetizar mandam `{request}` no **mesmo**
+   formato que a tela já envia ao cálculo (o servidor o valida e refaz a conta, D-228); nunca um resultado. Enquanto o pedido não
+   estiver completo, o botão fica desligado com `suggestText.needsBrief` (o motivo detalhado já está no cartão de resultado e não
+   se repete). Painel e Meus registros mandam `{}`: o servidor lê o panorama do catálogo e os registros da pessoa por conta
+   própria. Admin manda `{name, description}` (propriedades: também `canonical_unit`), cortados nos limites do servidor; sem nome
+   o botão fica desligado (`needsName`).
+2. **`set_param` escreve onde a pessoa digitaria: a URL.** O nome do parâmetro é o do pedido (`batch_size`, `inputs.comprimento`,
+   `objective`, `chemistry_slug`…), e cada tela o traduz para o seu campo (`useUrlState`); a tela **recalcula só o que já
+   recalcularia** ao mudar aquele campo. Nada é gravado nem consultado de novo pela ação. Premissas recolhidas (amortização,
+   fator de carga, fatores de empacotamento) abrem. Na Eco o parâmetro vale para **todos** os componentes ou trechos (um produto é
+   uma lista; "voltar ao padrão" não deixa uma linha para trás); em Baterias vale como edição manual (o arquétipo vira "custom").
+3. **O que a tela não sabe aplicar não aparece.** `AISuggestPanel` ganhou `accepts(action)`, a última palavra da tela: um
+   `set_param` de campo que ela não tem, de valor fora do que o campo aceita (fração fora de 0–1, rota de fim de vida que não
+   existe, apoio fora do catálogo do caso) ou **que não mudaria nada** (Sintetizar: o servidor só oferece o valor atual) é descartado
+   como qualquer ação de tipo não listado. `compare` (Dimensionar, Meus registros) e `open_route` são links
+   (`/app/comparar?materiais=`, via `linkFor`); a Eco, no modo A × B, fica desligada com a razão (o servidor sugere sobre uma
+   auditoria, não sobre uma comparação).
+4. **Mostrar o campo que mudou.** `lib/ai/revealField.ts`: o campo leva `data-ai-field="<nome do parâmetro>"`, e depois de escrever a
+   tela chama `revealField(nome)` — um anel que se desfaz em ~2,5 s (`[data-ai-changed]` em `globals.css`, só com tokens; sem
+   movimento sob `prefers-reduced-motion`) e `scrollIntoView` mais próximo. O foco só vai para o campo quando seria perdido (em
+   janela estreita o painel se recolhe e leva o foco): em janela larga o foco fica no botão da sugestão, e a seguinte está a um Tab.
+5. **Admin: `fill_text` preenche o campo `description` do formulário e não grava.** A descrição fica editável (virou `Textarea`) e quem
+   grava é a pessoa, depois de ler. O formulário de **propriedades não tinha o campo** de descrição, embora o contrato (`PropertyDefinitionIn.description`)
+   o aceitasse: passou a ter, e é enviado só quando preenchido (`null` como antes).
+6. **Painel e Meus registros** só têm links. O contexto vazio não faz a resposta envelhecer com os filtros do painel (o servidor
+   não os lê).
+
+**Alternativas recusadas.** Aplicar `set_param` direto no estado sem passar pela URL (a ação não seria reabrível por link, como
+todo parâmetro de D-212). Dar foco sempre ao campo (tira a pessoa de dentro do painel a cada clique). Recalcular ao aplicar
+(a tela já o faz ao mudar o campo; uma segunda via duplicaria a chamada). Salvar a descrição ao preencher (a IA propõe, a pessoa
+decide). Mandar o resultado da tela no contexto (o servidor o refaz; número do cliente nunca entra, D-228).
+
+**Consequências.** Só frontend: sem mudança de API, migração ou seed (**Deploy da API** não é necessário). Com isso as **15 telas**
+têm o painel. Observação para o backend (não mexida aqui): em Sintetizar o `_params` de `ai_suggest.py` só guarda o valor atual de
+cada parâmetro (sem cenário), então um `set_param` dali nunca muda nada e o painel o esconde; se se quiser sugestão de receita, o
+servidor precisa de valores alternativos. Na Eco, `part_mass` não é oferecido no formato de produto. Testes novos: um bloco "Sugestão
+da IA" (com axe) em `custo`, `eco`, `baterias`, `dimensionar`, `sintetizar`, `painel`, `meus-registros` e nas duas telas de Admin;
+`aiParamPatch` em `ecoBrief.test.ts`; `lib/ai/revealField.test.ts`; `accepts` em `AISuggestPanel.test.tsx` e `suggest.test.ts`; e
+dois testes em `e2e/sugestao-ia.spec.ts` (Custo aplica um parâmetro e o valor muda no endereço; Admin preenche a descrição sem
+gravar). Correção que o axe achou: o título "Premissas desta conta" da Eco passou de `h4` para `h3`.
+
+**Numeração.** D-230b/Sessão 187b. Entrou como D-230/Sessão 187 pelo #251, no mesmo dia em que o #252 usou os mesmos números
+para os pares clássicos; pela regra do D-226 (item 4) o #252 ficou com eles e esta ganhou o sufixo, com as referências do código e
+dos documentos atualizadas no D-231.
+
+## D-231 — Memória da API em produção: VM de 1 GB e consumo medido por tela
+
+**Contexto.** Depois do deploy das 11:49 UTC de 13/11/26, a máquina única do Fly (`shared-cpu-1x`, 512 MB, um worker uvicorn)
+foi morta por falta de memória (exit 137) quatro vezes em três minutos. Seleção, Mapas, Comparar, Dimensionar, Custo, Eco e
+Baterias não abriam; `/api/health` e `/api/health/db` respondiam em ~0,7 s (o banco estava bem; o processo reiniciava entre as
+mortes). O `fly deploy` aplica o `[[vm]]` do `fly.toml` a cada implantação, então subir a memória à mão não duraria.
+
+**Decisão.**
+
+1. **VM de 1 GB** (`[[vm]] memory = "1gb"` no `fly.toml`), primeiro e sozinho, para a produção voltar enquanto o consumo é
+   investigado. **Um worker continua**: cada worker a mais é uma cópia inteira do processo na mesma memória.
+2. **Menos requisições por máquina no proxy.** `[http_service.concurrency]` de 40/60 para `soft_limit = 5`,
+   `hard_limit = 8`: acima disso o proxy do Fly segura a requisição na fila em vez de entregá-la. Uma tela abre com até ~6
+   pedidos paralelos; 8 deixa uma tela inteira passar enquanto a próxima espera.
+3. **Portão de requisições pesadas no app** (`app/services/heavy_request_gate.py`, dependência `heavy_request`):
+   `HEAVY_REQUEST_CONCURRENCY` (padrão 2) rotas pesadas rodam juntas por processo; a próxima espera até
+   `HEAVY_REQUEST_WAIT_SECONDS` (padrão 20) e recebe **503 com `Retry-After`** ("O servidor está ocupado…"), em vez de o
+   processo inteiro morrer e levar as leves junto. Pesadas são as que leem boa parte do catálogo: seleção (`filter`,
+   `funnel`, `index`, `run`, `run-diff`, execução de estudo), mapas (`property-map`, `map-box`, `index-line`, `compare`),
+   as calculadoras (`solver/resolver`, `custo/estimar`, `eco/auditar` e `comparar`, `baterias/dimensionar` e `comparar`) e
+   o plano da IA (`ai/plan`, `ai/plan/run`). Listas, ficha, saúde e login não passam pelo portão. Semáforo de `threading`
+   (as rotas são `def` servidas pelo pool de threads), por processo, como o limite por minuto do D-223.
+
+4. **O catálogo inteiro deixa de ser lido por requisição.** Medição local (Postgres 16 com `seed` + `seed_extended`: 678
+   materiais, 32 395 valores; `tracemalloc`, pico por requisição sobre o que já estava alocado): funil, filtro e execução da
+   seleção, mapa, linha de índice, Dimensionar, Custo, Eco e `/ai/plan` seguravam **134 a 166 MB** cada um, e o catálogo
+   (`GET /materials`, `/materials/busca`, sugestão do Catálogo) **53 MB**, mesmo com `limit=50`. A causa era uma só: um objeto ORM
+   por valor gravado, e nas rotas de gráfico e cálculo com `joinedload`, que trazia as colunas do material, da definição e da fonte
+   repetidas em cada uma das 32 mil linhas. Correções, todas sem mudar resposta (41 respostas de 31 rotas, comparadas antes e
+   depois no mesmo banco, saíram iguais):
+   - **Seleção** (`SelectionRepository.active_material_rows`): duas consultas de colunas — materiais com classe e os valores
+     presentes (`material_id`, `slug`, `normalized_value`, sem ausência declarada nem número nulo, D-24) — e nenhum objeto ORM por
+     valor.
+   - **Gráficos e calculadoras** (`ChartRepository.list_materials`): `selectinload` no lugar do `joinedload`, e o filtro novo
+     `property_slugs`, que carrega só os valores das propriedades pedidas (os materiais continuam todos). Usado pelo mapa (eixos e
+     variáveis dos índices; expressão inválida cai no carregamento completo, e a validação recusa como antes), pelo Dimensionar e
+     pelo Find Similar (a base do caso) e pela contagem das rotas de fim de vida da Eco. Custo e Eco carregam **só o material
+     pedido** (`material_ids`). Com o filtro, a coleção fica parcial de propósito: a consulta usa `populate_existing` e quem chama
+     não lê outra propriedade daqueles objetos. Ordem por nome e **id**, para os nomes repetidos do demo saírem sempre na mesma ordem.
+   - **Catálogo** (`MaterialRepository.value_facts` e `sort_values`): as contagens por proveniência e de referências vêm somadas
+     pelo banco (`GROUP BY`), e a ordenação por propriedade lê só aquela propriedade; `property_values` nem é carregado.
+     `list_item` aceita as contagens prontas e continua contando sozinho quando recebe o material com os valores (favoritos).
+5. **`MALLOC_ARENA_MAX=2`** no `Dockerfile.api`: as rotas síncronas rodam num pool de threads, e o glibc dá uma arena de malloc
+   por thread, que guarda o que foi liberado. Medido antes das correções acima: pico de 8 telas pesadas simultâneas de ~1 GB para
+   ~0,65 GB.
+6. **Caches limitados.** Os quatro memos da IA (contexto, faixas, plano, sugestão; D-224/D-228) já eram LRU com TTL (256 a 1024
+   entradas) e ganharam teste (`test_ai_cache_bounds.py`). O limite por minuto (D-223) só podava janelas fechadas; ganhou teto
+   rígido (`MAX_WINDOWS = 50 000`, esquece as mais antigas). O ETag (D-223) não guarda nada entre requisições. O Cérebro não
+   carrega nada na partida: o índice léxico e os vetores de um modelo são montados na primeira busca e trocados quando o corpus
+   muda (uma entrada só).
+7. **Sem reciclar o worker** (`--limit-max-requests`): depois das correções o RSS fica estável (~190 MB depois de uma volta por
+   todas as telas, ~210 MB no pico de 10 clientes simultâneos), sem vazamento medido; reciclar custaria uma partida a frio no
+   meio do uso.
+
+**Números (antes → depois, Postgres local, mesmo roteiro).** Pico por requisição (`tracemalloc`): catálogo 53,8 → 7,0 MB
+(paginado 53,0 → 5,2); busca 53,8 → 7,0; funil 133,8 → 10,8; filtro 133,8 → 10,8; executar 133,8 → 10,8; mapa 165,6 → 7,7; mapa
+com índice 165,6 → 8,9; linha de índice 165,6 → 8,9; comparar 0,9 → 0,7; Dimensionar 165,7 → 7,3; Custo 165,6 → 0,6; Eco
+165,6 → 0,5; Baterias 0,1 → 0,1; painel 0,3 → 0,3; `/ai/plan` 133,9 → 10,9; `/ai/suggest` do Catálogo 53,0 → 5,2 (Mapas e Painel
+0,3, sem mudança). Tempo: funil 5,5 → 0,5 s, mapa 5,7 → 0,4 s, Custo 5,6 → 0,09 s. Processo (RSS): 157 MB depois do import
+(igual); depois de uma volta por todas as telas 532 → 190 MB; **10 clientes simultâneos** pelas telas pesadas: pico
+**1454 → 211 MB**, e 182 → 14 s para terminar.
+
+**Alternativas recusadas.** Semáforo `asyncio` (fica preso ao laço de eventos em que foi usado primeiro, e as rotas
+pesadas nem rodam no laço). Um cache do catálogo compartilhado entre requisições (objeto ORM não pode sair da sessão que o leu, e
+a invalidação em escrita teria de cobrir registros próprios, importações e a visibilidade por pessoa; com as consultas leves a
+memória por requisição já é pequena). Limitar só no proxy (uma tela leve e uma pesada contam igual; o portão separa as duas). `fly scale memory` à mão (o próximo deploy o desfaz). Mais workers (multiplicam a memória, o oposto
+do que falta). Voltar a versão anterior (o consumo cresce com o catálogo de 678 materiais, não com uma mudança só daquele
+deploy).
+
+**Consequências.** Custo maior da máquina sempre de pé. Um pico de uso vira espera ou 503 com "tente de novo", nunca a API
+fora do ar. Testes: `test_heavy_request_gate.py` (o portão recusa depois da espera e devolve a vaga mesmo com erro; 0 desliga;
+toda rota pesada passa por ele e nenhuma leve; 503 com `Retry-After` enquanto cheio e 200 depois; o `fly.toml` com 1 GB e
+limite de concorrência baixo; um worker no `Dockerfile.api`), `test_memory_per_request.py` (semeia o catálogo demo inteiro na
+transação do teste e exige pico abaixo de 40 MB em 17 rotas; antes da correção 14 delas passavam, de 58 a 169 MB),
+`test_ai_cache_bounds.py` e um teste do teto de janelas em `test_rate_limit.py`. Fica para depois: a exportação
+(`export_service`) ainda lê o catálogo inteiro num caso (protegida pelo limite por minuto), e o import do app custa ~150 MB, ~40 MB
+deles de `openpyxl`, `python-pptx`, `python-docx` e `pypdf`, que poderiam carregar sob demanda. Depois do merge: **Deploy da API**. Sem migração nem seed.
+
+**Numeração.** D-231/Sessão 188. O `main` chegou com dois D-230 e duas Sessões 187 (#251 e #252); pela regra do D-226 (item 4),
+os pares clássicos (#252) ficam com D-230/Sessão 187 e o painel "Sugestão da IA" nas oito telas (#251, IA-2b) passa a
+**D-230b/Sessão 187b**, com as referências do código e dos documentos atualizadas. O CHANGELOG tinha o cabeçalho da Sessão 187
+dos pares sem corpo (o corpo estava numa "Sessão 186 … (D-229)" duplicada, o número antigo do mesmo PR): o corpo voltou para a
+187 e a duplicata saiu.
+
+## D-232 — A Seleção recebe uma lista de materiais, e três atalhos que dependiam disso
+
+**Contexto.** O laço do Mapa (D-213), o atalho do Dimensionar (D-216) e "Comparar selecionados" do Catálogo (D-217) terminavam com
+um **conjunto de materiais** e só tinham para onde levá-lo o Comparar, porque a Seleção não aceitava lista de ids: o pipeline
+tinha estágio de limites (propriedade), de classes, de processos, de materiais (pastas, só em estudo de processos) e de gráfico
+(região de um plano), e nenhum que dissesse "estes materiais". As três entradas ficaram no TODO como pendência. Junto vieram duas
+sobras do mesmo fluxo entre telas: o Comparar vazio não sabia continuar do último estudo, e o "Último mapa" do Início guardava só
+o caminho (`/app/mapas`), perdendo eixos, filtros e seleção.
+
+**Decisão.**
+
+1. **Um sexto tipo de estágio, `list`** (`StageIn.material_ids`, 1 a 200 ids; `MAX_STAGE_MATERIAL_IDS`). Regra pura em
+   `app/domain/filters.py` (`IdSelection`, `apply_stage`: o registro passa se o id está na lista); o funil o chama `in_list`.
+   Usa o que já existia — `StageIn`/`StageOut`, `SelectionStageNode`, o funil por estágio, o relatório e o laudo — e inventa o mínimo:
+   um tipo, um campo, uma regra de uma linha. **Só em estudo de materiais**: os ids são de `material`, e um estudo de processos
+   recebe 400 com o caminho certo (estágio de árvore).
+2. **Recusas, no lugar de ignorar** (a postura de todo estágio): lista vazia é 400 (um estágio que nomeia ninguém e admite todos
+   diria o contrário do que é), id que não é de material ativo e visível a quem pede é 404 que o cita (`existing_material_ids` usa
+   `visible_materials`, então o estágio não serve para sondar registro alheio), mais de 200 ids é 422, campos de outro tipo no
+   estágio de lista e `material_ids` em outro tipo são 400. Repetição conta uma vez, na ordem dada.
+3. **Salvar sem migração.** Os ids ficam, como inteiros, na coluna JSON `material_class_slugs` do estágio (nos demais tipos ela
+   guarda pastas); a leitura escolhe por `kind` e descarta o que não é inteiro. Uma coluna `material_ids` própria é o desenho certo e
+   pede migração, o que esta etapa não faz: fica no TODO. O estágio é guardado cru e só a **entrada** é conferida: um estudo salvo
+   cujo material saiu do catálogo continua executando, com a lista encolhida, em vez de ficar ilegível (a mesma postura da
+   restrição por propriedade renomeada). O relatório e o laudo trazem **nomes** ("lista de 5 materiais: …", até 12 e "e mais N"),
+   nunca os números.
+4. **Arquivo de estudo recusa a lista.** O arquivo do D-122 "não carrega id de registro": o id de um material só vale no catálogo
+   que o emitiu, e importar noutro lugar restringiria o estudo aos registros que tivessem aqueles números lá. Exportar um estudo
+   com estágio de lista é 400 dizendo isso e o que fazer (trocar por limites ou classes, ou usar o relatório).
+5. **Entrada por endereço: `?materiais=`** na Seleção, no mesmo formato compacto do Comparar (`lib/idList.ts`, `1-3,7`), no máximo
+   200. O assistente abre nos limites com o estágio de lista seguido do estágio de limites vazio; depois de montar, o endereço
+   guarda só `?etapa=restricoes` (como a caixa do Mapa, para o Voltar não refazer o estágio sobre as edições) e a lista segue no
+   estudo e **no rascunho** (chegar com uma lista conta como mudança em relação ao formulário em branco, então o rascunho a grava).
+   O cartão do estágio nomeia os materiais pelo mesmo catálogo do Comparar, diz quantos são e deixa tirar um a um; uma lista
+   esvaziada avisa que não executa. `lib/selectionList.ts` é o único lugar do teto e do endereço.
+6. **Os três pontos de origem.** *Mapa:* o laço e os pontos marcados na lista (sem caixa), num mapa de materiais, ganham "Abrir na
+   Seleção" (primário; o Comparar passa a secundário); a caixa continua virando estágio de gráfico, e num mapa de processos o aviso
+   diz que só a caixa vai. *Dimensionar:* "Abrir os N na Seleção" ao lado de "Comparar os N melhores", com os mesmos ids na mesma
+   ordem. *Catálogo:* a seleção passa a **atravessar páginas**: mora no endereço (`?sel=`, `lib/idList`), a tabela deixa de ser dona
+   dela (`CrossPageSelection`), "Selecionar todos" soma a página ao que as outras guardam, e a barra diz "N selecionados em várias
+   páginas" com "Limpar seleção" que esvazia tudo; "Comparar selecionados" e "Abrir na Seleção" levam todos. Acima de 200 a barra avisa
+   que vão os 200 primeiros. Sem `selection` a tabela mantém a seleção local de sempre (que não sobrevive à linha).
+7. **Comparar: "top do último estudo".** No estado vazio, um cartão "Do seu último estudo" com um botão que **executa de novo** o
+   estudo salvo de materiais mais recente (`GET /api/selection/studies`, depois `POST …/run`) e leva os 5 primeiros candidatos, na
+   ordem do ranking do servidor (sem posição, depois dos com posição, na ordem em que vieram). Nada é calculado na tela: ela fatia a
+   resposta. Menos de 2 candidatos diz isso e aponta a Seleção; erro de rede aparece no cartão e o botão tenta de novo. "Último" é o
+   salvo mais recente (`created_at`): não há registro de execução por estudo no servidor, e guardá-lo pede tabela.
+8. **Início: "Último mapa" guarda o endereço inteiro.** `recordMapUrl` (`lib/navMemory.ts`, chave `msai.nav.mapUrl`, no aparelho,
+   como o resto da memória do menu) grava `caminho + query` a cada mudança do mapa; só aceita `/app/mapas` ou `/app/mapas?…`, até
+   4000 caracteres (laço enorme não vale um megabyte de armazenamento). O cartão abre esse endereço; sem ele, o caminho, como antes.
+
+**Alternativas recusadas.** Um operador `in_ids` nas restrições (restrição compara propriedade; um identificador não é uma, e o
+funil ficaria sem nome certo). A coluna `material_ids` com migração (certa, mas fora desta etapa; ver 3). Guardar a lista só no
+endereço (a Seleção é editada por minutos e a lista tem de acompanhar o estudo salvo e o rascunho). Levar o catálogo inteiro (2 000
+a 5 000 ids no endereço; o teto de 200 é o que um navegador e um proxy leem sem susto, e uma lista de 200 já passou do que se
+argumenta). Deixar o Comparar vazio buscar "o último estudo" sem executar (o atalho promete candidatos, e candidato é resultado).
+
+**Consequências.** Fica pendente: a coluna própria (migração), registro de execução por estudo (para "último executado"), e a
+lista de materiais num estudo de **processos** (só faria sentido com ids de processo, e é outro estágio). Testes novos:
+`test_selection_list_stage.py` (19: motor, API, funil, interseção, estágio desligado, 404 que cita o id, lista vazia, teto, ids
+repetidos, campos misturados, estudo de processos, ida e volta salva, material apagado depois de salvo, relatório com nomes, arquivo
+de estudo recusado); vitest com axe para cada origem (`listStage`, `SelectionPanel`/Mapas, Dimensionar, `materialTable` e Catálogo,
+Comparar vazio, Início), `wizardState`, `selecao` (chegada por `?materiais=`, funil e rascunho); E2E `mapa-para-selecao.spec.ts`
+(laço no Mapa → "Abrir na Seleção" → o funil conta só esses materiais). Depois do merge: **Deploy da API** (acrescenta um tipo de
+estágio; sem migração nem seed).
+
+**Numeração.** D-232/Sessão 189.
+
+---
+
+## D-233 — Ficha, Admin, Cadernos e Registros: citar fonte, mover classe, posição do trecho e lotes
+
+**Contexto.** Pendências deixadas pelos D-214 ("Citar fonte (ABNT)"), D-218 (Cadernos: posição do trecho, duplicar com conversa,
+arquivar em lote), D-219 (excluir registros próprios em lote), D-222 (árvore de classes editável, editar propriedade) e D-232 (a
+coluna própria `material_ids`). Nenhuma mexe em cálculo; todas mexem em dado de registro ou de fonte, e por isso cada uma recusa o
+que não pode afirmar: a citação não inventa autor nem ano, a árvore não deixa fazer ciclo, o trecho não ganha posição que ninguém
+mediu, o lote não faz metade.
+
+**Decisão.**
+
+1. **Citar fonte (ABNT) com um clique.** O modelo `Source` só tinha `label`, `reference` (texto livre) e licença: **nenhum campo
+   estruturado** de autor, título, editora, ano, endereço ou data de acesso. Em vez de montar a citação de texto livre (que seria
+   chute), `source` ganhou seis colunas **nuláveis**: `authors`, `title`, `publisher`, `year`, `url`, `accessed_on`. Ninguém as
+   preenche por inferência: nascem NULL para toda fonte que já existe; o importador do catálogo oficial lê as chaves opcionais do
+   manifesto (`_bibliography`, só com o formato certo; ano ou data malformados são descartados, não coagidos) e o `POST` de
+   fonte segue como era. O texto é **montado no backend**, puro e determinístico (`app/domain/citation.py`, `abnt_reference`):
+   `AUTORES. Título. Editora, ano. {referência}. Disponível em: URL. Acesso em: d mmm. aaaa.` Sem autor, a entrada é o título com a
+   primeira palavra em maiúsculas (artigo e a palavra seguinte, como a norma); sem título, o `label`, que toda fonte tem. A ficha
+   (`MaterialDetail.sources`, uma por fonte citada em valor, composição ou designação, sem repetir, ordenada por rótulo)
+   devolve os campos e o `abnt`; a tela só copia (`copyText`) e diz se o navegador deixou. **A norma e o "s.d.":** a NBR
+   6023:2018 pede uma data aproximada entre colchetes quando a data não se acha e mantém `[S. l.]` e `[s. n.]` para local e editora;
+   os três escreveriam algo que o registro não diz (uma data estimada é dado inventado, princípio 1), então **não são
+   escritos** — a parte ausente fica de fora. "Acesso em" só sai com "Disponível em". A seção "Fontes desta ficha" vem aberta, para
+   ser um clique de fato.
+2. **Árvore de classes editável.** `PATCH /api/classes/{id}` com **só** `parent_id` (obrigatório no corpo; `null` é a raiz) —
+   nome, slug e a prosa da família (`applications`, `characteristics`) ficam como estão, o que o `PUT` não garante. Recusa a
+   própria classe e qualquer descendente como destino (400, o mesmo `_validate_parent` do `PUT`), pai inexistente é 404, mover para
+   onde já está não grava evento. Entra na auditoria como `ATUALIZADO` com só `parent_id`. Na tela, "Mover para…" por linha: um
+   diálogo com **um select** (a própria classe e as descendentes nem aparecem), que vale de teclado e de leitor de tela; arrastar
+   ficou de fora (opcional, e um gesto que só o mouse faz).
+3. **Editar propriedade no Admin.** `PATCH /api/properties/{id}` com `name`, `description` e `display_unit`, só os enviados
+   (`model_fields_set`: `description: null` limpa, omitir mantém). O slug e a dimensão não estão no corpo; a unidade de leitura
+   passa pelas mesmas peneiras da criação (compatível com a dimensão **da propriedade**, entre as aceitas). Nome em branco é 400,
+   nome de outra propriedade (sem diferenciar caixa) é 409.
+4. **Posição exata do trecho citado.** `notebook_chunk.char_start`/`char_end` (migração), preenchidos no `chunk_text`, em
+   coordenadas do `content` da fonte (páginas aparadas e unidas por linha em branco). O chunker normaliza o texto (une hifenização,
+   desfaz quebras duras), então o trecho não é substring do texto: `_normalise_with_map` devolve, para cada caractere normalizado, de
+   onde ele veio; um teste mantém o texto igual a `normalise`. O intervalo cobre o texto **próprio** do trecho, sem a sobreposição
+   repetida do anterior; pedaço de parágrafo longo é achado por suas palavras dentro do parágrafo. A citação devolve
+   `char_start`/`char_end`; o leitor marca **por posição** quando ela cabe no texto, e **cai na busca por palavras** (`locateExcerpt`)
+   quando não há posição (trecho gravado antes) ou ela não cabe. Nada foi preenchido retroativamente: NULL é "não sei". `?trecho=ini-fim`
+   no endereço do caderno faz a marca sobreviver ao recarregar.
+5. **Duplicar com conversa.** `POST /api/notebooks/{id}/duplicate?with_conversation=true` copia também as mensagens, os itens
+   **prontos** do Estúdio e as citações das notas, **reapontando** cada citação (`chunk_id`, `source_id`) para os trechos e a fonte
+   da cópia; uma citação cuja fonte já saíra do caderno vira id 0 (que nenhuma linha tem), nunca o número de outra linha. Não gasta
+   geração nem cota. O padrão segue o do D-218.
+6. **Arquivar e desarquivar em lote.** `POST /api/notebooks/batch-archive` (`ids` de 1 a 100, repetidos contam uma vez,
+   `archived` verdadeiro ou falso): **tudo ou nada** (um id que não é do dono ou não existe é 404 que não confirma se existe, D-62),
+   idempotente e mantendo a primeira hora de arquivo. Na lista: "Selecionar" abre as caixas, a barra pede confirmação e depois
+   oferece "Desfazer" (a mesma chamada ao contrário).
+7. **Excluir registros próprios em lote.** `POST /api/materials/batch-delete` (1 a 100 ids): **só registro próprio** (um do
+   catálogo compartilhado recusa o lote inteiro, mesmo para quem pode editá-lo; o alheio e o já excluído são 404), tudo ou
+   nada, uma auditoria `EXCLUIDO` por registro. Na tela: caixas nos registros próprios, `ConfirmDialog` e `useUndoableDelete`
+   (a chamada só sai quando o prazo do "Desfazer" acaba). Aproveitando: a seção usava `MaterialCards` na disposição
+   `responsive`, que **some de `sm` para cima** — os registros próprios ficavam invisíveis no computador; passou a `gallery`.
+8. **Coluna própria `material_ids`** (dívida do D-232). `selection_stage.material_ids` (JSON, NOT NULL, padrão `[]`); a migração
+   **move** os inteiros de `material_class_slugs` para ela nos estágios `list` e esvazia a antiga; a descida os devolve, na
+   mesma ordem. `material_class_slugs` volta a guardar só pastas e a leitura deixa de escolher por `kind`.
+
+**Migração.** Uma só, `d461fbef4da2`, gerada com `alembic --autogenerate` e editada para copiar os dados; subida, descida e subida
+de novo testadas (`test_migration_ficha_admin_cadernos.py`), e `alembic check` sem diferença. Aditiva: nenhuma coluna removida.
+
+**Alternativas recusadas.** Montar a citação de `reference` (texto livre: sairia chute com cara de norma). Escrever "[s.d.]",
+"[S. l.]" e "[s. n.]" (a norma pede, o princípio 1 não deixa estimar). Mover classe pelo `PUT` (apaga a prosa). Arrastar como único
+modo de mover (não acessível). Preencher `char_start` das fontes antigas relendo o texto (um palpite de posição é pior que a busca
+por palavras). Copiar a conversa sem reapontar as citações (a cópia apontaria para linhas do original e quebraria quando ele fosse
+apagado). Lote em chamadas separadas por id (um erro no meio deixaria metade feita).
+
+**Consequências.** Fica pendente: telas para **cadastrar** os campos bibliográficos de uma fonte (hoje só o manifesto do catálogo
+oficial os preenche), citação das fontes de curva e de equivalência na ficha (a seção lista as de valor, composição e designação),
+arrastar na árvore, "esvaziar o arquivo" dos cadernos. Testes novos: `test_migration_ficha_admin_cadernos.py`,
+`test_source_citation.py`, `test_class_move.py`, `test_property_edit.py`, `test_chunk_positions.py`,
+`test_notebooks_positions_duplicate_batch.py`, `test_materials_batch_delete.py` (e um caso em `test_selection_list_stage.py`);
+vitest com axe em `SourcesSection`, `ficha-fontes`, `mover`, `editar`, `SourceReader.position`, `urlState`, `excluir-lote` e na lista
+de cadernos; E2E `curadoria.spec.ts` (citar fonte; mover classe). Depois do merge: **Deploy da API** (o `release_command` do
+`fly.toml` roda `alembic upgrade head`, então a migração sobe junto; a **Administração do banco** só serve se o autor quiser migrar
+antes de publicar a API). Sem seed.
+
+**Numeração.** D-233/Sessão 190.
+## D-232b — F6 da revisão das telas: Início em blocos móveis, Favoritos na barra lateral e Meus registros com visões
+
+**Contexto.** A F6 do plano ("Início e pessoal") pedia três coisas: o Início em blocos que a pessoa reordena e oculta, com a
+arrumação guardada; os favoritos numa seção fixa da barra lateral, como no Notion; e "Meus registros" como base com visões. Parte
+do Início já tinha sido refeita no #245 (D-222: "Continue de onde parou", "Primeiros passos", tarefas e novidades) e "Meus
+registros" ganhou busca, filtros e ações em lote no #243 (D-219). Ficaram de fora deles a arrumação do Início, os favoritos no trilho
+e as visões.
+
+**Decisão.**
+- **Início em blocos.** Tudo o que vem abaixo da caixa de escrever vira bloco: Primeiros passos, Continue de onde parou, Vistos
+  recentemente, Estudos salvos, Tarefas, Novidades do catálogo, Mapas fixados, Explore os dados. Alça ⋮⋮, Alt+↑/↓ anunciado e o
+  olho que oculta (o `Block`/`useReorder` da D-206). A caixa de escrever fica fixa no topo: é o `primary` da tela (D-195), não um bloco.
+- **Arrumação na conta, não no aparelho.** O plano recomendava começar no aparelho, mas o Painel já guarda os seus blocos na conta
+  (D-209, linha `kind="layout"`), e duas regras para a mesma peça seriam piores que uma. `OverviewBlocks` vira `LayoutBlocks`
+  (escopo, rótulos), e o backend aceita o escopo novo `inicio`, que guarda **só** layout: visão de tabela ali seria promessa que
+  nenhuma tela lê. Sem migração: `scope` é texto validado no contrato (`SavedViewScope`).
+- **Bloco vazio fica no lugar.** Um bloco cujo conteúdo não desenha nada (sem rascunho para retomar, sem mapa fixado) mostra uma
+  linha, "Mapas fixados: nada por enquanto.", escrita pela CSS sobre o corpo vazio (`data-empty`). Escondê-lo faria o Alt+↓ passar
+  por cima de algo invisível.
+- **Favoritos na barra lateral.** Seção "Favoritos" entre Fixados e Recentes, com os registros de estrela da conta (a mesma
+  `/my-records` da estrela, do Início e de "Meus registros"), até 6 e "Ver todos os favoritos" (`?visao=favoritos`). Diferente de
+  "Fixados" (páginas, no aparelho, D-207): favoritos seguem a conta. Enquanto carrega ou se falha, a seção não aparece: atalho não
+  mostra erro.
+- **Meus registros com visões.** "Todos · Favoritos · Recentes · Registros próprios" em botões `aria-pressed` (como o
+  `SavedViewsBar`), em `?visao=`; busca e filtros da D-219 valem em todas. Sem registro próprio, o vazio oferece "Novo material" e
+  "Sintetizar".
+- **Sugestões do Início em linha no celular.** As quatro sugestões do composer viram uma linha rolável abaixo de `sm`.
+
+**Fora.** "Barra lateral clara" na Aparência e a página Conta (Assinatura + Aparência) ficam para a F8, que trata da entrada e da
+conta. Duas colunas de blocos no Início (o plano sugeria): a ordem do teclado e do leitor de tela é uma só, e duas colunas
+desalinhariam a ordem visual da ordem gravada; fica uma coluna.
+
+**Alternativas recusadas.** Layout do Início no `localStorage` (duas regras para a mesma peça). Esconder blocos vazios (ver acima).
+Visões salvas de verdade em "Meus registros" (filtros nomeados na conta): as quatro visões fixas cobrem o que a tela mostra; nomear
+filtros fica para quando houver pedido.
+
+**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+
+
+---
+
+## D-234 — Fluxos entre telas (parte 16): a IA marca o número que escolheu, A × B e massa na Eco, cascata da diferença, curva de custo por material, recaída do 429 da busca e fim do `/ai/interpret`
+
+**Contexto.** Pendências deixadas pelos D-224 (`/ai/interpret` sem uso na interface), D-230 (Sintetizar: o servidor só guardava o valor
+atual de cada parâmetro, então um `set_param` nunca mudava nada e o painel o escondia), D-230b (Eco: o painel ficava desligado no modo
+A × B e `part_mass` não era oferecido no formato de produto), D-96/D-216 (a curva Custo × Lote só existia por processo, de um material) e
+D-97/D-228 (a busca na web dos Cadernos parava no 429 do plano gratuito).
+
+**Decisão.**
+
+1. **O terceiro grau de origem do D-224 chega ao `set_param`.** A ação ganha `origin`: `contexto` (um valor que a tela ou um cenário
+   curado guarda, como até aqui) ou `sugestao_ia` (um número que o **modelo** escolheu). O servidor só aceita o segundo onde deu uma
+   **faixa** para o parâmetro (`NumberRange` em `app/ai/suggest.py`: a validação do próprio pedido da calculadora, nunca um juízo de
+   "bom valor"); fora da faixa, não-numérico ou parâmetro sem faixa, a ação sai com o motivo em `rejected`. O número marcado entra
+   arredondado a 6 algarismos, o botão diz "(sugestão da IA, revise)" e o cartão que o propõe pode escrevê-lo na prosa (os outros
+   números continuam sendo só os do contexto; `ungrounded_numbers` segue valendo). No `AISuggestPanel`, qualquer `set_param` com
+   `origin: "sugestao_ia"` abre o `ConfirmDialog` ("Aplicar a sugestão da IA?") e **só age depois do "Aplicar e revisar"**; recusar não
+   muda nada. O prompt lista a faixa só onde há uma, e a regra 2 ganhou essa única exceção.
+   *Faixas.* Sintetizar: `volume_fraction` e `relative_density` em (0, 1) aberto, `face_thickness` e `core_thickness` > 0 (como o
+   `SynthesisRequest`). Eco: `part_mass` em (0, 10⁶] kg. Custo, Dimensionar e Baterias **não** ganharam faixa: seguem só com valores do
+   contexto ou de cenário.
+2. **Eco: A × B e a massa da peça.** O contexto de `eco` aceita `{comparison}` (o `EcoComparisonRequest`, recalculado no servidor como a
+   auditoria; chave desconhecida é ignorada, pedido malformado é 400). Os nomes são `material_a.part_mass`, `material_b.part_mass`,
+   `material_{a,b}.recycled_fraction`, `material_{a,b}.end_of_life` e `transport_distance_km`; os fatos trazem os dois totais, o vencedor
+   com a diferença percentual e a fase que mais separa as alternativas (números do servidor; o módulo da diferença é o do servidor). No formato de produto, `part_mass` é a massa unitária **de um produto de um só componente** (com vários não há "a massa da
+   peça": não é oferecido, e nenhuma linha fica para trás); fração reciclada, fim de vida e distância valem quando todos os componentes
+   ou trechos concordam, o que também fez o "volte ao padrão" funcionar no produto. Na tela, o painel deixou de ficar desligado na
+   comparação, os campos de cada lado são marcados para o realce (`aiField("material_a.part_mass")`) e `aiParamPatch` escreve só o
+   cenário do lado certo; nomes do produto não valem na comparação, nem o contrário.
+3. **Eco: cascata da diferença A × B.** `build_difference_waterfall` (`app/calculations/eco_audit.py`) reusa `build_waterfall` com o `b - a`
+   de cada fase; `EcoComparisonResultOut` devolve `energy_difference_waterfall` e `carbon_difference_waterfall`. A barra de total é
+   **o total auditado de B menos o de A**, nunca uma segunda soma dos degraus (a soma em outra ordem difere no último dígito, e o
+   Python 3.12 soma `float` de outro jeito que o 3.11: os testes comparam com tolerância, nunca com `==`). Fase sem dado em A ou em B
+   é um degrau com o motivo escrito (A, B ou os dois), sem zero, e o total é recusado. No navegador, `PhaseWaterfall` ganhou
+   `variant="difference"`: degrau abaixo de zero é "B abaixo de A" (cor de sucesso), acima é "B acima de A" (cor de perigo), sempre com
+   as palavras; a figura traz tabela, moldura e exportação como as outras.
+4. **Custo: a curva inteira de cada material.** `POST /api/custo/curvas` (`material_ids` de 1 a 5, a mesma peça, lote e premissas;
+   no portão de requisições pesadas) devolve, por material, a **envoltória inferior** das curvas dos seus processos
+   (`cheapest_envelope` em `app/calculations/part_cost.py`: o custo do jeito mais barato em cada lote, com o processo vencedor em cada
+   ponto, empate para o primeiro), o ponto do lote atual (`current`) e um quadro log-log **comum** (`domain`, a geometria é do servidor,
+   ADR 0004). Material que não pode ser estimado (sem custo por massa, sem processo com dado econômico, invisível ao leitor) fica na
+   resposta com `reason`, sem derrubar os outros e sem curva. Na tela, com comparação, `MaterialCostCurvesChart` desenha uma curva por
+   material com o marcador do lote atual, tabela, legenda e exportação; a falha dessa chamada some só a figura.
+5. **Busca na web dos Cadernos: recaída no 429.** Ao receber 429 do modelo da busca, `gemini_search.search` tenta **uma vez**
+   `WEB_SEARCH_FALLBACK_MODEL` (padrão `gemini-flash-lite-latest`; vazio ou igual ao principal desliga) e registra no log o modelo que
+   estourou, o `quotaId`, a métrica e o limite (`quotaValue`) lidos de `error.details[].violations[]` (`describe_violations` em
+   `app/ai/google_quota.py`; só esses três campos, cortados, nunca a mensagem do Google nem a chave). O 429 do segundo modelo vira a
+   mensagem de cota de sempre; só o 429 aciona a recaída. O workflow **Provedor de IA** ganhou a entrada `modelo_busca_web`
+   (`manter` | `gemini-flash-latest` | `gemini-flash-lite-latest`, tabela fechada) que grava `WEB_SEARCH_MODEL` junto dos outros
+   segredos (só para `gemini`); `WEB_SEARCH_MODEL` já existia em `config.py` e no `.env.example`, que ganhou a variável da recaída.
+6. **Fim do `POST /api/ai/interpret`.** Nenhuma tela o chamava desde o D-225. Saíram a rota, `AIService.interpret`, o `_context` e os
+   `_accept_*` que só ele usava, os esquemas `InterpretRequest`, `InterpretationOut` e `Suggested{Constraint,Index,Property,Chart}`, e no
+   frontend `interpretStatement`, o tipo `Interpretation` e os mocks. **Ficaram**: o método `interpret` dos provedores (o `rule_plan` e o
+   `mock` usam a mesma leitura por regras, e os testes dos provedores o exercitam), os guardrails de `app/ai/guardrails.py` (o plano usa
+   `check_constraint` e `check_index`; `check_property` e `check_chart` ficaram sem chamador no serviço, mas continuam testados) e os
+   textos `ptBR.ai.*` (o `AIAssistPanel` ainda os usa). Os testes que usavam a rota como veículo passaram a usar `/ai/explain` (cota) ou o
+   provedor direto (leitura do `mock`, guardrails, recuperação do Cérebro).
+
+**Alternativas recusadas.** Deixar a IA escolher números sem faixa ou aplicá-los e deixar desfazer (é o que a D-224 recusou). Oferecer
+`part_mass` para produto com vários componentes escolhendo o primeiro (seria um número que a soma não leva em conta). Somar os degraus da
+cascata no navegador ou no servidor para a barra de total (o total auditado é a fonte). Curva de custo da envoltória no navegador
+(geometria é cálculo, ADR 0004) ou domínio por material (as curvas não seriam comparáveis). Recair para o modelo mais leve em qualquer erro
+(só a cota é "tentar o mais leve"). Remover o método `interpret` dos provedores (o `rule_plan` depende dele).
+
+**Consequências.** `SuggestAction` ganha `origin?` e o contrato de custo e Eco ganha tipos em `packages/shared-types`. Não há migração nem
+seed. Depois do merge: **Deploy da API**; o workflow **Provedor de IA** só se o autor quiser fixar `WEB_SEARCH_MODEL` (a recaída já vale
+com o padrão do código). Pendente: o painel de Custo, Dimensionar e Baterias não propõe número fora do contexto (decisão: só Sintetizar e a
+massa da Eco); o `check_property`/`check_chart` sem chamador no serviço; a cascata da diferença para mais de duas alternativas.
+
+**Numeração.** D-234/Sessão 191. (O D-232 e a Sessão 189 aparecem duas vezes na `main`, por duas frentes paralelas, a seleção por lista e o
+F6; o sufixo `b` da regra do D-226 fica para o autor aplicar.)
+
+---
+
+## D-235 — Grupo D (qualidade): numeração, Lighthouse medido, tema escuro no E2E, exportação do catálogo em lotes e bibliotecas pesadas sob demanda
+
+**Contexto.** Sobras dos D-226 e D-231: a `main` tinha D-232 e Sessão 189 duas vezes; os limiares do Lighthouse estavam abaixo das metas
+porque nunca foram medidos; o tema escuro não passava pelo axe do E2E; `e2e/assistente-projeto.spec.ts` falhava de vez em quando; o
+relatório do catálogo ainda carregava todos os materiais com todos os valores; e a API subia com `openpyxl`, `python-pptx` e
+`python-docx` (com `lxml`) na memória sem exportar nada.
+
+**Decisão.**
+1. **Numeração.** Pela regra do D-226 (item 4), o mais novo ganha o sufixo: o F6 (Início em blocos) virou **D-232b/Sessão 189b**; a seleção
+   por lista fica com D-232/Sessão 189. As referências do código, dos testes, do `.claude/rules/frontend-design-system.md` e dos documentos
+   que falavam do F6 foram trocadas (as que falam da lista, do `?materiais=` e do "Último mapa" ficam em D-232).
+2. **Lighthouse medido.** Rodei o `lhci` 0.15.1 do próprio repositório (instalado fora dele) contra o build de produção, API em SQLite com a
+   sessão fixa, 13 URLs x 3 rodadas, como no job. Pior de cada nota: performance 0,99; acessibilidade 1,00; boas práticas 0,96 (1,00 em `/`
+   e `/entrar`); SEO 1,00. Pior de cada tempo: FCP 340 ms, LCP 992 ms, TBT 66 ms, TTI 992 ms, CLS 0,001. Limiares novos, com folga para o
+   runner do GitHub, mais lento que esta máquina: performance 0,7 → **0,9**, acessibilidade 0,9 → **0,95**, boas práticas 0,8 → **0,9**, SEO
+   (aviso) 0,8 → **0,9**; FCP 2500 → **2000** ms, LCP 4000 → **3000** ms, TTI 5000 → **4000** ms, TBT 500 → **300** ms, CLS 0,1 → **0,05**.
+   `lhci assert` com a configuração nova sobre as 39 rodadas medidas passa.
+3. **Tema escuro e 1920 px.** Auditoria com Playwright em 25 rotas x (escuro 1280, escuro 1920, claro 1920): sem estouro horizontal nem
+   elemento cortado; um defeito real, o chip do matiz dos cartões de seção do `/app/estilo` (2,3:1 no escuro, porque o cartão só recebe os
+   tokens claros da seção; os escuros são escopados em `<html>`), agora em `text-ink`. O E2E ganhou uma passada de axe no tema escuro em
+   todas as rotas de `e2e/rotas.ts` (`a11y.spec.ts`), fechando a pendência do D-226.
+4. **Teste instável.** `assistente-projeto.spec.ts`, "comparar os materiais de uma parte": o clique no link leva a `/app/comparar`, que o
+   `next dev` compila na primeira visita; o `toHaveURL` de 5 s do padrão vencia antes. A espera agora é pelo estado (endereço e título da
+   tela de destino, com 60 s de teto) e não por um tempo; os `toHaveURL` da Seleção nos outros dois testes ganharam o mesmo teto.
+5. **Exportação do catálogo em lotes.** `ExportService.catalogue_report` pede só os ids (`ChartRepository.list_material_ids`) e lê os
+   materiais de 100 em 100 (`CATALOGUE_BATCH`), largando os objetos do lote antes do seguinte. `to_xlsx` passou ao modo `write_only` do
+   openpyxl (as linhas vão para o arquivo, sem uma célula-objeto por valor; a largura das colunas é medida numa primeira passada sobre os
+   mesmos valores, o conteúdo do arquivo é o mesmo). Pico por requisição com o catálogo demo inteiro (678 materiais, ~32 mil valores),
+   medido com `tracemalloc`: CSV 82,4 → 33,4 MB; XLSX 93,8 → 22,0 MB. As duas rotas entram no `test_memory_per_request.py` (teto de 40 MB,
+   que o código antigo não cumpria).
+6. **Bibliotecas pesadas sob demanda.** `openpyxl` (`exporters/spreadsheet.py`, `importers/readers.py`), `python-docx` (`exporters/docx.py`,
+   `exporters/studio.py`) e `python-pptx` (`exporters/pptx.py`, `exporters/studio_pptx.py`) passaram a ser importados dentro das funções que
+   os usam; `pypdf` e o `docx` de `knowledge/readers.py` já eram. As medidas em EMU de `pptx.util` viraram `app/exporters/emu.py` (a
+   mesma aritmética, sem importar a biblioteca), e as constantes de cor viraram cores criadas na função. RSS do processo logo depois de
+   `import app.main`, medido três vezes: **137,0 → 115,8 MB** (−21 MB; `openpyxl`, `docx`, `pptx`, `lxml` e `PIL` deixam de estar
+   carregados). A primeira exportação de cada formato paga o import (dezenas de ms).
+
+**Consequências.** Sem migração nem seed. Toca `apps/api`: depois do merge, **Deploy da API** (o ganho de memória só vale depois dele);
+nenhum workflow de banco. O `pint` continua carregado na partida (o registro de unidades) e é o maior item restante.
+
+**Numeração.** D-235/Sessão 192 (conferidas na `main` e na branch).
+
+---
+
+## D-235b — F7 da revisão das telas: Cadernos com modelos, notas em blocos com "/" e Estúdio monocromático
+
+**Contexto.** A F7 do plano ("Cadernos") pedia quatro coisas: uma galeria de modelos ao criar ("Disciplina de Materiais", "Revisão
+para prova", "Projeto de TCC", "Em branco"); a lista em galeria (já existia); as notas em blocos móveis com "/" para inserir texto,
+citação, tabela ou ficha; e o Estúdio monocromático, com o aviso "Provedor simulado" num chip do cabeçalho.
+
+**Decisão.**
+- **Modelos no backend.** `app/domain/notebook_templates.py` é a tabela única: título, emoji, descrição, objetivo da conversa
+  (`chat_goal`/`chat_instructions` dos D-94) e notas de partida (só títulos e tópicos vazios para preencher; nenhum conteúdo de
+  matéria, nenhum número). `GET /api/notebooks/templates` lista; `POST /api/notebooks` aceita `template`, e título ou emoji enviados
+  junto prevalecem sobre os do modelo. "Em branco" é o caderno de antes.
+- **Galeria onde se cria.** "Novo caderno" vira `SplitButton`: o clique cria em branco, a seta abre os três modelos com a descrição.
+  A lista vazia mostra o `EmptyState layout="page"` com os modelos como portas (D-206).
+- **Ordem das notas na conta.** Coluna `notebook_note.position` (migração `e575ea7c3f24`, aditiva com `server_default 0`: as notas
+  antigas ficam na ordem de sempre pelo desempate por id, sem posição adivinhada). `PUT /api/notebooks/{id}/notes/order` recebe a
+  lista inteira dos ids e recusa, em português, lista com nota faltando, sobrando ou repetida. Na tela, a alça e o Alt+↑/↓ do
+  `Block`/`useReorder` (D-206), com a ordem nova aplicada antes da resposta e o erro escrito se o servidor recusar.
+- **"/" no texto da nota.** `SlashTextarea`: "/" no começo da linha ou depois de um espaço abre uma lista (`listbox` ligado ao campo
+  por `aria-controls`/`aria-activedescendant`, setas, Enter, Esc) com título, lista, lista numerada, citação, tabela, divisória e
+  "Ficha de material", que busca no catálogo (`listMaterials`) e insere o link Markdown para a ficha — o valor fica na ficha, nunca
+  copiado para a nota. A nota continua texto Markdown: os "blocos" são as notas, e o "/" escreve a sintaxe por quem não a conhece.
+- **Estúdio monocromático.** `ToolTile` perde as cinco cores: superfície `surface-container-low`, ícone em `ink-muted`, véu de
+  estado no hover (D-134). A cor fica para estado (a ferramenta indisponível segue esmaecida e com rótulo). `tone` continua aceito
+  para não quebrar chamadas antigas, mas não pinta.
+- **Aviso do provedor como chip.** No cabeçalho do caderno, ao lado das ações: "Provedor simulado" (neutro) ou "Provedor externo"
+  (em `warning`, porque o texto sai do servidor); o aviso inteiro abre do chip num `Popover`. Com a IA desligada o aviso segue como
+  `Alert` na página, porque explica por que a conversa não responde.
+
+**Fora.** Blocos de verdade dentro de uma nota (cada parágrafo arrastável, como no Notion): pede um editor estruturado e um formato
+de nota que não seja Markdown, e quebraria a exportação e o "Salvar como nota" do chat; as notas inteiras são os blocos. Modelos do
+próprio aluno ("salvar como modelo"): fica para quando houver pedido.
+
+**Alternativas recusadas.** Modelos só no frontend (o objetivo da conversa e as notas de partida são regra de produto e criam
+linhas; ficam no servidor, testados). Ordem das notas no `localStorage` (a nota é da conta; a ordem também). `role="combobox"` no
+`textarea` do "/" (o axe recusa o papel nesse elemento; o `aria-activedescendant` com o `listbox` basta).
+
+**Numeração.** D-235b, Sessão 192b: a `main` recebeu a D-235/Sessão 192 do Grupo D (#258) antes deste PR, e pela regra do D-226 (item 4) o mais novo ganha o sufixo. Toca `apps/api` **com migração** (`e575ea7c3f24`): depois do merge,
+**Deploy da API** (o `release_command` aplica a migração).
+F6; o sufixo `b` da regra do D-226 foi aplicado no D-235: o F6 é D-232b/Sessão 189b.)

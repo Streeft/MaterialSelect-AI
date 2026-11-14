@@ -31,6 +31,7 @@ from app.calculations.eco_audit import (
     TransportLeg,
     UseAssumptions,
     audit_product,
+    build_difference_waterfall,
     build_waterfall,
 )
 from app.domain.errors import NotFoundError, ValidationError
@@ -80,7 +81,17 @@ class EcoService:
     def list_end_of_life_routes(self) -> list[EndOfLifeRouteOut]:
         """The seven routes, each with how many visible materials can price it."""
         priced: dict[str, int] = {}
-        for material in self.repo.list_materials():
+        # Only the factors the routes name (D-231): the count reads nothing else,
+        # and loading every value of every material cost ~170 MB per call.
+        factor_slugs = sorted(
+            {
+                slug
+                for route in EOL_ROUTE_TABLE.values()
+                for slug in (route.energy_slug, route.carbon_slug)
+                if slug is not None
+            }
+        )
+        for material in self.repo.list_materials(property_slugs=factor_slugs):
             values = self._material_values(material)
             for slug, route in EOL_ROUTE_TABLE.items():
                 if (
@@ -105,11 +116,16 @@ class EcoService:
     # --- the audit ---------------------------------------------------------
 
     def run(self, request: EcoAuditRequest) -> EcoAuditResultOut:
-        materials = {material.id: material for material in self.repo.list_materials()}
+        components_in = request.resolved_components()
+        # Only the materials of this product (D-231), not the whole catalogue
+        # with every value; a hidden or inactive one is absent and 404s below.
+        wanted = sorted({item.material_id for item in components_in})
+        materials = {
+            material.id: material for material in self.repo.list_materials(material_ids=wanted)
+        }
 
         resolved: list[tuple[EcoComponentIn, object, Process]] = []
         briefs: list[ComponentBrief] = []
-        components_in = request.resolved_components()
         for position, item in enumerate(components_in, start=1):
             material = materials.get(item.material_id)
             if material is None:
@@ -378,6 +394,26 @@ class EcoService:
             winner_energy=winner_energy,
             winner_carbon=winner_carbon,
             phase_deltas=phase_deltas,
+            energy_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    res_a.phases,
+                    res_b.phases,
+                    "energy",
+                    res_a.energy_unit,
+                    res_a.total_energy,
+                    res_b.total_energy,
+                )
+            ),
+            carbon_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    res_a.phases,
+                    res_b.phases,
+                    "carbon",
+                    res_a.carbon_unit,
+                    res_a.total_carbon,
+                    res_b.total_carbon,
+                )
+            ),
         )
 
     # --- shaping ----------------------------------------------------------

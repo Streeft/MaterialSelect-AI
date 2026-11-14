@@ -4,6 +4,7 @@ import type { BoxSelection } from "@/components/charts/AshbyMap";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { encodeIdList } from "@/lib/idList";
+import { listForSelection, selectionHrefForMaterials } from "@/lib/selectionList";
 import { Alert, Button, ButtonLink } from "@/components/ui";
 
 const t = ptBR.map;
@@ -17,8 +18,10 @@ function bound(value: number | null): string {
  * rows marked in the point list all land here as one set of records, and the
  * set becomes a filter or a hand-off — "Comparar" (the comparator takes the
  * ids), "Abrir na Seleção" (a box becomes a Chart Stage, D-60/D-81: the
- * backend converts it to canonical units) or "Mostrar só estes no mapa" (the
- * map is restricted to them, through the same `?materiais=` a study uses).
+ * backend converts it to canonical units; a lasso or a ticked list becomes a
+ * list stage, D-232: the Selection opens restricted to those materials) or
+ * "Mostrar só estes no mapa" (the map is restricted to them, through the same
+ * `?materiais=` a study uses).
  * The selection itself lives in the address, so a reload keeps it.
  */
 export function SelectionPanel({
@@ -49,6 +52,10 @@ export function SelectionPanel({
   const count = selectedIds.length;
   const outside = selectedIds.filter((id) => !plottedIds.has(id)).length;
   const hasSelection = count > 0 || box !== null;
+  // D-232: a set of picked materials (no box) goes to the Selection as a list.
+  // Materials only — a process map has no list stage to hand a set to.
+  const asList = !box && universe === "material" && count > 0;
+  const capped = asList && listForSelection(selectedIds).truncated;
 
   // D-221: the body of the inspector's "Seleção" section; the heading is the section's.
   if (!hasSelection) return <p className="text-support text-ink-muted">{t.selectionEmpty}</p>;
@@ -72,10 +79,15 @@ export function SelectionPanel({
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {asList ? (
+              <ButtonLink size="sm" variant="primary" href={selectionHrefForMaterials(selectedIds)}>
+                {t.openInSelection} →
+              </ButtonLink>
+            ) : null}
             {universe === "material" && count > 0 ? (
               <ButtonLink
                 size="sm"
-                variant={box ? "secondary" : "primary"}
+                variant="secondary"
                 href={`/app/comparar?materiais=${encodeIdList(selectedIds)}`}
               >
                 {t.compareSelection} →
@@ -95,7 +107,15 @@ export function SelectionPanel({
               {t.clearSelection}
             </Button>
           </div>
-          {!box ? <p className="text-support text-ink-muted">{t.openInSelectionNeedsBox}</p> : null}
+          {asList ? <p className="text-support text-ink-muted">{t.openInSelectionListHint}</p> : null}
+          {capped ? (
+            <p className="text-support text-ink-muted">
+              {t.openInSelectionCapped(listForSelection(selectedIds).ids.length)}
+            </p>
+          ) : null}
+          {!box && !asList ? (
+            <p className="text-support text-ink-muted">{t.openInSelectionNeedsBox}</p>
+          ) : null}
           {handoffError ? <Alert tone="danger">{handoffError}</Alert> : null}
         </div>
   );

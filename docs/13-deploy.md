@@ -69,6 +69,15 @@ domínio — o `rewrites()` é condicional, então basta não definir
 Não rode as migrações à mão: o passo de release do Fly faz isso (§2), e é bom
 que seja sempre pelo mesmo caminho.
 
+**Conexões ociosas (D-227).** Fora do SQLite a API usa `NullPool` por padrão
+(`DB_POOL_MODE=null`): cada requisição abre a conexão e a fecha ao terminar, então
+nenhuma fica parada e o Neon consegue suspender a computação. Antes, o pool mantinha
+até cinco conexões abertas numa API sempre ligada e o Neon nunca dormia (a cota de
+computação acabou). O custo é um *connect* por requisição, aceitável nesta escala;
+`DB_POOL_MODE=queue` volta ao pool de 5 + 5. A pré-checagem de conexão e a repetição
+de `OperationalError` do D-195 continuam valendo. É variável do app: `fly secrets
+set DB_POOL_MODE=queue`, se um dia for preciso.
+
 ## 2. Fly.io (API)
 
 > **Sem terminal?** O §5-bis faz este passo e o `fly deploy` abaixo por dois
@@ -135,6 +144,74 @@ o que custa alguns segundos — irrelevante num hobby, péssimo numa apresentaç
 e pior aqui porque a primeira coisa que a aplicação faz é `/auth/me`: o
 avaliador ficaria olhando para "Verificando sessão…" enquanto a máquina liga.
 Manter uma máquina de pé custa mais que zero, e é uma troca consciente.
+
+### Memória da VM: 1 GB (D-231)
+
+O `[[vm]]` do `fly.toml` pede `shared-cpu-1x` com **1 GB**, e o `fly deploy`
+aplica esse valor a cada implantação (um `fly scale memory` feito à mão é
+desfeito no deploy seguinte; mude o arquivo). Até 13/11/26 eram 512 MB: depois
+do deploy das 11:49 UTC daquele dia a máquina única foi morta por falta de
+memória (exit 137) quatro vezes em três minutos, e Seleção, Mapas, Comparar e
+as calculadoras deixaram de abrir, enquanto `/api/health` respondia (o
+processo reiniciava entre uma morte e outra). O processo serve com **um
+worker** (`Dockerfile.api`), e continua assim: cada worker a mais é uma cópia
+inteira do processo na mesma memória. Os números medidos por tela e o que foi
+cortado no consumo estão no [D-231](DECISIONS.md).
+
+Duas travas evitam que um pico de uso volte a matar a máquina:
+
+- **No proxy:** `[http_service.concurrency]` com `soft_limit = 5` e
+  `hard_limit = 8` (eram 40/60). Acima de 8 requisições em andamento o proxy
+  do Fly segura a próxima na fila em vez de entregá-la.
+- **No app:** só `HEAVY_REQUEST_CONCURRENCY` (padrão 2) requisições pesadas —
+  funil e execução da seleção, mapas, calculadoras e o plano da IA — rodam ao
+  mesmo tempo. A seguinte espera até `HEAVY_REQUEST_WAIT_SECONDS` (padrão 20)
+  e então recebe 503 com `Retry-After`; a tela mostra o erro e a pessoa tenta
+  de novo. Para mudar: `fly secrets set HEAVY_REQUEST_CONCURRENCY=3` (0
+  desliga). Subir esse número exige memória para mais uma requisição pesada
+  inteira ao mesmo tempo.
+
+O consumo também caiu na origem. Medido localmente com o catálogo demo inteiro
+(678 materiais, 32 395 valores, Postgres): cada tela pesada segurava de 134 a
+166 MB por requisição (o catálogo, 53 MB) porque lia todos os valores como
+objetos do ORM; depois do D-231 fica entre 0,5 e 11 MB. Dez clientes
+simultâneos pelas telas pesadas levavam o processo a **1454 MB**; agora a
+**211 MB**. O `Dockerfile.api` define `MALLOC_ARENA_MAX=2`, que impede cada
+thread do pool de guardar a sua própria reserva de memória liberada. Com isso
+1 GB sobra; a VM fica nesse tamanho como margem para o Cérebro (o índice e os
+vetores são montados na primeira busca) e para picos que a medição não cobriu.
+
+Para conferir em produção: `fly logs` sem `exit code 137` / `Out of memory`,
+e `fly machine status <id>` mostrando a máquina de pé desde o último deploy.
+
+**D-235 (partida e exportação do catálogo).** O processo recém-iniciado (`import app.main`) caiu de 137,0 para 115,8 MB de RSS porque
+`openpyxl`, `python-docx` e `python-pptx` (com `lxml` e `PIL`) passaram a ser importados dentro das funções que os usam; a primeira
+exportação de cada formato paga o import. A exportação do catálogo (`/api/exports/catalogo.{csv,xlsx}`) lê os materiais em lotes de
+100 e o XLSX é escrito em fluxo: pico por requisição, com o catálogo demo inteiro, de 82,4 → 33,4 MB (CSV) e 93,8 → 22,0 MB (XLSX).
+O ganho só vale depois do **Deploy da API**.
+
+### Lighthouse: o que a CI exige e o que se mediu (D-235)
+
+O job `Lighthouse` sobe a API (SQLite, sessão fixa) e o build de produção do frontend e mede 13 rotas (`/`, `/entrar`, catálogo, importar,
+seleção, mapas, comparar, painel, cadernos, processos, estilo e as duas telas de Admin), 3 rodadas cada, com o preset `desktop`. Os
+limiares ficam em `apps/web/lighthouserc.json`. Medição local de 13/11/26 com o `lhci` 0.15.1 do repositório (a mesma configuração, sem as
+asserções), pior das 3 rodadas de cada rota:
+
+| | Medido (pior rota) | Limiar antes | Limiar depois (D-235) |
+|---|---|---|---|
+| Performance | 0,99 | 0,7 | 0,9 |
+| Acessibilidade | 1,00 | 0,9 | 0,95 |
+| Boas práticas | 0,96 | 0,8 | 0,9 |
+| SEO (aviso) | 1,00 | 0,8 | 0,9 |
+| First Contentful Paint | 340 ms | 2500 ms | 2000 ms |
+| Largest Contentful Paint | 992 ms | 4000 ms | 3000 ms |
+| Tempo até interativo | 992 ms | 5000 ms | 4000 ms |
+| Total Blocking Time | 66 ms | 500 ms | 300 ms |
+| Cumulative Layout Shift | 0,001 | 0,1 | 0,05 |
+
+Os limiares ficam bem acima do medido de propósito: o runner do GitHub é mais lento e mais ruidoso que a máquina da medição. Se o job
+falhar por uma folga estreita, abra o artefato `lighthouse-report` (7 dias) e leia o valor antes de mexer no limiar. O `/app/painel` e as
+telas que carregam o Plotly são as de maior TBT.
 
 ## 3. Google OAuth
 
@@ -436,6 +513,11 @@ desligado**.
    `gemini-flash-latest`, o apelido do Google que acompanha o Flash vigente; o
    `gemini-flash-lite-latest` aguenta mais pedidos por dia, útil numa aula
    cheia. Para um modelo específico, escreva o nome em "modelo_personalizado".
+   O campo "modelo_busca_web" (D-234) fixa o `WEB_SEARCH_MODEL`, o modelo da busca
+   na Web dos Cadernos (`manter` não mexe). Quando o Google responde 429 a essa
+   busca, a API tenta sozinha, uma vez, o `WEB_SEARCH_FALLBACK_MODEL`
+   (`gemini-flash-lite-latest`) e registra no log (`fly logs`) o modelo que estourou,
+   o `quotaId` e o limite, sem chave.
 3. **Antes de mexer no Fly, o job pergunta ao Google, com a própria chave, se
    o modelo responde.** Se não responder, o job falha com o motivo do Google e
    a lista dos modelos Flash que a chave enxerga — escolha um e rode de novo.
@@ -464,7 +546,27 @@ ou `mock` (simulado, sem rede nem chave).
   sigiloso nem dados pessoais.
 
 Se a IA responder que o servidor recusou `response_format`/`json_schema`, rode
-o **Provedor de IA** de novo com "Saída estruturada" em `object`.
+o **Provedor de IA** de novo com "Saída estruturada" em `object`. Desde o
+[D-228](DECISIONS.md) a API já desce sozinha para `object` quando o Google recusa
+o schema estrito — o log da máquina diz "O servidor recusou o modo JSON" — e o
+workflow só é preciso para fixar o modo depois de um reinício.
+
+**Conferir a IA em produção (D-228).** Depois do **Deploy da API** e de cada
+troca de provedor ou modelo:
+
+1. Entre no app, abra **Aparência** e, no cartão **Diagnóstico da IA**, clique
+   em **Testar a IA agora**. O cartão mostra o modelo e o host (nunca a chave) e,
+   para **Texto e JSON**, **Embeddings** e **Busca na web**, "Funcionando", "Com
+   erro" ou "Não configurado", com a latência e a mensagem.
+2. Sem navegador, o mesmo pelo terminal (com o cookie de sessão de quem está
+   logado): `curl -X POST -b "msai_session=…" https://materialselect-ai.fly.dev/api/ai/diagnostico`.
+   `GET /api/ai/status` mostra só a configuração, sem chamar o Google.
+3. O diagnóstico **não gasta a cota diária** de quem testa; tem limite próprio de
+   `AI_DIAGNOSTIC_PER_HOUR` (6) por pessoa e hora. "A cota gratuita do Google
+   acabou por agora; tente em X" é o 429 do plano gratuito — espere o tempo
+   dito, ou até o dia seguinte quando a mensagem disser "amanhã".
+4. "Busca na web: Não configurado" é o esperado enquanto `WEB_SEARCH_PROVIDER`
+   não for `gemini` (§5-sexies).
 
 ## 5-sexies. Fontes externas dos Cadernos: as chaves opcionais
 
@@ -648,7 +750,7 @@ idênticos entram uma vez só.
      ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload
      dos Cadernos tem um teto ainda menor, de propósito (4 MB por fluxo, 32 MB
      por arquivo cobrados a cada decodificação, 4 MB lidos de uma vez, sob
-     medida para a VM de 512 MB). O orçamento de 15 min é conferido a cada
+     medida para a VM pequena, hoje de 1 GB). O orçamento de 15 min é conferido a cada
      decodificação e entre páginas, nunca no meio da leitura de um fluxo.
    - **Reextrair um livro indexado com páginas de fora**, depois de uma
      correção (pypdf novo, teto novo): o livro está `inalterado` para a

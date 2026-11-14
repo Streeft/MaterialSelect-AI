@@ -1,309 +1,183 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAIStatus, planProject } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ApiError, getAIStatus, interpretStatement } from "@/lib/api";
-import type { Interpretation, SuggestedConstraint, SuggestedIndex } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Checkbox,
-  RadioOption,
-  Textarea,
-} from "@/components/ui";
+import { planText } from "@/lib/i18n-plan";
+import { PLAN_DEBOUNCE_MS, PLAN_MAX_CHARS, isInterpretable } from "@/lib/ai/plan";
+import type { PlanComponent, ProjectPlan } from "@/lib/types";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, Textarea } from "@/components/ui";
+import { PlanView } from "@/components/ai/PlanView";
 
-const t = ptBR.ai;
-
-export interface AcceptedSuggestions {
-  functionText: string | null;
-  objectiveText: string | null;
-  freeVariables: string[];
-  constraints: SuggestedConstraint[];
-  index: SuggestedIndex | null;
-}
+const t = planText;
 
 interface AIAssistPanelProps {
-  /** Called with only the items the user ticked. Nothing is applied before this. */
-  onApply: (accepted: AcceptedSuggestions) => void;
+  /**
+   * Called with the one part the person chose to apply. Nothing reaches the
+   * wizard before this click; an AI suggestion is in the part only if the
+   * person confirmed it (its `study` carries the applied limits only).
+   */
+  onApply: (component: PlanComponent) => void;
 }
 
 /**
- * Optional assistant for the first step of the selection wizard.
+ * The project assistant for the first step of the selection wizard (D-225),
+ * for one part (`mode: "single"`).
  *
- * The panel is a review surface, not an action: the API returns proposals, the
- * user chooses which to keep, and only then does anything reach the wizard. The
- * suggestions the backend's guardrails refused are shown too — seeing what was
- * rejected, and why, is part of trusting what was not.
- *
- * Both of those properties are now stated on the panel itself. §3.4 of the
- * proposal commits to assistance that is optional and reviewable, and a
- * commitment that only exists in the document is one the reader never sees.
+ * It interprets while the person types — a pause of about a second and a half,
+ * from 15 characters on, the earlier call cancelled when a new one starts — and
+ * the "Interpretar" button asks at once. The answer is a review surface, not an
+ * action: function, objective, index and limits, each number with its origin,
+ * and the best materials the server found. Only "Aplicar ao estudo" changes the
+ * study, and an AI suggestion goes in only if it was ticked and confirmed.
  */
 export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
   const [statement, setStatement] = useState("");
-  const [proposal, setProposal] = useState<Interpretation | null>(null);
+  const [plan, setPlan] = useState<ProjectPlan | null>(null);
+  /** The text the proposal on screen answered. */
+  const [asked, setAsked] = useState("");
+  const [interpreting, setInterpreting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
 
-  const [useFunction, setUseFunction] = useState(true);
-  const [useObjective, setUseObjective] = useState(true);
-  const [useFreeVariables, setUseFreeVariables] = useState(true);
-  const [acceptedConstraints, setAcceptedConstraints] = useState<Set<number>>(new Set());
-  const [acceptedIndex, setAcceptedIndex] = useState<string | null>(null);
-
   const status = useQuery({ queryKey: ["ai-status"], queryFn: getAIStatus });
+  const controller = useRef<AbortController | null>(null);
 
-  const interpret = useMutation({
-    mutationFn: () => interpretStatement(statement.trim()),
-    onSuccess: (data) => {
-      setProposal(data);
-      setError(null);
+  const interpret = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    // One call at a time: a new text cancels the one still on its way.
+    controller.current?.abort();
+    const mine = new AbortController();
+    controller.current = mine;
+    setInterpreting(true);
+    setError(null);
+    try {
+      const result = await planProject({ text: trimmed, mode: "single" }, mine.signal);
+      if (controller.current !== mine) return;
+      setPlan(result);
+      setAsked(trimmed);
       setApplied(false);
-      // Pre-tick everything that survived the guardrails; the user unticks.
-      setUseFunction(Boolean(data.function_text));
-      setUseObjective(Boolean(data.objective_text));
-      setUseFreeVariables(data.free_variables.length > 0);
-      setAcceptedConstraints(new Set(data.constraints.map((_, i) => i)));
-      setAcceptedIndex(data.indices[0]?.slug ?? null);
-    },
-    onError: (err) => setError(describeApiError(err, t.error)),
-  });
+    } catch (err) {
+      if (mine.signal.aborted || controller.current !== mine) return;
+      setError(describeApiError(err, t.errorTitle));
+    } finally {
+      if (controller.current === mine) {
+        controller.current = null;
+        setInterpreting(false);
+      }
+    }
+  }, []);
 
-  const selectedCount = useMemo(
-    () =>
-      acceptedConstraints.size +
-      (useFunction ? 1 : 0) +
-      (useObjective ? 1 : 0) +
-      (useFreeVariables ? 1 : 0) +
-      (acceptedIndex ? 1 : 0),
-    [acceptedConstraints, useFunction, useObjective, useFreeVariables, acceptedIndex],
-  );
+  // Interpret while typing: debounced, never on a short text, never twice for
+  // the same text. The timer is the cancellation of "the person is still typing".
+  const enabled = status.data ? status.data.enabled : true;
+  useEffect(() => {
+    const trimmed = statement.trim();
+    if (!enabled || !isInterpretable(trimmed) || trimmed === asked) return;
+    const timer = window.setTimeout(() => void interpret(trimmed), PLAN_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [statement, asked, enabled, interpret]);
+
+  useEffect(() => () => controller.current?.abort(), []);
 
   if (status.data && !status.data.enabled) {
     return (
       <Card>
-        <CardHeader title={t.title} headingLevel={2} description={t.disabled} />
+        <CardHeader title={ptBR.ai.title} headingLevel={2} description={t.panelOff} />
       </Card>
     );
   }
 
-  function toggleConstraint(index: number) {
-    setAcceptedConstraints((current) => {
-      const next = new Set(current);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  }
-
-  function apply() {
-    if (!proposal) return;
-    onApply({
-      functionText: useFunction ? proposal.function_text : null,
-      objectiveText: useObjective ? proposal.objective_text : null,
-      freeVariables: useFreeVariables ? proposal.free_variables : [],
-      constraints: proposal.constraints.filter((_, i) => acceptedConstraints.has(i)),
-      index: proposal.indices.find((i) => i.slug === acceptedIndex) ?? null,
-    });
-    setApplied(true);
-  }
+  const trimmed = statement.trim();
+  // The text moved on since the proposal: applying it would apply an answer to
+  // another question.
+  const stale = plan !== null && asked !== trimmed;
+  const component = plan?.components[0] ?? null;
 
   return (
     <Card className="border-info/40">
       <CardHeader
-        title={t.title}
+        title={t.panelTitle}
         headingLevel={2}
-        description={t.subtitle}
+        description={t.panelSubtitle}
         actions={
           <div className="flex flex-wrap gap-1.5">
-            <Badge tone="info">{t.optionalBadge}</Badge>
-            <Badge tone="info">{t.reviewBadge}</Badge>
-            {status.data?.enabled &&
-              (status.data.simulated ? (
-                <Badge tone="warning">{t.simulatedBadge}</Badge>
-              ) : (
-                <Badge tone="warning">{t.modelBadge(status.data.provider)}</Badge>
-              ))}
+            <Badge tone="info">{t.badges.optional}</Badge>
+            <Badge tone="info">{t.badges.review}</Badge>
           </div>
         }
       />
-      <CardBody className="space-y-3">
+      <CardBody className="min-w-0 space-y-3">
         <Textarea
           label={t.statementLabel}
+          hint={t.statementHint(15)}
           rows={3}
+          maxLength={PLAN_MAX_CHARS}
           value={statement}
           onChange={(e) => setStatement(e.target.value)}
           placeholder={t.statementPlaceholder}
         />
 
-        <Button
-          variant="secondary"
-          disabled={!statement.trim()}
-          loading={interpret.isPending}
-          onClick={() => interpret.mutate()}
-        >
-          {interpret.isPending
-            ? status.data?.simulated
-              ? t.interpreting
-              : t.interpretingWithKnowledge
-            : t.interpret}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={!trimmed}
+            loading={interpreting}
+            onClick={() => void interpret(statement)}
+          >
+            {t.interpret}
+          </Button>
+          <span role="status" aria-live="polite" className="text-caption text-ink-muted">
+            {interpreting ? t.interpreting : ""}
+          </span>
+        </div>
 
         {error && (
-          <Alert tone="danger" role="alert">
-            {error}
+          <Alert tone="danger" role="alert" title={t.errorTitle}>
+            <p>{error}</p>
+            <div className="mt-2">
+              <Button size="sm" variant="secondary" onClick={() => void interpret(statement)}>
+                {t.retry}
+              </Button>
+            </div>
           </Alert>
         )}
 
-        {proposal && (
-          <Card>
-            <CardHeader title={t.proposalTitle} />
-            <CardBody className="space-y-3">
-              <ul className="space-y-1.5">
-                {proposal.function_text && (
-                  <li>
-                    <Checkbox
-                      checked={useFunction}
-                      onChange={(e) => setUseFunction(e.target.checked)}
-                      label={
-                        <>
-                          <strong className="text-ink-muted">{t.functionRead}:</strong>{" "}
-                          {proposal.function_text}
-                        </>
-                      }
-                    />
-                  </li>
-                )}
-                {proposal.objective_text && (
-                  <li>
-                    <Checkbox
-                      checked={useObjective}
-                      onChange={(e) => setUseObjective(e.target.checked)}
-                      label={
-                        <>
-                          <strong className="text-ink-muted">{t.objectiveRead}:</strong>{" "}
-                          {proposal.objective_text}
-                        </>
-                      }
-                    />
-                  </li>
-                )}
-                {proposal.free_variables.length > 0 && (
-                  <li>
-                    <Checkbox
-                      checked={useFreeVariables}
-                      onChange={(e) => setUseFreeVariables(e.target.checked)}
-                      label={
-                        <>
-                          <strong className="text-ink-muted">{t.freeVariablesRead}:</strong>{" "}
-                          {proposal.free_variables.join(", ")}
-                        </>
-                      }
-                    />
-                  </li>
-                )}
-              </ul>
-
-              {proposal.constraints.length > 0 && (
-                <div>
-                  <h4 className="text-caption font-semibold text-ink-subtle">
-                    {t.constraintsRead}
-                  </h4>
-                  <ul className="mt-1 space-y-1.5">
-                    {proposal.constraints.map((suggestion, i) => (
-                      <li key={i}>
-                        <Checkbox
-                          checked={acceptedConstraints.has(i)}
-                          onChange={() => toggleConstraint(i)}
-                          label={suggestion.rationale}
-                          hint={`${t.evidence}: “${suggestion.evidence}”`}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {proposal.indices.length > 0 && (
-                <fieldset>
-                  <legend className="text-caption font-semibold text-ink-subtle">
-                    {t.indicesRead}
-                  </legend>
-                  <ul className="mt-1 space-y-1.5">
-                    {proposal.indices.map((suggestion) => (
-                      <li key={suggestion.slug} className="flex flex-col">
-                        <RadioOption
-                          name="ai-index"
-                          checked={acceptedIndex === suggestion.slug}
-                          onChange={() => setAcceptedIndex(suggestion.slug)}
-                          label={
-                            <>
-                              <strong>{suggestion.name}</strong>{" "}
-                              <code className="text-caption text-ink-muted">
-                                {suggestion.expression}
-                              </code>
-                            </>
-                          }
-                        />
-                        <span className="ml-6 text-2xs text-ink-subtle">
-                          {suggestion.rationale}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </fieldset>
-              )}
-
-              {proposal.chart && (
-                <p className="text-caption text-ink-muted">
-                  <strong className="font-semibold">{t.chartRead}:</strong>{" "}
-                  {proposal.chart.y} × {proposal.chart.x} ({proposal.chart.scale}) —{" "}
-                  {proposal.chart.rationale}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-3 border-t border-edge-subtle pt-3">
-                <Button variant="secondary" onClick={apply} disabled={selectedCount === 0}>
+        {plan && component && (
+          <PlanView
+            plan={plan}
+            headingLevel={3}
+            onPlanChange={(next) => {
+              setPlan(next);
+              setApplied(false);
+            }}
+            renderActions={(part, busy) => (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={busy || stale || interpreting}
+                  onClick={() => {
+                    onApply(part);
+                    setApplied(true);
+                  }}
+                >
                   {t.apply}
                 </Button>
-                {selectedCount === 0 && (
-                  <span className="text-caption text-ink-muted">{t.nothingToApply}</span>
+                {stale ? (
+                  <span className="text-caption text-ink-muted">{t.stale}</span>
+                ) : applied ? (
+                  <span role="status" className="text-body text-success-fg">
+                    {t.applied}
+                  </span>
+                ) : (
+                  <span className="text-caption text-ink-muted">{t.applyHint}</span>
                 )}
-                {applied && <span className="text-body text-success-fg">{t.applied}</span>}
-              </div>
-
-              {proposal.open_questions.length > 0 && (
-                <Alert tone="warning" title={t.openQuestions}>
-                  <ul className="space-y-1">
-                    {proposal.open_questions.map((question, i) => (
-                      <li key={i}>• {question}</li>
-                    ))}
-                  </ul>
-                </Alert>
-              )}
-
-              {proposal.rejected.length > 0 && (
-                <Alert tone="info" title={t.rejected}>
-                  <p>{t.rejectedHint}</p>
-                  <ul className="mt-1 space-y-1">
-                    {proposal.rejected.map((reason, i) => (
-                      <li key={i}>• {reason}</li>
-                    ))}
-                  </ul>
-                </Alert>
-              )}
-
-              <p className="border-t border-edge-subtle pt-2 text-caption text-ink-subtle">
-                {proposal.disclaimer}
-              </p>
-            </CardBody>
-          </Card>
+              </>
+            )}
+          />
         )}
       </CardBody>
     </Card>

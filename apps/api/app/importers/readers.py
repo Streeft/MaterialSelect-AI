@@ -31,7 +31,6 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
 from charset_normalizer import from_bytes
-from openpyxl import load_workbook
 
 from app.domain.errors import ValidationError
 from app.domain.zip_guard import check_zip_archive
@@ -162,6 +161,9 @@ def read_xlsx(data: bytes, max_rows: int, sheet_name: str | None = None) -> Tabu
     # Same decompression limits as a notebook DOCX (D-177), before openpyxl.
     check_zip_archive(data, kind="XLSX")
     _check_xlsx_expansion(data)
+    # Imported here, not at the top (D-235): the module loads at boot.
+    from openpyxl import load_workbook
+
     try:
         workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:  # openpyxl raises various types for corrupt files

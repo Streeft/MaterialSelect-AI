@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getComparison, listMaterials, listPerformanceIndices, listProperties } from "@/lib/api";
 import { parseThreshold } from "@/lib/compare-threshold";
@@ -14,7 +14,9 @@ import { CopyCompareLink } from "@/components/charts/CopyCompareLink";
 import { CustomIndexForm } from "@/components/charts/CustomIndexForm";
 import { indexCheckKey, useIndexChecks } from "@/components/charts/useIndexChecks";
 import { MAX_COMPUTED, expressionKey } from "@/lib/compare-expression";
-import type { ComparisonRequest, NormalizationMethod } from "@/lib/types";
+import type { ComparisonRequest, NormalizationMethod, SuggestAction } from "@/lib/types";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { mapHrefForAxes } from "../mapas/mapUrl";
 import { ptBR } from "@/lib/i18n";
 import { MAX_COMPARE_MATERIALS, MAX_COMPARE_PROPERTIES } from "@/lib/compareLimits";
 import { parseIdList } from "@/lib/idList";
@@ -63,6 +65,7 @@ const parseIds = parseIdList;
 
 function ComparePageContent() {
   const params = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   // D-163: what the link carries besides the materials, read once. The address
   // stays the only copy of it; nothing is kept in the browser.
@@ -275,6 +278,19 @@ function ComparePageContent() {
     );
   }
 
+  /**
+   * D-229: a click on an AI suggestion. `compare` replaces the compared set (the
+   * address follows, as for any change); `set_axes` opens the compared materials
+   * on the map, the one view with axes.
+   */
+  function applyAiAction(action: SuggestAction) {
+    if (action.type === "compare") {
+      setSelectedMaterials(action.ids.slice(0, MAX_MATERIALS));
+    } else if (action.type === "set_axes") {
+      router.push(mapHrefForAxes(action.x, action.y, selectedMaterials));
+    }
+  }
+
   // D-214: a shortcut of the empty state adds without ever cutting the selection.
   function addMaterials(ids: number[]) {
     setSelectedMaterials((current) => {
@@ -352,6 +368,14 @@ function ComparePageContent() {
         title={t.title}
         description={t.subtitle}
         secondaryActions={selectedMaterials.length > 0 ? <CopyCompareLink getUrl={currentLink} /> : undefined}
+      />
+
+      <AISuggestPanel
+        tool="comparar"
+        context={{ material_ids: selectedMaterials, property_slugs: selectedProperties }}
+        actions={["compare", "set_axes", "open_route"]}
+        onAction={applyAiAction}
+        disabledReason={selectedMaterials.length === 0 ? compareViewText.ai.needMaterials : undefined}
       />
 
       {ignoredByLink.length > 0 && (

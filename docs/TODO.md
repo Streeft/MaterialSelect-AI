@@ -87,11 +87,12 @@ quitados".
 
 ## Média prioridade
 
-**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F5 entregues** (F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
+**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F7 entregues** (F7, D-235b: Cadernos com galeria de modelos ao criar e na lista vazia, notas em blocos com a alça, Alt+↑/↓ e "/" para inserir, ordem na conta, Estúdio monocromático e aviso do provedor como chip; F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
+**Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F6 entregues** (F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,
 menu com grupos recolhíveis, Fixados e Recentes, migalhas no material e no caderno, título da aba por página). Pendente do 2.1:
 se o catálogo passar de dezenas de milhares de registros, trocar a dobra de acento em Python por coluna normalizada indexada
-(pede migração); fixar e recentes são por aparelho (sincronizar entre aparelhos pede tabela própria). **Etapa 2.3 entregue** (D-211: domínios, limites abertos e vencedor no backend; moldura de gráfico com CSV, isolar série e legenda recolhível). **Etapa 1.7 entregue** (D-208: todo usuário logado cura o catálogo e vê `/app/estilo`, sem assinatura). **Etapa 2.2 entregue** (D-212: `PageHeader` com papéis, parâmetros e resultado, `useUrlState`, skeletons por tipo, `StatTile` e `formatTyped` únicos, MSDS em arquivos). Pendente do 2.2: as páginas de Seleção e Mapas seguem com seu próprio esquema de URL (o estado do Eco foi para o endereço no D-216). **Etapa 4.5 entregue** (D-216: `GET /api/padroes` como fonte única dos números iniciais de Custo, Eco, Baterias e Dimensionar — a divergência 0,65/0,50/0,70 × 0,70/0,60/0,75 se resolveu a favor do schema —, com `DefaultsGate` e o spec do `useUrlState` montado a partir deles; Eco em módulos, com produto, cenários A/B e premissas no endereço, premissas sempre à vista, cascata por fase calculada no backend e diferença por fase vinda do servidor; Ragone com a química escolhida em destaque e aria nas Baterias; esquema do caso e barras do resultado no Dimensionar; Custo compara até 5 materiais). Pendente do 4.5: **enviar candidatos do Dimensionar para a Seleção** (a Seleção não tem entrada por lista de ids: pede um filtro por identificador no funil e nos estágios — hoje o atalho leva ao Comparar com `?materiais=`); cascata das **diferenças** entre A e B (hoje cada cenário tem a sua); Custo comparando a curva inteira de cada material, não só o melhor processo; um `GET /api/padroes` por domínio só se algum dia os blocos crescerem a ponto de pesar. **Etapa 4.1 entregue** (D-217: catálogo e família em páginas de 50 pela mesma `searchMaterials`, chips com a contagem do servidor e "Demonstração", ordem por propriedade com ausentes no fim, colunas escolhidas, estado no endereço; busca do catálogo sem acento e por relevância, "aço" antes de "argamassa"). Pendente do 4.1: a seleção marcada não atravessa páginas; filtros e contagens são regra pura sobre as linhas casadas — se o catálogo passar de alguns milhares, levar para SQL (e a dobra de acento para coluna normalizada indexada, que pede migração). **Etapa 3.3 entregue** (D-214: Comparar com o melhor por propriedade vindo do backend, "Só diferenças", visão no link, estado vazio com favoritos e recentes e radar que aconselha outra visão acima de 12 materiais; `ComparisonFigures.tsx` em quatro arquivos; ficha com uma ação primária e "⋯", resumo e sumário no topo, seções longas dobradas e montadas só ao abrir, gráfico sob demanda). Pendente do 3.3: **citar a fonte em ABNT** (a ficha só recebe `source_label`; pede `reference` e campos estruturados da fonte no contrato) e o atalho "top do último estudo" no estado vazio do Comparar. **Etapa 3.2 entregue** (D-213: Mapas em painéis, personalização sempre aberta no largo, seleção por caixa/laço/teclado que vira filtro, linha de índice móvel `POST /api/charts/index-line`, mapas clássicos `GET /api/charts/presets`, lista acessível dos pontos, figura para relatório). Pendente do 3.2: a Seleção receber uma lista de ids (hoje só a caixa vira estágio; o laço vai para Comparar e para o filtro); figura para relatório sempre em tema claro; tirar a barra do Plotly de dentro do `role="img"` do mapa (axe `nested-interactive`). **Etapa 3.1 entregue** (D-210: Seleção em passos com `useReducer`, funil leve `POST /selection/funnel`, modelos prontos `GET /selection/templates`, "Executar" que leva ao campo que falta, explicação por material com mapa/comparar, execução anterior × atual `POST /selection/run-diff`). Pendente do 3.1: **histórico de execuções no servidor** (comparar execuções entre sessões e "salvar estudo com versão" pedem tabela de execuções e migração — hoje só a execução anterior da sessão é comparada); dizer **qual limite eliminou cada material reprovado** (o motor só devolve contagens por limite; pede um campo por registro na resposta ou um endpoint de "por que caiu" sob demanda); atalhos para trocar de passo pelo teclado (hoje só Ctrl/⌘ + Enter, que executa). Próximas: F5 Estudar, F6 Início, F7 Cadernos, F8 Entrada (com o
+(pede migração); fixar e recentes são por aparelho (sincronizar entre aparelhos pede tabela própria). **Etapa 2.3 entregue** (D-211: domínios, limites abertos e vencedor no backend; moldura de gráfico com CSV, isolar série e legenda recolhível). **Etapa 1.7 entregue** (D-208: todo usuário logado cura o catálogo e vê `/app/estilo`, sem assinatura). **Etapa 2.2 entregue** (D-212: `PageHeader` com papéis, parâmetros e resultado, `useUrlState`, skeletons por tipo, `StatTile` e `formatTyped` únicos, MSDS em arquivos). Pendente do 2.2: as páginas de Seleção e Mapas seguem com seu próprio esquema de URL (o estado do Eco foi para o endereço no D-216). **Etapa 4.5 entregue** (D-216: `GET /api/padroes` como fonte única dos números iniciais de Custo, Eco, Baterias e Dimensionar — a divergência 0,65/0,50/0,70 × 0,70/0,60/0,75 se resolveu a favor do schema —, com `DefaultsGate` e o spec do `useUrlState` montado a partir deles; Eco em módulos, com produto, cenários A/B e premissas no endereço, premissas sempre à vista, cascata por fase calculada no backend e diferença por fase vinda do servidor; Ragone com a química escolhida em destaque e aria nas Baterias; esquema do caso e barras do resultado no Dimensionar; Custo compara até 5 materiais). Pendente do 4.5: ~~**enviar candidatos do Dimensionar para a Seleção**~~ (feito no D-232: "Abrir os N na Seleção", pelo estágio de lista); cascata das **diferenças** entre A e B (hoje cada cenário tem a sua); Custo comparando a curva inteira de cada material, não só o melhor processo; um `GET /api/padroes` por domínio só se algum dia os blocos crescerem a ponto de pesar. **Etapa 4.1 entregue** (D-217: catálogo e família em páginas de 50 pela mesma `searchMaterials`, chips com a contagem do servidor e "Demonstração", ordem por propriedade com ausentes no fim, colunas escolhidas, estado no endereço; busca do catálogo sem acento e por relevância, "aço" antes de "argamassa"). Pendente do 4.1: ~~a seleção marcada não atravessa páginas~~ (feito no D-232: `?sel=`, "N selecionados em várias páginas"); filtros e contagens são regra pura sobre as linhas casadas — se o catálogo passar de alguns milhares, levar para SQL (e a dobra de acento para coluna normalizada indexada, que pede migração). **Etapa 3.3 entregue** (D-214: Comparar com o melhor por propriedade vindo do backend, "Só diferenças", visão no link, estado vazio com favoritos e recentes e radar que aconselha outra visão acima de 12 materiais; `ComparisonFigures.tsx` em quatro arquivos; ficha com uma ação primária e "⋯", resumo e sumário no topo, seções longas dobradas e montadas só ao abrir, gráfico sob demanda). Pendente do 3.3: ~~**citar a fonte em ABNT**~~ (feito no D-233: campos estruturados em `source`, texto montado no backend, "Citar fonte (ABNT)" na ficha) e ~~o atalho "top do último estudo" no estado vazio do Comparar~~ (feito no D-232). **Etapa 3.2 entregue** (D-213: Mapas em painéis, personalização sempre aberta no largo, seleção por caixa/laço/teclado que vira filtro, linha de índice móvel `POST /api/charts/index-line`, mapas clássicos `GET /api/charts/presets`, lista acessível dos pontos, figura para relatório). Pendente do 3.2: ~~a Seleção receber uma lista de ids~~ (feito no D-232: estágio `list`, `?materiais=`, e o laço do Mapa abre a Seleção); figura para relatório sempre em tema claro; tirar a barra do Plotly de dentro do `role="img"` do mapa (axe `nested-interactive`). **Etapa 3.1 entregue** (D-210: Seleção em passos com `useReducer`, funil leve `POST /selection/funnel`, modelos prontos `GET /selection/templates`, "Executar" que leva ao campo que falta, explicação por material com mapa/comparar, execução anterior × atual `POST /selection/run-diff`). Pendente do 3.1: **histórico de execuções no servidor** (comparar execuções entre sessões e "salvar estudo com versão" pedem tabela de execuções e migração — hoje só a execução anterior da sessão é comparada); dizer **qual limite eliminou cada material reprovado** (o motor só devolve contagens por limite; pede um campo por registro na resposta ou um endpoint de "por que caiu" sob demanda); atalhos para trocar de passo pelo teclado (hoje só Ctrl/⌘ + Enter, que executa). Próximas: F8 Entrada (com o
 "Baixar modelo CSV" do Importar), F9 Admin. Decisões do autor ainda abertas: barra lateral clara como opção, um `primary` por tela, landing (as duas da F2 foram tomadas em 12/11/2026, D-209).
 
 - **Painel (D-193), próximos passos.** Histórico do catálogo por release no painel (pede guardar contagens por release — hoje não há
@@ -251,7 +252,7 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   material oficial (D-116).
 
 **Glossário de propriedades (relatório de lacunas do EduPack, #7,
-[D-130](DECISIONS.md), Sessão 84).** ✔ Entregue: ~~verbetes conceituais e
+[D-130b](DECISIONS.md), Sessão 84b).** ✔ Entregue: ~~verbetes conceituais e
 autorais para os 15 slugs de `seed.PROPERTIES`, em `app/glossary/entries.json`
 (sem migração), com fonte, licença e estado de revisão por verbete~~,
 ~~`GET /api/glossario` e `/{slug}` (404 escrito)~~, ~~dica "?" na ficha e na
@@ -581,18 +582,16 @@ uso; as três primeiras são decisão ou conferência do autor.
   características; a tolerância não está cadastrada e não se inventa. Quando entrar (com fonte e proveniência), o filtro de
   capacidade ganha o quarto campo no mesmo `GET /api/processes/matrix`.
 - **Comparar processos fora da matriz.** A seleção para comparar só existe na matriz; levá-la às visões galeria, lista e tabela.
-- **Excluir registro próprio em lote.** Hoje a exclusão de material não é desfazível no servidor; "Desfazer" em lote pede um
-  caminho de arquivar material antes.
+- ~~**Excluir registro próprio em lote.**~~ Feito no D-233: `POST /api/materials/batch-delete` (só registro próprio, tudo ou nada)
+  com `ConfirmDialog` e `useUndoableDelete`; o "Desfazer" segura a chamada em vez de restaurar no servidor.
 
 **Cadernos — pendências deixadas pela revisão das telas (D-218).**
 
-- **Citação com a posição do trecho.** O backend copia o `excerpt` mas não onde ele está na fonte; o leitor o acha por
-  palavras (`locateExcerpt`) e, não achado, mostra o trecho à parte. Guardar `char_start`/`char_end` por trecho (migração em
-  `notebook_chunk`, preenchida em `chunk_text`) e devolvê-los na citação faria o link `?fonte=&trecho=` sobreviver ao recarregar
-  e dispensaria a busca. Sem pressa: hoje funciona para todo texto que passou pelo `chunk_text`.
-- **Duplicar leva a conversa e o Estúdio?** Hoje não (as citações apontam para trechos do original e cada item gastou uma
-  geração). Se pedirem, a cópia da conversa pede reescrever `chunk_id` e `source_id` das citações.
-- **Arquivar em lote** e "esvaziar o arquivo" na lista.
+- ~~**Citação com a posição do trecho.**~~ Feito no D-233: `notebook_chunk.char_start`/`char_end` (migração), a citação os devolve, o leitor
+  marca por posição e `?trecho=` mantém a marca ao recarregar. Trecho antigo fica sem posição (NULL) e usa a busca por palavras.
+- ~~**Duplicar leva a conversa e o Estúdio?**~~ Feito no D-233: "Duplicar com conversa" (`?with_conversation=true`), com as citações
+  reapontadas para a cópia.
+- ~~**Arquivar em lote**~~ (feito no D-233: `POST /api/notebooks/batch-archive`, com seleção, confirmação e Desfazer) e "esvaziar o arquivo" na lista (segue pendente).
 
 **Cadernos — pendências deixadas pela fase 4 (D-98).** Nenhuma bloqueia o uso.
 
@@ -1160,7 +1159,7 @@ Registrados para não voltarem por engano:
   universo de processos. Resíduo: ~~tolerância por propriedade~~ (feita:
   `tolerances` slug → %, sobrepõe a global só naquela propriedade; sem
   nenhuma das duas, sem faixa; 422 em pt-BR; campo por linha no painel, na
-  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115). Novo
+  URL `sim_tolerancia_prop` — [D-158](DECISIONS.md), Sessão 115b). Novo
   resíduo: desligar a tolerância global numa propriedade só (hoje, para isso,
   apaga-se a global e dá-se a cada outra propriedade a sua).
 
@@ -1795,11 +1794,71 @@ Registrados para não voltarem por engano:
   `scripts/protect-main.ps1`, que é idempotente.
 
 **Importar, Admin, Início, Entrar e Assinatura — pendências (D-222).**
-- Árvore de classes editável no Admin: pede um `PATCH /api/classes/{id}` só de `parent_id` (o `PUT` apaga `applications` e `characteristics`).
-- Início: "Último mapa" com os filtros (guardar a URL completa, hoje só o caminho); editar propriedade no Admin.
+- ~~Árvore de classes editável no Admin~~ (feito no D-233: `PATCH /api/classes/{id}` só com `parent_id` e "Mover para…"; arrastar ficou de fora).
+- Início: ~~"Último mapa" com os filtros~~ (feito no D-232: `msai.nav.mapUrl` guarda o endereço inteiro); ~~editar propriedade no Admin~~ (feito no D-233: nome, descrição e unidade de leitura, sem slug nem dimensão).
+
+**Fluxos entre telas — pendências (D-232).**
+- ~~Coluna própria `material_ids` no estágio de lista~~ (feito no D-233: migração `d461fbef4da2` move os ids e a leitura deixou de escolher por `kind`).
+- "Último estudo executado": o servidor não registra execuções por estudo, então o atalho do Comparar usa o salvo mais recente (`created_at`). Um registro de execução pede tabela.
+- Estudo com estágio de lista não sai em arquivo de estudo (o arquivo não leva id de registro, D-122). Se um dia o arquivo ganhar identificação portátil de material (designação ou nome + classe), a lista poderia viajar.
+- O estágio de lista só existe em estudo de materiais; uma lista de processos seria outro estágio, com ids de processo.
+
+**Ficha, Admin e Cadernos — pendências (D-233).**
+- **Cadastrar os campos bibliográficos de uma fonte.** `authors`, `title`, `publisher`, `year`, `url` e `accessed_on` só são preenchidos pelo manifesto do catálogo oficial; nenhuma tela do Admin os edita, então a citação das demais fontes sai só com o rótulo e a referência em texto livre.
+- A seção "Fontes desta ficha" lista as fontes de valor, composição e designação; as das curvas e das equivalências (que têm endpoint próprio) ainda não entram nela.
+- Árvore de classes: arrastar para mover (opcional; "Mover para…" já cobre teclado e leitor de tela).
+- "Esvaziar o arquivo" de cadernos e arquivar em lote pela página do caderno (só a lista tem seleção).
+- Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end` (NULL) e usam a busca por palavras; reprocessar uma fonte a regravaria com posição.
 
 **Segurança, limite e cache — pendências (D-223).**
 - Limite por minuto em memória: com mais de uma máquina no Fly cada uma conta à parte; um contador compartilhado (Redis/Postgres) só se a escala pedir.
 - Importador (`app/importers/service.py`) ainda chama `_build_value_from_input` valor a valor (uma leitura de definição e de fonte por célula); levar para `_build_values`.
 - `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
 - Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
+
+**Banco — pendências (D-227).**
+- Depois do Deploy da API, confirmar no painel do Neon que a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue`.
+**Fechamento da revisão das telas — pendências (D-226).**
+- ~~Lighthouse: limiares só sobem até onde as medições sustentam~~ — medido e subido no D-235 (performance 0,9, acessibilidade 0,95, boas práticas 0,9; tabela em `13-deploy.md`).
+- Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
+- ~~axe só no tema claro~~ — passada escura em todas as rotas no `a11y.spec.ts` (D-235); a auditoria a 1920 px não achou estouro nem corte. Resta: as amostras de cor de seção do `/app/estilo` mostram os tons claros no tema escuro (só especímen).
+- ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
+- ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
+- ~~Numeração repetida D-232 / Sessão 189 (seleção por lista × F6)~~ — desambiguada no D-235: o F6 é **D-232b/189b**.
+- ~~Numeração repetida D-230 / Sessão 187 (#251 × #252)~~ — desambiguada no D-231: o painel das oito telas é **D-230b/187b**.
+
+**Memória da API (D-231).**
+- ~~Mortes por falta de memória em produção (exit 137)~~ — VM de 1 GB, concorrência 5/8 no proxy, portão `HEAVY_REQUEST_CONCURRENCY`,
+  consultas leves na seleção, nos gráficos, nas calculadoras e no catálogo, `MALLOC_ARENA_MAX=2`; pico por requisição de 134–166 MB
+  para 0,5–11 MB.
+- ~~Exportação: `catalogue_report` lia o catálogo inteiro~~ — em lotes de 100 e XLSX em fluxo no D-235 (pico 82,4 → 33,4 MB no CSV, 93,8 → 22,0 MB no XLSX; teto de 40 MB no `test_memory_per_request.py`). Resta o CSV, que ainda monta o texto inteiro antes de responder.
+- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). Resta o `pint` (registro de unidades), carregado na partida.
+- Medir em produção depois do **Deploy da API**: `fly logs` sem `exit code 137`, e a memória da máquina no painel do Fly.
+
+**IA em todas as ferramentas — pendências (D-228).**
+- ~~Etapa IA-2a (frontend)~~ — feita na D-229 (`AISuggestPanel` em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações só no clique).
+- ~~Etapa IA-2b (frontend)~~ — feita na D-230b (Dimensionar, Custo, Eco, Baterias, Sintetizar, Painel, Meus registros e as duas telas de Admin; as 15 telas têm o painel).
+- ~~Sugestão da IA em Sintetizar~~ — feita no D-234: o `set_param` aceita um número que o modelo escolheu dentro da faixa do pedido (`origin: "sugestao_ia"`), marcado "revise" e só aplicado depois do `ConfirmDialog` do painel.
+- ~~Sugestão da IA na Eco, A × B e `part_mass`~~ — feitas no D-234 (`{comparison}` no contexto; `part_mass` = massa unitária de um produto de um só componente; faixa (0, 10⁶] kg).
+- Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
+- Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
+- A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
+- `claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída; só o `openai-compat` o aplica.
+- O 429 dos embeddings fora do diagnóstico ainda usa a mensagem genérica de `EmbeddingClient` (a busca cai para a léxica sem aviso na tela, como antes).
+
+**Fluxos entre telas, parte 16 — pendências (D-234).**
+- ~~Cascata da diferença A × B na Eco~~, ~~curva Custo × Lote de cada material comparado~~ e ~~recaída do 429 da busca na web~~ (`WEB_SEARCH_FALLBACK_MODEL`; entrada `modelo_busca_web` no workflow Provedor de IA) — feitas no D-234.
+- Custo, Dimensionar e Baterias seguem sem número escolhido pelo modelo (só valores do contexto ou de cenário); dar faixa a um parâmetro é uma decisão por parâmetro.
+- Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido (hoje é sempre o mais barato em cada lote).
+- Em produção, depois do **Deploy da API**: `fly logs` ao esgotar a cota da busca deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId`.
+
+**Assistente de projeto com IA — pendências (D-224).**
+- ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
+- ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
+- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa), `check_property`/`check_chart` sem chamador no serviço e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair.
+- Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
+- Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
+- Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.
+- `claude-api` e `claude-cli` respondem o plano sem o teto próprio (tempo, saída, tentativas); só o `openai-compat` o aplica.
+- O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.
+- Cenários: ampliar a tabela (impacto, abrasão, chama) e trocar faixas didáticas por referência publicada quando houver uma certa.

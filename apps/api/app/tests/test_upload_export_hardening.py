@@ -102,12 +102,13 @@ def test_a_legitimate_docx_is_still_read():
 
 
 def test_import_xlsx_bomb_is_refused_before_openpyxl(monkeypatch):
-    import app.importers.readers as readers
+    import openpyxl
 
     def _refuse(*_args, **_kwargs):
         raise ParserReached("openpyxl")
 
-    monkeypatch.setattr(readers, "load_workbook", _refuse)
+    # `read_xlsx` imports `load_workbook` when it runs (D-235), so the library is patched.
+    monkeypatch.setattr(openpyxl, "load_workbook", _refuse)
     with pytest.raises(ValidationError, match="XLSX"):
         read_xlsx(_bomb_docx(30), max_rows=5000)
 

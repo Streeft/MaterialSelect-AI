@@ -3,7 +3,7 @@
 import { describeApiError } from "@/lib/errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { convertMapBox, getPropertyMap } from "@/lib/api";
+import { convertMapBox, getPropertyMap, listMaterials } from "@/lib/api";
 import { fromMapBox, toMapBox } from "@/lib/mapBox";
 import type {
   ChartAxisIn,
@@ -34,6 +34,7 @@ import {
   Field,
   IconButton,
   Input,
+  RemovableChip,
   Select,
   SelectOption,
   Textarea,
@@ -118,6 +119,14 @@ type StageShape =
       indexGoal: Goal;
       /** The level, as typed. Empty is "no line", which is not a level of 0. */
       indexLevel: string;
+    }
+  | {
+      id: string;
+      kind: "list";
+      label: string;
+      enabled: boolean;
+      /** D-232: the materials the study is restricted to, by id, in the order they came. */
+      materialIds: number[];
     };
 
 /**
@@ -185,6 +194,17 @@ export function emptyMaterialStage(): StageState {
     enabled: true,
     materialClassSlugs: [],
     includeDescendants: true,
+  };
+}
+
+/** D-232: a list stage, as a "Abrir na Seleção" hands it over. */
+export function listStage(materialIds: readonly number[]): StageState {
+  return {
+    id: nextEditorId("stage"),
+    kind: "list",
+    label: "",
+    enabled: true,
+    materialIds: [...materialIds],
   };
 }
 
@@ -288,6 +308,15 @@ export function duplicateStage(stage: StageState): StageState {
       id: newId,
       label: newLabel,
       materialClassSlugs: [...stage.materialClassSlugs],
+    };
+  }
+
+  if (stage.kind === "list") {
+    return {
+      ...stage,
+      id: newId,
+      label: newLabel,
+      materialIds: [...stage.materialIds],
     };
   }
 
@@ -407,6 +436,9 @@ export function toStagePayload(stage: StageState): StageIn {
   }
   if (stage.kind === "chart") {
     return { ...common, kind: "chart", chart: toChartPayload(stage) };
+  }
+  if (stage.kind === "list") {
+    return { ...common, kind: "list", material_ids: stage.materialIds };
   }
   return { ...common, kind: "limit", root_group: toConstraintPayload(stage.group) };
 }
@@ -711,6 +743,9 @@ export function StageList({
                 onChange={(next) => replace(index, next)}
               />
             )}
+            {stage.kind === "list" && (
+              <ListStageFields stage={stage} onChange={(next) => replace(index, next)} />
+            )}
             {stage.kind === "chart" && (
               <ChartStageFields
                 stage={stage}
@@ -747,6 +782,7 @@ const STAGE_BADGES: Record<StageState["kind"], string> = {
   process: t.stageKindProcess,
   material: t.stageKindMaterial,
   chart: t.stageKindChart,
+  list: t.stageKindList,
 };
 
 // Identity tones, not status ones: "success"/"warning" carry meaning elsewhere
@@ -757,6 +793,7 @@ const STAGE_TONES: Record<StageState["kind"], BadgeTone> = {
   process: "brand",
   material: "info",
   chart: "brand",
+  list: "info",
 };
 
 /**
@@ -816,6 +853,65 @@ function MultiSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+/**
+ * A list stage's body (D-232): the materials the study is restricted to, by name.
+ *
+ * Names come from the catalogue list the comparator already reads (same query
+ * key), never from the ids alone; an id that is not in what this reader sees is
+ * said out loud and not dropped. Each material can leave the list — the stage
+ * with none left cannot run, and says so, instead of quietly meaning "everyone".
+ */
+function ListStageFields({
+  stage,
+  onChange,
+}: {
+  stage: Extract<StageState, { kind: "list" }>;
+  onChange: (stage: StageState) => void;
+}) {
+  const catalogue = useQuery({ queryKey: ["materials", ""], queryFn: () => listMaterials() });
+  const names = useMemo(
+    () => new Map((catalogue.data ?? []).map((m) => [m.id, m.name])),
+    [catalogue.data],
+  );
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-body text-ink-muted">{t.stageListHint}</p>
+      <p role="status" className="text-body font-medium text-ink">
+        {t.stageListCount(stage.materialIds.length)}
+      </p>
+      {stage.materialIds.length === 0 ? (
+        <Alert tone="warning">{t.stageListEmpty}</Alert>
+      ) : catalogue.isPending ? (
+        <p className="text-support text-ink-muted">{t.stageListLoading}</p>
+      ) : (
+        <ul
+          aria-label={t.stageListTitle}
+          className={cn(
+            "flex flex-wrap gap-2",
+            stage.materialIds.length > 40 && "max-h-56 overflow-y-auto",
+          )}
+        >
+          {stage.materialIds.map((id) => {
+            const name = names.get(id);
+            return (
+              <li key={id}>
+                <RemovableChip
+                  removeLabel={t.stageListRemove}
+                  onRemove={() =>
+                    onChange({ ...stage, materialIds: stage.materialIds.filter((x) => x !== id) })
+                  }
+                >
+                  {name ?? t.stageListUnknown(id)}
+                </RemovableChip>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

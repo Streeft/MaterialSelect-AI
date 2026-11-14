@@ -52,14 +52,16 @@ class SimilarityService:
         if unknown:
             raise NotFoundError(f"Propriedades não encontradas: {', '.join(unknown)}")
 
-        materials = self.repo.list_materials()
+        basis = list(dict.fromkeys(request.property_slugs))
+        # Every visible material, only the values of the basis (D-231):
+        # ``_values`` reads nothing else.
+        materials = self.repo.list_materials(property_slugs=basis)
         by_id = {m.id: m for m in materials}
         if material_id not in by_id:
             # The same 404 a hidden record gets, for the same reason: a
             # different answer here would say whether it exists.
             raise NotFoundError(f"Material não encontrado: {material_id}")
 
-        basis = list(dict.fromkeys(request.property_slugs))
         records: list[RecordValues] = [
             (material.id, material.name, self._values(material, basis)) for material in materials
         ]

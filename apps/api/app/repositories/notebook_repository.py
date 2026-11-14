@@ -58,6 +58,16 @@ class NotebookRepository:
         ).all()
         return [(notebook, int(count)) for notebook, count in rows]
 
+    def owned(self, notebook_ids: list[int]) -> list[Notebook]:
+        """The owner's notebooks among ``notebook_ids`` (a stranger's or missing id is absent)."""
+        return list(
+            self.db.execute(
+                select(Notebook).where(
+                    Notebook.id.in_(notebook_ids), Notebook.owner_id == self.owner_id
+                )
+            ).scalars()
+        )
+
     def get(self, notebook_id: int) -> Notebook | None:
         return self.db.execute(
             select(Notebook)
@@ -123,8 +133,14 @@ class NotebookRepository:
             )
         ).scalar_one_or_none()
 
-    def copy_source(self, source: NotebookSource, into: Notebook) -> NotebookSource:
-        """The source, its passages and their vectors, as new rows of ``into``."""
+    def copy_source(
+        self, source: NotebookSource, into: Notebook, chunk_map: dict[int, int] | None = None
+    ) -> NotebookSource:
+        """The source, its passages and their vectors, as new rows of ``into``.
+
+        ``chunk_map``, when given, is filled with ``old chunk id -> new chunk id``
+        (D-233: a copied conversation must point at the copy's passages).
+        """
         clone = NotebookSource(
             notebook_id=into.id,
             kind=source.kind,
@@ -151,9 +167,13 @@ class NotebookRepository:
                 heading=chunk.heading,
                 text=chunk.text,
                 search_text=chunk.search_text,
+                char_start=chunk.char_start,
+                char_end=chunk.char_end,
             )
             self.db.add(new_chunk)
             self.db.flush()
+            if chunk_map is not None:
+                chunk_map[chunk.id] = new_chunk.id
             if chunk.embedding is not None:
                 self.db.add(
                     NotebookEmbedding(

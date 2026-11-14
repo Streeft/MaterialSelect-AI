@@ -6,7 +6,7 @@ import { GlossaryHint } from "./GlossaryHint";
 
 /**
  * The glossary "?" for places where an absent entry must stay silent: a
- * comparison table header or an axis picker (GL-b, D-130).
+ * comparison table header or an axis picker (GL-b, D-130b).
  *
  * `GlossaryHint` writes "sem verbete" when opened, which is right on the
  * material sheet but noise in the middle of a table. Here the entry is looked

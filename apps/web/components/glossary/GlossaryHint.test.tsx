@@ -31,7 +31,7 @@ function wrap(node: ReactNode) {
   return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
 }
 
-describe("GlossaryHint (D-130)", () => {
+describe("GlossaryHint (D-130b)", () => {
   it("não chama a API enquanto fechado", () => {
     listGlossary.mockClear();
     render(wrap(<GlossaryHint slug="modulo_young" name="Módulo de Young" />));

@@ -55,6 +55,20 @@ def test_closed_windows_are_pruned_when_the_table_grows(monkeypatch):
     assert set(limiter._windows) == {"e"}
 
 
+def test_open_windows_never_pass_the_hard_ceiling(monkeypatch):
+    """D-231: even with every window still open, the table stays bounded."""
+    from app.domain import rate_limit as module
+
+    monkeypatch.setattr(module, "_PRUNE_ABOVE", 3)
+    monkeypatch.setattr(module, "MAX_WINDOWS", 4)
+    limiter = FixedWindowLimiter(window_seconds=60)
+    for second, key in enumerate("abcdefgh"):
+        limiter.hit(key, 5, now=float(second))
+        assert len(limiter._windows) <= 4
+    # The newest callers are the ones kept; the one just counted is always there.
+    assert "h" in limiter._windows and "a" not in limiter._windows
+
+
 # --- the key and the setting ----------------------------------------------
 
 

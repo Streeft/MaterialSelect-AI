@@ -19,6 +19,7 @@ from app.schemas.property import (
     DepthProfilesOut,
     PropertyDefinitionIn,
     PropertyDefinitionOut,
+    PropertyDefinitionPatch,
 )
 from app.services.ordinal_service import OrdinalService
 from app.services.property_service import PropertyService
@@ -85,6 +86,21 @@ def update_property(
 ) -> PropertyDefinitionOut:
     """Update a property definition."""
     return PropertyService(db, user).update_property(property_id, payload)
+
+
+@router.patch(
+    "/{property_id}",
+    response_model=PropertyDefinitionOut,
+    dependencies=[Depends(require_catalog_curator)],
+)
+def patch_property(
+    property_id: int,
+    payload: PropertyDefinitionPatch,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PropertyDefinitionOut:
+    """Change a property's name, description or reading unit, and nothing else (D-233)."""
+    return PropertyService(db, user).patch_property(property_id, payload)
 
 
 @router.delete(

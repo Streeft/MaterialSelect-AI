@@ -127,6 +127,14 @@ Sem linha de composição o material está "sem composição cadastrada" — nã
 0 % de nada. A busca (`comp:`) lê a faixa por alcance em lógica de três
 valores; ver D-105.
 
+## Fonte e citação em ABNT (D-233)
+
+`SOURCE` guarda a procedência (`label` único, `reference` em texto livre, licença, revisor) e, desde o D-233, seis campos
+bibliográficos **todos nuláveis**: `authors` (como a referência o imprime), `title`, `publisher`, `year`, `url` e `accessed_on`.
+NULL é "ninguém registrou": a citação (`app/domain/citation.py`, devolvida na ficha em `MaterialDetail.sources[].abnt`) deixa a
+parte de fora, sem "s.d.", sem "[S. l.]" e sem autor inventado; sem título usa o `label`. A migração `d461fbef4da2` os cria
+vazios para toda fonte que já existe.
+
 ## Curvas de material (D-106, TM4)
 
 Três tabelas que pendem de `MATERIAL` (herdam a visibilidade do D-62), migração

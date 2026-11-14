@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.material_class import (
     MaterialClassDetailOut,
     MaterialClassIn,
+    MaterialClassMove,
     MaterialClassOut,
 )
 from app.services.taxonomy_service import TaxonomyService
@@ -67,6 +68,19 @@ def update_class(
 ) -> MaterialClassOut:
     """Update a material class."""
     return TaxonomyService(db, user).update_class(class_id, payload)
+
+
+@router.patch(
+    "/{class_id}", response_model=MaterialClassOut, dependencies=[Depends(require_catalog_curator)]
+)
+def move_class(
+    class_id: int,
+    payload: MaterialClassMove,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MaterialClassOut:
+    """Move a class under another (or to the root), changing nothing else (D-233)."""
+    return TaxonomyService(db, user).move_class(class_id, payload.parent_id)
 
 
 @router.delete(

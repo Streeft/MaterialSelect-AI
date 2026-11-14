@@ -25,6 +25,7 @@ from app.calculations.part_cost import (
     CostCurvePoint,
     PartCostError,
     ShopAssumptions,
+    cheapest_envelope,
     cost_curve,
     cost_terms,
     curve_domains,
@@ -35,11 +36,15 @@ from app.repositories.chart_repository import ChartRepository
 from app.repositories.process_repository import ProcessRepository
 from app.schemas.part_cost import (
     CostCurvePointOut,
+    CostCurvesOut,
+    CostCurvesRequest,
     CostDomainOut,
     CostedProcessOut,
     CostRequest,
     CostResultOut,
     CostTermsOut,
+    MaterialCostCurveOut,
+    MaterialCurvePointOut,
     UncostedProcessOut,
 )
 
@@ -53,7 +58,13 @@ class PartCostService:
         self.process_repo = ProcessRepository(db)
 
     def estimate(self, request: CostRequest) -> CostResultOut:
-        materials = {material.id: material for material in self.repo.list_materials()}
+        # Only the material asked for (D-231): the whole catalogue with every
+        # value was read here to keep one, ~170 MB per estimate. Hidden or
+        # inactive records still come back empty and still 404 below.
+        materials = {
+            material.id: material
+            for material in self.repo.list_materials(material_ids=[request.material_id])
+        }
         material = materials.get(request.material_id)
         if material is None:
             # The same 404 a hidden record gets, for the same reason as
@@ -175,6 +186,71 @@ class PartCostService:
             uncosted=uncosted,
             domain=self._domain(ranked, request.batch_size),
         )
+
+    def curves(self, request: CostCurvesRequest) -> CostCurvesOut:
+        """One cost × batch curve per material, on one shared frame (D-234).
+
+        Each material is estimated the way ``estimate`` does it, and its curve is
+        the cheapest of its processes at every batch size. A material that cannot
+        be priced stays in the answer with its reason — the others are not
+        sunk by it, and it is never drawn as a flat zero.
+        """
+        curves: list[MaterialCostCurveOut] = []
+        drawn: list[list[CostCurvePoint]] = []
+        for material_id in dict.fromkeys(request.material_ids):
+            try:
+                result = self.estimate(
+                    CostRequest(
+                        material_id=material_id,
+                        part_mass=request.part_mass,
+                        batch_size=request.batch_size,
+                        write_off_years=request.write_off_years,
+                        load_factor=request.load_factor,
+                    )
+                )
+            except (NotFoundError, ValidationError) as exc:
+                curves.append(MaterialCostCurveOut(material_id=material_id, reason=str(exc)))
+                continue
+            sources = [item for item in result.costed if item.curve]
+            envelope = cheapest_envelope(
+                [
+                    [CostCurvePoint(batch_size=pt.batch_size, cost=pt.cost) for pt in item.curve]
+                    for item in sources
+                ]
+            )
+            if not envelope:
+                curves.append(
+                    MaterialCostCurveOut(
+                        material_id=result.material_id,
+                        material_name=result.material_name,
+                        reason="Nenhum processo tem os dados econômicos para estimar este material.",
+                    )
+                )
+                continue
+            points = [
+                MaterialCurvePointOut(
+                    batch_size=point.batch_size,
+                    cost=point.cost,
+                    process_id=sources[point.winner].process_id,
+                    process_slug=sources[point.winner].process_slug,
+                    process_name=sources[point.winner].process_name,
+                )
+                for point in envelope
+            ]
+            drawn.append([CostCurvePoint(batch_size=p.batch_size, cost=p.cost) for p in points])
+            curves.append(
+                MaterialCostCurveOut(
+                    material_id=result.material_id,
+                    material_name=result.material_name,
+                    points=points,
+                    current=next((p for p in points if p.batch_size == request.batch_size), None),
+                )
+            )
+        domain = None
+        if drawn:
+            frame = curve_domains(drawn, current_batch=request.batch_size)
+            domain = CostDomainOut(x=frame.x, y=frame.y, batch_sizes=frame.batch_sizes)
+        return CostCurvesOut(batch_size=request.batch_size, curves=curves, domain=domain)
 
     @staticmethod
     def _domain(costed: list[CostedProcessOut], batch_size: float) -> CostDomainOut | None:

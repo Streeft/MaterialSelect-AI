@@ -4,13 +4,13 @@ Charts need more of a property value than the selection snapshot keeps: the
 original value and unit, the interval bounds, the uncertainty, the data quality
 and the source. This repository therefore loads the full rows, eager-loading
 class, definition and source so a map of N materials stays a constant number of
-queries.
+queries — by ``selectinload``, never a join, for the values (D-231).
 """
 
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -38,32 +38,123 @@ class ChartRepository:
         self,
         material_ids: list[int] | None = None,
         class_slugs: list[str] | None = None,
+        property_slugs: list[str] | None = None,
     ) -> list[Material]:
         """Return active materials with values, definitions, class and source.
 
         ``material_ids`` and ``class_slugs`` are optional narrowing filters;
         an empty ``class_slugs`` list means "every class" (not "no class"), so
         an unset filter never silently empties the chart.
+
+        ``property_slugs`` narrows the **values** loaded, never the materials
+        (D-231): every visible material still comes back, with
+        ``property_values`` holding only the rows of those properties. For a
+        caller that reads nothing else — a two-axis map, the solver's basis —
+        this is the same answer for a fraction of the memory. The collection is
+        then deliberately partial, so the query refreshes the materials it
+        touches (``populate_existing``) and the caller must not read other
+        properties from them.
         """
+        values_loader = (
+            Material.property_values.and_(
+                MaterialPropertyValue.property_id.in_(
+                    select(PropertyDefinition.id).where(PropertyDefinition.slug.in_(property_slugs))
+                )
+            )
+            if property_slugs is not None
+            else Material.property_values
+        )
         stmt = (
             select(Material)
             .join(MaterialClass, Material.class_id == MaterialClass.id)
             .options(
                 joinedload(Material.material_class),
-                joinedload(Material.property_values).joinedload(
-                    MaterialPropertyValue.property_definition
-                ),
-                joinedload(Material.property_values).joinedload(MaterialPropertyValue.source),
+                # ``selectinload``, not a join, for the values (D-231): joined,
+                # every one of the ~32 thousand value rows of the full demo
+                # catalogue came back carrying its material's, definition's and
+                # source's columns too, and the driver buffered all of it — about
+                # twice the memory, per request. Definitions and sources are a
+                # few dozen rows, loaded once and shared through the identity map.
+                selectinload(values_loader).selectinload(MaterialPropertyValue.property_definition),
+                selectinload(values_loader).selectinload(MaterialPropertyValue.source),
             )
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
-            .order_by(Material.name)
+            # ``id`` breaks ties: the demo catalogue repeats names (the releases
+            # of D-108), and two queries must list them in the same order.
+            .order_by(Material.name, Material.id)
         )
         if material_ids is not None:
             stmt = stmt.where(Material.id.in_(material_ids))
         if class_slugs:
             stmt = stmt.where(MaterialClass.slug.in_(class_slugs))
+        if property_slugs is not None:
+            stmt = stmt.execution_options(populate_existing=True)
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def list_material_ids(self) -> list[int]:
+        """Ids of the active, visible materials, in the order :meth:`list_materials` lists them.
+
+        One column instead of the materials with every value: a caller that
+        walks the whole catalogue (the catalogue export, D-235) takes these ids
+        and loads them in batches, so the ORM objects of a batch can be freed
+        before the next one is read.
+        """
+        stmt = (
+            select(Material.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .order_by(Material.name, Material.id)
+        )
+        return list(self.db.execute(stmt).scalars().all())
+
+    def visible_class_names(self) -> list[tuple[str, str]]:
+        """``(slug, name)`` of every class an active, visible material is in.
+
+        What the AI prompts need from the materials (D-224): two columns,
+        one query, instead of every material with every value — which is what
+        reading the classes through :meth:`list_materials` used to cost on
+        each call.
+        """
+        stmt = (
+            select(MaterialClass.slug, MaterialClass.name)
+            .join(Material, Material.class_id == MaterialClass.id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .distinct()
+            .order_by(MaterialClass.slug)
+        )
+        return [(row[0], row[1]) for row in self.db.execute(stmt).all()]
+
+    def observed_ranges(self) -> dict[str, tuple[float, float]]:
+        """Lowest and highest canonical value held per property, over what the
+        viewer can see — declared absences never count (D-24).
+
+        The yardstick of an AI-suggested range (D-224): a suggestion outside
+        what the catalogue actually holds cannot select anything and is refused.
+        """
+        stmt = (
+            select(
+                PropertyDefinition.slug,
+                func.min(MaterialPropertyValue.normalized_value),
+                func.max(MaterialPropertyValue.normalized_value),
+            )
+            .join(
+                MaterialPropertyValue,
+                MaterialPropertyValue.property_id == PropertyDefinition.id,
+            )
+            .join(Material, Material.id == MaterialPropertyValue.material_id)
+            .where(Material.is_active.is_(True))
+            .where(visible_materials(self.viewer_id))
+            .where(MaterialPropertyValue.is_missing.is_(False))
+            .where(MaterialPropertyValue.normalized_value.is_not(None))
+            .group_by(PropertyDefinition.slug)
+        )
+        return {
+            row[0]: (float(row[1]), float(row[2]))
+            for row in self.db.execute(stmt).all()
+            if row[1] is not None and row[2] is not None
+        }
 
     def list_processes(
         self,

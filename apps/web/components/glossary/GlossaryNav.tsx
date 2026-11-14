@@ -9,7 +9,7 @@ const SECTIONS = [
 ] as const;
 
 /**
- * The two halves of the glossary (D-151): properties (D-130) and families.
+ * The two halves of the glossary (D-151): properties (D-130b) and families.
  *
  * Links, not tabs: each half is its own route, so a `#slug` anchor from a hint
  * or a sheet lands on the right entry and the back button works. It borrows the

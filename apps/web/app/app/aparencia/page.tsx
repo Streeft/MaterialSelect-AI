@@ -25,6 +25,7 @@ import {
   ThemeToggle,
 } from "@/components/ui";
 import { IconCheck } from "@/components/ui/icons";
+import { AIDiagnosticsCard } from "@/components/ai/AIDiagnosticsCard";
 
 const t = ptBR.appearance;
 
@@ -157,6 +158,11 @@ export default function AppearancePage() {
             />
           ))}
         </ButtonGroup>
+      </Setting>
+
+      {/* D-228: reachable by everyone signed in, next to the other settings. */}
+      <Setting title={ptBR.aiDiagnostics.title} hint={ptBR.aiDiagnostics.hint} wide>
+        <AIDiagnosticsCard />
       </Setting>
     </div>
   );

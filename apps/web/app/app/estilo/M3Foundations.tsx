@@ -73,7 +73,7 @@ export function M3Foundations() {
           {PAIRS.map(([fill, on]) => (
             <div key={fill} className={`rounded-m3-md p-3 text-m3-label-medium ${FILL[fill]}`}>
               <div>{fill}</div>
-              <div className="opacity-80">{on}</div>
+              <div>{on}</div>
             </div>
           ))}
         </div>

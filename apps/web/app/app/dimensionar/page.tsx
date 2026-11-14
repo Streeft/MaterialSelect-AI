@@ -15,11 +15,23 @@ import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { useQuery } from "@tanstack/react-query";
 import { useLiveResult } from "@/lib/useLiveResult";
 import { describeApiError } from "@/lib/errors";
-import type { DefaultsResult, LoadCase, SolveRequest, SolveResult, SolverObjective } from "@/lib/types";
+import type {
+  DefaultsResult,
+  LoadCase,
+  SolveRequest,
+  SolveResult,
+  SolverObjective,
+  SuggestAction,
+} from "@/lib/types";
 import { listLoadCases, solveBrief } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, prettyUnit } from "@/lib/format";
 import { encodeIdList } from "@/lib/idList";
+import {
+  MAX_LIST_MATERIALS,
+  listForSelection,
+  selectionHrefForMaterials,
+} from "@/lib/selectionList";
 import { classVisual } from "@/lib/design/palette";
 import {
   Alert,
@@ -47,6 +59,9 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
+import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { aiField, revealField } from "@/lib/ai/revealField";
+import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import { LoadCaseDiagram } from "@/components/solver/LoadCaseDiagram";
@@ -391,12 +406,63 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
   }
   const hasExample = selected?.variables.some((variable) => variable.example != null) ?? false;
 
+  // D-230b: the AI's names are the request's — `objective` and `inputs.<key>`. A
+  // value goes where the reader would have typed it (the URL) and the sizing
+  // follows by itself. A support condition takes only one of its catalogued
+  // constants, a free variable only a number; anything else is not shown.
+  function inputKeyOf(name: string): string | null {
+    return name.startsWith("inputs.") ? name.slice("inputs.".length) : null;
+  }
+  const acceptsAiAction = (action: SuggestAction): boolean => {
+    if (action.type !== "set_param") return true;
+    if (action.name === "objective") return action.value === "massa" || action.value === "custo";
+    const key = inputKeyOf(action.name);
+    const variable = key === null ? undefined : selected?.variables.find((v) => v.key === key);
+    if (!variable || typeof action.value !== "number" || !Number.isFinite(action.value)) return false;
+    const supports = selected?.supports.filter((s) => s.variable_key === variable.key) ?? [];
+    return supports.length === 0 || supports.some((s) => s.value === action.value);
+  };
+  function applyAiAction(action: SuggestAction) {
+    if (action.type !== "set_param" || !acceptsAiAction(action)) return;
+    const key = inputKeyOf(action.name);
+    if (action.name === "objective") setBrief({ objective: action.value as SolverObjective });
+    else if (key !== null) setInput(key, String(action.value));
+    revealField(action.name);
+  }
+
   if (cases.isLoading) return <SheetSkeleton label={t.title} />;
   if (cases.isError) return <ErrorState error={cases.error} onRetry={() => void cases.refetch()} />;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
+
+      <AISuggestPanel
+        tool="dimensionar"
+        // The request of the sizing the page shows, never its numbers (D-229).
+        context={
+          ready
+            ? {
+                request: {
+                  case_key: caseKey,
+                  inputs: Object.fromEntries(
+                    Object.entries(inputs).map(([key, value]) => [key, Number(value)]),
+                  ),
+                  objective,
+                  limit: defaults.limit,
+                },
+              }
+            : {}
+        }
+        actions={["set_param", "compare", "open_route"]}
+        accepts={acceptsAiAction}
+        onAction={applyAiAction}
+        // Comparing opens the comparison screen: a link, with the keyboard and the new tab a link has.
+        linkFor={(action) =>
+          action.type === "compare" ? `/app/comparar?materiais=${encodeIdList(action.ids)}` : null
+        }
+        disabledReason={ready ? undefined : suggestText.needsBrief}
+      />
 
       <ParamsResultLayout>
         <ParamsPanel>
@@ -449,6 +515,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                   return (
                     <Select
                       key={variable.key}
+                      {...aiField(`inputs.${variable.key}`)}
                       label={t.supportLabel}
                       hint={variable.help_text}
                       value={inputs[variable.key] ?? ""}
@@ -472,6 +539,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                 return (
                   <NumberInput
                     key={variable.key}
+                    {...aiField(`inputs.${variable.key}`)}
                     label={variable.label}
                     unit={prettyUnit(variable.unit)}
                     hint={variable.help_text}
@@ -484,6 +552,7 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
               })}
               <Select
                 label={t.objectiveLabel}
+                {...aiField("objective")}
                 hint={t.objectiveHint}
                 value={objective}
                 onChange={(event) =>
@@ -537,15 +606,30 @@ function DimensionarScreen({ defaults }: { defaults: DefaultsResult["dimensionar
                 <SolveResultChart result={result} />
                 {result.solved.length > 1 ? (
                   <div className="flex flex-col gap-1">
-                    <div>
+                    <div className="flex flex-wrap gap-2">
                       <ButtonLink
                         variant="secondary"
                         href={`/app/comparar?materiais=${encodeIdList(result.solved.map((r) => r.record_id))}`}
                       >
                         {t.compareBest(result.solved.length)}
                       </ButtonLink>
+                      {/* D-232: the same shortlist, as a list stage — the study is
+                          restricted to these and the reader's limits narrow from there. */}
+                      <ButtonLink
+                        variant="secondary"
+                        href={selectionHrefForMaterials(result.solved.map((r) => r.record_id))}
+                      >
+                        {t.openCandidatesInSelection(
+                          listForSelection(result.solved.map((r) => r.record_id)).ids.length,
+                        )}
+                      </ButtonLink>
                     </div>
                     <p className="text-caption text-ink-muted">{t.compareBestHint}</p>
+                    {listForSelection(result.solved.map((r) => r.record_id)).truncated ? (
+                      <p className="text-caption text-ink-muted">
+                        {t.openCandidatesCapped(MAX_LIST_MATERIALS)}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
                 {result.excluded.length > 0 ? (

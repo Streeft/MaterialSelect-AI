@@ -219,6 +219,38 @@ def curve_domains(
     return CurveDomains(x=(min_x, max_x), y=y, batch_sizes=sorted(batches))
 
 
+@dataclass(frozen=True)
+class EnvelopePoint:
+    """The cheapest process at one batch size: its cost and which curve it was."""
+
+    batch_size: float
+    cost: float
+    #: Position, in the sequence given to :func:`cheapest_envelope`, of the curve
+    #: that is lowest here (the first one on a tie).
+    winner: int
+
+
+def cheapest_envelope(curves: Sequence[Sequence[CostCurvePoint]]) -> list[EnvelopePoint]:
+    """The lowest unit cost at every batch size across several processes' curves.
+
+    What a material "costs" at a batch is its cheapest way of being made at that
+    batch, and which way that is changes along the curve (a costly die pays for
+    itself only from some batch on) — so the envelope, not the curve of the
+    process that wins at one batch. Computed here for the screen to draw (ADR
+    0004). A batch size a curve does not have is simply not in its race; no curve
+    at all gives no envelope — never a zero.
+    """
+    best: dict[float, EnvelopePoint] = {}
+    for position, curve in enumerate(curves):
+        for point in curve:
+            if not (math.isfinite(point.cost) and math.isfinite(point.batch_size)):
+                continue
+            held = best.get(point.batch_size)
+            if held is None or point.cost < held.cost:
+                best[point.batch_size] = EnvelopePoint(point.batch_size, point.cost, position)
+    return [best[size] for size in sorted(best)]
+
+
 #: Wall-clock hours in a year. Written once because two modules need the same
 #: year: this estimator turns it into machine time with a load factor, and the
 #: eco audit turns it into service time with a duty cycle. A year that differed

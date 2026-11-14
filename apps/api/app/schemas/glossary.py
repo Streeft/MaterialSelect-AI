@@ -1,4 +1,4 @@
-"""Contrato de saída do glossário de propriedades (D-130)."""
+"""Contrato de saída do glossário de propriedades (D-130b)."""
 
 from __future__ import annotations
 

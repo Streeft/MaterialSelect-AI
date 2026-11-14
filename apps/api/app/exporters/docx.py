@@ -14,19 +14,13 @@ from __future__ import annotations
 
 import io
 
-from docx import Document
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import Inches, Pt, RGBColor
-
 from app.exporters.cells import format_number
 from app.exporters.report import Report
 from app.exporters.xml_text import xml_legal_report
 
-_PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
-_SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
+# python-docx (with lxml) is imported inside the functions that use it, not here
+# (D-235): this module is loaded when the API boots, and the library weighs tens
+# of MB that a process which never writes a DOCX should not hold.
 
 
 def _text(value: object) -> str:
@@ -42,6 +36,9 @@ def _text(value: object) -> str:
 
 def _set_cell_background(cell, hex_color: str) -> None:
     """Set cell background shading in OpenXML."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
     tcPr = cell._element.get_or_add_tcPr()
     shd = OxmlElement("w:shd")
     shd.set(qn("w:val"), "clear")
@@ -52,6 +49,8 @@ def _set_cell_background(cell, hex_color: str) -> None:
 
 def _set_repeat_header_and_cant_split(row) -> None:
     """Mark table row to repeat as header on every page and prevent splitting."""
+    from docx.oxml import OxmlElement
+
     trPr = row._element.get_or_add_trPr()
     tblHeader = OxmlElement("w:tblHeader")
     cantSplit = OxmlElement("w:cantSplit")
@@ -61,6 +60,8 @@ def _set_repeat_header_and_cant_split(row) -> None:
 
 def _set_cant_split(row) -> None:
     """Prevent row from breaking across pages."""
+    from docx.oxml import OxmlElement
+
     trPr = row._element.get_or_add_trPr()
     cantSplit = OxmlElement("w:cantSplit")
     trPr.append(cantSplit)
@@ -68,6 +69,13 @@ def _set_cant_split(row) -> None:
 
 def to_docx(report: Report) -> bytes:
     """Render the whole report as one standalone DOCX document."""
+    from docx import Document
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Inches, Pt, RGBColor
+
+    _PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
+    _SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
     # python-docx raises on a character XML 1.0 forbids (D-177).
     report = xml_legal_report(report)
     doc = Document()

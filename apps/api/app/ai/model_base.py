@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import math
 from abc import abstractmethod
+from dataclasses import dataclass
 
 from app.ai.caveats import standard_caveats
 from app.ai.notebook import (
@@ -40,6 +41,7 @@ from app.ai.notebook import (
     read_answer,
     read_digest,
 )
+from app.ai.plan import PLAN_SYSTEM, plan_schema, plan_user, read_plan
 from app.ai.prompts import (
     INTERPRET_SYSTEM,
     explain_schema,
@@ -52,15 +54,69 @@ from app.ai.provider import (
     AIProvider,
     AIUnavailableError,
     IndexFacts,
+    PlanContext,
     ProblemContext,
     ResultContext,
 )
 from app.ai.studio import StudioRequest, read_studio, schema_for, studio_system, studio_user
+from app.ai.suggest import (
+    PROBE_SCHEMA,
+    PROBE_SYSTEM,
+    PROBE_USER,
+    SuggestContext,
+    read_suggestions,
+    suggest_schema,
+    suggest_system,
+    suggest_user,
+)
+from app.config import Settings
+from app.config import settings as default_settings
 
 # Longest free-text field the schemas accept (``SuggestedConstraint.evidence``
 # and every ``rationale``). Clipping beats letting one verbose sentence turn an
 # otherwise valid suggestion into a format rejection.
 _MAX_TEXT = 300
+
+
+@dataclass(frozen=True)
+class CallLimits:
+    """A tighter budget for one kind of call (D-224).
+
+    The project assistant is answered while a person waits on the home page, so
+    it asks for less than the default: a smaller output ceiling, a shorter
+    timeout and at most ``max_retries`` extra attempts. A transport that cannot
+    honour a field ignores it — the call is still bounded by its own defaults.
+    """
+
+    timeout_seconds: float
+    max_output_tokens: int
+    max_retries: int
+
+
+def plan_limits(settings: Settings) -> CallLimits:
+    return CallLimits(
+        timeout_seconds=settings.ai_plan_timeout_seconds,
+        max_output_tokens=settings.ai_plan_max_output_tokens,
+        max_retries=max(0, min(settings.ai_plan_max_retries, 1)),
+    )
+
+
+def suggest_limits(settings: Settings) -> CallLimits:
+    """A short call (D-228): three cards, not a report — and one retry at most."""
+    return CallLimits(
+        timeout_seconds=settings.ai_suggest_timeout_seconds,
+        max_output_tokens=settings.ai_suggest_max_output_tokens,
+        max_retries=1,
+    )
+
+
+def probe_limits(settings: Settings) -> CallLimits:
+    """The diagnosis probe (D-228): a few tokens, no retry, a short timeout."""
+    return CallLimits(
+        timeout_seconds=min(settings.ai_timeout_seconds, 20.0),
+        max_output_tokens=64,
+        max_retries=0,
+    )
 
 
 class ModelProviderBase(AIProvider):
@@ -80,6 +136,11 @@ class ModelProviderBase(AIProvider):
                 service turns it into an HTTP 400, because a provider that
                 cannot answer is a configuration state, not a server fault.
         """
+
+    def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
+        """``_complete`` under a tighter budget. The default ignores ``limits``:
+        a transport that can honour them (``openai-compat``) overrides this."""
+        return self._complete(system, user, schema)
 
     def system_for(self, system: str, schema: dict) -> str:
         """The system prompt, for a transport that cannot enforce the schema.
@@ -105,6 +166,13 @@ class ModelProviderBase(AIProvider):
             interpret_schema(context),
         )
         return read_interpretation(raw, context)
+
+    def plan(self, context: PlanContext) -> dict:
+        settings = getattr(self, "settings", None) or default_settings
+        raw = self._complete_limited(
+            PLAN_SYSTEM, plan_user(context), plan_schema(context), plan_limits(settings)
+        )
+        return read_plan(raw)
 
     def explain(self, context: ResultContext) -> dict:
         raw = self._complete(
@@ -135,6 +203,25 @@ class ModelProviderBase(AIProvider):
     def studio(self, request: StudioRequest) -> dict:
         raw = self._complete(studio_system(request), studio_user(request), schema_for(request))
         return read_studio(request, raw)
+
+    def suggest(self, context: SuggestContext) -> dict:
+        settings = getattr(self, "settings", None) or default_settings
+        raw = self._complete_limited(
+            suggest_system(context),
+            suggest_user(context),
+            suggest_schema(context),
+            suggest_limits(settings),
+        )
+        return read_suggestions(raw)
+
+    def probe(self) -> dict:
+        settings = getattr(self, "settings", None) or default_settings
+        raw = self._complete_limited(PROBE_SYSTEM, PROBE_USER, PROBE_SCHEMA, probe_limits(settings))
+        if raw.get("ok") is not True:
+            raise AIUnavailableError(
+                'O modelo respondeu, mas fora do formato pedido (esperava {"ok": true}).'
+            )
+        return {"ok": True, "palavra": _text(raw.get("palavra")) or ""}
 
 
 def read_interpretation(raw: dict, context: ProblemContext) -> dict:

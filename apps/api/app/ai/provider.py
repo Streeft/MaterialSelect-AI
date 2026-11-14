@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from app.ai.guardrails import Catalogue
 from app.ai.notebook import NotebookDigestContext, NotebookQuestion
 from app.ai.studio import StudioRequest
+from app.ai.suggest import SuggestContext
 from app.config import Settings
 from app.knowledge.retrieval import RetrievedChunk
 
@@ -77,6 +78,40 @@ class ProblemContext:
             class_slugs={c.slug for c in self.classes},
             index_slugs={i.slug for i in self.indices},
         )
+
+
+@dataclass(frozen=True)
+class OrdinalFacts:
+    """An ordinal material property (D-126): its slug, name and scale, worst first."""
+
+    slug: str
+    name: str
+    levels: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ScenarioFacts:
+    """A curated use scenario as the model sees it (D-224): id, name and what it
+    asks for in words. **No numbers** — the model picks scenarios by id and the
+    server expands them from ``app/domain/use_scenarios.py``."""
+
+    id: str
+    name: str
+    summary: str
+
+
+@dataclass(frozen=True)
+class PlanContext(ProblemContext):
+    """What a provider may see when turning a plain request into a project plan.
+
+    The catalogue of :class:`ProblemContext` plus the ordinal scales (a limit may
+    be a level, not a number), the curated scenarios by id and the mode:
+    ``project`` asks for the parts of a product, ``single`` for one component.
+    """
+
+    mode: str = "project"
+    ordinals: tuple[OrdinalFacts, ...] = ()
+    scenarios: tuple[ScenarioFacts, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -155,6 +190,16 @@ class AIProvider(ABC):
     def explain(self, context: ResultContext) -> dict:
         """Write prose about an already-computed result."""
 
+    # --- project assistant (D-224) -----------------------------------------
+    #
+    # Not abstract, for the reason the notebook methods below give. A provider
+    # that cannot plan says so; the service then answers with the rule-based
+    # plan instead of an error.
+
+    def plan(self, context: PlanContext) -> dict:
+        """Turn a plain-language request into a project plan. See ``app.ai.plan``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não monta propostas de projeto.")
+
     # --- Cadernos (D-92) ----------------------------------------------------
     #
     # Not abstract: a provider that predates the notebooks — or a test double
@@ -173,3 +218,17 @@ class AIProvider(ABC):
         """Make one Studio artifact from the passages given (D-94). See
         ``app.ai.studio``."""
         raise AIUnavailableError(f"O provedor '{self.name}' não gera itens do Estúdio.")
+
+    # --- suggestions and diagnosis (D-228) ----------------------------------
+
+    def suggest(self, context: SuggestContext) -> dict:
+        """Up to three next steps for one tool's screen. See ``app.ai.suggest``.
+
+        Not abstract, for the reason above: the service answers a provider
+        that cannot suggest with the tool's local rules.
+        """
+        raise AIUnavailableError(f"O provedor '{self.name}' não sugere próximos passos.")
+
+    def probe(self) -> dict:
+        """The smallest call that proves text and JSON work: ``{"ok": true}``."""
+        raise AIUnavailableError(f"O provedor '{self.name}' não tem um teste rápido.")

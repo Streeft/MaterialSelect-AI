@@ -405,7 +405,10 @@ function StyleGuide() {
                     <span className="text-body font-semibold text-ink">{sec.label}</span>
                     <span className="ml-2 font-mono text-2xs text-ink-muted">{sec.route}</span>
                   </div>
-                  <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-brand-700">
+                  {/* `text-ink`, not `text-brand-700`: the card sets only the section's
+                      light tokens on itself (the dark ones are scoped to `<html>`), so in
+                      the dark theme brand-700 was #5d408a over #0f1116, 2.3:1 (D-235). */}
+                  <span className="rounded-full border border-edge bg-surface-sunken px-2 py-0.5 font-mono text-2xs text-ink">
                     {sec.hue}{"°"}
                   </span>
                 </div>
@@ -671,7 +674,7 @@ function StyleGuide() {
           </Button>
           <Button variant="link">Ver no mapa</Button>
         </div>
-        <div className="scroll-x">
+        <div className="scroll-x" tabIndex={0} role="region" aria-label="Estados dos botões">
           <table className="w-full min-w-[40rem] border-collapse text-left">
             <caption className="sr-only">Estados de cada variante de botão</caption>
             <thead>
@@ -1092,13 +1095,12 @@ function StyleGuide() {
             {/* D-98: toda ferramenta do Estúdio está aberta. O estado indisponível
                 continua documentado, num rótulo que nenhuma ferramenta real usa. */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <ToolTile icon={<IconAudio />} label="Resumo em Áudio" tone="brand" onClick={() => {}} />
-              <ToolTile icon={<IconReport />} label="Relatórios" tone="warning" onClick={() => {}} />
-              <ToolTile icon={<IconCards />} label="Cartões didáticos" tone="danger" onClick={() => {}} />
+              <ToolTile icon={<IconAudio />} label="Resumo em Áudio" onClick={() => {}} />
+              <ToolTile icon={<IconReport />} label="Relatórios" onClick={() => {}} />
+              <ToolTile icon={<IconCards />} label="Cartões didáticos" onClick={() => {}} />
               <ToolTile
                 icon={<IconQuiz />}
                 label="Ferramenta de exemplo"
-                tone="info"
                 badge="Indisponível"
                 unavailable
                 description="Exemplo do estado indisponível."

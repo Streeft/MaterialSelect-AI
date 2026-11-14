@@ -8,7 +8,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
-import type { LoadCase, SolveRequest, SolveResult } from "@/lib/types";
+import { encodeUrlJson } from "@/lib/urlState";
+import { suggestText } from "@/lib/i18n-suggest";
+import { installWideViewport } from "@/lib/testing/viewport";
+import type { LoadCase, SolveRequest, SolveResult, SuggestionsOut } from "@/lib/types";
 
 const t = ptBR.solver;
 
@@ -123,7 +126,11 @@ vi.mock("next/navigation", () => ({
 
 const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
 
+const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
+
 vi.mock("@/lib/api", () => ({
+  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
+  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
   listLoadCases: () => Promise.resolve([beam]),
   solveBrief: (payload: SolveRequest) => solveBrief(payload),
@@ -469,6 +476,25 @@ describe("Dimensionar", () => {
     expect(screen.getByText(t.diagram.caption)).toBeInTheDocument();
   });
 
+  it("os candidatos vão para a Seleção como lista, sem violação de acessibilidade (D-232)", async () => {
+    solveBrief.mockResolvedValue({
+      ...result,
+      solved: [
+        ...result.solved,
+        { ...result.solved[0]!, record_id: 3, name: "Aço 1020", rank: 2, objective_value: 0.9 },
+      ],
+    });
+    const user = userEvent.setup();
+    await chooseBeam();
+    await user.type(await screen.findByShadowLabelText(/Comprimento/), "0.8");
+    await user.type(await screen.findByShadowLabelText(/Rigidez exigida/), "200000");
+
+    const link = await screen.findByRole("link", { name: t.openCandidatesInSelection(2) });
+    expect(link).toHaveAttribute("href", "/app/selecao?etapa=restricoes&materiais=1,3");
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
+
   it("desenha o resultado em barras, com a tabela de origem e o link para comparar", async () => {
     solveBrief.mockResolvedValue({
       ...result,
@@ -492,10 +518,156 @@ describe("Dimensionar", () => {
       "1. Alumínio 6061: 0,402 kg",
       "2. Aço 1020: 0,9 kg",
     ]);
-    // The candidates go to Comparar, which takes a list of ids (Seleção does not).
+    // The candidates go to Comparar, and (D-232) to the Selection as a list stage.
     expect(screen.getByRole("link", { name: t.compareBest(2) })).toHaveAttribute(
       "href",
       expect.stringMatching(/^\/app\/comparar\?materiais=/),
     );
+    const toSelection = screen.getByRole("link", { name: t.openCandidatesInSelection(2) });
+    expect(toSelection).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/app\/selecao\?etapa=restricoes&materiais=\d+,\d+$/),
+    );
+    // Same ids, same order as the comparison: the shortlist is one thing.
+    const comparar = screen.getByRole("link", { name: t.compareBest(2) }).getAttribute("href");
+    expect(toSelection.getAttribute("href")?.split("materiais=")[1]).toBe(
+      comparar?.split("materiais=")[1],
+    );
   });
+});
+
+describe("Dimensionar — Sugestão da IA (D-230b)", () => {
+  installWideViewport();
+  const answer: SuggestionsOut = {
+    tool: "dimensionar",
+    summary: "Três ideias para o dimensionamento.",
+    suggestions: [
+      {
+        title: "Otimize por custo",
+        body: "O mesmo caso, com o objetivo de custo, pode mudar o ranking.",
+        actions: [
+          { type: "set_param", label: "objetivo: custo", name: "objective", value: "custo" },
+          { type: "set_param", label: "objetivo: tempo", name: "objective", value: "tempo" },
+        ],
+      },
+      {
+        title: "Teste um vão menor",
+        body: "Um vão menor reduz a massa.",
+        actions: [
+          { type: "set_param", label: "comprimento: 0,5", name: "inputs.comprimento", value: 0.5 },
+          { type: "set_param", label: "apoio: 12", name: "inputs.constante_apoio", value: 12 },
+          { type: "set_param", label: "variável sem campo", name: "inputs.largura", value: 3 },
+        ],
+      },
+      {
+        title: "Compare os primeiros",
+        body: "Lado a lado, com todas as propriedades.",
+        actions: [
+          { type: "compare", label: "Comparar 2 materiais", ids: [1, 3] },
+          { type: "open_route", label: "Ver o Alumínio 6061", path: "/app/materiais/1" },
+        ],
+      },
+    ],
+    rejected: [],
+    degraded: false,
+    cached: false,
+    notice: null,
+    provider: "mock",
+    simulated: true,
+    disclaimer: "",
+  };
+
+  function openWithBrief() {
+    window.history.replaceState(
+      null,
+      "",
+      `/app/dimensionar?caso=viga-rigidez&entradas=${encodeUrlJson({ comprimento: "0.8", rigidez: "200000", constante_apoio: "48" })}`,
+    );
+  }
+
+  beforeEach(() => {
+    suggest.fn.mockReset();
+    suggest.fn.mockResolvedValue(answer);
+  });
+
+  async function ask() {
+    const user = userEvent.setup();
+    openWithBrief();
+    render(wrap(<SolverPage />));
+    await screen.findByRole("heading", { name: t.inputsStep });
+    await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Otimize por custo");
+    return user;
+  }
+
+  it("só consulta ao clicar, com o mesmo pedido que a rota de dimensionamento recebe", async () => {
+    const user = userEvent.setup();
+    openWithBrief();
+    render(wrap(<SolverPage />));
+    await screen.findByRole("heading", { name: t.inputsStep });
+    await waitFor(() => expect(solveBrief).toHaveBeenCalledTimes(1));
+    expect(suggest.fn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Otimize por custo");
+    expect(suggest.fn).toHaveBeenCalledTimes(1);
+    expect(suggest.fn).toHaveBeenCalledWith("dimensionar", { request: solveBrief.mock.calls[0]![0] });
+  });
+
+  it("o objetivo e uma entrada sugeridos mudam o endereço, o campo e o pedido", async () => {
+    const user = await ask();
+    // An objective the screen does not know, a support value the case does not
+    // list and a variable it does not have are not buttons.
+    expect(screen.queryByRole("button", { name: "objetivo: tempo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "apoio: 12" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "variável sem campo" })).toBeNull();
+    expect(new URLSearchParams(window.location.search).get("objetivo")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "objetivo: custo" }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("objetivo")).toBe("custo"));
+    const objective = screen.getByShadowRole("combobox", { name: t.objectiveLabel });
+    expect(objective).toHaveValue("custo");
+    await waitFor(() => expect(objective).toHaveAttribute("data-ai-changed", "true"));
+    await waitFor(() => expect(solveBrief.mock.calls.at(-1)![0]).toMatchObject({ objective: "custo" }));
+
+    await user.click(screen.getByRole("button", { name: "comprimento: 0,5" }));
+    const length = screen.getByShadowRole("spinbutton", { name: "Comprimento (m)" });
+    await waitFor(() => expect(length).toHaveValue(0.5));
+    await waitFor(() =>
+      expect(solveBrief.mock.calls.at(-1)![0]).toMatchObject({
+        inputs: { comprimento: 0.5, rigidez: 200000, constante_apoio: 48 },
+      }),
+    );
+  });
+
+  it("comparar abre /app/comparar com os ids, como um link; a rota também", async () => {
+    await ask();
+    expect(screen.getByRole("link", { name: "Comparar 2 materiais" })).toHaveAttribute(
+      "href",
+      "/app/comparar?materiais=1,3",
+    );
+    expect(screen.getByRole("link", { name: "Ver o Alumínio 6061" })).toHaveAttribute(
+      "href",
+      "/app/materiais/1",
+    );
+  });
+
+  it("falta um número de projeto: o botão fica desligado e nada é perguntado", async () => {
+    render(wrap(<SolverPage />));
+    await screen.findByRole("heading", { name: t.inputsStep });
+    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
+    expect(suggest.fn).not.toHaveBeenCalled();
+  });
+
+  it("não tem violação de acessibilidade com o painel aberto", async () => {
+    const user = userEvent.setup();
+    openWithBrief();
+    const { container } = render(wrap(<SolverPage />));
+    await screen.findByRole("heading", { name: t.inputsStep });
+    await user.click(screen.getByRole("button", { name: suggestText.button }));
+    await screen.findByText("Otimize por custo");
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, 30_000);
 });

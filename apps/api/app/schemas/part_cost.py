@@ -95,3 +95,48 @@ class CostResultOut(BaseModel):
     costed: list[CostedProcessOut]
     uncosted: list[UncostedProcessOut]
     domain: CostDomainOut | None = None
+
+
+class CostCurvesRequest(BaseModel):
+    """The materials of a comparison, priced with one part, batch and premises."""
+
+    material_ids: list[int] = Field(min_length=1, max_length=5)
+    part_mass: float = Field(gt=0, le=1e6)
+    batch_size: float = Field(ge=1, le=1e9)
+    write_off_years: float = Field(default=DEFAULT_WRITE_OFF_YEARS, gt=0, le=100)
+    load_factor: float = Field(default=DEFAULT_LOAD_FACTOR, gt=0, le=1)
+
+
+class MaterialCurvePointOut(BaseModel):
+    """The cheapest way of making the part at one batch size (D-234)."""
+
+    batch_size: float
+    cost: float
+    process_id: int
+    process_slug: str
+    process_name: str
+
+
+class MaterialCostCurveOut(BaseModel):
+    """One material's cost × batch curve: the lower envelope of its processes.
+
+    ``points`` is empty, and ``reason`` says why in words, when the material
+    could not be priced (no cost per mass, no process with the economic data, or
+    not visible to the reader). ``current`` is the point of ``points`` at the
+    batch the reader asked for — the marker on the figure.
+    """
+
+    material_id: int
+    material_name: str | None = None
+    points: list[MaterialCurvePointOut] = Field(default_factory=list)
+    current: MaterialCurvePointOut | None = None
+    reason: str | None = None
+
+
+class CostCurvesOut(BaseModel):
+    """Every compared material's curve, framed by one log-log domain (ADR 0004)."""
+
+    batch_size: float
+    curves: list[MaterialCostCurveOut]
+    domain: CostDomainOut | None = None
+    monetary_unit_note: str = MONETARY_UNIT_NOTE

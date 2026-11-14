@@ -49,10 +49,18 @@ primary_region = "gru"
   auto_start_machines = true
   min_machines_running = 1
 
+  # Quantas requisições o proxy do Fly entrega de uma vez a esta máquina
+  # (D-231). Eram 40/60, e nenhuma máquina de 1 GB aguenta 60 telas pesadas
+  # juntas: com o catálogo de 678 materiais, oito requisições simultâneas
+  # levaram o processo a 1,6 GB na medição local. Acima de `hard_limit` o
+  # proxy segura a requisição na fila em vez de entregá-la; abaixo dele, o
+  # portão do app (HEAVY_REQUEST_CONCURRENCY, 2 por padrão) deixa só duas
+  # pesadas rodarem juntas. Uma tela abre com até ~6 pedidos paralelos, e
+  # 8 deixa uma tela inteira passar enquanto a próxima espera.
   [http_service.concurrency]
     type = "requests"
-    soft_limit = 40
-    hard_limit = 60
+    soft_limit = 5
+    hard_limit = 8
 
   # `/api/health` é público de propósito (fica fora do portão de assinatura,
   # ver app/main.py): é o que o balanceador consulta, e ele não tem sessão.
@@ -63,6 +71,12 @@ primary_region = "gru"
     method = "GET"
     path = "/api/health"
 
+# 1 GB desde o D-231. Com 512 MB a máquina única foi morta por falta de
+# memória (exit 137, quatro vezes em três minutos depois do deploy de
+# 13/11/26): o processo Python, com o catálogo de 678 materiais carregado
+# por requisição e algumas telas abertas ao mesmo tempo, passava do teto.
+# Um worker só, de propósito: mais workers multiplicam a memória.
+# Números medidos e o motivo em docs/13-deploy.md (§2, "Memória da VM").
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"

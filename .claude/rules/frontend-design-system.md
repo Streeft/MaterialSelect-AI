@@ -194,7 +194,15 @@ ficou sem objeto. Três regras que não são questão de gosto:
   como propriedades que levam ao passo; "Meus estudos" num `SidePeek`, nunca faixa na página); `Stepper compact` no celular. O mapa
   tem um inspetor de seções que dobram (`InspectorSection`), folha inferior padrão abaixo de `lg`; controle que só serve ao mouse
   leva `.ds-fine-pointer-only`. Pino e layout começam no aparelho (`lib/pinnedMaps.ts`) e só guardam id e nome — abrir pede ao
-  servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo.
+  servidor. Atalho de comparação acha o material pelo nome no catálogo e some quando um lado falta; nunca id fixo. O nome casa por palavra inteira, na classe do lado, e o que começa pelo termo vence ([D-230](docs/DECISIONS.md)).
+
+- **Blocos que a pessoa arruma ficam na conta** ([D-232b](docs/DECISIONS.md)): Início e Painel usam `LayoutBlocks` (escopo do
+  `saved_view`, linha `kind="layout"`); bloco sem conteúdo fica no lugar com uma linha (`emptyLabel`), nunca escondido. Favoritos
+  (estrela, conta) têm seção na barra lateral, distinta de Fixados (páginas, aparelho).
+
+- **Cadernos ([D-235b](docs/DECISIONS.md))**: modelos vêm de `GET /api/notebooks/templates` (nunca uma lista no React); a ordem das
+  notas é da conta (`PUT …/notes/order`, `Block` + `useReorder`); "/" num campo de nota é `SlashTextarea` (ficha entra como link,
+  nunca como valor copiado); `ToolTile` é monocromático — cor só para estado; aviso do provedor é chip no cabeçalho.
 
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de

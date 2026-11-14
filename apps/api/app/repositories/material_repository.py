@@ -35,6 +35,7 @@ from app.domain.search_query import (
 )
 from app.domain.text_fold import fold_accents
 from app.models.catalog import CatalogRecordRef
+from app.models.enums import DataQuality
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_composition import MaterialCompositionEntry
@@ -71,6 +72,25 @@ class SearchFacts:
     undetermined: int = 0
     #: Visible, active materials with no composition row at all.
     without_composition: int = 0
+
+
+@dataclass(slots=True)
+class ValueFacts:
+    """A material's values counted by provenance, without loading them (D-231).
+
+    The catalogue list shows these counts for every row; reading them from an
+    ORM object per stored value cost ~50 MB per listing with the full demo
+    catalogue. ``missing`` counts declared absences; the three qualities count
+    only present values, and ``references`` the present values citing a source
+    — the same rules as ``_summarise_quality`` and ``_reference_count`` in the
+    material service.
+    """
+
+    medido: int = 0
+    importado: int = 0
+    estimado: int = 0
+    missing: int = 0
+    references: int = 0
 
 
 def _code_exists(*conditions: ColumnElement[bool]) -> ColumnElement[bool]:
@@ -183,7 +203,11 @@ class MaterialRepository:
         return self.search_materials(search, com_referencia=com_referencia)[0]
 
     def search_materials(
-        self, search: str | None = None, com_referencia: bool = False
+        self,
+        search: str | None = None,
+        com_referencia: bool = False,
+        *,
+        with_values: bool = True,
     ) -> tuple[list[Material], SearchFacts]:
         """Active materials matching a query (D-55, D-105), with what the search knows.
 
@@ -193,15 +217,21 @@ class MaterialRepository:
         present, results are ranked by relevance (exact match > prefix >
         substring > class/keyword match; an exact designation code weighs as
         much as an exact name). Uses parameterised queries only.
+
+        ``with_values=False`` leaves ``property_values`` unloaded (D-231): the
+        catalogue listing asks for :meth:`value_facts` and :meth:`sort_values`
+        instead, and must not touch the collection (it would load per row).
         """
-        stmt = self._catalogue().options(
+        loaders = [
             joinedload(Material.material_class),
             # One extra query for the whole page, so the catalogue can state
-            # each material's data quality and designations. Reaching the same
-            # collections lazily would be one query per row.
-            selectinload(Material.property_values),
+            # each material's designations. Reaching the same collection lazily
+            # would be one query per row.
             selectinload(Material.designations),
-        )
+        ]
+        if with_values:
+            loaders.append(selectinload(Material.property_values))
+        stmt = self._catalogue().options(*loaders)
         has_reference_cond = exists(
             select(MaterialPropertyValue.id).where(
                 MaterialPropertyValue.material_id == Material.id,
@@ -240,6 +270,69 @@ class MaterialRepository:
         else:
             stmt = stmt.order_by(Material.name)
         return list(self.db.execute(stmt).scalars().unique().all()), facts
+
+    def value_facts(self, material_ids: list[int]) -> dict[int, ValueFacts]:
+        """Provenance counts per material, aggregated in the database (D-231).
+
+        A material without any value row is absent from the result; the caller
+        reads that as all zeros, which is what counting an empty collection gave.
+        """
+        if not material_ids:
+            return {}
+        present = MaterialPropertyValue.is_missing.is_(False)
+
+        def tally(condition: ColumnElement[bool]):
+            return func.coalesce(func.sum(case((condition, 1), else_=0)), 0)
+
+        stmt = (
+            select(
+                MaterialPropertyValue.material_id,
+                tally(present & (MaterialPropertyValue.data_quality == DataQuality.MEDIDO)),
+                tally(present & (MaterialPropertyValue.data_quality == DataQuality.IMPORTADO)),
+                tally(
+                    present
+                    & MaterialPropertyValue.data_quality.not_in(
+                        [DataQuality.MEDIDO, DataQuality.IMPORTADO]
+                    )
+                ),
+                tally(MaterialPropertyValue.is_missing.is_(True)),
+                tally(present & MaterialPropertyValue.source_id.is_not(None)),
+            )
+            .where(MaterialPropertyValue.material_id.in_(material_ids))
+            .group_by(MaterialPropertyValue.material_id)
+        )
+        return {
+            row[0]: ValueFacts(
+                medido=int(row[1]),
+                importado=int(row[2]),
+                estimado=int(row[3]),
+                missing=int(row[4]),
+                references=int(row[5]),
+            )
+            for row in self.db.execute(stmt).all()
+        }
+
+    def sort_values(
+        self, material_ids: list[int], property_slug: str
+    ) -> dict[int, tuple[bool, float | None]]:
+        """``material_id → (is_missing, normalized_value)`` for one property (D-231).
+
+        Only materials holding a row for the property appear: no row and a
+        declared absence stay two different answers, as on the catalogue.
+        """
+        if not material_ids:
+            return {}
+        stmt = (
+            select(
+                MaterialPropertyValue.material_id,
+                MaterialPropertyValue.is_missing,
+                MaterialPropertyValue.normalized_value,
+            )
+            .join(PropertyDefinition, PropertyDefinition.id == MaterialPropertyValue.property_id)
+            .where(PropertyDefinition.slug == property_slug)
+            .where(MaterialPropertyValue.material_id.in_(material_ids))
+        )
+        return {row[0]: (bool(row[1]), row[2]) for row in self.db.execute(stmt).all()}
 
     def _tally_composition(
         self, conditions: list[CompositionCondition], facts: SearchFacts

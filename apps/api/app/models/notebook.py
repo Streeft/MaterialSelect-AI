@@ -97,7 +97,7 @@ class Notebook(Base):
         back_populates="notebook",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        order_by="NotebookNote.id",
+        order_by="(NotebookNote.position, NotebookNote.id)",
     )
     artifacts: Mapped[list[StudioArtifact]] = relationship(
         back_populates="notebook",
@@ -177,6 +177,12 @@ class NotebookChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     #: Folded for matching (see app/knowledge/lexical.py); never shown.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    #: Where the passage sits in the source's ``content`` (D-233): the half-open
+    #: interval ``[char_start, char_end)``, so the reader marks it by position.
+    #: NULL for a passage stored before D-233 — never a guessed position; the
+    #: reader then looks the excerpt up by words, as before.
+    char_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    char_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     source: Mapped[NotebookSource] = relationship(back_populates="chunks")
     embedding: Mapped[NotebookEmbedding | None] = relationship(
@@ -238,6 +244,9 @@ class NotebookNote(Base):
     origin: Mapped[str] = mapped_column(String(12), default="manual", nullable=False)
     #: The passages a saved answer cited, copied with it.
     citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    #: D-235b: where the student put the note among the others (0-based); ties
+    #: fall back to the id, the order notes had before positions existed.
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow

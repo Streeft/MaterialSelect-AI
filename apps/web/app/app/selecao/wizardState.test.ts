@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { StudyDetail, StudyTemplate } from "@/lib/types";
+import { toStagePayload, type StageState } from "@/components/selection/StageList";
+import { MAX_LIST_MATERIALS } from "@/lib/selectionList";
+import { makeComponent } from "@/lib/testing/planFixtures";
 import {
   initialWizardState,
   snapshotOf,
+  stateFromPlanComponent,
   stateFromStudy,
   stateFromTemplate,
   wizardReducer,
@@ -77,6 +81,65 @@ describe("estado do assistente (D-210)", () => {
     expect(start({ universo: "process" })).toMatchObject({ universe: "process", advFunction: true });
   });
 
+  it("opens restricted to the materials of ?materiais= (D-232), with a limit stage after the list", () => {
+    const state = start({ materiais: "1-3,7,2" });
+    expect(state.stages.map((s) => s.kind)).toEqual(["list", "limit"]);
+    const listed = state.stages[0];
+    // Ranges expanded, repeats kept once, the order the link gave.
+    if (listed?.kind === "list") expect(listed.materialIds).toEqual([1, 2, 3, 7]);
+    expect(toStagePayload(listed as StageState)).toMatchObject({
+      kind: "list",
+      material_ids: [1, 2, 3, 7],
+    });
+  });
+
+  it("caps the list at what the API takes and ignores a malformed ?materiais=", () => {
+    const many = start({ materiais: "1-500" }).stages[0];
+    if (many?.kind === "list") expect(many.materialIds).toHaveLength(MAX_LIST_MATERIALS);
+    expect(start({ materiais: "abc,-4" }).stages.map((s) => s.kind)).toEqual(["limit"]);
+  });
+
+  it("does not hand a list of materials to a process study", () => {
+    const state = start({ materiais: "1,2", universo: "process" });
+    expect(state.stages.map((s) => s.kind)).toEqual(["limit"]);
+  });
+
+  it("reopens a saved list stage with its ids", () => {
+    const state = stateFromStudy(start(), {
+      name: "Estudo",
+      function_text: null,
+      objective_text: null,
+      free_variables: [],
+      universe: "material",
+      combinator: "AND",
+      constraints: [],
+      root_group: null,
+      stages: [
+        {
+          position: 0,
+          kind: "list",
+          label: "Do mapa",
+          enabled: true,
+          root_group: null,
+          class_slugs: [],
+          process_slugs: [],
+          process_class_slugs: [],
+          material_class_slugs: [],
+          chart: null,
+          material_ids: [5, 9],
+          include_descendants: true,
+        },
+      ],
+      index: null,
+      normalization: "minmax",
+      method: "weighted_sum",
+      criteria: [],
+      notes: null,
+      created_at: "2026-11-12T00:00:00Z",
+    } as unknown as StudyDetail);
+    expect(state.stages[0]).toMatchObject({ kind: "list", label: "Do mapa", materialIds: [5, 9] });
+  });
+
   it("starts the pipeline and the objective over when the universe changes", () => {
     let state = wizardReducer(start(), { type: "indexMode", mode: "custom" });
     state = wizardReducer(state, { type: "customExpression", expression: "densidade" });
@@ -110,26 +173,49 @@ describe("estado do assistente (D-210)", () => {
     expect(state.criteria[0]?.weight).toBe("0,5");
   });
 
-  it("appends accepted suggestions to the first limit stage, never replacing it", () => {
-    const state = wizardReducer(start(), {
-      type: "suggestions",
-      accepted: {
-        functionText: "Mola",
-        objectiveText: null,
-        freeVariables: ["diâmetro"],
-        constraints: [
-          { constraint: { operator: "gte", property_slug: "modulo_young", value: 70, unit: "GPa" } },
-        ] as never,
-        index: null,
-      },
-    });
-    expect(state.functionText).toBe("Mola");
-    expect(state.freeVariables).toBe("diâmetro");
+  it("applies a plan part (D-225): function, objective, index and applied limits, appended to the first limit stage", () => {
+    const component = makeComponent();
+    const state = wizardReducer(start(), { type: "plan", component });
+    expect(state.functionText).toBe("Camada externa de roupa de esqui");
+    expect(state.objectiveText).toBe("Mínima massa com resistência ao frio");
+    expect(state.indexMode).toBe("viga-leve-rigidez");
+    expect(state.indexGoal).toBe("maximize");
+    expect(state.criteria.map((c) => c.key)).toEqual(["__index__"]);
     const stage = state.stages[0];
+    // The blank row the new study opened with is dropped, the plan's limits stay.
     expect(stage?.kind === "limit" && stage.group.constraints.map((c) => c.property_slug)).toEqual([
-      "",
-      "modulo_young",
+      "temperatura_servico_min",
+      "temperatura_servico_max",
     ]);
+  });
+
+  it("never applies an AI suggestion the person did not confirm, and does not repeat a limit", () => {
+    const component = makeComponent();
+    const once = wizardReducer(start(), { type: "plan", component });
+    const twice = wizardReducer(once, { type: "plan", component });
+    const stage = twice.stages[0];
+    const slugs = stage?.kind === "limit" ? stage.group.constraints.map((c) => c.property_slug) : [];
+    expect(slugs).not.toContain("densidade");
+    expect(slugs).toHaveLength(2);
+  });
+
+  it("keeps what the reader already wrote when the part brings no text of its own", () => {
+    const written = wizardReducer(start(), { type: "text", field: "functionText", value: "Minha função" });
+    const state = wizardReducer(written, {
+      type: "plan",
+      component: makeComponent({ function_text: "", objective_text: "" }),
+    });
+    expect(state.functionText).toBe("Minha função");
+  });
+
+  it("opens a plan part as a whole study for the draft the home writes", () => {
+    const state = stateFromPlanComponent(start(), makeComponent());
+    expect(state.name).toBe("Camada externa");
+    expect(state.indexMode).toBe("viga-leve-rigidez");
+    expect(state.customExpression).toBe("");
+    expect(state.indexConfirmed).toBe(true);
+    const stage = state.stages[0];
+    expect(stage?.kind === "limit" && stage.group.constraints).toHaveLength(2);
   });
 
   it("restores a snapshot and reopens the advanced options that hide what is in use", () => {
