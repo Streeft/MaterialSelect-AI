@@ -17,6 +17,7 @@ from app.schemas.material_class import (
     MaterialClassDetailOut,
     MaterialClassIn,
     MaterialClassOut,
+    MaterialClassPatch,
 )
 from app.services.audit_service import diff_fields, record_change
 
@@ -144,21 +145,33 @@ class TaxonomyService:
         self.repo.commit()
         return self._to_out(obj, self.repo.material_count(class_id))
 
-    def move_class(self, class_id: int, parent_id: int | None) -> MaterialClassOut:
-        """Change only the parent of a class (D-233).
+    def patch_class(self, class_id: int, payload: MaterialClassPatch) -> MaterialClassOut:
+        """Apply only the fields sent: the parent (a move, D-233), the name and the
+        description (D-238). A move into the class itself or into one of its
+        descendants would close a cycle and is refused (the whole subtree travels
+        with the class, so those are the only impossible targets).
 
-        Unlike ``update_class`` this leaves the name, the slug, the description
-        and the family prose alone, so a client that only knows where the folder
-        should go cannot wipe them. A move into the class itself or into one of
-        its descendants would close a cycle and is refused (the whole subtree
-        travels with the class, so those are the only impossible targets).
+        Unlike ``update_class`` this never touches the slug (the class's address,
+        in links and saved views) nor the family prose, so a client that only
+        edits a cell cannot wipe them. A name another class already has is a 409, as in ``update_class``;
+        a blank description is stored as none.
         """
+        sent = payload.model_fields_set
         obj = self.repo.get(class_id)
         if obj is None:
             raise NotFoundError(f"Classe não encontrada: {class_id}")
         before = self._snapshot(obj)
-        self._validate_parent(parent_id, class_id=class_id)
-        obj.parent_id = parent_id
+        if "parent_id" in sent:
+            self._validate_parent(payload.parent_id, class_id=class_id)
+            obj.parent_id = payload.parent_id
+        if "name" in sent and payload.name is not None:
+            name = payload.name.strip()
+            if self.repo.name_exists(name, exclude_id=class_id):
+                raise ConflictError(f"Já existe uma classe com o nome: {name}")
+            obj.name = name
+        if "description" in sent:
+            text = (payload.description or "").strip()
+            obj.description = text or None
         changes = diff_fields(before, self._snapshot(obj))
         if changes:
             record_change(

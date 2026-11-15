@@ -97,6 +97,8 @@ test("Admin: a sugestão preenche a descrição e não grava nada", async ({ pag
   });
   await page.goto("/app/admin/classes");
   await expect(page.getByRole("heading", { name: "Classes de materiais" })).toBeVisible({ timeout: 45_000 });
+  // D-238: the creation form (and its suggestion) is behind "Nova classe".
+  await page.getByRole("button", { name: "Nova classe" }).click();
   const open = page.getByRole("button", { name: "Sugestão da IA" });
   // Without a name there is nothing to suggest about.
   await expect(open).toBeDisabled();

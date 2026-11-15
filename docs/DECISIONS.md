@@ -14046,3 +14046,47 @@ Conta como diálogo (é uma página de leitura, com endereço próprio).
 
 **Numeração.** D-236b, Sessão 193b: a `main` recebeu a D-236/Sessão 193 da parte 18 dos fluxos (#260) antes deste PR, e pela regra do D-226 (item 4) o mais novo ganha o sufixo. Toca `apps/api` sem migração (um campo a mais na resposta de
 `/dashboard/activity`): depois do merge, **Deploy da API**.
+
+---
+
+## D-238 — F9 da revisão das telas: Classes e Propriedades como tabelas editáveis, árvore que dobra e busca
+
+**Contexto.** A última fase do plano ("Administração") pedia Classes e Propriedades como tabelas editáveis, com árvore e busca. As duas
+telas abriam com um formulário de criação sempre aberto em cima da tabela; nome e descrição de uma classe só mudavam pelo `PUT`, que
+recalcula o slug a partir do nome e apaga a prosa da família (por isso o D-233 criou um `PATCH` só para mover); e uma lista de 48
+propriedades não tinha busca nem filtro.
+
+**Decisão.**
+- **`PATCH /api/classes/{id}` também renomeia e descreve.** `MaterialClassPatch` aceita `parent_id`, `name` e `description`, aplica
+  só os enviados e recusa o corpo vazio (422), o nome em branco (422) e o nome de outra classe (409). O **slug nunca muda** — é o
+  endereço da classe, em links e visões salvas — nem a prosa da família. Descrição em branco vira nenhuma. Tudo vai para a trilha de
+  auditoria, como o movimento. Isso revoga a parte do D-233 que ignorava um nome no `PATCH`: o motivo era não abrir um segundo
+  caminho para o `PUT` que apaga a prosa, e este caminho não apaga nada. `MaterialClassMove` e `move_class` saíram (`patch_class`
+  cobre os dois casos).
+- **Célula editável (`EditableText`, peça nova do DS).** O texto e um lápis ao lado (calmo no mouse, visível sempre no toque); o lápis
+  vira campo, Enter ou sair do campo salva, Esc desiste e devolve o foco ao lápis. Enquanto o servidor responde, o campo fica; uma
+  recusa aparece na célula com as palavras do servidor, e a célula nunca mostra um valor que o servidor não guardou. Na vitrine
+  `/app/estilo`.
+- **Classes.** Nome e descrição editáveis na linha (o `PATCH` acima); a árvore dobra por classe (botão com `aria-expanded`) e tem
+  "Expandir tudo"/"Recolher tudo"; a busca acha pelo nome, sem acento nem maiúscula, e mostra o caminho até cada achado (os
+  ancestrais aparecem esmaecidos, ditos ao leitor de tela). A lógica é pura e testada (`lib/admin/classTree.ts`). Arrastar e
+  "Mover para…" (D-233, D-236) seguem.
+- **Propriedades.** Busca pelo nome ou símbolo, `FilterBar` por categoria, ordem por nome no cabeçalho (`SortTh`) e o nome editável
+  na linha (o `PATCH` do D-233); descrição e unidade de leitura continuam no diálogo "Editar".
+- **Criação atrás de um botão.** "Nova classe"/"Nova propriedade" no cabeçalho abre o formulário (com a sugestão da IA); "Cancelar"
+  fecha. Um `primary` por tela: o do cabeçalho some enquanto o formulário, com o seu, está aberto.
+- **Busca e filtro no cliente.** As listas são de rótulos (dezenas de classes, 48 propriedades) e chegam inteiras; estreitar por
+  nome e ordenar pelo nome é a exceção que o D-131 já admite para coluna de texto. Nada medido é filtrado ou ordenado aqui.
+
+**De passagem.** O formulário de classe aceitava 2000 caracteres de descrição e o servidor recusava acima de 500; agora o campo para em
+500. `percent` passa a ser escrito `%` (`prettyUnit` e `pretty_unit`, os dois espelhos), como aparecia cru em Propriedades.
+
+**Fora.** Editar categoria, unidade canônica ou dimensão de uma propriedade na linha (mudariam o sentido de valores guardados; ficam
+fora do `PATCH` desde o D-233). Busca e filtro no servidor (quando o vocabulário passar de centenas de linhas).
+
+**Alternativas recusadas.** Usar o `PUT` para renomear (mudaria o slug e apagaria a prosa). Um endpoint só para renomear (dois
+`PATCH` para a mesma classe). Árvore como `treegrid` com navegação por setas (a tabela com botões de dobrar já é navegável e
+acessível, e o arrastar existente vive nas linhas).
+
+**Numeração.** D-238, Sessão 195 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+

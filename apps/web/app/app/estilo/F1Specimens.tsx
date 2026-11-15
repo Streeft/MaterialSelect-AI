@@ -10,6 +10,7 @@ import {
   Block,
   Button,
   DataQualityBadge,
+  EditableText,
   EmptyState,
   FilterBar,
   MenuItem,
@@ -33,6 +34,7 @@ export function F1Specimens() {
     <>
       <BlockSpecimen />
       <FilterSpecimen />
+      <EditableSpecimen />
       <DocSpecimen />
       <EmptySpecimen />
       <PeekSpecimen />
@@ -117,6 +119,37 @@ function FilterSpecimen() {
         onChange={(id, value) => setValues((v) => ({ ...v, [id]: value }))}
         onClear={() => setValues({ classe: null, qualidade: null, fonte: null })}
       />
+    </Section>
+  );
+}
+
+/** D-238: the cell of the Admin's tables that edits in place. */
+function EditableSpecimen() {
+  const [name, setName] = useState("Metais");
+  const [note, setNote] = useState("");
+  return (
+    <Section
+      title="Célula editável"
+      description="O lápis transforma a célula em campo: Enter ou sair do campo salva, Esc desiste. Quem decide é o servidor; uma recusa fica escrita na célula."
+      headingLevel={2}
+    >
+      <div className="flex flex-col gap-3">
+        <EditableText
+          value={name}
+          label="Nome"
+          itemName={name}
+          required
+          onSave={async (next) => setName(next)}
+        />
+        <EditableText
+          value={note}
+          label="Descrição"
+          itemName={name}
+          multiline
+          empty="Sem descrição"
+          onSave={async (next) => setNote(next)}
+        />
+      </div>
     </Section>
   );
 }

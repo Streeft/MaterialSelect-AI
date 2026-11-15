@@ -594,7 +594,8 @@ A tela de "Meus registros" pede confirmação e usa `useUndoableDelete` (a chama
 
 **Citar fonte, mover classe, editar propriedade (D-233).** O texto ABNT é montado no backend (`app/domain/citation.py`) só com os
 campos de `source` que alguém registrou: parte ausente fica de fora, sem "s.d.", "[S. l.]" nem autor inventado. Mover uma classe
-é `PATCH /api/classes/{id}` com **só** `parent_id` (o `PUT` apagaria a prosa da família; ciclo é 400). Editar propriedade é
+é `PATCH /api/classes/{id}` com `parent_id` (o `PUT` apagaria a prosa da família; ciclo é 400); desde o D-238 o mesmo `PATCH`
+aceita `name` e `description`, só os campos enviados, e **nunca** muda o slug nem a prosa da família. Editar propriedade é
 `PATCH /api/properties/{id}` com nome, descrição e unidade de leitura — slug e dimensão não entram no corpo.
 
 **Editar fonte, arrastar classe, esvaziar o arquivo (D-236).** `PATCH /api/sources/{id}` (curador) leva só os seis campos da referência;

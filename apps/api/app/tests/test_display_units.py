@@ -360,6 +360,8 @@ def test_o_rotulo_traduz_as_escalas_de_temperatura_mas_o_trilho_nao():
 
     assert pretty_unit("degC") == "°C"
     assert pretty_unit("degF") == "°F"
+    # D-238: the Pint's "percent" is written as the sign.
+    assert pretty_unit("percent") == "%"
 
     _, method = to_canonical(25.0, "degC", "kelvin")
     assert method == "pint:degC->kelvin"
