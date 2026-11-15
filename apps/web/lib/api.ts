@@ -642,6 +642,21 @@ export function moveClass(id: number, parentId: number | null): Promise<Material
   });
 }
 
+/**
+ * D-238: edit a class from the Admin's table — any of parent, name and
+ * description, only the ones sent. The slug (the class's address) and the
+ * family prose never change here.
+ */
+export function patchClass(
+  id: number,
+  patch: { parent_id?: number | null; name?: string; description?: string | null },
+): Promise<MaterialClass> {
+  return request<MaterialClass>(`/api/classes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
 export function deleteClass(id: number): Promise<void> {
   return request<void>(`/api/classes/${id}`, { method: "DELETE" });
 }

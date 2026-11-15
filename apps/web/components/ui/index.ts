@@ -119,3 +119,4 @@ export { PageDoc } from "./PageDoc";
 export { SidePeek } from "./SidePeek";
 export { Workbench } from "./Workbench";
 export { SavedViewsBar, VIEW_KIND_LABEL, type ListViewKind } from "./SavedViewsBar";
+export { EditableText } from "./EditableText";

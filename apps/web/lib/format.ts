@@ -119,6 +119,8 @@ export function prettyUnit(unit: string | null): string {
       .replace(/\bhour\b/g, "h")
       .replace(/\bminute\b/g, "min")
       .replace(/\bsecond\b/g, "s")
+      // D-238: "percent" read as a word in Admin › Propriedades.
+      .replace(/\bpercent\b/g, "%")
       .replace(/\s*\*\*\s*3(?![\d.])/g, "³")
       .replace(/\s*\*\*\s*2(?![\d.])/g, "²")
       .replace(/\s*\*\*\s*/g, "^")

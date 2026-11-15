@@ -1,4 +1,4 @@
-"""Moving a class in the tree: ``PATCH /api/classes/{id}`` with ``parent_id`` only (D-233).
+"""Editing a class in the tree: ``PATCH /api/classes/{id}`` — the parent (D-233), the name and the description (D-238).
 
 The tree in the Admin is edited by moving a folder, and the existing ``PUT``
 cannot do that safely: it replaces the whole record, so a client that sends only
@@ -105,10 +105,13 @@ def test_an_unknown_parent_is_a_404_and_an_unknown_class_too(client):
 def test_the_body_must_say_where_to_move_it(client):
     a = _make(client, "Sem Corpo Mover")
     assert client.patch(f"/api/classes/{a['id']}", json={}).status_code == 422
-    # Only the parent is accepted: a name here would be a second way to rename.
+    # D-238: the same PATCH also renames, and still never the slug — the address
+    # stays, so links and saved views keep working (until D-238 a name here was ignored).
     resp = client.patch(f"/api/classes/{a['id']}", json={"parent_id": None, "name": "Outro"})
     assert resp.status_code == 200
-    assert client.get(f"/api/classes/{a['slug']}").json()["name"] == "Sem Corpo Mover"
+    record = client.get(f"/api/classes/{a['slug']}").json()
+    assert record["name"] == "Outro"
+    assert record["slug"] == a["slug"]
 
 
 def test_moving_to_where_it_already_is_changes_nothing_and_writes_no_event(client):
@@ -150,3 +153,54 @@ def test_a_reader_without_curator_rights_cannot_move(client):
         app.dependency_overrides.pop(can_edit_shared_catalog, None)
     assert resp.status_code == 403
     assert _parent_of(client, a["id"]) is None
+
+
+# --- D-238: the same PATCH renames and describes, never the slug -------------
+
+
+def test_renaming_keeps_the_slug_and_the_family_prose(client):
+    a = _make(client, "Antiga Renomear", description="Antes", applications="Usos")
+    resp = client.patch(f"/api/classes/{a['id']}", json={"name": "  Nova Renomear  "})
+    assert resp.status_code == 200, resp.text
+    record = client.get(f"/api/classes/{a['slug']}").json()
+    assert record["name"] == "Nova Renomear"
+    assert record["slug"] == a["slug"]
+    assert record["applications"] == "Usos"
+    assert record["description"] == "Antes"
+    assert record["parent_id"] is None
+
+
+def test_the_description_changes_alone_and_blank_clears_it(client):
+    a = _make(client, "Descrever Classe", description="Velha")
+    assert (
+        client.patch(f"/api/classes/{a['id']}", json={"description": "Nova"}).json()["description"]
+        == "Nova"
+    )
+    assert (
+        client.patch(f"/api/classes/{a['id']}", json={"description": "   "}).json()["description"]
+        is None
+    )
+
+
+def test_a_name_another_class_has_is_a_conflict(client):
+    _make(client, "Nome Ocupado")
+    b = _make(client, "Outro Nome")
+    resp = client.patch(f"/api/classes/{b['id']}", json={"name": "nome ocupado"})
+    assert resp.status_code == 409
+    assert "Já existe uma classe" in resp.json()["detail"]
+
+
+def test_a_blank_name_is_refused(client):
+    a = _make(client, "Nome Em Branco")
+    assert client.patch(f"/api/classes/{a['id']}", json={"name": "   "}).status_code == 422
+    assert client.patch(f"/api/classes/{a['id']}", json={"name": None}).status_code == 422
+
+
+def test_the_rename_is_in_the_audit_trail(client):
+    a = _make(client, "Auditar Nome")
+    client.patch(f"/api/classes/{a['id']}", json={"name": "Auditado Nome"})
+    events = client.get(
+        "/api/audit", params={"entity_type": "material_class", "entity_id": a["id"]}
+    ).json()
+    updated = next(e for e in events if e["action"] == "ATUALIZADO")
+    assert updated["changes"] == {"name": {"before": "Auditar Nome", "after": "Auditado Nome"}}

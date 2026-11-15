@@ -333,6 +333,7 @@ def pretty_unit(unit: str | None) -> str:
     - Replaces multiplication operator (``*``) with a middle dot (``·``);
     - Renders ``degC``/``degF`` as ``°C``/``°F``;
     - Renders ``hour``/``minute``/``second`` as ``h``/``min``/``s``;
+    - Renders ``percent`` as ``%``;
     - Renders ``dimensionless`` as an em-dash ``—``;
     - Returns an empty string if ``unit`` is None or empty.
     """
@@ -351,6 +352,8 @@ def pretty_unit(unit: str | None) -> str:
     s = re.sub(r"\bhour\b", "h", s)
     s = re.sub(r"\bminute\b", "min", s)
     s = re.sub(r"\bsecond\b", "s", s)
+    # D-238: "percent" as the Pint spells it read as a word in Admin › Propriedades.
+    s = re.sub(r"\bpercent\b", "%", s)
     s = re.sub(r"\s*\*\*\s*3(?![0-9.])", "³", s)
     s = re.sub(r"\s*\*\*\s*2(?![0-9.])", "²", s)
     s = re.sub(r"\s*\*\*\s*", "^", s)

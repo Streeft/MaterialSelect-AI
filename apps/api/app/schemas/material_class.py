@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class MaterialClassIn(BaseModel):
@@ -24,16 +24,29 @@ class MaterialClassIn(BaseModel):
     characteristics: str | None = Field(default=None, max_length=1000)
 
 
-class MaterialClassMove(BaseModel):
-    """Payload to move a class in the tree (D-233): only its parent.
+class MaterialClassPatch(BaseModel):
+    """Payload to edit a class from the Admin's tree: any of ``parent_id``,
+    ``name`` and ``description``, and only the ones sent (D-233 moved; D-238
+    also renames and describes).
 
-    ``parent_id`` is **required** and may be ``None`` — "to the root" is an
-    answer, and an empty body is not. The name, the slug and the family prose
-    are not here on purpose: a move that could also rename would be a second way
-    to run the ``PUT`` that wipes them.
+    Like the move (D-233) it never touches the slug — the class's address, in
+    links and saved views — nor the family prose, so editing a name in the
+    table cannot wipe the text a ``PUT`` would. An empty body is still refused:
+    there must be something to change. ``parent_id: null`` means "to the root",
+    and ``description: null`` (or blank) clears the description.
     """
 
-    parent_id: int | None
+    parent_id: int | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _something_to_change(self) -> MaterialClassPatch:
+        if not self.model_fields_set:
+            raise ValueError("Diga o que mudar: pai, nome ou descrição.")
+        if "name" in self.model_fields_set and (self.name is None or not self.name.strip()):
+            raise ValueError("O nome da classe não pode ficar vazio.")
+        return self
 
 
 class MaterialClassOut(BaseModel):

@@ -10,6 +10,7 @@ import type { SuggestionsOut } from "@/lib/types";
 
 const deleteClass = vi.fn().mockResolvedValue(undefined);
 const createClass = vi.fn().mockResolvedValue({});
+const patchClass = vi.fn().mockResolvedValue({});
 
 const CLASSES = [
   { id: 8, name: "Aços inox", slug: "acos-inox", parent_id: 7, description: null, material_count: 2 },
@@ -25,6 +26,7 @@ vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
   createClass: (p: unknown) => createClass(p),
   deleteClass: (id: number) => deleteClass(id),
+  patchClass: (id: number, patch: unknown) => patchClass(id, patch),
   listClasses: () => Promise.resolve(CLASSES),
 }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/admin/classes" }));
@@ -46,10 +48,17 @@ function setup() {
   return { user, ...view };
 }
 
+/** D-238: the creation form is behind "Nova classe" in the header. */
+async function openForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: ptBR.admin.newClassOpen }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   deleteClass.mockClear();
   createClass.mockClear();
+  patchClass.mockReset();
+  patchClass.mockResolvedValue({});
 });
 afterEach(() => vi.useRealTimers());
 
@@ -58,7 +67,7 @@ describe("admin/classes", () => {
     setup();
     const rows = await screen.findAllByRole("row");
     const names = rows.slice(1).map((r) => within(r).getAllByRole("rowheader")[0]?.textContent);
-    expect(names).toEqual(["Aços", "↳ Aços inox", "Polímeros"]);
+    expect(names).toEqual(["Aços", "↳Aços inox", "Polímeros"]);
     expect(within(rows[2] as HTMLElement).getByText("Aços", { selector: "td" })).toBeInTheDocument();
     expect(within(rows[1] as HTMLElement).getByText(ptBR.admin.rootClass)).toBeInTheDocument();
   });
@@ -100,6 +109,7 @@ describe("admin/classes", () => {
   it("valida no campo: nome vazio e nome repetido, sem enviar", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.click(screen.getByRole("button", { name: ptBR.admin.newClass }));
     expect(screen.getByText(ptBR.admin.errorNameRequired)).toBeInTheDocument();
     expect(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`))).toBeInvalid();
@@ -159,8 +169,9 @@ describe("admin/classes — Sugestão da IA (D-230b)", () => {
   });
 
   it("sem o nome o botão fica desligado e diz por quê; nada é perguntado", async () => {
-    setup();
+    const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
     expect(screen.getByText(suggestText.needsName)).toBeInTheDocument();
     expect(suggest.fn).not.toHaveBeenCalled();
@@ -169,6 +180,7 @@ describe("admin/classes — Sugestão da IA (D-230b)", () => {
   it("preenche a descrição sem gravar; quem grava é a pessoa, depois de ler", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Cerâmicas técnicas");
     expect(suggest.fn).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: suggestText.button }));
@@ -201,6 +213,7 @@ describe("admin/classes — Sugestão da IA (D-230b)", () => {
   it("a descrição já escrita vai no contexto, para a sugestão não a sobrescrever às cegas", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Cerâmicas técnicas");
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.description}`)), "Minha frase.");
     await user.click(screen.getByRole("button", { name: suggestText.button }));
@@ -214,6 +227,7 @@ describe("admin/classes — Sugestão da IA (D-230b)", () => {
   it("não tem violações de acessibilidade com o painel aberto", async () => {
     const { user, container } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Cerâmicas técnicas");
     await user.click(screen.getByRole("button", { name: suggestText.button }));
     await screen.findByRole("button", { name: "Preencher a descrição" });
@@ -221,3 +235,97 @@ describe("admin/classes — Sugestão da IA (D-230b)", () => {
     expect(violations, describeViolations(violations)).toHaveLength(0);
   }, 30_000);
 });
+
+describe("admin/classes — árvore editável (D-238)", () => {
+  const rowNames = () =>
+    screen
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => within(r).queryAllByRole("rowheader")[0]?.textContent);
+
+  it("o formulário de criação fica atrás de “Nova classe”", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    expect(screen.queryByLabelText(new RegExp(`^${ptBR.form.description}`))).toBeNull();
+    await openForm(user);
+    expect(screen.getByLabelText(new RegExp(`^${ptBR.form.description}`))).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: ptBR.admin.cancelCreate }));
+    expect(screen.queryByLabelText(new RegExp(`^${ptBR.form.description}`))).toBeNull();
+  });
+
+  it("recolhe e expande as subclasses, com o estado dito no botão", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    const fold = screen.getByRole("button", { name: ptBR.admin.collapseClass("Aços") });
+    expect(fold).toHaveAttribute("aria-expanded", "true");
+    await user.click(fold);
+    expect(rowNames()).toEqual(["Aços", "Polímeros"]);
+    const unfold = screen.getByRole("button", { name: ptBR.admin.expandClass("Aços") });
+    expect(unfold).toHaveAttribute("aria-expanded", "false");
+    await user.click(screen.getByRole("button", { name: ptBR.admin.expandAll }));
+    expect(rowNames()).toEqual(["Aços", "↳Aços inox", "Polímeros"]);
+  });
+
+  it("a busca acha sem acento, mostra o caminho e conta o que achou", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.type(screen.getByRole("searchbox", { name: new RegExp(ptBR.admin.searchClasses) }), "inox");
+    expect(rowNames()).toEqual(["Aços" + ptBR.admin.ancestorOfMatch, "↳Aços inox"]);
+    expect(screen.getByText(ptBR.admin.classesShown(1, 3))).toHaveAttribute("role", "status");
+    await user.clear(screen.getByRole("searchbox", { name: new RegExp(ptBR.admin.searchClasses) }));
+    await user.type(screen.getByRole("searchbox", { name: new RegExp(ptBR.admin.searchClasses) }), "ceramica");
+    expect(screen.getByText(ptBR.admin.noClassMatch("ceramica"))).toBeInTheDocument();
+  });
+
+  it("renomeia na própria linha: Enter grava pelo PATCH, Esc desiste", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Polímeros") }));
+    const field = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Polímeros") });
+    await user.clear(field);
+    await user.type(field, "Plásticos{Escape}");
+    expect(patchClass).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Polímeros") }));
+    const again = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Polímeros") });
+    await user.clear(again);
+    await user.type(again, "  Plásticos {Enter}");
+    expect(patchClass).toHaveBeenCalledWith(9, { name: "Plásticos" });
+  });
+
+  it("nome repetido é dito na célula e não vai ao servidor; recusa do servidor também", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Polímeros") }));
+    const field = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Polímeros") });
+    await user.clear(field);
+    await user.type(field, "aços{Enter}");
+    expect(screen.getByRole("alert")).toHaveTextContent(ptBR.admin.errorClassDuplicate);
+    expect(patchClass).not.toHaveBeenCalled();
+
+    patchClass.mockRejectedValueOnce(new Error("Já existe uma classe com o nome: Vidros"));
+    await user.clear(field);
+    await user.type(field, "Vidros{Enter}");
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    // Still editing: the cell never shows a name the server did not keep.
+    expect(screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Polímeros") })).toHaveValue("Vidros");
+  });
+
+  it("a descrição se edita na linha e, apagada, vai como nenhuma", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.admin.descriptionColumn, "Aços") }));
+    const field = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.admin.descriptionColumn, "Aços") });
+    await user.type(field, "Ligas de ferro e carbono.{Control>}{Enter}{/Control}");
+    expect(patchClass).toHaveBeenCalledWith(7, { description: "Ligas de ferro e carbono." });
+  });
+
+  it("não tem violações de acessibilidade editando uma célula", async () => {
+    const { user, container } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Aços") }));
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  }, 30_000);
+});
+

@@ -213,6 +213,28 @@ export const ptBR = {
     parentColumn: "Classe pai",
     rootClass: "raiz",
     subclassOf: (parent: string) => `Subclasse de ${parent}`,
+    // D-238: the tables edit in place, the tree folds, and a search narrows both.
+    newClassOpen: "Nova classe",
+    newPropertyOpen: "Nova propriedade",
+    cancelCreate: "Cancelar",
+    searchClasses: "Buscar classe",
+    searchProperties: "Buscar propriedade",
+    searchHint: "Pelo nome; acentos e maiúsculas não contam.",
+    classesShown: (shown: number, total: number) =>
+      shown === total ? `${total} classes` : `${shown} de ${total} classes`,
+    propertiesShown: (shown: number, total: number) =>
+      shown === total ? `${total} propriedades` : `${shown} de ${total} propriedades`,
+    noClassMatch: (query: string) => `Nenhuma classe com “${query}” no nome.`,
+    noPropertyMatch: "Nenhuma propriedade com esse nome nos filtros escolhidos.",
+    expandAll: "Expandir tudo",
+    collapseAll: "Recolher tudo",
+    expandClass: (name: string) => `Mostrar as subclasses de ${name}`,
+    collapseClass: (name: string) => `Esconder as subclasses de ${name}`,
+    descriptionColumn: "Descrição",
+    noDescription: "Sem descrição",
+    ancestorOfMatch: "Contém uma classe encontrada",
+    categoryFilter: "Categoria",
+    anyCategory: "Qualquer",
     treeHint: "A hierarquia das classes, da raiz para baixo. \"Mover para…\" troca a classe pai e leva as subclasses junto; nada mais muda.",
   },
   direction: {
@@ -3972,6 +3994,17 @@ export const ptBR = {
     loggingOut: "Saindo…",
   },
 
+  // D-238: a cell that edits in place (EditableText).
+  editable: {
+    edit: (what: string, item: string) => `Editar ${what.toLocaleLowerCase("pt-BR")}: ${item}`,
+    fieldLabel: (what: string, item: string) => `${what} de ${item}`,
+    hint: "Enter salva, Esc cancela.",
+    hintMultiline: "Ctrl + Enter ou sair do campo salva, Esc cancela.",
+    saved: (what: string, item: string) => `${what} de ${item} salvo.`,
+    failed: "Não foi possível salvar. Nada mudou.",
+    required: (what: string) => `${what} não pode ficar vazio.`,
+    empty: "Sem texto",
+  },
   // D-236b: Conta, inside the app — profile, access, today's AI use, Aparência, sair.
   account: {
     title: "Conta",

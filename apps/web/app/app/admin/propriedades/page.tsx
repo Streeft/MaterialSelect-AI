@@ -1,14 +1,16 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import {
   createProperty,
   deleteProperty,
   listProperties,
+  patchProperty,
 } from "@/lib/api";
+import { matchesQuery } from "@/lib/search";
 import { dimensionName } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import type { PropertyCategory, PropertyDefinition, SuggestAction } from "@/lib/types";
@@ -20,13 +22,16 @@ import {
   CardFooter,
   ConfirmDialog,
   Checkbox,
+  EditableText,
   ErrorState,
+  FilterBar,
   Input,
   LoadingState,
   PageHeader,
   RowHeader,
   Select,
   SelectOption,
+  SortTh,
   Textarea,
   TBody,
   THead,
@@ -43,6 +48,7 @@ import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { curadoriaText } from "@/lib/i18n-curadoria";
 import { EditPropertyDialog } from "@/components/admin/EditPropertyDialog";
+import { IconPlus } from "@/components/ui/icons";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
 const NAME_MAX = 120;
@@ -101,6 +107,7 @@ export default function PropertiesAdminPage() {
       setIsInterval(false);
       setError(null);
       setSubmitted(false);
+      setCreating(false);
       qc.invalidateQueries({ queryKey: ["properties"] });
     },
     onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
@@ -124,7 +131,29 @@ export default function PropertiesAdminPage() {
   // D-233: the property being edited (name, description, reading unit).
   const [editing, setEditing] = useState<PropertyDefinition | null>(null);
 
-  const properties: PropertyDefinition[] = data ?? [];
+  const properties: PropertyDefinition[] = useMemo(() => data ?? [], [data]);
+
+  // D-238: creating behind a button; a search, a category filter and the order by
+  // name narrow and arrange the list of labels (nothing measured is filtered or
+  // ranked here, D-131); the name is edited in its cell by the D-233 PATCH.
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<PropertyCategory | null>(null);
+  const [nameSort, setNameSort] = useState<"ascending" | "descending" | "none">("none");
+  const shown = useMemo(() => {
+    const kept = properties.filter(
+      (p) => (!categoryFilter || p.category === categoryFilter) && matchesQuery(query, p.name, p.symbol),
+    );
+    if (nameSort === "none") return kept;
+    const sign = nameSort === "ascending" ? 1 : -1;
+    return [...kept].sort((a, b) => sign * a.name.localeCompare(b.name, "pt-BR"));
+  }, [properties, categoryFilter, query, nameSort]);
+  const nextSort = () =>
+    setNameSort((s) => (s === "none" ? "ascending" : s === "ascending" ? "descending" : "none"));
+  const saveName = async (id: number, name: string) => {
+    await patchProperty(id, { name });
+    await qc.invalidateQueries({ queryKey: ["properties"] });
+  };
 
   const sameName = (a: string, b: string) =>
     a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
@@ -147,9 +176,20 @@ export default function PropertiesAdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={ptBR.admin.propertiesTitle} />
+      <PageHeader
+        title={ptBR.admin.propertiesTitle}
+        primaryAction={
+          creating ? undefined : (
+            <Button variant="primary" icon={<IconPlus />} onClick={() => setCreating(true)}>
+              {ptBR.admin.newPropertyOpen}
+            </Button>
+          )
+        }
+      />
       <CatalogReadOnlyNotice />
 
+      {creating ? (
+      <>
       <AISuggestPanel
         tool="admin_propriedades"
         // What the form holds now: the server reads the catalogue's properties itself.
@@ -233,9 +273,21 @@ export default function PropertiesAdminPage() {
             <Button type="submit" variant="primary" loading={create.isPending}>
               {ptBR.admin.newProperty}
             </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCreating(false);
+                setSubmitted(false);
+                setError(null);
+              }}
+            >
+              {ptBR.admin.cancelCreate}
+            </Button>
           </CardFooter>
         </Card>
       </form>
+      </>
+      ) : null}
 
       {error && (
         <Alert tone="danger" role="alert">
@@ -267,12 +319,39 @@ export default function PropertiesAdminPage() {
       <EditPropertyDialog property={editing} onClose={() => setEditing(null)} />
 
       {data && (
+        <>
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            type="search"
+            label={ptBR.admin.searchProperties}
+            hint={ptBR.admin.searchHint}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full max-w-sm"
+          />
+          <span role="status" className="pb-6 text-caption text-ink-muted">
+            {ptBR.admin.propertiesShown(shown.length, properties.length)}
+          </span>
+        </div>
+        <FilterBar
+          fields={[
+            {
+              id: "categoria",
+              label: ptBR.admin.categoryFilter,
+              pinned: true,
+              value: categoryFilter,
+              options: CATEGORIES.map((c) => ({ value: c, label: ptBR.categories[c] })),
+            },
+          ]}
+          onChange={(_id, value) => setCategoryFilter(value as PropertyCategory | null)}
+          onClear={() => setCategoryFilter(null)}
+        />
         <TableScroll label={ptBR.admin.propertiesTitle}>
           <Table>
             <TableCaption>{ptBR.admin.propertiesTitle}</TableCaption>
             <THead>
               <Tr>
-                <Th>{ptBR.form.name}</Th>
+                <SortTh label={ptBR.form.name} sort={nameSort} onSort={nextSort} />
                 <Th>{ptBR.admin.category}</Th>
                 <Th>{ptBR.admin.canonicalUnit}</Th>
                 <Th numeric>{ptBR.admin.valueCount}</Th>
@@ -282,13 +361,32 @@ export default function PropertiesAdminPage() {
               </Tr>
             </THead>
             <TBody>
-              {properties.map((p) => (
+              {shown.length === 0 ? (
+                <Tr>
+                  <Td colSpan={5} className="text-ink-muted">
+                    {ptBR.admin.noPropertyMatch}
+                  </Td>
+                </Tr>
+              ) : null}
+              {shown.map((p) => (
                 <Tr key={p.id}>
                   <RowHeader>
-                    {p.name}
-                    {p.symbol && (
-                      <span className="ml-1 text-ink-subtle">({p.symbol})</span>
-                    )}
+                    <EditableText
+                      value={p.name}
+                      label={ptBR.form.name}
+                      itemName={p.name}
+                      required
+                      maxLength={NAME_MAX}
+                      validate={(next) =>
+                        properties.some((o) => o.id !== p.id && sameName(o.name, next))
+                          ? ptBR.admin.errorPropertyDuplicate
+                          : undefined
+                      }
+                      onSave={(next) => saveName(p.id, next)}
+                    >
+                      {p.name}
+                      {p.symbol && <span className="ml-1 text-ink-subtle">({p.symbol})</span>}
+                    </EditableText>
                   </RowHeader>
                   <Td className="text-ink-muted">
                     {ptBR.categories[p.category]}
@@ -328,6 +426,7 @@ export default function PropertiesAdminPage() {
             </TBody>
           </Table>
         </TableScroll>
+        </>
       )}
     </div>
   );

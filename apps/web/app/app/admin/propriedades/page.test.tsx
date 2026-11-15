@@ -10,6 +10,7 @@ import type { SuggestionsOut } from "@/lib/types";
 
 const deleteProperty = vi.fn().mockResolvedValue(undefined);
 const createProperty = vi.fn().mockResolvedValue({});
+const patchProperty = vi.fn().mockResolvedValue({});
 
 const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
@@ -19,9 +20,12 @@ vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
   createProperty: (p: unknown) => createProperty(p),
   deleteProperty: (id: number) => deleteProperty(id),
+  patchProperty: (id: number, patch: unknown) => patchProperty(id, patch),
   listProperties: () =>
     Promise.resolve([
       { id: 1, name: "Densidade", slug: "densidade", category: "FISICA", canonical_unit: "kg/m**3", symbol: "ρ", value_count: 0 },
+      { id: 2, name: "Módulo de Young", slug: "modulo_young", category: "MECANICA", canonical_unit: "Pa", symbol: "E", value_count: 4 },
+      { id: 3, name: "Condutividade térmica", slug: "condutividade", category: "TERMICA", canonical_unit: "W/(m*K)", symbol: null, value_count: 0 },
     ]),
 }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/admin/propriedades" }));
@@ -41,10 +45,16 @@ function setup() {
   return { user, ...view };
 }
 
+/** D-238: the creation form is behind "Nova propriedade" in the header. */
+async function openForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: ptBR.admin.newPropertyOpen }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   deleteProperty.mockClear();
   createProperty.mockClear();
+  patchProperty.mockClear();
 });
 afterEach(() => vi.useRealTimers());
 
@@ -52,6 +62,7 @@ describe("admin/propriedades (D-222)", () => {
   it("valida nome, repetição e unidade no campo, sem enviar", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.click(screen.getByRole("button", { name: ptBR.admin.newProperty }));
     expect(screen.getByText(ptBR.admin.errorNameRequired)).toBeInTheDocument();
     expect(screen.getByText(ptBR.admin.errorUnitRequired)).toBeInTheDocument();
@@ -113,8 +124,9 @@ describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
   });
 
   it("sem o nome o botão fica desligado e diz por quê; nada é perguntado", async () => {
-    setup();
+    const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
     expect(screen.getByText(suggestText.needsName)).toBeInTheDocument();
     expect(suggest.fn).not.toHaveBeenCalled();
@@ -123,6 +135,7 @@ describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
   it("preenche a descrição sem gravar e manda a descrição ao servidor só quando a pessoa grava", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Resistividade elétrica");
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.admin.canonicalUnit}`)), "ohm*m");
     await user.click(screen.getByRole("button", { name: suggestText.button }));
@@ -156,6 +169,7 @@ describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
   it("sem descrição escrita, a propriedade segue sendo enviada sem ela, como antes", async () => {
     const { user } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Resistividade elétrica");
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.admin.canonicalUnit}`)), "ohm*m");
     await user.click(screen.getByRole("button", { name: ptBR.admin.newProperty }));
@@ -165,6 +179,7 @@ describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
   it("não tem violações de acessibilidade com o painel aberto", async () => {
     const { user, container } = setup();
     await screen.findAllByRole("row");
+    await openForm(user);
     await user.type(screen.getByLabelText(new RegExp(`^${ptBR.form.name}`)), "Resistividade elétrica");
     await user.click(screen.getByRole("button", { name: suggestText.button }));
     await screen.findByRole("button", { name: "Preencher a descrição" });
@@ -172,3 +187,47 @@ describe("admin/propriedades — Sugestão da IA (D-230b)", () => {
     expect(violations, describeViolations(violations)).toHaveLength(0);
   }, 30_000);
 });
+
+describe("admin/propriedades — tabela editável (D-238)", () => {
+  const rowNames = () =>
+    screen
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => within(r).queryAllByRole("rowheader")[0]?.textContent ?? "");
+
+  it("busca sem acento, filtra por categoria e ordena pelo nome", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    expect(rowNames()).toHaveLength(3);
+    await user.type(screen.getByRole("searchbox", { name: new RegExp(ptBR.admin.searchProperties) }), "modulo");
+    expect(rowNames()).toEqual(["Módulo de Young(E)"]);
+    expect(screen.getByText(ptBR.admin.propertiesShown(1, 3))).toHaveAttribute("role", "status");
+    await user.clear(screen.getByRole("searchbox", { name: new RegExp(ptBR.admin.searchProperties) }));
+
+    await user.click(screen.getByRole("columnheader", { name: ptBR.form.name }).querySelector("button")!);
+    expect(rowNames().map((n) => n.split("(")[0])).toEqual(["Condutividade térmica", "Densidade", "Módulo de Young"]);
+    expect(screen.getByRole("columnheader", { name: ptBR.form.name })).toHaveAttribute("aria-sort", "ascending");
+  });
+
+  it("renomeia na própria linha pelo PATCH da propriedade, sem tocar no resto", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Densidade") }));
+    const field = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Densidade") });
+    await user.clear(field);
+    await user.type(field, "Massa específica{Enter}");
+    expect(patchProperty).toHaveBeenCalledWith(1, { name: "Massa específica" });
+  });
+
+  it("nome repetido é dito na célula e não vai ao servidor", async () => {
+    const { user } = setup();
+    await screen.findAllByRole("row");
+    await user.click(screen.getByRole("button", { name: ptBR.editable.edit(ptBR.form.name, "Densidade") }));
+    const field = screen.getByRole("textbox", { name: ptBR.editable.fieldLabel(ptBR.form.name, "Densidade") });
+    await user.clear(field);
+    await user.type(field, "módulo de young{Enter}");
+    expect(screen.getByRole("alert")).toHaveTextContent(ptBR.admin.errorPropertyDuplicate);
+    expect(patchProperty).not.toHaveBeenCalled();
+  });
+});
+

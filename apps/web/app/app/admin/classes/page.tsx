@@ -1,9 +1,9 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createClass, deleteClass, listClasses, moveClass } from "@/lib/api";
+import { createClass, deleteClass, listClasses, moveClass, patchClass } from "@/lib/api";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
 import { ptBR } from "@/lib/i18n";
 import type { MaterialClass, SuggestAction } from "@/lib/types";
@@ -14,7 +14,9 @@ import {
   CardBody,
   CardFooter,
   ConfirmDialog,
+  EditableText,
   ErrorState,
+  IconButton,
   Input,
   LoadingState,
   PageHeader,
@@ -39,38 +41,19 @@ import { curadoriaText } from "@/lib/i18n-curadoria";
 import { MoveClassDialog } from "@/components/admin/MoveClassDialog";
 import { useClassDrag, type DropTarget } from "@/components/admin/useClassDrag";
 import { useOptionalSnackbar } from "@/components/ui/Snackbar";
-import { IconGrip } from "@/components/ui/icons";
+import { IconChevronDown, IconChevronRight, IconGrip, IconPlus } from "@/components/ui/icons";
+import { classTreeRows, parentIds } from "@/lib/admin/classTree";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
 const NAME_MAX = 120;
 const DESCRIPTION_MAX = 2000;
+/** What a class's own `description` holds (`MaterialClassIn`/`MaterialClassPatch`: 500).
+ * The form used to allow 2000 and the server refused past 500 (D-238). */
+const DESCRIPTION_MAX_PATCH = 500;
 
 /** Same name, whatever the case or the spacing: the server compares like this too. */
 function sameName(a: string, b: string): boolean {
   return a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
-}
-
-/** The classes in tree order (parents before their children), each with its depth. */
-function flattenClasses(classes: MaterialClass[]): { cls: MaterialClass; depth: number }[] {
-  const byParent = new Map<number | null, MaterialClass[]>();
-  const ids = new Set(classes.map((c) => c.id));
-  for (const c of classes) {
-    // A parent that is not in the list (filtered away) must not hide its child.
-    const key = c.parent_id !== null && ids.has(c.parent_id) ? c.parent_id : null;
-    byParent.set(key, [...(byParent.get(key) ?? []), c]);
-  }
-  const out: { cls: MaterialClass; depth: number }[] = [];
-  const seen = new Set<number>();
-  const walk = (parent: number | null, depth: number) => {
-    for (const cls of byParent.get(parent) ?? []) {
-      if (seen.has(cls.id)) continue;
-      seen.add(cls.id);
-      out.push({ cls, depth });
-      walk(cls.id, depth + 1);
-    }
-  };
-  walk(null, 0);
-  return out;
 }
 
 export default function ClassesAdminPage() {
@@ -101,6 +84,7 @@ export default function ClassesAdminPage() {
       setDescription("");
       setError(null);
       setSubmitted(false);
+      setCreating(false);
       qc.invalidateQueries({ queryKey: ["classes"] });
     },
     onError: (err) => setError(describeApiError(err, ptBR.form.genericError)),
@@ -124,7 +108,7 @@ export default function ClassesAdminPage() {
   // D-233: the class being moved ("Mover para…").
   const [moving, setMoving] = useState<MaterialClass | null>(null);
 
-  const classes: MaterialClass[] = data ?? [];
+  const classes: MaterialClass[] = useMemo(() => data ?? [], [data]);
 
   // D-236: dragging a row onto another makes it a subclass of it (onto the root strip, a root).
   // The same `PATCH` as "Mover para…"; a refusal from the server (a cycle, a class that is gone)
@@ -154,7 +138,24 @@ export default function ClassesAdminPage() {
       drag.mutate({ cls, target });
     },
   });
-  const tree = flattenClasses(classes);
+  // D-238: the tree folds, a search narrows it, and a name or a description is
+  // edited in its own cell (the same PATCH as the move; the slug never changes).
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const tree = useMemo(() => classTreeRows(classes, { collapsed, query }), [classes, collapsed, query]);
+  const foldable = useMemo(() => parentIds(classes), [classes]);
+  const toggle = (id: number) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const saveClass = async (id: number, patch: { name?: string; description?: string | null }) => {
+    await patchClass(id, patch);
+    await qc.invalidateQueries({ queryKey: ["classes"] });
+  };
   const nameById = new Map(classes.map((c) => [c.id, c.name]));
 
   // D-230b: the proposed description goes into the form's field and nothing more —
@@ -163,7 +164,7 @@ export default function ClassesAdminPage() {
     action.type !== "fill_text" || action.field === "description";
   function applyAiAction(action: SuggestAction) {
     if (action.type !== "fill_text" || action.field !== "description") return;
-    setDescription(action.text.slice(0, DESCRIPTION_MAX));
+    setDescription(action.text.slice(0, DESCRIPTION_MAX_PATCH));
     revealField("description");
   }
 
@@ -175,9 +176,21 @@ export default function ClassesAdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={ptBR.admin.classesTitle} />
+      <PageHeader
+        title={ptBR.admin.classesTitle}
+        // D-238: creating is one click away, not a form always open over the table.
+        primaryAction={
+          creating ? undefined : (
+            <Button variant="primary" icon={<IconPlus />} onClick={() => setCreating(true)}>
+              {ptBR.admin.newClassOpen}
+            </Button>
+          )
+        }
+      />
       <CatalogReadOnlyNotice />
 
+      {creating ? (
+      <>
       <AISuggestPanel
         tool="admin_classes"
         // What the form holds now: the server reads the catalogue's classes itself.
@@ -222,7 +235,7 @@ export default function ClassesAdminPage() {
               label={ptBR.form.description}
               className="sm:col-span-2"
               rows={2}
-              maxLength={DESCRIPTION_MAX}
+              maxLength={DESCRIPTION_MAX_PATCH}
               value={description}
               {...aiField("description")}
               onChange={(e) => setDescription(e.target.value)}
@@ -232,9 +245,21 @@ export default function ClassesAdminPage() {
             <Button type="submit" variant="primary" loading={create.isPending}>
               {ptBR.admin.newClass}
             </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCreating(false);
+                setSubmitted(false);
+                setError(null);
+              }}
+            >
+              {ptBR.admin.cancelCreate}
+            </Button>
           </CardFooter>
         </Card>
       </form>
+      </>
+      ) : null}
 
       {error && (
         <Alert tone="danger" role="alert">
@@ -265,6 +290,27 @@ export default function ClassesAdminPage() {
 
       {data && (
         <>
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            type="search"
+            label={ptBR.admin.searchClasses}
+            hint={ptBR.admin.searchHint}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full max-w-sm"
+          />
+          <div className="flex flex-wrap items-center gap-2 pb-6">
+            <Button size="sm" variant="ghost" onClick={() => setCollapsed(new Set())} disabled={Boolean(query)}>
+              {ptBR.admin.expandAll}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setCollapsed(new Set(foldable))} disabled={Boolean(query)}>
+              {ptBR.admin.collapseAll}
+            </Button>
+            <span role="status" className="text-caption text-ink-muted">
+              {ptBR.admin.classesShown(tree.filter((r) => !r.ancestorOnly).length, classes.length)}
+            </span>
+          </div>
+        </div>
         <p className="text-caption text-ink-muted">{ptBR.admin.treeHint}</p>
         <p className="text-caption text-ink-muted">{curadoriaText.move.dragHint}</p>
         {dragError ? (
@@ -285,6 +331,7 @@ export default function ClassesAdminPage() {
             <THead>
               <Tr>
                 <Th>{ptBR.form.name}</Th>
+                <Th>{ptBR.admin.descriptionColumn}</Th>
                 <Th>{ptBR.admin.parentColumn}</Th>
                 <Th>{ptBR.admin.slug}</Th>
                 <Th numeric>{ptBR.admin.materialCount}</Th>
@@ -294,11 +341,19 @@ export default function ClassesAdminPage() {
               </Tr>
             </THead>
             <TBody>
-              {tree.map(({ cls: c, depth }) => (
+              {query && tree.length === 0 ? (
+                <Tr>
+                  <Td colSpan={6} className="text-ink-muted">
+                    {ptBR.admin.noClassMatch(query.trim())}
+                  </Td>
+                </Tr>
+              ) : null}
+              {tree.map(({ cls: c, depth, hasChildren, ancestorOnly }) => (
                 <Tr
                   key={c.id}
                   {...classDrag.dropProps(c.id)}
                   className="ds-drop"
+                  data-ancestor-only={ancestorOnly || undefined}
                 >
                   <RowHeader>
                     <span className="flex items-start gap-1">
@@ -312,12 +367,53 @@ export default function ClassesAdminPage() {
                       >
                         <IconGrip className="h-4 w-4" aria-hidden />
                       </span>
-                      <span style={{ paddingInlineStart: `${depth * 1.25}rem` }} className="block min-w-0 break-words">
-                        {depth > 0 && <span aria-hidden="true" className="text-ink-subtle">↳ </span>}
-                        {c.name}
+                      <span
+                        style={{ paddingInlineStart: `${depth * 1.25}rem` }}
+                        className="flex min-w-0 items-start gap-0.5"
+                      >
+                        {hasChildren ? (
+                          <IconButton
+                            size="sm"
+                            label={collapsed.has(c.id) && !query ? ptBR.admin.expandClass(c.name) : ptBR.admin.collapseClass(c.name)}
+                            aria-expanded={!collapsed.has(c.id) || Boolean(query)}
+                            disabled={Boolean(query)}
+                            icon={collapsed.has(c.id) && !query ? <IconChevronRight /> : <IconChevronDown />}
+                            onClick={() => toggle(c.id)}
+                          />
+                        ) : (
+                          <span aria-hidden="true" className="inline-block w-8 shrink-0 text-center text-ink-subtle">
+                            {depth > 0 ? "↳" : ""}
+                          </span>
+                        )}
+                        <EditableText
+                          value={c.name}
+                          label={ptBR.form.name}
+                          itemName={c.name}
+                          required
+                          maxLength={NAME_MAX}
+                          validate={(next) =>
+                            classes.some((o) => o.id !== c.id && sameName(o.name, next))
+                              ? ptBR.admin.errorClassDuplicate
+                              : undefined
+                          }
+                          onSave={(next) => saveClass(c.id, { name: next })}
+                          className={ancestorOnly ? "text-ink-muted" : undefined}
+                        />
+                        {ancestorOnly ? <span className="sr-only">{ptBR.admin.ancestorOfMatch}</span> : null}
                       </span>
                     </span>
                   </RowHeader>
+                  <Td className="min-w-[14rem] text-ink-muted">
+                    <EditableText
+                      value={c.description ?? ""}
+                      label={ptBR.admin.descriptionColumn}
+                      itemName={c.name}
+                      multiline
+                      maxLength={DESCRIPTION_MAX_PATCH}
+                      empty={ptBR.admin.noDescription}
+                      onSave={(next) => saveClass(c.id, { description: next || null })}
+                    />
+                  </Td>
                   <Td className="text-ink-muted">
                     {c.parent_id !== null && nameById.has(c.parent_id) ? (
                       nameById.get(c.parent_id)

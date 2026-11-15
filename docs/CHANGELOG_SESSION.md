@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 195 — 15/11/26 — F9: Classes e Propriedades como tabelas editáveis, árvore que dobra e busca (D-238)
+
+**O que mudou.** Backend: `PATCH /api/classes/{id}` (`MaterialClassPatch`) aplica `parent_id`, `name` e `description`, só os enviados,
+sem tocar no slug nem na prosa da família (409 para nome repetido, 422 para corpo vazio ou nome em branco); `move_class` virou
+`patch_class`; `pretty_unit("percent")` dá `%`. Frontend: peça `EditableText` (na vitrine); Classes com nome e descrição editáveis na
+linha, árvore que dobra, "Expandir/Recolher tudo" e busca que mostra o caminho (`lib/admin/classTree.ts`); Propriedades com busca,
+`FilterBar` por categoria, ordem por nome e nome editável; criação atrás de "Nova classe"/"Nova propriedade"; descrição de classe
+limitada a 500 no formulário; `prettyUnit("percent")` dá `%`. Testes novos: pytest em `test_class_move` e `test_display_units`;
+vitest em `classTree`, `admin/classes`, `admin/propriedades` e `format`. Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 193b — 13/11/26 — F8: landing com o método, Entrar dividido, Conta no app e barra lateral clara (D-236b)
 
 **O que mudou.** Backend: `artifact_daily_limit` em `AIUsageOut` (`/dashboard/activity`), lido de `notebook_daily_artifacts`.
