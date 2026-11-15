@@ -14090,3 +14090,30 @@ acessível, e o arrastar existente vive nas linhas).
 
 **Numeração.** D-238, Sessão 195 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
+---
+
+## D-239 — Modelo CSV do Importar: cabeçalhos reconhecidos e uma linha de exemplo que o importador recusa
+
+**Contexto.** A D-205 deixou para a F8 um "Baixar modelo CSV" no Importar, à espera de decidir o formato. Em 15/11/2026 o autor
+escolheu: **com uma linha de exemplo**.
+
+**Decisão.**
+- **`GET /api/imports/modelo.csv`** (curador, como o resto do Importar) devolve `modelo-importacao-materiais.csv`: separado por `;`,
+  UTF-8 com BOM e fim de linha CRLF, para o Excel em português abrir em colunas e com acentos; o leitor do importador já detecta o `;`.
+  O conteúdo vem de `app/importers/template.py`, uma tabela fixa.
+- **Cabeçalhos que o mapeamento reconhece sozinho**: `nome`, `classe`, `descricao`, `densidade [kg/m3]`, `modulo_young [GPa]`,
+  `limite_escoamento_min [MPa]` e `limite_escoamento_max [MPa]`. Mostram a unidade entre colchetes e a faixa como par `_min`/`_max`;
+  a linha mostra a vírgula decimal (`10,5`).
+- **A linha de exemplo nunca vira material.** Os números dela são marcadores de lugar, não medições (princípio 1). O nome
+  `EXEMPLO - apague esta linha` é recusado na validação, com o motivo escrito ("Linha de exemplo do modelo: apague-a antes de
+  importar."), mesmo que a pessoa esqueça de apagá-la. Um teste prova o contrário também: a mesma linha com outro nome passa, então
+  o formato que ela ensina é o que o importador lê.
+- **Na tela**, "Baixar modelo CSV" (link de download, ação discreta) fica ao lado da área de envio, com a frase que explica a linha.
+
+**Alternativas recusadas.** Só os cabeçalhos (a pessoa não veria a vírgula decimal nem a faixa). Valores reais de um material
+conhecido na linha de exemplo (seria propriedade sem fonte no arquivo, e importável). Montar o arquivo no navegador (o formato que o
+importador lê é regra do backend; os dois ficam no mesmo lugar e no mesmo teste). Uma coluna por propriedade do catálogo (dezenas de
+colunas vazias; a pessoa acrescenta as que tiver, e o mapeamento as reconhece pelo slug).
+
+**Numeração.** D-239, Sessão 196 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+

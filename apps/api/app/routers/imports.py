@@ -6,7 +6,7 @@ catalogue, not a project (see ``app.dependencies``).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ from app.db.base import get_db
 from app.dependencies import get_current_user, require_catalog_curator
 from app.domain.errors import ValidationError
 from app.importers.service import ImportService
+from app.importers.template import TEMPLATE_FILENAME, template_csv
 from app.models.user import User
 from app.schemas.imports import (
     CommitResult,
@@ -29,6 +30,17 @@ from app.schemas.imports import (
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 templates_router = APIRouter(prefix="/import-templates", tags=["imports"])
+
+
+@router.get("/modelo.csv", dependencies=[Depends(require_catalog_curator)])
+def download_template() -> Response:
+    """The CSV to start an import from: the headers the importer recognises and one
+    example row the importer refuses (D-239)."""
+    return Response(
+        content=template_csv(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{TEMPLATE_FILENAME}"'},
+    )
 
 
 @router.post(

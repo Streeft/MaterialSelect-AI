@@ -1215,6 +1215,11 @@ export function getDashboardActivity(): Promise<DashboardActivity> {
   return request<DashboardActivity>(`/api/dashboard/activity`);
 }
 
+/** D-239: the import template — the recognised headers and one example row the importer refuses. */
+export function importTemplateUrl(): string {
+  return `${API_URL}/api/imports/modelo.csv`;
+}
+
 /** The CSV of one tab of the panel — a plain download link, escaped server-side. */
 export function dashboardExportUrl(section: DashboardSection, filters: DashboardFilters = {}): string {
   return `${API_URL}/api/dashboard/export.csv${dashboardQuery(filters, { secao: section })}`;

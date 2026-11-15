@@ -78,6 +78,14 @@ materiais pré-existentes.
 Um mapeamento pode ser salvo com nome (`ImportMappingTemplate`) e reaplicado em
 planilhas futuras com o mesmo layout — casando pelas colunas presentes.
 
+## Modelo CSV ([D-239](DECISIONS.md))
+
+"Baixar modelo CSV" entrega `modelo-importacao-materiais.csv` (`GET /api/imports/modelo.csv`): `;` como separador, UTF-8 com BOM,
+os cabeçalhos que o mapeamento reconhece sozinho (`nome`, `classe`, `descricao`, `densidade [kg/m3]`, `modulo_young [GPa]`,
+`limite_escoamento_min [MPa]`, `limite_escoamento_max [MPa]`) e **uma linha de exemplo** com a vírgula decimal e a faixa. Os
+números da linha são marcadores de lugar, e a validação recusa a linha pelo nome (`EXEMPLO - apague esta linha`), com o motivo
+escrito: um modelo esquecido nunca vira material. A tabela fica em `app/importers/template.py`.
+
 ## Segurança
 
 - **Extensão e conteúdo:** `.csv`, `.xlsx`, `.json`, `.sqlite` e `.db`; o arquivo
@@ -114,6 +122,7 @@ adicionado apenas ao módulo `importers` sem tocar no restante.
 
 | Método | Rota | Função |
 |---|---|---|
+| GET | `/api/imports/modelo.csv` | modelo para começar: cabeçalhos reconhecidos e uma linha de exemplo, recusada na validação (D-239) |
 | POST | `/api/imports/upload` | envia arquivo, abre job, retorna cabeçalhos/amostra/sugestões |
 | POST | `/api/imports/{id}/preview` | troca de aba (XLSX) |
 | POST | `/api/imports/{id}/validate` | dry-run com relatório linha a linha |

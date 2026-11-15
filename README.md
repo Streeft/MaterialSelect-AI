@@ -165,7 +165,9 @@ números com que cada uma abre vêm do servidor (`GET /api/padroes`, D-216): a t
   CSV/XLSX no "Exportar ▾". O backend compara e converte; a tela só mostra
   (D-108). O seed demo traz duas versões de exemplo para ver tudo isso.
 - **Importar** — CSV/XLSX com mapeamento de colunas, validação linha a linha,
-  licença da fonte e reversão por lote.
+  licença da fonte e reversão por lote; "Baixar modelo CSV" dá um arquivo com
+  os cabeçalhos que o mapeamento reconhece e uma linha de exemplo, recusada na
+  validação.
 - **Catálogo oficial licenciado** — pipeline administrativo separado, com identidade externa/GRUID, SHA-256 por artefato, dry-run, proveniência de release e preservação lossless de valores que ainda não cabem no motor numérico. Os bytes licenciados ficam fora do Git; ver [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md). Fontes abertas (Materials Project, Wikidata, JARVIS…) entram pelo mesmo pipeline, só com veredito APROVADA no portão de licença — [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) e [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md); nenhuma está aprovada ainda.
 
 **Documentos** — CSV, XLSX e HTML imprimível do catálogo e de cada estudo; o
