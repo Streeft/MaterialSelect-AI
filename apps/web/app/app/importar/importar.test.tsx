@@ -71,6 +71,7 @@ vi.mock("@/lib/api", () => ({
   listClasses: vi.fn().mockResolvedValue([{ id: 1, name: "Metais", slug: "metais", parent_id: null }]),
   listProperties: vi.fn().mockResolvedValue([{ id: 1, name: "Densidade", slug: "densidade" }]),
   listImportTemplates: vi.fn().mockResolvedValue([]),
+  importTemplateUrl: () => "http://api.test/api/imports/modelo.csv",
   getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
   suggestNextSteps: (tool: string, context: unknown) => api.suggest(tool, context),
 }));
@@ -99,6 +100,14 @@ async function sendFile(user: ReturnType<typeof userEvent.setup>, file: File) {
 }
 
 describe("Importar (D-222)", () => {
+  it("oferece o modelo CSV para baixar, dizendo que a linha de exemplo é recusada (D-239)", async () => {
+    renderPage();
+    const link = await screen.findByRole("link", { name: t.templateDownload });
+    expect(link).toHaveAttribute("href", "http://api.test/api/imports/modelo.csv");
+    expect(link).toHaveAttribute("download");
+    expect(screen.getByText(t.templateHint)).toBeInTheDocument();
+  });
+
   it("recusa, antes de enviar, o que não é CSV ou XLSX e o que passa de 5 MB", async () => {
     const user = userEvent.setup({ applyAccept: false });
     renderPage();

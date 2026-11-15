@@ -120,6 +120,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 196 — 15/11/26 — Modelo CSV do Importar com uma linha de exemplo (D-239)
+
+**O que mudou.** Backend: `app/importers/template.py` e `GET /api/imports/modelo.csv` (`;`, UTF-8 com BOM, cabeçalhos que o
+mapeamento reconhece, uma linha de exemplo); a validação recusa a linha de exemplo pelo nome, com o motivo escrito. Frontend: "Baixar
+modelo CSV" ao lado da área de envio do Importar (`importTemplateUrl`). Testes novos: pytest `test_import_template` (download, todas
+as colunas reconhecidas, linha de exemplo recusada, o mesmo formato importa com outro nome) e vitest em `importar`. Sem migração nem
+seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 195 — 15/11/26 — F9: Classes e Propriedades como tabelas editáveis, árvore que dobra e busca (D-238)
 
 **O que mudou.** Backend: `PATCH /api/classes/{id}` (`MaterialClassPatch`) aplica `parent_id`, `name` e `description`, só os enviados,

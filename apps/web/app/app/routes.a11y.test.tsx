@@ -1457,6 +1457,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   explainStudy: () => Promise.resolve(null),
   listImports: () => Promise.resolve([]),
   listImportTemplates: () => Promise.resolve([]),
+  importTemplateUrl: () => "http://api.test/api/imports/modelo.csv",
   createImportTemplate: () => Promise.resolve(null),
   uploadImportFile: () => Promise.resolve(null),
   previewImportSheet: () => Promise.resolve(null),

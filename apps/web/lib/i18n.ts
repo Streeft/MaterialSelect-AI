@@ -256,6 +256,10 @@ export const ptBR = {
     blockedDone: "Importe as linhas válidas para concluir.",
     dropTitle: "Arraste o arquivo para cá ou clique para escolher",
     dropHint: "Selecione um arquivo CSV ou XLSX (até 5 MB).",
+    // D-239: the template to start from.
+    templateDownload: "Baixar modelo CSV",
+    templateHint:
+      "Cabeçalhos que o mapeamento reconhece sozinho e uma linha de exemplo, que mostra o formato e é recusada na validação: apague-a e escreva os seus materiais.",
     uploading: "Enviando…",
     sheet: "Aba",
     preview: "Amostra do arquivo",

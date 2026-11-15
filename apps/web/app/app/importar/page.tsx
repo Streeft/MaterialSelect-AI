@@ -8,6 +8,7 @@ import {
   cancelImport,
   commitImport,
   createImportTemplate,
+  importTemplateUrl,
   listClasses,
   listImportTemplates,
   listProperties,
@@ -26,7 +27,7 @@ import type {
 import { ptBR } from "@/lib/i18n";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { cn } from "@/lib/cn";
-import { IconUpload } from "@/components/ui/icons";
+import { IconDownload, IconUpload } from "@/components/ui/icons";
 import {
   Alert,
   Button,
@@ -396,6 +397,20 @@ export default function ImportPage() {
                 className="sr-only"
               />
             </label>
+            {/* D-239: a file to start from, with a header row the importer
+                recognises and one example row it refuses. */}
+            <div className="flex flex-wrap items-center gap-3">
+              <ButtonLink
+                href={importTemplateUrl()}
+                download
+                variant="ghost"
+                size="sm"
+                icon={<IconDownload />}
+              >
+                {t.templateDownload}
+              </ButtonLink>
+              <span className="text-caption text-ink-muted">{t.templateHint}</span>
+            </div>
             {doUpload.isPending && (
               <p role="status" className="text-body text-ink-muted">
                 {doUpload.variables ? t.uploadingFile(doUpload.variables.name) : t.uploading}

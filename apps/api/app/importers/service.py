@@ -32,6 +32,7 @@ from app.importers.parsing import (
     unit_from_header,
 )
 from app.importers.readers import ALLOWED_EXTENSIONS, TabularData, read_tabular
+from app.importers.template import TEMPLATE_EXAMPLE_NAME
 from app.models.enums import DataQuality, ImportStatus
 from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
@@ -310,6 +311,16 @@ class ImportService:
         if not name:
             issues.append(RowIssue(column=mapping.name_column, message="Nome vazio."))
             return RowReport(row_number=row_number, name=None, status="error", issues=issues)
+        # D-239: the downloaded template's example row carries placeholder numbers;
+        # it shows the format and must never become a material.
+        if name.strip().casefold() == TEMPLATE_EXAMPLE_NAME.casefold():
+            issues.append(
+                RowIssue(
+                    column=mapping.name_column,
+                    message="Linha de exemplo do modelo: apague-a antes de importar.",
+                )
+            )
+            return RowReport(row_number=row_number, name=name, status="error", issues=issues)
 
         # Duplicates: within the file, then against the catalogue.
         lowered = name.lower()
