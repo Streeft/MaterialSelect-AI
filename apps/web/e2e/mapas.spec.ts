@@ -45,3 +45,53 @@ test("mapa clássico, caixa no gráfico e Comparar", async ({ page }) => {
   await page.waitForURL(/\/app\/comparar\?materiais=/, { timeout: 30_000 });
   expect(new URL(page.url()).searchParams.get("materiais")).toMatch(/^\d/);
 });
+
+/**
+ * D-240: the report figure goes on white paper even when the page is dark —
+ * the background and the ink of the exported file are the light theme's.
+ */
+test("figura para relatório sai no tema claro mesmo com a tela escura", async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem("materialselect:theme", "dark");
+    } catch {
+      /* a private window */
+    }
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/app/mapas");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".chart-plotly .main-svg").first()).toBeVisible({ timeout: 45_000 });
+  await page.waitForLoadState("networkidle");
+
+  const exportMenu = page.getByRole("button", { name: "Exportar" }).first();
+  await exportMenu.click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("menuitem", { name: /SVG para relatório/ }).click(),
+  ]);
+  const path = await download.path();
+  const fs = await import("node:fs");
+  const svg = fs.readFileSync(path, "utf8");
+
+  const colours = await page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.setAttribute("data-theme", "light");
+    document.body.appendChild(probe);
+    const light = getComputedStyle(probe);
+    const dark = getComputedStyle(document.documentElement);
+    const read = (style: CSSStyleDeclaration, name: string) =>
+      style.getPropertyValue(name).trim().split(/[\s,]+/).join(", ");
+    const out = {
+      lightSurface: read(light, "--surface-raised"),
+      darkSurface: read(dark, "--surface-raised"),
+      darkInk: read(dark, "--ink"),
+    };
+    probe.remove();
+    return out;
+  });
+  // The background rectangle is the first fill after the root; it is light.
+  const background = /<rect[^>]*fill="rgb\(([^)]*)\)"/.exec(svg)?.[1];
+  expect(background).not.toBe(colours.darkSurface);
+  expect(svg).not.toContain(`rgb(${colours.darkInk})`);
+});

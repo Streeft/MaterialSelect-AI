@@ -764,6 +764,27 @@ def evaluate_constraint(constraint: Constraint, material: RecordSnapshot) -> boo
     return False  # pragma: no cover - all operators handled above
 
 
+def lacks_datum(constraint: Constraint, record: RecordSnapshot) -> bool:
+    """Whether ``record`` holds no datum the constraint could read (D-240).
+
+    Used only to word why a record fell: a criterion it failed for want of a
+    value says "sem dado", never "fora do limite". EXISTS / NOT_EXISTS ask
+    about presence on purpose, and class and text criteria always have
+    something to read, so they never report missing data.
+    """
+    op = constraint.operator
+    if op in _COMPOSITION_OPERATORS:
+        if constraint.composition is None:
+            return False
+        return composition_verdict(constraint, record).value is None
+    if op is Operator.LEVEL_AT_LEAST:
+        slug = constraint.property_slug
+        return slug is not None and record.ordinals.get(slug) is None
+    if op in _NUMERIC_OPERATORS or op in _LABEL_OPERATORS:
+        return not has_value(record, constraint.property_slug)
+    return False
+
+
 def apply_constraints(
     materials: list[MaterialSnapshot],
     constraints: list[Constraint],

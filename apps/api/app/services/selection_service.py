@@ -39,6 +39,7 @@ from app.domain.filters import (
     apply_constraint_tree,
     apply_stage,
     composition_verdict,
+    lacks_datum,
 )
 from app.domain.ordinal import OrdinalScaleError, describe_scale, level_rank
 from app.domain.ranking import (
@@ -89,6 +90,7 @@ from app.schemas.selection import (
     ConstraintIn,
     ContributionOut,
     CriterionIn,
+    EliminatedOut,
     ExcludedMaterialOut,
     FilterRequest,
     FilterResultOut,
@@ -113,6 +115,7 @@ from app.schemas.selection import (
     StageOut,
     StageResultOut,
     StudyIn,
+    StudyNotesPatch,
     StudyOut,
     StudySummaryOut,
     StudyTemplateOut,
@@ -1290,7 +1293,10 @@ class SelectionService:
         return item.operator.value
 
     def _apply_group(
-        self, materials: list[MaterialSnapshot], group: ConstraintGroupNode
+        self,
+        materials: list[MaterialSnapshot],
+        group: ConstraintGroupNode,
+        dropped: dict[int, tuple[str, bool]] | None = None,
     ) -> tuple[list[FunnelStepOut], list[MaterialSnapshot]]:
         """Build the elimination funnel for one group's direct items — each
         item is either a constraint or a nested child group, combined by
@@ -1307,6 +1313,11 @@ class SelectionService:
         candidates sorted by id, and an item-less group returns every
         material with no funnel steps — all matching apply_constraints's
         behavior for a flat constraint list.
+
+        ``dropped`` (D-240), when given, collects each removed record's id with
+        the label of the step that removed it and whether it held no datum for
+        that step: under AND, the first item it failed; under OR, the group as a
+        whole, since it failed every alternative.
         """
         items: list[Constraint | ConstraintGroupNode] = [*group.constraints, *group.children]
         if not items:
@@ -1330,6 +1341,11 @@ class SelectionService:
                         without_level=self._without_level(item, materials),
                     )
                 )
+            if dropped is not None:
+                label = " ou ".join(self._item_label(item) for item in items)
+                for m in materials:
+                    if m.id not in passing:
+                        dropped[m.id] = (label, all(self._item_lacks(item, m) for item in items))
             by_id = {m.id: m for m in materials}
             return steps, [by_id[i] for i in sorted(passing)]
 
@@ -1339,7 +1355,14 @@ class SelectionService:
             node = self._item_node(item)
             standalone = len(apply_constraint_tree(materials, node))
             undetermined = self._undetermined(item, materials)
+            before = remaining
             remaining = apply_constraint_tree(remaining, node)
+            if dropped is not None:
+                kept = {m.id for m in remaining}
+                label = self._item_label(item)
+                for m in before:
+                    if m.id not in kept:
+                        dropped[m.id] = (label, self._item_lacks(item, m))
             steps.append(
                 FunnelStepOut(
                     label=self._item_label(item),
@@ -1353,6 +1376,12 @@ class SelectionService:
         return steps, remaining
 
     @staticmethod
+    def _item_lacks(item: Constraint | ConstraintGroupNode, record: RecordSnapshot) -> bool:
+        """Whether a record failed ``item`` for want of a datum (D-240). A nested
+        group mixes criteria, so it never claims to know."""
+        return isinstance(item, Constraint) and lacks_datum(item, record)
+
+    @staticmethod
     def _stage_display(stage: SelectionStageNode, position: int) -> str:
         """The stage's name in the funnel: the user's own label when they wrote
         one, otherwise what the stage is. Never a stored default — see the
@@ -1363,7 +1392,10 @@ class SelectionService:
         return f"Estágio {position + 1} ({kind})"
 
     def _apply_stages(
-        self, materials: list[MaterialSnapshot], stages: list[SelectionStageNode]
+        self,
+        materials: list[MaterialSnapshot],
+        stages: list[SelectionStageNode],
+        eliminated: list[EliminatedOut] | None = None,
     ) -> tuple[list[StageResultOut], list[FunnelStepOut], list[MaterialSnapshot]]:
         """Run the pipeline and build both reports: one entry per stage, and the
         flat funnel the interface and the exports already read.
@@ -1373,6 +1405,9 @@ class SelectionService:
         which is what keeps every pre-P0-1 study, export and test reading the
         same. With more than one stage each line is prefixed by its stage, or a
         step from stage 1 and a step from stage 3 would be indistinguishable.
+
+        ``eliminated`` (D-240), when given, receives one entry per record an
+        enabled stage removed, labelled exactly as its funnel line.
         """
         # Before anything is compared: a chart stage's axes and line may be
         # expressions, and the domain compares numbers and never evaluates one.
@@ -1391,10 +1426,11 @@ class SelectionService:
             # the whole catalogue here, which is what it admits.
             standalone = len(apply_stage(materials, stage))
 
+            dropped: dict[int, tuple[str, bool]] = {}
             if stage.kind == "limit" and stage.root is not None:
                 # A limit stage's inner funnel is one line per constraint or
                 # nested sub-group — exactly `_apply_group`, unchanged.
-                inner, narrowed = self._apply_group(remaining, stage.root)
+                inner, narrowed = self._apply_group(remaining, stage.root, dropped)
             else:
                 # A tree, process, material or chart stage is a single
                 # question, so a single line. Nothing ticked narrows nothing, and
@@ -1414,6 +1450,24 @@ class SelectionService:
                 ]
 
             if stage.enabled:
+                if eliminated is not None:
+                    kept = {m.id for m in narrowed}
+                    for m in remaining:
+                        if m.id in kept:
+                            continue
+                        label, missing = dropped.get(m.id, (display, False))
+                        if not single and label != display:
+                            label = f"{display} · {label}"
+                        eliminated.append(
+                            EliminatedOut(
+                                record_id=m.id,
+                                name=m.name,
+                                class_name=m.class_name,
+                                stage_position=position,
+                                reason=label,
+                                missing_data=missing,
+                            )
+                        )
                 remaining = narrowed
                 flat.extend(
                     inner
@@ -2088,7 +2142,8 @@ class SelectionService:
         universe: str = "material",
     ) -> RunResultOut:
         snapshots = self._records(universe)
-        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages)
+        eliminated: list[EliminatedOut] = []
+        stage_outs, steps, candidate_snaps = self._apply_stages(snapshots, stages, eliminated)
 
         index_out = None
         index_value_by_id: dict[int, float | None] = {}
@@ -2143,6 +2198,7 @@ class SelectionService:
             index=index_out,
             ranking=ranking_out,
             winner=self._winner(candidates, ranking_out, index_out),
+            eliminated=eliminated,
         )
 
     @staticmethod
@@ -2479,6 +2535,7 @@ class SelectionService:
                 criterion_count=len(s.criteria),
                 universe=s.universe,
                 has_notes=bool(s.notes) or any(st.notes for st in s.stages),
+                notes=s.notes,
             )
             for s in self.repo.list_studies(self.project_id)
         ]
@@ -2740,6 +2797,26 @@ class SelectionService:
             project_id=self.project_id,
         )
         self.repo.commit()
+        return self._study_to_out(study)
+
+    def patch_study_notes(self, study_id: int, payload: StudyNotesPatch) -> StudyOut:
+        """FL-c (D-240): change only the study's own note, audited like any edit."""
+        study = self.repo.get_study(study_id, self.project_id)
+        if study is None:
+            raise NotFoundError(f"Estudo não encontrado: {study_id}")
+        if study.notes != payload.notes:
+            record_change(
+                self.audit_repo,
+                self.user,
+                entity_type=AuditEntityType.SELECTION_STUDY,
+                entity_id=study.id,
+                entity_label=study.name,
+                action=AuditAction.ATUALIZADO,
+                changes={"notes": {"before": study.notes, "after": payload.notes}},
+                project_id=self.project_id,
+            )
+            study.notes = payload.notes
+            self.repo.commit()
         return self._study_to_out(study)
 
     def delete_study(self, study_id: int) -> None:

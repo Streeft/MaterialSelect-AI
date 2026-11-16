@@ -33,9 +33,11 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   de um gráfico), e o resultado é a interseção deles. Um limite pode pedir
   **nível mínimo aceito** numa propriedade ordinal (escala do pior ao melhor,
   como durabilidade por agente; material sem nível nunca passa). Ranking por soma
-  ponderada, TOPSIS ou PROMETHEE II, pesos por AHP, funil de eliminação,
+  ponderada, TOPSIS ou PROMETHEE II, pesos por AHP, funil de eliminação (com
+  o passo em que cada material reprovado caiu, e se caiu por falta de dado),
   excluídos por dado ausente e análise de sensibilidade. Estudos salvos
-  reexecutam para a mesma resposta, levam notas por estágio e por estudo, e
+  reexecutam para a mesma resposta, levam notas por estágio e por estudo (a
+  do estudo se edita direto em "Meus estudos"), e
   saem como arquivo JSON versionado que outra pessoa importa (o arquivo é só
   dado: nada nele é executado). A tabela de resultado se copia como TSV, e um
   registro próprio se duplica como cópia editável.

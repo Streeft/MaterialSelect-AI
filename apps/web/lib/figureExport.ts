@@ -153,6 +153,82 @@ export interface FigureExportOptions {
   report?: boolean;
 }
 
+/** `"R G B"` (or `"R, G, B"`) → `"R, G, B"`, or null when the value is not a colour triple. */
+function triple(value: string): string | null {
+  const parts = value.trim().split(/[\s,]+/).filter(Boolean);
+  if (parts.length !== 3 || !parts.every((part) => /^\d{1,3}$/.test(part))) return null;
+  return parts.join(", ");
+}
+
+/**
+ * The custom properties the dark theme redefines, read from the page's own
+ * stylesheets: exactly the tokens whose colour depends on the theme.
+ */
+function themedTokenNames(): string[] {
+  const names = new Set<string>();
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue; // A cross-origin sheet cannot be read, and holds none of ours.
+    }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSStyleRule) || !rule.selectorText.includes('data-theme="dark"')) continue;
+      for (const name of Array.from(rule.style)) if (name.startsWith("--")) names.add(name);
+    }
+  }
+  return [...names];
+}
+
+/**
+ * D-240: a report figure is always in the light theme, whatever the page is in.
+ *
+ * Maps each dark-theme colour on the page to the same token's light value. The
+ * light values are read from a probe element carrying `data-theme="light"` (and
+ * the page's section, so the section accent maps to its own light step), so the
+ * stylesheet stays the only place a colour is written. Empty in the light theme.
+ */
+export function lightRecolorMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  const root = document.documentElement;
+  if (root.dataset.theme !== "dark") return map;
+  const probe = document.createElement("div");
+  probe.setAttribute("data-theme", "light");
+  if (root.dataset.section) probe.setAttribute("data-section", root.dataset.section);
+  probe.hidden = true;
+  document.body.appendChild(probe);
+  try {
+    const live = window.getComputedStyle(root);
+    const light = window.getComputedStyle(probe);
+    for (const name of themedTokenNames()) {
+      const from = triple(live.getPropertyValue(name));
+      const to = triple(light.getPropertyValue(name));
+      // First token wins a shared dark value; an unchanged one needs no entry.
+      if (from && to && from !== to && !map.has(from)) map.set(from, to);
+    }
+  } finally {
+    probe.remove();
+  }
+  return map;
+}
+
+/**
+ * Rewrite every `rgb(…)`/`rgba(…)` in `markup` whose channels are a key of
+ * `map`, keeping the alpha. Colours outside the map (the Okabe–Ito classes,
+ * fixed in both themes) are left as they are.
+ */
+export function recolorMarkup(markup: string, map: Map<string, string>): string {
+  if (map.size === 0) return markup;
+  return markup.replace(
+    /rgb(a?)\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/g,
+    (whole, alpha: string, r: string, g: string, b: string) => {
+      const to = map.get(`${r}, ${g}, ${b}`);
+      return to ? `rgb${alpha}(${to}` : whole;
+    },
+  );
+}
+
 /** The card's description and guide (`data-chart-description`/`-meta`), as one line under the title. */
 function subtitleBand(doc: Document, container: HTMLElement): Band | null {
   const card = container.closest(".msds-chart-card");
@@ -481,7 +557,9 @@ export async function figureMarkup(
 
   const draft = compose(container, figure, width, height, "", report);
   const fontCss = await embeddedFontCss(draft.markup);
-  return fontCss ? compose(container, figure, width, height, fontCss, report) : draft;
+  const result = fontCss ? compose(container, figure, width, height, fontCss, report) : draft;
+  // A report figure goes on white paper, whatever theme it was exported from.
+  return report ? { ...result, markup: recolorMarkup(result.markup, lightRecolorMap()) } : result;
 }
 
 /**

@@ -376,6 +376,25 @@ class CandidateOut(BaseModel):
     rank: int | None = None
 
 
+class EliminatedOut(BaseModel):
+    """One record the pipeline removed, and the step that removed it (D-240).
+
+    ``reason`` is the label of the funnel line that dropped the record, spelled
+    exactly as that line is in ``RunResultOut.funnel`` so the interface can put
+    the two side by side. Only enabled stages remove anything, and a record is
+    reported once: at the first step it failed. ``missing_data`` says the record
+    holds no datum for that criterion, so "no data" never reads as "too poor"
+    (absence is the fourth quality state, never a number).
+    """
+
+    record_id: int
+    name: str
+    class_name: str
+    stage_position: int
+    reason: str
+    missing_data: bool = False
+
+
 class FilterResultOut(BaseModel):
     # P0-3: which universe the candidates are records of. Stated, never left to
     # be inferred from the ids.
@@ -508,6 +527,8 @@ class RunResultOut(BaseModel):
     index: IndexResultOut | None = None
     ranking: RankingResultOut | None = None
     winner: WinnerOut | None = None
+    # D-240: every record the pipeline removed, with the step that removed it.
+    eliminated: list[EliminatedOut] = Field(default_factory=list)
 
 
 # --- Performance-index catalogue -------------------------------------------
@@ -556,6 +577,17 @@ class StudyIn(BaseModel):
     notes: PlainNote = None
 
 
+class StudyNotesPatch(BaseModel):
+    """FL-c (D-240): the one field of a saved study that is edited in place.
+
+    Only the author's note — nothing that changes what the study computes, so
+    a saved run never stops describing the study it was saved with. Empty or
+    blank clears the note (``clean_note`` turns it into ``None``).
+    """
+
+    notes: PlainNote = None
+
+
 class StudySummaryOut(BaseModel):
     id: int
     name: str
@@ -566,6 +598,9 @@ class StudySummaryOut(BaseModel):
     stage_count: int = 1
     universe: UniverseLiteral = "material"
     has_notes: bool = False
+    # FL-c (D-240): the study's own note, so "Meus estudos" can show and edit it
+    # without opening the study. Stage notes stay in the study.
+    notes: str | None = None
 
 
 class StudyOut(BaseModel):

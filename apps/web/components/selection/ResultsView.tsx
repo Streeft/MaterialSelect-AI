@@ -35,6 +35,7 @@ import { FunnelRow, percent } from "./FunnelRow";
 import { ExpressionLabel } from "@/components/expression/ExpressionLabel";
 import { wizardText } from "@/lib/i18n-selection-wizard";
 import { CandidateExplorer } from "./CandidateExplorer";
+import { EliminatedList } from "./EliminatedList";
 
 const t = ptBR.selection;
 
@@ -565,6 +566,11 @@ export function ResultsView({
           </div>
         )}
       </Section>
+
+      {/* D-240: which material fell, and at which step. */}
+      {result.eliminated && (
+        <EliminatedList records={result.eliminated} universe={result.universe} />
+      )}
 
       {/* Excluded for missing data */}
       {ranking && ranking.excluded.length > 0 && (
