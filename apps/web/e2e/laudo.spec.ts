@@ -64,7 +64,8 @@ test("laudo: pré-visualiza com marca de rascunho, emite e abre a versão congel
   expect(preview.url()).toContain(`/api/exports/estudos/${studyId}/laudo.html`);
   await expect(preview.getByText("RASCUNHO — não emitido").first()).toBeVisible();
   await expect(preview.getByRole("heading", { name: /Resumo executivo/ })).toBeVisible();
-  await expect(preview.getByText("Custo por peça conforme o lote")).toBeAttached();
+  // The figure names itself (role="img" + aria-label); its <title> repeats the name.
+  await expect(preview.getByRole("img", { name: "Custo por peça conforme o lote" })).toBeAttached();
   await preview.close();
 
   // Emitir asks first, and says that it freezes.

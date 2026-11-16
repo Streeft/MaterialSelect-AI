@@ -37,7 +37,6 @@ import {
   Th,
   Tr,
 } from "@/components/ui";
-import { useAnnounce } from "@/components/ui/Announcer";
 
 type FormState = Record<keyof LaudoInputs, string>;
 
@@ -122,7 +121,6 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
     queryFn: () => listLaudoVersions(studyId),
   });
   const queryClient = useQueryClient();
-  const announce = useAnnounce();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirming, setConfirming] = useState(false);
   const [issued, setIssued] = useState<IssuedLaudo | null>(null);
@@ -138,7 +136,6 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
     onSuccess: (result) => {
       setConfirming(false);
       setIssued(result);
-      announce(t.issued(result.version, result.short_code));
       void queryClient.invalidateQueries({ queryKey: ["laudo-versions", studyId] });
     },
     onError: () => setConfirming(false),
@@ -212,6 +209,8 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
         </p>
       ) : null}
       {issued ? (
+        // A `role="status"` of its own: no second announcement through the
+        // app's live region, or a screen reader hears it twice (D-146).
         <Alert tone="success" role="status">
           {t.issued(issued.version, issued.short_code)}
         </Alert>
