@@ -820,6 +820,14 @@ export const ptBR = {
     excludedHint:
       "Estes materiais não têm valor para todos os critérios e não foram ranqueados.",
     missing: "faltando",
+    // D-240: o funil diz quantos; esta lista diz quais, e em que passo caíram.
+    whyOutTitle: "Reprovados, um a um",
+    whyOutHint:
+      "Cada material aparece uma vez, no primeiro passo do funil em que caiu. Quem não tinha o dado está marcado: caiu por falta de valor, não por estar fora do limite.",
+    whyOutNone: "Nenhum material foi reprovado: todos passaram pelos limites.",
+    whyOutCount: (n: number) => (n === 1 ? "1 material" : `${n} materiais`),
+    whyOutMissing: "sem dado",
+    whyOutMissingCount: (n: number) => `${n} sem dado`,
     sensitivity: "Análise de sensibilidade",
     sensitivityHint: "Como o 1º colocado muda ao variar os pesos.",
     scenario: "Cenário",

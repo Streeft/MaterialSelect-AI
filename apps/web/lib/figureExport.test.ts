@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { exportFigure, figureMarkup } from "./figureExport";
+import { exportFigure, figureMarkup, lightRecolorMap, recolorMarkup } from "./figureExport";
 import { DOWNLOAD_REVOKE_DELAY_MS, RasterizeError, type RasterizeDeps } from "./rasterize";
 
 /**
@@ -198,5 +198,27 @@ describe("exportFigure", () => {
     expect(error).toMatchObject({ reason: "tainted" });
     expect(click.clicks).toHaveLength(0);
     expect(h.revoked).toEqual(["blob:test/1"]);
+  });
+});
+
+describe("figura para relatório sempre clara (D-240)", () => {
+  it("troca as cores do tema escuro pelas do claro e mantém o alfa e o que não é token", () => {
+    const map = new Map([
+      ["20, 22, 28", "255, 255, 255"],
+      ["227, 227, 227", "32, 33, 36"],
+    ]);
+    const markup =
+      '<rect fill="rgb(20, 22, 28)"/><text style="fill:rgb(227,227,227)"/>' +
+      '<path stroke="rgba(227, 227, 227, 0.4)"/><circle fill="rgb(230, 159, 0)"/>';
+    expect(recolorMarkup(markup, map)).toBe(
+      '<rect fill="rgb(255, 255, 255)"/><text style="fill:rgb(32, 33, 36)"/>' +
+        '<path stroke="rgba(32, 33, 36, 0.4)"/><circle fill="rgb(230, 159, 0)"/>',
+    );
+  });
+
+  it("no tema claro não há o que trocar", () => {
+    document.documentElement.removeAttribute("data-theme");
+    expect(lightRecolorMap().size).toBe(0);
+    expect(recolorMarkup('<rect fill="rgb(1, 2, 3)"/>', new Map())).toBe('<rect fill="rgb(1, 2, 3)"/>');
   });
 });

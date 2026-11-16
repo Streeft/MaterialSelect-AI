@@ -984,7 +984,7 @@ export function AshbyMap({
       {/* D-221: the legend sits above the drawing, inside the first screen —
           under a figure as tall as the viewport it was never seen. */}
       <ChartLegend items={legendItems} hidden={hidden} onToggle={toggleSeries} onIsolate={setHidden} />
-      {/* `role="img"` (put on Plotly's `.svg-container` by `usePlotlyResize`, D-226)
+      {/* `role="img"` (put on Plotly's first `.main-svg` layer by `usePlotlyResize`, D-226)
           collapses Plotly's thousands of `<path>` and tick nodes into one object
           for assistive technology. What replaces them is the data table behind
           "Ver tabela de dados", not a longer label. The wrapper is a `group`

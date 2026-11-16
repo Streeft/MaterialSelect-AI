@@ -30,11 +30,20 @@ function study(id: number, name: string, has_notes: boolean): StudySummary {
   };
 }
 
-function mount(studies: StudySummary[]) {
+function mount(
+  studies: StudySummary[],
+  onSaveNote?: (id: number, notes: string) => Promise<unknown>,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <SavedStudiesPanel studies={studies} onRun={vi.fn()} onLoad={vi.fn()} onDelete={vi.fn()} />
+      <SavedStudiesPanel
+        studies={studies}
+        onRun={vi.fn()}
+        onLoad={vi.fn()}
+        onDelete={vi.fn()}
+        onSaveNote={onSaveNote}
+      />
     </QueryClientProvider>,
   );
 }
@@ -59,5 +68,28 @@ describe("SavedStudiesPanel (D-122)", () => {
     mount([]);
     await userEvent.click(screen.getByText(/Meus estudos/i));
     expect(screen.getByRole("button", { name: flowText.file.importButton })).toBeInTheDocument();
+  });
+});
+
+describe("SavedStudiesPanel: nota editável no lugar (FL-c, D-240)", () => {
+  it("mostra a nota e salva só ela, sem abrir o estudo", async () => {
+    const user = userEvent.setup();
+    const onSaveNote = vi.fn().mockResolvedValue(undefined);
+    mount([{ ...study(3, "Viga", true), notes: "por que 200 MPa" }], onSaveNote);
+    await user.click(screen.getByText(/Meus estudos/i));
+    expect(screen.getByText("por que 200 MPa")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: `Editar notas do estudo: Viga` }));
+    const field = screen.getByRole("textbox", { name: `${flowText.notes.studyLabel} de Viga` });
+    await user.clear(field);
+    await user.type(field, "revisada");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSaveNote).toHaveBeenCalledWith(3, "revisada");
+  });
+
+  it("diz que não há nota, em vez de deixar o espaço vazio", async () => {
+    mount([study(4, "Haste", false)], vi.fn());
+    await userEvent.click(screen.getByText(/Meus estudos/i));
+    expect(screen.getByText(flowText.notes.none)).toBeInTheDocument();
   });
 });

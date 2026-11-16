@@ -20,6 +20,7 @@ import {
 import {
   createStudy,
   deleteStudy,
+  patchStudyNotes,
   evaluateIndex,
   getStudy,
   listClasses,
@@ -945,6 +946,10 @@ function SelectionWizard() {
             onRun={(id) => runSaved.mutate(id)}
             onLoad={(id) => loadStudy.mutate(id)}
             onDelete={removeStudy}
+            onSaveNote={async (id, notes) => {
+              await patchStudyNotes(id, notes);
+              await qc.invalidateQueries({ queryKey: ["studies"] });
+            }}
           />
         }
         properties={

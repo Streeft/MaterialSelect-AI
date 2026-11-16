@@ -544,3 +544,45 @@ describe("ResultsView: Copiar tabela dos estágios (D-173)", () => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
   });
 });
+
+describe("ResultsView: reprovados, um a um (D-240)", () => {
+  const eliminated = [
+    { record_id: 7, name: "Aço X", class_name: "Metais", stage_position: 0, reason: "Densidade ≤ 3", missing_data: false },
+    { record_id: 8, name: "Cerâmica Y", class_name: "Cerâmicas", stage_position: 0, reason: "Módulo ≥ 60", missing_data: true },
+    { record_id: 9, name: "Liga Z", class_name: "Metais", stage_position: 0, reason: "Densidade ≤ 3", missing_data: false },
+  ];
+
+  it("agrupa pelo passo do funil, na ordem do servidor, e diz quem caiu por falta de dado", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ResultsView result={makeResult({ eliminated })} initialTab="eliminados" />,
+    );
+    const section = container.querySelector("#reprovados") as HTMLElement;
+    const summaries = [...section.querySelectorAll("summary")].map((s) => s.textContent);
+    expect(summaries[0]).toContain("Densidade ≤ 3");
+    expect(summaries[0]).toContain(ptBR.selection.whyOutCount(2));
+    expect(summaries[1]).toContain(ptBR.selection.whyOutMissingCount(1));
+
+    await user.click(within(section).getByText("Módulo ≥ 60"));
+    const link = within(section).getByRole("link", { name: "Cerâmica Y" });
+    expect(link.getAttribute("href")).toBe("/app/materiais/8");
+    expect(within(section).getByText(ptBR.selection.whyOutMissing)).toBeTruthy();
+    expect(describeViolations(await findA11yViolations(container))).toBe("");
+  });
+
+  it("diz que ninguém caiu, em vez de uma lista vazia", () => {
+    render(<ResultsView result={makeResult({ eliminated: [] })} initialTab="eliminados" />);
+    expect(screen.getByText(ptBR.selection.whyOutNone)).toBeTruthy();
+  });
+
+  it("num estudo de processos o nome não vira link para a ficha de material", () => {
+    const { container } = render(
+      <ResultsView
+        result={makeResult({ universe: "process", eliminated })}
+        initialTab="eliminados"
+      />,
+    );
+    const section = container.querySelector("#reprovados") as HTMLElement;
+    expect(within(section).queryAllByRole("link", { hidden: true })).toHaveLength(0);
+  });
+});

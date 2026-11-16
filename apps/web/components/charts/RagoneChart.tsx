@@ -270,7 +270,7 @@ export function RagoneChart({
         </div>
       }
     >
-      {/* `role="img"` (on Plotly's `.svg-container`, see `usePlotlyResize`, D-226)
+      {/* `role="img"` (on Plotly's first `.main-svg` layer, see `usePlotlyResize`, D-226)
           collapses Plotly's nodes into one object for assistive technology; what
           replaces them is the data table (D-31). The wrapper is a `group`: the
           modebar's buttons cannot live inside an image. */}

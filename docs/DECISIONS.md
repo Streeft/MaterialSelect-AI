@@ -14117,3 +14117,40 @@ colunas vazias; a pessoa acrescenta as que tiver, e o mapeamento as reconhece pe
 
 **Numeração.** D-239, Sessão 196 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
+
+## D-240 — Resíduos da revisão das telas: por que cada material caiu, figura para relatório sempre clara e nota do estudo editável no lugar
+
+**Contexto.** Fechado o plano F0–F9, três pendências do `TODO.md` ficaram para depois. Na Seleção, o funil dizia quantos materiais
+cada limite tirou, mas não quais (pendente da Etapa 3.1). A figura para relatório do Mapa saía no tema da tela, escura se a pessoa
+usava o tema escuro (pendente da Etapa 3.2). E a nota de um estudo salvo só mudava reabrindo o estudo no assistente e salvando de novo
+(FL-c). O quarto item listado com eles, tirar a barra do Plotly de dentro do `role="img"`, já tinha sido resolvido na D-226
+(`usePlotlyResize` põe o papel de imagem só na primeira camada `.main-svg`); o `TODO.md` é que estava velho.
+
+**Decisão.**
+- **`RunResultOut.eliminated`**: uma linha por registro que o pipeline tirou (`record_id`, nome, classe, `stage_position`, `reason`,
+  `missing_data`). `reason` é o rótulo da linha do funil que tirou o registro, escrito igual (com o prefixo do estágio quando há
+  mais de um), e cada registro aparece uma vez, no primeiro passo em que caiu. Num grupo E, é o primeiro critério que ele não
+  cumpriu; num grupo OU, as alternativas unidas por "ou", porque ele falhou em todas. Estágio desligado não tira ninguém.
+  `missing_data` vem de `lacks_datum` (`app/domain/filters.py`): o registro não tinha o dado que o critério lê, então caiu por
+  ausência, não por estar fora do limite (D-24). Critérios de presença (`exists`), classe e texto nunca dizem "sem dado"; um
+  subgrupo aninhado também não, porque mistura critérios. Tudo sai do mesmo laço que monta o funil (`_apply_group` e
+  `_apply_stages`), sem uma segunda avaliação.
+- **Na aba Eliminados**, "Reprovados, um a um" agrupa a lista pelo motivo, na ordem do servidor: um `<details>` fechado por passo,
+  com a contagem e quantos estavam sem dado; o nome leva à ficha num estudo de materiais. Agrupar é apresentação; nenhum motivo é
+  recalculado no cliente.
+- **A figura para relatório sai sempre no tema claro.** `lib/figureExport.ts` monta a figura como antes e, só no modo relatório,
+  troca cada cor do tema escuro pela mesma cor do tema claro (`lightRecolorMap` + `recolorMarkup`). O mapa de troca é lido da
+  própria folha de estilos: os tokens que `[data-theme="dark"]` redefine, com o valor claro lido de um elemento de prova com
+  `data-theme="light"` (e a seção da página). A cor continua escrita num lugar só, e as cores Okabe–Ito das classes, iguais nos dois
+  temas, ficam como estão. O PNG e o SVG comuns continuam no tema da tela.
+- **FL-c: `PATCH /api/selection/studies/{id}`** aceita só `notes` (texto puro, até 2.000 caracteres; em branco apaga) e registra
+  a mudança na auditoria. Nada do que o estudo calcula muda, então uma execução salva continua descrevendo o estudo com que foi
+  salva. `StudySummaryOut.notes` leva a nota à lista, e "Meus estudos" a edita com `EditableText` (D-238), sem abrir o estudo.
+
+**Alternativas recusadas.** Um endpoint "por que caiu" sob demanda, por material (uma ida ao servidor por clique, e o motor já tem a
+resposta quando monta o funil). Reavaliar cada critério em cada material reprovado para listar *todos* os que ele não cumpre (o
+funil é sequencial; a primeira falha é a que o tirou, e é ela que o funil conta). Redesenhar o Plotly com o layout claro para
+exportar (trocar o tema da página inteira pisca a tela; copiar os traços e trocar cor por cor no JSON repete o que a troca no SVG
+final já faz para as duas famílias de figura). Um `PUT` do estudo inteiro para mudar a nota (mudaria o que a execução salva descreve).
+
+**Numeração.** D-240, Sessão 197 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.

@@ -34,6 +34,7 @@ from app.schemas.selection import (
     RunRequest,
     RunResultOut,
     StudyIn,
+    StudyNotesPatch,
     StudyOut,
     StudySummaryOut,
     StudyTemplateOut,
@@ -247,6 +248,18 @@ def get_study(
     user: User = Depends(get_current_user),
 ) -> StudyOut:
     return SelectionService(db, project.id, user).get_study(study_id)
+
+
+@router.patch("/studies/{study_id}", response_model=StudyOut)
+def patch_study_notes(
+    study_id: int,
+    payload: StudyNotesPatch,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> StudyOut:
+    """FL-c (D-240): edit a saved study's note, and nothing else."""
+    return SelectionService(db, project.id, user).patch_study_notes(study_id, payload)
 
 
 @router.delete("/studies/{study_id}", status_code=status.HTTP_204_NO_CONTENT)

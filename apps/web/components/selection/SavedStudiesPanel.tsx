@@ -8,6 +8,7 @@ import type { StudySummary } from "@/lib/types";
 import {
   Badge,
   Button,
+  EditableText,
   EmptyState,
   MenuItem,
 } from "@/components/ui";
@@ -18,6 +19,7 @@ import { StudyExplanation } from "@/components/ai/StudyExplanation";
 import { SidePeek } from "@/components/ui/SidePeek";
 import { useState } from "react";
 import { ImportStudyButton } from "./ImportStudyButton";
+import { MAX_NOTE_LENGTH } from "./StageList";
 
 const t = ptBR.selection;
 
@@ -37,11 +39,14 @@ export function SavedStudiesPanel({
   onRun,
   onLoad,
   onDelete,
+  onSaveNote,
 }: {
   studies: StudySummary[] | undefined;
   onRun: (id: number) => void;
   onLoad: (id: number) => void;
   onDelete: (id: number) => void;
+  /** FL-c (D-240): save only the study's note, in place; without it the note is read-only. */
+  onSaveNote?: (id: number, notes: string) => Promise<unknown>;
 }) {
   const count = studies?.length ?? 0;
   const [open, setOpen] = useState(false);
@@ -66,6 +71,20 @@ export function SavedStudiesPanel({
                 <span className="min-w-0 break-words font-medium text-ink">{s.name}</span>
                 {s.has_notes && <Badge tone="neutral">{flowText.notes.hasNotes}</Badge>}
               </div>
+              {onSaveNote ? (
+                <EditableText
+                  value={s.notes ?? ""}
+                  label={flowText.notes.studyLabel}
+                  itemName={s.name}
+                  multiline
+                  maxLength={MAX_NOTE_LENGTH}
+                  empty={flowText.notes.none}
+                  className="text-body"
+                  onSave={(next) => onSaveNote(s.id, next)}
+                />
+              ) : s.notes ? (
+                <p className="whitespace-pre-line text-body text-ink-muted">{s.notes}</p>
+              ) : null}
               <p className="text-caption text-ink-muted">
                 {countLabel(s.constraint_count, ptBR.home.constraintOne, ptBR.home.constraintMany)} ·{" "}
                 {countLabel(s.criterion_count, ptBR.home.criterionOne, ptBR.home.criterionMany)}

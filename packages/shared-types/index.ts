@@ -1297,6 +1297,21 @@ export interface RunResult {
   ranking: RankingResult | null;
   /** Quem venceu, escolhido no backend (D-85, ADR 0004). */
   winner: RunWinner;
+  /**
+   * D-240: cada registro que o pipeline tirou, com o passo que o tirou —
+   * `reason` é o rótulo da linha do funil, escrito igual. `missing_data`
+   * diz que caiu por não ter o dado, nunca por estar fora do limite.
+   */
+  eliminated?: EliminatedRecord[];
+}
+
+export interface EliminatedRecord {
+  record_id: number;
+  name: string;
+  class_name: string;
+  stage_position: number;
+  reason: string;
+  missing_data: boolean;
 }
 
 /**
@@ -1414,6 +1429,8 @@ export interface StudySummary {
   stage_count: number;
   /** D-122: the study or one of its stages carries a note. */
   has_notes?: boolean;
+  /** FL-c (D-240): the study's own note, edited in place from "Meus estudos". */
+  notes?: string | null;
 }
 
 export interface StudyDetail {

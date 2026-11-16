@@ -1028,6 +1028,14 @@ export function studyFileUrl(studyId: number): string {
   return `${API_URL}/api/selection/studies/${studyId}/export`;
 }
 
+/** FL-c (D-240): change only a saved study's own note. Blank clears it. */
+export function patchStudyNotes(id: number, notes: string): Promise<StudyDetail> {
+  return request<StudyDetail>(`/api/selection/studies/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ notes }),
+  });
+}
+
 export function deleteStudy(id: number): Promise<void> {
   return request<void>(`/api/selection/studies/${id}`, { method: "DELETE" });
 }

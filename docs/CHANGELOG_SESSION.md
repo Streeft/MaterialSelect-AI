@@ -120,6 +120,19 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 197 — 15/11/26 — Por que cada material caiu, figura para relatório clara e nota editável (D-240)
+
+**O que mudou.** Backend: `RunResultOut.eliminated` (`EliminatedOut`) com o passo do funil que tirou cada registro e se ele estava sem o
+dado (`lacks_datum` em `app/domain/filters.py`), montado no mesmo laço do funil; `PATCH /api/selection/studies/{id}`
+(`StudyNotesPatch`) muda só a nota, com auditoria; `StudySummaryOut.notes`. Frontend: "Reprovados, um a um" na aba Eliminados
+(`EliminatedList`), agrupado pelo motivo; figura para relatório sempre no tema claro (`lightRecolorMap`/`recolorMarkup` em
+`lib/figureExport.ts`); nota do estudo editável em "Meus estudos" (`patchStudyNotes`, `EditableText`); comentários sobre o
+`role="img"` do Plotly corrigidos (D-226 já o tinha tirado da barra). Testes novos: pytest `test_selection_eliminated` e
+`test_study_notes_patch`; vitest em `selection`, `SavedStudiesPanel` e `figureExport`; E2E em `mapas.spec.ts` (relatório claro com a tela
+escura, conferido que falha sem a troca). Sem migração nem seed. **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 196 — 15/11/26 — Modelo CSV do Importar com uma linha de exemplo (D-239)
 
 **O que mudou.** Backend: `app/importers/template.py` e `GET /api/imports/modelo.csv` (`;`, UTF-8 com BOM, cabeçalhos que o
