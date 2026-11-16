@@ -379,3 +379,30 @@ class EcoComparisonResultOut(BaseModel):
     #: total bar is the two audits' totals subtracted.
     energy_difference_waterfall: WaterfallOut
     carbon_difference_waterfall: WaterfallOut
+
+
+class PartFootprintOut(BaseModel):
+    """One part's material, manufatura and fim-de-vida phases (D-241, the laudo).
+
+    Transport and use are **not evaluated** here: the laudo knows the material
+    and the part mass, not the journey or the service. ``reason`` is filled, and
+    every number left empty, when the part could not be audited at all.
+    """
+
+    material_id: int
+    material_name: str | None = None
+    process_id: int | None = None
+    process_name: str | None = None
+    #: Why this process: the cheapest at the batch, or the first compatible one.
+    process_choice: str | None = None
+    part_mass: float
+    end_of_life: str = EOL_RECYCLE
+    end_of_life_label: str | None = None
+    phases: list[PhaseOut] = Field(default_factory=list)
+    total_energy: float | None = None
+    total_carbon: float | None = None
+    energy_waterfall: WaterfallOut | None = None
+    carbon_waterfall: WaterfallOut | None = None
+    energy_unit: str = ENERGY_UNIT
+    carbon_unit: str = CARBON_UNIT
+    reason: str | None = None

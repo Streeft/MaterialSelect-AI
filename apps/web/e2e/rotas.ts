@@ -42,4 +42,7 @@ export const ROUTES: ReadonlyArray<readonly [string, string]> = [
   // D-215: the document pages that open without an id of their own.
   ["catalogo-familia", "/app/catalogo/metais"],
   ["material-novo", "/app/materiais/novo"],
+  // D-241: the laudo screen without a study (its empty state); the spec
+  // `laudo.spec.ts` opens it with one.
+  ["laudo-sem-estudo", "/app/selecao/laudo"],
 ];

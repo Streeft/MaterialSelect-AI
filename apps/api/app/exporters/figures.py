@@ -28,21 +28,34 @@ Four properties are structural here, not stylistic:
   track with the word "ausente" written in it. This is the same rule the tables
   follow, and the one place a chart is most tempted to break it.
 
-The palette is local to this module on purpose. The interface and its figures
-share one set of tokens (`D-28`), but those tokens are CSS custom properties
-that exist only inside the web application; a printed report has no ``:root`` to
-read them from, which is why ``html.py`` has always carried its own hexes. These
-are the print counterparts of the same roles, chosen for ink on white.
+The palette comes from ``app.exporters.laudo_theme`` (D-241): the light-theme
+values of the interface's own tokens (`D-28`), copied as hexes because a printed
+report has no ``:root`` to read CSS custom properties from. ``html.py`` reads the
+same module, so a figure and the page around it cannot disagree.
+
+The laudo's summary charts (radar, horizontal bars, donut, waterfall, cost
+curves and traffic light, D-241) follow the same four rules. The radar and the
+donut need ``cos``/``sin`` — that is the polar version of mapping a value to a
+pixel, not a computation of the data: every value, share and domain they draw
+still arrives computed from ``domain``/``calculations``.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from html import escape
-from math import floor, isfinite, log10
+from math import cos, floor, isfinite, log10, pi, sin
 from typing import Literal
 
 from app.exporters.cells import format_number
+from app.exporters.laudo_theme import (
+    FONT_SANS,
+    STATUS,
+    format_br,
+    series_colour,
+    series_dash,
+    token,
+)
 
 Scale = Literal["linear", "log"]
 
@@ -70,35 +83,32 @@ PLOT_CLIP_ID = "plot-area"
 COORD_DIGITS = 2
 
 # --- Palette ---------------------------------------------------------------
-INK = "#0f172a"
-INK_MUTED = "#475569"
-INK_SUBTLE = "#64748b"
-GRID = "#e2e8f0"
-AXIS = "#94a3b8"
-SURFACE = "#ffffff"
-HIGHLIGHT = "#b45309"
-INDEX_LINE = "#0f766e"
+# Every colour is a token of the interface's light theme (laudo_theme, D-241).
+INK = token("ink")
+INK_MUTED = token("ink-muted")
+INK_SUBTLE = token("ink-subtle")
+GRID = token("edge-subtle")
+AXIS = token("edge-strong")
+SURFACE = token("surface-raised")
+#: The recommended material: the brand's deepest usable step, everywhere in the
+#: laudo, so "this one" reads the same in the map, the bars and the radar.
+HIGHLIGHT = token("brand-700")
+#: The bars of the other finalists: a quiet step of the same hue.
+BAR_MUTED = token("brand-300")
+INDEX_LINE = token("info-fg")
 #: The box a Chart stage drew. Deliberately the ink colour and **not** a data
-#: hue: every one of the six group colours is already spoken for by a class, and
-#: `HIGHLIGHT` and `INDEX_LINE` reuse two of them as it is. A seventh hue would
-#: read as a seventh class. The region is an annotation over the data, not
-#: another series in it, so it is drawn in the same near-black the axes and the
-#: title use — which also survives the photocopier the group palette is chosen
-#: for.
+#: hue: every one of the group colours is already spoken for by a class. A
+#: seventh hue would read as a seventh class. The region is an annotation over
+#: the data, not another series in it, so it is drawn in the same near-black the
+#: axes and the title use — which also survives the photocopier the group
+#: palette is chosen for.
 REGION = INK
 
-# Ordinal, and deliberately not a rainbow: six hues that stay distinguishable
-# in greyscale (a printed monograph is often photocopied) and avoid putting the
-# two most common classes on the red/green axis.
-GROUP_COLOURS = (
-    "#1d4ed8",
-    "#b45309",
-    "#0f766e",
-    "#7c3aed",
-    "#be123c",
-    "#4d7c0f",
-)
-GROUP_FALLBACK = "#475569"
+# Okabe–Ito (laudo_theme.SERIES): distinguishable under the common colour-vision
+# deficiencies, and every legend entry is written out in words, so colour is
+# never the only cue.
+GROUP_COLOURS = tuple(series_colour(i) for i in range(6))
+GROUP_FALLBACK = INK_MUTED
 
 
 # --- The drawing vocabulary -------------------------------------------------
@@ -336,16 +346,24 @@ def _group_order(points: list[Point], polygons: list[Polygon]) -> list[str]:
     return order
 
 
-def _frame(title: str, description: str, body: str) -> str:
+def _frame(
+    title: str,
+    description: str,
+    body: str,
+    *,
+    width: float = WIDTH,
+    height: float = HEIGHT,
+    title_x: float = MARGIN_LEFT,
+) -> str:
     """The shared wrapper: sized box, accessible name, white ground."""
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {HEIGHT}" '
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {_n(width)} {_n(height)}" '
         f'width="100%" role="img" aria-label="{_t(title)}" '
-        f'font-family="ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif">'
+        f'font-family="{_t(FONT_SANS)}">'
         f"<title>{_t(title)}</title>"
         f"<desc>{_t(description)}</desc>"
-        f'<rect x="0" y="0" width="{WIDTH}" height="{HEIGHT}" fill="{SURFACE}"/>'
-        f'<text x="{MARGIN_LEFT}" y="20" font-size="13" font-weight="600" fill="{INK}">'
+        f'<rect x="0" y="0" width="{_n(width)}" height="{_n(height)}" fill="{SURFACE}"/>'
+        f'<text x="{_n(title_x)}" y="20" font-size="13" font-weight="600" fill="{INK}">'
         f"{_t(title)}</text>"
         f"{body}"
         "</svg>"
@@ -428,12 +446,32 @@ def _legend(entries: list[tuple[str, str]]) -> str:
     return "".join(parts)
 
 
+#: About what one caption line holds at 9 px across the frame.
+CAPTION_LINE = 128
+
+
 def _caption(text: str) -> str:
+    """The caption under the frame; a long one wraps to a second line at a word.
+
+    Past two lines it is shortened with "…" — and the full text stays in the
+    element's ``<title>``, so nothing is lost to a reader who hovers or to a
+    screen reader.
+    """
     if not text:
         return ""
+    if len(text) <= CAPTION_LINE:
+        return (
+            f'<text x="{MARGIN_LEFT}" y="{HEIGHT - 6}" font-size="9" fill="{INK_SUBTLE}">'
+            f"{_t(text)}</text>"
+        )
+    cut = text.rfind(" ", 0, CAPTION_LINE)
+    cut = cut if cut > 0 else CAPTION_LINE
+    first, second = text[:cut], text[cut:].strip()
     return (
-        f'<text x="{MARGIN_LEFT}" y="{HEIGHT - 6}" font-size="9" fill="{INK_SUBTLE}">'
-        f"{_t(text)}</text>"
+        f'<text x="{MARGIN_LEFT}" y="{HEIGHT - 14}" font-size="9" fill="{INK_SUBTLE}">'
+        f"<title>{_t(text)}</title>"
+        f'<tspan x="{MARGIN_LEFT}">{_t(first)}</tspan>'
+        f'<tspan x="{MARGIN_LEFT}" dy="10">{_t(_clip(second, CAPTION_LINE))}</tspan></text>'
     )
 
 
@@ -594,7 +632,7 @@ def render_bars(figure: BarFigure) -> str:
             continue
 
         width = max(0.0, min(1.0, bar.value / top)) * (PLOT_RIGHT - PLOT_LEFT)
-        colour = HIGHLIGHT if bar.highlighted else GROUP_COLOURS[0]
+        colour = HIGHLIGHT if bar.highlighted else BAR_MUTED
         body.append(
             f'<rect x="{PLOT_LEFT}" y="{_n(y)}" width="{_n(width)}" '
             f'height="{_n(thickness)}" rx="4" fill="{colour}" fill-opacity="0.85"/>'
@@ -606,3 +644,573 @@ def render_bars(figure: BarFigure) -> str:
 
     body.append(_caption(figure.caption))
     return _frame(figure.title, figure.description, "".join(body))
+
+
+# --- The laudo's summary charts (D-241) --------------------------------------
+# Smaller, quieter figures than the map: they sit two to a row in the executive
+# summary and have to read at a glance. Same rules as above — values arrive
+# computed, absence is drawn as absence, every mark has words next to it.
+
+
+def _clip(text: str, limit: int) -> str:
+    """Shorten a label by character count (the print font may differ)."""
+    return text if len(text) <= limit else f"{text[: limit - 1]}…"
+
+
+@dataclass(frozen=True)
+class HBar:
+    """One horizontal bar. ``value=None`` is absent: a track and a word."""
+
+    label: str
+    value: float | None
+    highlighted: bool = False
+    #: Written after the value ("processo: Fundição"), never instead of it.
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class HBarFigure:
+    title: str
+    #: Written after each value and under the bars.
+    unit: str
+    bars: list[HBar] = field(default_factory=list)
+    caption: str = ""
+    description: str = ""
+    width: float = 720
+
+
+HBAR_LABEL_RIGHT = 196
+HBAR_ROW = 23
+HBAR_TOP = 32
+
+
+def render_hbars(figure: HBarFigure) -> str:
+    """Labelled horizontal bars from a zero baseline, value written at the tip.
+
+    The frame always holds zero (a bar chart is read against its baseline), and
+    a negative value — a recycling credit, a PROMETHEE net flow — grows left of
+    it rather than being clipped.
+    """
+    rows = figure.bars[:12]
+    values = [b.value for b in rows if b.value is not None and isfinite(b.value)]
+    low = min([0.0, *values])
+    high = max([0.0, *values])
+    if not high > low:
+        high = low + 1.0
+    left = HBAR_LABEL_RIGHT + 8
+    right = figure.width - 250
+    height = HBAR_TOP + HBAR_ROW * max(len(rows), 1) + 30
+
+    def x_of(value: float) -> float:
+        return left + (value - low) / (high - low) * (right - left)
+
+    zero = x_of(0.0)
+    body = [
+        f'<line x1="{_n(zero)}" y1="{HBAR_TOP - 4}" x2="{_n(zero)}" '
+        f'y2="{_n(HBAR_TOP + HBAR_ROW * max(len(rows), 1))}" stroke="{AXIS}" stroke-width="1.25"/>'
+    ]
+    for position, bar in enumerate(rows):
+        centre = HBAR_TOP + HBAR_ROW * (position + 0.5)
+        weight = ' font-weight="600"' if bar.highlighted else ""
+        body.append(
+            f'<text x="{HBAR_LABEL_RIGHT}" y="{_n(centre + 3.5)}" font-size="10.5" '
+            f'fill="{INK if bar.highlighted else INK_MUTED}" text-anchor="end"{weight}>'
+            f"{_t(_clip(bar.label, 30))}</text>"
+        )
+        thickness = 14
+        top = centre - thickness / 2
+        if bar.value is None or not isfinite(bar.value):
+            body.append(
+                f'<rect x="{_n(left)}" y="{_n(top)}" width="{_n(right - left)}" '
+                f'height="{thickness}" rx="3" fill="{GRID}" fill-opacity="0.6"/>'
+            )
+            body.append(
+                f'<text x="{_n(left + 8)}" y="{_n(centre + 3.5)}" font-size="10" '
+                f'font-style="italic" fill="{INK_SUBTLE}">ausente</text>'
+            )
+            continue
+        start, end = sorted((zero, x_of(bar.value)))
+        colour = HIGHLIGHT if bar.highlighted else BAR_MUTED
+        body.append(
+            f'<rect x="{_n(start)}" y="{_n(top)}" width="{_n(max(end - start, 1.0))}" '
+            f'height="{thickness}" rx="3" fill="{colour}"/>'
+        )
+        text = f"{format_br(bar.value)} {figure.unit}".strip()
+        if bar.note:
+            text = f"{text} · {bar.note}"
+        body.append(
+            f'<text x="{_n(max(end, zero) + 6)}" y="{_n(centre + 3.5)}" font-size="10" '
+            f'fill="{INK}"{weight}>{_t(_clip(text, 44))}</text>'
+        )
+    if figure.caption:
+        body.append(
+            f'<text x="{HBAR_LABEL_RIGHT - 180}" y="{_n(height - 10)}" font-size="9" '
+            f'fill="{INK_SUBTLE}">{_t(figure.caption)}</text>'
+        )
+    return _frame(
+        figure.title,
+        figure.description,
+        "".join(body),
+        width=figure.width,
+        height=height,
+        title_x=16,
+    )
+
+
+@dataclass(frozen=True)
+class RadarSeries:
+    """One finalist on the radar; a ``None`` value is a vertex it does not have."""
+
+    label: str
+    values: list[float | None]
+    highlighted: bool = False
+
+
+@dataclass(frozen=True)
+class RadarFigure:
+    title: str
+    #: One spoke per criterion, in the order of ``RadarSeries.values``.
+    axes: list[str]
+    series: list[RadarSeries] = field(default_factory=list)
+    #: The value at the centre and at the rim, computed upstream.
+    minimum: float = 0.0
+    maximum: float = 1.0
+    caption: str = ""
+    description: str = ""
+
+
+RADAR_CX = 280
+RADAR_CY = 240
+RADAR_R = 140
+
+
+def _radar_point(index: int, count: int, fraction: float) -> tuple[float, float]:
+    """Spoke ``index`` of ``count``, at ``fraction`` of the radius (12 o'clock first)."""
+    angle = -pi / 2 + 2 * pi * index / count
+    return RADAR_CX + RADAR_R * fraction * cos(angle), RADAR_CY + RADAR_R * fraction * sin(angle)
+
+
+def render_radar(figure: RadarFigure) -> str:
+    """Normalised scores of the finalists, one spoke per criterion.
+
+    A series with a missing value is not closed into a polygon — the gap would
+    have to be drawn somewhere, and anywhere is a number nobody measured — so
+    only its defined vertices are marked, and the legend says so.
+    """
+    count = len(figure.axes)
+    low, high = figure.minimum, figure.maximum
+    if not (isfinite(low) and isfinite(high)) or not high > low:
+        low, high = 0.0, 1.0
+
+    def fraction(value: float) -> float:
+        return max(0.0, min(1.0, (value - low) / (high - low)))
+
+    body: list[str] = []
+    if count < 3:
+        body.append(
+            f'<text x="{RADAR_CX}" y="{RADAR_CY}" font-size="11" fill="{INK_SUBTLE}" '
+            f'text-anchor="middle">Radar precisa de pelo menos três critérios.</text>'
+        )
+        return _frame(figure.title, figure.description, "".join(body), title_x=16)
+
+    for step in (0.25, 0.5, 0.75, 1.0):
+        ring = " ".join(
+            f"{_n(x)},{_n(y)}" for x, y in (_radar_point(i, count, step) for i in range(count))
+        )
+        body.append(f'<polygon points="{ring}" fill="none" stroke="{GRID}" stroke-width="1"/>')
+        _, ry = _radar_point(0, count, step)
+        body.append(
+            f'<text x="{RADAR_CX + 4}" y="{_n(ry - 3)}" font-size="8.5" fill="{INK_SUBTLE}">'
+            f"{_t(format_br(low + step * (high - low)))}</text>"
+        )
+    for index, label in enumerate(figure.axes):
+        x, y = _radar_point(index, count, 1.0)
+        body.append(
+            f'<line x1="{RADAR_CX}" y1="{RADAR_CY}" x2="{_n(x)}" y2="{_n(y)}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        lx, ly = _radar_point(index, count, 1.14)
+        anchor = "middle" if abs(lx - RADAR_CX) < 8 else ("start" if lx > RADAR_CX else "end")
+        body.append(
+            f'<text x="{_n(lx)}" y="{_n(ly + 3.5)}" font-size="10" fill="{INK}" '
+            f'text-anchor="{anchor}">{_t(_clip(label, 26))}</text>'
+        )
+
+    legend: list[str] = []
+    for position, series in enumerate(figure.series[:5]):
+        colour = HIGHLIGHT if series.highlighted else series_colour(position)
+        dash = series_dash(position)
+        dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
+        vertices = [
+            (i, value)
+            for i, value in enumerate(series.values[:count])
+            if value is not None and isfinite(value)
+        ]
+        complete = len(vertices) == count
+        if complete:
+            path = " ".join(
+                f"{_n(x)},{_n(y)}"
+                for x, y in (_radar_point(i, count, fraction(v)) for i, v in vertices)
+            )
+            body.append(
+                f'<polygon points="{path}" fill="{colour}" '
+                f'fill-opacity="{0.2 if series.highlighted else 0.06}" stroke="{colour}" '
+                f'stroke-width="{2.5 if series.highlighted else 1.5}"{dash_attr}/>'
+            )
+        for i, value in vertices:
+            x, y = _radar_point(i, count, fraction(value))
+            body.append(
+                f'<circle cx="{_n(x)}" cy="{_n(y)}" r="3" fill="{colour}">'
+                f"<title>{_t(series.label)}: {_t(format_br(value))}</title></circle>"
+            )
+        name = series.label if complete else f"{series.label} (dado ausente)"
+        ly = 60 + 22 * position
+        legend.append(
+            f'<line x1="520" y1="{ly}" x2="546" y2="{ly}" stroke="{colour}" '
+            f'stroke-width="{3 if series.highlighted else 2}"{dash_attr}/>'
+        )
+        weight = ' font-weight="600"' if series.highlighted else ""
+        legend.append(
+            f'<text x="554" y="{ly + 3.5}" font-size="10.5" fill="{INK}"{weight}>'
+            f"{_t(_clip(name, 26))}</text>"
+        )
+    body.extend(legend)
+    body.append(_caption(figure.caption))
+    return _frame(figure.title, figure.description, "".join(body), title_x=16)
+
+
+@dataclass(frozen=True)
+class DonutSegment:
+    """One slice: a count and the status (``laudo_theme.STATUS`` key) it is."""
+
+    label: str
+    value: float
+    status: str = "ok"
+
+
+@dataclass(frozen=True)
+class DonutFigure:
+    title: str
+    segments: list[DonutSegment] = field(default_factory=list)
+    #: The big text in the hole ("5 de 6") and the word under it.
+    centre: str = ""
+    centre_caption: str = ""
+    description: str = ""
+
+
+DONUT_W = 340
+DONUT_H = 186
+DONUT_CX = 92
+DONUT_CY = 104
+DONUT_R = 62
+DONUT_STROKE = 22
+
+
+def render_donut(figure: DonutFigure) -> str:
+    """A ring of counts by status, with the count and the word in the legend.
+
+    Drawn as dashed circles rather than arc paths: one circle per slice whose
+    dash is the slice's share of the circumference. No angle is computed, and a
+    slice that is the whole ring still draws (an arc path cannot close on
+    itself).
+    """
+    circumference = 2 * pi * DONUT_R
+    shown = [s for s in figure.segments if isfinite(s.value) and s.value > 0]
+    total = sum(s.value for s in shown)
+    body = [
+        f'<circle cx="{DONUT_CX}" cy="{DONUT_CY}" r="{DONUT_R}" fill="none" '
+        f'stroke="{GRID}" stroke-width="{DONUT_STROKE}"/>'
+    ]
+    offset = 0.0
+    for segment in shown if total > 0 else []:
+        length = circumference * segment.value / total
+        colour = STATUS.get(segment.status, STATUS["na"]).colour
+        body.append(
+            f'<circle cx="{DONUT_CX}" cy="{DONUT_CY}" r="{DONUT_R}" fill="none" '
+            f'stroke="{colour}" stroke-width="{DONUT_STROKE}" '
+            f'stroke-dasharray="{_n(length)} {_n(circumference - length)}" '
+            f'stroke-dashoffset="{_n(-offset)}" '
+            f'transform="rotate(-90 {DONUT_CX} {DONUT_CY})"/>'
+        )
+        offset += length
+    body.append(
+        f'<text x="{DONUT_CX}" y="{DONUT_CY + 4}" font-size="20" font-weight="700" '
+        f'fill="{INK}" text-anchor="middle">{_t(figure.centre)}</text>'
+    )
+    body.append(
+        f'<text x="{DONUT_CX}" y="{DONUT_CY + 20}" font-size="9" fill="{INK_MUTED}" '
+        f'text-anchor="middle">{_t(_clip(figure.centre_caption, 18))}</text>'
+    )
+    for row, segment in enumerate(figure.segments[:6]):
+        status = STATUS.get(segment.status, STATUS["na"])
+        y = 62 + 22 * row
+        body.append(f'<circle cx="190" cy="{y}" r="7" fill="{status.colour}"/>')
+        body.append(
+            f'<text x="190" y="{y + 3.5}" font-size="9" font-weight="700" fill="{SURFACE}" '
+            f'text-anchor="middle">{_t(status.glyph)}</text>'
+        )
+        body.append(
+            f'<text x="204" y="{y + 3.5}" font-size="10.5" fill="{INK}">'
+            f"{_t(_clip(segment.label, 16))}: {_t(format_br(segment.value))}</text>"
+        )
+    return _frame(
+        figure.title,
+        figure.description,
+        "".join(body),
+        width=DONUT_W,
+        height=DONUT_H,
+        title_x=16,
+    )
+
+
+@dataclass(frozen=True)
+class WaterfallBar:
+    """One step, in data coordinates from ``calculations.eco_audit.build_waterfall``."""
+
+    label: str
+    value: float | None
+    start: float | None
+    end: float | None
+    reason: str | None = None
+    is_total: bool = False
+
+
+@dataclass(frozen=True)
+class WaterfallFigure:
+    title: str
+    unit: str
+    bars: list[WaterfallBar] = field(default_factory=list)
+    #: (low, high) of the value axis, from the same calculation.
+    domain: tuple[float, float] = (0.0, 1.0)
+    caption: str = ""
+    description: str = ""
+
+
+WF_W = 720
+WF_H = 252
+WF_LEFT = 78
+WF_RIGHT = 700
+WF_TOP = 40
+WF_BOTTOM = 200
+
+
+def render_waterfall(figure: WaterfallFigure) -> str:
+    """Contribution of each phase as a step, then the total bar.
+
+    A step nobody could compute is an outlined slot with "não calculada" in it,
+    at the running total and without moving it; the total bar is then empty
+    with the reason — a sum of some phases is a subtotal that reads like one.
+    """
+    axis = Axis(label=figure.unit, min_value=figure.domain[0], max_value=figure.domain[1])
+    my = _Mapping(axis, WF_BOTTOM, WF_TOP)
+    body: list[str] = []
+    for value in _ticks(axis):
+        py = my.to_pixel(value)
+        if py < WF_TOP - 0.5 or py > WF_BOTTOM + 0.5:
+            continue
+        body.append(
+            f'<line x1="{WF_LEFT}" y1="{_n(py)}" x2="{WF_RIGHT}" y2="{_n(py)}" '
+            f'stroke="{GRID}" stroke-width="1"/>'
+        )
+        body.append(
+            f'<text x="{WF_LEFT - 6}" y="{_n(py + 3)}" font-size="9.5" fill="{INK_MUTED}" '
+            f'text-anchor="end">{_t(format_br(value))}</text>'
+        )
+    zero = my.to_pixel(0.0)
+    body.append(
+        f'<line x1="{WF_LEFT}" y1="{_n(zero)}" x2="{WF_RIGHT}" y2="{_n(zero)}" '
+        f'stroke="{AXIS}" stroke-width="1.5"/>'
+    )
+    body.append(
+        f'<text x="16" y="{(WF_TOP + WF_BOTTOM) / 2}" font-size="10.5" fill="{INK}" '
+        f'text-anchor="middle" transform="rotate(-90 16 {(WF_TOP + WF_BOTTOM) / 2})">'
+        f"{_t(figure.unit)}</text>"
+    )
+    bars = figure.bars[:8]
+    slot = (WF_RIGHT - WF_LEFT) / max(len(bars), 1)
+    width = min(72.0, slot * 0.6)
+    previous_end: float | None = None
+    for position, bar in enumerate(bars):
+        centre = WF_LEFT + slot * (position + 0.5)
+        x = centre - width / 2
+        weight = ' font-weight="600"' if bar.is_total else ""
+        body.append(
+            f'<text x="{_n(centre)}" y="{WF_BOTTOM + 18}" font-size="10" fill="{INK}" '
+            f'text-anchor="middle"{weight}>{_t(_clip(bar.label, 16))}</text>'
+        )
+        if bar.value is None or bar.start is None or bar.end is None or not isfinite(bar.value):
+            level = my.to_pixel(bar.start) if bar.start is not None else zero
+            body.append(
+                f'<rect x="{_n(x)}" y="{_n(level - 22)}" width="{_n(width)}" height="22" '
+                f'fill="none" stroke="{INK_SUBTLE}" stroke-dasharray="3 3"/>'
+            )
+            body.append(
+                f'<text x="{_n(centre)}" y="{_n(level - 8)}" font-size="8.5" '
+                f'font-style="italic" fill="{INK_SUBTLE}" text-anchor="middle">'
+                f"não calculada<title>{_t(bar.reason or '')}</title></text>"
+            )
+            continue
+        top_px, bottom_px = sorted((my.to_pixel(bar.start), my.to_pixel(bar.end)))
+        if bar.is_total:
+            colour = HIGHLIGHT
+        elif bar.value < 0:
+            colour = token("success")
+        else:
+            colour = token("brand-500")
+        if previous_end is not None and not bar.is_total:
+            link = my.to_pixel(previous_end)
+            body.append(
+                f'<line x1="{_n(x - (slot - width))}" y1="{_n(link)}" x2="{_n(x)}" '
+                f'y2="{_n(link)}" stroke="{INK_SUBTLE}" stroke-dasharray="2 2"/>'
+            )
+        body.append(
+            f'<rect x="{_n(x)}" y="{_n(top_px)}" width="{_n(width)}" '
+            f'height="{_n(max(bottom_px - top_px, 1.0))}" rx="2" fill="{colour}"/>'
+        )
+        sign = "+" if bar.value > 0 and not bar.is_total else ""
+        body.append(
+            f'<text x="{_n(centre)}" y="{_n(top_px - 5)}" font-size="9.5" fill="{INK}" '
+            f'text-anchor="middle">{_t(sign + format_br(bar.value))}</text>'
+        )
+        previous_end = bar.end
+    body.append(
+        f'<text x="{WF_LEFT}" y="{WF_H - 10}" font-size="9" fill="{INK_SUBTLE}">'
+        f"{_t(figure.caption)}</text>"
+    )
+    return _frame(
+        figure.title, figure.description, "".join(body), width=WF_W, height=WF_H, title_x=16
+    )
+
+
+@dataclass(frozen=True)
+class CurveSeries:
+    """One material's cost × batch curve, with the marker at the batch asked."""
+
+    label: str
+    points: list[tuple[float, float]] = field(default_factory=list)
+    current: tuple[float, float] | None = None
+    highlighted: bool = False
+
+
+@dataclass(frozen=True)
+class CurveFigure:
+    title: str
+    x: Axis
+    y: Axis
+    series: list[CurveSeries] = field(default_factory=list)
+    caption: str = ""
+    description: str = ""
+
+
+def render_curves(figure: CurveFigure) -> str:
+    """Several curves on one log–log frame (the cost × batch figure, D-234).
+
+    The frame (``Axis`` bounds) is the server's ``curve_domains``; this draws
+    the polylines and the marker at the reader's batch, nothing more.
+    """
+    mx = _Mapping(figure.x, PLOT_LEFT, PLOT_RIGHT)
+    my = _Mapping(figure.y, PLOT_BOTTOM, PLOT_TOP)
+    body = [_axes(figure.x, figure.y, mx, my)]
+    body.append(
+        f'<clipPath id="curve-area"><rect x="{_n(PLOT_LEFT)}" y="{_n(PLOT_TOP)}" '
+        f'width="{_n(PLOT_RIGHT - PLOT_LEFT)}" height="{_n(PLOT_BOTTOM - PLOT_TOP)}"/></clipPath>'
+    )
+    entries: list[tuple[str, str]] = []
+    for position, series in enumerate(figure.series[:6]):
+        colour = HIGHLIGHT if series.highlighted else series_colour(position)
+        dash = series_dash(position)
+        dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
+        drawable = [(x, y) for x, y in series.points if mx.maps(x) and my.maps(y)]
+        if len(drawable) >= 2:
+            path = " ".join(f"{_n(mx.to_pixel(x))},{_n(my.to_pixel(y))}" for x, y in drawable)
+            body.append(
+                f'<polyline points="{path}" fill="none" stroke="{colour}" '
+                f'stroke-width="{2.5 if series.highlighted else 1.75}"{dash_attr} '
+                f'clip-path="url(#curve-area)"/>'
+            )
+        if series.current is not None and mx.maps(series.current[0]) and my.maps(series.current[1]):
+            cx, cy = mx.to_pixel(series.current[0]), my.to_pixel(series.current[1])
+            body.append(
+                f'<circle cx="{_n(cx)}" cy="{_n(cy)}" r="4.5" fill="{SURFACE}" '
+                f'stroke="{colour}" stroke-width="2"><title>{_t(series.label)}: '
+                f"{_t(format_br(series.current[1]))}</title></circle>"
+            )
+        entries.append((colour, series.label))
+    body.append(_legend(entries))
+    body.append(_caption(figure.caption))
+    return _frame(figure.title, figure.description, "".join(body), title_x=16)
+
+
+@dataclass(frozen=True)
+class Light:
+    """One requirement on the traffic light; ``status`` is a ``STATUS`` key."""
+
+    label: str
+    status: str
+    detail: str = ""
+
+
+@dataclass(frozen=True)
+class TrafficLightFigure:
+    title: str
+    lights: list[Light] = field(default_factory=list)
+    description: str = ""
+    width: float = 720
+
+
+TL_TOP = 30
+TL_ROW = 31
+
+
+def render_traffic_light(figure: TrafficLightFigure) -> str:
+    """A checklist: lamp with glyph, the requirement, its detail and the word.
+
+    The word ("Atende", "Atenção", "Não atende", "Não avaliado") is written on
+    every row: the hue is a second cue, never the only one.
+    """
+    rows = figure.lights[:14]
+    height = TL_TOP + TL_ROW * max(len(rows), 1) + 6
+    body: list[str] = []
+    for position, light in enumerate(rows):
+        status = STATUS.get(light.status, STATUS["na"])
+        y = TL_TOP + TL_ROW * position
+        centre = y + TL_ROW / 2
+        if position:
+            body.append(
+                f'<line x1="16" y1="{_n(y)}" x2="{_n(figure.width - 16)}" y2="{_n(y)}" '
+                f'stroke="{GRID}" stroke-width="1"/>'
+            )
+        body.append(f'<circle cx="30" cy="{_n(centre)}" r="9" fill="{status.colour}"/>')
+        body.append(
+            f'<text x="30" y="{_n(centre + 4)}" font-size="12" font-weight="700" '
+            f'fill="{SURFACE}" text-anchor="middle">{_t(status.glyph)}</text>'
+        )
+        label_y = centre - 2 if light.detail else centre + 4
+        body.append(
+            f'<text x="50" y="{_n(label_y)}" font-size="11" font-weight="600" fill="{INK}">'
+            f"{_t(_clip(light.label, 72))}</text>"
+        )
+        if light.detail:
+            body.append(
+                f'<text x="50" y="{_n(centre + 10)}" font-size="9.5" fill="{INK_MUTED}">'
+                f"{_t(_clip(light.detail, 96))}<title>{_t(light.detail)}</title></text>"
+            )
+        pill_w = 88
+        pill_x = figure.width - 16 - pill_w
+        body.append(
+            f'<rect x="{_n(pill_x)}" y="{_n(centre - 10)}" width="{pill_w}" height="20" '
+            f'rx="10" fill="{status.soft}" stroke="{status.colour}" stroke-width="1"/>'
+        )
+        body.append(
+            f'<text x="{_n(pill_x + pill_w / 2)}" y="{_n(centre + 3.5)}" font-size="10" '
+            f'font-weight="600" fill="{status.ink}" text-anchor="middle">'
+            f"{_t(status.word)}</text>"
+        )
+    return _frame(
+        figure.title,
+        figure.description,
+        "".join(body),
+        width=figure.width,
+        height=height,
+        title_x=16,
+    )

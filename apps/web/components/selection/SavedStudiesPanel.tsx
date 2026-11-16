@@ -129,7 +129,7 @@ export function SavedStudiesPanel({
                   {t.delete}
                 </Button>
               </div>
-              <EngineeringReportLink studyId={s.id} />
+              <EngineeringReportLink studyId={s.id} onNavigate={() => setOpen(false)} />
               <StudyExplanation studyId={s.id} />
             </li>
           ))}

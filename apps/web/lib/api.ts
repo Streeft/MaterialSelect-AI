@@ -1348,6 +1348,85 @@ export function studyLaudoUrl(
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.${format}${query}`;
 }
 
+// --- Laudo de engenharia emitido (D-241) --------------------------------------
+
+/** What the engineer declares about one laudo; the same fields preview and issue. */
+export interface LaudoInputs {
+  engineer_name?: string | null;
+  engineer_title?: string | null;
+  engineer_registration?: string | null;
+  art_number?: string | null;
+  city?: string | null;
+  /** `AAAA-MM-DD`. */
+  issue_date?: string | null;
+  client_name?: string | null;
+  client_project?: string | null;
+  part_mass_kg?: number | null;
+  batch_size?: number | null;
+}
+
+/** One frozen version of a study's laudo. */
+export interface IssuedLaudo {
+  id: number;
+  study_id: number | null;
+  study_name: string;
+  version: number;
+  engineer_name: string;
+  engineer_title: string | null;
+  engineer_registration: string | null;
+  art_number: string | null;
+  city: string | null;
+  issue_date: string | null;
+  client_name: string | null;
+  client_project: string | null;
+  content_sha256: string;
+  short_code: string;
+  verify_url: string;
+  issued_at: string;
+}
+
+const LAUDO_QUERY: Array<[keyof LaudoInputs, string]> = [
+  ["engineer_name", "responsavel"],
+  ["engineer_title", "titulo"],
+  ["engineer_registration", "registro"],
+  ["art_number", "art"],
+  ["city", "cidade"],
+  ["issue_date", "data"],
+  ["client_name", "cliente"],
+  ["client_project", "projeto"],
+  ["part_mass_kg", "massa"],
+  ["batch_size", "lote"],
+];
+
+/** The visual laudo's preview (watermarked), built from the form's fields. */
+export function laudoPreviewUrl(studyId: number, inputs: LaudoInputs): string {
+  const params = new URLSearchParams();
+  for (const [key, name] of LAUDO_QUERY) {
+    const value = inputs[key];
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim();
+    if (text) params.set(name, text);
+  }
+  const query = params.toString();
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query ? `?${query}` : ""}`;
+}
+
+export function issueLaudo(studyId: number, inputs: LaudoInputs): Promise<IssuedLaudo> {
+  return request<IssuedLaudo>(`/api/exports/estudos/${studyId}/laudo/emitir`, {
+    method: "POST",
+    body: JSON.stringify(inputs),
+  });
+}
+
+export function listLaudoVersions(studyId: number): Promise<IssuedLaudo[]> {
+  return request<IssuedLaudo[]>(`/api/exports/estudos/${studyId}/laudo/versoes`);
+}
+
+/** One issued version, frozen: opens inline to be printed and signed. */
+export function laudoVersionUrl(studyId: number, version: number): string {
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.html`;
+}
+
 /**
  * Ficha técnica detalhada do material em PDF/HTML, CSV ou XLSX (D-124).
  * HTML abre inline com CSS @media print para impressão em PDF pelo navegador.

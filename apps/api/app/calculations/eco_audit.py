@@ -931,6 +931,27 @@ def _audit_component(component: ComponentBrief) -> ComponentResult:
     )
 
 
+def audit_part(component: ComponentBrief) -> tuple[ComponentResult, float | None, float | None]:
+    """One part's own phases — material, manufatura, fim de vida — and their totals.
+
+    The laudo's environmental section (D-241): the study names a material and the
+    engineer a part mass, but nothing in it says how the part travels or how it
+    is used, so those two phases are **not evaluated** rather than given
+    numbers nobody declared. The totals cover these three phases only and are
+    ``None`` when any of them is (a subtotal never reads as a total).
+
+    Raises:
+        EcoAuditError: on a brief that cannot be audited at all.
+    """
+    _validate_component(component)
+    result = _audit_component(component)
+    energies = [phase.energy for phase in result.phases]
+    carbons = [phase.carbon for phase in result.phases]
+    total_energy = None if any(v is None for v in energies) else sum(energies)  # type: ignore[arg-type]
+    total_carbon = None if any(v is None for v in carbons) else sum(carbons)  # type: ignore[arg-type]
+    return result, total_energy, total_carbon
+
+
 def _sum_quantity(
     parts: list[tuple[str, float | None, tuple[str, ...], str | None]],
 ) -> tuple[float | None, list[str], str | None]:

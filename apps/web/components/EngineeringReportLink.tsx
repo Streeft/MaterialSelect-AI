@@ -1,43 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { ptBR } from "@/lib/i18n";
-import { studyLaudoUrl } from "@/lib/api";
-import { ButtonLink, Input } from "@/components/ui";
-
-const t = ptBR.exports;
+import { ButtonLink } from "@/components/ui";
+import { laudoText } from "@/lib/i18n-laudo";
 
 /**
- * Link to the engineering report (laudo) for one saved study.
+ * The way into one saved study's engineering report (D-241, revising D-41).
  *
- * The responsible-engineer name is declared, free text — never validated,
- * never computed — so it travels as a query parameter the link rebuilds on
- * every keystroke rather than as form state the API has to accept a POST for.
- * Like the printable selection report, this always opens inline: the tab it
- * opens is what the user prints to PDF.
+ * The laudo used to be a single link with the responsible engineer typed next
+ * to it. Issuing a frozen, verifiable version needs more than a name — title,
+ * registration, ART, city and date, the client, the part mass — so the link now
+ * opens the laudo screen (`/app/selecao/laudo`), where the form, the preview
+ * and the issued versions live together.
  */
-export function EngineeringReportLink({ studyId }: { studyId: number }) {
-  const [responsible, setResponsible] = useState("");
-
+export function EngineeringReportLink({
+  studyId,
+  onNavigate,
+}: {
+  studyId: number;
+  /** Called before leaving: "Meus estudos" closes its side panel. */
+  onNavigate?: () => void;
+}) {
   return (
-    <div className="flex flex-wrap items-end gap-2">
-      <Input
-        label={t.laudoResponsibleLabel}
-        className="w-56"
-        value={responsible}
-        onChange={(e) => setResponsible(e.target.value)}
-        placeholder={t.laudoResponsiblePlaceholder}
-        maxLength={160}
-      />
-      <ButtonLink
-        href={studyLaudoUrl(studyId, responsible)}
-        size="sm"
-        target="_blank"
-        rel="noopener noreferrer"
-        title={t.htmlTitle}
-      >
-        {t.laudoButton}
-      </ButtonLink>
-    </div>
+    <ButtonLink
+      href={`/app/selecao/laudo?estudo=${studyId}`}
+      size="sm"
+      variant="tonal"
+      title={laudoText.linkHint}
+      onClick={onNavigate}
+    >
+      {laudoText.linkLabel}
+    </ButtonLink>
   );
 }

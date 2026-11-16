@@ -40,6 +40,9 @@ dependencies = [
     # them would make every PDF upload refused (``readers._meters_work``), not
     # unbounded.
     "pypdf>=6.18,<6.20",
+    # The issued laudo's QR code (D-241): pure Python, MIT, no native library;
+    # it writes the SVG the document embeds.
+    "segno>=1.6",
 ]
 
 [project.optional-dependencies]

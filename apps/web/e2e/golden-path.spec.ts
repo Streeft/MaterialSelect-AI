@@ -149,11 +149,16 @@ test("importar, selecionar, visualizar e exportar um estudo", async ({ page }) =
   ]);
   expect(download.suggestedFilename()).toMatch(/\.csv$/i);
 
+  // D-241: the laudo is a screen of its own — form, preview, issued versions.
+  await savedRow.getByRole("link", { name: "Laudo de engenharia" }).click();
+  await page.waitForURL(/\/app\/selecao\/laudo\?estudo=\d+/, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Laudo de engenharia", level: 1 })).toBeVisible();
   const [laudoPopup] = await Promise.all([
     page.waitForEvent("popup"),
-    savedRow.getByRole("link", { name: "Gerar laudo" }).click(),
+    page.getByRole("link", { name: "Pré-visualizar" }).click(),
   ]);
   await laudoPopup.waitForLoadState();
   expect(laudoPopup.url()).toContain("/laudo.html");
+  await expect(laudoPopup.getByText("RASCUNHO — não emitido").first()).toBeVisible();
   await laudoPopup.close();
 });

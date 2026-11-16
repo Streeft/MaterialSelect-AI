@@ -35,6 +35,7 @@ from app.models.enums import (
 )
 from app.models.equivalence import EquivalenceGroup, EquivalenceMember
 from app.models.import_job import ImportJob, ImportMappingTemplate
+from app.models.issued_report import IssuedReport
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -111,6 +112,7 @@ __all__ = [
     "DocumentKind",
     "Favorite",
     "ImportJob",
+    "IssuedReport",
     "ImportMappingTemplate",
     "ImportStatus",
     "IngestStatus",

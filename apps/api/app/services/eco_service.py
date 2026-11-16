@@ -23,6 +23,8 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.calculations.eco_audit import (
+    CARBON_UNIT,
+    ENERGY_UNIT,
     EOL_ROUTE_TABLE,
     EOL_ROUTES,
     SCRAP_FRACTION,
@@ -30,6 +32,7 @@ from app.calculations.eco_audit import (
     EcoAuditError,
     TransportLeg,
     UseAssumptions,
+    audit_part,
     audit_product,
     build_difference_waterfall,
     build_waterfall,
@@ -48,6 +51,7 @@ from app.schemas.eco import (
     EcoComparisonResultOut,
     EcoComponentIn,
     EndOfLifeRouteOut,
+    PartFootprintOut,
     PhaseDeltaOut,
     PhaseOut,
     TransportLegOut,
@@ -273,6 +277,90 @@ class EcoService:
                 label=result.carbon_dominance.label,
                 share=result.carbon_dominance.share,
                 refusal=result.carbon_dominance.refusal,
+            ),
+        )
+
+    def part_footprint(
+        self,
+        material_id: int,
+        part_mass: float,
+        *,
+        process_id: int | None = None,
+        process_choice: str | None = None,
+    ) -> PartFootprintOut:
+        """Material, manufatura and fim de vida of one part (D-241).
+
+        ``process_id`` is the process the caller already chose (the laudo passes
+        the cheapest one at the batch); when it is absent or cannot be used, the
+        first compatible process, by name, with a scrap fraction is taken, and
+        ``process_choice`` says which rule decided. End of life is recycling, the
+        audit's own default. Never raises for missing data: the reason is written.
+        """
+        materials = self.repo.list_materials(material_ids=[material_id])
+        if not materials:
+            return PartFootprintOut(
+                material_id=material_id, part_mass=part_mass, reason="Material não encontrado."
+            )
+        material = materials[0]
+        compatible = self.process_repo.processes_for_material_with_values(material.id)
+        usable = [p for p in compatible if SCRAP_FRACTION in self._scalars(p)]
+        chosen = next((p for p in usable if p.id == process_id), None)
+        if chosen is None and usable:
+            chosen = usable[0]
+            process_choice = (
+                "primeiro processo compatível, em ordem alfabética, com fração de refugo cadastrada"
+            )
+        if chosen is None:
+            reason = (
+                "Nenhum processo compatível com este material tem fração de refugo cadastrada."
+                if compatible
+                else "Nenhum processo compatível com este material está cadastrado."
+            )
+            return PartFootprintOut(
+                material_id=material.id,
+                material_name=material.name,
+                part_mass=part_mass,
+                reason=reason,
+            )
+        attributes = self._scalars(chosen)
+        brief = ComponentBrief(
+            name=material.name,
+            unit_mass=part_mass,
+            quantity=1,
+            recycled_fraction=0.0,
+            scrap_fraction=attributes[SCRAP_FRACTION],
+            end_of_life=EcoComponentIn.model_fields["end_of_life"].default,
+            material=self._material_values(material),
+            process=attributes,
+        )
+        try:
+            component, total_energy, total_carbon = audit_part(brief)
+        except EcoAuditError as exc:
+            return PartFootprintOut(
+                material_id=material.id,
+                material_name=material.name,
+                process_id=chosen.id,
+                process_name=chosen.name,
+                part_mass=part_mass,
+                reason=str(exc),
+            )
+        return PartFootprintOut(
+            material_id=material.id,
+            material_name=material.name,
+            process_id=chosen.id,
+            process_name=chosen.name,
+            process_choice=process_choice,
+            part_mass=part_mass,
+            end_of_life=component.end_of_life,
+            end_of_life_label=component.end_of_life_label,
+            phases=[self._phase_out(phase) for phase in component.phases],
+            total_energy=total_energy,
+            total_carbon=total_carbon,
+            energy_waterfall=self._waterfall_out(
+                build_waterfall(component.phases, "energy", ENERGY_UNIT, total_energy)
+            ),
+            carbon_waterfall=self._waterfall_out(
+                build_waterfall(component.phases, "carbon", CARBON_UNIT, total_carbon)
             ),
         )
 

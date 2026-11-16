@@ -30,18 +30,20 @@ from __future__ import annotations
 from html import escape
 
 from app.exporters.cells import format_number
+from app.exporters.laudo_theme import css_custom_properties
 from app.exporters.report import Report, Sheet
 from app.exporters.xml_text import xml_legal_report
 
-# Kept inline: the report must render identically with no network access.
+# Kept inline: the report must render identically with no network access. The
+# colours are the interface's light-theme tokens (laudo_theme, D-241).
 _STYLES = """
 :root { color-scheme: light; }
 * { box-sizing: border-box; }
 body {
-  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
-  color: #0f172a;
-  background: #f1f5f9;
+  color: var(--ink);
+  background: var(--surface);
   margin: 0;
   padding: 2rem 1rem;
 }
@@ -49,65 +51,66 @@ main {
   max-width: 62rem;
   margin: 0 auto;
   padding: 2.5rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-subtle);
   border-radius: 4px;
 }
 h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 0.35rem; }
-.subtitle { margin: 0 0 1.75rem; color: #475569; }
+.subtitle { margin: 0 0 1.75rem; color: var(--ink-muted); }
 .notices {
   margin: 0 0 2.5rem;
   padding: 0.9rem 1.1rem;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #475569;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--ink-muted);
 }
-.notice { margin: 0.45rem 0; font-size: 0.875rem; color: #334155; }
+.notice { margin: 0.45rem 0; font-size: 0.875rem; color: var(--ink-muted); }
 section { margin: 0 0 2.75rem; }
 h2 {
   font-size: 1.05rem;
   margin: 0 0 0.5rem;
   padding-bottom: 0.3rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--brand-200);
+  color: var(--brand-900);
 }
-.note { margin: 0.35rem 0; font-size: 0.8rem; color: #475569; }
-.empty { margin: 0.5rem 0; font-size: 0.85rem; font-style: italic; color: #64748b; }
-.responsible { margin: 0 0 1.75rem; font-size: 0.9rem; font-weight: 600; color: #1e293b; }
+.note { margin: 0.35rem 0; font-size: 0.8rem; color: var(--ink-muted); }
+.empty { margin: 0.5rem 0; font-size: 0.85rem; font-style: italic; color: var(--ink-subtle); }
+.responsible { margin: 0 0 1.75rem; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
 .figure { margin: 0 0 2.75rem; }
 .figure svg { display: block; width: 100%; height: auto; }
-.narrative p { max-width: 62ch; margin: 0.6rem 0; font-size: 0.85rem; color: #334155; }
+.narrative p { max-width: 62ch; margin: 0.6rem 0; font-size: 0.85rem; color: var(--ink); }
 .narrative-note {
   margin: 0.75rem 0 0;
   padding: 0.6rem 0.8rem;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: var(--surface);
+  border: 1px solid var(--edge);
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--ink-muted);
 }
 .table-scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
 th, td {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--edge);
   padding: 0.35rem 0.5rem;
   text-align: left;
   vertical-align: top;
   /* An author's note keeps its line breaks (D-122); other cells have none. */
   white-space: pre-line;
 }
-th { background: #f1f5f9; font-weight: 600; }
-tbody tr:nth-child(even) { background: #f8fafc; }
+th { background: var(--surface-sunken); font-weight: 600; }
+tbody tr:nth-child(even) { background: var(--surface); }
 footer {
   margin-top: 3rem;
   padding-top: 0.85rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--edge-subtle);
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--ink-subtle);
 }
 
-@page { margin: 18mm 14mm; }
+@page { size: A4; margin: 18mm 14mm; }
 
 @media print {
-  body { background: #ffffff; padding: 0; font-size: 10pt; }
+  body { background: var(--surface-raised); padding: 0; font-size: 10pt; }
   main { max-width: none; padding: 0; border: none; border-radius: 0; }
   .table-scroll { overflow-x: visible; }
   /* A heading stranded at the foot of a page, and a row split across two,
@@ -137,11 +140,12 @@ def _text(value: object) -> str:
     return escape(str(value))
 
 
-def _render_sheet(sheet: Sheet, position: int) -> str:
+def render_sheet(sheet: Sheet, position: int | str) -> str:
     """One report section: a numbered heading, its notes, and its table.
 
     Sections are numbered so a reader can cite "section 4" of a printed report
-    without page numbers, which the browser controls and we do not.
+    without page numbers, which the browser controls and we do not. The laudo's
+    annex numbers them "A1", "A2"… (D-241), hence ``int | str``.
     """
     parts = [
         "<section>",
@@ -198,7 +202,7 @@ def to_html(report: Report) -> str:
     report = xml_legal_report(report)
     notices = [f'<p class="notice">{escape(notice)}</p>' for notice in report.notices]
 
-    sections = [_render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]
+    sections = [render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]
     if report.narrative is not None or report.narrative_note is not None:
         sections.append(_render_narrative(report, len(report.sheets) + 1))
 
@@ -219,7 +223,7 @@ def to_html(report: Report) -> str:
         '<meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{escape(report.title)}</title>"
-        f"<style>{_STYLES}</style>"
+        f"<style>{css_custom_properties()}{_STYLES}</style>"
         "</head>"
         "<body><main>"
         f"<h1>{escape(report.title)}</h1>"
