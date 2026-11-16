@@ -745,8 +745,12 @@ class LaudoService:
             title="Comparação dos finalistas",
             table_first=True,
             lead=(
-                f"Os {_plural(len(finalists), 'primeiro colocado', 'primeiros colocados')} lado a lado. "
-                "Valores normalizados pelo próprio método de classificação: mais perto da borda é melhor."
+                (
+                    "O único finalista, com seus valores. "
+                    if len(finalists) == 1
+                    else f"Os {len(finalists)} primeiros colocados lado a lado. "
+                )
+                + "Valores normalizados pelo próprio método de classificação: mais perto da borda é melhor."
                 if finalists
                 else ""
             ),

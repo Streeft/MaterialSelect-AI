@@ -951,6 +951,14 @@ Depois, no navegador:
 - **Cache das listas.** Propriedades, classes, processos, glossário e padrões
   respondem com `ETag` e `Cache-Control: private, max-age=300`. Um 304 é o
   esperado no log quando nada mudou.
+- **Verificação de laudo é a única rota pública de dados (D-241).**
+  `GET /api/laudos/verificar/{código}` responde sem login a quem escaneou o QR de
+  um laudo emitido: estudo, versão, data e engenheiro, nada do cliente nem do
+  conteúdo. O QR aponta para `{BACKEND_BASE_URL}/api/laudos/verificar/…` — em
+  produção, a Vercel, que repassa `/api/*` ao Fly (§0); por isso não há
+  variável nova. A emissão cria a tabela `issued_report` (migração aplicada pelo
+  `release_command`) e a imagem passa a instalar `segno` (QR em SVG, puro Python,
+  MIT), declarado no `pyproject.toml`.
 
 ## Falhas comuns
 

@@ -165,29 +165,51 @@ Três propriedades de formatação para apresentação:
 - **Nota de engenharia:** slide final com a nota de reprodutibilidade (sem os avisos de
   limitação de uso e de dados demonstrativos, D-138).
 
-## O laudo de engenharia (Fase 9)
+## O laudo de engenharia (Fase 9, repaginado na D-241)
 
-`GET /api/exports/estudos/{id}/laudo.{html,docx,pptx}` é **um documento distinto**, não uma
-variante do anterior. A mesma reexecução determinística e as mesmas oito seções
-de auditoria, mais três coisas que o relatório de seleção não tem: o gráfico de
-barras do ranking (SVG do backend, por `app/exporters/figures.py`), um campo de
-responsável técnico, e — quando a camada de IA está ligada — a interpretação de
-`AIService.explain()` como nona seção.
+`GET /api/exports/estudos/{id}/laudo.{html,docx,pptx}` é **um documento distinto** do relatório de seleção ([D-41](DECISIONS.md)).
+Desde a [D-241](DECISIONS.md) o HTML é um laudo visual desenhado para **A4**, na ordem de leitura de um cliente:
+
+1. **Capa** — estudo, cliente e projeto (opcionais), responsável técnico, registro, ART, local e data, material recomendado e os
+   números-chave.
+2. **Resumo executivo** — recomendado em destaque, até cinco cartões (candidatos aprovados, pontuação, índice, custo por peça,
+   CO₂ da peça), **semáforo** dos requisitos e verificações (cada linha com cor, glifo e a palavra), rosca das verificações,
+   mini-ranking, "Por que este material" (frases montadas do resultado, nunca pela IA) e o escopo do laudo.
+3. **Comparação dos finalistas** — tabela, radar dos valores normalizados do ranking (com três critérios ou mais) e o mapa de seleção.
+4. **Custo** — custo por peça no lote e curva por lote dos finalistas, pelo estimador (`PartCostService`, D-234).
+5. **Impacto ambiental** — energia e CO₂ de material, fabricação e fim de vida em cascata (`EcoService.part_footprint`); transporte
+   e uso não entram, porque o estudo não os declara.
+6. **Fabricação** — processos compatíveis do recomendado, por família, e o custo de cada um no lote.
+7. **Interpretação técnica (IA)**, curta, e **assinatura** (o engenheiro assina o PDF; o laudo traz o código e o QR).
+8. **Anexo técnico** — as mesmas tabelas de auditoria de sempre (problema, estágios, funil, candidatos, índice, contribuições,
+   excluídos por dado ausente, sensibilidade, proveniência).
+
+Custo e impacto precisam da **massa da peça** (`?massa=`, kg) e usam o **lote** (`?lote=`, padrão 1.000). Sem a massa, as duas
+seções saem "Não avaliado" com o motivo. Os demais campos do formulário também vão por query na pré-visualização: `responsavel`,
+`titulo`, `registro`, `art`, `cidade`, `data`, `cliente`, `projeto`. DOCX e PPTX continuam o documento da D-41.
 
 O que isso obriga:
 
-- **A figura é do backend.** Um SVG montado em `figures.py`, não uma imagem
-  capturada da tela: o laudo tem de abrir offline, anos depois, e uma captura
-  não é reproduzível a partir do catálogo ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
-- **Ausência de IA é declarada.** Provedor desligado, mal configurado ou fora do
-  ar degrada **aquela seção**, com o motivo escrito, e não o documento. O que
-  não pode acontecer é a seção sumir em silêncio e o laudo parecer completo.
-- **Responsável técnico é texto livre e nunca validado.** O sistema não sabe
-  quem é engenheiro registrado, e fingir que sabe seria pior do que não
-  perguntar. Ele é escapado como todo o resto.
-- **O pipeline roda duas vezes**, de propósito: `AIService.explain()` recomputa
-  o estudo em vez de aceitar o resultado que o exportador já tem. Ver
-  [D-41](DECISIONS.md) e a medição em [PROJECT_CONTEXT.md §12](PROJECT_CONTEXT.md).
+- **Toda figura é do backend.** SVG de `figures.py` (mapa, barras, radar, rosca, cascata, curvas, semáforo), nas cores de
+  `laudo_theme.py` — os tokens do tema claro de `globals.css`, que um teste compara —, nunca uma captura de tela
+  ([ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)).
+- **O serviço não calcula.** `LaudoService` só escolhe e ordena o que o pipeline, o estimador de custo e a auditoria eco já
+  responderam.
+- **Ausência é declarada.** Seção, cartão, barra e fase sem dado dizem "não avaliado", "ausente" ou "não calculada", com o motivo;
+  a IA desligada degrada só a sua seção.
+- **Responsável técnico é texto livre e nunca validado**, como na D-41, e escapado como todo o resto.
+
+### Laudo emitido
+
+`POST /api/exports/estudos/{id}/laudo/emitir` (corpo `LaudoInputs`) exige nome, título profissional, registro, cidade e data
+(a ART é opcional) e **congela** uma versão em `issued_report`: o HTML renderizado, as entradas e o SHA-256 do documento com os
+espaços do selo vazios (`laudo_digest`). A versão é 1, 2, 3… por estudo e nunca é reescrita; para corrigir, emite-se outra.
+`GET …/laudo/versoes` lista; `GET …/laudo/versoes/{n}.html` devolve os bytes guardados, mesmo que o catálogo mude. Só o dono do
+estudo emite e lê (os outros recebem 404). A pré-visualização (`laudo.html`) tem a marca "RASCUNHO — não emitido" em toda página.
+
+`GET /api/laudos/verificar/{código}` é **público** e só leitura: aceita o SHA inteiro ou o código impresso (12 hex, com ou sem
+hífens) e devolve estudo, versão, data, hora da emissão, engenheiro, título e registro — nunca o cliente nem o conteúdo. Navegador
+recebe uma página; o resto, JSON. É para lá que aponta o QR do laudo (`{BACKEND_BASE_URL}/api/laudos/verificar/{sha}`).
 
 ## O Eco Audit (D-172)
 
@@ -365,14 +387,17 @@ faltando.
 |---|---|---|
 | GET | `/api/exports/catalogo.{csv,xlsx,html,docx,pptx}` | catálogo ativo com proveniência |
 | GET | `/api/exports/estudos/{id}.{csv,xlsx,html,docx,pptx}` | relatório completo de um estudo |
-| GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia (figura, responsável, IA) |
+| GET | `/api/exports/estudos/{id}/laudo.{html,docx,pptx}` | laudo de engenharia; o HTML é a pré-visualização visual em A4 (D-241) |
+| POST | `/api/exports/estudos/{id}/laudo/emitir` | emite e congela uma versão do laudo (D-241) |
+| GET | `/api/exports/estudos/{id}/laudo/versoes` e `…/versoes/{n}.html` | versões emitidas; o HTML guardado, sem reprocessar |
+| GET | `/api/laudos/verificar/{código}` | verificação pública de um laudo emitido (sem login) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 | POST | `/api/eco/exportar.{csv,xlsx,html,docx,pptx}` | auditoria ambiental de um briefing (corpo de `/api/eco/auditar`), por componente e por trecho (D-172) |
 | GET | `/api/exports/catalogo/releases/{base}/diff/{alvo}.{csv,xlsx}?tipo=&classe=&universo=&pagina=&por_pagina=` | mudanças entre versões do catálogo oficial (D-108); paginado por `pagina`/`por_pagina` (D-162) |
 
 O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
-`?responsavel=` — texto livre, escapado, opcional. O diff entre versões sai inteiro por padrão;
+os campos declarados da D-241 (`?responsavel=`, `?titulo=`, `?massa=`…) — texto livre, escapado, opcional. O diff entre versões sai inteiro por padrão;
 com `?pagina=` e/ou `?por_pagina=` (1–5000, padrão 1000) o arquivo traz **uma página dos
 registros** e só as alterações de campo desses registros. O título ganha "(página N de M)" e o
 resumo diz "Página N de M: registros a a b de T"; os totais do resumo seguem os das duas versões
@@ -381,8 +406,7 @@ versões de catálogos diferentes (fictício com real) vale antes de qualquer p�
 com o teto de 200 por página.
 | GET | `/api/exports/materiais/{id}/curvas/{curva}.{csv,xlsx}?unidade_x=&unidade_y=&unidade_parametro=` | pontos de uma curva na unidade de leitura escolhida (D-106, TM4-e) |
 
-O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. O laudo aceita
-`?responsavel=` — texto livre, escapado, opcional. A exportação de curva lê o parâmetro da
+O `html` é o único servido `inline`; os outros formatos — o cartão CAE incluído — baixam. A exportação de curva lê o parâmetro da
 família na unidade de `?unidade_parametro=` (a mesma da tela: convenção da grandeza se omitida;
 400 escrito para unidade que a grandeza não admite e para curva sem família); o cabeçalho
 `Parâmetro (unidade)` nomeia a unidade lida e as colunas "original" seguem como a fonte escreveu.

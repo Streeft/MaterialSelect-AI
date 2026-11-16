@@ -286,7 +286,8 @@ class Settings(BaseSettings):
     # Empty allows any Google account. Set to restrict logins to one email
     # domain (e.g. a university) before hosting for a class.
     google_allowed_domain: str = ""
-    # Used to build the exact redirect_uri Google requires pre-registered.
+    # Used to build the exact redirect_uri Google requires pre-registered, and
+    # the issued laudo's verification URL and QR code (D-241).
     backend_base_url: str = "http://localhost:8000"
     # Where the browser lands after a successful login.
     frontend_url: str = "http://localhost:3000"

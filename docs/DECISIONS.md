@@ -53,7 +53,7 @@ diferente. O que é óbvio não precisa de registro.
 | D-38 | A paleta troca de família, e o verde-limão sai com data marcada | aceito | abaixo |
 | D-39 | O painel separa tipo de evidência de existência do campo, com duas paletas | aceito | abaixo |
 | D-40 | Um eixo do mapa pode ser um índice; overlay e eixo-índice são exclusivos | aceito | abaixo |
-| D-41 | O laudo de engenharia é um documento à parte | aceito | abaixo |
+| D-41 | O laudo de engenharia é um documento à parte | aceito, **revisto por D-241** (data, emissão e visual) | abaixo |
 | D-42 | Login só por terceiros (Google); catálogo compartilhado; um projeto por usuário no v1 | aceito | abaixo |
 | D-47 | Busca híbrida (RRF) sobre o Cérebro, Jina AI como receita gratuita, citação verificada | aceito | abaixo |
 | D-48 | `@material/web` para primitivas de baixo nível — exceção pontual a D-23 | aceito | abaixo |
@@ -1364,6 +1364,8 @@ Resistência específica." — a mesma frase do rótulo do eixo, não um texto
 genérico.
 
 ## D-41 — O laudo de engenharia é um documento à parte, montado a partir de peças que já existiam
+
+> **Revisto por [D-241](#d-241--laudo-de-engenharia-repaginado-documento-visual-em-a4-e-versão-emitida-congelada-revisa-a-d-41)** (16/11/2026): o laudo ganhou capa, resumo executivo e seções visuais, e uma versão emitida com data, código e QR. O "sem data nem assinatura" abaixo vale só para a pré-visualização.
 
 **12/08/2026.** Sexta e última das seis frentes da Fase 9. "Laudo de
 engenharia completo" não tinha elaboração em lugar nenhum — nem na proposta
@@ -14154,3 +14156,67 @@ exportar (trocar o tema da página inteira pisca a tela; copiar os traços e tro
 final já faz para as duas famílias de figura). Um `PUT` do estudo inteiro para mudar a nota (mudaria o que a execução salva descreve).
 
 **Numeração.** D-240, Sessão 197 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+
+## D-241 — Laudo de engenharia repaginado: documento visual em A4 e versão emitida congelada (revisa a D-41)
+
+**Contexto.** A [D-41](#d-41--o-laudo-de-engenharia-é-um-documento-à-parte-montado-a-partir-de-peças-que-já-existiam)
+montou o laudo com as tabelas do relatório de seleção, um gráfico de ranking, o responsável como texto livre e a IA, e
+decidiu **não** ter data nem assinatura ("o mesmo catálogo tem de produzir os mesmos bytes"). Servia ao auditor; quem recebe o
+laudo é o cliente. O usuário pediu (16/11/2026) uma repaginada total: profissional, visual, fácil de entender, mais gráficos e
+painéis, menos tabela; o fluxo é o engenheiro ter a seleção, conferir, assinar e mandar ao cliente.
+
+**Decisões do usuário.** Continua HTML desenhado para A4, impresso em PDF pelo navegador (sem biblioteca de PDF). Bloco do
+engenheiro (nome, título, CREA/registro, nº da ART, cidade e data) e "Emitir", que congela uma versão imutável no banco com código
+de verificação (SHA-256 do conteúdo, mostrado curto), número de versão e QR para a URL de verificação. A assinatura é do engenheiro,
+no PDF (à mão, gov.br ou certificado). O envio por e-mail é a L2.
+
+**Decisão.**
+- **Ordem de leitura do cliente.** Capa (estudo, cliente/projeto, engenheiro, data, recomendado e números-chave) → **Resumo
+  executivo** (material recomendado em destaque, até cinco cartões, semáforo de requisitos e verificações, rosca das verificações,
+  mini-ranking, "Por que este material" e escopo do laudo) → Comparação dos finalistas (radar dos valores normalizados do próprio
+  ranking, com três critérios ou mais; mapa de seleção; tabela) → Custo → Impacto ambiental → Fabricação → Interpretação técnica (IA)
+  → Responsabilidade técnica e assinatura → **Anexo técnico**, com todas as tabelas da D-41, sem mudar uma célula.
+- **O serviço não calcula** (`app/services/laudo_service.py`). Reexecuta o estudo por `ExportService`; custo vem de
+  `PartCostService.curves`/`estimate` (D-234), impacto de `EcoService.part_footprint` (nova: material, manufatura e fim de vida de
+  uma peça, com `audit_part` em `calculations/eco_audit.py`), processos de `ProcessRepository`. As frases de "Por que este material"
+  são montadas do resultado (posição, critérios de maior contribuição, limites, índice, sensibilidade, menor custo/CO₂ entre os
+  finalistas); a IA fica na sua seção e não escreve número (princípio 2, D-224).
+- **Seção sem dado diz por quê.** Sem massa da peça, Custo e Impacto saem "Não avaliado" com a frase do que falta (e o custo por
+  massa do catálogo, quando houver). Estudo de processos: as três seções de material saem não avaliadas. Dimensionamento aparece no
+  escopo como "não avaliado" (o estudo não traz caso de carga). Transporte e uso não entram no impacto: o estudo não os declara.
+  Dado ausente é palavra ("ausente", "não calculada"), nunca zero.
+- **Tokens num só módulo** (`app/exporters/laudo_theme.py`): os valores do tema claro de `globals.css` com os mesmos nomes, lidos
+  por `html.py` (laudo e relatório) e `figures.py`; `test_laudo_theme.py` compara com o CSS. Okabe–Ito sem o amarelo para séries,
+  `brand-700` para o recomendado, estados com cor **e** palavra e glifo (Atende ✓, Atenção !, Não atende ✕, Não avaliado –).
+- **Gráficos novos em `figures.py`**, SVG puro: barras horizontais, radar, rosca (círculos tracejados, sem arco), cascata (geometria
+  de `build_waterfall`), curvas log–log (domínio de `curve_domains`) e semáforo. `cos`/`sin` só mapeiam valor em pixel no radar.
+- **A4 de verdade.** `@page` A4, rodapé com "Página N de M", nome do estudo e versão (ou "RASCUNHO — não emitido"); capa sem
+  rodapé; cada ferramenta com dado começa página; `print-color-adjust: exact`.
+- **Emissão** (`issued_report`, migração `71dbd3ec108d`). `POST /api/exports/estudos/{id}/laudo/emitir` exige nome, título,
+  registro, cidade e data (ART opcional, impressa "não informada"); grava HTML, entradas e `content_sha256`; versão por estudo,
+  1, 2, 3…; sem caminho de atualização. O código é o SHA-256 do documento **com os espaços do selo vazios** (`<!--selo-->…`): o
+  código não pode estar dentro do que ele resume; `laudo_digest` recalcula. O selo traz código curto (12 hex em grupos), versão,
+  hora da emissão e QR (`segno`, MIT, puro Python) para `{BACKEND_BASE_URL}/api/laudos/verificar/{sha}` — em produção é a Vercel,
+  que repassa `/api/*` (13-deploy §0). `GET …/laudo/versoes` e `…/versoes/{n}.html` devolvem os bytes guardados. A linha sobrevive
+  ao estudo (`SET NULL`, nome copiado).
+- **Verificação pública** (`GET /api/laudos/verificar/{código}`, sem login): aceita o SHA inteiro ou o código impresso (12+ hex);
+  devolve estudo, versão, data, hora, engenheiro, título e registro — nunca cliente, conteúdo nem entradas. Navegador recebe uma
+  página própria (CSP `default-src 'none'`); o resto, JSON. Prefixo ambíguo ou desconhecido é 404.
+- **Pré-visualização** é o mesmo documento com marca d'água "RASCUNHO — não emitido" em toda página e sem selo; `laudo.html`
+  aceita os mesmos campos por query (`responsavel`, `titulo`, `registro`, `art`, `cidade`, `data`, `cliente`, `projeto`, `massa`,
+  `lote`). DOCX e PPTX continuam o documento da D-41.
+- **Frontend.** `/app/selecao/laudo?estudo=ID` (`components/laudo/LaudoScreen.tsx`): formulário do responsável, do cliente e da
+  peça; "Pré-visualizar" abre a aba; "Emitir" (o `primary`) só com os obrigatórios e depois do `ConfirmDialog` que diz que congela;
+  versões emitidas com "Abrir/Imprimir"; DOCX/PPTX no "⋯". "Meus estudos" leva à tela.
+
+**O que muda na D-41.** Continua documento à parte, montado do que existe, com a IA declarada quando ausente e o responsável como
+texto não validado. Deixa de valer "sem data nem assinatura": a pré-visualização continua reproduzível (sem relógio; mesmos campos,
+mesmos bytes), e a **versão emitida** carrega data declarada e hora da emissão — é ela, e não o catálogo, que fica fixa.
+
+**Alternativas recusadas.** Biblioteca de PDF (WeasyPrint, ReportLab): dependência nativa pesada para o que o navegador já faz.
+Assinar no servidor (certificado A1/A3): a responsabilidade é do engenheiro, e ele já tem gov.br ou o próprio certificado. Hash do
+HTML inteiro: o QR e o código ficariam dentro do que resumem. Gerar as frases de "por que" pela IA: seria número e argumento sem
+garantia determinística. Página de verificação no frontend: o QR é lido por quem não tem conta, e a API já serve HTML com CSP.
+
+**Numeração.** D-241, Sessão 198 (conferidas em `origin/main`). Toca `apps/api` **com migração** e dependência nova (`segno`):
+depois do merge, **Deploy da API** (o `fly deploy` roda `alembic upgrade head`).
