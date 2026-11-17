@@ -67,6 +67,32 @@ REQUIRED_TO_ISSUE: dict[str, str] = {
 }
 
 
+class SignedPdfOut(BaseModel):
+    """One upload of the PDF the engineer signed (D-243): the file itself is a download."""
+
+    id: int
+    issued_report_id: int
+    #: The name the engineer's file had.
+    filename: str
+    size_bytes: int
+    #: SHA-256 of the file's bytes, and the short form shown beside the code.
+    sha256: str
+    short_sha256: str
+    uploaded_at: datetime
+    uploaded_by: str | None = None
+    #: ``True`` for the newest upload of the version; the others are history.
+    current: bool = False
+
+
+class SignedPdfPublicOut(BaseModel):
+    """What the public verification says about the signed PDF: that it exists, and its hash."""
+
+    sha256: str
+    short_sha256: str
+    size_bytes: int
+    uploaded_at: datetime
+
+
 class IssuedReportOut(BaseModel):
     """One issued version, as its author sees it in the list."""
 
@@ -87,6 +113,9 @@ class IssuedReportOut(BaseModel):
     short_code: str
     verify_url: str
     issued_at: datetime
+    #: The current signed PDF of this version (D-243), or ``None``; how many uploads it has had.
+    signed_pdf: SignedPdfOut | None = None
+    signed_pdf_count: int = 0
 
 
 class IssuedReportVerificationOut(BaseModel):
@@ -102,3 +131,5 @@ class IssuedReportVerificationOut(BaseModel):
     engineer_registration: str | None = None
     content_sha256: str
     short_code: str
+    #: Whether a signed PDF is registered for this version, and its hash (D-243). Never the file.
+    signed_pdf: SignedPdfPublicOut | None = None

@@ -11,6 +11,12 @@ Every attempt leaves a ``ReportDelivery`` row, **including the failed ones** and
 the ones the ``mock`` provider only simulated (status ``simulado``, never
 ``enviado``), and an audit entry beside it, in the same transaction. The public
 link in the message carries a token that is stored only as its SHA-256.
+
+D-243 gave that link a life of its own. It **expires** (each send stores its own
+``expires_at``, ``REPORT_LINK_TTL_DAYS`` after the send), the owner can **revoke** it, and
+every opening is **counted** — three numbers and no visitor data. An expired or revoked
+link answers 410 with a friendly page and none of the laudo. And when the engineer has
+uploaded the signed PDF, the message carries **that PDF in place of the ``.html``**.
 """
 
 from __future__ import annotations
@@ -19,7 +25,8 @@ import hashlib
 import re
 import secrets
 import unicodedata
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -31,7 +38,7 @@ from app.domain.email_address import (
     clean_message,
     clean_subject,
 )
-from app.domain.errors import NotFoundError, ServiceUnavailableError
+from app.domain.errors import NotFoundError, ServiceUnavailableError, ValidationError
 from app.exporters.laudo import recommended_name, short_code
 from app.exporters.laudo_email import LaudoEmail, default_subject, render_html, render_text
 from app.exporters.xml_text import xml_legal
@@ -45,6 +52,7 @@ from app.models.report_delivery import (
 )
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
+from app.repositories.issued_report_pdf_repository import IssuedReportPdfRepository
 from app.repositories.issued_report_repository import IssuedReportRepository
 from app.repositories.report_delivery_repository import ReportDeliveryRepository
 from app.schemas.report_delivery import (
@@ -78,11 +86,61 @@ def public_url(token: str) -> str:
     return f"{settings.backend_base_url.rstrip('/')}{PUBLIC_PATH}{token}"
 
 
-def attachment_filename(study_name: str, version: int) -> str:
-    """``laudo-<study>-v2.html``, ASCII, so every mail client shows it the same."""
+def attachment_filename(study_name: str, version: int, *, signed_pdf: bool = False) -> str:
+    """``laudo-<study>-v2.html`` (or ``…-v2-assinado.pdf``), ASCII, so every client shows it alike."""
     folded = unicodedata.normalize("NFKD", study_name).encode("ascii", "ignore").decode()
     stem = re.sub(r"[^A-Za-z0-9]+", "-", folded).strip("-").lower()[:60] or "estudo"
-    return f"laudo-{stem}-v{version}.html"
+    return (
+        f"laudo-{stem}-v{version}-assinado.pdf" if signed_pdf else f"laudo-{stem}-v{version}.html"
+    )
+
+
+# --- The life of the link (D-243) --------------------------------------------
+
+LINK_ACTIVE = "ativo"
+LINK_EXPIRED = "vencido"
+LINK_REVOKED = "revogado"
+LINK_NONE = "sem_link"
+
+
+def _aware(moment: datetime | None) -> datetime | None:
+    """A stored time as UTC-aware (SQLite hands back naive ones; they were written as UTC)."""
+    if moment is None:
+        return None
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
+
+
+def link_ttl() -> timedelta:
+    return timedelta(days=settings.report_link_ttl_days)
+
+
+def effective_expiry(delivery: ReportDelivery) -> datetime | None:
+    """When the link stops: its own stored date, else the send time plus today's validity.
+
+    Only a row written before D-243 has no stored date; counting it from its send keeps an
+    old link from being immortal, and moving ``REPORT_LINK_TTL_DAYS`` moves only those.
+    """
+    stored = _aware(delivery.expires_at)
+    if stored is not None:
+        return stored
+    created = _aware(delivery.created_at)
+    return created + link_ttl() if created is not None else None
+
+
+def link_state(delivery: ReportDelivery, now: datetime | None = None) -> str:
+    """``ativo`` | ``vencido`` | ``revogado``, or ``sem_link`` for a send that failed.
+
+    Revoked wins over expired: the owner's decision is the more informative fact.
+    """
+    if delivery.status == DELIVERY_FAILED:
+        return LINK_NONE
+    if delivery.revoked_at is not None:
+        return LINK_REVOKED
+    expiry = effective_expiry(delivery)
+    moment = now or datetime.now(UTC)
+    if expiry is not None and moment >= expiry:
+        return LINK_EXPIRED
+    return LINK_ACTIVE
 
 
 class ReportDeliveryService:
@@ -91,6 +149,7 @@ class ReportDeliveryService:
         self.user = user
         self.issued = IssuedReportRepository(db)
         self.deliveries = ReportDeliveryRepository(db)
+        self.pdfs = IssuedReportPdfRepository(db)
         self.audit = AuditRepository(db)
 
     # --- reading -------------------------------------------------------------
@@ -106,7 +165,8 @@ class ReportDeliveryService:
         return [self.out(d) for d in self.deliveries.list_for_report(project_id, report.id)]
 
     @staticmethod
-    def out(delivery: ReportDelivery) -> ReportDeliveryOut:
+    def out(delivery: ReportDelivery, now: datetime | None = None) -> ReportDeliveryOut:
+        state = link_state(delivery, now)
         return ReportDeliveryOut(
             id=delivery.id,
             issued_report_id=delivery.issued_report_id,
@@ -117,14 +177,29 @@ class ReportDeliveryService:
             status=delivery.status,  # type: ignore[arg-type]
             provider=delivery.provider,
             error=delivery.error,
-            created_at=delivery.created_at,
+            created_at=_aware(delivery.created_at),  # type: ignore[arg-type]
             sent_by=delivery.sent_by_email,
+            # A failed send never made a link: nothing to expire, nothing to open.
+            expires_at=None if state == LINK_NONE else effective_expiry(delivery),
+            link_state=state,  # type: ignore[arg-type]
+            revoked_at=_aware(delivery.revoked_at),
+            open_count=delivery.open_count or 0,
+            first_opened_at=_aware(delivery.first_opened_at),
+            last_opened_at=_aware(delivery.last_opened_at),
+            attached_pdf_sha256=delivery.attached_pdf_sha256,
         )
 
     # --- the message ---------------------------------------------------------
 
     @staticmethod
-    def _email(report: IssuedReport, message: str | None, link: str | None) -> LaudoEmail:
+    def _email(
+        report: IssuedReport,
+        message: str | None,
+        link: str | None,
+        *,
+        signed_pdf: bool,
+        valid_until: date | None,
+    ) -> LaudoEmail:
         return LaudoEmail(
             study_name=report.study_name,
             version=report.version,
@@ -135,7 +210,11 @@ class ReportDeliveryService:
             public_url=link,
             verify_url=verify_url(report.content_sha256),
             message=message,
-            attachment_name=attachment_filename(report.study_name, report.version),
+            attachment_name=attachment_filename(
+                report.study_name, report.version, signed_pdf=signed_pdf
+            ),
+            signed_pdf=signed_pdf,
+            valid_until=valid_until,
         )
 
     def preview(
@@ -143,7 +222,15 @@ class ReportDeliveryService:
     ) -> LaudoEmailPreviewOut:
         """What would go out, without a token, a row or a send."""
         report = self._owned(project_id, issued_id)
-        mail = self._email(report, clean_message(payload.message), None)
+        expires = datetime.now(UTC) + link_ttl()
+        has_pdf = self.pdfs.latest_meta(report.id) is not None
+        mail = self._email(
+            report,
+            clean_message(payload.message),
+            None,
+            signed_pdf=has_pdf,
+            valid_until=expires.date(),
+        )
         subject = clean_subject(payload.subject) or default_subject(
             report.study_name, report.version
         )
@@ -152,6 +239,8 @@ class ReportDeliveryService:
             html=render_html(mail),
             text=render_text(mail),
             attachment_name=mail.attachment_name,
+            signed_pdf=has_pdf,
+            link_expires_at=expires,
             provider=settings.email_provider_name,
             email_configured=settings.email_configured,
         )
@@ -178,16 +267,36 @@ class ReportDeliveryService:
         check_email_quota(self.user.id)
 
         token = secrets.token_urlsafe(32)
-        mail = self._email(report, message, public_url(token))
+        now = datetime.now(UTC)
+        expires_at = now + link_ttl()
+        # The signed PDF, when the engineer uploaded one, goes in place of the ``.html``: it is
+        # the document that was signed, and sending both would leave the client wondering
+        # which one counts (the HTML stays one click away, in the link).
+        pdf = self.pdfs.latest(report.id)
+        mail = self._email(
+            report,
+            message,
+            public_url(token),
+            signed_pdf=pdf is not None,
+            valid_until=expires_at.date(),
+        )
+        attachment = (
+            EmailAttachment(
+                filename=mail.attachment_name,
+                content=pdf.content,
+                maintype="application",
+                subtype="pdf",
+            )
+            if pdf is not None
+            else EmailAttachment(filename=mail.attachment_name, content=report.html.encode("utf-8"))
+        )
         outgoing = OutgoingEmail(
             to=tuple(to),
             cc=tuple(cc),
             subject=subject,
             text=render_text(mail),
             html=render_html(mail),
-            attachments=(
-                EmailAttachment(filename=mail.attachment_name, content=report.html.encode("utf-8")),
-            ),
+            attachments=(attachment,),
         )
 
         status, error = DELIVERY_SENT, None
@@ -211,7 +320,9 @@ class ReportDeliveryService:
             provider=sender.provider,
             error=error,
             token_hash=token_hash(token),
-            created_at=datetime.now(UTC),
+            created_at=now,
+            expires_at=expires_at,
+            attached_pdf_sha256=pdf.sha256 if pdf is not None else None,
         )
         self.deliveries.add(delivery)
         self.deliveries.flush()
@@ -226,6 +337,7 @@ class ReportDeliveryService:
             changes={
                 "status": {"before": None, "after": status},
                 "destinatarios": {"before": None, "after": len(to) + len(cc)},
+                "anexo": {"before": None, "after": "pdf assinado" if pdf is not None else "html"},
             },
             project_id=project_id,
         )
@@ -234,14 +346,56 @@ class ReportDeliveryService:
             raise ServiceUnavailableError(error or "Não foi possível enviar o e-mail.")
         return self.out(delivery)
 
+    # --- revoking ------------------------------------------------------------
 
-def public_report(db: Session, token: str) -> IssuedReport:
-    """The frozen laudo a link opens. Unknown, malformed or failed-delivery: the same 404."""
-    report = (
-        ReportDeliveryRepository(db).find_report_by_token_hash(token_hash(token))
-        if 20 <= len(token) <= 80
-        else None
-    )
-    if report is None:
+    def revoke(self, project_id: int, delivery_id: int) -> ReportDeliveryOut:
+        """End a client link at the owner's request. Idempotent: a second revoke changes nothing."""
+        delivery = self.deliveries.get_owned(project_id, delivery_id)
+        if delivery is None:
+            raise NotFoundError("Envio não encontrado.")
+        if delivery.status == DELIVERY_FAILED:
+            raise ValidationError("Este envio falhou e não gerou link: não há o que revogar.")
+        if delivery.revoked_at is None:
+            delivery.revoked_at = datetime.now(UTC)
+            delivery.revoked_by_id = self.user.id
+            report = self.deliveries.report_of(delivery)
+            label = f"Laudo «{report.study_name}» v{report.version}" if report else "Laudo"
+            record_change(
+                self.audit,
+                self.user,
+                entity_type=AuditEntityType.REPORT_DELIVERY,
+                entity_id=delivery.id,
+                entity_label=xml_legal(label)[:200],
+                action=AuditAction.ATUALIZADO,
+                changes={"link": {"before": LINK_ACTIVE, "after": LINK_REVOKED}},
+                project_id=project_id,
+            )
+            self.deliveries.commit()
+        return self.out(delivery)
+
+
+@dataclass(frozen=True)
+class PublicLink:
+    """What a token resolves to: the delivery, its frozen laudo and the state of the link."""
+
+    delivery: ReportDelivery
+    report: IssuedReport
+    state: str
+
+
+def resolve_public_link(db: Session, token: str, now: datetime | None = None) -> PublicLink:
+    """The laudo a link opens, and whether the link still may. Unknown, malformed or
+    failed-delivery tokens are the same 404; a known token that is revoked or expired is
+    returned with that state, so the route can answer 410 without any of the content."""
+    repo = ReportDeliveryRepository(db)
+    delivery = repo.find_by_token_hash(token_hash(token)) if 20 <= len(token) <= 80 else None
+    report = repo.report_of(delivery) if delivery is not None else None
+    if delivery is None or report is None:
         raise NotFoundError("Este link não existe ou não está mais disponível.")
-    return report
+    return PublicLink(delivery=delivery, report=report, state=link_state(delivery, now))
+
+
+def record_link_open(db: Session, delivery: ReportDelivery) -> None:
+    """Count one opening of the link: times and a number, nothing about the visitor."""
+    ReportDeliveryRepository(db).record_open(delivery.id, datetime.now(UTC))
+    db.commit()

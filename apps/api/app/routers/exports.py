@@ -26,34 +26,41 @@ import unicodedata
 from datetime import date
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.base import get_db
 from app.dependencies import (
     get_current_project,
     get_current_user,
     get_unit_choices,
     heavy_request,
+    rate_limit,
 )
-from app.domain.errors import ValidationError
+from app.domain.errors import PayloadTooLargeError, ValidationError
 from app.exporters.docx import to_docx
 from app.exporters.html import to_html
+from app.exporters.laudo_docx import render_laudo_docx
+from app.exporters.laudo_pptx import render_laudo_pptx
 from app.exporters.pptx import to_pptx
 from app.exporters.report import Report
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.cae_export import CaeFormatOut
-from app.schemas.laudo import IssuedReportOut, LaudoInputs
+from app.schemas.laudo import IssuedReportOut, LaudoInputs, SignedPdfOut
 from app.schemas.report_delivery import LaudoEmailPreviewOut, LaudoSendRequest, ReportDeliveryOut
 from app.services.cae_export_service import CaeExportService
 from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
 from app.services.export_service import ExportService
+from app.services.heavy_request_gate import get_gate
 from app.services.laudo_service import LaudoService
-from app.services.report_delivery_service import ReportDeliveryService
+from app.services.report_delivery_service import ReportDeliveryService, attachment_filename
+from app.services.signed_pdf_service import SignedPdfService
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
@@ -181,38 +188,52 @@ def export_study_laudo(
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
-    """The engineering report. HTML is the preview of the visual laudo (D-241),
-    with the "RASCUNHO — não emitido" watermark; DOCX and PPTX keep the D-41
-    document (tables, figures and narrative) for editing elsewhere.
+    """The engineering report. HTML is the preview of the visual laudo (D-241), with the
+    "RASCUNHO — não emitido" watermark. DOCX and PPTX (D-243) are the editable twins of that
+    same document — cover, executive summary, one section per tool, signature and (Word only)
+    the technical annex, with the charts as images — without a seal: they are not the issued
+    laudo.
 
-    The query parameters are the same declared fields the issue form sends, so
-    the preview a reader prints is the document "Emitir" would freeze.
+    The query parameters are the same declared fields the issue form sends, so the file a
+    reader downloads has the fields they typed and, for HTML, is the document "Emitir" would
+    freeze.
     """
     if fmt not in LAUDO_SUPPORTED_FORMATS:
         raise ValidationError(
             f"Formato de laudo não suportado: '{fmt}'. Use {', '.join(LAUDO_SUPPORTED_FORMATS)}."
         )
-    if fmt == "html":
-        inputs = LaudoInputs(
-            engineer_name=responsavel,
-            engineer_title=titulo,
-            engineer_registration=registro,
-            art_number=art,
-            city=cidade,
-            issue_date=data,
-            client_name=cliente,
-            client_project=projeto,
-            part_mass_kg=massa,
-            batch_size=lote,
-        )
-        title, body = LaudoService(db, user, unit_choices).preview_html(
-            study_id, project.id, inputs
-        )
-        return _html_response(body, title)
-    report = ExportService(db, user, unit_choices).study_laudo(
-        study_id, project.id, responsible=responsavel
+    inputs = LaudoInputs(
+        engineer_name=responsavel,
+        engineer_title=titulo,
+        engineer_registration=registro,
+        art_number=art,
+        city=cidade,
+        issue_date=data,
+        client_name=cliente,
+        client_project=projeto,
+        part_mass_kg=massa,
+        batch_size=lote,
     )
-    return _file_response(report, fmt)
+    service = LaudoService(db, user, unit_choices)
+    if fmt == "html":
+        title, body = service.preview_html(study_id, project.id, inputs)
+        return _html_response(body, title)
+    # Word and PowerPoint re-run the study and rasterise every chart: heavy, so one slot
+    # of the gate (D-231) is held until the bytes exist.
+    with get_gate().slot():
+        document = service.document(study_id, project.id, inputs)
+        if fmt == "docx":
+            body_bytes = render_laudo_docx(document)
+            media_type = DOCX_MEDIA_TYPE
+        else:
+            body_bytes = render_laudo_pptx(document)
+            media_type = PPTX_MEDIA_TYPE
+    response = Response(
+        content=body_bytes,
+        media_type=media_type,
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+    return _download_headers(response, f"Laudo de engenharia — {document.study_name}", fmt)
 
 
 @router.post(
@@ -308,6 +329,110 @@ def list_issued_laudo_deliveries(
 ) -> list[ReportDeliveryOut]:
     """Every e-mailing of one issued version, newest first."""
     return ReportDeliveryService(db, user).history(project.id, issued_id)
+
+
+@router.post(
+    "/laudos/{issued_id}/pdf",
+    response_model=SignedPdfOut,
+    status_code=201,
+    dependencies=[Depends(rate_limit("exports"))],
+)
+async def upload_signed_pdf(
+    issued_id: int,
+    request: Request,
+    nome: str | None = Query(default=None, max_length=300, description="Nome do arquivo."),
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> SignedPdfOut:
+    """The PDF the engineer signed, attached to an issued version (D-243): owner only.
+
+    The body is the PDF itself (``Content-Type: application/pdf``), not a multipart form, so
+    the size limit is enforced **while it is read**: a body past ``SIGNED_PDF_MAX_BYTES`` is
+    refused with 413 at the first chunk that crosses the line, never buffered or spooled to
+    disk first. The bytes must start with ``%PDF-``; the file is stored beside the version
+    (never inside it) with its SHA-256, and an earlier PDF stays in the history.
+    """
+    limit = settings.signed_pdf_max_bytes
+    too_big = PayloadTooLargeError(
+        f"O PDF excede o limite de {limit / (1024 * 1024):.0f} MB. "
+        "Reduza o arquivo (por exemplo, exporte de novo sem imagens extras) e envie outra vez."
+    )
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > limit:
+        raise too_big
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > limit:
+            raise too_big
+        chunks.append(chunk)
+    data = b"".join(chunks)
+    return await run_in_threadpool(
+        SignedPdfService(db, user).upload, project.id, issued_id, nome, data
+    )
+
+
+@router.get("/laudos/{issued_id}/pdf/versoes", response_model=list[SignedPdfOut])
+def list_signed_pdfs(
+    issued_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[SignedPdfOut]:
+    """Every upload of the signed PDF of one issued version, newest (current) first."""
+    return SignedPdfService(db, user).history(project.id, issued_id)
+
+
+@router.get("/laudos/{issued_id}/pdf")
+def download_signed_pdf(
+    issued_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """The current signed PDF of an issued version, byte for byte."""
+    report, pdf = SignedPdfService(db, user).download(project.id, issued_id)
+    return _pdf_response(pdf.content, report.study_name, report.version)
+
+
+@router.get("/laudos/{issued_id}/pdf/{pdf_id}")
+def download_signed_pdf_upload(
+    issued_id: int,
+    pdf_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """One earlier (or the current) upload of the signed PDF, by its id: the history is kept."""
+    report, pdf = SignedPdfService(db, user).download(project.id, issued_id, pdf_id)
+    return _pdf_response(pdf.content, report.study_name, report.version)
+
+
+def _pdf_response(content: bytes, study_name: str, version: int) -> Response:
+    filename = attachment_filename(study_name, version, signed_pdf=True)
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "X-Content-Type-Options": "nosniff",
+            # A PDF is data here, never a page: nothing may load or run from it.
+            "Content-Security-Policy": "default-src 'none'",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@router.post("/envios/{delivery_id}/revogar", response_model=ReportDeliveryOut)
+def revoke_laudo_delivery(
+    delivery_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> ReportDeliveryOut:
+    """End the client link of one send (D-243): from then on it answers 410. Owner only."""
+    return ReportDeliveryService(db, user).revoke(project.id, delivery_id)
 
 
 def _html_response(body: str, title: str) -> Response:

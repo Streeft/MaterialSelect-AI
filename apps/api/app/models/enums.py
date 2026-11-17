@@ -152,6 +152,8 @@ class AuditEntityType(str, enum.Enum):
     SOURCE = "source"
     #: A laudo e-mailed to a client (D-242); project-scoped like a study.
     REPORT_DELIVERY = "report_delivery"
+    #: An issued laudo (D-243): the signed PDF attached to a version; project-scoped.
+    ISSUED_REPORT = "issued_report"
 
 
 class SourceAuthority(str, enum.Enum):

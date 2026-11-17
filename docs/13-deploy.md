@@ -999,6 +999,29 @@ quem, quando e como terminou** (`report_delivery`) e o hash do token do link, nu
 `/api/laudos/enviados/<token>` é público, só de leitura e não adivinhável (256 bits); como
 as demais rotas públicas, passa pela Vercel (§0), então o `BACKEND_BASE_URL` precisa ser o endereço público do app.
 
+### 5-decies. PDF assinado, validade do link e Word/PowerPoint do laudo (D-243)
+
+- **Nada a configurar para funcionar.** `REPORT_LINK_TTL_DAYS` (padrão 90, de 1 a 3650) é quantos dias o link do e-mail abre o laudo, contados
+  do envio; cada envio guarda o seu vencimento, então mudar o valor (`fly secrets set REPORT_LINK_TTL_DAYS=30`) só vale para os envios seguintes.
+  `SIGNED_PDF_MAX_BYTES` (padrão 10 MB) limita o PDF assinado, que fica **no banco** (`issued_report_pdf`): um PDF de 10 MB ocupa ~10 MB do
+  Neon, por versão e por substituição (o histórico não se apaga).
+- **Dependência nova: `resvg-py`** (roda de Rust abi3, ~3 MB, sem biblioteca de sistema) e **duas fontes** (DejaVu Sans regular e negrito, 1,4 MB) em
+  `apps/api/app/exporters/fonts`. A imagem `python:3.12-slim` não tem fonte nenhuma, e é por isso que elas vão no repositório. Nada novo no
+  `Dockerfile.api`: o `pip install .` já lê o `pyproject.toml` e o `COPY apps/api/app` leva as fontes.
+- **Migração `5e2405bef18d`, aditiva** (tabela nova e colunas novas em `report_delivery`), aplicada pelo `release_command` do deploy.
+- **Memória (medida, catálogo demo inteiro, SQLite, Linux, `test_memory_per_request.py`).** O `laudo.html` já reexecutava o estudo e segura
+  **75 MB** de Python por requisição (`tracemalloc`); `laudo.docx` e `laudo.pptx` **não somam nada visível a isso** (75,2 MB os três: o pico é o
+  documento, e a imagem PNG vive no Rust). Pela memória residente, amostrada durante o pedido: Word **+11,7 MB** e PowerPoint **+0 MB** sobre o
+  processo aquecido. Os imports, medidos à parte depois de `import app.main` (118,2 MB): `python-docx` e `python-pptx` com `lxml` **+14,8 MB** (já
+  eram pagos pelos DOCX da D-235) e `resvg` com 21 figuras **+3,2 MB** (+1,6 MB só de importar; pico transitório de ~14 MB). A primeira
+  requisição de um processo frio (imports mais a primeira execução do estudo): **+81,5 MB**. Para comparar: redesenhar os gráficos com matplotlib
+  custaria **+55 MB só para importar** e ~65 MB para o primeiro gráfico. O pedido passa pelo portão pesado (D-231), então no máximo
+  `HEAVY_REQUEST_CONCURRENCY` (2) rodam juntos. Importados sob demanda (D-235): o processo que nunca gera um Word não paga nem o `resvg` nem o
+  `python-docx`.
+- **Rotas públicas** (a de D-242 mais duas): `GET /api/laudos/enviados/{token}` responde **410** com página em português quando o link foi
+  revogado ou venceu (sem nada do laudo), e `GET /api/laudos/enviados/{token}/pdf` serve o PDF assinado com as mesmas regras. Aberturas são
+  contadas sem guardar IP, user agent nem pixel.
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:

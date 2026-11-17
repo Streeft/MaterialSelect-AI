@@ -12,6 +12,7 @@ const getStudy = vi.fn();
 const listLaudoVersions = vi.fn<(id: number) => Promise<IssuedLaudo[]>>();
 const issueLaudo = vi.fn<(id: number, inputs: LaudoInputs) => Promise<IssuedLaudo>>();
 const listLaudoDeliveries = vi.fn<(id: number) => Promise<LaudoDelivery[]>>();
+const listSignedPdfs = vi.fn(() => Promise.resolve([]));
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -19,6 +20,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   listLaudoVersions: (id: number) => listLaudoVersions(id),
   issueLaudo: (id: number, inputs: LaudoInputs) => issueLaudo(id, inputs),
   listLaudoDeliveries: (id: number) => listLaudoDeliveries(id),
+  listSignedPdfs: () => listSignedPdfs(),
   getEmailStatus: () => Promise.resolve({ email_provider: "smtp", email_configured: true }),
   previewLaudoEmail: () =>
     Promise.resolve({
@@ -203,6 +205,87 @@ describe("LaudoScreen (D-241)", () => {
     expect(within(dialog).getByText(t.historyTitle)).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: t.cancel }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("offers the Word and PowerPoint copies, with the typed fields in the link", async () => {
+    mount();
+    await screen.findByText(t.versionsEmpty);
+    const user = await fillRequired();
+    await user.type(screen.getByLabelText(new RegExp(`^${t.partMass}`)), "1.5");
+    const word = screen.getByRole("link", { name: t.docx });
+    const deck = screen.getByRole("link", { name: t.pptx });
+    expect(word).toHaveAttribute("href", expect.stringContaining("/api/exports/estudos/7/laudo.docx?"));
+    expect(word.getAttribute("href")).toContain("responsavel=Ana+Souza");
+    expect(word.getAttribute("href")).toContain("massa=1.5");
+    expect(word).toHaveAttribute("download");
+    expect(deck).toHaveAttribute("href", expect.stringContaining("/laudo.pptx?"));
+    // They are plain links in the header now, not tucked in a menu.
+    expect(screen.queryByRole("button", { name: /Formatos editáveis/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the signed PDF and the link openings in the version row", async () => {
+    listLaudoVersions.mockResolvedValue([
+      {
+        ...version(1),
+        signed_pdf: {
+          id: 3,
+          issued_report_id: 1,
+          filename: "a.pdf",
+          size_bytes: 10,
+          sha256: "e".repeat(64),
+          short_sha256: "EEEE-EEEE-EEEE",
+          uploaded_at: "2026-11-16T15:00:00Z",
+          uploaded_by: null,
+          current: true,
+        },
+        signed_pdf_count: 1,
+      },
+      version(2),
+    ]);
+    listLaudoDeliveries.mockImplementation(async (id) =>
+      id === 1
+        ? [
+            {
+              id: 9,
+              issued_report_id: 1,
+              recipients: ["cliente@empresa.com.br"],
+              cc: [],
+              subject: "Laudo",
+              message: null,
+              status: "enviado",
+              provider: "smtp",
+              error: null,
+              created_at: "2026-11-16T15:40:00Z",
+              sent_by: null,
+              link_state: "ativo",
+              expires_at: "2027-02-14T15:40:00Z",
+              open_count: 3,
+              last_opened_at: "2026-11-17T09:30:00Z",
+            },
+          ]
+        : [],
+    );
+    const { container } = mount();
+    expect(await screen.findByText(t.signedShort("EEEE-EEEE-EEEE"))).toBeInTheDocument();
+    expect(screen.getByText(t.signedNone)).toBeInTheDocument();
+    expect(await screen.findByText(/^Aberto 3× · última em /)).toBeInTheDocument();
+    expect(screen.getByText("1 link ativo")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Enviar ou ver o PDF assinado/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Ver os envios da versão/ })).toHaveLength(2);
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  it("opens the signed-PDF and the deliveries dialogs from a version", async () => {
+    listLaudoVersions.mockResolvedValue([version(1)]);
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: t.signedActionLabel(1) }));
+    expect(await screen.findByRole("dialog", { name: t.signedTitle(1) })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: t.done }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: t.deliveriesActionLabel(1) }));
+    expect(await screen.findByRole("dialog", { name: t.deliveriesTitle(1) })).toBeInTheDocument();
   });
 
   it("says when the versions cannot be listed", async () => {

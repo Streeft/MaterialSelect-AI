@@ -11,7 +11,11 @@ from app.models.material import Material
 
 #: Entity types that belong to one project: their rows carry a ``project_id``
 #: snapshot and are listed only to that project (the catalogue types are shared).
-PROJECT_SCOPED_TYPES = (AuditEntityType.SELECTION_STUDY, AuditEntityType.REPORT_DELIVERY)
+PROJECT_SCOPED_TYPES = (
+    AuditEntityType.SELECTION_STUDY,
+    AuditEntityType.REPORT_DELIVERY,
+    AuditEntityType.ISSUED_REPORT,
+)
 
 
 class AuditRepository:

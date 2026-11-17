@@ -2,21 +2,14 @@
 
 import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getEmailStatus,
-  listLaudoDeliveries,
-  previewLaudoEmail,
-  sendLaudo,
-  type IssuedLaudo,
-  type LaudoDelivery,
-} from "@/lib/api";
+import { getEmailStatus, previewLaudoEmail, sendLaudo, type IssuedLaudo } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { hasAddress, isValidEmail, MAX_ADDRESSES, splitAddresses } from "@/lib/emailAddress";
 import { laudoText as t } from "@/lib/i18n-laudo";
 import { useDebounced } from "@/lib/useDebounced";
+import { DeliveryHistory, formatDay } from "./DeliveryList";
 import {
   Alert,
-  Badge,
   Button,
   Dialog,
   ErrorState,
@@ -24,26 +17,10 @@ import {
   RemovableChip,
   Skeleton,
   Textarea,
-  type BadgeTone,
 } from "@/components/ui";
 import { useSnackbar } from "@/components/ui/Snackbar";
 
-const STATUS_TONE: Record<string, BadgeTone> = {
-  enviado: "success",
-  simulado: "warning",
-  falhou: "danger",
-};
-
-/** The status as a word with its colour: the word carries the meaning, the tone only helps. */
-export function DeliveryStatusBadge({ status }: { status: string }) {
-  return <Badge tone={STATUS_TONE[status] ?? "neutral"}>{t.statusLabels[status] ?? status}</Badge>;
-}
-
-export function formatSentAt(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
+export { DeliveryStatusBadge, formatSentAt } from "./DeliveryList";
 
 /**
  * A list of e-mail addresses as chips: type, then Enter, comma, semicolon or
@@ -153,53 +130,6 @@ function AddressField({
         </ul>
       ) : null}
     </div>
-  );
-}
-
-/** Every e-mailing of one issued version, newest first, with its outcome in words. */
-export function DeliveryHistory({ issued }: { issued: IssuedLaudo }) {
-  const history = useQuery({
-    queryKey: ["laudo-deliveries", issued.id],
-    queryFn: () => listLaudoDeliveries(issued.id),
-  });
-  return (
-    <section aria-labelledby={`laudo-history-${issued.id}`} className="flex flex-col gap-2">
-      <h3 id={`laudo-history-${issued.id}`} className="text-body font-semibold text-ink">
-        {t.historyTitle}
-      </h3>
-      {history.isPending ? (
-        <div role="status">
-          <span className="sr-only">{t.deliveriesLoading}</span>
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ) : history.isError ? (
-        <ErrorState title={t.historyError} error={history.error} onRetry={() => history.refetch()} />
-      ) : history.data.length === 0 ? (
-        <p className="text-caption text-ink-muted">{t.historyEmpty}</p>
-      ) : (
-        <ul aria-label={t.historyTable} className="flex flex-col gap-2">
-          {history.data.map((delivery) => (
-            <DeliveryItem key={delivery.id} delivery={delivery} />
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function DeliveryItem({ delivery }: { delivery: LaudoDelivery }) {
-  return (
-    <li className="rounded-card border border-edge-subtle p-2 text-caption">
-      <div className="flex flex-wrap items-center gap-2">
-        <DeliveryStatusBadge status={delivery.status} />
-        <span className="text-ink">{formatSentAt(delivery.created_at)}</span>
-        {delivery.sent_by ? <span className="text-ink-muted">{delivery.sent_by}</span> : null}
-      </div>
-      <p className="mt-1 break-words text-ink">
-        {[...delivery.recipients, ...delivery.cc.map((a) => `${a} (${t.copyPrefix})`)].join(", ")}
-      </p>
-      {delivery.error ? <p className="mt-1 text-danger-fg">{delivery.error}</p> : null}
-    </li>
   );
 }
 
@@ -360,6 +290,10 @@ export function SendLaudoDialog({
             <>
               <p className="text-caption text-ink-muted">
                 {t.previewNote} {t.attachment(preview.data.attachment_name)}
+                {preview.data.signed_pdf ? ` ${t.attachmentSigned}` : ` ${t.attachmentHtml}`}
+                {preview.data.link_expires_at
+                  ? ` ${t.linkValidUntil(formatDay(preview.data.link_expires_at))}`
+                  : ""}
               </p>
               {/* An empty `sandbox`: no script, no form, no same-origin — it is only to be read. */}
               <iframe

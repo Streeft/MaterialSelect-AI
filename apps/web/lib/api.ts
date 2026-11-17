@@ -1383,6 +1383,23 @@ export interface IssuedLaudo {
   short_code: string;
   verify_url: string;
   issued_at: string;
+  /** The current signed PDF of this version (D-243) and how many uploads it has had. */
+  signed_pdf?: SignedPdf | null;
+  signed_pdf_count?: number;
+}
+
+/** One upload of the PDF the engineer signed (D-243). */
+export interface SignedPdf {
+  id: number;
+  issued_report_id: number;
+  filename: string;
+  size_bytes: number;
+  sha256: string;
+  short_sha256: string;
+  uploaded_at: string;
+  uploaded_by: string | null;
+  /** The newest upload of the version; the others are history. */
+  current: boolean;
 }
 
 const LAUDO_QUERY: Array<[keyof LaudoInputs, string]> = [
@@ -1409,6 +1426,18 @@ export function laudoPreviewUrl(studyId: number, inputs: LaudoInputs): string {
   }
   const query = params.toString();
   return `${API_URL}/api/exports/estudos/${studyId}/laudo.html${query ? `?${query}` : ""}`;
+}
+
+/**
+ * The editable twin of the laudo (D-243), as a download: Word or PowerPoint with the
+ * fields typed in the form. Same query as the preview; never the issued, signed laudo.
+ */
+export function laudoFileUrl(
+  studyId: number,
+  inputs: LaudoInputs,
+  format: "docx" | "pptx",
+): string {
+  return laudoPreviewUrl(studyId, inputs).replace("/laudo.html", `/laudo.${format}`);
 }
 
 export function issueLaudo(studyId: number, inputs: LaudoInputs): Promise<IssuedLaudo> {
@@ -1454,7 +1483,19 @@ export interface LaudoDelivery {
   error: string | null;
   created_at: string;
   sent_by: string | null;
+  /** The life of the client link (D-243). `sem_link`: the send failed, so there is no link. */
+  link_state?: LaudoLinkState;
+  expires_at?: string | null;
+  revoked_at?: string | null;
+  /** How many times the link opened the laudo; no visitor data is kept. */
+  open_count?: number;
+  first_opened_at?: string | null;
+  last_opened_at?: string | null;
+  /** SHA-256 of the signed PDF that went attached, when the message carried one. */
+  attached_pdf_sha256?: string | null;
 }
+
+export type LaudoLinkState = "ativo" | "vencido" | "revogado" | "sem_link";
 
 /** The message as the server would send it, for the dialog's preview. */
 export interface LaudoEmailPreview {
@@ -1462,6 +1503,9 @@ export interface LaudoEmailPreview {
   html: string;
   text: string;
   attachment_name: string;
+  /** True when the attachment is the signed PDF rather than the frozen `.html` (D-243). */
+  signed_pdf?: boolean;
+  link_expires_at?: string | null;
   provider: string;
   email_configured: boolean;
 }
@@ -1485,6 +1529,68 @@ export function previewLaudoEmail(
 
 export function listLaudoDeliveries(issuedId: number): Promise<LaudoDelivery[]> {
   return request<LaudoDelivery[]>(`/api/exports/laudos/${issuedId}/envios`);
+}
+
+/** End the client link of one send (D-243): from then on it answers 410. */
+export function revokeLaudoDelivery(deliveryId: number): Promise<LaudoDelivery> {
+  return request<LaudoDelivery>(`/api/exports/envios/${deliveryId}/revogar`, { method: "POST" });
+}
+
+// --- PDF assinado (D-243) ---------------------------------------------------------
+
+/** Every upload of one version's signed PDF, newest (current) first. */
+export function listSignedPdfs(issuedId: number): Promise<SignedPdf[]> {
+  return request<SignedPdf[]>(`/api/exports/laudos/${issuedId}/pdf/versoes`);
+}
+
+/** The current signed PDF, or an earlier upload by its id: a download. */
+export function signedPdfUrl(issuedId: number, pdfId?: number): string {
+  return `${API_URL}/api/exports/laudos/${issuedId}/pdf${pdfId === undefined ? "" : `/${pdfId}`}`;
+}
+
+/**
+ * Send the signed PDF as the request body, with progress. `fetch` cannot report upload
+ * progress, so this one call uses `XMLHttpRequest`; the body is the file itself (the server
+ * checks its first bytes and size while reading), and a failure is an `ApiError` like any other.
+ */
+export function uploadSignedPdf(
+  issuedId: number,
+  file: File,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<SignedPdf> {
+  return new Promise<SignedPdf>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `${API_URL}/api/exports/laudos/${issuedId}/pdf?${new URLSearchParams({ nome: file.name })}`,
+    );
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Content-Type", "application/pdf");
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress?.(event.loaded / event.total);
+    };
+    xhr.onerror = () => reject(new ApiError("Falha de rede", 0));
+    xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+    xhr.onload = () => {
+      let body: unknown = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        // not JSON: the fallback below speaks
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(1);
+        resolve(body as SignedPdf);
+        return;
+      }
+      const detail = readErrorDetail((body as { detail?: unknown } | null)?.detail);
+      reject(new ApiError(detail ?? "Falha ao enviar o PDF", xhr.status));
+    };
+    signal?.addEventListener("abort", () => xhr.abort());
+    xhr.send(file);
+  });
 }
 
 /** Whether laudos can really leave the server: the provider's name and a boolean, no secret. */

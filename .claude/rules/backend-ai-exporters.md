@@ -51,6 +51,13 @@ O **e-mail do laudo** ([D-242](docs/DECISIONS.md)) é um terceiro formato, com e
 `services/email_service.py` (`mock` por padrão, `smtp` por `smtplib`): a falha é uma frase nossa em português, **nunca** o texto da
 exceção, e `SMTP_PASSWORD` não pode chegar a log, resposta nem linha de banco.
 
+D-243: o PDF assinado (`issued_report_pdf`) fica **ao lado** da versão emitida e nunca altera o HTML congelado nem o `content_sha256`;
+só se confere `%PDF-` e o tamanho (não se abre nem se verifica assinatura), a substituição é uma linha nova e **nada se apaga**. O link
+público de um envio **vence** (`expires_at`), **revoga** e **conta aberturas** sem guardar IP, user agent nem pixel: revogado ou vencido
+é 410 com página em português e **nada do laudo**. `laudo_docx.py` e `laudo_pptx.py` partem do mesmo `LaudoDocument` do HTML; os gráficos
+são o mesmo SVG, rasterizado por `svg_png.py` (`resvg-py` sob demanda, fonte DejaVu embarcada em `exporters/fonts`), e figura que não
+desenha é declarada, nunca omitida em silêncio. Word e PowerPoint **não são o laudo emitido** (sem selo, código nem QR).
+
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
 `app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe duas

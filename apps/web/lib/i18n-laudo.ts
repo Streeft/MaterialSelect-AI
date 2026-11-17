@@ -57,11 +57,13 @@ export const laudoText = {
   openLabel: (version: number) => `Abrir a versão ${version} para imprimir`,
   versionLabel: (version: number) => `Versão ${version}`,
   linkLabel: "Laudo de engenharia",
-  editableFormats: "Formatos editáveis",
-  docx: "Baixar DOCX",
-  docxHint: "Documento editável com as tabelas, as figuras e a interpretação (formato anterior)",
-  pptx: "Baixar PPTX",
-  pptxHint: "Apresentação com as tabelas e as figuras (formato anterior)",
+  // --- Word e PowerPoint no visual novo (D-243) ---
+  docx: "Baixar Word",
+  docxHint:
+    "Cópia editável com os campos acima: capa, resumo executivo, seções, gráficos e anexo técnico. Não é o laudo emitido: não tem código nem QR.",
+  pptx: "Baixar PowerPoint",
+  pptxHint:
+    "Apresentação com os campos acima: um slide de resumo e um por seção, com os gráficos. O anexo técnico fica no Word e no laudo emitido.",
   linkHint: "Pré-visualizar, emitir e ver as versões emitidas",
   // --- Envio ao cliente por e-mail (D-242) ---
   colDeliveries: "Envios",
@@ -74,7 +76,7 @@ export const laudoText = {
   deliveriesError: "Não foi possível listar os envios",
   sendTitle: (version: number) => `Enviar a versão ${version} ao cliente`,
   sendDescription:
-    "O cliente recebe um e-mail com o resumo, um link só de leitura, o código de verificação e o laudo em anexo (HTML, para abrir e imprimir em PDF).",
+    "O cliente recebe um e-mail com o resumo, um link só de leitura com validade, o código de verificação e o laudo em anexo: o PDF assinado, se você já enviou um, ou o HTML emitido.",
   notConfiguredTitle: "Envio por e-mail não configurado neste servidor",
   notConfigured:
     "O envio por e-mail não está configurado neste servidor: o envio será apenas simulado e aparecerá no histórico como \"Simulado\". Nada chega ao cliente. Quem administra o servidor liga o e-mail pelas variáveis EMAIL_PROVIDER e SMTP_*.",
@@ -97,7 +99,10 @@ export const laudoText = {
   previewLoading: "Montando a pré-visualização…",
   previewError: "Não foi possível montar a pré-visualização",
   previewNote: "Como o cliente vai ler. O botão ganha o link real só no envio.",
-  attachment: (name: string) => `Anexo: ${name}`,
+  attachment: (name: string) => `Anexo: ${name}.`,
+  attachmentSigned: "É o PDF assinado, no lugar do HTML.",
+  attachmentHtml: "Ainda não há PDF assinado: vai o HTML emitido.",
+  linkValidUntil: (date: string) => `O link vale até ${date}.`,
   historyTitle: "Envios desta versão",
   historyEmpty: "Esta versão ainda não foi enviada.",
   historyError: "Não foi possível listar os envios",
@@ -121,6 +126,73 @@ export const laudoText = {
   simulatedToast: (count: number) =>
     `Envio simulado registrado para ${count === 1 ? "1 destinatário" : `${count} destinatários`}: nada foi enviado.`,
   close: "Fechar",
+  done: "Concluir",
+  // --- PDF assinado (D-243) ---
+  colSigned: "PDF assinado",
+  signedNone: "Não enviado",
+  signedShort: (code: string) => `Anexado · ${code}`,
+  signedAction: "PDF assinado",
+  signedActionLabel: (version: number) => `Enviar ou ver o PDF assinado da versão ${version}`,
+  signedTitle: (version: number) => `PDF assinado da versão ${version}`,
+  signedDescription:
+    "Anexe o PDF que você assinou (à mão, pelo gov.br ou com certificado). Ele fica guardado ao lado desta versão, sem alterar o laudo emitido nem o código. Ao enviar ao cliente, o PDF assinado vai anexado no lugar do HTML, e o link do cliente passa a oferecer \"Baixar PDF assinado\".",
+  dropTitle: "Arraste o PDF assinado até aqui",
+  dropButton: "Escolher o PDF",
+  dropHint: "Somente PDF, até 10 MB. Enviar outro PDF substitui o atual; o anterior fica no histórico.",
+  uploadList: "Envio do PDF assinado",
+  uploadErrorTitle: "Não foi possível enviar o PDF",
+  uploadStatus: {
+    sending: "Enviando",
+    reading: "Guardando no servidor…",
+    done: "Enviado",
+    failed: "Não enviado",
+  },
+  notPdf: (name: string) => `"${name}" não é um PDF: o arquivo não começa com a marca de PDF.`,
+  tooBig: (name: string, mb: number) => `"${name}" passa de ${mb} MB. Reduza o arquivo e tente de novo.`,
+  uploadedToast: (name: string) => `PDF assinado enviado: ${name}.`,
+  signedCurrent: "PDF atual",
+  signedHistoryTitle: "Histórico de PDFs desta versão",
+  signedHistoryEmpty: "Nenhum PDF assinado enviado ainda.",
+  signedHistoryError: "Não foi possível listar os PDFs desta versão",
+  signedHistoryTable: "Histórico de PDFs assinados desta versão",
+  signedReplaced: "anterior",
+  download: "Baixar",
+  downloadLabel: (name: string) => `Baixar ${name}`,
+  sha256: "SHA-256",
+  sizeKb: (bytes: number) =>
+    bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`
+      : `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("pt-BR")} KB`,
+  signedBy: (who: string) => `por ${who}`,
+  // --- Validade, revogação e aberturas do link (D-243) ---
+  deliveriesAction: "Envios",
+  deliveriesActionLabel: (version: number) => `Ver os envios da versão ${version} e os links`,
+  deliveriesTitle: (version: number) => `Envios da versão ${version}`,
+  deliveriesDescription:
+    "Cada envio tem o seu link, com validade. Revogue um link para que ele deixe de abrir o laudo: quem o abrir vê uma página dizendo que o link foi cancelado.",
+  linkStates: {
+    ativo: "Link ativo",
+    vencido: "Link vencido",
+    revogado: "Link revogado",
+    sem_link: "Sem link",
+  } as Record<string, string>,
+  validUntil: (date: string) => `Válido até ${date}`,
+  expiredOn: (date: string) => `Venceu em ${date}`,
+  revokedOn: (date: string) => `Revogado em ${date}`,
+  notOpened: "Ainda não aberto",
+  opened: (count: number, last: string) => `Aberto ${count}× · última em ${last}`,
+  openedNote:
+    "Conta as aberturas do link, não as leituras: só a página do laudo conta, sem endereço IP e sem pixel no e-mail.",
+  pdfAttached: "PDF assinado anexado",
+  htmlAttached: "HTML anexado",
+  revoke: "Revogar link",
+  revokeLabel: (who: string) => `Revogar o link do envio para ${who}`,
+  revokeTitle: "Revogar este link?",
+  revokeMessage:
+    "O link deixa de abrir o laudo agora e não volta: quem o abrir vê uma página dizendo que foi cancelado. O e-mail já enviado e o anexo não mudam. Para o cliente ver de novo, envie outra vez.",
+  revokeConfirm: "Revogar link",
+  revokedToast: "Link revogado.",
+  revokeErrorTitle: "Não foi possível revogar o link",
 } as const;
 
 /** The fields the server requires to issue, in the order the form shows them. */

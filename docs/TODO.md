@@ -87,11 +87,16 @@ quitados".
 
 ## Média prioridade
 
-**L2 entregue (D-242): o laudo emitido sai por e-mail pelo app.** ▃ Falta **ligar** no Fly: o autor grava `EMAIL_PROVIDER=smtp`,
+**L2 entregue (D-242) e L3 entregue (D-243): o laudo emitido sai por e-mail pelo app, com PDF assinado, link com validade e Word/PowerPoint.** ▃ Falta **ligar** o e-mail no Fly: o autor grava `EMAIL_PROVIDER=smtp`,
 `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` (e `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` se quiser) — passo a
-passo em `13-deploy.md` §5-nonies —, enquanto o envio fica "Simulado" e a tela avisa. Fora da L2, se o autor quiser: anexar o PDF
-que o engenheiro assinou (o app só tem o HTML congelado), revogar/expirar o link público de um envio, saber se o cliente abriu e
-`Reply-To` pelo e-mail do engenheiro.
+passo em `13-deploy.md` §5-nonies —, enquanto o envio fica "Simulado" e a tela avisa. Entregue na D-243: anexar o PDF assinado à versão (histórico, hash,
+no e-mail no lugar do `.html`, "Baixar PDF assinado" no link e hash na verificação pública), link com validade (`REPORT_LINK_TTL_DAYS`, 90) e revogação (410
+em página em português), contagem de aberturas sem IP nem pixel, e DOCX/PPTX no visual novo (gráficos em PNG por `resvg-py`). Fica para depois, se o autor
+quiser: ler o texto do PDF para conferir que é o laudo certo, reenviar com um clique, `Reply-To` pelo e-mail do engenheiro, fila de reenvio, DOCX/PPTX de uma
+versão **emitida** a partir dos bytes congelados (hoje a cópia reexecuta o estudo e diz que não é a emitida) e o anexo técnico no PowerPoint (hoje só as
+notas do autor). Pendência de desempenho achada na medição da D-243, que **não** é do Word/PowerPoint: o `laudo.html` (a pré-visualização) já
+reexecuta o estudo e, com o catálogo demo inteiro, segura ~75 MB de Python por requisição (`tracemalloc`); cabe no portão pesado e na VM de 1 GB, mas é o maior da lista e
+as tabelas do anexo (proveniência de cada valor) são a parte que mais pesa.
 
 **Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F9 entregues** (F9, D-238: Classes e Propriedades como tabelas editáveis — nome e descrição de classe na linha pelo `PATCH`, que nunca muda o slug —, árvore que dobra, busca e filtro por categoria, criação atrás de um botão; F8, D-236b: landing com o método em três passos e capturas reais, "O que garante" e rodapé; Entrar em tela dividida; Conta dentro do app com perfil, acesso, uso da IA de hoje, Aparência e Sair; "Barra lateral clara" na Aparência, só no tema claro; F7, D-235b: Cadernos com galeria de modelos ao criar e na lista vazia, notas em blocos com a alça, Alt+↑/↓ e "/" para inserir, ordem na conta, Estúdio monocromático e aviso do provedor como chip; F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,

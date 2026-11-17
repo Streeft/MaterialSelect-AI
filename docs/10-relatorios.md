@@ -151,7 +151,7 @@ Três propriedades de formatação documental:
 
 ## O relatório em PPTX (PowerPoint)
 
-`…{id}.pptx`, `…catalogo.pptx` e `…laudo.pptx` renderizam **o mesmo `Report`** em
+`…{id}.pptx` e `…catalogo.pptx` renderizam **o mesmo `Report`** (o `…laudo.pptx` parte do `LaudoDocument`, D-243) em
 apresentações de slides widescreen 16:9 nativas através de `python-pptx` (`app/exporters/pptx.py`).
 
 Três propriedades de formatação para apresentação:
@@ -186,7 +186,7 @@ Desde a [D-241](DECISIONS.md) o HTML é um laudo visual desenhado para **A4**, n
 
 Custo e impacto precisam da **massa da peça** (`?massa=`, kg) e usam o **lote** (`?lote=`, padrão 1.000). Sem a massa, as duas
 seções saem "Não avaliado" com o motivo. Os demais campos do formulário também vão por query na pré-visualização: `responsavel`,
-`titulo`, `registro`, `art`, `cidade`, `data`, `cliente`, `projeto`. DOCX e PPTX continuam o documento da D-41.
+`titulo`, `registro`, `art`, `cidade`, `data`, `cliente`, `projeto`. DOCX e PPTX deixaram de ser o documento da D-41: desde a [D-243](DECISIONS.md) são as cópias editáveis deste mesmo laudo (abaixo).
 
 O que isso obriga:
 
@@ -222,7 +222,7 @@ lista o histórico da versão.
 
 O e-mail (`exporters/laudo_email.py`) tem saudação, três linhas (material recomendado, estudo e engenheiro), o botão **Abrir o laudo**,
 o código e o link de verificação, e o **laudo em anexo** (`laudo-<estudo>-vN.html`, o HTML congelado byte a byte, em base64, para abrir
-e imprimir em PDF). Estilos **inline** com os tokens de `laudo_theme.py` (cliente de e-mail ignora `<style>` e variáveis CSS); todo
+e imprimir em PDF; com PDF assinado anexado à versão, vai ele no lugar, D-243). Estilos **inline** com os tokens de `laudo_theme.py` (cliente de e-mail ignora `<style>` e variáveis CSS); todo
 texto de pessoa passa por `html.escape`, e a mensagem do remetente vira `<br>` depois do escape. Há alternativa em texto puro.
 
 O botão aponta para `GET /api/laudos/enviados/{token}`, **público e só de leitura**: devolve os bytes guardados, com CSP
@@ -235,6 +235,44 @@ a contagem e nunca os endereços). Provedor `mock` (padrão) grava `simulado`: *
 `smtplib` com timeout curto, STARTTLS (587) ou TLS implícito (465), erro traduzido sem eco da exceção, segredo fora de log e resposta.
 Limite de `RATE_LIMIT_EMAIL_PER_HOUR` (10) envios por conta e por hora. `/api/health` traz `email_provider` e `email_configured`.
 Configuração no Fly: `13-deploy.md` §5-nonies.
+
+### PDF assinado, validade do link e aberturas (D-243)
+
+**PDF assinado.** O engenheiro imprime o HTML emitido em PDF, assina (à mão, gov.br ou certificado) e **anexa o arquivo à versão**:
+`POST /api/exports/laudos/{id}/pdf?nome=arquivo.pdf` com o PDF como corpo (`Content-Type: application/pdf`). Só o dono; só PDF, conferido
+pelos **bytes** (`%PDF-`), nunca pelo nome; no máximo `SIGNED_PDF_MAX_BYTES` (10 MB), imposto enquanto o corpo é lido (413 escrito).
+Guarda-se o arquivo (tabela `issued_report_pdf`), o **SHA-256**, o tamanho, quem enviou e quando. O HTML congelado e o código do laudo
+**não mudam**: o PDF é um anexo da versão. Enviar outro PDF o **substitui como atual** e mantém o anterior no histórico
+(`GET …/pdf/versoes`, `GET …/pdf/{id}`); não há exclusão. O app **não abre o PDF nem confere a assinatura**: ela se confere no leitor de PDF
+ou no gov.br. `GET /api/laudos/verificar/{código}` diz se há PDF assinado e dá o hash dele (nunca o arquivo nem o nome).
+
+**No envio ao cliente, o PDF assinado vai anexado no lugar do `.html`** (`laudo-<estudo>-vN-assinado.pdf`); sem PDF, o anexo é o HTML
+como antes. O link do cliente ganha uma faixa **"Baixar PDF assinado"** (acrescentada ao servir; o documento guardado não muda) e
+`GET /api/laudos/enviados/{token}/pdf`, que serve o PDF **atual**.
+
+**Validade e revogação.** Cada envio guarda o seu vencimento: o dia do envio mais `REPORT_LINK_TTL_DAYS` (padrão 90; `.env.example`).
+Mudar a variável não mexe nos links já enviados. O dono revoga um envio com `POST /api/exports/envios/{id}/revogar` (idempotente; envio
+que falhou não tem link). Link **revogado ou vencido** responde **410** com uma página em português que não traz nada do laudo; token que não
+existe continua 404. O e-mail diz até quando o link vale.
+
+**Aberturas.** O link conta quantas vezes abriu o laudo: primeira vez, última vez e um número. **Privacidade:** não se guarda IP, nem
+parte dele, nem user agent; **não há pixel nem imagem no e-mail**; só a abertura **do link** conta, e só a página do laudo (não o
+download do PDF). Não contam `HEAD`, pré-busca, requisição sem user agent nem robôs de escaneamento e de pré-visualização conhecidos.
+É heurística: um escaneador que finja ser navegador ainda conta, por isso a tela diz "aberturas do link", não "leituras".
+
+**Tela** (`/app/selecao/laudo`): coluna "PDF assinado" e botão "PDF assinado" (arrastar ou escolher, progresso, erro, histórico com hash),
+coluna "Envios" com "Aberto 3× · última em …" e botão "Envios" (estado do link, validade, anexo e "Revogar link" com confirmação).
+
+### Word e PowerPoint do laudo (D-243)
+
+`laudo.docx` e `laudo.pptx` saem do **mesmo documento** do HTML (`LaudoDocument`), com os mesmos tokens, e recebem os mesmos campos do
+formulário por query. **Word**: capa; resumo executivo com os cartões e o semáforo como **tabelas de células coloridas** (estado em
+palavra e glifo); seções com os gráficos como imagens (texto alternativo = título e descrição do gráfico); interpretação; assinatura;
+anexo técnico completo; rodapé "página N de M". **PowerPoint**: capa, **um slide de resumo**, **um slide por seção** (mais um de
+continuação, de tabela ou de processos quando há mais figuras ou uma tabela), interpretação, assinatura, notas do autor e avisos; o
+anexo técnico não cabe em slides e a última página diz onde está. São **cópias editáveis, não o laudo emitido**: sem selo, código nem QR,
+e a capa diz "Versão editável — não emitida". Os gráficos são o mesmo SVG de `figures.py`, rasterizado para PNG por `resvg`
+(`exporters/svg_png.py`, fonte DejaVu Sans embarcada); um que não desenha vira uma linha dizendo qual falta.
 
 ## O Eco Audit (D-172)
 
@@ -418,7 +456,11 @@ faltando.
 | GET | `/api/laudos/verificar/{código}` | verificação pública de um laudo emitido (sem login) |
 | POST | `/api/exports/laudos/{id}/enviar` e `…/enviar/previa` | envia ao cliente por e-mail uma versão emitida / mostra o e-mail sem enviar (D-242) |
 | GET | `/api/exports/laudos/{id}/envios` | histórico de envios de uma versão emitida (D-242) |
-| GET | `/api/laudos/enviados/{token}` | cópia só de leitura do laudo congelado, pelo link do e-mail (sem login, D-242) |
+| GET | `/api/laudos/enviados/{token}` | cópia só de leitura do laudo congelado, pelo link do e-mail (sem login, D-242); 410 se revogado ou vencido (D-243) |
+| GET | `/api/laudos/enviados/{token}/pdf` | o PDF assinado atual, pelo mesmo link e as mesmas regras de validade (sem login, D-243) |
+| POST | `/api/exports/laudos/{id}/pdf?nome=` | anexa o PDF assinado a uma versão emitida: corpo = o PDF, até 10 MB, só pelos bytes `%PDF-` (D-243) |
+| GET | `/api/exports/laudos/{id}/pdf`, `…/pdf/versoes`, `…/pdf/{pdf_id}` | PDF atual, histórico de envios do PDF e um deles, só o dono (D-243) |
+| POST | `/api/exports/envios/{id}/revogar` | revoga o link de um envio; dali em diante responde 410 (D-243) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 | POST | `/api/eco/exportar.{csv,xlsx,html,docx,pptx}` | auditoria ambiental de um briefing (corpo de `/api/eco/auditar`), por componente e por trecho (D-172) |

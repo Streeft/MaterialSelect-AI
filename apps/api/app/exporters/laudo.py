@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from html import escape, unescape
 
+from app.exporters.figures import Light
 from app.exporters.html import render_sheet
 from app.exporters.laudo_theme import FONT_SANS, STATUS, css_custom_properties, token
 from app.exporters.report import Sheet
@@ -150,6 +151,9 @@ class LaudoDocument:
     key_figures: list[KeyFigure] = field(default_factory=list)
     why: list[str] = field(default_factory=list)
     traffic_light: str = ""
+    #: The rows behind ``traffic_light``, so a format without SVG (the DOCX and the PPTX,
+    #: D-243) can write them as a coloured table instead of a picture.
+    lights: list[Light] = field(default_factory=list)
     donut: str = ""
     ranking_mini: str = ""
     scope: list[ScopeItem] = field(default_factory=list)
@@ -223,6 +227,42 @@ def recommended_name(document: str) -> str | None:
         return None
     text = unescape(re.sub(r"<[^>]+>", "", found.group(1))).strip()
     return text or None
+
+
+def signed_pdf_bar(href: str, short_hash: str, uploaded_at: datetime) -> str:
+    """The strip a client sees above the laudo when a signed PDF exists (D-243).
+
+    It is added **when the page is served**, never to the stored document: the frozen HTML
+    and its digest stay exactly as issued, and a copy saved or printed from the link carries
+    no bar (``@media print`` hides it). Inline styles only, because the page is served under
+    ``default-src 'none'``; ``href`` is a path the server built from its own token.
+    """
+    style = (
+        "display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;"
+        f"padding:10px 16px;background:{token('brand-50')};color:{token('ink')};"
+        f"border-bottom:1px solid {token('edge-subtle')};font-family:{FONT_SANS};font-size:14px"
+    )
+    button = (
+        f"background:{token('brand-700')};color:#ffffff;text-decoration:none;"
+        "font-weight:700;padding:6px 14px;border-radius:6px"
+    )
+    return (
+        "<style>@media print{.signed-pdf-bar{display:none !important}}</style>"
+        f'<div class="signed-pdf-bar" style="{_e(style)}">'
+        "<span>Este laudo tem PDF assinado pelo engenheiro "
+        f"(SHA-256 {_e(short_hash)}, enviado em {_e(uploaded_at.strftime('%d/%m/%Y'))}).</span>"
+        f'<a href="{_e(href)}" style="{_e(button)}">Baixar PDF assinado</a></div>'
+    )
+
+
+def with_signed_pdf_bar(document: str, bar: str) -> str:
+    """``document`` with ``bar`` right after its opening ``<body>``; unchanged if it has none."""
+    marker = "<body>"
+    position = document.find(marker)
+    if position < 0:
+        return document
+    cut = position + len(marker)
+    return document[:cut] + bar + document[cut:]
 
 
 # --- Rendering ---------------------------------------------------------------
