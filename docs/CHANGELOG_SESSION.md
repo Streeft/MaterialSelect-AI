@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 200 — 17/11/26 — Laudo de engenharia repaginado, parte 3: PDF assinado, validade do link, aberturas, Word e PowerPoint (D-243)
+
+**O que mudou.** Backend: `issued_report_pdf` (o PDF que o engenheiro assinou, ao lado da versão: SHA-256, quem e quando; substituir mantém o anterior no
+histórico, nada se apaga; `POST /api/exports/laudos/{id}/pdf` com o PDF como corpo, só pelos bytes `%PDF-`, 10 MB impostos durante a leitura, só o dono) e,
+em `report_delivery`, `expires_at` (`REPORT_LINK_TTL_DAYS`, 90), `revoked_at`/`revoked_by_id`, `first_opened_at`/`last_opened_at`/`open_count` e
+`attached_pdf_sha256` (migração `5e2405bef18d`). O e-mail leva o PDF assinado no lugar do `.html` e diz até quando o link vale; o link público
+responde 410 em página em português quando revogado ou vencido, conta aberturas sem IP nem user agent nem pixel e oferece "Baixar PDF assinado"
+(faixa acrescentada ao servir; o documento guardado e o hash não mudam); a verificação pública mostra o hash do PDF. `POST /api/exports/envios/{id}/revogar`.
+`laudo.docx` e `laudo.pptx` agora saem do `LaudoDocument` do HTML (`laudo_docx.py`, `laudo_pptx.py`), com cartões e semáforo em tabelas coloridas e
+gráficos em PNG (`svg_png.py`: `resvg-py` sob demanda, DejaVu Sans embarcada). Frontend: "Baixar Word" e "Baixar PowerPoint" no cabeçalho,
+`SignedPdfDialog` (arrastar ou escolher, progresso, erro), `DeliveriesDialog` (validade, aberturas, "Revogar link" com `ConfirmDialog`) e colunas novas
+na tabela de versões. Docs: D-243, `10-relatorios.md`, `13-deploy.md`, `.env.example`, `TODO.md`, regra de exportadores. Testes novos: pytest
+`test_laudo_pdf_link` e `test_migration_pdf_link`, medição de memória em `test_memory_per_request`; vitest `SignedPdfDialog`, `DeliveriesDialog` e
+`LaudoScreen` (com axe); E2E `laudo.spec.ts` sobe o PDF, revoga e baixa o Word e o PowerPoint. **Com migração e com dependência nova (`resvg-py`).**
+**Depois do merge: Deploy da API** (a imagem é reconstruída).
+
+---
+
 ## Sessão 199 — 17/11/26 — Laudo de engenharia repaginado, parte 2: enviar ao cliente por e-mail (D-242)
 
 **O que mudou.** Backend: `EMAIL_PROVIDER` (`mock` padrão, `smtp` por `smtplib`, sem dependência nova) em

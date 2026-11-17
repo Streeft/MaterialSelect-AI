@@ -97,10 +97,13 @@ def render_text(mail: LaudoEmail) -> str:
         f"Engenheiro responsável: {_engineer_line(mail)}",
         "",
     ]
+    validity = _valid_until(mail)
     if mail.public_url:
         lines += [f"Abrir o laudo (somente leitura): {mail.public_url}"]
-        validity = _valid_until(mail)
-        lines += [validity, ""] if validity else [""]
+    if validity:
+        lines += [validity]
+    if mail.public_url or validity:
+        lines += [""]
     lines += [
         f"Verificar a autenticidade (código {mail.short_code}): {mail.verify_url}",
         "",

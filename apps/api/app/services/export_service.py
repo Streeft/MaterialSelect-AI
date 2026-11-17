@@ -27,14 +27,11 @@ from app.exporters.cells import format_number
 from app.exporters.eco import eco_sheets
 from app.exporters.figures import (
     Axis,
-    Bar,
-    BarFigure,
     Line,
     Point,
     Polygon,
     Region,
     ScatterFigure,
-    render_bars,
     render_scatter,
 )
 from app.exporters.identity import composition_sheet, designation_sheet
@@ -148,32 +145,6 @@ class ExportService:
             sheets=self._sheets(study, result, records, root_group_description),
             figures=[f for f in (self._map_figure(study, result),) if f],
         )
-
-    def study_laudo(
-        self, study_id: int, project_id: int, *, responsible: str | None = None
-    ) -> Report:
-        """The engineering report: the selection report plus a figure and,
-        when the AI layer is on, an interpretive narrative.
-        """
-        study, result, records, root_group_description = self._run(study_id, project_id)
-        narrative, caveats, note = self._narrative(study_id, project_id)
-        return Report(
-            title=f"Laudo de engenharia — {study.name}",
-            subtitle=study.description or "",
-            notices=standard_notices(
-                includes_own_records=any(self._is_own_record(r) for r in records.values()),
-            ),
-            sheets=self._sheets(study, result, records, root_group_description),
-            responsible=(responsible or "").strip() or None,
-            figures=self._figures(study, result),
-            narrative=narrative,
-            narrative_caveats=caveats,
-            narrative_note=note,
-        )
-
-    def _figures(self, study, result: RunResultOut) -> list[str]:
-        """The laudo's figures: the selection map first, then the ranking chart."""
-        return [f for f in (self._map_figure(study, result), self._ranking_figure(result)) if f]
 
     def _map_figure(self, study, result: RunResultOut) -> str | None:
         """The Ashby map of this study: every material, the candidates marked."""
@@ -395,26 +366,6 @@ class ExportService:
         if chart.index and not chart.index.available and chart.index.unavailable_reason:
             partes.append(f"a linha de índice não foi traçada: {chart.index.unavailable_reason}")
         return ". ".join(partes) + "."
-
-    @staticmethod
-    def _ranking_figure(result: RunResultOut) -> str | None:
-        """A bar chart of the ranked candidates — omitted when no one ranked."""
-        if result.ranking is None or not result.ranking.ranked:
-            return None
-        ranked = sorted(result.ranking.ranked, key=lambda r: r.rank)
-        bars = [Bar(label=r.name, value=r.score, highlighted=r.rank == 1) for r in ranked]
-        return render_bars(
-            BarFigure(
-                title="Candidatos ranqueados",
-                value_label="Pontuação (normalizada)",
-                bars=bars,
-                caption=("Pontuação após normalização e ponderação dos critérios do estudo."),
-                description=(
-                    "Gráfico de barras com a pontuação de cada candidato ranqueado, "
-                    "do maior para o menor."
-                ),
-            )
-        )
 
     def _narrative(
         self, study_id: int, project_id: int

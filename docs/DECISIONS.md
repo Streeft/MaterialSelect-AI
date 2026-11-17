@@ -14283,3 +14283,74 @@ um link, saber se o cliente abriu, `Reply-To` pelo e-mail do engenheiro, e fila 
 **Numeração.** D-242, Sessão 199 (conferidas em `origin/main`). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
 `release_command`), sem dependência nova e sem seed: depois do merge, **Deploy da API**. Para o e-mail sair de verdade, o autor grava os
 segredos do Fly (`13-deploy.md` §5-nonies); sem isso o envio fica simulado e a tela diz.
+
+## D-243 — Laudo emitido: PDF assinado anexado, link do cliente com validade, revogação e aberturas, Word e PowerPoint no visual novo (L3 da D-241)
+
+**Contexto.** A D-242 deixou quatro pontas fora: anexar o PDF que o engenheiro assinou (o app só tinha o HTML congelado), revogar ou
+vencer o link público, saber se o cliente abriu e o DOCX/PPTX ainda no formato da D-41. O usuário pediu (17/11/2026) as quatro, mais a
+tela para operá-las.
+
+**Decisão.**
+- **PDF assinado, ao lado da versão, nunca dentro dela.** Tabela `issued_report_pdf` (migração `5e2405bef18d`): bytes (`LargeBinary`), SHA-256,
+  tamanho, nome limpo, quem enviou e quando. O HTML congelado e o `content_sha256` **não são tocados**: o hash do laudo identifica o
+  documento emitido, e o PDF é um anexo dele. `POST /api/exports/laudos/{id}/pdf?nome=` recebe **o PDF como corpo** (`Content-Type:
+  application/pdf`), não um formulário: o limite de `SIGNED_PDF_MAX_BYTES` (10 MB) vale **enquanto o corpo é lido** (413 no primeiro pedaço
+  que passa dele, ou pelo `Content-Length`), sem montar nem gravar em disco um arquivo grande para só então recusar. Só o dono (o laudo
+  é buscado no projeto de quem chama; o id alheio é o mesmo 404). Só PDF **pelos bytes**: o arquivo precisa começar com `%PDF-`, e o nome
+  ou o tipo declarado não provam nada (400 escrito). O sistema **não abre o PDF nem confere a assinatura**: ela é do engenheiro, conferida
+  por quem abre o arquivo (leitor de PDF, gov.br); o app registra o SHA-256, quem e quando.
+- **Substituir não apaga.** Enviar outro PDF é uma linha nova; o PDF atual é o mais novo e todos os anteriores ficam no histórico
+  (`GET …/pdf/versoes`, `GET …/pdf/{id}`), baixáveis pelo dono. Não há rota de exclusão; as linhas só saem com a versão (`CASCADE`).
+  Auditoria `issued_report` (hash antes e depois, nunca o arquivo), por projeto.
+- **No e-mail, o PDF assinado vai no lugar do `.html`** (decisão desta etapa, pedida em aberto: "no lugar, ou junto"). É o documento que
+  foi assinado; mandar os dois deixaria o cliente sem saber qual vale e dobraria o tamanho da mensagem (até ~13 MB em base64, para um
+  limite de 25 MB nos provedores comuns). O HTML segue a um clique, no link. O envio grava `attached_pdf_sha256`; sem PDF, tudo como na D-242.
+  A pré-visualização diz qual anexo vai e até quando o link vale.
+- **No link público, "Baixar PDF assinado".** `GET /api/laudos/enviados/{token}` acrescenta, **na hora de servir**, uma faixa com o botão
+  e o SHA-256 curto (`@media print` a esconde; estilo inline, porque a CSP é `default-src 'none'`); o documento guardado e o seu hash
+  continuam intactos. `GET …/enviados/{token}/pdf` serve o PDF **atual** (se o engenheiro substituiu depois do envio, o link entrega o mais
+  novo e a faixa mostra o hash dele, para o cliente comparar com o do e-mail) com as mesmas regras de validade.
+- **A verificação pública mostra o PDF.** `GET /api/laudos/verificar/{código}` (JSON e página) diz se há PDF assinado e dá o hash dele e a
+  data, nunca o arquivo nem o nome, e lembra que a assinatura em si se confere no leitor de PDF ou no gov.br.
+- **Link com validade.** Cada envio grava o seu `expires_at` (envio + `REPORT_LINK_TTL_DAYS`, padrão 90, de 1 a 3650): mudar a variável
+  não mexe nos links já enviados. Linha anterior à D-243 (sem data) vale `created_at` + os dias de hoje, para nenhum link ficar eterno.
+  O e-mail diz "O link vale até dd/mm/aaaa".
+- **Revogação.** `POST /api/exports/envios/{id}/revogar`, só o dono, idempotente; envio que falhou não tem link e responde 400. Link
+  revogado **ou** vencido responde **410** com uma página em português ("Este link foi cancelado" / "O prazo deste link terminou", e o
+  que fazer: pedir novo envio), **sem nada do laudo**, `noindex`, sem cache; token desconhecido continua 404. Revogado vale mais que
+  vencido no estado mostrado. A revogação é auditada (`report_delivery`, `link: ativo → revogado`).
+- **Aberturas, com a privacidade como escolha.** `report_delivery` ganhou `first_opened_at`, `last_opened_at` e `open_count`, atualizados por
+  **um** `UPDATE` (sem perder abertura concorrente). **Não se guarda IP, nem parte dele, nem user agent, nem cabeçalho nenhum**; não há
+  pixel nem imagem no e-mail (um teste confere): só a abertura **do link** conta, e só a página do laudo, não o download do PDF. Não conta
+  `HEAD`, pré-busca (`Purpose`/`Sec-Purpose: prefetch`), requisição sem user agent nem robô de escaneamento ou de pré-visualização
+  conhecido (Googlebot, SafeLinks, Slackbot, curl…). É heurística, dita assim: um escaneador que se passe por navegador ainda conta, e por
+  isso a tela diz "aberturas do link", não "leituras". Mostra: "Aberto 3× · última em …" ou "Ainda não aberto".
+- **Word e PowerPoint no visual novo.** `laudo.docx` e `laudo.pptx` partem do **mesmo `LaudoDocument`** do HTML (`exporters/laudo_docx.py`,
+  `laudo_pptx.py`), com os mesmos tokens: capa, resumo executivo (cartões e semáforo como **tabelas com células coloridas**, o texto do
+  estado em palavra e glifo), seções, interpretação, assinatura e anexo técnico (só no Word; o deck leva as notas do autor e diz onde está
+  o anexo). Os gráficos entram como **PNG** (`exporters/svg_png.py`), do mesmo SVG, com título e descrição como texto alternativo; figura
+  que não desenha vira uma linha dizendo qual falta. São **cópias editáveis, não o laudo emitido**: sem selo, código nem QR, e a capa diz
+  "Versão editável — não emitida". Recebem os mesmos campos do formulário por query. O `Report` da D-41 continua sendo o dos relatórios.
+- **Qual biblioteca de PNG (medido).** `resvg-py` (uma roda de Rust, ~3 MB, sem biblioteca de sistema; importada sob demanda, D-235) com
+  **DejaVu Sans** (regular e negrito, licença Bitstream Vera, junto dos arquivos) embarcada em `exporters/fonts`: a imagem
+  `python:3.12-slim` não tem fonte nenhuma, e gráfico sem texto não é gráfico. Recusadas: `cairosvg` (exige `libcairo` na imagem),
+  matplotlib (redesenhar sete gráficos; +55 MB de RSS só para importar, contra 1,6 MB) e um rasterizador próprio em Pillow (código a manter
+  para uma fidelidade menor). Medições em `13-deploy.md` (Memória da VM).
+- **Tela** (`/app/selecao/laudo`): "Baixar Word" e "Baixar PowerPoint" no cabeçalho, com os campos do formulário; a tabela de versões ganhou a coluna
+  "PDF assinado" e os botões "PDF assinado" (`SignedPdfDialog`: arrastar ou escolher, barra de progresso por `XMLHttpRequest`, recusa de
+  não-PDF e de mais de 10 MB antes de subir e o motivo do servidor depois, histórico com hash e download) e "Envios" (`DeliveriesDialog`:
+  estado, validade, aberturas, anexo e "Revogar link" atrás de `ConfirmDialog`, que é irmão do diálogo e não filho).
+
+**Alternativas recusadas.** Anexar o PDF **junto** do HTML (dois "laudos" na mesma mensagem). Guardar o PDF dentro do HTML ou recalcular o
+hash com ele (o hash identifica o conteúdo emitido). Conferir a assinatura no servidor (certificados, cadeias e o gov.br não são do app;
+um "assinatura válida" falso seria pior que nenhum). Formulário `multipart` para o PDF (o limite só vale depois de receber tudo). Guardar IP
+truncado ou user agent para "distinguir o cliente do robô" (dado pessoal para uma pergunta que a contagem já responde com a ressalva dita).
+Pixel de rastreio no e-mail (rastreia a leitura da mensagem, não do link, e é bloqueado ou falseado por clientes de e-mail).
+
+**Fora desta decisão.** Ler o texto do PDF para conferir que é o laudo certo; reenviar o e-mail com um clique; fila de reenvio;
+`Reply-To` pelo e-mail do engenheiro; PDF gerado no servidor; DOCX/PPTX de uma versão **emitida** a partir dos bytes congelados (a cópia
+reexecuta o estudo com o catálogo de hoje, e diz que não é a emitida).
+
+**Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
+`release_command`) e **dependência nova** (`resvg-py`, mais as duas fontes em `exporters/fonts`): depois do merge, **Deploy da API**
+(a imagem é reconstruída). Sem seed. Variável nova opcional: `REPORT_LINK_TTL_DAYS` (e `SIGNED_PDF_MAX_BYTES`), `.env.example`.

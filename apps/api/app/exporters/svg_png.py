@@ -79,7 +79,10 @@ def svg_to_png(svg: str) -> Raster:
             width=width,
             font_files=[str(FONT_DIR / name) for name in FONT_FILES],
             skip_system_fonts=True,
+            font_family=FONT_FAMILY,
+            serif_family=FONT_FAMILY,
             sans_serif_family=FONT_FAMILY,
+            monospace_family=FONT_FAMILY,
             background="white",
         )
     except FigureRasterError:

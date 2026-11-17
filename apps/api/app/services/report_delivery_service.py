@@ -177,15 +177,15 @@ class ReportDeliveryService:
             status=delivery.status,  # type: ignore[arg-type]
             provider=delivery.provider,
             error=delivery.error,
-            created_at=delivery.created_at,
+            created_at=_aware(delivery.created_at),  # type: ignore[arg-type]
             sent_by=delivery.sent_by_email,
             # A failed send never made a link: nothing to expire, nothing to open.
             expires_at=None if state == LINK_NONE else effective_expiry(delivery),
             link_state=state,  # type: ignore[arg-type]
-            revoked_at=delivery.revoked_at,
+            revoked_at=_aware(delivery.revoked_at),
             open_count=delivery.open_count or 0,
-            first_opened_at=delivery.first_opened_at,
-            last_opened_at=delivery.last_opened_at,
+            first_opened_at=_aware(delivery.first_opened_at),
+            last_opened_at=_aware(delivery.last_opened_at),
             attached_pdf_sha256=delivery.attached_pdf_sha256,
         )
 

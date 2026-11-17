@@ -5,18 +5,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getStudy,
   issueLaudo,
+  laudoFileUrl,
   laudoPreviewUrl,
   laudoVersionUrl,
   listLaudoDeliveries,
   listLaudoVersions,
-  studyLaudoUrl,
   type IssuedLaudo,
   type LaudoInputs,
 } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { LAUDO_REQUIRED, laudoText as t } from "@/lib/i18n-laudo";
-import { DeliveryStatusBadge, formatSentAt, SendLaudoDialog } from "./SendLaudoDialog";
+import { DeliveriesDialog } from "./DeliveriesDialog";
+import { DeliveryStatusBadge, formatSentAt, openedText } from "./DeliveryList";
+import { SendLaudoDialog } from "./SendLaudoDialog";
+import { SignedPdfDialog } from "./SignedPdfDialog";
 import {
   Alert,
   Button,
@@ -24,7 +27,6 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorState,
-  MenuItem,
   Input,
   NumberInput,
   PageHeader,
@@ -164,34 +166,23 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
         description={study.data ? study.data.name : t.description}
         breadcrumb={[{ label: t.breadcrumbSelection, href: "/app/selecao" }, { label: t.title }]}
         eyebrow={false}
-        overflowLabel={t.editableFormats}
-        overflow={
-          <>
-            <MenuItem
-              href={studyLaudoUrl(studyId, inputs.engineer_name ?? undefined, "docx")}
-              download
-              hint={t.docxHint}
-            >
-              {t.docx}
-            </MenuItem>
-            <MenuItem
-              href={studyLaudoUrl(studyId, inputs.engineer_name ?? undefined, "pptx")}
-              download
-              hint={t.pptxHint}
-            >
-              {t.pptx}
-            </MenuItem>
-          </>
-        }
         secondaryActions={
-          <ButtonLink
-            href={laudoPreviewUrl(studyId, inputs)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t.previewHint}
-          >
-            {t.preview}
-          </ButtonLink>
+          <>
+            <ButtonLink
+              href={laudoPreviewUrl(studyId, inputs)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t.previewHint}
+            >
+              {t.preview}
+            </ButtonLink>
+            <ButtonLink href={laudoFileUrl(studyId, inputs, "docx")} download title={t.docxHint}>
+              {t.docx}
+            </ButtonLink>
+            <ButtonLink href={laudoFileUrl(studyId, inputs, "pptx")} download title={t.pptxHint}>
+              {t.pptx}
+            </ButtonLink>
+          </>
         }
         primaryAction={
           <Button
@@ -294,7 +285,7 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
   );
 }
 
-/** What the history says in one line, so the table shows at a glance whether a version went out. */
+/** What the history says in a few lines: how many sends, the last one, and the link openings. */
 function DeliveriesCell({ issued }: { issued: IssuedLaudo }) {
   const history = useQuery({
     queryKey: ["laudo-deliveries", issued.id],
@@ -304,14 +295,30 @@ function DeliveriesCell({ issued }: { issued: IssuedLaudo }) {
   if (history.isError) return <span className="text-caption text-danger-fg">{t.deliveriesError}</span>;
   const last = history.data[0];
   if (!last) return <span className="text-caption text-ink-muted">{t.noDeliveries}</span>;
+  const delivered = history.data.filter((d) => d.status !== "falhou");
+  const openings = delivered.reduce((sum, d) => sum + (d.open_count ?? 0), 0);
+  const lastOpened = delivered
+    .map((d) => d.last_opened_at)
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1);
+  const active = delivered.filter((d) => (d.link_state ?? "ativo") === "ativo").length;
   return (
     <span className="flex flex-col gap-1 text-caption">
       <span className="text-ink">
         {history.data.length === 1 ? "1 envio" : `${history.data.length} envios`}
       </span>
+      {delivered.length > 0 ? (
+        <span className="text-ink-muted">{active === 1 ? "1 link ativo" : `${active} links ativos`}</span>
+      ) : null}
       <span className="flex flex-wrap items-center gap-1 text-ink-muted">
         {formatSentAt(last.created_at)} <DeliveryStatusBadge status={last.status} />
       </span>
+      {delivered.length > 0 ? (
+        <span className="text-ink-muted">
+          {openedText({ open_count: openings, last_opened_at: lastOpened ?? null })}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -324,6 +331,8 @@ function VersionsList({
   versions: ReturnType<typeof useQuery<IssuedLaudo[]>>;
 }) {
   const [sending, setSending] = useState<IssuedLaudo | null>(null);
+  const [signing, setSigning] = useState<IssuedLaudo | null>(null);
+  const [deliveries, setDeliveries] = useState<IssuedLaudo | null>(null);
   return (
     <section aria-labelledby="laudo-versions" className="flex min-w-0 flex-col gap-3">
       <div>
@@ -348,6 +357,7 @@ function VersionsList({
                 <Th>{t.colIssued}</Th>
                 <Th>{t.colEngineer}</Th>
                 <Th>{t.colCode}</Th>
+                <Th>{t.colSigned}</Th>
                 <Th>{t.colDeliveries}</Th>
                 <Th>{t.colActions}</Th>
               </Tr>
@@ -369,6 +379,18 @@ function VersionsList({
                     <span className="font-mono">{version.short_code}</span>
                   </Td>
                   <Td>
+                    {version.signed_pdf ? (
+                      <span className="flex flex-col gap-1 text-caption">
+                        <span className="text-ink">{t.signedShort(version.signed_pdf.short_sha256)}</span>
+                        <span className="text-ink-muted">
+                          {formatSentAt(version.signed_pdf.uploaded_at)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-caption text-ink-muted">{t.signedNone}</span>
+                    )}
+                  </Td>
+                  <Td>
                     <DeliveriesCell issued={version} />
                   </Td>
                   <Td>
@@ -384,10 +406,25 @@ function VersionsList({
                       </ButtonLink>
                       <Button
                         size="sm"
+                        aria-label={t.signedActionLabel(version.version)}
+                        onClick={() => setSigning(version)}
+                      >
+                        {t.signedAction}
+                      </Button>
+                      <Button
+                        size="sm"
                         aria-label={t.sendLabel(version.version)}
                         onClick={() => setSending(version)}
                       >
                         {t.send}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={t.deliveriesActionLabel(version.version)}
+                        onClick={() => setDeliveries(version)}
+                      >
+                        {t.deliveriesAction}
                       </Button>
                     </span>
                   </Td>
@@ -399,6 +436,10 @@ function VersionsList({
       )}
       {sending ? (
         <SendLaudoDialog issued={sending} open onClose={() => setSending(null)} />
+      ) : null}
+      {signing ? <SignedPdfDialog issued={signing} open onClose={() => setSigning(null)} /> : null}
+      {deliveries ? (
+        <DeliveriesDialog issued={deliveries} open onClose={() => setDeliveries(null)} />
       ) : null}
     </section>
   );
