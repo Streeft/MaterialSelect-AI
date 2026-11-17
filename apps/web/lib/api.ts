@@ -3,6 +3,7 @@
 
 import type {
   SourceReference,
+  SourceRecord,
   FunnelPreview,
   FunnelPreviewRequest,
   RunDiff,
@@ -797,10 +798,17 @@ export function patchProperty(
 /** D-236: the bibliographic fields a curator corrects on a source; a field left out is kept, `null` clears. */
 export type SourcePatch = Partial<
   Pick<SourceReference, "authors" | "title" | "publisher" | "year" | "url" | "accessed_on">
->;
+> &
+  /** D-244: the registration fields (`label` is never `null`; the others clear with `null`). */
+  Partial<Pick<SourceRecord, "label" | "reference" | "license_label" | "license_url">>;
 
-export function patchSource(id: number, patch: SourcePatch): Promise<SourceReference> {
-  return request<SourceReference>(`/api/sources/${id}`, {
+/** D-244: every registered source, for the Admin's list (`GET /api/sources`). */
+export function listSources(): Promise<SourceRecord[]> {
+  return request<SourceRecord[]>("/api/sources");
+}
+
+export function patchSource(id: number, patch: SourcePatch): Promise<SourceRecord> {
+  return request<SourceRecord>(`/api/sources/${id}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });

@@ -601,7 +601,7 @@ aceita `name` e `description`, só os campos enviados, e **nunca** muda o slug n
 **Editar fonte, arrastar classe, esvaziar o arquivo (D-236).** `PATCH /api/sources/{id}` (curador) leva só os seis campos da referência;
 o que veio vale, `null`/branco limpa, e `edit_bibliography` (`app/domain/citation.py`) recusa em 400 ano fora de 1000..ano corrente,
 endereço que não é `http(s)` com domínio (nunca completado), acesso no futuro ou antes do ano e texto além da coluna; tudo ou nada, nada
-inferido; rótulo, licença e revisor não entram. A ficha cita também as fontes das curvas e das equivalências. Arrastar uma classe é o mesmo
+inferido; rótulo, licença e revisor não entravam — desde o D-244 rótulo, referência e licença entram (`edit_registration`: rótulo nem em branco nem repetido, endereço da licença `http(s)`), o revisor não. A ficha cita também as fontes das curvas e das equivalências. Arrastar uma classe (eventos de ponteiro desde o D-244: mouse, caneta e dedo; `touch-action: none` na alça) é o mesmo
 `PATCH` do "Mover para…" (a própria classe e as de dentro não são destino; o servidor ainda recusa ciclo, e o texto dele vai à tela).
 `DELETE /api/notebooks/archived?expected=N` apaga de vez os arquivados **do dono**, tudo ou nada; contagem diferente da confirmada é 409.
 
@@ -1053,3 +1053,5 @@ linha, com os valores e a fonte da release nova. Falha = rollback total; release
 substituída ou mais antiga é recusada. `is_active` fica fora do diff de
 propósito. O dry-run usa o mesmo planejador puro (`app/domain/release_promotion.py`)
 e só imprime identidades.
+
+**Fontes no Admin e CSV que quebra (D-244).** `/app/admin/fontes` lista todas as fontes (só o curador edita, pelo diálogo da ficha com `registration`); um CSV em streaming que falha no meio termina com `# ERRO: exportação interrompida…` e `logger.exception`: o status já foi, o arquivo diz que está incompleto.

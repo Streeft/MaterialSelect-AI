@@ -1,10 +1,11 @@
-"""The source registry: reading it and correcting a source's bibliographic fields (D-236).
+"""The source registry: reading it and correcting a source's fields (D-236, D-244).
 
 A source is shared reference data, so correcting one is the curator's
 (``require_catalog_curator`` on the router). What may change is only what an ABNT
 reference is made of — authors, title, publisher, year, address, access date.
-The label, the licence and the reviewer are what the source *is*, set once when
-it was registered, and they are not reachable from here.
+Since D-244 the label, the licence (label and address) and the reference text may
+be corrected too; the reviewer and the third-party flag are what the source *is*,
+stamped once at registration, and are not reachable from here.
 """
 
 from __future__ import annotations
@@ -13,8 +14,8 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.domain.citation import SourceParts, abnt_reference, edit_bibliography
-from app.domain.errors import NotFoundError
+from app.domain.citation import SourceParts, abnt_reference, edit_bibliography, edit_registration
+from app.domain.errors import ConflictError, NotFoundError
 from app.models.enums import AuditAction, AuditEntityType
 from app.models.source import Source
 from app.models.user import User
@@ -23,7 +24,9 @@ from app.repositories.material_repository import MaterialRepository
 from app.schemas.sources import SourceOut, SourcePatch
 from app.services.audit_service import diff_fields, record_change
 
+_REGISTRATION_FIELDS = ("label", "reference", "license_label", "license_url")
 _BIBLIOGRAPHY_FIELDS = ("authors", "title", "publisher", "year", "url", "accessed_on")
+_AUDITED_FIELDS = _BIBLIOGRAPHY_FIELDS + _REGISTRATION_FIELDS
 
 
 def source_out(source: Source) -> SourceOut:
@@ -50,7 +53,7 @@ def source_out(source: Source) -> SourceOut:
 def _snapshot(source: Source) -> dict[str, object]:
     return {
         key: (value.isoformat() if hasattr(value, "isoformat") else value)
-        for key in _BIBLIOGRAPHY_FIELDS
+        for key in _AUDITED_FIELDS
         for value in (getattr(source, key),)
     }
 
@@ -77,6 +80,15 @@ class SourceService:
         values = edit_bibliography(
             SourceParts.from_source(source), sent, today=datetime.now(UTC).date()
         )
+        registration = edit_registration(
+            {key: value for key, value in sent.items() if key in _REGISTRATION_FIELDS}
+        )
+        new_label = registration.get("label")
+        if new_label is not None and new_label != source.label:
+            other = self.repo.get_source_by_label(new_label)
+            if other is not None and other.id != source.id:
+                raise ConflictError(f"Já existe outra fonte com o rótulo «{new_label}».")
+        values.update(registration)
         before = _snapshot(source)
         for key, value in values.items():
             setattr(source, key, value)

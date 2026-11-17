@@ -357,11 +357,10 @@ export default function ClassesAdminPage() {
                 >
                   <RowHeader>
                     <span className="flex items-start gap-1">
-                      {/* The grip is for the pointer only: "Mover para…" is the way by keyboard. */}
+                      {/* The grip is for the pointer (mouse, pen, finger): "Mover para…" is the way by keyboard. */}
                       <span
                         {...classDrag.handleProps(c)}
                         title={curadoriaText.move.dragHandle(c.name)}
-                        className="ds-block-grip"
                         data-visible=""
                         aria-hidden="true"
                       >

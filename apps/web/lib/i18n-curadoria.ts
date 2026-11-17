@@ -24,7 +24,7 @@ export const curadoriaText = {
     actionFor: (label: string) => `Editar fonte: ${label}`,
     title: (label: string) => `Editar a fonte “${label}”`,
     hint:
-      "Só os dados da referência. O rótulo, a licença e quem revisou não mudam por aqui. Campo em branco fica como “ninguém registrou”: nada é preenchido por você ou pelo sistema.",
+      "Só os dados da referência. O rótulo, a licença e quem revisou mudam em Administrar › Fontes. Campo em branco fica como “ninguém registrou”: nada é preenchido por você ou pelo sistema.",
     authors: "Autores",
     authorsHint: "Como a referência imprime: SOBRENOME, Nome; SOBRENOME, Nome. Ou uma instituição.",
     titleField: "Título",
@@ -44,6 +44,39 @@ export const curadoriaText = {
     failed: "Não foi possível salvar a fonte.",
     nothingToSave: "Nada mudou.",
   },
+  // Admin › Fontes (D-244): the list of every registered source, and the registration fields
+  // (label, licence) that the sheet's dialog does not offer.
+  sourcesAdmin: {
+    intro:
+      "Todas as fontes cadastradas, inclusive as que nenhuma ficha cita. Só quem cura o catálogo edita; o rótulo e a licença mudam aqui, e quem revisou não muda.",
+    search: "Buscar fonte",
+    searchHint: "Rótulo, título, autores ou licença",
+    shown: (shown: number, total: number) =>
+      shown === total ? `${total} fontes` : `${shown} de ${total} fontes`,
+    none: "Nenhuma fonte cadastrada ainda.",
+    noMatch: (query: string) => `Nenhuma fonte combina com “${query}”.`,
+    colLabel: "Rótulo",
+    colLicense: "Licença",
+    colReviewed: "Revisada",
+    colCitation: "Citação (ABNT)",
+    noLicense: "sem licença registrada",
+    noReviewer: "sem revisor registrado",
+    demo: "Demonstração",
+    thirdParty: "Pode ter dado de terceiros",
+    loading: "Carregando as fontes…",
+    error: "Não foi possível carregar as fontes.",
+    reviewedBy: (email: string, day: string | null) => (day ? `${email} em ${day}` : email),
+    hint:
+      "O cadastro (rótulo, licença) e a referência. Campo em branco fica como “ninguém registrou”, menos o rótulo. Quem revisou a fonte não muda.",
+    registration: "Cadastro da fonte",
+    label: "Rótulo",
+    labelHint: "O nome que a fonte tem nas listas e nas fichas. Não pode ficar em branco nem repetir o de outra fonte.",
+    reference: "Referência (texto livre)",
+    licenseLabel: "Licença",
+    licenseLabelHint: "Nome curto, como CC-BY-4.0 ou Domínio público. Em branco fica como “sem licença registrada”.",
+    licenseUrl: "Endereço da licença",
+    errorLabelRequired: "Informe o rótulo da fonte.",
+  },
   // Admin › Classes: "Mover para…", the tree edit that touches only the parent.
   move: {
     action: "Mover para…",
@@ -58,9 +91,9 @@ export const curadoriaText = {
     moved: (name: string, parent: string | null) =>
       parent === null ? `“${name}” agora é uma classe raiz.` : `“${name}” agora está em “${parent}”.`,
     failed: "Não foi possível mover a classe.",
-    // Drag and drop (D-236): the same move as the dialog, by the pointer.
+    // Drag and drop (D-236, D-244): the same move as the dialog, by the pointer (mouse, pen or finger).
     dragHint:
-      "Arraste uma linha para cima de outra para torná-la subclasse dela, ou para a faixa “Classe raiz” para soltá-la na raiz. Pelo teclado, use “Mover para…”.",
+      "Arraste a alça de uma linha (com o mouse ou com o dedo) para cima de outra para torná-la subclasse dela, ou para a faixa “Classe raiz” para soltá-la na raiz. Pelo teclado, use “Mover para…”.",
     dragHandle: (name: string) => `Arrastar a classe ${name}`,
     dropOnto: (name: string) => `Soltar aqui para mover para dentro de “${name}”`,
     dropRoot: "Solte aqui para tornar classe raiz",

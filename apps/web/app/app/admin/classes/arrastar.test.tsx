@@ -40,30 +40,36 @@ function setup() {
   );
 }
 
-/** jsdom has no DataTransfer: the hook only needs these three members. */
-const dataTransfer = () => ({ setData: vi.fn(), effectAllowed: "", dropEffect: "" });
-
 const row = (name: string) =>
   screen.getByRole("rowheader", { name }).closest<HTMLElement>("tr")!;
-const grip = (name: string) => row(name).querySelector<HTMLElement>("[draggable='true']")!;
+const grip = (name: string) => row(name).querySelector<HTMLElement>(".ds-block-grip")!;
 const rootStrip = () => screen.getByText(t.dropRoot);
 
-/** Drag the row called `from` onto `target` and drop it, as a browser would. */
+/** jsdom has no layout: the element "under the pointer" is whatever the test says it is. */
+let under: Element | null = null;
+const hover = (target: Element | null) => {
+  under = target;
+};
+const pointerMove = () => fireEvent.pointerMove(document, { clientX: 5, clientY: 5 });
+const pointerUp = () => fireEvent.pointerUp(document, { clientX: 5, clientY: 5 });
+
+/** Press the grip of `from`, move onto `target` and release, as a finger or a mouse would. */
 function dragOnto(from: string, target: HTMLElement) {
-  const transfer = dataTransfer();
-  fireEvent.dragStart(grip(from), { dataTransfer: transfer });
-  fireEvent.dragOver(target, { dataTransfer: transfer });
-  fireEvent.drop(target, { dataTransfer: transfer });
-  fireEvent.dragEnd(grip(from), { dataTransfer: transfer });
+  fireEvent.pointerDown(grip(from), { button: 0, pointerType: "touch" });
+  hover(target);
+  pointerMove();
+  pointerUp();
 }
 
 beforeEach(() => {
+  under = null;
+  document.elementFromPoint = () => under;
   moveClass.mockReset();
   moveClass.mockResolvedValue({});
 });
 afterEach(() => vi.clearAllMocks());
 
-describe("admin/classes: arrastar para mover (D-236)", () => {
+describe("admin/classes: arrastar para mover, com mouse ou dedo (D-236, D-244)", () => {
   it("soltar uma linha sobre outra faz dela subclasse, com o mesmo PATCH do Mover para…", async () => {
     setup();
     await screen.findAllByRole("row");
@@ -87,20 +93,24 @@ describe("admin/classes: arrastar para mover (D-236)", () => {
   it("não aceita soltar sobre si mesma nem sobre uma subclasse (fecharia um ciclo)", async () => {
     setup();
     await screen.findAllByRole("row");
-    const transfer = dataTransfer();
-    fireEvent.dragStart(grip("Aços"), { dataTransfer: transfer });
+    fireEvent.pointerDown(grip("Aços"), { button: 0, pointerType: "touch" });
 
     for (const name of ["Aços", "Aços inox", "Duplex"]) {
-      // `dragover` is not cancelled, so the browser shows the "not allowed" cursor and never fires `drop`.
-      const notCancelled = fireEvent.dragOver(row(name), { dataTransfer: transfer });
-      expect(notCancelled).toBe(true);
+      hover(row(name));
+      pointerMove();
       expect(row(name)).not.toHaveAttribute("data-drop-target");
     }
     // A class that is not under it, and the root, are accepted.
-    expect(fireEvent.dragOver(row("Polímeros"), { dataTransfer: transfer })).toBe(false);
-    expect(fireEvent.dragOver(rootStrip(), { dataTransfer: transfer })).toBe(false);
+    hover(row("Polímeros"));
+    pointerMove();
+    expect(row("Polímeros")).toHaveAttribute("data-drop-target");
+    hover(rootStrip());
+    pointerMove();
+    expect(rootStrip()).toHaveAttribute("data-drop-target");
 
-    fireEvent.drop(row("Duplex"), { dataTransfer: transfer });
+    hover(row("Duplex"));
+    pointerMove();
+    pointerUp();
     expect(moveClass).not.toHaveBeenCalled();
   });
 
@@ -114,16 +124,49 @@ describe("admin/classes: arrastar para mover (D-236)", () => {
     expect(moveClass).not.toHaveBeenCalled();
   });
 
-  it("a linha de destino acende enquanto se arrasta por cima dela", async () => {
+  it("a linha de destino acende enquanto o dedo está sobre ela e apaga ao sair", async () => {
     setup();
     await screen.findAllByRole("row");
-    const transfer = dataTransfer();
-    fireEvent.dragStart(grip("Duplex"), { dataTransfer: transfer });
-    fireEvent.dragOver(row("Polímeros"), { dataTransfer: transfer });
+    fireEvent.pointerDown(grip("Duplex"), { button: 0, pointerType: "touch" });
+    hover(row("Polímeros"));
+    pointerMove();
     expect(row("Polímeros")).toHaveAttribute("data-drop-target");
     expect(row("Duplex")).toHaveAttribute("data-dragged");
-    fireEvent.dragLeave(row("Polímeros"));
+    hover(null);
+    pointerMove();
     expect(row("Polímeros")).not.toHaveAttribute("data-drop-target");
+  });
+
+  it("soltar fora de qualquer linha, ou cancelar o toque, ou Esc, não move nada", async () => {
+    setup();
+    await screen.findAllByRole("row");
+
+    fireEvent.pointerDown(grip("Duplex"), { button: 0, pointerType: "touch" });
+    hover(document.body);
+    pointerMove();
+    pointerUp();
+
+    fireEvent.pointerDown(grip("Duplex"), { button: 0, pointerType: "touch" });
+    hover(row("Polímeros"));
+    pointerMove();
+    fireEvent.pointerCancel(document);
+    expect(row("Polímeros")).not.toHaveAttribute("data-drop-target");
+    pointerUp();
+
+    fireEvent.pointerDown(grip("Duplex"), { button: 0, pointerType: "touch" });
+    hover(row("Polímeros"));
+    pointerMove();
+    fireEvent.keyDown(document, { key: "Escape" });
+    pointerUp();
+
+    expect(moveClass).not.toHaveBeenCalled();
+  });
+
+  it("a alça tem a classe que desliga o rolar da página (touch-action) para o dedo arrastar", async () => {
+    setup();
+    await screen.findAllByRole("row");
+    expect(grip("Aços")).toHaveClass("ds-grip-pointer");
+    expect(grip("Aços")).not.toHaveAttribute("draggable");
   });
 
   it("quando o servidor recusa um ciclo, a tela escreve o motivo e nada fica como se tivesse movido", async () => {

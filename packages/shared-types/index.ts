@@ -403,6 +403,17 @@ export interface SourceReference {
   abnt: string;
 }
 
+/** A source as the Admin lists it (D-244): the citation fields plus what registered it. */
+export interface SourceRecord extends SourceReference {
+  is_demo: boolean;
+  license_label: string | null;
+  license_url: string | null;
+  contains_third_party_data: boolean;
+  reviewed_by_email: string | null;
+  /** ISO timestamp. */
+  reviewed_at: string | null;
+}
+
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */
 export interface ProcessClass {
   id: number;

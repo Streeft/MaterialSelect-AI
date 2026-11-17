@@ -29,6 +29,7 @@ export const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["meus-registros", "/app/meus-registros"],
   ["admin-classes", "/app/admin/classes"],
   ["admin-propriedades", "/app/admin/propriedades"],
+  ["admin-fontes", "/app/admin/fontes"],
   ["estilo", "/app/estilo"],
   // D-190: screens that only exist with state in the address.
   ["selecao-resultados", "/app/selecao?etapa=resultados"],

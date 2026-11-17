@@ -90,6 +90,7 @@ export const ptBR = {
     imports: "Importar",
     classes: "Classes",
     properties: "Propriedades",
+    sources: "Fontes",
     // P1-4: o segundo universo ganha porta de entrada própria. Estava acessível
     // só de dentro de um estágio de seleção e da ficha de um material — o que
     // faz do universo de processos algo que se usa, nunca algo que se navega.
@@ -180,6 +181,7 @@ export const ptBR = {
       "Não foi possível salvar. Verifique os dados e tente novamente.",
   },
   admin: {
+    sourcesTitle: "Fontes de dados",
     classesTitle: "Classes de materiais",
     propertiesTitle: "Catálogo de propriedades",
     newClass: "Nova classe",

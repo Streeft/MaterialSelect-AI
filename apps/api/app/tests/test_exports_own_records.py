@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.exporters.report import OWN_RECORD_NOTICE, REPRODUCIBILITY_NOTICE
 from app.exporters.spreadsheet import to_csv
 from app.models.material_class import MaterialClass
-from app.services.export_service import ExportService
+from app.services.export_service import CSV_STREAM_ERROR_MARKER, ExportService
 from app.tests.removed_notices import assert_no_removed_notice
 
 
@@ -250,3 +250,30 @@ def test_the_catalogue_csv_is_sent_in_pieces_with_the_same_headers(client: TestC
     disposition = response.headers["content-disposition"]
     assert disposition.startswith('attachment; filename="catalogo-de-materiais.csv"')
     assert "content-length" not in response.headers
+
+
+def test_a_failure_mid_stream_ends_the_csv_with_an_error_line_and_is_logged(
+    client: TestClient, db_session: Session, test_user, monkeypatch, caplog
+) -> None:
+    """D-244: the status is already sent, so the file itself must say it is cut."""
+    _own_record(client, db_session, name="Liga que antecede a falha")
+    calls = {"n": 0}
+    real = ExportService._catalogue_entries
+
+    def failing(self, *args, **kwargs):
+        for entry in real(self, *args, **kwargs):
+            calls["n"] += 1
+            yield entry
+            raise RuntimeError("banco caiu no meio")
+
+    monkeypatch.setattr(ExportService, "_catalogue_entries", failing)
+    service = ExportService(db_session, test_user)
+    _, chunks = service.catalogue_csv_stream()
+    with caplog.at_level("ERROR"):
+        text = "".join(chunks)
+
+    assert calls["n"] == 1
+    assert text.startswith("﻿")
+    assert text.rstrip().endswith(CSV_STREAM_ERROR_MARKER)
+    assert "# ERRO: exportação interrompida" in text
+    assert any("interrupted" in r.message and r.exc_info for r in caplog.records)
