@@ -97,6 +97,8 @@ export const ROUTE_LABELS = [
   { route: "/app/aparencia", label: "Aparência" },
   // D-236b: Conta, with Aparência as its sub-page (a breadcrumb there).
   { route: "/app/conta", label: "Conta" },
+  // D-244: the sources list in the Admin, with the root colour like the glossary.
+  { route: "/app/admin/fontes", label: "Fontes" },
 ] as const;
 
 /** What the page header's eyebrow calls the route: its section, else its own label, else the initial section. */
@@ -138,6 +140,7 @@ const SECTION_GROUP: Partial<Record<SectionId, string>> = {
 const ROUTE_GROUP = [
   { route: "/app/glossario", group: "Dados" },
   { route: "/app/materiais", group: "Dados" },
+  { route: "/app/admin/fontes", group: "Administrar" },
 ] as const;
 
 /** The rail group of a route, or `null` for Início and the routes outside the rail. */

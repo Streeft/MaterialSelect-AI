@@ -2148,6 +2148,10 @@ div[data-surface="rail"] .msds-rail-item {
   color: rgb(var(--ink-subtle)); cursor: grab;
 }
 .ds-block-grip:active { cursor: grabbing; }
+/* The grip of a pointer drag: the page must not scroll under the finger that holds it (D-244). */
+.ds-grip-pointer { touch-action: none; user-select: none; }
+/* A finger needs a larger grip than a mouse (D-244). */
+@media (pointer: coarse) { .ds-block-grip { width: 40px; height: 44px; } }
 .ds-block-grip:focus-visible { outline: 2px solid rgb(var(--m3-primary)); outline-offset: 1px; color: rgb(var(--ink)); }
 .ds-block-actions { display: flex; align-items: center; gap: 2px; flex: none; }
 @media (hover: hover) and (pointer: fine) {

@@ -13,6 +13,7 @@ someone else can check.
 
 from __future__ import annotations
 
+import logging
 import tempfile
 from collections.abc import Iterator, Mapping
 
@@ -59,6 +60,15 @@ from app.services.material_service import MaterialService
 from app.services.selection_service import INDEX_KEY, SelectionService
 
 _MISSING = "ausente"
+
+
+logger = logging.getLogger(__name__)
+
+#: Last line of a streamed CSV that broke half way: the status was already sent, so the
+#: file itself must say it is incomplete (D-244).
+CSV_STREAM_ERROR_MARKER = (
+    "# ERRO: exportação interrompida; este arquivo está incompleto. Baixe novamente."
+)
 
 
 class ExportService:
@@ -966,7 +976,7 @@ class ExportService:
         title = self.CATALOGUE_TITLE
         subtitle = f"{len(material_ids)} materiais ativos, {len(definitions)} propriedades"
 
-        def chunks() -> Iterator[str]:
+        def body() -> Iterator[str]:
             spools = {
                 key: tempfile.SpooledTemporaryFile(
                     max_size=self._SPOOL_BYTES, mode="w+", encoding="utf-8", newline=""
@@ -1000,6 +1010,15 @@ class ExportService:
             finally:
                 for spool in spools.values():
                     spool.close()
+
+        def chunks() -> Iterator[str]:
+            try:
+                yield from body()
+            except Exception:
+                # The 200 and the headers are gone by now. A cut file that looks whole
+                # would pass for the catalogue, so the last line says it is not (D-244).
+                logger.exception("catalogue CSV stream interrupted")
+                yield "\r\n" + csv_rows([[CSV_STREAM_ERROR_MARKER]])
 
         return title, chunks()
 

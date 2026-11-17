@@ -6,14 +6,24 @@ import { patchSource, type SourcePatch } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { ptBR } from "@/lib/i18n";
 import { curadoriaText } from "@/lib/i18n-curadoria";
-import type { SourceReference } from "@/lib/types";
+import type { SourceRecord, SourceReference } from "@/lib/types";
 import { useOptionalSnackbar } from "@/components/ui/Snackbar";
 import { Alert, Button, Dialog, Input } from "@/components/ui";
 
 const t = curadoriaText.editSource;
+const reg = curadoriaText.sourcesAdmin;
 
 /** The server's limits (`app.domain.citation`): a longer text is refused there, not cut. */
-const LIMITS = { authors: 500, title: 300, publisher: 200, url: 500 } as const;
+const LIMITS = {
+  authors: 500,
+  title: 300,
+  publisher: 200,
+  url: 500,
+  label: 160,
+  reference: 1000,
+  licenseLabel: 200,
+  licenseUrl: 500,
+} as const;
 const FIRST_YEAR = 1000;
 
 /** Blank text is "nobody recorded it" (`null`), the same as the server reads it. */
@@ -42,23 +52,37 @@ function isHttpAddress(value: string): boolean {
 export function EditSourceDialog({
   source,
   onClose,
+  registration = false,
 }: {
-  source: SourceReference | null;
+  source: SourceReference | SourceRecord | null;
   onClose: () => void;
+  /** D-244: from Admin › Fontes, also offer the label, the reference text and the licence. */
+  registration?: boolean;
 }) {
   return (
     <Dialog
       open={source !== null}
       onClose={onClose}
       title={source ? t.title(source.label) : t.action}
-      description={t.hint}
+      description={registration ? reg.hint : t.hint}
     >
-      {source ? <EditForm key={source.id} source={source} onClose={onClose} /> : null}
+      {source ? (
+        <EditForm key={source.id} source={source} onClose={onClose} registration={registration} />
+      ) : null}
     </Dialog>
   );
 }
 
-function EditForm({ source, onClose }: { source: SourceReference; onClose: () => void }) {
+function EditForm({
+  source,
+  onClose,
+  registration,
+}: {
+  source: SourceReference | SourceRecord;
+  onClose: () => void;
+  registration: boolean;
+}) {
+  const record = source as Partial<SourceRecord>;
   const client = useQueryClient();
   const snackbar = useOptionalSnackbar();
   const [authors, setAuthors] = useState(source.authors ?? "");
@@ -67,6 +91,10 @@ function EditForm({ source, onClose }: { source: SourceReference; onClose: () =>
   const [year, setYear] = useState(source.year === null ? "" : String(source.year));
   const [url, setUrl] = useState(source.url ?? "");
   const [accessedOn, setAccessedOn] = useState(source.accessed_on ?? "");
+  const [label, setLabel] = useState(source.label);
+  const [reference, setReference] = useState(source.reference ?? "");
+  const [licenseLabel, setLicenseLabel] = useState(record.license_label ?? "");
+  const [licenseUrl, setLicenseUrl] = useState(record.license_url ?? "");
   const [submitted, setSubmitted] = useState(false);
 
   const now = new Date();
@@ -88,6 +116,18 @@ function EditForm({ source, onClose }: { source: SourceReference; onClose: () =>
       blank(url) !== null
         ? tooLong(url, LIMITS.url) ?? (isHttpAddress(blank(url)!) ? undefined : t.errorUrl)
         : undefined,
+    label: registration
+      ? blank(label) === null
+        ? reg.errorLabelRequired
+        : tooLong(label, LIMITS.label)
+      : undefined,
+    reference: registration ? tooLong(reference, LIMITS.reference) : undefined,
+    licenseLabel: registration ? tooLong(licenseLabel, LIMITS.licenseLabel) : undefined,
+    licenseUrl:
+      registration && blank(licenseUrl) !== null
+        ? tooLong(licenseUrl, LIMITS.licenseUrl) ??
+          (isHttpAddress(blank(licenseUrl)!) ? undefined : t.errorUrl)
+        : undefined,
     accessedOn:
       accessedOn === ""
         ? undefined
@@ -107,6 +147,12 @@ function EditForm({ source, onClose }: { source: SourceReference; onClose: () =>
   if (yearNumber !== source.year && !errors.year) patch.year = yearNumber;
   if (blank(url) !== source.url) patch.url = blank(url);
   if ((accessedOn || null) !== source.accessed_on) patch.accessed_on = accessedOn || null;
+  if (registration) {
+    if (blank(label) !== source.label && blank(label) !== null) patch.label = blank(label)!;
+    if (blank(reference) !== source.reference) patch.reference = blank(reference);
+    if (blank(licenseLabel) !== (record.license_label ?? null)) patch.license_label = blank(licenseLabel);
+    if (blank(licenseUrl) !== (record.license_url ?? null)) patch.license_url = blank(licenseUrl);
+  }
   const dirty = Object.keys(patch).length > 0;
 
   const save = useMutation({
@@ -114,6 +160,7 @@ function EditForm({ source, onClose }: { source: SourceReference; onClose: () =>
     onSuccess: (updated) => {
       // The sheet shows the citation the server assembles from the new fields.
       void client.invalidateQueries({ queryKey: ["material"] });
+      void client.invalidateQueries({ queryKey: ["sources"] });
       snackbar?.notify({ message: t.saved(updated.label) });
       onClose();
     },
@@ -132,6 +179,45 @@ function EditForm({ source, onClose }: { source: SourceReference; onClose: () =>
         save.mutate();
       }}
     >
+      {registration ? (
+        <fieldset className="flex flex-col gap-4">
+          <legend className="mb-2 text-body font-semibold text-ink">{reg.registration}</legend>
+          <Input
+            label={reg.label}
+            hint={reg.labelHint}
+            value={label}
+            maxLength={LIMITS.label}
+            required
+            error={show(errors.label)}
+            onChange={(event) => setLabel(event.target.value)}
+          />
+          <Input
+            label={reg.licenseLabel}
+            hint={reg.licenseLabelHint}
+            value={licenseLabel}
+            maxLength={LIMITS.licenseLabel}
+            error={show(errors.licenseLabel)}
+            onChange={(event) => setLicenseLabel(event.target.value)}
+          />
+          <Input
+            label={reg.licenseUrl}
+            hint={t.urlHint}
+            inputMode="url"
+            autoComplete="off"
+            value={licenseUrl}
+            maxLength={LIMITS.licenseUrl}
+            error={show(errors.licenseUrl)}
+            onChange={(event) => setLicenseUrl(event.target.value)}
+          />
+          <Input
+            label={reg.reference}
+            value={reference}
+            maxLength={LIMITS.reference}
+            error={show(errors.reference)}
+            onChange={(event) => setReference(event.target.value)}
+          />
+        </fieldset>
+      ) : null}
       <Input
         label={t.authors}
         hint={t.authorsHint}

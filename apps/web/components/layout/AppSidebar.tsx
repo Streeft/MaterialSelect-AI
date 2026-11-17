@@ -33,6 +33,7 @@ import {
   IconSearch,
   IconBattery,
   IconBlend,
+  IconArticle,
   IconBook,
   IconChevronDown,
   IconClock,
@@ -140,6 +141,7 @@ export const GROUPS: NavGroup[] = [
     items: [
       { href: "/app/admin/classes", label: t.classes, icon: IconLayers },
       { href: "/app/admin/propriedades", label: t.properties, icon: IconTable },
+      { href: "/app/admin/fontes", label: t.sources, icon: IconArticle },
     ],
   },
 ];

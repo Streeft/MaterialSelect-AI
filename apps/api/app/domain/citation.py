@@ -214,3 +214,39 @@ def edit_bibliography(current: SourceParts, sent: dict[str, Any], *, today: date
             f"({accessed.year} < {year})."
         )
     return out
+
+
+#: What the registration fields of a source may hold (D-244).
+_REGISTRATION_LIMITS = {"label": 160, "license_label": 200, "license_url": 500, "reference": 1000}
+_REGISTRATION_LABELS = {
+    "label": "O rótulo",
+    "license_label": "A licença",
+    "license_url": "O endereço da licença",
+    "reference": "A referência",
+}
+
+
+def edit_registration(sent: dict[str, Any]) -> dict[str, Any]:
+    """The registration fields a curator sent (label, licence, reference), checked (D-244).
+
+    Same contract as ``edit_bibliography``: only the keys sent, blank clears,
+    a value that does not fit is refused in Portuguese and never trimmed. The
+    label cannot be cleared (it is the source's name everywhere it is listed).
+    """
+    out: dict[str, Any] = {}
+    for key, limit in _REGISTRATION_LIMITS.items():
+        if key not in sent:
+            continue
+        value = _clean(sent[key])
+        if value is None and key == "label":
+            raise ValidationError("O rótulo da fonte não pode ficar em branco.")
+        if value is not None:
+            if len(value) > limit:
+                raise ValidationError(
+                    f"{_REGISTRATION_LABELS[key]} passa de {limit} caracteres "
+                    f"({len(value)}); abrevie o texto."
+                )
+            if key == "license_url":
+                value = _checked_url(value)
+        out[key] = value
+    return out

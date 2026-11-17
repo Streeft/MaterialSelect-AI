@@ -136,7 +136,7 @@ parte de fora, sem "s.d.", sem "[S. l.]" e sem autor inventado; sem título usa 
 vazios para toda fonte que já existe.
 
 Desde o D-236 os seis campos se corrigem pela API (`PATCH /api/sources/{id}`, curador): ano entre 1000 e o ano corrente, endereço `http(s)`
-com domínio, acesso não futuro nem anterior ao ano, sem inferir nada; a mudança vai para a auditoria (`entity_type = "source"`). A ficha
+com domínio, acesso não futuro nem anterior ao ano, sem inferir nada; a mudança vai para a auditoria (`entity_type = "source"`). Desde o D-244 o rótulo, a referência e a licença (nome e endereço) também (nenhum campo some: branco limpa; o rótulo não fica em branco nem repete outro); revisor e "dado de terceiros" seguem fixos. A ficha
 (`MaterialDetail.sources`) cita as fontes de valor, composição, designação, **curva** e **equivalência**, uma vez cada.
 
 ## Curvas de material (D-106, TM4)

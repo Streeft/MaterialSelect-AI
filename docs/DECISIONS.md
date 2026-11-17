@@ -14354,3 +14354,37 @@ reexecuta o estudo com o catálogo de hoje, e diz que não é a emitida).
 **Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
 `release_command`) e **dependência nova** (`resvg-py`, mais as duas fontes em `exporters/fonts`): depois do merge, **Deploy da API**
 (a imagem é reconstruída). Sem seed. Variável nova opcional: `REPORT_LINK_TTL_DAYS` (e `SIGNED_PDF_MAX_BYTES`), `.env.example`.
+
+## D-244 — Pendências do TODO, parte 4: tela de fontes no Admin com rótulo e licença, arrastar classe por toque, CSV em streaming que diz quando quebrou
+
+**Contexto.** Três pontas deixadas na D-236 e na D-237: fontes que nenhuma ficha cita não tinham onde ser editadas, rótulo e licença de uma
+fonte ficavam fixos depois do cadastro (o `PATCH` só levava os seis campos da referência), o arrastar da árvore de classes era HTML5 nativo
+(não existe em tela de toque) e o CSV do catálogo em streaming, se falhasse no meio, terminava como um arquivo cortado que parece inteiro (o status 200 já foi).
+
+**Decisão.**
+- **Fontes.** `PATCH /api/sources/{id}` passa a levar também `label`, `reference`, `license_label` e `license_url` (`edit_registration` em
+  `app/domain/citation.py`, mesmo contrato do `edit_bibliography`: só o que veio, branco limpa, tudo ou nada, recusa em português e nunca corta).
+  O rótulo não pode ficar em branco (400) nem repetir o de outra fonte (409); o endereço da licença segue a regra do endereço (`http(s)` com
+  domínio). Revisor e "pode ter dado de terceiros" continuam fora: são a decisão humana carimbada no cadastro (M1). A auditoria (`source`) passa a
+  registrar também esses quatro campos. Tela nova **Administrar › Fontes** (`/app/admin/fontes`): todas as fontes (`GET /api/sources`), busca,
+  licença com link, quem revisou, citação ABNT montada pelo servidor, estados de carregando, erro e vazio; o botão "Editar fonte" só aparece
+  a quem cura o catálogo e abre o diálogo da ficha com o bloco "Cadastro da fonte" ligado (`registration`). Sem seção nova de cor: a rota
+  entra em `ROUTE_LABELS` e `ROUTE_GROUP` ("Fontes", grupo "Administrar").
+- **Arrastar por toque.** `useClassDrag` passa de HTML5 para **eventos de ponteiro** (`pointerdown` na alça, `pointermove`/`pointerup`/`pointercancel`
+  no documento, o alvo achado com `elementFromPoint`, porque o toque mantém o primeiro alvo). Funciona com mouse, caneta e dedo; a alça
+  tem `touch-action: none` e cresce para 40×44 px em ponteiro grosso; Esc e o cancelamento do toque não movem nada. É o mesmo `PATCH parent_id`,
+  os mesmos destinos recusados (a própria classe e as de dentro) e "Mover para…" segue como a via pelo teclado.
+- **CSV.** `catalogue_csv_stream` envolve o gerador: uma exceção no meio do fluxo é registrada com `logger.exception` e o arquivo termina com a
+  linha `# ERRO: exportação interrompida; este arquivo está incompleto. Baixe novamente.` (`CSV_STREAM_ERROR_MARKER`). Nada de reescrever o status
+  (já enviado) nem engolir a falha em silêncio.
+
+**Alternativas recusadas.** Manter o HTML5 e acrescentar um polyfill de toque (dois caminhos para o mesmo gesto, e o nativo cancela o ponteiro).
+Uma biblioteca de arrastar (dependência por um gesto). Editar rótulo e licença só pela ficha (a fonte órfã continuaria sem tela). Deixar
+o revisor editável ("corrigir quem revisou" reescreveria a decisão humana). Abortar a conexão no erro (o navegador mostraria "download falhou", mas
+sem dizer por quê, e proxies tentam de novo).
+
+**Fora desta decisão.** Criar e apagar fonte pela tela (apagar exigiria olhar os valores que a citam); mesclar fontes duplicadas; autoscroll
+durante o arrastar de uma árvore muito longa; avisar o usuário, na tela, de que o CSV baixado veio cortado (hoje a linha-marcador é a única pista).
+
+**Numeração.** D-244, Sessão 201 (conferidas em `origin/main`). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
+

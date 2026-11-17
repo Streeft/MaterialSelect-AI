@@ -120,6 +120,15 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 201 — 17/11/26 — Pendências do TODO, parte 4: tela de fontes, arrastar por toque, CSV que diz quando quebrou (D-244)
+
+**O que mudou.** Backend: `PATCH /api/sources/{id}` leva também `label`, `reference`, `license_label` e `license_url` (`edit_registration`; rótulo em branco 400,
+repetido 409; auditados), `catalogue_csv_stream` termina com a linha `# ERRO: exportação interrompida…` e `logger.exception` quando falha no meio.
+Frontend: `/app/admin/fontes` (lista, busca, licença, revisor, citação, edição só do curador; item "Fontes" em Administrar), `EditSourceDialog` com
+o bloco "Cadastro da fonte", `useClassDrag` por eventos de ponteiro (mouse, caneta e dedo; alça maior em toque). Sem migração. Testes novos: pytest
+`test_source_edit` (rótulo/licença, em branco, repetido, endereço) e `test_exports_own_records` (falha no meio do CSV); vitest `admin/fontes/page`
+(8, com axe), `admin/classes/arrastar` reescrito para ponteiro (11); E2E `curadoria.spec.ts` (fontes; arrastar com a alça nova).
+
 ## Sessão 200 — 17/11/26 — Laudo de engenharia repaginado, parte 3: PDF assinado, validade do link, aberturas, Word e PowerPoint (D-243)
 
 **O que mudou.** Backend: `issued_report_pdf` (o PDF que o engenheiro assinou, ao lado da versão: SHA-256, quem e quando; substituir mantém o anterior no

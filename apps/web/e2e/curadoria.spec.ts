@@ -123,7 +123,7 @@ test("admin/classes: arrastar uma linha sobre outra a move; a raiz recebe; um ci
   await page.goto("/app/admin/classes");
   await expect(page.getByRole("heading", { name: "Classes de materiais" })).toBeVisible({ timeout: 45_000 });
   const row = (name: string) => page.getByRole("row").filter({ has: page.getByRole("rowheader", { name }) });
-  const grip = (name: string) => row(name).locator("[draggable='true']");
+  const grip = (name: string) => row(name).locator(".ds-block-grip");
 
   // Arrastar o Meio (com o Fundo dentro) para a Outra: o pai muda e a subárvore vai junto.
   await grip(`Meio Arrasta ${stamp}`).dragTo(row(`Outra Arrasta ${stamp}`));
@@ -197,6 +197,35 @@ test("ficha: o curador edita a fonte e a citação ABNT segue o que ele cadastro
   await expect(abnt.first()).toContainText("Disponível em: https://exemplo.org/livro.");
   // Sem data de acesso cadastrada, a citação não escreve "Acesso em".
   await expect(abnt.first()).not.toContainText("Acesso em");
+});
+
+test("admin/fontes: o curador corrige a licença de uma fonte e a lista mostra o que ficou", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const sources = (await (await page.request.get(`${API}/api/sources`)).json()) as {
+    id: number;
+    label: string;
+  }[];
+  expect(sources.length).toBeGreaterThan(0);
+  const source = sources[0]!;
+  const stamp = Date.now();
+
+  await page.goto("/app/admin/fontes");
+  await expect(page.getByRole("heading", { name: "Fontes de dados" })).toBeVisible({ timeout: 45_000 });
+  await page.getByRole("button", { name: `Editar fonte: ${source.label}` }).click();
+  const dialog = page.getByRole("dialog", { name: `Editar a fonte “${source.label}”` });
+  await expect(dialog).toBeVisible();
+
+  // Rótulo em branco é recusado ao lado do campo, sem ir ao servidor.
+  const label = dialog.getByLabel("Rótulo", { exact: false }).first();
+  await label.fill("");
+  await dialog.getByRole("button", { name: "Salvar fonte" }).click();
+  await expect(dialog.getByText("Informe o rótulo da fonte.")).toBeVisible();
+  await label.fill(source.label);
+
+  await dialog.getByLabel("Licença", { exact: true }).fill(`Licença de teste ${stamp}`);
+  await dialog.getByRole("button", { name: "Salvar fonte" }).click();
+  await expect(page.getByText(`Fonte “${source.label}” atualizada.`)).toBeVisible();
+  await expect(page.getByText(`Licença de teste ${stamp}`)).toBeVisible();
 });
 
 test("cadernos: Esvaziar o arquivo apaga só os arquivados, depois de confirmar", async ({ page }) => {

@@ -122,7 +122,7 @@ def test_the_fields_are_saved_and_the_citation_follows(client, db_session) -> No
     assert body["year"] == 2011 and body["accessed_on"] == "2026-11-13"
     assert body["abnt"].startswith("ASHBY, Michael F. Materials selection in mechanical design.")
     assert body["abnt"].endswith("Acesso em: 13 nov. 2026.")
-    # What the label, licence and reviewer say is untouched.
+    # What was not sent is untouched.
     assert body["label"] == "Fonte editável"
     assert body["license_label"] == "Uso autorizado de teste"
     row = next(r for r in client.get("/api/sources").json() if r["id"] == source.id)
@@ -141,15 +141,50 @@ def test_only_the_fields_sent_change_and_null_clears(client, db_session) -> None
     assert body["authors"] == "SILVA, A." and body["year"] == 2019
 
 
-def test_the_label_the_licence_and_the_reviewer_cannot_be_changed_here(client, db_session) -> None:
+def test_the_label_and_the_licence_can_be_corrected_the_reviewer_cannot(client, db_session) -> None:
+    """D-244: the registration fields are editable; the reviewer is not reachable."""
     source = _source(db_session)
-    resp = _patch(client, source.id, label="Outro rótulo", license_label="Livre", title="T")
-    assert resp.status_code == 200
+    resp = _patch(
+        client,
+        source.id,
+        label="  Outro   rótulo ",
+        license_label="CC-BY-4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        reviewed_by_email="intruso@exemplo.org",
+    )
+    assert resp.status_code == 200, resp.text
     db_session.expire_all()
     stored = db_session.get(Source, source.id)
-    assert stored.label == "Fonte editável"
-    assert stored.license_label == "Uso autorizado de teste"
-    assert stored.title == "T"
+    assert stored.label == "Outro rótulo"
+    assert stored.license_label == "CC-BY-4.0"
+    assert stored.license_url == "https://creativecommons.org/licenses/by/4.0/"
+    assert stored.reviewed_by_user_id is None
+
+
+def test_a_label_cannot_be_blank_or_taken_and_the_licence_may_be_cleared(
+    client, db_session
+) -> None:
+    source = _source(db_session)
+    _source(db_session, label="Fonte vizinha")
+
+    blank = _patch(client, source.id, label="   ", license_label="Livre")
+    taken = _patch(client, source.id, label="Fonte vizinha")
+    assert blank.status_code == 400 and "em branco" in blank.json()["detail"]
+    assert taken.status_code == 409 and "Fonte vizinha" in taken.json()["detail"]
+    db_session.expire_all()
+    assert db_session.get(Source, source.id).label == "Fonte editável"
+    assert db_session.get(Source, source.id).license_label == "Uso autorizado de teste"
+
+    cleared = _patch(client, source.id, license_label=None, license_url=None)
+    assert cleared.status_code == 200
+    assert cleared.json()["license_label"] is None
+
+
+def test_a_licence_address_must_be_a_real_one(client, db_session) -> None:
+    source = _source(db_session)
+    resp = _patch(client, source.id, license_url="licenca.txt")
+    assert resp.status_code == 400
+    assert "http:// ou https://" in resp.json()["detail"]
 
 
 @pytest.mark.parametrize(

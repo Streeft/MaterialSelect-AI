@@ -1863,11 +1863,15 @@ Registrados para não voltarem por engano:
 - Em produção, depois do **Deploy da API**: `fly logs` ao esgotar a cota da busca deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId`.
 
 **Fluxos entre telas, parte 18 — pendências (D-236).**
-- Fontes que nenhuma ficha cita não têm onde ser editadas (a edição vive na ficha): uma tela de fontes no Admin pede rota, item de menu e a decisão de quem vê fonte sem material.
-- Rótulo e licença de uma fonte seguem fixos depois do cadastro (o `PATCH` só leva os seis campos da referência).
-- Arrastar a classe não funciona em tela de toque (o HTML5 drag não existe lá); "Mover para…" cobre.
+- ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
+- ~~Rótulo e licença de uma fonte seguem fixos depois do cadastro~~ (feito no D-244: o `PATCH` leva também rótulo, referência e licença; revisor segue fixo).
+- ~~Arrastar a classe não funciona em tela de toque~~ (feito no D-244: eventos de ponteiro; "Mover para…" segue pelo teclado).
 - "Esvaziar o arquivo" é uma transação só; com milhares de cadernos arquivados pediria etapas (e a contagem confirmada deixaria de valer de uma vez).
 - Em produção, depois do **Deploy da API** (sem migração): editar uma fonte na ficha e conferir o evento `source` na auditoria.
+
+**Pendências do TODO, parte 4 (D-244).**
+- Criar, apagar e mesclar fontes pela tela de Fontes; autoscroll ao arrastar numa árvore longa; avisar na tela que um CSV baixado veio cortado (hoje só a linha `# ERRO:` no fim do arquivo).
+- Em produção, depois do **Deploy da API** (sem migração): editar a licença de uma fonte em Administrar › Fontes e conferir o evento `source` na auditoria.
 
 **Fluxos entre telas, parte 19 — pendências (D-237).**
 - `import pint` (~14 MB de RSS) ainda na partida: pede importar `pint.errors`/`pint.util` dentro das funções de `units.py` e `expressions.py`.
