@@ -59,6 +59,7 @@ from app.routers import (
     health,
     imports,
     knowledge,
+    laudos,
     materials,
     my_records,
     notebooks,
@@ -303,6 +304,9 @@ async def _handle_request_validation(_: Request, exc: RequestValidationError) ->
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+# Verificação pública de laudo emitido (D-241): só leitura, sem login, para quem
+# escaneou o QR de um PDF assinado. Diz estudo, versão, data e engenheiro; nada mais.
+app.include_router(laudos.router, prefix="/api")
 # `curves` antes de `materials`: mesmo caminho de uma curva, com a unidade do
 # parâmetro da família (TM4-e); a primeira rota registrada responde.
 app.include_router(

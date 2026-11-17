@@ -42,9 +42,35 @@ _RULES: dict[Bucket, _BucketRule] = {
 _limiter = FixedWindowLimiter(window_seconds=60.0)
 
 
+# Laudo e-mails (D-242): a window of an hour, counted per account. The same
+# counter as everything above, with its own window and its own key.
+_email_limiter = FixedWindowLimiter(window_seconds=3600.0)
+
+
 def reset_rate_limits() -> None:
     """Forget every counter (used by the tests that turn the limit on)."""
     _limiter.reset()
+    _email_limiter.reset()
+
+
+def check_email_quota(user_id: int, *, now: float | None = None) -> None:
+    """Raise ``RateLimitedError`` when this account spent its e-mails of the hour.
+
+    Counted per **account**, not per session cookie: signing in again must not
+    open a fresh quota for sending mail to strangers. A request counts once, whatever
+    its number of recipients (the recipients themselves are capped by the contract).
+    """
+    if not settings.rate_limit_enabled:
+        return
+    limit = int(settings.rate_limit_email_per_hour)
+    wait = _email_limiter.hit(f"email:u:{user_id}", limit, time.monotonic() if now is None else now)
+    if wait is not None:
+        minutes = max(1, round(wait / 60))
+        raise RateLimitedError(
+            f"Você já enviou {limit} e-mail(s) de laudo na última hora. "
+            f"Tente de novo em cerca de {minutes} min.",
+            retry_after=wait,
+        )
 
 
 def caller_key(*, session_cookie: str | None, client_ip: str | None, by_ip_only: bool) -> str:

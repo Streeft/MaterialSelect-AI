@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     rate_limit_ai_per_minute: int = 30
     rate_limit_exports_per_minute: int = 30
     rate_limit_notebooks_per_minute: int = 60
+    # D-242: laudo e-mails per user and per hour (a window of its own, counted by
+    # the account and not by the session). Zero or less means no limit.
+    rate_limit_email_per_hour: int = 10
     # Lists that change only with a deploy or a curator's edit (properties,
     # classes, processes, glossary, defaults): how long a browser may reuse
     # them before asking again with ``If-None-Match``.
@@ -286,7 +289,30 @@ class Settings(BaseSettings):
     # Empty allows any Google account. Set to restrict logins to one email
     # domain (e.g. a university) before hosting for a class.
     google_allowed_domain: str = ""
-    # Used to build the exact redirect_uri Google requires pre-registered.
+    # --- E-mail (D-242) -----------------------------------------------------
+    # ``mock`` (default, and what every test uses) only records the delivery as
+    # "simulado"; ``smtp`` talks to ``SMTP_HOST`` with the standard library. There
+    # is no default host, sender or password: a default would pick whose mail
+    # server carries an engineer's laudo. ``SMTP_PASSWORD`` is a secret (Fly
+    # secrets, never the repository).
+    email_provider: str = "mock"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # STARTTLS after connecting (port 587). Port 465 is implicit TLS and ignores it.
+    smtp_starttls: bool = True
+    # One socket timeout for connect, login and send, in seconds. Short on purpose.
+    smtp_timeout_seconds: float = 10.0
+    email_from: str = ""
+    email_from_name: str = "MaterialSelect AI"
+    email_reply_to: str = ""
+    # How many e-mails one process hands to the mail server at once; the next
+    # waits briefly and is then refused, so a slow server cannot take every thread.
+    email_send_concurrency: int = 2
+
+    # Used to build the exact redirect_uri Google requires pre-registered, and
+    # the issued laudo's verification URL and QR code (D-241).
     backend_base_url: str = "http://localhost:8000"
     # Where the browser lands after a successful login.
     frontend_url: str = "http://localhost:3000"
@@ -357,6 +383,20 @@ class Settings(BaseSettings):
             self.stripe_api_key.strip()
             and self.stripe_webhook_secret.strip()
             and self.stripe_price_id.strip()
+        )
+
+    @property
+    def email_provider_name(self) -> str:
+        """The provider, trimmed and lower-cased (``mock`` when blank)."""
+        return self.email_provider.strip().lower() or "mock"
+
+    @property
+    def email_configured(self) -> bool:
+        """True when laudos really leave the server: SMTP with a host and a sender."""
+        return bool(
+            self.email_provider_name == "smtp"
+            and self.smtp_host.strip()
+            and self.email_from.strip()
         )
 
     @property

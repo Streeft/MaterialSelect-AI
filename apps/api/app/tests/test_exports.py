@@ -653,18 +653,22 @@ class TestStudyLaudo:
 
     def test_laudo_embeds_a_ranking_figure(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
-        assert '<div class="figure">' in text
+        assert "<figure>" in text
         assert 'role="img"' in text
         assert "Candidatos ranqueados" in text
 
     def test_laudo_embeds_the_selection_map(self, client: TestClient) -> None:
-        """The map is the argument the document makes; the ranking is its conclusion."""
+        """The map is the argument the document makes; the ranking is its conclusion.
+
+        D-241 turned the order around for the reader the laudo is for: the
+        ranking leads in the executive summary, and the map sits in "Comparação
+        dos finalistas", where the evidence is.
+        """
         text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
         assert "Mapa de seleção" in text
-        # Both figures, and the map first: a reader meets the population before
-        # the verdict about it.
-        assert text.count('<div class="figure">') == 2
-        assert text.index("Mapa de seleção") < text.index("Candidatos ranqueados")
+        comparison = text[text.index('id="comparacao"') : text.index('id="custo"')]
+        assert "Mapa de seleção" in comparison
+        assert text.index("Candidatos ranqueados") < text.index("Mapa de seleção")
 
     def test_the_map_draws_a_cloud_per_class_not_a_hull(self, client: TestClient) -> None:
         """A hull needs three grades; most classes in a teaching catalogue have one.
@@ -749,11 +753,15 @@ class TestStudyLaudo:
         response = client.get(
             f"/api/exports/estudos/{study_id}/laudo.html", params={"responsavel": "Ana Engenheira"}
         )
-        assert "Responsável técnico: Ana Engenheira" in response.text
+        # The cover's fact and the signature line both carry the declared name.
+        assert "Responsável técnico</dt><dd>Ana Engenheira</dd>" in response.text
+        assert '<div class="name">Ana Engenheira</div>' in response.text
 
-    def test_laudo_omits_the_responsible_line_when_not_given(self, client: TestClient) -> None:
+    def test_laudo_writes_a_missing_responsible_as_absent(self, client: TestClient) -> None:
         text = client.get(f"/api/exports/estudos/{_exportable_study_id(client)}/laudo.html").text
-        assert "Responsável técnico" not in text
+        # Absent is written as absent, never left blank or filled in (D-241).
+        assert '<dt>Responsável técnico</dt><dd class="absent">não informado</dd>' in text
+        assert "Responsável técnico não informado" in text
 
     def test_a_hostile_responsible_name_cannot_escape_as_markup(self, client: TestClient) -> None:
         study_id = _exportable_study_id(client)

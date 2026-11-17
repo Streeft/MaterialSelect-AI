@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from datetime import date
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -30,7 +31,12 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.dependencies import get_current_project, get_current_user, get_unit_choices
+from app.dependencies import (
+    get_current_project,
+    get_current_user,
+    get_unit_choices,
+    heavy_request,
+)
 from app.domain.errors import ValidationError
 from app.exporters.docx import to_docx
 from app.exporters.html import to_html
@@ -40,10 +46,14 @@ from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.cae_export import CaeFormatOut
+from app.schemas.laudo import IssuedReportOut, LaudoInputs
+from app.schemas.report_delivery import LaudoEmailPreviewOut, LaudoSendRequest, ReportDeliveryOut
 from app.services.cae_export_service import CaeExportService
 from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
 from app.services.export_service import ExportService
+from app.services.laudo_service import LaudoService
+from app.services.report_delivery_service import ReportDeliveryService
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
@@ -157,23 +167,156 @@ def export_study_laudo(
     study_id: int,
     fmt: str,
     responsavel: str | None = Query(default=None, max_length=160),
+    titulo: str | None = Query(default=None, max_length=120),
+    registro: str | None = Query(default=None, max_length=60),
+    art: str | None = Query(default=None, max_length=60),
+    cidade: str | None = Query(default=None, max_length=80),
+    data: date | None = Query(default=None),
+    cliente: str | None = Query(default=None, max_length=160),
+    projeto: str | None = Query(default=None, max_length=160),
+    massa: float | None = Query(default=None, gt=0, le=1e6, description="Massa da peça, kg."),
+    lote: float | None = Query(default=None, ge=1, le=1e9, description="Lote, peças."),
     db: Session = Depends(get_db),
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
     unit_choices: dict[str, str] = Depends(get_unit_choices),
 ) -> Response:
-    """The engineering report: a document distinct from the selection report,
-    combining a ranking figure, the same audit tables, and — when the AI
-    layer is on — an interpretive narrative. Available in HTML, DOCX and PPTX.
+    """The engineering report. HTML is the preview of the visual laudo (D-241),
+    with the "RASCUNHO — não emitido" watermark; DOCX and PPTX keep the D-41
+    document (tables, figures and narrative) for editing elsewhere.
+
+    The query parameters are the same declared fields the issue form sends, so
+    the preview a reader prints is the document "Emitir" would freeze.
     """
     if fmt not in LAUDO_SUPPORTED_FORMATS:
         raise ValidationError(
             f"Formato de laudo não suportado: '{fmt}'. Use {', '.join(LAUDO_SUPPORTED_FORMATS)}."
         )
+    if fmt == "html":
+        inputs = LaudoInputs(
+            engineer_name=responsavel,
+            engineer_title=titulo,
+            engineer_registration=registro,
+            art_number=art,
+            city=cidade,
+            issue_date=data,
+            client_name=cliente,
+            client_project=projeto,
+            part_mass_kg=massa,
+            batch_size=lote,
+        )
+        title, body = LaudoService(db, user, unit_choices).preview_html(
+            study_id, project.id, inputs
+        )
+        return _html_response(body, title)
     report = ExportService(db, user, unit_choices).study_laudo(
         study_id, project.id, responsible=responsavel
     )
     return _file_response(report, fmt)
+
+
+@router.post(
+    "/estudos/{study_id}/laudo/emitir",
+    response_model=IssuedReportOut,
+    status_code=201,
+    dependencies=[Depends(heavy_request)],
+)
+def issue_study_laudo(
+    study_id: int,
+    payload: LaudoInputs,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+) -> IssuedReportOut:
+    """Freeze the laudo as a new version (D-241): HTML, inputs and digest stored.
+
+    Only the study's owner reaches it (the study is looked up in the caller's
+    project; anyone else gets the same 404 a missing study does).
+    """
+    service = LaudoService(db, user, unit_choices)
+    return service.out(service.issue(study_id, project.id, payload))
+
+
+@router.get("/estudos/{study_id}/laudo/versoes", response_model=list[IssuedReportOut])
+def list_study_laudo_versions(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[IssuedReportOut]:
+    """The issued versions of one study's laudo, newest first."""
+    return LaudoService(db, user).versions(study_id, project.id)
+
+
+@router.get("/estudos/{study_id}/laudo/versoes/{version}.html")
+def get_study_laudo_version(
+    study_id: int,
+    version: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """One issued version, exactly as it was frozen — never re-rendered."""
+    report = LaudoService(db, user).version(study_id, project.id, version)
+    return _html_response(
+        report.html, f"Laudo de engenharia — {report.study_name} — versão {report.version}"
+    )
+
+
+@router.post(
+    "/laudos/{issued_id}/enviar",
+    response_model=ReportDeliveryOut,
+    status_code=201,
+)
+def send_issued_laudo(
+    issued_id: int,
+    payload: LaudoSendRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> ReportDeliveryOut:
+    """E-mail an issued laudo to the client (D-242): the owner only.
+
+    A plain ``def`` on purpose: FastAPI runs it in its worker thread pool, so the
+    ``smtplib`` call inside (with its own short timeout and a small concurrency
+    gate) holds one pool thread and never the event loop. It is not behind the heavy
+    gate (D-231): that one protects memory, and this reads one stored document.
+    Every attempt, failed ones included, is recorded and audited.
+    """
+    return ReportDeliveryService(db, user).send(project.id, issued_id, payload)
+
+
+@router.post("/laudos/{issued_id}/enviar/previa", response_model=LaudoEmailPreviewOut)
+def preview_issued_laudo_email(
+    issued_id: int,
+    payload: LaudoSendRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> LaudoEmailPreviewOut:
+    """The message as it would go (subject, HTML, text), with nothing sent or written."""
+    return ReportDeliveryService(db, user).preview(project.id, issued_id, payload)
+
+
+@router.get("/laudos/{issued_id}/envios", response_model=list[ReportDeliveryOut])
+def list_issued_laudo_deliveries(
+    issued_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[ReportDeliveryOut]:
+    """Every e-mailing of one issued version, newest first."""
+    return ReportDeliveryService(db, user).history(project.id, issued_id)
+
+
+def _html_response(body: str, title: str) -> Response:
+    response = Response(
+        content=body,
+        media_type=HTML_MEDIA_TYPE,
+        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": HTML_CSP},
+    )
+    return _download_headers(response, title, "html")
 
 
 @router.get("/materiais/{material_id}.{fmt}")

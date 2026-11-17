@@ -35,6 +35,7 @@ from app.models.enums import (
 )
 from app.models.equivalence import EquivalenceGroup, EquivalenceMember
 from app.models.import_job import ImportJob, ImportMappingTemplate
+from app.models.issued_report import IssuedReport
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument, KnowledgeEmbedding
 from app.models.material import Material
 from app.models.material_class import MaterialClass
@@ -68,6 +69,7 @@ from app.models.process_attribute import (
 )
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
+from app.models.report_delivery import ReportDelivery
 from app.models.saved_chart import SavedChart
 from app.models.saved_view import SavedView
 from app.models.selection import (
@@ -111,6 +113,8 @@ __all__ = [
     "DocumentKind",
     "Favorite",
     "ImportJob",
+    "IssuedReport",
+    "ReportDelivery",
     "ImportMappingTemplate",
     "ImportStatus",
     "IngestStatus",

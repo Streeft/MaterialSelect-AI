@@ -985,12 +985,6 @@ export const ptBR = {
     catalogue: "Exportar catálogo",
     study: "Exportar relatório",
     hint: "O relatório traz o mapa de seleção, restrições, funil, índice, ranking, excluídos por dado ausente, sensibilidade e a proveniência de cada número.",
-    laudoTitle: "Laudo de engenharia",
-    laudoButton: "Gerar laudo",
-    laudoHint:
-      "Documento único, distinto do relatório: mapa de seleção, gráfico de ranqueamento, as mesmas tabelas de auditoria e, se a camada de IA estiver ligada, uma interpretação técnica.",
-    laudoResponsibleLabel: "Responsável técnico (opcional)",
-    laudoResponsiblePlaceholder: "Nome de quem assina a leitura",
   },
   // D-104: o cartão de material para CAE, no "Exportar ▾" da ficha.
   cae: {

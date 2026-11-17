@@ -9,6 +9,10 @@ from app.models.audit import AuditEvent
 from app.models.enums import AuditEntityType
 from app.models.material import Material
 
+#: Entity types that belong to one project: their rows carry a ``project_id``
+#: snapshot and are listed only to that project (the catalogue types are shared).
+PROJECT_SCOPED_TYPES = (AuditEntityType.SELECTION_STUDY, AuditEntityType.REPORT_DELIVERY)
+
 
 class AuditRepository:
     """Writes and lists ``AuditEvent`` rows."""
@@ -32,8 +36,8 @@ class AuditRepository:
         """Most recent first; optionally narrowed to one entity type/id.
 
         ``project_id`` is mandatory and enforces the same privacy boundary as
-        every other project-scoped query: a ``SELECTION_STUDY`` row is
-        visible only when its own ``project_id`` snapshot matches the
+        every other project-scoped query: a ``SELECTION_STUDY`` or ``REPORT_DELIVERY``
+        row is visible only when its own ``project_id`` snapshot matches the
         caller's. Catalogue entity types (material, material_class,
         property_definition, performance_index) have no owner and stay
         visible to any logged-in user, same as the endpoints that read them —
@@ -46,7 +50,7 @@ class AuditRepository:
             Material.owner_id.is_not(None), Material.owner_id != viewer_id
         )
         stmt = select(AuditEvent).where(
-            (AuditEvent.entity_type != AuditEntityType.SELECTION_STUDY)
+            AuditEvent.entity_type.not_in(PROJECT_SCOPED_TYPES)
             | (AuditEvent.project_id == project_id),
             ~(
                 (AuditEvent.entity_type == AuditEntityType.MATERIAL)

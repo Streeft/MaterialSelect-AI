@@ -23,6 +23,11 @@ class HealthResponse(BaseModel):
     # base URL (a gateway path can carry a token) and never anything about keys.
     ai_provider: str
     ai_model: str | None = None
+    # D-242: public for the same reason as the AI provider. ``email_configured`` is
+    # true only for ``smtp`` with a host and a sender; with ``mock`` the screen warns
+    # that sending by e-mail is not configured on this server. Nothing else is exposed.
+    email_provider: str = "mock"
+    email_configured: bool = False
     # D-101: the embedding identity the query side uses for the Cérebro's
     # semantic search, from settings alone (Fly probes this every 30 s; no
     # database query). The workflow "Base de conhecimento (Cérebro)" compares it
