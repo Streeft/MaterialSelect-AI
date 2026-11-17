@@ -5,17 +5,30 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { laudoText as t } from "@/lib/i18n-laudo";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
-import type { IssuedLaudo, LaudoInputs } from "@/lib/api";
+import type { IssuedLaudo, LaudoDelivery, LaudoInputs } from "@/lib/api";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 
 const getStudy = vi.fn();
 const listLaudoVersions = vi.fn<(id: number) => Promise<IssuedLaudo[]>>();
 const issueLaudo = vi.fn<(id: number, inputs: LaudoInputs) => Promise<IssuedLaudo>>();
+const listLaudoDeliveries = vi.fn<(id: number) => Promise<LaudoDelivery[]>>();
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   getStudy: (id: number) => getStudy(id),
   listLaudoVersions: (id: number) => listLaudoVersions(id),
   issueLaudo: (id: number, inputs: LaudoInputs) => issueLaudo(id, inputs),
+  listLaudoDeliveries: (id: number) => listLaudoDeliveries(id),
+  getEmailStatus: () => Promise.resolve({ email_provider: "smtp", email_configured: true }),
+  previewLaudoEmail: () =>
+    Promise.resolve({
+      subject: "Laudo",
+      html: "<p>Olá,</p>",
+      text: "Olá,",
+      attachment_name: "laudo.html",
+      provider: "smtp",
+      email_configured: true,
+    }),
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/selecao/laudo",
@@ -57,7 +70,9 @@ function mount(studyId: number | null = 7) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <LaudoScreen studyId={studyId} />
+      <SnackbarProvider>
+        <LaudoScreen studyId={studyId} />
+      </SnackbarProvider>
     </QueryClientProvider>,
   );
 }
@@ -75,6 +90,7 @@ beforeEach(() => {
   getStudy.mockReset().mockResolvedValue({ id: 7, name: "Suporte leve" });
   listLaudoVersions.mockReset().mockResolvedValue([]);
   issueLaudo.mockReset();
+  listLaudoDeliveries.mockReset().mockResolvedValue([]);
 });
 
 describe("LaudoScreen (D-241)", () => {
@@ -151,8 +167,42 @@ describe("LaudoScreen (D-241)", () => {
     const { container } = mount();
     expect(await screen.findByText("ABCD-EF02-1234")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /para imprimir$/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /ao cliente por e-mail$/ })).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText(t.noDeliveries)).toHaveLength(2));
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  it("opens the send dialog from a version and shows what was already sent", async () => {
+    listLaudoVersions.mockResolvedValue([version(2), version(1)]);
+    listLaudoDeliveries.mockImplementation(async (id) =>
+      id === 2
+        ? [
+            {
+              id: 9,
+              issued_report_id: 2,
+              recipients: ["cliente@empresa.com.br"],
+              cc: [],
+              subject: "Laudo",
+              message: null,
+              status: "enviado",
+              provider: "smtp",
+              error: null,
+              created_at: "2026-11-16T15:40:00Z",
+              sent_by: "ana@exemplo.com",
+            },
+          ]
+        : [],
+    );
+    mount();
+    expect(await screen.findByText("1 envio")).toBeInTheDocument();
+    expect(screen.getByText("Enviado")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: t.sendLabel(2) }));
+    const dialog = await screen.findByRole("dialog", { name: t.sendTitle(2) });
+    expect(within(dialog).getByText(t.historyTitle)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: t.cancel }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("says when the versions cannot be listed", async () => {

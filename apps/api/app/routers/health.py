@@ -27,6 +27,10 @@ def health() -> HealthResponse:
         environment=settings.environment,
         access_mode=settings.access_mode,
         ai_provider=settings.ai_provider,
+        # D-242: whether laudos really leave the server. The provider name and a
+        # boolean only — never the host, the user or the sender address.
+        email_provider=settings.email_provider_name,
+        email_configured=settings.email_configured,
         # The simulated provider has no model; naming the default would claim one.
         ai_model=None if settings.ai_provider == "mock" else settings.ai_model,
         # Settings only — never the endpoint (a gateway path can carry a token).

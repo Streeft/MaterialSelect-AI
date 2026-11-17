@@ -47,11 +47,13 @@ from app.models.project import Project
 from app.models.user import User
 from app.schemas.cae_export import CaeFormatOut
 from app.schemas.laudo import IssuedReportOut, LaudoInputs
+from app.schemas.report_delivery import LaudoEmailPreviewOut, LaudoSendRequest, ReportDeliveryOut
 from app.services.cae_export_service import CaeExportService
 from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
 from app.services.export_service import ExportService
 from app.services.laudo_service import LaudoService
+from app.services.report_delivery_service import ReportDeliveryService
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
@@ -260,6 +262,52 @@ def get_study_laudo_version(
     return _html_response(
         report.html, f"Laudo de engenharia — {report.study_name} — versão {report.version}"
     )
+
+
+@router.post(
+    "/laudos/{issued_id}/enviar",
+    response_model=ReportDeliveryOut,
+    status_code=201,
+)
+def send_issued_laudo(
+    issued_id: int,
+    payload: LaudoSendRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> ReportDeliveryOut:
+    """E-mail an issued laudo to the client (D-242): the owner only.
+
+    A plain ``def`` on purpose: FastAPI runs it in its worker thread pool, so the
+    ``smtplib`` call inside (with its own short timeout and a small concurrency
+    gate) holds one pool thread and never the event loop. It is not behind the heavy
+    gate (D-231): that one protects memory, and this reads one stored document.
+    Every attempt, failed ones included, is recorded and audited.
+    """
+    return ReportDeliveryService(db, user).send(project.id, issued_id, payload)
+
+
+@router.post("/laudos/{issued_id}/enviar/previa", response_model=LaudoEmailPreviewOut)
+def preview_issued_laudo_email(
+    issued_id: int,
+    payload: LaudoSendRequest,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> LaudoEmailPreviewOut:
+    """The message as it would go (subject, HTML, text), with nothing sent or written."""
+    return ReportDeliveryService(db, user).preview(project.id, issued_id, payload)
+
+
+@router.get("/laudos/{issued_id}/envios", response_model=list[ReportDeliveryOut])
+def list_issued_laudo_deliveries(
+    issued_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[ReportDeliveryOut]:
+    """Every e-mailing of one issued version, newest first."""
+    return ReportDeliveryService(db, user).history(project.id, issued_id)
 
 
 def _html_response(body: str, title: str) -> Response:

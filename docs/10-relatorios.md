@@ -211,6 +211,31 @@ estudo emite e lê (os outros recebem 404). A pré-visualização (`laudo.html`)
 hífens) e devolve estudo, versão, data, hora da emissão, engenheiro, título e registro — nunca o cliente nem o conteúdo. Navegador
 recebe uma página; o resto, JSON. É para lá que aponta o QR do laudo (`{BACKEND_BASE_URL}/api/laudos/verificar/{sha}`).
 
+### Laudo enviado ao cliente por e-mail (D-242)
+
+`POST /api/exports/laudos/{issued_id}/enviar` manda uma versão **emitida** ao cliente (só o dono; rascunho não tem id emitido
+para enviar, e um id que não é de laudo emitido é 404 com a razão). Corpo: `recipients` (1 a 5), `cc` (até 5, sem repetir quem já
+está em "Para"), `subject` (em branco: "Laudo de engenharia — {estudo} (versão N)") e `message` (até 1.000 caracteres). Endereço é
+`local@dominio.tld` em ASCII (`app/domain/email_address.py`); quebra de linha no assunto, vírgula, espaço ou segundo `@` são
+recusados com 400 escrito. `POST …/enviar/previa` devolve o e-mail como sairia, sem token, sem linha e sem envio; `GET …/envios`
+lista o histórico da versão.
+
+O e-mail (`exporters/laudo_email.py`) tem saudação, três linhas (material recomendado, estudo e engenheiro), o botão **Abrir o laudo**,
+o código e o link de verificação, e o **laudo em anexo** (`laudo-<estudo>-vN.html`, o HTML congelado byte a byte, em base64, para abrir
+e imprimir em PDF). Estilos **inline** com os tokens de `laudo_theme.py` (cliente de e-mail ignora `<style>` e variáveis CSS); todo
+texto de pessoa passa por `html.escape`, e a mensagem do remetente vira `<br>` depois do escape. Há alternativa em texto puro.
+
+O botão aponta para `GET /api/laudos/enviados/{token}`, **público e só de leitura**: devolve os bytes guardados, com CSP
+`default-src 'none'`, `noindex`, `Referrer-Policy: no-referrer` e sem cache. O token tem 256 bits (`secrets`), é **um por envio** e só o
+SHA-256 dele fica no banco; envio que falhou não abre nada.
+
+Cada tentativa vira uma linha de `report_delivery` (laudo, destinatários, cópia, assunto, mensagem, quando, quem, provedor, situação
+`enviado`, `simulado` ou `falhou`, erro resumido em português) e uma entrada na auditoria (`report_delivery`, visível só ao projeto, com
+a contagem e nunca os endereços). Provedor `mock` (padrão) grava `simulado`: **nada sai**, e a tela avisa. Provedor `smtp`:
+`smtplib` com timeout curto, STARTTLS (587) ou TLS implícito (465), erro traduzido sem eco da exceção, segredo fora de log e resposta.
+Limite de `RATE_LIMIT_EMAIL_PER_HOUR` (10) envios por conta e por hora. `/api/health` traz `email_provider` e `email_configured`.
+Configuração no Fly: `13-deploy.md` §5-nonies.
+
 ## O Eco Audit (D-172)
 
 `POST /api/eco/exportar.{fmt}` recebe o corpo de `/api/eco/auditar`, **reexecuta** a auditoria no servidor e devolve o arquivo; o `Report` e os cinco
@@ -391,6 +416,9 @@ faltando.
 | POST | `/api/exports/estudos/{id}/laudo/emitir` | emite e congela uma versão do laudo (D-241) |
 | GET | `/api/exports/estudos/{id}/laudo/versoes` e `…/versoes/{n}.html` | versões emitidas; o HTML guardado, sem reprocessar |
 | GET | `/api/laudos/verificar/{código}` | verificação pública de um laudo emitido (sem login) |
+| POST | `/api/exports/laudos/{id}/enviar` e `…/enviar/previa` | envia ao cliente por e-mail uma versão emitida / mostra o e-mail sem enviar (D-242) |
+| GET | `/api/exports/laudos/{id}/envios` | histórico de envios de uma versão emitida (D-242) |
+| GET | `/api/laudos/enviados/{token}` | cópia só de leitura do laudo congelado, pelo link do e-mail (sem login, D-242) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 | POST | `/api/eco/exportar.{csv,xlsx,html,docx,pptx}` | auditoria ambiental de um briefing (corpo de `/api/eco/auditar`), por componente e por trecho (D-172) |

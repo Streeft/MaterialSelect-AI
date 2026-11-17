@@ -45,6 +45,12 @@ nota. Não reaproveite um no outro: um `=` é inerte em HTML, e o apóstrofo
 apareceria na tela como corrupção do dado. O HTML ainda é servido sob
 `Content-Security-Policy: default-src 'none'`, camada independente do escape.
 
+O **e-mail do laudo** ([D-242](docs/DECISIONS.md)) é um terceiro formato, com escape e estilo próprios:
+`exporters/laudo_email.py` escreve estilos **inline** (cliente de e-mail ignora `<style>` e `var(--)`) com os tokens de
+`laudo_theme.py` e passa todo texto de pessoa por `html.escape`. Quem fala com o servidor de e-mail é
+`services/email_service.py` (`mock` por padrão, `smtp` por `smtplib`): a falha é uma frase nossa em português, **nunca** o texto da
+exceção, e `SMTP_PASSWORD` não pode chegar a log, resposta nem linha de banco.
+
 Na camada `ai/`, o provedor recebe só o catálogo e o texto — nunca uma sessão de
 banco ou o avaliador de expressões — e **toda** saída passa por
 `app/ai/guardrails.py` antes de chegar ao usuário. Ao mexer ali, não afrouxe duas

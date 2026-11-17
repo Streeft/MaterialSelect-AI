@@ -31,7 +31,7 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from html import escape
+from html import escape, unescape
 
 from app.exporters.html import render_sheet
 from app.exporters.laudo_theme import FONT_SANS, STATUS, css_custom_properties, token
@@ -203,6 +203,26 @@ def seal_document(document: str, seal: Seal) -> str:
         return SEAL_OPEN + next(fills, "") + SEAL_CLOSE
 
     return _SEAL_SLOT.sub(fill, document)
+
+
+_RECOMMENDED = re.compile(
+    r'<div class="eyebrow">Material recomendado</div><div class="name">(.*?)</div>', re.S
+)
+
+
+def recommended_name(document: str) -> str | None:
+    """The recommended material's name, read back out of a rendered laudo (D-242).
+
+    The e-mail that carries an issued laudo summarises it in three lines, and the
+    frozen HTML is the one place the issued version keeps its recommendation, so
+    the reader lives beside the markup it reads (``_summary``). A laudo with no
+    recommendation prints no ``name`` block there and answers ``None``.
+    """
+    found = _RECOMMENDED.search(document)
+    if found is None:
+        return None
+    text = unescape(re.sub(r"<[^>]+>", "", found.group(1))).strip()
+    return text or None
 
 
 # --- Rendering ---------------------------------------------------------------

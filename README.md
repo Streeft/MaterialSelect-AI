@@ -176,7 +176,8 @@ números com que cada uma abre vêm do servidor (`GET /api/padroes`, D-216): a t
 **laudo de engenharia** de um estudo, em A4 para o cliente — capa, resumo executivo
 com semáforo e gráficos, comparação, custo, impacto ambiental, fabricação e o anexo
 técnico, tudo desenhado no backend — que o engenheiro **emite** numa versão congelada
-com código de verificação e QR (D-241); e o **cartão de material para CAE** de cada material
+com código de verificação e QR (D-241) e **envia ao cliente por e-mail**, com link só de leitura e o laudo em anexo
+(D-242, SMTP configurável, `mock` por padrão); e o **cartão de material para CAE** de cada material
 (Ansys MAPDL, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` e MatML 3.1, mais
 os cartões térmicos e os elastoplásticos com a curva e a série que o usuário
 escolhe), no sistema de unidades que o usuário escolhe, com propriedade não

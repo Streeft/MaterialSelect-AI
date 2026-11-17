@@ -150,6 +150,8 @@ class AuditEntityType(str, enum.Enum):
     SELECTION_STUDY = "selection_study"
     EQUIVALENCE_GROUP = "equivalence_group"
     SOURCE = "source"
+    #: A laudo e-mailed to a client (D-242); project-scoped like a study.
+    REPORT_DELIVERY = "report_delivery"
 
 
 class SourceAuthority(str, enum.Enum):

@@ -2,6 +2,10 @@ import { test, expect } from "./session";
 import { describeFound, runAxe } from "./axe";
 
 /**
+ * D-242: after issuing, "Enviar ao cliente" with the mock provider (the E2E API
+ * sends nothing): the dialog warns that the server only simulates, the preview is
+ * the server's e-mail, and the send lands in the version's history as "Simulado".
+ *
  * D-241: the laudo screen end to end — a saved study, the engineer's form, the
  * watermarked preview in a new tab, "Emitir" behind its confirmation, and the
  * frozen version opened from the list with its verification code, which the
@@ -88,6 +92,33 @@ test("laudo: pré-visualiza com marca de rascunho, emite e abre a versão congel
   await expect(frozen.getByText(code).first()).toBeVisible();
   await expect(frozen.getByText("RASCUNHO — não emitido")).toHaveCount(0);
   await frozen.close();
+
+  // D-242: send it to the client. The test server's e-mail provider is the mock.
+  await page.getByRole("button", { name: "Enviar a versão 1 ao cliente por e-mail" }).click();
+  const send = page.getByRole("dialog", { name: "Enviar a versão 1 ao cliente" });
+  await expect(send).toBeVisible();
+  await expect(send.getByText("Envio por e-mail não configurado neste servidor")).toBeVisible();
+  const mail = send.frameLocator('iframe[title="Pré-visualização do e-mail que será enviado"]');
+  await expect(mail.getByText("Segue o laudo de engenharia emitido.")).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(mail.getByText("Ana Souza — Engenheira mecânica")).toBeVisible();
+  await expect(send.getByRole("button", { name: "Enviar e-mail" })).toBeDisabled();
+  await send.getByLabel(/^Para/).fill("cliente@empresa.com.br");
+  await send.getByLabel(/^Para/).press("Enter");
+  await expect(
+    send.getByRole("list", { name: "Endereços em Para" }).getByText("cliente@empresa.com.br"),
+  ).toBeVisible();
+  const sendAxe = await runAxe(page);
+  expect(sendAxe, describeFound(sendAxe)).toEqual([]);
+  await send.getByRole("button", { name: "Enviar e-mail" }).click();
+  await expect(page.getByText(/Envio simulado registrado para 1 destinatário/)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(send).toBeHidden();
+  const row = page.getByRole("row", { name: /Versão 1/ });
+  await expect(row.getByText("1 envio")).toBeVisible();
+  await expect(row.getByText("Simulado")).toBeVisible();
 
   // Anyone holding the code can check it, without a session.
   // `request` is not the browser's context: it carries no session cookie.

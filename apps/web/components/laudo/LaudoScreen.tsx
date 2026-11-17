@@ -7,6 +7,7 @@ import {
   issueLaudo,
   laudoPreviewUrl,
   laudoVersionUrl,
+  listLaudoDeliveries,
   listLaudoVersions,
   studyLaudoUrl,
   type IssuedLaudo,
@@ -15,6 +16,7 @@ import {
 import { describeApiError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { LAUDO_REQUIRED, laudoText as t } from "@/lib/i18n-laudo";
+import { DeliveryStatusBadge, formatSentAt, SendLaudoDialog } from "./SendLaudoDialog";
 import {
   Alert,
   Button,
@@ -292,6 +294,28 @@ function LaudoForStudy({ studyId }: { studyId: number }) {
   );
 }
 
+/** What the history says in one line, so the table shows at a glance whether a version went out. */
+function DeliveriesCell({ issued }: { issued: IssuedLaudo }) {
+  const history = useQuery({
+    queryKey: ["laudo-deliveries", issued.id],
+    queryFn: () => listLaudoDeliveries(issued.id),
+  });
+  if (history.isPending) return <span className="text-caption text-ink-muted">{t.deliveriesLoading}</span>;
+  if (history.isError) return <span className="text-caption text-danger-fg">{t.deliveriesError}</span>;
+  const last = history.data[0];
+  if (!last) return <span className="text-caption text-ink-muted">{t.noDeliveries}</span>;
+  return (
+    <span className="flex flex-col gap-1 text-caption">
+      <span className="text-ink">
+        {history.data.length === 1 ? "1 envio" : `${history.data.length} envios`}
+      </span>
+      <span className="flex flex-wrap items-center gap-1 text-ink-muted">
+        {formatSentAt(last.created_at)} <DeliveryStatusBadge status={last.status} />
+      </span>
+    </span>
+  );
+}
+
 function VersionsList({
   studyId,
   versions,
@@ -299,6 +323,7 @@ function VersionsList({
   studyId: number;
   versions: ReturnType<typeof useQuery<IssuedLaudo[]>>;
 }) {
+  const [sending, setSending] = useState<IssuedLaudo | null>(null);
   return (
     <section aria-labelledby="laudo-versions" className="flex min-w-0 flex-col gap-3">
       <div>
@@ -323,6 +348,7 @@ function VersionsList({
                 <Th>{t.colIssued}</Th>
                 <Th>{t.colEngineer}</Th>
                 <Th>{t.colCode}</Th>
+                <Th>{t.colDeliveries}</Th>
                 <Th>{t.colActions}</Th>
               </Tr>
             </THead>
@@ -343,15 +369,27 @@ function VersionsList({
                     <span className="font-mono">{version.short_code}</span>
                   </Td>
                   <Td>
-                    <ButtonLink
-                      size="sm"
-                      href={laudoVersionUrl(studyId, version.version)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={t.openLabel(version.version)}
-                    >
-                      {t.open}
-                    </ButtonLink>
+                    <DeliveriesCell issued={version} />
+                  </Td>
+                  <Td>
+                    <span className="flex flex-wrap gap-2">
+                      <ButtonLink
+                        size="sm"
+                        href={laudoVersionUrl(studyId, version.version)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t.openLabel(version.version)}
+                      >
+                        {t.open}
+                      </ButtonLink>
+                      <Button
+                        size="sm"
+                        aria-label={t.sendLabel(version.version)}
+                        onClick={() => setSending(version)}
+                      >
+                        {t.send}
+                      </Button>
+                    </span>
                   </Td>
                 </Tr>
               ))}
@@ -359,6 +397,9 @@ function VersionsList({
           </Table>
         </TableScroll>
       )}
+      {sending ? (
+        <SendLaudoDialog issued={sending} open onClose={() => setSending(null)} />
+      ) : null}
     </section>
   );
 }

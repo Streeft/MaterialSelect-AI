@@ -120,6 +120,23 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 199 — 17/11/26 — Laudo de engenharia repaginado, parte 2: enviar ao cliente por e-mail (D-242)
+
+**O que mudou.** Backend: `EMAIL_PROVIDER` (`mock` padrão, `smtp` por `smtplib`, sem dependência nova) em
+`services/email_service.py`, com erro traduzido sem segredo, TLS obrigatório com credencial e portão de envios simultâneos;
+`POST /api/exports/laudos/{id}/enviar` (+ `…/enviar/previa` e `GET …/envios`), só o dono e só laudo emitido; e-mail HTML com estilos
+inline e anexo `.html` congelado (`exporters/laudo_email.py`, `recommended_name`); cópia pública só de leitura
+`GET /api/laudos/enviados/{token}` (256 bits, só o hash no banco); `report_delivery` (migração `41cab28c3e17`) e auditoria
+`report_delivery` por projeto; limite de e-mails por conta e por hora (`RATE_LIMIT_EMAIL_PER_HOUR`); `/api/health` com
+`email_provider` e `email_configured`. Frontend: `SendLaudoDialog` (chips, assunto, mensagem, pré-visualização do e-mail, histórico,
+aviso do `mock`) e coluna "Envios" na tabela de versões. Docs: `13-deploy.md` §5-nonies (Gmail com senha de app, Brevo/Resend, SPF/DKIM/DMARC,
+`fly secrets set`), `10-relatorios.md`, `.env.example`. Testes novos: pytest `test_laudo_email` e `test_migration_envio_laudo`;
+vitest `SendLaudoDialog.test.tsx` (com axe), `emailAddress.test.ts` e ajuste de `LaudoScreen.test.tsx`; E2E `laudo.spec.ts` emite e
+envia com o provedor `mock`. **Com migração.** **Depois do merge: Deploy da API**; o e-mail sai de verdade só com os segredos do Fly
+(`13-deploy.md` §5-nonies).
+
+---
+
 ## Sessão 198 — 16/11/26 — Laudo de engenharia repaginado, parte 1: visual em A4 e emissão congelada (D-241)
 
 **O que mudou.** Backend: laudo HTML novo (`app/exporters/laudo.py`) com capa, resumo executivo, comparação (radar e mapa), custo

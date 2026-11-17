@@ -32,9 +32,12 @@ RETRY_AFTER_SECONDS = 5
 class HeavyRequestGate:
     """A counting semaphore with a bounded wait and a Portuguese refusal."""
 
-    def __init__(self, capacity: int, wait_seconds: float) -> None:
+    def __init__(self, capacity: int, wait_seconds: float, busy_message: str | None = None) -> None:
         self.capacity = capacity
         self.wait_seconds = wait_seconds
+        #: What a refused caller reads; the default is about heavy calculations (D-231),
+        #: and another user of the class (the e-mail gate, D-242) says its own.
+        self.busy_message = busy_message
         self._slots = threading.BoundedSemaphore(capacity) if capacity > 0 else None
         self._lock = threading.Lock()
         self._in_use = 0
@@ -51,8 +54,11 @@ class HeavyRequestGate:
             return
         if not self._slots.acquire(timeout=max(self.wait_seconds, 0.0)):
             raise ServerBusyError(
-                "O servidor está ocupado com outros cálculos pesados agora. "
-                f"Tente de novo em {RETRY_AFTER_SECONDS} segundos.",
+                self.busy_message
+                or (
+                    "O servidor está ocupado com outros cálculos pesados agora. "
+                    f"Tente de novo em {RETRY_AFTER_SECONDS} segundos."
+                ),
                 retry_after=RETRY_AFTER_SECONDS,
             )
         with self._lock:

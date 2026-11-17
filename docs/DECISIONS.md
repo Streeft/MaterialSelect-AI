@@ -14220,3 +14220,66 @@ garantia determinística. Página de verificação no frontend: o QR é lido por
 
 **Numeração.** D-241, Sessão 198 (conferidas em `origin/main`). Toca `apps/api` **com migração** e dependência nova (`segno`):
 depois do merge, **Deploy da API** (o `fly deploy` roda `alembic upgrade head`).
+
+## D-242 — Laudo emitido enviado ao cliente por e-mail, pelo app (L2 da D-241)
+
+**Contexto.** A D-241 deixou o laudo pronto para o cliente, mas a entrega continuava fora do app: o engenheiro baixava o PDF e
+escrevia o e-mail. O usuário pediu (16/11/2026) o envio pelo próprio app, com provedor configurável e sem dependência nova.
+
+**Decisão.**
+- **Provedor por variável de ambiente** (`app/services/email_service.py`). `EMAIL_PROVIDER=mock` (padrão no código e nos testes) só
+  registra; `smtp` usa `smtplib` da biblioteca padrão, com `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` (segredo),
+  `SMTP_STARTTLS`, `EMAIL_FROM`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` (opcional) e `SMTP_TIMEOUT_SECONDS` (10). Não há servidor, remetente
+  nem senha padrão (mesma razão do `AI_BASE_URL`, D-36: um padrão escolheria por onde passa o laudo de um engenheiro). 587 usa
+  STARTTLS; 465 é TLS implícito; usuário **sem** TLS é recusado antes de conectar (exceto `localhost`): a senha não viaja aberta.
+- **`mock` diz a verdade.** O envio simulado grava `simulado`, nunca `enviado`; a tela mostra "envio por e-mail não configurado neste
+  servidor" e o histórico mostra "Simulado". `/api/health` ganhou `email_provider` e `email_configured` (booleano: `smtp` com host e
+  remetente), nunca host, usuário, remetente nem senha.
+- **Erro em português, sem segredo.** Cada falha do `smtplib` (credencial, remetente, destinatário, TLS, DNS, conexão, tempo esgotado,
+  código SMTP) vira uma frase nossa; o texto da exceção — que pode ecoar o banner ou o login — nunca é mostrado, gravado nem logado (o log
+  leva a classe e o código). Falha de envio é 503 **depois** de gravar a linha `falhou`.
+- **Não trava o worker.** A rota é `def`, que o FastAPI roda no pool de threads: o `smtplib` (timeout curto) segura uma thread do pool,
+  não o laço de eventos — o equivalente de `run_in_threadpool`. **Não** passa pelo `heavy_request_gate` (D-231), que protege memória e aqui
+  não há cálculo; em vez dele, um portão próprio (`EMAIL_SEND_CONCURRENCY`, 2) com a mesma classe impede que um servidor de e-mail lento
+  prenda todas as threads: o próximo envio espera 5 s e recebe 503 com `Retry-After`.
+- **Rota** `POST /api/exports/laudos/{issued_id}/enviar`, só o dono (o laudo é buscado no projeto de quem chama; o id alheio é o mesmo 404
+  do que não existe). **Rascunho não se envia**: a rota recebe o id de um laudo emitido, e um id que não é de laudo emitido responde 404
+  dizendo que só laudo emitido pode ser enviado. Corpo: 1 a 5 destinatários, cópia opcional (até 5, sem repetir quem já recebe),
+  assunto (padrão "Laudo de engenharia — estudo (versão N)") e mensagem de até 1.000 caracteres. As regras estão em
+  `app/domain/email_address.py` (ASCII, um `@`, domínio com ponto e final alfabético, sem quebra de linha) e respondem 400 escrito com o
+  valor recusado; sem `email-validator` (uma dependência a mais para uma regra curta, e a checagem de DNS faria o envio depender da rede).
+  `…/enviar/previa` monta o e-mail sem token, linha nem envio; `…/envios` lista o histórico.
+- **O e-mail** (`exporters/laudo_email.py`): saudação, três linhas (material recomendado, estudo, engenheiro), botão "Abrir o laudo",
+  código e link de verificação, anexo `.html`. Estilos **inline** com os tokens de `laudo_theme.py` (e-mail não lê `<style>` nem
+  `var(--)`), `html.escape` em todo texto de pessoa (a regra do HTML, não a da planilha), alternativa em texto puro. O anexo é o HTML
+  congelado em base64, **byte a byte**. O material recomendado é lido de volta do HTML guardado (`recommended_name`, ao lado do markup que
+  o escreve), porque a versão emitida só guarda o documento e as entradas.
+- **Cópia pública só de leitura** (`GET /api/laudos/enviados/{token}`). A verificação da D-241 não mostra conteúdo, então o botão
+  precisava de uma rota nova. Token de 256 bits (`secrets`), **um por envio**, e só o **SHA-256** dele vai ao banco (um vazamento do
+  banco não entrega os laudos); `noindex`, `Referrer-Policy: no-referrer`, sem cache e a mesma CSP `default-src 'none'`; um envio
+  que falhou não abre nada (o link nunca chegou a ninguém); passa pelo limite por IP do balde `exports`. Token não é o SHA do laudo: o
+  código impresso circula no PDF e não pode abrir o conteúdo.
+- **Registro** (`report_delivery`, migração `41cab28c3e17`, aditiva): laudo, projeto, quem, destinatários, cópia, assunto, mensagem,
+  situação (`enviado`, `simulado`, `falhou`), provedor, erro resumido, hash do token e hora; só se insere e se lê, e inclui as tentativas
+  que falharam. Auditoria: `AuditEntityType.REPORT_DELIVERY`, com situação e **contagem** de destinatários, nunca endereços, e visível só
+  ao projeto (o filtro de `list_events` tratava só `SELECTION_STUDY` como escopo de projeto; agora há `PROJECT_SCOPED_TYPES`).
+- **Limite** de `RATE_LIMIT_EMAIL_PER_HOUR` (10) por **conta**, não por cookie de sessão (entrar de novo não abre cota nova), em janela de uma
+  hora, com o mesmo `FixedWindowLimiter` (D-223); conta depois da validação e só quando há provedor válido, e uma tentativa falha gasta cota
+  (martelar um servidor quebrado não é de graça). Estourou: 429 com `Retry-After`.
+- **Frontend** (`components/laudo/SendLaudoDialog.tsx`, em `LaudoScreen`): "Enviar ao cliente" em cada versão abre o diálogo com
+  destinatários e cópia em **chips** (Enter, vírgula, ponto e vírgula, espaço ou colar uma lista; o que não é endereço fica no campo com o
+  motivo), assunto, mensagem, a **pré-visualização do e-mail do servidor** num `iframe` com `sandbox=""` e o histórico da versão; sucesso
+  em aviso (snackbar), erro no próprio diálogo; a tabela de versões ganhou a coluna "Envios" (quantidade, último, situação em palavra).
+
+**Alternativas recusadas.** Biblioteca de e-mail (`aiosmtplib`, SDK de Brevo/Resend): dependência para o que a biblioteca padrão faz,
+e o SMTP serve a qualquer serviço. Enviar por API de um serviço específico: escolheria o fornecedor pelo operador. Passar o envio pelo
+portão pesado: protege memória, e não é o recurso escasso aqui. Guardar o token em claro para "reabrir o link": o link está no e-mail do
+cliente, e o histórico não precisa dele. Usar o SHA do laudo como token: o código impresso abriria o conteúdo. Mostrar o e-mail do cliente
+na auditoria: a trilha é lida por mais gente que o histórico.
+
+**Fora desta decisão.** Anexar o PDF que o engenheiro assinou (o app não recebe o PDF; o anexo é o HTML congelado), revogar ou expirar
+um link, saber se o cliente abriu, `Reply-To` pelo e-mail do engenheiro, e fila de reenvio.
+
+**Numeração.** D-242, Sessão 199 (conferidas em `origin/main`). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
+`release_command`), sem dependência nova e sem seed: depois do merge, **Deploy da API**. Para o e-mail sair de verdade, o autor grava os
+segredos do Fly (`13-deploy.md` §5-nonies); sem isso o envio fica simulado e a tela diz.

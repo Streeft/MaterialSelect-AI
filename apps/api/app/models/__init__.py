@@ -69,6 +69,7 @@ from app.models.process_attribute import (
 )
 from app.models.project import Project
 from app.models.property_definition import PropertyDefinition
+from app.models.report_delivery import ReportDelivery
 from app.models.saved_chart import SavedChart
 from app.models.saved_view import SavedView
 from app.models.selection import (
@@ -113,6 +114,7 @@ __all__ = [
     "Favorite",
     "ImportJob",
     "IssuedReport",
+    "ReportDelivery",
     "ImportMappingTemplate",
     "ImportStatus",
     "IngestStatus",

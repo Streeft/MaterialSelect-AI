@@ -903,6 +903,102 @@ No primeiro cutover, a ordem é obrigatória: **Deploy da API →
 última ação é a conta MaterialSelect que revisou a fonte/licença e já precisa ter
 entrado pelo Google ao menos uma vez.
 
+## 5-nonies. Enviar o laudo por e-mail: configurar o SMTP no Fly (D-242)
+
+O botão **Enviar ao cliente** da tela do laudo ([D-242](DECISIONS.md#d-242)) chega com o
+**Deploy da API** (§5-ter): o `release_command` aplica a migração da tabela `report_delivery`, e não há
+seed. Sem nenhuma variável nova o e-mail fica no `mock`: o envio é só **simulado**, o histórico diz
+"Simulado" e a tela avisa "envio por e-mail não configurado neste servidor". Para o laudo sair de verdade
+é preciso uma caixa SMTP, e isto é decisão de operação, feita no Fly, como a IA (§5-quinquies).
+
+**O que existe, e o que é segredo.** Só `SMTP_PASSWORD` é segredo; as outras são configuração. Como o
+`fly secrets set` serve às duas, grave todas de uma vez:
+
+| Variável | Para quê | Exemplo |
+|---|---|---|
+| `EMAIL_PROVIDER` | `smtp` liga o envio; ausente ou `mock`, só simula. | `smtp` |
+| `SMTP_HOST` | Servidor de saída do serviço de e-mail. | `smtp.gmail.com` |
+| `SMTP_PORT` | `587` (STARTTLS) ou `465` (TLS implícito). Padrão `587`. | `587` |
+| `SMTP_USERNAME` | Usuário do servidor SMTP. | o endereço Gmail |
+| `SMTP_PASSWORD` | **Segredo.** A senha de app, a chave SMTP ou a chave de API do serviço. | — |
+| `SMTP_STARTTLS` | `true` (padrão) liga o TLS na 587. A 465 já é TLS e ignora. | `true` |
+| `EMAIL_FROM` | Endereço remetente, no domínio verificado no serviço. | `laudos@seudominio.com.br` |
+| `EMAIL_FROM_NAME` | Nome ao lado do endereço. Padrão `MaterialSelect AI`. | `Laudos MaterialSelect` |
+| `EMAIL_REPLY_TO` | Opcional: para onde vão as respostas do cliente. | `engenharia@seudominio.com.br` |
+
+Opcionais, com padrão: `SMTP_TIMEOUT_SECONDS=10`, `RATE_LIMIT_EMAIL_PER_HOUR=10` (envios por conta e por
+hora, 429 ao estourar) e `EMAIL_SEND_CONCURRENCY=2` (envios simultâneos por processo). Com usuário e **sem**
+TLS o envio é recusado antes de conectar (a senha não viaja aberta), exceto em `localhost`.
+
+**Opção A — Gmail com senha de app (a mais curta; serve a uma turma ou a poucos laudos).**
+
+1. Use uma conta Google **só para isto** (não a pessoal): a senha de app dá acesso ao envio de e-mail da conta.
+2. Ligue a **verificação em duas etapas** na conta; sem ela o Google não oferece senha de app.
+3. Em `myaccount.google.com/apppasswords` crie uma senha de app ("MaterialSelect") e copie as 16 letras.
+4. Grave no Fly (as máquinas reiniciam, sem deploy):
+
+```bash
+fly secrets set -a materialselect-ai \
+  EMAIL_PROVIDER=smtp SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_STARTTLS=true \
+  SMTP_USERNAME='conta.dedicada@gmail.com' SMTP_PASSWORD='xxxxxxxxxxxxxxxx' \
+  EMAIL_FROM='conta.dedicada@gmail.com' EMAIL_FROM_NAME='Laudos MaterialSelect'
+```
+
+O Gmail só envia **como a própria conta** (ou um alias "Enviar como" já confirmado nela), então `EMAIL_FROM` é
+o mesmo endereço. SPF e DKIM do `gmail.com` já vêm certos, por isso este caminho dispensa DNS; em troca, o
+remetente é um `@gmail.com`, o limite diário de uma conta é baixo e o Google pode suspender uma conta que
+mande muito para desconhecidos.
+
+**Opção B — serviço SMTP transacional (Brevo ou Resend; o caminho para uso de verdade).** O remetente é do
+seu domínio, e o limite e a reputação são do serviço.
+
+- **Brevo** (`brevo.com`, plano gratuito com cota diária — confira a vigente): em *SMTP & API* copie o
+  servidor, o *login* e crie uma **chave SMTP** (a senha de envio, que não é a da conta). Valide o remetente
+  ou o domínio. `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_USERNAME=<login SMTP>`,
+  `SMTP_PASSWORD=<chave SMTP>`.
+- **Resend** (`resend.com`, plano gratuito com cota — confira a vigente): em *Domains* adicione e verifique
+  o domínio, em *API Keys* crie uma chave com permissão de envio. `SMTP_HOST=smtp.resend.com`,
+  `SMTP_PORT=465` (TLS implícito; a 587 também serve), `SMTP_USERNAME=resend` (literal),
+  `SMTP_PASSWORD=<a chave re_…>`.
+
+```bash
+fly secrets set -a materialselect-ai \
+  EMAIL_PROVIDER=smtp SMTP_HOST=smtp.resend.com SMTP_PORT=465 \
+  SMTP_USERNAME=resend SMTP_PASSWORD='re_…' \
+  EMAIL_FROM='laudos@seudominio.com.br' EMAIL_FROM_NAME='Laudos MaterialSelect' \
+  EMAIL_REPLY_TO='engenharia@seudominio.com.br'
+```
+
+**SPF, DKIM e DMARC — sem eles o laudo cai em spam, ou é recusado.** Com domínio próprio, o serviço mostra
+os registros DNS a criar; cria-se exatamente o que ele mostra, no painel de quem hospeda o DNS do domínio:
+
+- **SPF** (`TXT` na raiz): autoriza o serviço a enviar pelo domínio, em geral `v=spf1 include:<serviço> ~all`.
+  **Um** registro SPF por domínio: se já existe um (de um e-mail corporativo), acrescente o `include:` a ele em vez de criar outro.
+- **DKIM** (`TXT` ou `CNAME`, o nome vem do serviço): a assinatura do e-mail. É ele que o Gmail e o Outlook
+  conferem primeiro.
+- **DMARC** (`TXT` em `_dmarc`): comece com `v=DMARC1; p=none; rua=mailto:engenharia@seudominio.com.br` e
+  endureça para `quarantine` só depois de uma semana de relatórios limpos.
+- O `EMAIL_FROM` tem de estar **no domínio verificado**; com outro domínio o serviço recusa ou o SPF/DKIM não alinha.
+- Depois de publicar, espere o DNS propagar (de minutos a horas) e use o botão "verificar" do serviço antes de enviar.
+
+**Conferir, uma vez:**
+
+1. `curl -s https://materialselect-ai.fly.dev/api/health` deve trazer `"email_provider":"smtp"` e
+   `"email_configured":true`. Nunca traz host, usuário, remetente nem senha. `"mock"`/`false` é o e-mail ainda desligado.
+2. No app, abra um laudo emitido → **Enviar ao cliente** → mande para o **seu próprio** endereço. O aviso
+   amarelo do `mock` não aparece mais, e o histórico da versão mostra "Enviado". Abra o e-mail, o botão
+   "Abrir o laudo" e o anexo `.html` (imprimir em PDF: Ctrl+P). Olhe também a pasta de spam.
+3. "Falhou" no histórico traz o motivo em português (credencial recusada, remetente recusado, tempo esgotado,
+   conexão). O log da máquina (`fly logs`) registra só a classe do erro e o código SMTP, nunca a senha.
+
+**Desligar:** `fly secrets unset -a materialselect-ai EMAIL_PROVIDER` (ou `EMAIL_PROVIDER=mock`).
+
+**O que sai do servidor, e o que fica.** O e-mail leva o resumo (material recomendado, estudo, engenheiro), o
+link de leitura e o anexo `.html`, que é o laudo inteiro, com os dados do cliente. O app guarda **quem enviou, para
+quem, quando e como terminou** (`report_delivery`) e o hash do token do link, nunca o token. O link
+`/api/laudos/enviados/<token>` é público, só de leitura e não adivinhável (256 bits); como
+as demais rotas públicas, passa pela Vercel (§0), então o `BACKEND_BASE_URL` precisa ser o endereço público do app.
+
 ## 6. Conferir que está de pé
 
 Nesta ordem, porque cada uma isola uma camada:
@@ -959,6 +1055,10 @@ Depois, no navegador:
   variável nova. A emissão cria a tabela `issued_report` (migração aplicada pelo
   `release_command`) e a imagem passa a instalar `segno` (QR em SVG, puro Python,
   MIT), declarado no `pyproject.toml`.
+- **O laudo enviado tem uma segunda rota pública, de leitura (D-242).**
+  `GET /api/laudos/enviados/{token}` abre, sem login, o HTML congelado do laudo para quem
+  recebeu o link no e-mail: token de 256 bits, só o hash guardado, `noindex`, sem cache e com a
+  mesma CSP `default-src 'none'`. Um envio que falhou não abre nada. Configuração do e-mail: §5-nonies.
 
 ## Falhas comuns
 

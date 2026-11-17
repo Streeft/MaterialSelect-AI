@@ -1427,6 +1427,76 @@ export function laudoVersionUrl(studyId: number, version: number): string {
   return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.html`;
 }
 
+// --- Envio do laudo por e-mail (D-242) ----------------------------------------
+
+/** How one e-mailing ended; "simulado" is the mock provider: nothing left the server. */
+export type LaudoDeliveryStatus = "enviado" | "simulado" | "falhou";
+
+/** What the dialog sends; the same body previews and sends. */
+export interface LaudoSendRequest {
+  recipients: string[];
+  cc: string[];
+  /** Blank: the server's default (study and version). */
+  subject?: string | null;
+  message?: string | null;
+}
+
+/** One row of an issued version's sending history. */
+export interface LaudoDelivery {
+  id: number;
+  issued_report_id: number;
+  recipients: string[];
+  cc: string[];
+  subject: string;
+  message: string | null;
+  status: LaudoDeliveryStatus;
+  provider: string;
+  error: string | null;
+  created_at: string;
+  sent_by: string | null;
+}
+
+/** The message as the server would send it, for the dialog's preview. */
+export interface LaudoEmailPreview {
+  subject: string;
+  html: string;
+  text: string;
+  attachment_name: string;
+  provider: string;
+  email_configured: boolean;
+}
+
+export function sendLaudo(issuedId: number, body: LaudoSendRequest): Promise<LaudoDelivery> {
+  return request<LaudoDelivery>(`/api/exports/laudos/${issuedId}/enviar`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function previewLaudoEmail(
+  issuedId: number,
+  body: Pick<LaudoSendRequest, "subject" | "message">,
+): Promise<LaudoEmailPreview> {
+  return request<LaudoEmailPreview>(`/api/exports/laudos/${issuedId}/enviar/previa`, {
+    method: "POST",
+    body: JSON.stringify({ recipients: [], cc: [], ...body }),
+  });
+}
+
+export function listLaudoDeliveries(issuedId: number): Promise<LaudoDelivery[]> {
+  return request<LaudoDelivery[]>(`/api/exports/laudos/${issuedId}/envios`);
+}
+
+/** Whether laudos can really leave the server: the provider's name and a boolean, no secret. */
+export interface EmailStatus {
+  email_provider: string;
+  email_configured: boolean;
+}
+
+export function getEmailStatus(): Promise<EmailStatus> {
+  return request<EmailStatus>(`/api/health`);
+}
+
 /**
  * Ficha técnica detalhada do material em PDF/HTML, CSV ou XLSX (D-124).
  * HTML abre inline com CSS @media print para impressão em PDF pelo navegador.

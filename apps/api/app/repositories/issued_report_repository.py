@@ -35,6 +35,13 @@ class IssuedReportRepository:
         )
         return self.db.execute(stmt).scalars().one_or_none()
 
+    def get_owned(self, project_id: int, issued_id: int) -> IssuedReport | None:
+        """One issued version of the caller's project, by its own id (D-242)."""
+        stmt = select(IssuedReport).where(
+            IssuedReport.project_id == project_id, IssuedReport.id == issued_id
+        )
+        return self.db.execute(stmt).scalars().one_or_none()
+
     def find_by_code(self, code: str) -> list[IssuedReport]:
         """Rows whose digest starts with ``code`` (lower-case hex, 12 to 64 digits)."""
         stmt = (
