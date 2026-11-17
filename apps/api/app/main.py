@@ -30,6 +30,7 @@ from app.domain.errors import (
     ConflictError,
     ExportRefusedError,
     NotFoundError,
+    PayloadTooLargeError,
     QuotaExceededError,
     RateLimitedError,
     ServerBusyError,
@@ -159,6 +160,11 @@ async def _handle_http_exception(request: Request, exc: StarletteHTTPException) 
 @app.exception_handler(ValidationError)
 async def _handle_validation(_: Request, exc: ValidationError) -> JSONResponse:
     return _error_response(400, str(exc))
+
+
+@app.exception_handler(PayloadTooLargeError)
+async def _handle_payload_too_large(_: Request, exc: PayloadTooLargeError) -> JSONResponse:
+    return _error_response(413, str(exc))
 
 
 @app.exception_handler(DisplayUnitError)

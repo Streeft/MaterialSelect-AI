@@ -311,6 +311,15 @@ class Settings(BaseSettings):
     # waits briefly and is then refused, so a slow server cannot take every thread.
     email_send_concurrency: int = 2
 
+    # --- Client link and signed PDF of an issued laudo (D-243) -----------------
+    # How long the link in the e-mail keeps opening the laudo, counted from the
+    # send. Each delivery stores its own ``expires_at`` when it is written, so a
+    # later change here does not move links already sent. 1 to 3650 days.
+    report_link_ttl_days: int = Field(default=90, ge=1, le=3650)
+    # The signed PDF the engineer uploads for an issued version: stored in the
+    # database, so it is bounded (the bytes are read in memory once).
+    signed_pdf_max_bytes: int = 10 * 1024 * 1024
+
     # Used to build the exact redirect_uri Google requires pre-registered, and
     # the issued laudo's verification URL and QR code (D-241).
     backend_base_url: str = "http://localhost:8000"

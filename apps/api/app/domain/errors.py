@@ -19,6 +19,10 @@ class ValidationError(DomainError):
     """Input is structurally valid but violates a domain rule. -> HTTP 400."""
 
 
+class PayloadTooLargeError(DomainError):
+    """An upload over its size limit (the signed PDF of a laudo, D-243). -> HTTP 413."""
+
+
 class ExportRefusedError(DomainError):
     """The requested export cannot be produced honestly. -> HTTP 422.
 

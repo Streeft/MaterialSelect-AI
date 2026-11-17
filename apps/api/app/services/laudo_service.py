@@ -66,6 +66,7 @@ from app.exporters.qr import qr_svg
 from app.exporters.report import Sheet, standard_notices
 from app.models.issued_report import IssuedReport
 from app.models.user import User
+from app.repositories.issued_report_pdf_repository import IssuedReportPdfRepository
 from app.repositories.issued_report_repository import IssuedReportRepository
 from app.repositories.process_repository import ProcessRepository
 from app.schemas.eco import PartFootprintOut, WaterfallOut
@@ -74,6 +75,7 @@ from app.schemas.laudo import (
     IssuedReportOut,
     IssuedReportVerificationOut,
     LaudoInputs,
+    SignedPdfOut,
 )
 from app.schemas.part_cost import (
     DEFAULT_BATCH_SIZE,
@@ -89,6 +91,7 @@ from app.schemas.selection import RunResultOut
 from app.services.eco_service import EcoService
 from app.services.export_service import ExportService
 from app.services.part_cost_service import PartCostService
+from app.services.signed_pdf_service import pdf_out, public_summary
 
 #: How many finalists the comparison, cost and eco sections show side by side.
 FINALISTS = 4
@@ -230,6 +233,7 @@ class LaudoService:
                     ),
                 )
             ),
+            lights=lights,
             donut=self._donut(lights),
             ranking_mini=self._ranking_mini(result, finalists),
             scope=self._scope(result, recommended, cost, footprints, processes),
@@ -1194,7 +1198,20 @@ class LaudoService:
 
     def versions(self, study_id: int, project_id: int) -> list[IssuedReportOut]:
         self._require_study(study_id, project_id)
-        return [self.out(r) for r in self.issued.list_for_study(project_id, study_id)]
+        reports = self.issued.list_for_study(project_id, study_id)
+        # One query for the signed PDFs of every version (metadata only, never the bytes).
+        uploads: dict[int, list] = {}
+        for row in IssuedReportPdfRepository(self.db).history_for_many(
+            project_id, [r.id for r in reports]
+        ):
+            bucket = uploads.setdefault(row.issued_report_id, [])
+            bucket.append(pdf_out(row, current=not bucket))
+        return [
+            self.out(
+                r, signed_pdf=uploads.get(r.id, [None])[0], pdf_count=len(uploads.get(r.id, []))
+            )
+            for r in reports
+        ]
 
     def version(self, study_id: int, project_id: int, version: int) -> IssuedReport:
         self._require_study(study_id, project_id)
@@ -1208,7 +1225,9 @@ class LaudoService:
             raise NotFoundError(f"Estudo não encontrado: {study_id}")
 
     @staticmethod
-    def out(report: IssuedReport) -> IssuedReportOut:
+    def out(
+        report: IssuedReport, *, signed_pdf: SignedPdfOut | None = None, pdf_count: int = 0
+    ) -> IssuedReportOut:
         return IssuedReportOut(
             id=report.id,
             study_id=report.study_id,
@@ -1226,6 +1245,8 @@ class LaudoService:
             short_code=short_code(report.content_sha256),
             verify_url=verify_url(report.content_sha256),
             issued_at=report.issued_at,
+            signed_pdf=signed_pdf,
+            signed_pdf_count=pdf_count,
         )
 
 
@@ -1248,4 +1269,5 @@ def verify_code(db: Session, code: str) -> IssuedReportVerificationOut:
         engineer_registration=report.engineer_registration,
         content_sha256=report.content_sha256,
         short_code=short_code(report.content_sha256),
+        signed_pdf=public_summary(db, report.id),
     )

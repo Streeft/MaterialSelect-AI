@@ -11,15 +11,19 @@ stored: the link lives in the e-mail the client received, and a leaked database
 must not hand out the laudos. One token per delivery, so each link is traceable
 to the message that carried it.
 
-Insert and read only (the service never updates a row after it is written):
-the history is a record, not a state.
+The row is a record first: what was sent, to whom and how it ended is written once
+and never edited. D-243 added the *state of the link* to it — its validity
+(``expires_at``), its revocation (``revoked_at``/``revoked_by_id``) and how many times
+it was opened (``first_opened_at``, ``last_opened_at``, ``open_count``) — and those
+columns are the only ones that ever change. The opening counters hold no address of
+the visitor and nothing that identifies them: a count and two times.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -67,3 +71,19 @@ class ReportDelivery(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False
     )
+    #: When the public link stops opening the laudo. ``NULL`` only on a row written
+    #: before D-243: it then counts as ``created_at`` plus the configured days.
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: Set when the owner revokes the link; the link answers 410 from then on.
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    #: First and last time the link opened the laudo, and how many times (never an
+    #: address, never a user agent: D-243's privacy choice).
+    first_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    open_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    #: SHA-256 of the signed PDF that went attached in this message, when there was
+    #: one (the e-mail then carried the PDF instead of the ``.html``).
+    attached_pdf_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)

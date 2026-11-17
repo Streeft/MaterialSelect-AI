@@ -15,7 +15,7 @@ from __future__ import annotations
 import io
 
 from app.exporters.cells import format_number
-from app.exporters.report import Report
+from app.exporters.report import Report, Sheet
 from app.exporters.xml_text import xml_legal_report
 
 # python-docx (with lxml) is imported inside the functions that use it, not here
@@ -65,6 +65,78 @@ def _set_cant_split(row) -> None:
     trPr = row._element.get_or_add_trPr()
     cantSplit = OxmlElement("w:cantSplit")
     trPr.append(cantSplit)
+
+
+def add_sheet(doc, sheet: Sheet, heading_text: str, *, level: int = 2) -> None:
+    """One titled table of a Report, with its notes: the shared body of every DOCX of tables."""
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt, RGBColor
+
+    _PRIMARY_COLOR = RGBColor(15, 23, 42)  # #0f172a (ink)
+    _SUBTLE_COLOR = RGBColor(100, 116, 139)  # #64748b (ink-subtle)
+    heading = doc.add_heading(heading_text, level=level)
+    heading.paragraph_format.space_before = Pt(16)
+    heading.paragraph_format.space_after = Pt(6)
+
+    for note in sheet.notes:
+        note_p = doc.add_paragraph()
+        note_run = note_p.add_run(note)
+        note_run.font.size = Pt(9)
+        note_run.font.italic = True
+        note_run.font.color.rgb = _SUBTLE_COLOR
+        note_p.paragraph_format.space_after = Pt(4)
+
+    if sheet.rows:
+        num_cols = max(len(sheet.header), 1)
+        num_rows = len(sheet.rows) + (1 if sheet.header else 0)
+        table = doc.add_table(rows=num_rows, cols=num_cols)
+        table.style = "Table Grid"
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+        current_row = 0
+        if sheet.header:
+            header_tr = table.rows[0]
+            _set_repeat_header_and_cant_split(header_tr)
+            for col_idx, col_name in enumerate(sheet.header):
+                c = header_tr.cells[col_idx]
+                _set_cell_background(c, "F1F5F9")
+                cp = c.paragraphs[0]
+                cp.paragraph_format.space_before = Pt(2)
+                cp.paragraph_format.space_after = Pt(2)
+                hrun = cp.add_run(col_name)
+                hrun.font.bold = True
+                hrun.font.size = Pt(9)
+                hrun.font.color.rgb = _PRIMARY_COLOR
+            current_row = 1
+
+        for row_data in sheet.rows:
+            tr = table.rows[current_row]
+            _set_cant_split(tr)
+            for col_idx in range(num_cols):
+                val = row_data[col_idx] if col_idx < len(row_data) else ""
+                c = tr.cells[col_idx]
+                cp = c.paragraphs[0]
+                cp.paragraph_format.space_before = Pt(2)
+                cp.paragraph_format.space_after = Pt(2)
+                val_str = _text(val)
+                crun = cp.add_run(val_str)
+                crun.font.size = Pt(8.5)
+                if val is None or val_str == "ausente":
+                    crun.font.italic = True
+                    crun.font.color.rgb = _SUBTLE_COLOR
+                elif isinstance(val, (int, float)):
+                    cp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            current_row += 1
+
+        doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    elif not sheet.notes:
+        empty_p = doc.add_paragraph()
+        empty_run = empty_p.add_run("Nenhum registro nesta seção.")
+        empty_run.font.size = Pt(9)
+        empty_run.font.italic = True
+        empty_run.font.color.rgb = _SUBTLE_COLOR
+        empty_p.paragraph_format.space_after = Pt(6)
 
 
 def to_docx(report: Report) -> bytes:
@@ -140,68 +212,7 @@ def to_docx(report: Report) -> bytes:
 
     # Render Sheets (Tables & Sections)
     for i, sheet in enumerate(report.sheets, start=1):
-        heading = doc.add_heading(f"{i}. {sheet.name}", level=2)
-        heading.paragraph_format.space_before = Pt(16)
-        heading.paragraph_format.space_after = Pt(6)
-
-        for note in sheet.notes:
-            note_p = doc.add_paragraph()
-            note_run = note_p.add_run(note)
-            note_run.font.size = Pt(9)
-            note_run.font.italic = True
-            note_run.font.color.rgb = _SUBTLE_COLOR
-            note_p.paragraph_format.space_after = Pt(4)
-
-        if sheet.rows:
-            num_cols = max(len(sheet.header), 1)
-            num_rows = len(sheet.rows) + (1 if sheet.header else 0)
-            table = doc.add_table(rows=num_rows, cols=num_cols)
-            table.style = "Table Grid"
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER
-
-            current_row = 0
-            if sheet.header:
-                header_tr = table.rows[0]
-                _set_repeat_header_and_cant_split(header_tr)
-                for col_idx, col_name in enumerate(sheet.header):
-                    c = header_tr.cells[col_idx]
-                    _set_cell_background(c, "F1F5F9")
-                    cp = c.paragraphs[0]
-                    cp.paragraph_format.space_before = Pt(2)
-                    cp.paragraph_format.space_after = Pt(2)
-                    hrun = cp.add_run(col_name)
-                    hrun.font.bold = True
-                    hrun.font.size = Pt(9)
-                    hrun.font.color.rgb = _PRIMARY_COLOR
-                current_row = 1
-
-            for row_data in sheet.rows:
-                tr = table.rows[current_row]
-                _set_cant_split(tr)
-                for col_idx in range(num_cols):
-                    val = row_data[col_idx] if col_idx < len(row_data) else ""
-                    c = tr.cells[col_idx]
-                    cp = c.paragraphs[0]
-                    cp.paragraph_format.space_before = Pt(2)
-                    cp.paragraph_format.space_after = Pt(2)
-                    val_str = _text(val)
-                    crun = cp.add_run(val_str)
-                    crun.font.size = Pt(8.5)
-                    if val is None or val_str == "ausente":
-                        crun.font.italic = True
-                        crun.font.color.rgb = _SUBTLE_COLOR
-                    elif isinstance(val, (int, float)):
-                        cp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                current_row += 1
-
-            doc.add_paragraph().paragraph_format.space_after = Pt(8)
-        elif not sheet.notes:
-            empty_p = doc.add_paragraph()
-            empty_run = empty_p.add_run("Nenhum registro nesta seção.")
-            empty_run.font.size = Pt(9)
-            empty_run.font.italic = True
-            empty_run.font.color.rgb = _SUBTLE_COLOR
-            empty_p.paragraph_format.space_after = Pt(6)
+        add_sheet(doc, sheet, f"{i}. {sheet.name}")
 
     # Narrative Section (when applicable, e.g. engineering reports / laudo)
     if report.narrative is not None or report.narrative_note is not None:

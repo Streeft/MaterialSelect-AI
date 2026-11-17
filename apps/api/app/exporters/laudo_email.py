@@ -2,8 +2,9 @@
 
 A message, not a document: it says in three lines what the laudo is (the
 recommended material, the study, the engineer), offers one button to the
-read-only copy, one link to verify the code, and leaves the frozen HTML attached
-so the client can open and print it as a PDF.
+read-only copy, one link to verify the code, and attaches the document: the PDF the
+engineer signed when there is one (D-243), else the frozen HTML to open and print as a PDF.
+It says until when the link works.
 
 Mail clients ignore CSS custom properties and most of ``<style>``, so this is the
 one renderer that cannot read the stylesheet: it writes **inline styles** whose
@@ -17,6 +18,7 @@ escape, never before.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from html import escape
 
 from app.exporters.laudo_theme import FONT_SANS, token
@@ -43,6 +45,10 @@ class LaudoEmail:
     #: The sender's own words, plain text (may hold line breaks).
     message: str | None = None
     attachment_name: str = "laudo.html"
+    #: ``True`` when the attachment is the engineer's signed PDF (D-243), not the ``.html``.
+    signed_pdf: bool = False
+    #: The last day the public link opens the laudo; ``None`` says nothing about it.
+    valid_until: date | None = None
 
 
 def default_subject(study_name: str, version: int) -> str:
@@ -51,6 +57,21 @@ def default_subject(study_name: str, version: int) -> str:
 
 def _e(value: object) -> str:
     return escape(xml_legal(str(value)), quote=True)
+
+
+def _valid_until(mail: LaudoEmail) -> str | None:
+    if mail.valid_until is None:
+        return None
+    return f"O link vale até {mail.valid_until.strftime('%d/%m/%Y')}."
+
+
+def _attachment_sentence(mail: LaudoEmail) -> str:
+    if mail.signed_pdf:
+        return f"O laudo assinado pelo engenheiro vai em anexo ({mail.attachment_name}), em PDF."
+    return (
+        f"O laudo vai também em anexo ({mail.attachment_name}): abra no navegador e "
+        "imprima em PDF (Ctrl+P ou Cmd+P)."
+    )
 
 
 def _engineer_line(mail: LaudoEmail) -> str:
@@ -77,12 +98,13 @@ def render_text(mail: LaudoEmail) -> str:
         "",
     ]
     if mail.public_url:
-        lines += [f"Abrir o laudo (somente leitura): {mail.public_url}", ""]
+        lines += [f"Abrir o laudo (somente leitura): {mail.public_url}"]
+        validity = _valid_until(mail)
+        lines += [validity, ""] if validity else [""]
     lines += [
         f"Verificar a autenticidade (código {mail.short_code}): {mail.verify_url}",
         "",
-        f"O laudo vai também em anexo ({mail.attachment_name}): abra no navegador e imprima "
-        "em PDF (Ctrl+P ou Cmd+P).",
+        _attachment_sentence(mail),
         "",
         "Enviado pelo MaterialSelect AI.",
     ]
@@ -114,12 +136,15 @@ def render_html(mail: LaudoEmail) -> str:
         own_words = f'<p style="margin:0 0 16px;font-size:15px;line-height:1.5">{text}</p>'
 
     href = _e(mail.public_url) if mail.public_url else "#"
+    validity = _valid_until(mail)
+    note = "Somente leitura." + (f" {validity}" if validity else "")
     button = (
         f'<a href="{href}" style="display:inline-block;background:{brand};color:#ffffff;'
         "text-decoration:none;font-weight:700;font-size:15px;padding:12px 22px;"
         'border-radius:8px">Abrir o laudo</a>'
-        f'<div style="margin-top:6px;font-size:12px;color:{muted}">Somente leitura. '
-        "Para guardar em PDF, abra e imprima.</div>"
+        f'<div style="margin-top:6px;font-size:12px;color:{muted}">{_e(note)} '
+        + ("" if mail.signed_pdf else "Para guardar em PDF, abra e imprima.")
+        + "</div>"
     )
     return (
         '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
@@ -150,8 +175,7 @@ def render_html(mail: LaudoEmail) -> str:
         f'font-family:ui-monospace,Menlo,Consolas,monospace">{_e(mail.short_code)}</strong> em '
         f'<a href="{_e(mail.verify_url)}" style="color:{brand}">{_e(mail.verify_url)}</a></p>'
         f'<p style="margin:0;font-size:13px;line-height:1.5;color:{muted}">'
-        f"O laudo vai também em anexo ({_e(mail.attachment_name)}): abra no navegador e "
-        "imprima em PDF (Ctrl+P ou Cmd+P).</p>"
+        f"{_e(_attachment_sentence(mail))}</p>"
         f'<hr style="border:0;border-top:1px solid {edge};margin:24px 0 12px">'
         f'<p style="margin:0;font-size:12px;color:{muted}">Enviado pelo MaterialSelect AI.</p>'
         "</td></tr></table></body></html>"

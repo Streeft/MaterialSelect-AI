@@ -31,6 +31,10 @@ class LaudoEmailPreviewOut(BaseModel):
     html: str
     text: str
     attachment_name: str
+    #: ``True`` when the attachment is the signed PDF (D-243) rather than the frozen ``.html``.
+    signed_pdf: bool = False
+    #: Until when the link would work if sent now (``REPORT_LINK_TTL_DAYS``).
+    link_expires_at: datetime | None = None
     #: ``mock`` or ``smtp``: the preview says whether anything would really leave.
     provider: str
     email_configured: bool
@@ -50,3 +54,14 @@ class ReportDeliveryOut(BaseModel):
     created_at: datetime
     #: The account's e-mail that pressed "Enviar", when the account still exists.
     sent_by: str | None = None
+    #: The link's life (D-243): when it stops opening the laudo (the configured days after
+    #: the send), and its state in one word. ``sem_link`` is a failed send: no link left.
+    expires_at: datetime | None = None
+    link_state: Literal["ativo", "vencido", "revogado", "sem_link"] = "ativo"
+    revoked_at: datetime | None = None
+    #: How many times the link opened the laudo, and the first and last time. No address.
+    open_count: int = 0
+    first_opened_at: datetime | None = None
+    last_opened_at: datetime | None = None
+    #: SHA-256 of the signed PDF that went attached, when the message carried one.
+    attached_pdf_sha256: str | None = None
