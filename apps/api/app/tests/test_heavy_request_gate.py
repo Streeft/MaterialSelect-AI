@@ -46,6 +46,8 @@ HEAVY_ROUTES = {
     ("POST", "/api/selection/run"),
     ("POST", "/api/selection/run-diff"),
     ("POST", "/api/selection/studies/{study_id}/run"),
+    # D-245: keeping a run in the history runs the study first.
+    ("POST", "/api/selection/studies/{study_id}/runs"),
     ("POST", "/api/charts/property-map"),
     ("POST", "/api/charts/map-box"),
     ("POST", "/api/charts/index-line"),

@@ -8,6 +8,8 @@ import type {
   FunnelPreviewRequest,
   RunDiff,
   RunDiffRequest,
+  SavedRun,
+  SavedRunCreated,
   StudyTemplate,
   ExpressionDescription,
   ExpressionPalette,
@@ -919,6 +921,29 @@ export function listStudyTemplates(): Promise<StudyTemplate[]> {
 }
 
 /** What changed between two runs of the same study, computed in the backend (D-210). */
+/** D-245: the runs kept in a saved study's history, newest first. */
+export function listStudyRuns(studyId: number): Promise<SavedRun[]> {
+  return request<SavedRun[]>(`/api/selection/studies/${studyId}/runs`);
+}
+
+/** D-245: run the saved study now and keep the answer in its history. */
+export function keepStudyRun(studyId: number, label: string): Promise<SavedRunCreated> {
+  return request<SavedRunCreated>(`/api/selection/studies/${studyId}/runs`, {
+    method: "POST",
+    body: JSON.stringify({ label: label.trim() || null }),
+  });
+}
+
+export function deleteStudyRun(studyId: number, runId: number): Promise<void> {
+  return request<void>(`/api/selection/studies/${studyId}/runs/${runId}`, { method: "DELETE" });
+}
+
+/** D-245: two kept runs, record by record, from what each stored. Nothing re-runs. */
+export function compareStudyRuns(studyId: number, before: number, after: number): Promise<RunDiff> {
+  const query = new URLSearchParams({ antes: String(before), depois: String(after) });
+  return request<RunDiff>(`/api/selection/studies/${studyId}/runs/compare?${query}`);
+}
+
 export function diffRuns(payload: RunDiffRequest): Promise<RunDiff> {
   return request<RunDiff>(`/api/selection/run-diff`, {
     method: "POST",

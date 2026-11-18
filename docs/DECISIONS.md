@@ -14388,3 +14388,38 @@ durante o arrastar de uma árvore muito longa; avisar o usuário, na tela, de qu
 
 **Numeração.** D-244, Sessão 201 (conferidas em `origin/main`). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
 
+## D-245 — Histórico de execuções do estudo salvo: versões guardadas no servidor e comparação entre duas
+
+**Contexto.** A D-210 deu à Seleção a comparação "execução anterior × atual", mas só dentro da sessão: fechada a página, a execução de
+ontem sumia, e um estudo não guardava "a versão de antes da curadoria" para mostrar depois. O pendente da Etapa 3.1 pedia comparar
+execuções entre sessões e salvar o estudo com versão, o que exige uma tabela e uma migração.
+
+**Decisão.**
+- **Tabela `selection_run`** (migração `dc672e36c7d8`, aditiva): uma linha por execução que a pessoa **escolhe** guardar, presa ao
+  estudo (`ondelete=CASCADE` e `cascade="all, delete-orphan"`, porque o SQLite dos testes roda sem chave estrangeira). Guarda o nome
+  opcional da versão, o universo, as contagens inicial e final, os nomes do vencedor, uma entrada por candidato (`record_id`, nome,
+  classe, posição, escore, valor do índice) e o estudo como estava (`StudyOut` em JSON). Os números são os que o motor devolveu
+  naquela execução, guardados como vieram; nada é recalculado ao ler.
+- **API** sob `/api/selection/studies/{id}/runs`: `POST` executa o estudo salvo agora e guarda a resposta (devolve a versão e o
+  resultado, que a tela passa a mostrar); `GET` lista as versões, da mais nova à mais antiga; `GET …/{run_id}` lê uma com as entradas
+  e o estudo; `DELETE …/{run_id}` apaga; `GET …/compare?antes=&depois=` compara duas pela mesma `diff_runs` da D-210, sobre as entradas
+  guardadas, sem executar nada. Versão de outro estudo é 404 pelo caminho deste. O `POST` passa pelo portão de requisição
+  pesada, como `/studies/{id}/run`, porque executa o estudo; as leituras e a comparação, não.
+- **Teto de 50 versões por estudo** (`MAX_RUNS_PER_STUDY`): o histórico é para comparar um punhado de momentos, não um registro de
+  cada clique; passado o teto, o servidor recusa (409) e pede para apagar uma antiga. Nome da versão até 120 caracteres; em branco é
+  `NULL`, e a tela nomeia pela data e hora.
+- **Na tela**, o "Histórico do estudo" (`RunHistory`) aparece nos resultados quando eles vêm do "Executar" de "Meus estudos", porque só
+  então o resultado é exatamente o do estudo salvo. Uma execução do assistente apaga essa ligação: o que está sendo editado pode já
+  não ser o estudo salvo. A seção tem o nome da versão e "Guardar no histórico", a tabela das versões (candidatos, vencedor, apagar
+  com Desfazer, D-130) e "Comparar duas versões", com Antes e Depois (por padrão as duas mais novas). A tabela da comparação é a
+  mesma da D-210, extraída como `RunDiffBody`.
+
+**Alternativas recusadas.** Guardar toda execução automaticamente (encheria o histórico de cliques e tornaria o teto um problema).
+Reexecutar as duas versões para comparar (compararia o catálogo de hoje com ele mesmo, não as duas respostas). Guardar o
+`RunResultOut` inteiro (dobra o tamanho por causa do funil e dos eliminados, e a comparação só lê as posições). Guardar o estudo pelo
+arquivo de estudo (`build_study_file`), que recusa estudo com estágio de lista; o retrato fica dentro do mesmo catálogo, onde o id do
+material ainda vale.
+
+**Numeração.** D-245, Sessão 202 (conferidas em `origin/main`). Toca `apps/api` **com migração**: depois do merge, **Deploy da API**
+(que roda `alembic upgrade head`).
+

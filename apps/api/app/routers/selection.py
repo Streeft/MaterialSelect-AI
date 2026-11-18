@@ -33,6 +33,10 @@ from app.schemas.selection import (
     RunDiffRequest,
     RunRequest,
     RunResultOut,
+    SavedRunCreatedOut,
+    SavedRunDetailOut,
+    SavedRunIn,
+    SavedRunOut,
     StudyIn,
     StudyNotesPatch,
     StudyOut,
@@ -248,6 +252,72 @@ def get_study(
     user: User = Depends(get_current_user),
 ) -> StudyOut:
     return SelectionService(db, project.id, user).get_study(study_id)
+
+
+# --- Run history (D-245) ------------------------------------------------------
+
+
+@router.get("/studies/{study_id}/runs", response_model=list[SavedRunOut])
+def list_runs(
+    study_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> list[SavedRunOut]:
+    return SelectionService(db, project.id, user).list_runs(study_id)
+
+
+@router.post(
+    "/studies/{study_id}/runs",
+    response_model=SavedRunCreatedOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(heavy_request)],
+)
+def save_run(
+    study_id: int,
+    payload: SavedRunIn,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> SavedRunCreatedOut:
+    """Run the saved study now and keep the answer in its history."""
+    return SelectionService(db, project.id, user).save_run(study_id, payload)
+
+
+@router.get("/studies/{study_id}/runs/compare", response_model=RunDiffOut)
+def compare_runs(
+    study_id: int,
+    antes: int,
+    depois: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> RunDiffOut:
+    """Two kept runs of the study, record by record. Nothing is re-run."""
+    return SelectionService(db, project.id, user).compare_runs(study_id, antes, depois)
+
+
+@router.get("/studies/{study_id}/runs/{run_id}", response_model=SavedRunDetailOut)
+def get_run(
+    study_id: int,
+    run_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> SavedRunDetailOut:
+    return SelectionService(db, project.id, user).get_run(study_id, run_id)
+
+
+@router.delete("/studies/{study_id}/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_run(
+    study_id: int,
+    run_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    SelectionService(db, project.id, user).delete_run(study_id, run_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/studies/{study_id}", response_model=StudyOut)

@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 202 — 18/11/26 — Histórico de execuções do estudo salvo (D-245)
+
+**O que mudou.** Backend: modelo `SelectionRun` e migração `dc672e36c7d8` (tabela `selection_run`); rotas
+`/api/selection/studies/{id}/runs` para guardar (executa o estudo salvo e guarda a resposta), listar, ler, apagar e comparar duas
+versões (`diff_runs` sobre as entradas guardadas); teto de 50 versões por estudo. Frontend: `RunHistory` nos resultados de um estudo
+executado de "Meus estudos" (nome da versão, tabela com Desfazer, Antes/Depois), `RunDiffBody` extraído de `RunComparison`,
+`formatDateTime`. Testes novos: pytest `test_selection_run_history`; vitest `RunHistory` e `format`; E2E `historico.spec.ts`. **Com
+migração.** **Depois do merge: Deploy da API.**
+
+---
+
 ## Sessão 201 — 17/11/26 — Pendências do TODO, parte 4: tela de fontes, arrastar por toque, CSV que diz quando quebrou (D-244)
 
 **O que mudou.** Backend: `PATCH /api/sources/{id}` leva também `label`, `reference`, `license_label` e `license_url` (`edit_registration`; rótulo em branco 400,

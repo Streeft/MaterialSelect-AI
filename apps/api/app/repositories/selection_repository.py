@@ -19,7 +19,7 @@ from app.models.process_attribute import (
     ProcessAttributeValue,
 )
 from app.models.property_definition import PropertyDefinition
-from app.models.selection import SelectionStudy
+from app.models.selection import SelectionRun, SelectionStudy
 from app.repositories.visibility import visible_materials
 
 
@@ -398,6 +398,26 @@ class SelectionRepository:
         if exclude_id is not None:
             stmt = stmt.where(SelectionStudy.id != exclude_id)
         return self.db.execute(stmt).first() is not None
+
+    # --- run history (D-245) ------------------------------------------------
+
+    def list_runs(self, study_id: int) -> list[SelectionRun]:
+        stmt = (
+            select(SelectionRun)
+            .where(SelectionRun.study_id == study_id)
+            .order_by(SelectionRun.id.desc())
+        )
+        return list(self.db.execute(stmt).scalars().all())
+
+    def get_run(self, study_id: int, run_id: int) -> SelectionRun | None:
+        stmt = select(SelectionRun).where(
+            SelectionRun.id == run_id, SelectionRun.study_id == study_id
+        )
+        return self.db.execute(stmt).scalars().one_or_none()
+
+    def count_runs(self, study_id: int) -> int:
+        stmt = select(func.count(SelectionRun.id)).where(SelectionRun.study_id == study_id)
+        return int(self.db.execute(stmt).scalar_one())
 
     def add(self, obj: object) -> None:
         self.db.add(obj)

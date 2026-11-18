@@ -37,7 +37,8 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   o passo em que cada material reprovado caiu, e se caiu por falta de dado),
   excluídos por dado ausente e análise de sensibilidade. Estudos salvos
   reexecutam para a mesma resposta, levam notas por estágio e por estudo (a
-  do estudo se edita direto em "Meus estudos"), e
+  do estudo se edita direto em "Meus estudos"), guardam um histórico de
+  execuções com nome para comparar duas versões, e
   saem como arquivo JSON versionado que outra pessoa importa (o arquivo é só
   dado: nada nele é executado). A tabela de resultado se copia como TSV, e um
   registro próprio se duplica como cópia editável.

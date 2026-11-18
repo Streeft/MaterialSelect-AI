@@ -1417,6 +1417,24 @@ export interface RunDiff {
   winner_changed: boolean;
 }
 
+/** D-245: one run of a saved study, kept in its history on purpose. */
+export interface SavedRun {
+  id: number;
+  study_id: number;
+  /** The reader's name for this version; null names it by its date. */
+  label: string | null;
+  universe: SelectionUniverse;
+  initial_count: number;
+  final_count: number;
+  winner_names: string[];
+  created_at: string;
+}
+
+export interface SavedRunCreated {
+  run: SavedRun;
+  result: RunResult;
+}
+
 export interface PerformanceIndex {
   id: number;
   name: string;
