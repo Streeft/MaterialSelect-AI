@@ -627,7 +627,7 @@ _SHORT = CallLimits(timeout_seconds=7.0, max_output_tokens=123, max_retries=1)
 
 
 class TestShortCallsKeepTheirOwnBudget:
-    """D-246: the plan, the suggestions and the probe are bounded on claude-api and
+    """D-247: the plan, the suggestions and the probe are bounded on claude-api and
     claude-cli too, not only on openai-compat."""
 
     def test_the_api_call_carries_its_own_ceiling_timeout_and_retries(self) -> None:

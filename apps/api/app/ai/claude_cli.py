@@ -55,7 +55,7 @@ class ClaudeCLIProvider(ModelProviderBase):
 
     def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
         """One run under the short budget of the plan, the suggestions and the
-        probe (D-246): their timeout, the CLI's output-token ceiling set for this
+        probe (D-247): their timeout, the CLI's output-token ceiling set for this
         process only, and a cap on the bytes read back. A single run, never a
         retry: the CLI already retries inside itself."""
         return self._run(

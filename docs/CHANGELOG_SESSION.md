@@ -120,7 +120,7 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
-## Sessão 203 — 18/11/26 — Pendências do TODO, parte 5: lote no importador e na duplicação, falha conhecida no Cérebro, teto nos provedores Claude (D-246)
+## Sessão 204 — 18/11/26 — Pendências do TODO, parte 5: lote no importador e na duplicação, falha conhecida no Cérebro, teto nos provedores Claude (D-247)
 
 **O que mudou.** Backend: importador com definições lidas uma vez por requisição e a fonte uma vez por arquivo; `duplicate_material` em três `flush`;
 o login apaga sessões vencidas (`purge_expired`); ponteiro LFS que já falhou com os mesmos bytes não é baixado de novo (`KNOWN_FAILURE`, contado por

@@ -220,7 +220,7 @@ class AuthService:
         here, keeping its expiry, so a deploy logs nobody out and the raw
         tokens leave the table as their owners come back. Rows nobody returns
         to expire as before (``SESSION_TTL_HOURS``) and are deleted at the next
-        login (``purge_expired``, D-246).
+        login (``purge_expired``, D-247).
         """
         session = self.sessions.get_valid(token)
         if session is not None:

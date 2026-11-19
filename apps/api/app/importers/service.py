@@ -88,7 +88,7 @@ class ImportService:
         # record and refuse a catalogue row nobody else can explain.
         self.materials = MaterialRepository(db)
         self.material_service = MaterialService(db)
-        # Read once per request and reused by every cell of the file (D-246):
+        # Read once per request and reused by every cell of the file (D-247):
         # the property catalogue, and the one source a job can cite.
         self._properties: dict[str, PropertyDefinition] | None = None
         self._sources: dict[str, Source] = {}
@@ -535,7 +535,7 @@ class ImportService:
             raise ConflictError("Esta importação já foi efetivada ou está sendo efetivada.")
         imported = 0
         # One read for the source the whole file cites; the first row creates it
-        # when it is new and the others reuse it (D-246).
+        # when it is new and the others reuse it (D-247).
         self._sources = (
             self.materials.get_sources_by_labels([mapping.source_label])
             if mapping.source_label

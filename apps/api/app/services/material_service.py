@@ -633,7 +633,7 @@ class MaterialService:
         for entry in original.composition:
             self.repo.add(_copy_row(entry, material_id=copy.id))
         # Three flushes for any number of curves (was one per curve and per series,
-        # D-246): the curves first, so the series can name them, then the series,
+        # D-247): the curves first, so the series can name them, then the series,
         # so the points can; the points need no id back.
         new_curves = [
             (

@@ -1474,7 +1474,7 @@ class TestPointersOfIndexedFiles:
 
         (outcome,) = service.ingest().outcomes
 
-        # D-246: the same bytes already failed here, so the pointer is not
+        # D-247: the same bytes already failed here, so the pointer is not
         # downloaded again; the row keeps its reason and --force tries once more.
         assert outcome.action == "falhou"
         assert "não foi baixado de novo" in (outcome.detail or "")

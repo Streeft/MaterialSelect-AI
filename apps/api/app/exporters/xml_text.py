@@ -29,7 +29,7 @@ def xml_legal(text: str, replacement: str = "") -> str:
     """``text`` without the characters XML 1.0 forbids.
 
     They are dropped; a renderer that wants the words on either side kept apart
-    (the Studio's Word file, the CAE card's MatML) passes ``" "`` (D-246).
+    (the Studio's Word file, the CAE card's MatML) passes ``" "`` (D-247).
     """
     return XML_ILLEGAL.sub(replacement, text)
 

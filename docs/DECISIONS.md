@@ -13737,7 +13737,7 @@ desalinhariam a ordem visual da ordem gravada; fica uma coluna.
 Visões salvas de verdade em "Meus registros" (filtros nomeados na conta): as quatro visões fixas cobrem o que a tela mostra; nomear
 filtros fica para quando houver pedido.
 
-**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
 
@@ -14090,7 +14090,7 @@ fora do `PATCH` desde o D-233). Busca e filtro no servidor (quando o vocabulári
 `PATCH` para a mesma classe). Árvore como `treegrid` com navegação por setas (a tabela com botões de dobrar já é navegável e
 acessível, e o arrastar existente vive nas linhas).
 
-**Numeração.** D-238, Sessão 195 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-238, Sessão 195 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 ---
 
@@ -14117,7 +14117,7 @@ conhecido na linha de exemplo (seria propriedade sem fonte no arquivo, e import�
 importador lê é regra do backend; os dois ficam no mesmo lugar e no mesmo teste). Uma coluna por propriedade do catálogo (dezenas de
 colunas vazias; a pessoa acrescenta as que tiver, e o mapeamento as reconhece pelo slug).
 
-**Numeração.** D-239, Sessão 196 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-239, Sessão 196 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
 ## D-240 — Resíduos da revisão das telas: por que cada material caiu, figura para relatório sempre clara e nota do estudo editável no lugar
@@ -14155,7 +14155,7 @@ funil é sequencial; a primeira falha é a que o tirou, e é ela que o funil con
 exportar (trocar o tema da página inteira pisca a tela; copiar os traços e trocar cor por cor no JSON repete o que a troca no SVG
 final já faz para as duas famílias de figura). Um `PUT` do estudo inteiro para mudar a nota (mudaria o que a execução salva descreve).
 
-**Numeração.** D-240, Sessão 197 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-240, Sessão 197 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 ## D-241 — Laudo de engenharia repaginado: documento visual em A4 e versão emitida congelada (revisa a D-41)
 
@@ -14218,7 +14218,7 @@ Assinar no servidor (certificado A1/A3): a responsabilidade é do engenheiro, e 
 HTML inteiro: o QR e o código ficariam dentro do que resumem. Gerar as frases de "por que" pela IA: seria número e argumento sem
 garantia determinística. Página de verificação no frontend: o QR é lido por quem não tem conta, e a API já serve HTML com CSP.
 
-**Numeração.** D-241, Sessão 198 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **com migração** e dependência nova (`segno`):
+**Numeração.** D-241, Sessão 198 (conferidas em `origin/main`). Toca `apps/api` **com migração** e dependência nova (`segno`):
 depois do merge, **Deploy da API** (o `fly deploy` roda `alembic upgrade head`).
 
 ## D-242 — Laudo emitido enviado ao cliente por e-mail, pelo app (L2 da D-241)
@@ -14280,7 +14280,7 @@ na auditoria: a trilha é lida por mais gente que o histórico.
 **Fora desta decisão.** Anexar o PDF que o engenheiro assinou (o app não recebe o PDF; o anexo é o HTML congelado), revogar ou expirar
 um link, saber se o cliente abriu, `Reply-To` pelo e-mail do engenheiro, e fila de reenvio.
 
-**Numeração.** D-242, Sessão 199 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
+**Numeração.** D-242, Sessão 199 (conferidas em `origin/main`). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
 `release_command`), sem dependência nova e sem seed: depois do merge, **Deploy da API**. Para o e-mail sair de verdade, o autor grava os
 segredos do Fly (`13-deploy.md` §5-nonies); sem isso o envio fica simulado e a tela diz.
 
@@ -14351,7 +14351,7 @@ Pixel de rastreio no e-mail (rastreia a leitura da mensagem, não do link, e é 
 `Reply-To` pelo e-mail do engenheiro; PDF gerado no servidor; DOCX/PPTX de uma versão **emitida** a partir dos bytes congelados (a cópia
 reexecuta o estudo com o catálogo de hoje, e diz que não é a emitida).
 
-**Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e no PR #269 e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
+**Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
 `release_command`) e **dependência nova** (`resvg-py`, mais as duas fontes em `exporters/fonts`): depois do merge, **Deploy da API**
 (a imagem é reconstruída). Sem seed. Variável nova opcional: `REPORT_LINK_TTL_DAYS` (e `SIGNED_PDF_MAX_BYTES`), `.env.example`.
 
@@ -14386,12 +14386,12 @@ sem dizer por quê, e proxies tentam de novo).
 **Fora desta decisão.** Criar e apagar fonte pela tela (apagar exigiria olhar os valores que a citam); mesclar fontes duplicadas; autoscroll
 durante o arrastar de uma árvore muito longa; avisar o usuário, na tela, de que o CSV baixado veio cortado (hoje a linha-marcador é a única pista).
 
-**Numeração.** D-244, Sessão 201 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
+**Numeração.** D-244, Sessão 201 (conferidas em `origin/main`). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
 
 
 ---
 
-## D-246 — Pendências do TODO, parte 5: escrita em lote no importador e na duplicação, falha conhecida no Cérebro, Estúdio sem detalhe do provedor, teto nos provedores Claude, 429 de embeddings claro, entrada sem caracteres de controle, partida sem `import pint`
+## D-247 — Pendências do TODO, parte 5: escrita em lote no importador e na duplicação, falha conhecida no Cérebro, Estúdio sem detalhe do provedor, teto nos provedores Claude, 429 de embeddings claro, entrada sem caracteres de controle, partida sem `import pint`
 
 **Contexto.** Resíduos mecânicos e medíveis deixados pelas D-101, D-177, D-200, D-223, D-224, D-228 e D-237, todos em `apps/api`.
 
@@ -14429,7 +14429,7 @@ de texto por esquema (um só `strip_controls` serve aos quatro).
 **Fora desta decisão.** Aviso **na tela** de que a busca caiu para a léxica; cadeia de retentativas própria no CLI; sanear outros textos livres
 (notas já têm `clean_note`).
 
-**Numeração.** D-246, Sessão 203 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API** (a checklist
+**Numeração.** D-247, Sessão 204 (conferidas em `origin/main`, no #269 e no #270). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API** (a checklist
 pós-deploy está no `TODO.md`). Sem seed.
 ## D-245 — Histórico de execuções do estudo salvo: versões guardadas no servidor e comparação entre duas
 

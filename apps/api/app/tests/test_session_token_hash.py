@@ -121,7 +121,7 @@ def test_an_expired_legacy_row_is_not_rewritten(db_session):
 
 
 def test_a_login_deletes_expired_rows_and_keeps_live_ones(db_session):
-    """D-246: raw-token rows nobody came back to leave with the next login."""
+    """D-247: raw-token rows nobody came back to leave with the next login."""
     stale = "token-legado-esquecido-0123456789abcdefghijklmnopqrstuvwxy"
     live = "token-legado-vivo-0123456789abcdefghijklmnopqrstuvwxyzabcd"
     _legacy_row(db_session, stale, expires_in=timedelta(seconds=-5))

@@ -94,7 +94,7 @@ class TestPlanCli:
 
 
 class TestKnownFailures:
-    """D-246: a pointer whose bytes already failed here is not downloaded again."""
+    """D-247: a pointer whose bytes already failed here is not downloaded again."""
 
     def _failed_pointer(self, db_session, root: Path) -> Path:
         scanned = _write(root, "digitalizado.pdf", ["", ""])

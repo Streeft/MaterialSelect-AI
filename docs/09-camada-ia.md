@@ -332,7 +332,7 @@ exatamente o que ele lista, nenhum arquivo que a ingestão lê é ponteiro. É o
 que o workflow roda antes do download, para não gastar a banda de LFS do mês
 com o que o banco já tem ([D-101](DECISIONS.md),
 [13-deploy.md §5-septies](13-deploy.md)). Um ponteiro cujos bytes já terminaram `FALHOU` naquele caminho (um
-PDF digitalizado, por exemplo) também não é baixado de novo ([D-246](DECISIONS.md)): a ingestão o relata como
+PDF digitalizado, por exemplo) também não é baixado de novo ([D-247](DECISIONS.md)): a ingestão o relata como
 `falhou` com o motivo guardado, e o plano o conta à parte; um arquivo novo ou o `--force` tentam outra vez.
 
 `--file <caminho>` (alias `--path`, repetível) ingere só os arquivos nomeados,
@@ -1010,7 +1010,7 @@ todas as ferramentas desligadas, `--safe-mode` para que nenhum CLAUDE.md, hook,
 plugin, skill ou servidor MCP da máquina participe da resposta, sessão não
 persistida e diretório de trabalho neutro. Ele faz uma pergunta e lê uma
 resposta; não pode virar um jeito de executar coisa alguma. As chamadas curtas (plano, sugestões, diagnóstico) têm
-o orçamento próprio também aqui e no `claude-api` ([D-246](DECISIONS.md)): o tempo da chamada, o teto de saída
+o orçamento próprio também aqui e no `claude-api` ([D-247](DECISIONS.md)): o tempo da chamada, o teto de saída
 (`max_tokens` na API; `CLAUDE_CODE_MAX_OUTPUT_TOKENS` só naquele processo, mais um limite de bytes lidos, no CLI) e as
 tentativas (`with_options(max_retries=…)` na API; uma execução só no CLI).
 

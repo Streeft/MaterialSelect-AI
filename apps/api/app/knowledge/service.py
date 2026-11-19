@@ -312,7 +312,7 @@ class _Action(Enum):
     UNCHANGED_POINTER = "unchanged_pointer"
     #: A pointer whose content the run would have to read: refused, unwritten.
     MISSING_CONTENT = "missing_content"
-    #: A pointer to bytes that already failed to read at this very path (D-246):
+    #: A pointer to bytes that already failed to read at this very path (D-247):
     #: not downloaded again until the file changes or the run is forced.
     KNOWN_FAILURE = "known_failure"
     INGEST = "ingest"
@@ -358,7 +358,7 @@ class LfsPlan:
     pointers: int = 0
     #: Pointers to the bytes already indexed (``EXTRAIDO``) at the same path.
     unchanged: int = 0
-    #: Pointers to bytes that already failed at the same path: not fetched (D-246).
+    #: Pointers to bytes that already failed at the same path: not fetched (D-247).
     known_failures: int = 0
     #: Pointers to a copy of a file indexed (or downloaded) under another path.
     copies: int = 0
@@ -660,7 +660,7 @@ class KnowledgeService:
         to the bytes already indexed at their own path are not fetched; the
         ingestion then reports the last as ``inalterado`` without reading them.
         A document that failed before (``FALHOU``) with the same bytes at the
-        same path is not fetched again either (D-246): it is reported as failed
+        same path is not fetched again either (D-247): it is reported as failed
         with its recorded reason, until the file changes or the run is forced
         (``--force``, here and in the ingestion).
         """

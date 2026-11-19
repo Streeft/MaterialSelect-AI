@@ -429,7 +429,7 @@ class TestHttpError:
         assert error.daily is False
 
     def test_a_429_says_when_to_try_again_and_what_the_search_does(self) -> None:
-        # D-246: clear PT-BR for the person, not only a note for the operator.
+        # D-247: clear PT-BR for the person, not only a note for the operator.
         message = str(_raised(_http_error(429, {}, headers={"Retry-After": "12"})))
         assert "tente de novo em 12 s" in message
         assert "só a via léxica" in message

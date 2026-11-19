@@ -44,7 +44,7 @@ class ClaudeAPIProvider(ModelProviderBase):
 
     def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
         """One call under the short budget of the plan, the suggestions and the
-        probe (D-246): their own output ceiling, their own timeout and their own
+        probe (D-247): their own output ceiling, their own timeout and their own
         retry count, as ``openai-compat`` already did."""
         return self._request(
             system,

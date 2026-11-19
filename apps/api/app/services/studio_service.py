@@ -306,7 +306,7 @@ class StudioService:
         except AIUnavailableError as exc:
             # The provider's own message can carry its URL, a request id or a
             # slice of the reply: it goes to the log, never onto the artifact
-            # the reader (and the notebook's other members) can see (D-246).
+            # the reader (and the notebook's other members) can see (D-247).
             logger.warning(
                 "Geração do Estúdio: IA indisponível (artefato %s): %s", artifact_id, exc
             )

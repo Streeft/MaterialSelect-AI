@@ -79,7 +79,7 @@ class UnitError(ValueError):
 # made a typo and the application answers with a defect of its own.
 @lru_cache(maxsize=1)
 def pint_errors():
-    """``pint.errors``, imported the first time a unit is parsed (D-246).
+    """``pint.errors``, imported the first time a unit is parsed (D-247).
 
     ``import pint`` costs ~14 MB of resident memory and nothing at boot needs
     it, so the exception classes are looked up here, inside the ``except``

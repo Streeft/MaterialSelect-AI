@@ -315,7 +315,7 @@ def test_nothing_that_passes_is_a_failed_generation_and_costs_nothing(client, mo
 
 
 def test_the_provider_s_message_is_logged_not_written_on_the_artifact(client, monkeypatch, caplog):
-    """D-246: a provider detail (URL, request id, reply slice) never reaches the reader."""
+    """D-247: a provider detail (URL, request id, reply slice) never reaches the reader."""
     detail = "Limite do plano gratuito atingido (429) em https://api.exemplo.test/v1?key=abc"
     _script(monkeypatch, [AIUnavailableError(detail)])
     with caplog.at_level("WARNING"):

@@ -134,7 +134,7 @@ def _script(body: dict) -> list[str]:
 
 
 def _xml(text: object) -> str:
-    """Any text, XML-legal: what XML cannot carry becomes a space (D-246).
+    """Any text, XML-legal: what XML cannot carry becomes a space (D-247).
 
     python-docx and openpyxl raise on those characters, an SVG holding one does
     not parse, and a lone surrogate cannot even be encoded as UTF-8. The reader

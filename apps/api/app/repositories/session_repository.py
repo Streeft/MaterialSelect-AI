@@ -77,7 +77,7 @@ class SessionRepository:
                 self.db.delete(session)
 
     def purge_expired(self) -> int:
-        """Delete every session already past its expiry; return how many (D-246).
+        """Delete every session already past its expiry; return how many (D-247).
 
         An expired row can never log anyone in, whatever it is keyed by, so this
         is the safe cleanup for the pre-D-223 raw-token rows nobody came back

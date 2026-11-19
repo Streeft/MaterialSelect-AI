@@ -30,7 +30,7 @@ def test_booting_the_app_does_not_build_the_registry() -> None:
 
 
 def test_booting_the_app_does_not_import_pint_either() -> None:
-    """D-246: ``import pint`` (~14 MB resident) waits for the first unit too, and a
+    """D-247: ``import pint`` (~14 MB resident) waits for the first unit too, and a
     wrong dimension is still caught and reported as a ``UnitError``."""
     code = (
         "import sys\n"
