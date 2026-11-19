@@ -104,10 +104,11 @@ se o catálogo passar de dezenas de milhares de registros, trocar a dobra de ace
   família (sobretudo durabilidade, biocompatibilidade e pegada hídrica, as mais grosseiras); (3) as duas
   ordinais antigas "Durabilidade em água doce (demo)" e "… radiação UV (demo)" (D-126, nível sorteado)
   convivem com "Resistência à água doce" e "… à radiação UV" (nível por família): decidir se saem — exige
-  apagar linhas gravadas, fora do seed aditivo; (4) cartão CAE e Sintetizador continuam lendo só as
-  propriedades de antes (ν, α, cp; E, ρ, σ) — avaliar se o CAE leva G, K e Tm e se o Sintetizador estima
-  as novas; (5) as curvas tensão-deformação demo (D-107) são ilustrativas e não foram reancoradas no
-  alongamento novo; (6) dureza Rockwell ficou de fora (uma escala por família).
+  apagar linhas gravadas, fora do seed aditivo; ~~(4) cartão CAE e Sintetizador lendo G, K e Tm~~ ✔ D-255 (cadastrado ou, no
+  CAE, G e K derivados de E e ν e marcados; Sintetizador por Voigt–Reuss e "fusão do primeiro constituinte"); ~~(5) curvas
+  tensão-deformação demo reancoradas no alongamento~~ ✔ D-255 (só a curva demo ainda como semeada); ~~(6) dureza Rockwell~~
+  ✔ D-255 (B, C e M, uma definição por escala, valores só em demo). **Autor, depois do merge do D-255:** `semear_referencia`
+  (ou `semear_demo`, por decisão) para as três definições Rockwell.
 
 - **Catálogo demo ampliado do TCC ([D-185](DECISIONS.md), Sessão 143) — pendências do autor.** Os 593
   materiais estão no código e no `semear_demo`; falta: (1) decidir **onde** semear para a
@@ -400,13 +401,15 @@ TM2 foi entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
   [D-111](DECISIONS.md)): operadores `composition` e `not_composition` num estágio
   `limit`, pela regra de alcance em três valores; o funil conta quem ficou sem
   dado e o laudo diz a regra.
-- **TM2-f — qualidade e fonte reaproveitada nos formulários novos.** ▁ Os
-  formulários de composição, designações e curvas gravam `ESTIMADO` e não expõem a
-  qualidade do dado; também não sugerem fontes já cadastradas (digita-se o
-  rótulo). Aberto pela Sessão 66.
-- **TM2-g — edição por linha.** ▁ As escritas substituem o conjunto inteiro
-  (último a gravar vence). Um `PATCH` por elemento/curva só se houver edição
-  concorrente real. Aberto pela Sessão 66.
+- ~~**TM2-f — qualidade e fonte reaproveitada nos formulários novos.**~~ ✔ Composição
+  feita na D-255 (Sessão 212): qualidade por linha, fonte cadastrada selecionável ou
+  rótulo novo, e a linha regravada mantém qualidade e fonte; linha nova sem elas é 400.
+  **Resta:** o mesmo nos formulários de designações (fonte selecionável) e de curvas
+  (qualidade e fonte), que seguem com rótulo digitado.
+- ~~**TM2-g — edição por linha.**~~ ✔ Composição feita na D-255 (Sessão 212):
+  `POST/PUT/DELETE …/composicao/linhas`, validada com a composição inteira e
+  auditada; "Salvar linha" e remoção com confirmação na ficha. Designações seguem
+  substituídas em conjunto (curvas já são por curva desde a D-106).
 - ~~**TM2-c — % atômica e composição por condição.**~~ ✔ Entregue (Sessão 72,
   [D-117](DECISIONS.md)): `condition_label` na linha de composição (parte da chave,
   migração `703bbf25ce90`), `comp:Cr>=12@laminado` na busca e no estágio, seletor de
@@ -569,12 +572,11 @@ uso; as três primeiras são decisão ou conferência do autor.
   painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
   máquina no painel do Fly — o medido foi ≈100 MB por processo a 18 mil trechos,
   numa VM de 512 MB.
-- **Reembedar as fontes antigas dos Cadernos.** ▁ Os vetores gravados antes do
-  D-101 têm 3072 dimensões (o tamanho nativo do `gemini-embedding-001`) e a
-  pergunta agora é embedada com 768: a busca semântica os ignora, e aquelas
-  fontes são achadas só por palavras. O `status` do workflow do Cérebro mostra
-  quantos são ("cadernos: … ficam fora da busca semântica"). Um comando que os
-  reembede, dentro da cota, na forma do `app.knowledge.embed`.
+- ~~**Reembedar as fontes antigas dos Cadernos.**~~ ✔ D-255 (Sessão 212):
+  `python -m app.knowledge.notebook_reembed` (simulação; `--apply` troca só o
+  vetor, em lotes, dentro da cota) e as ações `cadernos_reembedar_simular` e
+  `cadernos_reembedar` em Administração do banco. **Autor, depois do Deploy da API:**
+  rodar a simulação, conferir a contagem e a gravação até "nada a fazer".
 - **Quantização int8 dos vetores.** ▁ Alavanca guardada, não pendência: os
   vetores em `array('f')` ocupam ≈58 MB residentes a 18 mil × 768; em int8,
   um quarto disso. Só vale se a memória do Fly apertar.

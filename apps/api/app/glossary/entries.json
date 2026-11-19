@@ -290,6 +290,36 @@
     "lang": "pt-BR"
   },
   {
+    "slug": "dureza_rockwell_b",
+    "summary": "Dureza Rockwell na escala B: metais de dureza baixa a média — aços recozidos, latões, ligas de alumínio e de cobre — medidos com uma esfera de aço ou de metal duro.",
+    "definition": "O ensaio Rockwell mede a profundidade que um penetrador alcança sob uma carga maior, descontada a da pré-carga, e converte essa profundidade num número adimensional: quanto mais raso, mais alto o número. Na escala B o penetrador é uma esfera, adequada a metais que uma ponta de diamante marcaria demais. Cada escala Rockwell tem penetrador e carga próprios, e os números de escalas diferentes não são comparáveis nem intercambiáveis sem tabela de conversão do próprio material. Perto do topo da escala a esfera perde resolução e a leitura passa para a escala C; metais muito macios saem da faixa útil e se medem nas escalas E, F ou H.",
+    "how_measured": "Penetrador aplicado com uma pré-carga, depois com a carga total e de novo só com a pré-carga; a leitura é a profundidade permanente da impressão, convertida na escala.",
+    "reference": "ISO 6508-1; ASTM E18",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "dureza_rockwell_c",
+    "summary": "Dureza Rockwell na escala C: metais duros — aços temperados, aços-ferramenta, ligas de titânio e de níquel endurecidas — medidos com um cone de diamante.",
+    "definition": "Na escala C o penetrador é um cone de diamante sob carga alta, e a leitura é a profundidade permanente da impressão convertida num número adimensional. É a escala usual do tratamento térmico de aços, porque distingue bem as condições temperada e revenida. Abaixo da faixa útil da escala o cone afunda demais e a leitura passa para a escala B. Como toda dureza, é a resposta a um ensaio e não uma propriedade única: números de escalas diferentes, ou de Rockwell e Vickers, só se comparam por tabela de conversão do próprio material.",
+    "how_measured": "Penetrador aplicado com uma pré-carga, depois com a carga total e de novo só com a pré-carga; a leitura é a profundidade permanente da impressão, convertida na escala.",
+    "reference": "ISO 6508-1; ASTM E18",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
+    "slug": "dureza_rockwell_m",
+    "summary": "Dureza Rockwell na escala M: plásticos rígidos — acrílico, policarbonato, poliamidas, termofixos — medidos com uma esfera sob carga moderada.",
+    "definition": "Para plásticos o ensaio Rockwell usa esferas maiores e cargas menores que para metais, e a escala M é a usual dos termoplásticos de engenharia e dos termofixos. Como o plástico se recupera com o tempo, a leitura depende de quanto se espera depois de retirar a carga, e por isso a norma fixa esse tempo. Plásticos macios e flexíveis saem da faixa útil e se medem na escala R ou por durômetro Shore D; elastômeros, por Shore A. Os números da escala M não se comparam com os das escalas de metais.",
+    "how_measured": "Esfera aplicada com pré-carga e carga total em tempos especificados pela norma de plásticos; a leitura considera a recuperação da impressão depois da retirada da carga.",
+    "reference": "ISO 2039-2; ASTM D785",
+    "license": "Texto autoral do projeto MaterialSelect AI, distribuído sob a licença MIT do repositório.",
+    "review_status": "rascunho",
+    "lang": "pt-BR"
+  },
+  {
     "slug": "temp_fusao",
     "summary": "Temperatura em que a fase cristalina do material passa a líquido. Para ligas e polímeros semicristalinos é uma faixa; materiais amorfos e termofixos não têm ponto de fusão.",
     "definition": "A temperatura de fusão marca o fim da coesão cristalina. Metais puros fundem numa temperatura única; ligas fundem numa faixa entre solidus e liquidus, cujo meio esta base registra. Polímeros semicristalinos fundem a fase cristalina e conservam a forma até perto dela se reforçados; polímeros amorfos não têm fusão, só amolecem acima da transição vítrea, e termofixos e elastômeros vulcanizados se decompõem antes de fundir. Cerâmicas têm pontos de fusão altos, às vezes substituídos por decomposição ou sublimação. Em seleção ela limita processos de fundição e solda e dá uma escala para a temperatura de serviço.",

@@ -187,6 +187,16 @@ _MINIMO = Rule(
     basis=EXATO,
 )
 
+#: D-255: o compósito começa a fundir quando o primeiro constituinte funde. Não é
+#: "a temperatura de fusão do compósito" — um compósito não tem uma —, e o rótulo
+#: diz isso.
+_PRIMEIRA_FUSAO = Rule(
+    key="primeira-fusao",
+    label="Fusão do primeiro constituinte",
+    formula="Tm = min(TmA, TmB)",
+    basis=EXATO,
+)
+
 _ESCALA_DENSIDADE = Rule(
     key="densidade-relativa",
     label="Definição da densidade relativa",
@@ -231,8 +241,14 @@ _RULES: dict[str, dict[str, Rule]] = {
     COMPOSITO: {
         DENSIDADE: _VOLUME_LINEAR,
         "modulo_young": _VOIGT_REUSS,
+        # D-255: os limites de Voigt e Reuss valem para os módulos de
+        # cisalhamento e volumétrico pelo mesmo argumento (deformação ou tensão
+        # uniforme), e saem como par de limites pela mesma razão.
+        "modulo_cisalhamento": _VOIGT_REUSS,
+        "modulo_volumetrico": _VOIGT_REUSS,
         "condutividade_termica": _VOIGT_REUSS,
         "temp_max_servico": _MINIMO,
+        "temp_fusao": _PRIMEIRA_FUSAO,
         "custo_massa": _MASSA_LINEAR,
         "energia_incorporada": _MASSA_LINEAR,
         "pegada_co2": _MASSA_LINEAR,
@@ -246,6 +262,7 @@ _RULES: dict[str, dict[str, Rule]] = {
         # Esta não é mistura nenhuma — ver KIND_NOTES[PAINEL].
         MODULO: _FLEXAO_SANDUICHE,
         "temp_max_servico": _MINIMO,
+        "temp_fusao": _PRIMEIRA_FUSAO,
         "custo_massa": _MASSA_LINEAR,
         "energia_incorporada": _MASSA_LINEAR,
         "pegada_co2": _MASSA_LINEAR,
@@ -260,6 +277,8 @@ _RULES: dict[str, dict[str, Rule]] = {
         # O gasto do próprio processo de espumação não está catalogado, e não
         # foi inventado — ver a nota do tipo, que diz isso ao leitor.
         "temp_max_servico": _HERDADO,
+        # D-255: fundir é da substância, e a substância é a do sólido.
+        "temp_fusao": _HERDADO,
         "custo_massa": _HERDADO,
         "energia_incorporada": _HERDADO,
         "pegada_co2": _HERDADO,
@@ -298,15 +317,34 @@ _NO_RULE: dict[str, dict[str, str]] = {
             "sozinha erraria por muito."
         ),
         "dureza": "Dureza de espuma depende da célula, não só do sólido.",
+        "modulo_cisalhamento": (
+            "A escala de Gibson–Ashby implementada aqui é a do módulo de Young; a do "
+            "cisalhamento tem constante própria, e usar a do módulo responderia outra "
+            "pergunta com a lei desta."
+        ),
+        "modulo_volumetrico": (
+            "Numa espuma de célula aberta a compressão volumétrica é resistida pelo "
+            "gás e pela flexão das arestas ao mesmo tempo; o catálogo não tem o gás, e "
+            "não há escala de Gibson–Ashby implementada para isso."
+        ),
     },
     PAINEL: {
         "limite_escoamento": (
             "A resistência de um painel é uma **competição entre modos de falha** — "
             "escoamento da face, cisalhamento do núcleo e enrugamento da face —, e "
-            "vale o menor deles. Só o primeiro é calculável aqui: os outros dois "
-            "precisam da resistência ao cisalhamento e do módulo de cisalhamento do "
-            "núcleo, e nenhum dos dois está catalogado. O mínimo sobre parte dos "
-            "modos é um limite superior, não a resistência."
+            "vale o menor deles. Os dois últimos leem a resistência e o módulo de "
+            "cisalhamento do núcleo, que o catálogo ampliado tem (D-188), mas também "
+            "a carga e o vão — geometria do ensaio, não do material. O mínimo sobre "
+            "parte dos modos seria um limite superior, não a resistência."
+        ),
+        "modulo_cisalhamento": (
+            "Um painel é anisotrópico por construção: o cisalhamento transversal é "
+            "carregado pelo núcleo e o do plano pelas faces, e os dois diferem por "
+            "muito. Um número só esconderia a direção que importa."
+        ),
+        "modulo_volumetrico": (
+            "Módulo volumétrico supõe um sólido que responde igual em todas as "
+            "direções, e um painel sanduíche é o oposto disso."
         ),
         "resistencia_tracao": (
             "Mesma razão do limite de escoamento: sem os modos do núcleo, qualquer "
@@ -534,7 +572,7 @@ def _mix_two_parents(
                     value=f * a.value + (1.0 - f) * b.value,
                 )
             )
-        elif rule.key == "minimo":
+        elif rule.key in ("minimo", "primeira-fusao"):
             values.append(
                 SynthesizedValue(slug=slug, rule=rule, quality=quality, value=min(a.value, b.value))
             )

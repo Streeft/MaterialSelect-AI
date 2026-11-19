@@ -192,7 +192,11 @@ nada e aceita o tamanho nativo do modelo) vai no corpo do pedido como
 pedido e devolva outro tamanho é erro, com a mensagem dizendo o que fazer. O
 `gemini-embedding-001` responde em 3072 nativamente; com 768, texto e vetores
 do Cérebro ocupam ≈96 MB a 18 mil trechos, com folga no Neon gratuito, onde
-3072 não caberia no pior caso. Em produção quem grava `KNOWLEDGE_EMBEDDING_MODEL` e
+3072 não caberia no pior caso. Os vetores de fonte de caderno gravados antes
+disso (3072) são trocados, só o vetor, por `python -m
+app.knowledge.notebook_reembed` — simulação por padrão, `--apply` em lotes dentro
+da cota, 429 lido como no `embed` — ou pelas ações `cadernos_reembedar_simular` e
+`cadernos_reembedar` da Administração do banco ([D-255](DECISIONS.md)). Em produção quem grava `KNOWLEDGE_EMBEDDING_MODEL` e
 `KNOWLEDGE_EMBEDDING_DIMENSIONS` no Fly é o **Provedor de IA**, e `/api/health`
 mostra os dois (`knowledge_embedding_model`, `knowledge_embedding_dimensions`),
 lidos das configurações, nunca a URL nem a chave.

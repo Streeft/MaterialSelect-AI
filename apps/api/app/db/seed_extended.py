@@ -53,7 +53,12 @@ from app.db.seed_demo_equivalences import seed_demo_equivalences
 from app.db.seed_demo_extended_props import seed_demo_extended_properties
 from app.db.seed_demo_ordinal import seed_demo_ordinals
 from app.db.seed_demo_releases import DEMO_RELEASES, seed_demo_releases
-from app.db.seed_extended_identity import build_curve_specs, seed_extended_identity
+from app.db.seed_demo_rockwell import seed_demo_rockwell
+from app.db.seed_extended_identity import (
+    build_curve_specs,
+    reanchor_demo_stress_strain,
+    seed_extended_identity,
+)
 from app.domain.data_quality import (
     build_interval_value,
     build_scalar_value,
@@ -548,6 +553,20 @@ def seed_demo_catalog_expansion(
     }
 
 
+def reanchor_demo_stress_strain_all(db: Session) -> dict[str, int]:
+    """D-255: as curvas tensão–deformação demo dos 75 e dos 593, no alongamento atual.
+
+    Só reescreve curva demo ainda idêntica à semeada (ver
+    ``reanchor_demo_stress_strain``); a segunda execução reescreve zero.
+    """
+    names = [m["name"] for m in TCC_DEMO_MATERIALS]
+    hints = {m["name"]: m["curve_hint"] for m in TCC_DEMO_MATERIALS if m.get("curve_hint")}
+    return {
+        "stress_strain_reanchored": reanchor_demo_stress_strain(db)
+        + reanchor_demo_stress_strain(db, names=names, hints=hints)
+    }
+
+
 def main() -> None:
     """CLI entry point: semeia os materiais estendidos.
 
@@ -580,6 +599,11 @@ def main() -> None:
         ordinals = seed_demo_ordinals(db, demo_source)  # D-126
         # D-188/D-189: o catálogo ampliado em todo material demo; só o que falta.
         extended = seed_demo_extended_properties(db, demo_source)
+        # D-255: com o alongamento gravado, as curvas demo ainda como semeadas
+        # passam a romper nele (os 75 e os 593; idempotente).
+        reanchored = reanchor_demo_stress_strain_all(db)
+        # D-255: dureza Rockwell (B, C ou M, uma escala por família), só demo.
+        rockwell = seed_demo_rockwell(db, demo_source)
         db.commit()
 
     print(f"[seed_extended] Concluído: {created} materiais criados.")
@@ -591,6 +615,8 @@ def main() -> None:
     print(f"[seed_extended] Valores CAE demo: {{'cae_values_created': {cae_values}}}")
     print(f"[seed_extended] Propriedades ordinais demo: {ordinals}")
     print(f"[seed_extended] Catálogo ampliado (D-188): {extended}")
+    print(f"[seed_extended] Curvas demo reancoradas (D-255): {reanchored}")
+    print(f"[seed_extended] Dureza Rockwell demo (D-255): {rockwell}")
 
 
 if __name__ == "__main__":

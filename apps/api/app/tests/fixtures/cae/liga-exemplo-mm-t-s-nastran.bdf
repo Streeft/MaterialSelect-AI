@@ -30,6 +30,15 @@ $ condutividade termica: cadastrado, mas fora deste cartao (pertence ao MAT4
 $ (formato nastran-thermal), nao exportado aqui)
 $ calor especifico: cadastrado, mas fora deste cartao (pertence ao MAT4 (formato
 $ nastran-thermal), nao exportado aqui)
+$ modulo de cisalhamento = 80769.2307692 MPa; qualidade: ESTIMADO; derivado: G =
+$ E/2(1+nu), solido isotropico, a partir do E e do nu representativos do
+$ catalogo (informativo: o material isotropico deste cartao e definido por E e
+$ nu, e o solver calcula G a partir deles)
+$ modulo volumetrico = 175000. MPa; qualidade: ESTIMADO; derivado: K =
+$ E/3(1-2nu), solido isotropico, a partir do E e do nu representativos do
+$ catalogo (informativo: o material isotropico deste cartao e definido por E e
+$ nu, e o solver calcula K a partir deles)
+$ temperatura de fusao: nao cadastrado
 $
 $ MID = 1: troque se o numero ja estiver em uso no seu modelo.
 $ G em branco: o solver o calcula de E e NU.

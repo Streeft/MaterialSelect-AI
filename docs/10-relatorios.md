@@ -370,6 +370,15 @@ Regras que não se afrouxam:
   no LS-DYNA), nunca pelo catálogo.
 - **Faixa sai pelo ponto representativo**, e o arquivo diz isso e traz os
   limites convertidos.
+- **G, K e Tm ([D-255](DECISIONS.md)).** Módulo de cisalhamento, módulo
+  volumétrico e temperatura de fusão do catálogo ampliado saem no cartão quando
+  cadastrados. Sem linha de G ou K e com E e ν cadastrados, eles são
+  **derivados** (G = E/2(1+ν), K = E/3(1−2ν), sólido isotrópico), marcados como
+  derivados, sem fonte própria e com a pior qualidade de E e ν; **ausência
+  declarada nunca é sobrescrita** pela relação. Tm só cadastrada, como
+  temperatura absoluta. Nenhum *deck* os põe num campo (o material isotrópico é E
+  e ν): vão nos comentários, com valor e proveniência; o MatML os leva como
+  `PropertyData` (o derivado com a nota "Derivado, não cadastrado").
 - **Todo arquivo carrega** a fonte, a qualidade e a licença de cada valor. Não leva
   mais aviso de limitação de uso nem de fictício (D-138). Registro próprio (D-62) é declarado.
 - **Escape por formato.** MatML é escapado como XML (e os caracteres que o XML

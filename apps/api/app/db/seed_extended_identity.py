@@ -37,7 +37,8 @@ materials — a grey cast iron is a metal and still breaks brittle.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -45,17 +46,20 @@ from sqlalchemy.orm import Session
 from app.calculations.units import to_canonical
 from app.db.demo_identity_data import composition_table, designation_table
 from app.db.seed import (
+    DEMO_CURVE_CITATION,
     DEMO_DESIGNATIONS,
     DEMO_SOURCE_LABEL,
     _seed_demo_curves,
     _seed_demo_identity,
 )
-from app.models.enums import CurveKind
+from app.domain.curves import PointInput, SeriesInput, build_curve
+from app.models.enums import CurveKind, DataQuality
 from app.models.material import Material
 from app.models.material_curve import MaterialCurve
 from app.models.material_property_value import MaterialPropertyValue
 from app.models.property_definition import PropertyDefinition
 from app.models.source import Source
+from app.repositories.curve_repository import curve_rows
 
 #: Materials that have no curve of a kind, and the reason — written, not silent
 #: (D-24). All 75 demo materials are 100% covered, leaving zero known gaps.
@@ -76,6 +80,10 @@ class Inputs:
     yield_pa: float | None
     tensile_pa: float | None
     tmax_k: float | None
+    #: D-255: the catalogued elongation at break (D-188), as a dimensionless
+    #: engineering strain; the curve's fracture is anchored on it when the
+    #: shape allows. ``None``: no elongation, the shape's own premise.
+    elongation: float | None = None
 
 
 #: Shape by material name where the class default would be wrong. ``c`` is the
@@ -182,12 +190,21 @@ def _brittle_shape(youngs: float, strength: float, softening: float) -> list:
     ]
 
 
-def _polymer_ductile_shape(youngs: float, yield_: float, break_stress: float) -> list:
-    """Yield peak, drop to a drawing plateau, hardening to break."""
+def _polymer_ductile_shape(
+    youngs: float, yield_: float, break_stress: float, break_strain: float | None = None
+) -> list:
+    """Yield peak, drop to a drawing plateau, hardening to break.
+
+    ``break_strain`` (D-255) anchors the break on the catalogued elongation; the
+    drawing then starts at most at 60 % of it. ``None``: the shape's premise.
+    """
     yield_strain = yield_ / youngs
     plateau = 0.84 * yield_
     draw_start = max(0.25, 6 * yield_strain)
-    break_strain = max(1.0, draw_start + 0.5)
+    if break_strain is None:
+        break_strain = max(1.0, draw_start + 0.5)
+    else:
+        draw_start = min(draw_start, 0.6 * break_strain)
     return [
         (0.0, 0.0),
         (0.5 * yield_strain, 0.55 * yield_),
@@ -210,9 +227,29 @@ def _elastomer_shape(youngs: float, tensile: float, break_strain: float) -> list
     return points
 
 
-def _cmc_shape(youngs: float, matrix_cracking: float, tensile: float) -> list:
-    """Linear to matrix cracking, then a pseudo-ductile rise to failure."""
+def _cmc_shape(
+    youngs: float, matrix_cracking: float, tensile: float, fracture: float | None = None
+) -> list:
+    """Linear to matrix cracking, then a pseudo-ductile rise to failure.
+
+    ``fracture`` (D-255) is the catalogued elongation; ``None`` keeps the
+    premise of failing at three times the cracking strain.
+    """
     crack_strain = matrix_cracking / youngs
+    if fracture is not None:
+        points = [
+            (0.0, 0.0),
+            (0.5 * crack_strain, 0.5 * matrix_cracking),
+            (crack_strain, matrix_cracking),
+        ]
+        for s in (0.25, 0.5, 0.75, 1.0):
+            points.append(
+                (
+                    crack_strain + s * (fracture - crack_strain),
+                    matrix_cracking + (tensile - matrix_cracking) * (1 - (1 - s) ** 2),
+                )
+            )
+        return points
     points = [
         (0.0, 0.0),
         (0.5 * crack_strain, 0.5 * matrix_cracking),
@@ -232,6 +269,56 @@ def _points(shape: list) -> list[tuple[float, float]]:
     return [(_pct(strain), _mpa(stress)) for strain, stress in shape]
 
 
+# --- anchoring on the elongation (D-255) ----------------------------------------
+#
+# The fracture strain of every shape was a premise of the shape. Since D-188 the
+# demo materials carry an elongation at break, and a curve that breaks somewhere
+# else contradicts the material's own sheet. Each helper returns the anchored
+# parameter, or ``None`` when the shape cannot honour the elongation (it would
+# break before its own elastic line ends) — then the premise stays, and says so.
+
+#: Fracture of the ductile shape, as a multiple of the uniform elongation.
+_DUCTILE_FRACTURE = 1.35
+
+
+def _ductile_uniform(youngs: float, yield_: float, elongation: float | None) -> float | None:
+    if elongation is None:
+        return None
+    uniform = elongation / _DUCTILE_FRACTURE
+    return uniform if uniform >= yield_ / youngs + 0.002 + 0.02 else None
+
+
+def _polymer_break(youngs: float, yield_: float, elongation: float | None) -> float | None:
+    if elongation is None:
+        return None
+    return elongation if 0.6 * elongation > 3.15 * (yield_ / youngs) else None
+
+
+def _elastomer_break(youngs: float, tensile: float, elongation: float | None) -> float | None:
+    if elongation is None:
+        return None
+    first_strain = min(0.10 * youngs, 0.2 * tensile) / youngs
+    return elongation if 0.2 * elongation > first_strain else None
+
+
+def _brittle_softening(youngs: float, strength: float, elongation: float | None) -> float | None:
+    """``c`` of ``σ(s) = su (s (1 + c) − c s²)`` so the fracture lands on the elongation."""
+    if elongation is None:
+        return None
+    softening = elongation * youngs / strength - 1.0
+    return softening if 0.0 <= softening <= 0.5 else None
+
+
+def _elongation_note(elongation: float, anchored: bool) -> str:
+    pct = _fmt(_pct(elongation))
+    if anchored:
+        return f"A ruptura coincide com o alongamento cadastrado ({pct} %)."
+    return (
+        f"O alongamento cadastrado ({pct} %) não cabe nesta forma (romperia antes do fim "
+        "do trecho elástico e do encruamento mínimo); a ruptura segue a premissa da curva."
+    )
+
+
 # --- reading the material --------------------------------------------------------
 
 
@@ -242,6 +329,7 @@ def _inputs_many(db: Session, material_ids: list[int]) -> dict[int, Inputs]:
         "limite_escoamento": "yield",
         "resistencia_tracao": "tensile",
         "temp_max_servico": "tmax",
+        "alongamento": "elongation",
     }
     found: dict[int, dict[str, float | None]] = {
         material_id: {key: None for key in wanted.values()} for material_id in material_ids
@@ -264,7 +352,18 @@ def _inputs_many(db: Session, material_ids: list[int]) -> dict[int, Inputs]:
         for material_id, slug, value in rows:
             found[material_id][wanted[slug]] = float(value)
     return {
-        material_id: Inputs(v["youngs"], v["yield"], v["tensile"], v["tmax"])
+        material_id: Inputs(
+            v["youngs"],
+            v["yield"],
+            v["tensile"],
+            v["tmax"],
+            # Stored in percent (canonical); the shapes read a plain strain.
+            (
+                _to(v["elongation"], "percent", "dimensionless")
+                if v["elongation"] is not None
+                else None
+            ),
+        )
         for material_id, v in found.items()
     }
 
@@ -318,6 +417,11 @@ def _stress_strain_spec(
         break_strain = (hint or {}).get(
             "break_strain", _ELASTOMER_BREAK.get(name, _ELASTOMER_BREAK_DEFAULT)
         )
+        anchored_break = _elastomer_break(youngs, tensile, inp.elongation)
+        if inp.elongation is not None:
+            notes.append(_elongation_note(inp.elongation, anchored_break is not None))
+        if anchored_break is not None:
+            break_strain = anchored_break
         notes.append(
             "O escoamento cadastrado não entra: elastômero não tem patamar de escoamento; "
             "o módulo é a inclinação inicial e a resistência, o pico na ruptura."
@@ -352,6 +456,9 @@ def _stress_strain_spec(
                 f"O escoamento cadastrado ({_fmt(_mpa(inp.yield_pa))} MPa) não é menor que a "
                 "resistência; a curva escoa em 0,9 × a resistência."
             )
+        anchored_uniform = _ductile_uniform(youngs, yield_eff, inp.elongation)
+        if inp.elongation is not None:
+            notes.append(_elongation_note(inp.elongation, anchored_uniform is not None))
         tmax_c = _to(inp.tmax_k, "K", "degC") if inp.tmax_k is not None else None
         if tmax_c is None or tmax_c <= AMBIENT_C + 100:
             notes.append(
@@ -363,7 +470,14 @@ def _stress_strain_spec(
                     "conditions": "Tração uniaxial; temperatura ambiente.",
                     "points": _points(
                         _ductile_shape(
-                            youngs, yield_eff, tensile, _uniform_strain(yield_eff, tensile)
+                            youngs,
+                            yield_eff,
+                            tensile,
+                            (
+                                anchored_uniform
+                                if anchored_uniform is not None
+                                else _uniform_strain(yield_eff, tensile)
+                            ),
                         )
                     ),
                 }
@@ -385,6 +499,11 @@ def _stress_strain_spec(
                 e_t = youngs * (1 - 0.25 * theta)
                 y_t = yield_eff * (1 - 0.45 * theta)
                 u_t = tensile * (1 - 0.40 * theta)
+                # Anchored, the ambient series breaks at the elongation and the
+                # hotter ones stretch from it by the same premise as before.
+                base_uniform = (
+                    anchored_uniform if anchored_uniform is not None else _uniform_strain(y_t, u_t)
+                )
                 series.append(
                     {
                         "parameter": temperature,
@@ -394,9 +513,7 @@ def _stress_strain_spec(
                             else "Tração uniaxial; temperatura ambiente."
                         ),
                         "points": _points(
-                            _ductile_shape(
-                                e_t, y_t, u_t, _uniform_strain(y_t, u_t) * (1 + 0.5 * theta)
-                            )
+                            _ductile_shape(e_t, y_t, u_t, base_uniform * (1 + 0.5 * theta))
                         ),
                     }
                 )
@@ -422,10 +539,15 @@ def _stress_strain_spec(
                 "A resistência cadastrada é menor que o escoamento: a curva termina nela, "
                 "abaixo do patamar de estiramento."
             )
+        anchored_break = _polymer_break(youngs, yield_val, inp.elongation)
+        if inp.elongation is not None:
+            notes.append(_elongation_note(inp.elongation, anchored_break is not None))
         series = [
             {
                 "conditions": "Tração uniaxial; temperatura ambiente.",
-                "points": _points(_polymer_ductile_shape(youngs, yield_val, break_stress)),
+                "points": _points(
+                    _polymer_ductile_shape(youngs, yield_val, break_stress, anchored_break)
+                ),
             }
         ]
     elif name == _CMC or shape == "cmc":
@@ -442,10 +564,14 @@ def _stress_strain_spec(
                 "O limite de escoamento cadastrado é lido como tensão de fissuração da matriz "
                 "(comportamento pseudo-dúctil)."
             )
+            fracture = None
+            if inp.elongation is not None:
+                fracture = inp.elongation if inp.elongation > 1.2 * matrix / youngs else None
+                notes.append(_elongation_note(inp.elongation, fracture is not None))
             series = [
                 {
                     "conditions": "Tração uniaxial; temperatura ambiente.",
-                    "points": _points(_cmc_shape(youngs, matrix, tensile)),
+                    "points": _points(_cmc_shape(youngs, matrix, tensile, fracture)),
                 }
             ]
         else:
@@ -491,6 +617,17 @@ def _brittle_spec(name: str, inp: Inputs, anchor: str, softening: float) -> dict
             )
     elif inp.yield_pa is not None:
         notes.append("O escoamento cadastrado não entra: o material rompe antes de escoar.")
+    if inp.elongation is not None:
+        # Anchored only on catalogued numbers: a premise modulus or strength
+        # would make the anchored softening a premise too.
+        anchored = (
+            _brittle_softening(youngs, strength, inp.elongation)
+            if inp.youngs_pa is not None and inp.tensile_pa is not None
+            else None
+        )
+        notes.append(_elongation_note(inp.elongation, anchored is not None))
+        if anchored is not None:
+            softening = anchored
     return {
         "material": name,
         "kind": CurveKind.TENSAO_DEFORMACAO,
@@ -668,3 +805,143 @@ def seed_extended_identity(db: Session, source: Source | None = None) -> dict[st
     )
     curves = _seed_demo_curves(db, source, build_curve_specs(db))
     return {**identity, "curves_created": curves}
+
+
+# --- re-anchoring the stored curves (D-255) --------------------------------------
+
+_STRESS_STRAIN_TITLE = "Tensão–deformação de engenharia (fictícia)"
+
+
+def _same_number(left: float | None, right: float | None) -> bool:
+    if left is None or right is None:
+        return left is right
+    return math.isclose(left, right, rel_tol=1e-9, abs_tol=1e-12)
+
+
+def _matches(curve: MaterialCurve, spec: dict) -> bool:
+    """Whether the stored curve is exactly what ``spec`` would write (points and description)."""
+    if curve.description != spec["description"] or len(curve.series) != len(spec["series"]):
+        return False
+    for stored, wanted in zip(curve.series, spec["series"], strict=True):
+        if not _same_number(stored.parameter_value, wanted.get("parameter")):
+            return False
+        if len(stored.points) != len(wanted["points"]):
+            return False
+        for point, (x, y) in zip(stored.points, wanted["points"], strict=True):
+            if not (_same_number(point.x_value, x) and _same_number(point.y_value, y)):
+                return False
+    return True
+
+
+def _rows_for(spec: dict, curve: MaterialCurve) -> MaterialCurve:
+    x_quantity, x_label, x_unit = spec["x"]
+    y_quantity, y_label, y_unit = spec["y"]
+    parameter_quantity, parameter_unit = spec["parameter"] or (None, None)
+    normalized = build_curve(
+        spec["kind"],
+        x_quantity=x_quantity,
+        x_unit=x_unit,
+        y_quantity=y_quantity,
+        y_unit=y_unit,
+        parameter_quantity=parameter_quantity,
+        series=[
+            SeriesInput(
+                points=[PointInput(*point) for point in series["points"]],
+                conditions=series.get("conditions"),
+                parameter=series.get("parameter"),
+                parameter_unit=parameter_unit,
+            )
+            for series in spec["series"]
+        ],
+    )
+    fresh = curve_rows(
+        normalized,
+        material_id=curve.material_id,
+        title=curve.title,
+        description=spec["description"],
+        x_label=x_label,
+        y_label=y_label,
+        source_id=curve.source_id,
+        citation=DEMO_CURVE_CITATION,
+        data_quality=DataQuality.ESTIMADO,
+        is_demo=True,
+    )
+    fresh.id = curve.id
+    fresh.created_at = curve.created_at
+    return fresh
+
+
+def reanchor_demo_stress_strain(
+    db: Session,
+    names: list[str] | None = None,
+    hints: dict[str, dict] | None = None,
+) -> int:
+    """Rewrite the demo stress–strain curves still as seeded, anchored on the elongation.
+
+    The curves were derived (D-107) before the demo materials had an elongation
+    at break (D-188), so each broke wherever its shape's premise put it. This
+    writes the curve again from the material's **current** values, now with the
+    fracture on the catalogued elongation — and only where that is safe:
+
+    * only a demo curve (``is_demo``, the demo citation) of a demo material
+      without an owner — never a real record, never an own record;
+    * only a curve that is still **exactly** what the seed wrote from the same
+      values (points, parameters and description): one a curator edited, or one
+      already re-anchored, is left as it is;
+    * the curve keeps its id, title, source and creation time (a saved chart or
+      an exported card that points at it still does).
+
+    Idempotent: after one run every re-anchored curve matches the new spec and
+    not the old one, so a second run rewrites nothing. Returns how many curves
+    were rewritten (``stress_strain_reanchored`` in the ``semear_demo`` log).
+    """
+    catalog_names = (
+        set(designation_table()) | set(DEMO_DESIGNATIONS) if names is None else set(names)
+    )
+    shape_hints = hints or {}
+    ordered = sorted(catalog_names)
+    materials: list[Material] = []
+    for start in range(0, len(ordered), 500):
+        materials.extend(
+            db.execute(
+                select(Material).where(
+                    Material.name.in_(ordered[start : start + 500]),
+                    Material.is_demo.is_(True),
+                    Material.owner_id.is_(None),
+                )
+            ).scalars()
+        )
+    inputs = _inputs_many(db, [m.id for m in materials])
+    rewritten = 0
+    for material in sorted(materials, key=lambda m: m.id):
+        inp = inputs[material.id]
+        if inp.elongation is None:
+            continue
+        curve = db.execute(
+            select(MaterialCurve).where(
+                MaterialCurve.material_id == material.id,
+                MaterialCurve.kind == CurveKind.TENSAO_DEFORMACAO,
+                MaterialCurve.title == _STRESS_STRAIN_TITLE,
+                MaterialCurve.is_demo.is_(True),
+                MaterialCurve.dataset_id.is_(None),
+            )
+        ).scalar_one_or_none()
+        if curve is None or curve.citation != DEMO_CURVE_CITATION:
+            continue
+        class_slug = material.material_class.slug
+        hint = shape_hints.get(material.name)
+        as_seeded = _stress_strain_spec(
+            material.name, class_slug, replace(inp, elongation=None), hint
+        )
+        anchored = _stress_strain_spec(material.name, class_slug, inp, hint)
+        if as_seeded is None or anchored is None or not _matches(curve, as_seeded):
+            continue
+        if _matches(curve, anchored):
+            continue
+        fresh = _rows_for(anchored, curve)
+        db.delete(curve)
+        db.flush()
+        db.add(fresh)
+        db.flush()
+        rewritten += 1
+    return rewritten

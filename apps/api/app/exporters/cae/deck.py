@@ -11,14 +11,31 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from app.exporters.cae.card import CaeCard, CardValue, CurveProvenance
-from app.exporters.cae.quantities import QUANTITIES
+from app.exporters.cae.quantities import BULK, MELTING, QUANTITIES, SHEAR
 from app.exporters.cae.text import real
 from app.exporters.identity import composition_summary, designation_summary
 
+#: D-255: what no solver deck here has a field for, and why — written with the
+#: value, so the number travels with the card without being read by the solver.
+INFORMATIVE = {
+    SHEAR.key: (
+        "informativo: o material isotropico deste cartao e definido por E e nu, e o "
+        "solver calcula G a partir deles"
+    ),
+    BULK.key: (
+        "informativo: o material isotropico deste cartao e definido por E e nu, e o "
+        "solver calcula K a partir deles"
+    ),
+    MELTING.key: "informativo: nenhum campo deste cartao le a temperatura de fusao",
+}
+
 
 def _provenance(value: CardValue) -> str:
-    source = value.source_label or "sem fonte registrada"
-    parts = [f"qualidade: {value.data_quality or 'nao informada'}", f"fonte: {source}"]
+    parts = [f"qualidade: {value.data_quality or 'nao informada'}"]
+    if value.derivation:
+        parts.append(f"derivado: {value.derivation}")
+    else:
+        parts.append(f"fonte: {value.source_label or 'sem fonte registrada'}")
     if value.license_label:
         parts.append(f"licenca: {value.license_label}")
     return "; ".join(parts)
@@ -76,6 +93,15 @@ def header_lines(
                     )
             else:
                 lines.append(f"{quantity.label} [{field}]: {value.omitted_reason} - campo omitido")
+        elif quantity.key in INFORMATIVE and quantity.key not in outside:
+            if value.present:
+                assert value.value is not None
+                lines.append(
+                    f"{quantity.label} = {real(value.value)} {value.unit}; "
+                    f"{_provenance(value)} ({INFORMATIVE[quantity.key]})"
+                )
+            else:
+                lines.append(f"{quantity.label}: {value.omitted_reason}")
         elif value.present:
             lines.append(
                 f"{quantity.label}: cadastrado, mas fora deste cartao "

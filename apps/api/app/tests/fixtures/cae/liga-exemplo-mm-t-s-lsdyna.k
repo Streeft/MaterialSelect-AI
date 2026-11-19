@@ -33,6 +33,15 @@ $ *MAT_ELASTIC; pertence a um material termico, nao exportado (formato
 $ lsdyna-thermal))
 $ calor especifico: cadastrado, mas fora deste cartao (fora do *MAT_ELASTIC;
 $ pertence a um material termico, nao exportado (formato lsdyna-thermal))
+$ modulo de cisalhamento = 80769.2307692 MPa; qualidade: ESTIMADO; derivado: G =
+$ E/2(1+nu), solido isotropico, a partir do E e do nu representativos do
+$ catalogo (informativo: o material isotropico deste cartao e definido por E e
+$ nu, e o solver calcula G a partir deles)
+$ modulo volumetrico = 175000. MPa; qualidade: ESTIMADO; derivado: K =
+$ E/3(1-2nu), solido isotropico, a partir do E e do nu representativos do
+$ catalogo (informativo: o material isotropico deste cartao e definido por E e
+$ nu, e o solver calcula K a partir deles)
+$ temperatura de fusao: nao cadastrado
 $
 $ MID = 1: troque se o numero ja estiver em uso no seu modelo.
 $ DA e DB (amortecimento) em branco: parametros do modelo.
