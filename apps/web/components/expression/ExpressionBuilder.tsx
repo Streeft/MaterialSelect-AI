@@ -998,7 +998,7 @@ function KeyButton({
           : undefined
       }
       className={cn(
-        "pressable m3-state inline-flex min-h-10 min-w-10 items-center justify-center rounded-control border px-2 text-body font-medium disabled:opacity-40",
+        "pressable m3-state inline-flex min-h-10 min-w-10 items-center justify-center rounded-control border px-2 text-body font-medium disabled:opacity-[var(--state-disabled)]",
         tone === "plain" && "border-edge-control bg-panel text-ink",
         tone === "num" && "border-edge-control bg-panel tabular-nums text-ink",
         tone === "op" && "border-edge-control bg-well text-ink",

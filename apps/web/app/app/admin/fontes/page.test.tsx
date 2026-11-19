@@ -363,3 +363,95 @@ describe("admin/fontes — criar, apagar e mesclar (D-249)", () => {
     expect(violations, describeViolations(violations)).toHaveLength(0);
   });
 });
+
+describe("admin/fontes — ordenar pelo cabeçalho (D-254)", () => {
+  const zeta: SourceRecord = {
+    ...base,
+    id: 3,
+    label: "Zeta 2020",
+    license_label: "Aberta",
+    reviewed_at: "2026-10-01T12:00:00Z",
+    citations: 12,
+  };
+  const quiet: SourceRecord = { ...base, id: 4, label: "alfa 2019", reviewed_at: "2026-09-01T12:00:00Z", citations: 3 };
+  const unknown: SourceRecord = { ...base, id: 5, label: "Beta 2018", reviewed_at: null, citations: undefined };
+
+  beforeEach(() => {
+    api.list.mockResolvedValue([zeta, quiet, unknown]);
+  });
+
+  function names() {
+    return screen
+      .getAllByRole("rowheader")
+      .map((row) => row.textContent?.trim().slice(0, 4));
+  }
+
+  it("cada cabeçalho ordenável diz a ordem em aria-sort e a lista nasce na ordem do servidor", async () => {
+    setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    expect(names()).toEqual(["Zeta", "alfa", "Beta"]);
+    for (const col of [t.colLabel, t.colLicense, t.colReviewed, t.colCitations]) {
+      expect(screen.getByRole("columnheader", { name: col })).toHaveAttribute("aria-sort", "none");
+    }
+    // The ABNT text and the actions are not a column to sort by.
+    expect(screen.getByRole("columnheader", { name: t.colCitation })).not.toHaveAttribute("aria-sort");
+  });
+
+  it("o rótulo ordena sem acento nem caixa: ascendente, descendente e de volta", async () => {
+    const { user } = setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    const head = () => screen.getByRole("columnheader", { name: t.colLabel });
+    await user.click(within(head()).getByRole("button", { name: t.colLabel }));
+    expect(names()).toEqual(["alfa", "Beta", "Zeta"]);
+    expect(head()).toHaveAttribute("aria-sort", "ascending");
+    await user.click(within(head()).getByRole("button", { name: t.colLabel }));
+    expect(names()).toEqual(["Zeta", "Beta", "alfa"]);
+    expect(head()).toHaveAttribute("aria-sort", "descending");
+    await user.click(within(head()).getByRole("button", { name: t.colLabel }));
+    expect(names()).toEqual(["Zeta", "alfa", "Beta"]);
+    expect(head()).toHaveAttribute("aria-sort", "none");
+  });
+
+  it("citações ordenam como número e a contagem desconhecida fica por último, nos dois sentidos", async () => {
+    const { user } = setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    const button = () =>
+      within(screen.getByRole("columnheader", { name: t.colCitations })).getByRole("button");
+    await user.click(button());
+    expect(names()).toEqual(["alfa", "Zeta", "Beta"]);
+    await user.click(button());
+    expect(names()).toEqual(["Zeta", "alfa", "Beta"]);
+  });
+
+  it("a revisão ordena pela data e quem nunca foi revisada fica depois", async () => {
+    const { user } = setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    const button = () =>
+      within(screen.getByRole("columnheader", { name: t.colReviewed })).getByRole("button");
+    await user.click(button());
+    expect(names()).toEqual(["alfa", "Zeta", "Beta"]);
+    await user.click(button());
+    expect(names()).toEqual(["Zeta", "alfa", "Beta"]);
+  });
+
+  it("o botão do cabeçalho se alcança e aciona pelo teclado", async () => {
+    const { user } = setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    const button = within(screen.getByRole("columnheader", { name: t.colLabel })).getByRole("button");
+    button.focus();
+    await user.keyboard("{Enter}");
+    expect(names()).toEqual(["alfa", "Beta", "Zeta"]);
+    await user.keyboard(" ");
+    expect(names()).toEqual(["Zeta", "Beta", "alfa"]);
+  });
+
+  it("a tabela com cabeçalhos ordenáveis não tem violações de acessibilidade", async () => {
+    const { user } = setup();
+    await screen.findByRole("rowheader", { name: /Zeta 2020/ });
+    await user.click(within(screen.getByRole("columnheader", { name: t.colLabel })).getByRole("button"));
+    const violations = await findA11yViolations(document.body, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false }, "heading-order": { enabled: false } },
+    });
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});

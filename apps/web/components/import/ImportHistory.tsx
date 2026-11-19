@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listImports, rollbackImport } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { describeApiError } from "@/lib/errors";
+import { useTableSort } from "@/lib/useTableSort";
+import type { ImportJobOut } from "@/lib/types";
 import {
   Alert,
   Badge,
@@ -12,6 +14,7 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorState,
+  SortTh,
   TableSkeleton,
   RowHeader,
   TBody,
@@ -39,6 +42,18 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   REVERTIDO: "warning",
 };
 
+/**
+ * What each sortable column sorts by (D-254). The file by name, the date by its ISO stamp, the
+ * status by the word the reader sees, the imported count as a number. The "válidas / erros /
+ * duplicadas" column is three numbers in one cell, so it does not sort.
+ */
+const SORT_COLUMNS = {
+  file: (job: ImportJobOut) => job.filename,
+  date: (job: ImportJobOut) => job.created_at,
+  status: (job: ImportJobOut) => ptBR.importer.status[job.status],
+  imported: (job: ImportJobOut) => job.imported_count,
+};
+
 /** Past import jobs with status and a rollback action for committed ones. */
 export function ImportHistory() {
   const qc = useQueryClient();
@@ -46,6 +61,8 @@ export function ImportHistory() {
     queryKey: ["imports"],
     queryFn: listImports,
   });
+
+  const sorted = useTableSort(data ?? [], SORT_COLUMNS);
 
   // D-201: the job awaiting confirmation, if any (MSDS dialog, not window.confirm).
   const [confirmingJob, setConfirmingJob] = useState<number | null>(null);
@@ -89,18 +106,18 @@ export function ImportHistory() {
           <TableCaption>{ptBR.importer.historyTitle}</TableCaption>
           <THead>
             <Tr>
-              <Th>{ptBR.importer.columnFile}</Th>
-              <Th>{ptBR.importer.columnDate}</Th>
-              <Th>{ptBR.importer.columnStatus}</Th>
+              <SortTh label={ptBR.importer.columnFile} {...sorted.head("file")} />
+              <SortTh label={ptBR.importer.columnDate} {...sorted.head("date")} />
+              <SortTh label={ptBR.importer.columnStatus} {...sorted.head("status")} />
               <Th numeric>{ptBR.importer.columnCounts}</Th>
-              <Th numeric>{ptBR.importer.columnImported}</Th>
+              <SortTh numeric label={ptBR.importer.columnImported} {...sorted.head("imported")} />
               <Th>
                 <span className="sr-only">{ptBR.actions.columnActions}</span>
               </Th>
             </Tr>
           </THead>
           <TBody>
-            {data.map((job) => (
+            {sorted.rows.map((job) => (
               <Tr key={job.id}>
                 <RowHeader>
                   {job.filename}

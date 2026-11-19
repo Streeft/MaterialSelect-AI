@@ -225,3 +225,70 @@ describe("Importar — Sugestão da IA (D-229)", () => {
     expect(api.validateImport).not.toHaveBeenCalled();
   });
 });
+
+describe("Importar — histórico ordenável (D-254)", () => {
+  const job = (id: number, filename: string, status: string, imported: number, created: string) => ({
+    id,
+    filename,
+    file_format: "csv",
+    sheet_name: null,
+    status,
+    row_count: 10,
+    valid_count: 9,
+    error_count: 1,
+    duplicate_count: 0,
+    imported_count: imported,
+    created_at: created,
+    committed_at: null,
+  });
+  const jobs = [
+    job(1, "ligas.csv", "IMPORTADO", 9, "2026-11-02T10:00:00Z"),
+    job(2, "Água.csv", "CANCELADO", 0, "2026-11-04T10:00:00Z"),
+    job(3, "aços.csv", "VALIDADO", 100, "2026-11-01T10:00:00Z"),
+  ];
+  const files = () => screen.getAllByRole("rowheader").map((row) => row.textContent?.trim());
+
+  beforeEach(() => api.listImports.mockResolvedValue(jobs));
+
+  it("nasce na ordem do servidor e cada coluna ordenável traz aria-sort", async () => {
+    renderPage();
+    await screen.findByRole("rowheader", { name: /ligas\.csv/ });
+    expect(files()).toEqual(["ligas.csv", "Água.csv", "aços.csv"]);
+    for (const col of [t.columnFile, t.columnDate, t.columnStatus, t.columnImported]) {
+      expect(screen.getByRole("columnheader", { name: col })).toHaveAttribute("aria-sort", "none");
+    }
+    // The three counts share one cell, so that head is not a sort.
+    expect(screen.getByRole("columnheader", { name: t.columnCounts })).not.toHaveAttribute("aria-sort");
+  });
+
+  it("arquivo ordena sem acento, data pelo carimbo e importados como número", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("rowheader", { name: /ligas\.csv/ });
+    const press = async (name: string) =>
+      user.click(within(screen.getByRole("columnheader", { name })).getByRole("button"));
+
+    await press(t.columnFile);
+    // "aços" before "Água": accents and case do not decide, the letters do (c before g).
+    expect(files()).toEqual(["aços.csv", "Água.csv", "ligas.csv"]);
+    await press(t.columnDate);
+    expect(files()).toEqual(["aços.csv", "ligas.csv", "Água.csv"]);
+    expect(screen.getByRole("columnheader", { name: t.columnFile })).toHaveAttribute("aria-sort", "none");
+    await press(t.columnImported);
+    expect(files()).toEqual(["Água.csv", "ligas.csv", "aços.csv"]);
+    await press(t.columnImported);
+    expect(files()).toEqual(["aços.csv", "ligas.csv", "Água.csv"]);
+    await press(t.columnStatus);
+    // Cancelado, Importado, Validado — by the word on the badge.
+    expect(files()).toEqual(["Água.csv", "ligas.csv", "aços.csv"]);
+  });
+
+  it("o histórico ordenável não tem violações de acessibilidade", async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await screen.findByRole("rowheader", { name: /ligas\.csv/ });
+    await user.click(within(screen.getByRole("columnheader", { name: t.columnDate })).getByRole("button"));
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+});

@@ -14908,3 +14908,63 @@ Compose), seletor de data do M3 no lugar do `<input type="date">` nativo, biblio
 
 **Numeração.** D-252b, Sessão 209b: o `main` recebeu a D-252 e a Sessão 209 da parte 10 das pendências antes deste merge (regra da D-226). Só frontend: sem migração, sem deploy da API.
 
+## D-254 — Pendências do TODO, parte 11: ordenar e selecionar nas listas fora do catálogo, Processos agrupado por subfamília, `--state-disabled` nos controles e o fim do `maplibre-gl` crítico
+
+**Contexto.** Seis pendências do `TODO.md` que só pedem tela e dependência: as tabelas ordenáveis e a seleção em cartões no celular, que a D-131 deixou
+"só no catálogo"; o card de Conformação, em Processos, com mais de cem itens; os controles que ainda fadavam a 40–50 % fixos (D-248); os dois
+críticos de `plotly.js` → `maplibre-gl` (S3); a prosa antiga do roxo `#6750A4`; e entradas do TODO abertas no texto que já estavam feitas.
+
+**Decisão — ordenar pelo cabeçalho, uma vez só.** `SortTh` e `lib/tableSort.ts` (D-131) deixam de ser coisa do catálogo: `useTableSort(rows, colunas)`
+devolve as linhas ordenadas e, por coluna, o `aria-sort` e o clique (ascendente → descendente → ordem de chegada). Cada coluna diz **por que ordena**
+(`SORT_COLUMNS`, fora do componente). Entram: Administrar › Fontes (fonte, licença, revisão, citações), Processos na visão Tabela (processo, família,
+subfamília, materiais) e o histórico do Importar (arquivo, data, situação, importados). A regra da D-131 fica: **só rótulo e contagem que o servidor
+mandou**; a coluna "válidas / erros / duplicadas" são três números numa célula e não ordena. **O ausente nunca vira zero** (princípio 3): um valor
+`null` fica depois de todos os que têm, nos dois sentidos (uma fonte nunca revisada não é "a mais antiga"; uma contagem desconhecida não é 0).
+`sortRows` passou a aceitar número (compara como número: 9 antes de 10) além de texto (sem acento nem caixa, dígitos como número). `SortTh` ganhou
+`numeric` (alinha como a célula). Ficam como estão, de propósito: a Classes e Propriedades do Admin (árvore e edição na linha, D-238), o ranking e as
+lacunas do Painel (ordem do servidor), e as listas de Meus registros e Cadernos, que são cartões e linhas com seleção (D-233) e não tabelas.
+
+**Decisão — seleção também nos cartões do catálogo.** No celular a tabela some (`sm:hidden`/`hidden sm:block`, D-50) e os cartões são tudo o que há, mas
+só a tabela tinha a caixa e a barra; no telefone não dava para comparar. Agora o `MaterialCard` (`responsive` e `gallery`) recebe a mesma `selection` da
+página (D-232, no endereço) e a mesma barra, extraída para `SelectionBar`. **A barra é desenhada uma vez**, em `MaterialList`/`MaterialGallery`, não uma
+por layout: tabela e cartões estão os dois no DOM (o ponto de quebra esconde um), e duas barras seriam duas regiões com o mesmo nome. A caixa mede 44 px
+(`min-w` na etiqueta, como a do Processos), medido no `mobile.spec`. Sem `selection` do dono da página (outras telas que usam a lista) nada muda.
+
+**Decisão — Processos agrupa por subfamília.** O cartão de uma família com **mais de 12** processos (`GROUP_FROM`) agrupa pelo **filho direto da raiz**
+(`groupBySubfamily`, `lib/processGroups.ts`: um processo arquivado mais fundo sobe para a subfamília dele; o que está na própria raiz vai para
+"Sem subfamília", por último; ordem por nome sem acento) e cada grupo é um `Disclosure` com nome e contagem. **Nascem fechados**; **abrem sozinhos com
+busca ou filtro ligados** (o resultado é o que se veio ver); "Abrir todas"/"Recolher todas" no cartão; o que o leitor tocou vale sobre o padrão. Um
+processo marcado para comparar dentro de uma seção fechada aparece na cabeça dela ("· 1 marcado"), para a escolha não sumir de vista. Família pequena ou
+com um grupo só segue a lista simples. Os links, as caixas e a Comparação lado a lado não mudam.
+
+**Decisão — `--state-disabled` em tudo que desbota.** Os controles que fixavam 35–50 % usam o token (0,38): `.msds-btn:disabled`,
+`.msds-carousel-arrow:disabled`, `.msds-fabmenu-item:disabled`, `.chart-icon-btn:disabled` e o `disabled:opacity-40` do `ExpressionBuilder`. Um teste de
+varredura (`disabledState.test.ts`) lê os CSS e os `.tsx` e reprova um `:disabled` ou `disabled:opacity-NN` fixo entre 30 e 55 %. **Deixados como estão:**
+`.msds-table-toggle:disabled` (0,7, é um link de texto que já troca de cor), as linhas desabilitadas do `Combobox` e do `FileDrop` (0,6), o `ToolTile`
+indisponível e as fontes bloqueadas dos Cadernos (0,7): todos têm texto que precisa continuar legível (contraste, axe) e nenhum é um botão que
+desbota.
+
+**Decisão — segurança: `plotly.js` 4.3.0, Next 16.4.6.** `npm audit` (produção) estava em sete achados, três críticos. **`plotly.js` 3.7.0 → 4.3.0**
+(a versão corrigida existe: pede `maplibre-gl 6.11.2`, fora da faixa vulnerável `<= 6.4.0`; exige Node ≥ 22, que o CI e o `Dockerfile.web` já usam e que o `engines` do `apps/web` agora fixa para a Vercel). O bundle continua à la carte (`plotly.js/lib/core` + `lib/scatter`), e o que importa foi medido: tipos, os testes dos gráficos, a build e o E2E
+dos mapas passam, e **o `maplibre-gl` segue fora de todos os chunks de produção**. `next` 16.3.4 → **16.4.6** (e `eslint-config-next`): fecha o crítico
+do `next/og` e os demais avisos do Next; com ele, `sharp` 0.35.5 e `source-map-js` 1.2.4 (atualização dentro da faixa). No `devDependencies`, `vite` 7.3.8 e
+`vitest` 5.1.1. **O que sobra em produção, sem correção compatível:** `zod` 3 (alta; a 4.6.7 é troca de major e quebra o `@hookform/resolvers` 3 — o
+risco, memória ao validar coleção enorme, não existe onde só validamos formulários curtos no navegador) e `katex` 0.16.47 (baixa; a 0.19 é major e o
+`trust` do KaTeX está desligado). No desenvolvimento ficam o `@lhci/cli` e o que ele puxa (`proxy-addr`, `tmp`, `uuid`, `qs`…): só roda no job do Lighthouse.
+
+**Decisão — o roxo `#6750A4`.** Nada no repositório descreve mais o roxo: o `README.md` e os docs falam do azul. As menções que restavam vivem no artefato
+externo "MaterialSelect AI" (README e `tokens.json` do design system), onde **já estão marcadas como histórico** desde 19/10/2026 (Rodada 6 e 8; a raiz é
+`#4567A8`, o `--accent`). A cor de hoje, para quem ler: o `--accent` de cada seção (raiz `#4567A8` no claro, `#97BEFF` no escuro) alimenta
+`SchemeContent` (`m3Roles.ts`) e gera os papéis de cada rota; a semente `#1A73E8` (`M3_SEED_HEX`, `materialTheme.test.ts`) gera só o esquema global
+`--md-sys-color-*` de referência. Anotado em `docs/21-material3-referencia.md`; nada foi republicado no artefato.
+
+**Alternativas recusadas.** Ordenar no servidor as tabelas pequenas (uma ida à rede por clique para dezenas de linhas). Um segundo `SortTh` por tela
+(foi o que fez a D-131 ficar "só no catálogo"). Uma barra por layout (duas regiões com o mesmo nome). Agrupar por todos os níveis da árvore (a
+subfamília é a pergunta do leitor; os netos viram a ficha da família). Fadar os links e fontes bloqueadas a 0,38 (reprova o contraste; o estado já
+tem texto). Trocar `zod` por 4 agora (risco inalcançável contra reescrever todos os formulários). Resolver o `maplibre-gl` só com `overrides` (o `plotly.js`
+3.7 pede `^4.7.1`, e forçar uma major em cima dele não é testável).
+
+**Consequências.** Só frontend: **sem migração, sem seed, sem `apps/api`**. Depois do merge, nada a disparar. `package.json`/lockfile mudam
+(`plotly.js`, `next`, `eslint-config-next`, `vite`/`vitest` na faixa). Lighthouse conferido pelo CI.
+
+**Numeração.** D-254, Sessão 211 (conferidas em `origin/main` e nas branches abertas; o PR #276 entrou depois como D-252b, Sessão 209b).

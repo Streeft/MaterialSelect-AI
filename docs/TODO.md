@@ -41,26 +41,15 @@ Nenhum dado pode ser coletado antes. Pendências do autor, detalhadas em
 
 **S3 — as cadeias de CVE que nenhum upgrade fecha.** ▃ O S2 (ver "Débitos já
 quitados") derrubou o `npm audit` de 27 para **14** achados e fechou as duas
-cadeias que tinham caminho de upgrade. As três que sobraram **não têm versão
-corrigida publicada**, e por isso são acompanhamento, não tarefa:
+cadeias que tinham caminho de upgrade. As três que sobraram **não tinham versão
+corrigida publicada**, e por isso eram acompanhamento, não tarefa (a do `plotly.js` ganhou versão corrigida e fechou na D-254; sobram as do `@lhci/cli`):
 
-- **`plotly.js` → `maplibre-gl` (2 críticos).** *XSS sanitizer bypass*
-  ([GHSA-jrc7-96c5-q579](https://github.com/advisories/GHSA-jrc7-96c5-q579)),
-  que atinge `maplibre-gl <= 6.4.0`. O `plotly.js` 3.7.0 depende de
-  `maplibre-gl ^4.7.1`, e nem a 4.1.0 do Plotly ajuda: ela pede `^5.24.0`,
-  ainda dentro da faixa vulnerável. O `fixAvailable` do npm aponta
-  `plotly.js@2.34.0`, que é **downgrade de major** — a mesma armadilha do
-  `@lhci/cli`, e pela mesma razão: a versão sugerida é anterior à que
-  introduziu a dependência.
-
-  **Medido: o código vulnerável não chega ao navegador.** O Plotly é montado à
-  la carte (`lib/plotly-custom.ts` registra `bar`, `box`, `heatmap`, `scatter`
-  e `scatterpolar`), e nenhum traço de mapa entra no pacote. Numa build de
-  produção com 22 chunks, `Plotly` aparece em 2 deles e `maplibre` em
-  **nenhum** — controle positivo feito junto, para que o zero não fosse o zero
-  de um diretório vazio. Reavalie **se um sexto traço for registrado**: um
-  `scattermap` ou `choroplethmap` puxaria o maplibre para dentro do pacote e
-  transformaria isto num problema alcançável em produção.
+- ~~**`plotly.js` → `maplibre-gl` (2 críticos).**~~ Fechado na D-254: `plotly.js` **4.3.0** depende de `maplibre-gl 6.11.2`, fora da faixa vulnerável
+  (`<= 6.4.0`); exige Node ≥ 22 (CI, `Dockerfile.web` e agora `engines` do `apps/web`). O Plotly segue à la carte (`lib/core` + `lib/scatter`) e o
+  `maplibre-gl` continua em **nenhum** chunk de produção (conferido na build). Reavalie **se um traço de mapa for registrado**.
+- **Novo no `npm audit` de produção (D-254), sem correção compatível.** `zod` 3 (alta; a 4.6.7 é major e quebra o `@hookform/resolvers` 3; só
+  `lib/materialForm.ts` o usa, num formulário curto no navegador) e `katex` 0.16.47 (baixa; a 0.19 é major; o app roda com `trust: false`). Ficam
+  como acompanhamento: trocar quando se migrar o formulário. O `next` 16.4.6, `sharp` 0.35.5 e `source-map-js` 1.2.4 fecharam o crítico do Next e as altas.
 - **`@lhci/cli` (9 achados).** A 0.15.1 — a mais nova — ainda depende de
   `tmp ^0.1.0`, `uuid ^8.3.1` e `inquirer ^6.3.1`, todos em faixa vulnerável.
   Só roda no job de Lighthouse.
@@ -87,9 +76,8 @@ quitados".
 
 ## Média prioridade
 
-**L2 entregue (D-242) e L3 entregue (D-243): o laudo emitido sai por e-mail pelo app, com PDF assinado, link com validade e Word/PowerPoint.** ▃ Falta **ligar** o e-mail no Fly: o autor grava `EMAIL_PROVIDER=smtp`,
-`SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` (e `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` se quiser) — passo a
-passo em `13-deploy.md` §5-nonies —, enquanto o envio fica "Simulado" e a tela avisa. Entregue na D-243: anexar o PDF assinado à versão (histórico, hash,
+**L2 entregue (D-242) e L3 entregue (D-243): o laudo emitido sai por e-mail pelo app, com PDF assinado, link com validade e Word/PowerPoint.** ▃ O e-mail **já está ligado** no Fly (`/api/health` mostra `email_provider: smtp`); sem `EMAIL_PROVIDER=smtp` o envio fica "Simulado" e a tela avisa (passo a
+passo em `13-deploy.md` §5-nonies). A conferência de ponta a ponta (reenviar, `Reply-To`) está na checklist pós-deploy, abaixo. Entregue na D-243: anexar o PDF assinado à versão (histórico, hash,
 no e-mail no lugar do `.html`, "Baixar PDF assinado" no link e hash na verificação pública), link com validade (`REPORT_LINK_TTL_DAYS`, 90) e revogação (410
 em página em português), contagem de aberturas sem IP nem pixel, e DOCX/PPTX no visual novo (gráficos em PNG por `resvg-py`). **Entregue na D-249:**
 ~~reenviar com um clique~~, ~~`Reply-To` pelo e-mail do engenheiro~~, ~~anexo técnico no PowerPoint~~ (até 60 linhas por tabela) e ~~a memória do `laudo.html`~~
@@ -156,16 +144,15 @@ se o catálogo passar de dezenas de milhares de registros, trocar a dobra de ace
   [D-137](DECISIONS.md))** — as cinco etapas estão entregues. Resta sincronizar o artefato
   "MaterialSelect AI" (tokens, `bundle.css`, devolver a Okabe–Ito, azul na raiz) e conferir tudo
   no navegador nos dois temas e a 375 px (nada disso foi visto ao vivo).
-- **Design system do Material 3 sobre o do app (Sessões 87 a 92, [D-133](DECISIONS.md) a
-  [D-137](DECISIONS.md))** — as cinco etapas e o artefato "MaterialSelect AI" (versão 24: tokens,
-  `bundle.css`, azul na raiz, Okabe–Ito restaurada) estão entregues. Resta: conferir tudo no
-  navegador, nos dois temas e a 375 px (nada foi visto ao vivo), e atualizar no artefato as
-  `preview.html` e a prosa do README que ainda descrevem o roxo `#6750A4` da Rodada 8.
+- ~~**Design system do Material 3 sobre o do app (Sessões 87 a 92, [D-133](DECISIONS.md) a
+  [D-137](DECISIONS.md))**~~ — as cinco etapas e o artefato "MaterialSelect AI" (versão 24: tokens, `bundle.css`, azul na raiz, Okabe–Ito
+  restaurada) estão entregues. ~~Atualizar as `preview.html` e a prosa do README que descrevem o roxo `#6750A4`~~ — conferido na D-254: o
+  repositório não o descreve mais, e no artefato as menções que restam (README, `tokens.json`) já estão marcadas como **histórico** desde 19/10/2026;
+  a cor e a semente de hoje estão em `docs/21-material3-referencia.md`. Resta só conferir tudo no navegador, nos dois temas e a 375 px.
 - **Padrões do Material 3 que faltam aplicar (Sessão 84, [D-129](DECISIONS.md), [D-130](DECISIONS.md))** —
   a busca global e o aviso com Desfazer saíram; restam, um PR por item e citando a
   página de `m3.material.io` de onde veio: ~~(3) tabelas ordenáveis com seleção em
-  massa~~ (entregue na Sessão 85, [D-131](DECISIONS.md), só no catálogo; as demais
-  tabelas e a seleção nos cartões do celular seguem em aberto); ~~(4) home estilo Drive~~ (entregue na Sessão 86, [D-132](DECISIONS.md)); ~~(5) rascunho salvo e saída segura no assistente da
+  massa~~ (entregue na Sessão 85, [D-131](DECISIONS.md), só no catálogo; ~~as demais tabelas e a seleção nos cartões do celular~~ — feitas na [D-254](DECISIONS.md): `useTableSort` em Fontes, Processos e no histórico do Importar, e a caixa e a barra nos cartões do catálogo); ~~(4) home estilo Drive~~ (entregue na Sessão 86, [D-132](DECISIONS.md)); ~~(5) rascunho salvo e saída segura no assistente da
   Seleção~~ (entregue na Sessão 94, [D-139](DECISIONS.md); o foco ao título ao trocar de passo ficou para o item 9); ~~(6) transição entre telas~~ (entregue na Sessão 96, [D-141](DECISIONS.md), só o esmaecer; a
   transformação de contêiner cartão→ficha foi entregue na Sessão 103, [D-148](DECISIONS.md)); ~~(7) app instalável~~ (entregue na Sessão 97, [D-142](DECISIONS.md), com ícone provisório e só a
   página offline, servida só com o aparelho sem rede desde a Sessão 156, [D-199](DECISIONS.md); ~~o catálogo offline com data~~ foi entregue na Sessão 107, [D-152](DECISIONS.md), só para fichas já abertas); ~~(8) Cadernos em grade com menu e
@@ -228,7 +215,7 @@ sempre (princípios 1 a 4, D-24, ADR 0004).
   para reabrir sem o link, exige backend e decisão do autor (nada disso fica no
   navegador, de propósito).
 - ~~Processos: todo o leque do Ashby~~ ✔ entregue (D-192, Sessão 149): 144 processos demo, vínculo por subclasse e lista
-  negra. Pendente: agrupar a tela Processos por subfamília (o card de Conformação passa de 100 itens) e revisar
+  negra. ~~Agrupar a tela Processos por subfamília (o card de Conformação passa de 100 itens)~~ — feito na D-254 (seções que fecham, com contagem). Pendente: revisar
   uma amostra dos atributos estimados.
 - ~~Calculadora visual de índice~~ ✔ entregue (D-191, Sessão 148): cartões, fita, teclado científico, KaTeX e leitura amigável em
   Seleção, Mapas, Estágio de gráfico, Comparar, Resultados e colunas calculadas. Resíduo: a planilha do índice (`_index_sheet` nas
@@ -556,8 +543,7 @@ vitrine. Outras listas de registros podem passar à `.m3-list-segmented` quando 
 **Material 3 Expressive — o que a D-248 deixou de fora.** ▃ (a) Morph de caminho SVG (`d: path()`) e a biblioteca de 35 formas do
 Expressive: o M3 marca "Web is not currently available"; entra quando houver uma implementação web ou um motivo de produto. (b) O gesto
 dos ícones no toque foi visto em emulação a 390 px; conferir num celular de verdade (iOS dispara `:active` só com um ouvinte de toque no
-documento). (c) Aplicar `--state-disabled` (38 %) aos controles que ainda usam 40–50 % fixos fora do MSDS (`disabled:opacity-40` em
-`ExpressionBuilder` e afins), um por um, olhando a tela.
+documento). (c) ~~Aplicar `--state-disabled` (38 %) aos controles que ainda usam 40–50 % fixos~~ — feito na D-254 (botão, seta do carrossel, item do FAB, ícone do gráfico e o `ExpressionBuilder`; um teste de varredura reprova um novo); ficam em 60–70 % o link de tabela, o `Combobox`, o `FileDrop`, o `ToolTile` e as fontes bloqueadas dos Cadernos, porque têm texto que precisa de contraste.
 
 ~~**Aparência em todos os aparelhos (D-196).**~~ Entregue na D-249: cor do app, contraste, movimento e barra lateral ficam na conta
 (`GET/PUT /api/me/appearance`, tabela `user_appearance`), com a cópia local como primeira pintura e recuo. Tema e densidade seguem por aparelho.
@@ -1828,7 +1814,7 @@ Registrados para não voltarem por engano:
 - ~~**Cadastrar os campos bibliográficos de uma fonte.**~~ Feito no D-236: `PATCH /api/sources/{id}` (curador, validado, nada inferido) e "Editar fonte" na ficha.
 - ~~A seção "Fontes desta ficha" sem as fontes das curvas e das equivalências~~ — feito no D-236.
 - ~~Árvore de classes: arrastar para mover~~ — feito no D-236 (HTML5 nativo; "Mover para…" segue como alternativa por teclado).
-- ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). (Arquivar em lote é na **lista** de cadernos, D-233: a página de um caderno é de um caderno só e não tem seleção nem botão de arquivar, então não há o que "levar para a página" — conferido no código no D-247.)
+- ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`) e feito em lotes de 50, com andamento e "Parar", na D-249; o tamanho do lote é a pendência da parte 7. (Arquivar em lote é na **lista** de cadernos, D-233: a página de um caderno é de um caderno só e não tem seleção nem botão de arquivar, então não há o que "levar para a página" — conferido no código no D-247.)
 - ~~Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end`~~ — feito no D-251: `python -m app.knowledge.chunk_positions` (`--apply` grava; ações `cadernos_posicao_trechos_simular` e `cadernos_posicao_trechos` no workflow **Administração do banco**) refaz o corte sobre o texto guardado e grava a posição só do trecho de texto idêntico; o que não bate segue NULL e na busca por palavras. Rodar uma vez em produção depois do Deploy da API.
 
 **Checklist pós-Deploy da API (D-223 a D-250) — uma vez, em produção, depois do deploy.** Nenhuma destas partes tem migração além das já
@@ -1889,7 +1875,16 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 - ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
 - ~~Rótulo e licença de uma fonte seguem fixos depois do cadastro~~ (feito no D-244: o `PATCH` leva também rótulo, referência e licença; revisor segue fixo).
 - ~~Arrastar a classe não funciona em tela de toque~~ (feito no D-244: eventos de ponteiro; "Mover para…" segue pelo teclado).
-- ~~"Esvaziar o arquivo" é uma transação só~~ — feito na D-249: lotes de 50, andamento, Parar, e a contagem confirmada vale lote a lote.
+
+**Pendências do TODO, parte 11 (D-254).**
+- Ordenar pelo cabeçalho vale para as tabelas de rótulo e contagem (Fontes, Processos em Tabela, histórico do Importar). Ficam sem ordenação, de propósito:
+  Classes e Propriedades do Admin (árvore e edição na linha), o ranking e as lacunas do Painel (ordem do servidor) e as listas de Meus registros e Cadernos
+  (cartões e linhas com seleção, não tabelas). Se pedirem, um "Ordenar por" nessas duas é um seletor, não um cabeçalho.
+- No celular, Fontes, Processos em Tabela e o histórico do Importar continuam tabelas com rolagem lateral: só o catálogo tem os cartões que a substituem.
+  Cartões para elas seriam um desenho à parte (D-50).
+- Processos agrupa só a galeria de famílias; as visões Tabela e Lista seguem planas (a Tabela ordena por Subfamília). Um limite diferente de 12 por família
+  é `GROUP_FROM` em `lib/processGroups.ts`.
+- A prosa do roxo `#6750A4` no artefato externo "MaterialSelect AI" ficou como histórico marcado; o artefato não foi republicado.
 
 **Pendências do TODO, parte 10 (D-252).**
 - A fila de reenvio é **por processo**: a thread vive na API (uma máquina no Fly); com duas máquinas a concessão (`claim_due`) impede o envio duplo, mas
@@ -1911,7 +1906,7 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 
 **Fluxos entre telas, parte 19 — pendências (D-237).**
 - ~~`import pint` (~14 MB de RSS) ainda na partida~~ — feito no D-247 (`pint_errors()` em `units.py`; `UnitsContainer` importado dentro da função).
-- Um erro no meio do CSV do catálogo entrega um arquivo truncado com status 200 (o que pode falhar é resolvido antes do primeiro byte); se virar problema, fechar o arquivo com uma linha de erro.
+- ~~Um erro no meio do CSV do catálogo entrega um arquivo truncado com status 200~~ — feito: o arquivo fecha com a linha `# ERRO:` (D-244) e a tela avisa que o baixado veio cortado (D-249). A conferência no Excel está na checklist pós-deploy.
 
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).

@@ -14,8 +14,8 @@ import { ptBR } from "@/lib/i18n";
 import type { SuggestAction } from "@/lib/types";
 import { roots } from "@/lib/taxonomy";
 import { CatalogueExportButtons } from "@/components/catalog/CatalogueExportButtons";
-import { MaterialList } from "@/components/catalog/MaterialList";
-import { MaterialCards, MaterialLines } from "@/components/catalog/MaterialCards";
+import { MaterialGallery, MaterialList } from "@/components/catalog/MaterialList";
+import { MaterialLines } from "@/components/catalog/MaterialCards";
 import { MaterialPreview } from "@/components/catalog/MaterialPreview";
 import {
   CATALOG_COLUMNS,
@@ -576,11 +576,11 @@ function CatalogPageContent() {
                   }
                 />
               ) : view.kind === "gallery" ? (
-                <MaterialCards
+                <MaterialGallery
                   materials={shown}
                   searchQuery={debouncedSearch}
-                  layout="gallery"
                   valueLabel={sortProperty?.name}
+                  selection={selection}
                 />
               ) : view.kind === "list" ? (
                 <MaterialLines materials={shown} searchQuery={debouncedSearch} />

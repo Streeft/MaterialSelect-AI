@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 211 — 19/11/26 — Pendências do TODO, parte 11: ordenar e selecionar nas listas fora do catálogo, Processos agrupado por subfamília, `--state-disabled` nos controles, `maplibre-gl` crítico fechado (D-254)
+
+**O que mudou.** *Tabelas:* `useTableSort` (a D-131 era só do catálogo) ordena pelo cabeçalho, com `aria-sort` e teclado, Administrar › Fontes (fonte,
+licença, revisão, citações), Processos em Tabela (processo, família, subfamília, materiais) e o histórico do Importar (arquivo, data, situação,
+importados); só rótulo e contagem do servidor, e o ausente fica por último nos dois sentidos, nunca como 0. *Celular:* os cartões do catálogo (e a Galeria)
+ganham a caixa de seleção (44 px) e a mesma barra da tabela, agora uma só, `SelectionBar`; no telefone dá para marcar e comparar. *Processos:* o cartão de uma
+família com mais de 12 processos agrupa por subfamília em seções que dobram (fechadas; abertas com busca ou filtro; "Abrir todas"/"Recolher todas"; "N marcados"
+na cabeça). *Movimento:* botão, seta do carrossel, item do FAB, ícone do gráfico e o `ExpressionBuilder` desbotam por `--state-disabled` (0,38). *Segurança:*
+`plotly.js` 4.3.0 (traz o `maplibre-gl` 6.11.2, fora da faixa crítica), `next` 16.4.6, `sharp`, `source-map-js`, `vite`/`vitest`; `engines.node` 22.x no
+`apps/web`. *Docs:* o roxo `#6750A4` já era histórico marcado (a cor e a semente de hoje no doc 21); o TODO perdeu o que já estava feito (e-mail ligado, CSV
+cortado, "Esvaziar o arquivo" repetido).
+
+**Testes novos.** Frontend (vitest): `useTableSort` e `tableSort` (número, ausente por último), `processGroups` (subfamília, nível mais fundo, ordem, raiz),
+`processos-agrupar` (seções, abertura com filtro, "marcados", tabela ordenável, axe), Fontes e Importar ordenáveis (aria-sort, número, data, teclado, axe),
+`materialCardsSelection` (caixa nos cartões, uma barra, seleção compartilhada com a tabela, galeria, axe) e `disabledState` (varredura dos CSS e `.tsx`). E2E:
+`telas-processos` (seções que abrem e recolhem; tabela ordena por nome e por número) e `mobile` (catálogo marca dois cartões e vai ao Comparar; seção de
+Processos aberta tem alvos de 44 px). Sem migração, sem seed, sem `apps/api`: nada a disparar depois do merge.
+
 ## Sessão 209 — 19/11/26 — Pendências do TODO, parte 10: fila de reenvio do laudo, Word e PowerPoint da versão emitida, aviso de busca léxica, alternativas C e D na sugestão da Eco, i18n da IA limpo, Trafilatura nos Cadernos (D-252)
 
 **O que mudou.** *Laudo:* um envio que falha por motivo **passageiro** (servidor de e-mail fora, tempo esgotado, `4xx`) entra na fila (`na_fila`) e é

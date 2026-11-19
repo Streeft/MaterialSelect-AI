@@ -50,3 +50,48 @@ test("meus registros: a busca e o filtro ficam no endereço", async ({ page }) =
   );
   await expect(page.getByText("Nenhum registro bate com a busca e os filtros.").first()).toBeVisible();
 });
+
+// D-254: o cartão de Conformação passa de 100 processos; agrupa por subfamília e a tabela ordena.
+test("processos: a família grande agrupa por subfamília, com seções que abrem e recolhem", async ({
+  page,
+}) => {
+  await page.goto("/app/processos");
+  const region = page.getByRole("group", { name: "Subfamílias de Conformação" });
+  await expect(region).toBeVisible({ timeout: 45_000 });
+  const sections = region.locator("details");
+  expect(await sections.count()).toBeGreaterThan(2);
+  // Nascem fechadas, e cada cabeça diz quantos processos guarda.
+  await expect(region.locator("details[open]")).toHaveCount(0);
+  await expect(sections.first().locator("summary")).toContainText(/\d+ processos?/);
+
+  await sections.first().locator("summary").click();
+  await expect(region.locator("details[open]")).toHaveCount(1);
+  await expect(sections.first().getByRole("link").first()).toBeVisible();
+
+  await region.getByRole("button", { name: "Abrir todas" }).click();
+  await expect(region.locator("details[open]")).toHaveCount(await sections.count());
+  await region.getByRole("button", { name: "Recolher todas" }).click();
+  await expect(region.locator("details[open]")).toHaveCount(0);
+});
+
+test("processos: na tabela o cabeçalho ordena por nome e por número de materiais", async ({ page }) => {
+  await page.goto("/app/processos?visao=table");
+  const nameHead = page.getByRole("columnheader", { name: "Processo" });
+  await expect(nameHead).toBeVisible({ timeout: 45_000 });
+  await expect(nameHead).toHaveAttribute("aria-sort", "none");
+
+  await nameHead.getByRole("button").click();
+  await expect(nameHead).toHaveAttribute("aria-sort", "ascending");
+  const names = await page.getByRole("rowheader").allTextContents();
+  const collator = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true });
+  expect([...names].sort((a, b) => collator.compare(a, b))).toEqual(names);
+
+  // Pelo teclado, na coluna dos números: do menor para o maior.
+  const countHead = page.getByRole("columnheader", { name: "Materiais" });
+  await countHead.getByRole("button").focus();
+  await page.keyboard.press("Enter");
+  await expect(countHead).toHaveAttribute("aria-sort", "ascending");
+  await expect(nameHead).toHaveAttribute("aria-sort", "none");
+  const counts = (await page.locator("tbody tr td:last-child").allTextContents()).map(Number);
+  expect([...counts].sort((a, b) => a - b)).toEqual(counts);
+});

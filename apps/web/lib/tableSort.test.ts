@@ -32,4 +32,16 @@ describe("tableSort (D-131)", () => {
     expect(ariaSort({ key: "name", dir: "desc" }, "name")).toBe("descending");
     expect(ariaSort({ key: "name", dir: "desc" }, "class")).toBe("none");
   });
+
+  it("puts absent values after the others, in both directions, never as a zero (D-254)", () => {
+    const counts = [{ n: 10 }, { n: null }, { n: 9 }, { n: 0 }, { n: undefined }, { n: 100 }];
+    const value = (r: { n: number | null | undefined }) => r.n;
+    expect(sortRows(counts, value, "asc").map(value)).toEqual([0, 9, 10, 100, null, undefined]);
+    expect(sortRows(counts, value, "desc").map(value)).toEqual([100, 10, 9, 0, null, undefined]);
+  });
+
+  it("orders counts as numbers, not as text", () => {
+    const rows = [{ c: 9 }, { c: 100 }, { c: 21 }];
+    expect(sortRows(rows, (r) => r.c, "asc").map((r) => r.c)).toEqual([9, 21, 100]);
+  });
 });

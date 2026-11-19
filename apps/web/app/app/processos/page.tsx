@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProcessMatrix, listProcessClasses, listProcesses } from "@/lib/api";
 import { ProcessCompare } from "@/components/process/ProcessCompare";
@@ -20,7 +20,9 @@ import type { Process, ProcessClass } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { descendantSlugs, roots } from "@/lib/taxonomy";
+import { GROUP_FROM, groupBySubfamily } from "@/lib/processGroups";
 import { useDatabaseView } from "@/lib/savedViews";
+import { useTableSort } from "@/lib/useTableSort";
 import {
   Alert,
   Button,
@@ -29,6 +31,7 @@ import {
   Card,
   CardBody,
   Checkbox,
+  Disclosure,
   EmptyState,
   ErrorState,
   FilterBar,
@@ -40,6 +43,7 @@ import {
   RowHeader,
   SavedViewsBar,
   Section,
+  SortTh,
   Table,
   TableScroll,
   TBody,
@@ -452,6 +456,7 @@ function ProcessesPageContent() {
                     processes={shown}
                     selected={url.comparar}
                     onToggle={toggleCompare}
+                    filtered={filtered}
                   />
                 ))}
             </div>
@@ -509,6 +514,17 @@ function ProcessTable({
   processes: Process[];
   rootOf: Map<string, ProcessClass>;
 }) {
+  // D-254: the head sorts what is on screen — names and the count the server sent.
+  const columns = useMemo(
+    () => ({
+      process: (p: Process) => p.name,
+      family: (p: Process) => rootOf.get(p.class_slug)?.name ?? p.class_name,
+      class: (p: Process) => p.class_name,
+      materials: (p: Process) => p.material_count,
+    }),
+    [rootOf],
+  );
+  const sorted = useTableSort(processes, columns);
   return (
     <TableScroll label={t.title}>
       <Table>
@@ -517,14 +533,14 @@ function ProcessTable({
             <Th>
               <span className="sr-only">{t.columnCompare}</span>
             </Th>
-            <Th>{t.columnProcess}</Th>
-            <Th>{t.columnFamily}</Th>
-            <Th>{t.columnClass}</Th>
-            <Th numeric>{t.columnMaterials}</Th>
+            <SortTh label={t.columnProcess} {...sorted.head("process")} />
+            <SortTh label={t.columnFamily} {...sorted.head("family")} />
+            <SortTh label={t.columnClass} {...sorted.head("class")} />
+            <SortTh numeric label={t.columnMaterials} {...sorted.head("materials")} />
           </Tr>
         </THead>
         <TBody>
-          {processes.map((process) => (
+          {sorted.rows.map((process) => (
             <Tr key={process.slug}>
               <Td>
                 <CompareCheck process={process} selected={selected} onToggle={onToggle} />
@@ -592,21 +608,57 @@ function ProcessLines({
   );
 }
 
+/** One process as a row of a family card: the box to compare it and the link to its sheet. */
+function ProcessRow({ process, selected, onToggle }: CompareProps & { process: Process }) {
+  return (
+    <li className="flex items-center gap-1">
+      <CompareCheck process={process} selected={selected} onToggle={onToggle} />
+      <Link
+        href={`/app/processos/${process.slug}`}
+        className="touch-target flex min-w-0 flex-1 items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <span>{process.name}</span>
+        <span aria-hidden className="text-ink-subtle">
+          →
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 function FamilyCard({
   family,
   classes,
   processes,
   selected,
   onToggle,
+  filtered = false,
 }: CompareProps & {
   family: ProcessClass;
   classes: ProcessClass[];
   processes: Process[];
+  /** A search or a filter is on: the sections open, because the result is what the reader came for. */
+  filtered?: boolean;
 }) {
   // Everything under this root, the root included — the reader wants the
   // family's processes, not only the ones that happen to be filed at its top.
   const subtree = descendantSlugs(family.slug, classes);
   const inFamily = processes.filter((p) => subtree.has(p.class_slug));
+  // D-254: a family with many processes is grouped by sub-family, each section
+  // folding ("Conformação" alone has over a hundred). Closed to begin with — the
+  // reader opens the one they want — and open while a search or filter is on.
+  const groups = useMemo(
+    () => (inFamily.length > GROUP_FROM ? groupBySubfamily(family.slug, classes, processes) : []),
+    [family.slug, classes, processes, inFamily.length],
+  );
+  const grouped = groups.length > 1;
+  // Only the sections the reader has touched are stored; the rest follow `filtered`.
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+  const isOpen = (key: string) => toggled[key] ?? filtered;
+  const groupKey = (slug: string | null) => slug ?? "__direct";
+  const allOpen = groups.every((g) => isOpen(groupKey(g.slug)));
+  const setAll = (open: boolean) =>
+    setToggled(Object.fromEntries(groups.map((g) => [groupKey(g.slug), open])));
 
   return (
     <Card>
@@ -626,21 +678,58 @@ function FamilyCard({
         {inFamily.length === 0 ? (
           // Written out, never a blank card: an empty family is a state.
           <p className="text-body text-ink-muted">{t.emptyFolder}</p>
+        ) : grouped ? (
+          <div role="group" aria-label={t.groupsRegion(family.name)} className="flex flex-col gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="self-start"
+              onClick={() => setAll(!allOpen)}
+            >
+              {allOpen ? t.groupsCloseAll : t.groupsOpenAll}
+            </Button>
+            {groups.map((group) => {
+              const key = groupKey(group.slug);
+              const marked = group.processes.filter((p) => selected.includes(p.slug)).length;
+              return (
+                <Disclosure
+                  key={key}
+                  flush
+                  open={isOpen(key)}
+                  onOpenChange={(open) => setToggled((current) => ({ ...current, [key]: open }))}
+                  summary={
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span>{group.name ?? t.groupDirect}</span>{" "}
+                      <span className="text-caption font-normal text-ink-muted">
+                        {t.countProcesses(group.processes.length)}
+                        {marked > 0 ? ` · ${t.groupMarked(marked)}` : ""}
+                      </span>
+                    </span>
+                  }
+                >
+                  <ul className="-mx-2 flex flex-col">
+                    {group.processes.map((process) => (
+                      <ProcessRow
+                        key={process.slug}
+                        process={process}
+                        selected={selected}
+                        onToggle={onToggle}
+                      />
+                    ))}
+                  </ul>
+                </Disclosure>
+              );
+            })}
+          </div>
         ) : (
           <ul className="-mx-2 flex flex-col">
             {inFamily.map((process) => (
-              <li key={process.slug} className="flex items-center gap-1">
-                <CompareCheck process={process} selected={selected} onToggle={onToggle} />
-                <Link
-                  href={`/app/processos/${process.slug}`}
-                  className="touch-target flex min-w-0 flex-1 items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  <span>{process.name}</span>
-                  <span aria-hidden className="text-ink-subtle">
-                    →
-                  </span>
-                </Link>
-              </li>
+              <ProcessRow
+                key={process.slug}
+                process={process}
+                selected={selected}
+                onToggle={onToggle}
+              />
             ))}
           </ul>
         )}
