@@ -2070,6 +2070,8 @@ export interface Explanation {
   paragraphs: string[];
   caveats: string[];
   sources: CitedSource[];
+  /** D-252: the reference passages were picked by words alone (embeddings did not answer). */
+  retrieval_degraded?: boolean;
   provider: string;
   simulated: boolean;
   disclaimer: string;
@@ -2181,6 +2183,8 @@ export interface ProjectPlan {
   /** The model's plan for the same text was reused; no quota spent. */
   cached: boolean;
   notice: string | null;
+  /** D-252: the reference passages the model read were picked by words alone this time. */
+  retrieval_degraded?: boolean;
   provider: string;
   simulated: boolean;
   disclaimer: string;
@@ -3734,6 +3738,8 @@ export interface NotebookAnswer {
   not_found: boolean;
   /** Why a paragraph was left out — never silently repaired. */
   withheld: string[];
+  /** D-252: the search used words alone because the embeddings did not answer this time. */
+  retrieval_degraded?: boolean;
 }
 
 export interface NotebookMessage {

@@ -114,6 +114,9 @@ class ExplanationOut(BaseModel):
     paragraphs: list[str]
     caveats: list[str]
     sources: list[CitedSourceOut] = Field(default_factory=list)
+    #: D-252: the search of the Cérebro could not use the embeddings this time (provider failure,
+    #: 429 or time budget), so the reference passages were picked by words alone.
+    retrieval_degraded: bool = False
     provider: str
     simulated: bool
     disclaimer: str
@@ -270,6 +273,10 @@ class ProjectPlanOut(BaseModel):
     #: True when the model's plan for this same text was reused (no quota spent).
     cached: bool = False
     notice: str | None = None
+    #: D-252: the search of the Cérebro could not use the embeddings this time, so the reference
+    #: passages the model read were picked by words alone. A plan reused from the cache ran no
+    #: search and says ``False``.
+    retrieval_degraded: bool = False
     provider: str
     simulated: bool
     disclaimer: str

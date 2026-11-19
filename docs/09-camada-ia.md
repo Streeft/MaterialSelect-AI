@@ -127,8 +127,8 @@ em outro lugar sem entender a regra.
   rede.
 - **Semântica** — opcional, roda só quando `KNOWLEDGE_EMBEDDING_BASE_URL` (ou
   `AI_BASE_URL`) e `KNOWLEDGE_EMBEDDING_MODEL` estão configurados; degrada para
-  léxico puro, silenciosamente para quem chama, se a chamada de embedding
-  falhar. Um trecho achado por metade do mecanismo vale mais que nenhum, e um
+  léxico puro se a chamada de embedding falhar — **e desde a D-252 a tela
+  fica sabendo** (`SearchResult.semantic_degraded`, abaixo). Um trecho achado por metade do mecanismo vale mais que nenhum, e um
   provedor de embeddings instável não pode derrubar toda chamada de IA por
   isso. Só entram na comparação os vetores do **mesmo modelo e da mesma
   dimensão** da pergunta ([D-101](DECISIONS.md)): um vetor de outro tamanho é
@@ -144,6 +144,17 @@ por checksum, um documento do `Cérebro/` por linha — e não produz número
 nenhum sozinha; o princípio 2 do `CLAUDE.md` continua valendo tanto quanto
 antes de ela existir. Ver [D-45](DECISIONS.md) sobre por que o material
 licenciado que ela indexa está hospedado em `main`.
+
+### O aviso de que a busca caiu para a léxica ([D-252](DECISIONS.md))
+
+`search_detailed` (Cérebro) e `notebooks.retrieval.search` (Cadernos) dizem `semantic_degraded`: a metade semântica **era para ranquear e não veio**
+(provedor de embeddings fora, 429, orçamento de tempo `KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS`/`NOTEBOOK_RETRIEVAL_BUDGET_SECONDS` estourado, vetores de outra
+dimensão). **Não** vale quando não há embeddings configurados nem vetores guardados, nem para o provedor simulado: ali a léxica é o modo normal, e um aviso
+permanente não informaria nada. O fato sai como `retrieval_degraded` na resposta do caderno (`AnswerOut`, guardada com a mensagem, então o histórico
+mostra o aviso da resposta que o teve), no plano do assistente (`ProjectPlanOut`; um plano reaproveitado do cache não buscou nada e diz `false`) e na
+explicação de um estudo (`ExplanationOut`). A tela mostra `RetrievalDegradedNote`: "A busca por significado não respondeu desta vez: os trechos de
+referência foram escolhidos só pelas palavras, e a resposta pode ficar menos precisa." — uma nota (`role="note"`), não um alerta: a resposta segue
+citada e conferida. O motivo exato fica no log do servidor.
 
 ### Em produção: índice em memória, vetores de 768 e a cota gratuita ([D-101](DECISIONS.md))
 
@@ -226,9 +237,10 @@ que vai ao log passa antes pela troca da chave configurada por
 `[chave omitida]` — antes do corte em 300 caracteres, para nenhum pedaço dela
 sobrar na ponta —, inclusive nas respostas 200 sem JSON ou sem vetores.
 
-**Quando a cota diária de embeddings acaba**, a busca não mostra erro nenhum:
+**Quando a cota diária de embeddings acaba**, a busca não mostra erro:
 a pergunta embedada recebe 429, a busca cai para a léxica (no Cérebro e nos
-Cadernos), e a resposta vem com os trechos que o BM25 achou. O mesmo vale enquanto os vetores ainda estão chegando — a
+Cadernos), e a resposta vem com os trechos que o BM25 achou — **com um aviso
+discreto na tela** ([D-252](DECISIONS.md), abaixo). O mesmo vale enquanto os vetores ainda estão chegando — a
 semântica ranqueia os trechos que já têm vetor, e o resto é achado por palavras.
 A cota do Gemini gratuito é uma só para o produto e para o preenchimento; por
 isso o preenchimento automático roda à noite, com a sobra do dia
@@ -613,8 +625,19 @@ o parágrafo cita. O que muda é o caminho até ela.
   `font-size:0` que volta ao tamanho legível por classe de folha de estilo é
   descartada. Ocultação por folha de estilo continua fora de alcance, e a
   defesa ali é a fonte ser dado, nunca instrução. Uma página que depende de
-  JavaScript é recusada pedindo para colar o texto. É o ponto único de troca,
-  se um dia entrar o trafilatura.
+  JavaScript é recusada pedindo para colar o texto.
+  **Desde a D-252 o Trafilatura vai à frente** (`app/notebooks/page_text.py`,
+  `extract_page`): ele tira o que nenhuma marcação nomeia (banner de cookies,
+  botões de compartilhar, "leia também", comentários, tudo `<div>`), mas **não
+  recebe a página** — recebe a árvore do extrator embutido **sem os nós
+  ocultos** e sem os marcos de navegação, com `10<sup>3</sup>` já escrito `10³`
+  (`clean_markup`), de modo que a regra acima vale por construção. A saída
+  Markdown volta ao formato que o fatiador lê (`from_markdown`). **Recaída para o
+  extrator embutido, intacto**, se ele falhar, devolver menos de 200 letras,
+  guardar menos de 20% do que o embutido guardou, escrever um número que a
+  página não tem, a página limpa passar de 1,5 milhão de caracteres, o pacote
+  faltar ou `NOTEBOOK_HTML_EXTRACTOR=builtin`. Importado só quando uma página é
+  lida (+20 MB na primeira vez; ~130 MB de pico numa página de 1,8 MB).
 - **A origem viaja com o texto.** `notebook_source.meta` guarda endereço,
   licença, atribuição, autores, revisão e procedência. `citations_for` copia o
   endereço e a atribuição para `source_url`/`source_attribution` de toda
@@ -921,7 +944,7 @@ movimento sob `prefers-reduced-motion`), e o foco só vai a ele quando seria per
 |---|---|---|
 | Dimensionar | `dimensionar`: `{request}` = o pedido de `/api/solver/solve` (caso, entradas, objetivo, limite); desligado até o pedido estar completo | `set_param` `objective` e `inputs.<chave>` (apoio só entre as constantes do caso; variável livre só número); `compare` é link para `/app/comparar?materiais=`; `open_route` é link |
 | Custo | `custo`: `{request}` = o pedido da estimativa (material, massa, lote, amortização, fator de carga) | `set_param` `part_mass`, `batch_size`, `write_off_years`, `load_factor` (as premissas recolhidas abrem) |
-| Eco | `eco`: `{request}` = a auditoria individual, ou `{comparison}` = o pedido do A × B (D-234; o servidor recalcula os dois lados) | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem quando todos os componentes ou trechos concordam; `part_mass` só para um produto de um componente (faixa (0, 10⁶] kg, marcada para revisão); na comparação, `material_a.*` e `material_b.*` (`part_mass`, `recycled_fraction`, `end_of_life`) e `transport_distance_km` |
+| Eco | `eco`: `{request}` = a auditoria individual, ou `{comparison}` = o pedido do A × B (D-234; o servidor recalcula os dois lados) | `set_param` `recycled_fraction`, `end_of_life` e `transport_distance_km` valem quando todos os componentes ou trechos concordam; `part_mass` só para um produto de um componente (faixa (0, 10⁶] kg, marcada para revisão); na comparação, `material_a.*` e `material_b.*` (`part_mass`, `recycled_fraction`, `end_of_life`) e `transport_distance_km`; **com alternativas C e D** (D-252) o modelo lê também o material, o processo, os totais e a diferença de cada uma contra A e o menor total entre todas (do resultado do servidor), e pode propor `material_c.*` e `material_d.*` — só se a alternativa existe, pelas mesmas faixas |
 | Baterias | `baterias`: `{request}` = o pedido de dimensionamento | `set_param` `chemistry_slug` (só química do catálogo) e os requisitos e fatores de empacotamento (abrem as premissas); vira "personalizado" como uma edição manual |
 | Sintetizar | `sintetizar`: `{request}` = o pedido da prévia (com o nome provisório) | `set_param` `volume_fraction`, `relative_density`, `face_thickness`, `core_thickness`, só o campo do tipo de receita aberto e só se o valor mudar; o número pode ser o que o modelo escolheu na faixa do pedido (D-234), marcado e confirmado |
 | Painel | `painel`: `{}` (o servidor lê o panorama) | só `open_route` (links) |
@@ -1088,6 +1111,7 @@ isso; o cálculo, esse não varia, porque não passa por aqui.
 | `AI_CONTEXT_CACHE_SECONDS` | `60` | reuso do resumo do catálogo que os prompts levam |
 | `KNOWLEDGE_RETRIEVAL_BUDGET_SECONDS` | `2` | espera máxima pelo embedding da consulta ao Cérebro; passou, segue só a léxica |
 | `NOTEBOOK_RETRIEVAL_BUDGET_SECONDS` | `2` | o mesmo para a pergunta de um Caderno (D-228) |
+| `NOTEBOOK_HTML_EXTRACTOR` | `trafilatura` | quem lê uma página de link: `trafilatura` (com recaída) ou `builtin` (só o extrator da biblioteca padrão; D-252) |
 | `AI_SUGGEST_TIMEOUT_SECONDS` | `20` | tempo da chamada de sugestões (`/ai/suggest`, D-228) |
 | `AI_SUGGEST_MAX_OUTPUT_TOKENS` | `1500` | teto de saída das sugestões |
 | `AI_SUGGEST_CACHE_SECONDS` | `600` | reuso das sugestões para o mesmo contexto enriquecido, sem gastar cota (0 desliga) |

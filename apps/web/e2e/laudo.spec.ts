@@ -210,6 +210,17 @@ test("laudo: pré-visualiza com marca de rascunho, emite e abre a versão congel
     expect(bytes.length).toBeGreaterThan(20_000);
   }
 
+  // D-252: the issued version has its own Word, made from the frozen laudo; the cover says
+  // which version and code it copies.
+  const [versionWord] = await Promise.all([
+    page.waitForEvent("download", { timeout: 90_000 }),
+    page.getByRole("link", { name: /^Word da versão 1 emitida/ }).click(),
+  ]);
+  expect(versionWord.suggestedFilename()).toMatch(/^laudo-de-engenharia-.*-versao-1\.docx$/);
+  const versionBytes = await (await import("node:fs/promises")).readFile((await versionWord.path())!);
+  expect(versionBytes.subarray(0, 2).toString()).toBe("PK");
+  expect(versionBytes.length).toBeGreaterThan(20_000);
+
   // Anyone holding the code can check it, without a session.
   // `request` is not the browser's context: it carries no session cookie.
   const check = await request.get(`${API}/api/laudos/verificar/${code}`);

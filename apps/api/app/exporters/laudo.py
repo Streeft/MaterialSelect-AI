@@ -165,6 +165,10 @@ class LaudoDocument:
     annex: list[Sheet] = field(default_factory=list)
     #: The number this version will carry; ``None`` on a preview.
     version: int | None = None
+    #: Set only when the document was read back out of an **issued** version (D-252): the
+    #: short code printed on that version. The editable copies then say which version and code
+    #: they were copied from, instead of "dados de hoje".
+    issued_code: str | None = None
 
 
 @dataclass(frozen=True)

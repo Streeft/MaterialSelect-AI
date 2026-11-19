@@ -168,6 +168,26 @@ describe("ecoBrief: a massa da peça e a comparação A × B (D-234)", () => {
     expect(aiParamPatch(compare, eco, "transport_distance_km", 800)).toEqual({ distance: "800" });
   });
 
+  it("as alternativas C e D escrevem só o seu cenário, e só se a tela as tem (D-252)", () => {
+    const withExtras = { ...compare, extras: [{ ...compare.b, mass: "4" }, { ...compare.b, mass: "6" }] };
+    const c = aiParamPatch(withExtras, eco, "material_c.part_mass", 2.5);
+    expect(c?.extras?.map((e) => e.mass)).toEqual(["2.5", "6"]);
+    expect(c?.a).toBeUndefined();
+    const d = aiParamPatch(withExtras, eco, "material_d.recycled_fraction", 0.4);
+    expect(d?.extras?.map((e) => e.recycled)).toEqual([withExtras.extras[0]!.recycled, "0.4"]);
+    expect(aiParamPatch(withExtras, eco, "material_c.end_of_life", "aterro")?.extras?.[0]?.endOfLife).toBe("aterro");
+    // The same bounds as A and B.
+    expect(aiParamPatch(withExtras, eco, "material_c.part_mass", 0)).toBeNull();
+    expect(aiParamPatch(withExtras, eco, "material_d.recycled_fraction", 1.5)).toBeNull();
+    expect(aiParamPatch(withExtras, eco, "material_d.end_of_life", "magia")).toBeNull();
+    // Only C on the screen: D is a name it does not have.
+    const onlyC = { ...compare, extras: [withExtras.extras[0]!] };
+    expect(aiParamPatch(onlyC, eco, "material_c.part_mass", 3)?.extras).toHaveLength(1);
+    expect(aiParamPatch(onlyC, eco, "material_d.part_mass", 3)).toBeNull();
+    // And never in the individual view.
+    expect(aiParamPatch({ ...single, extras: withExtras.extras }, eco, "material_c.part_mass", 3)).toBeNull();
+  });
+
   it("os nomes do produto não valem na comparação, nem os da comparação no produto", () => {
     expect(aiParamPatch(compare, eco, "part_mass", 3)).toBeNull();
     expect(aiParamPatch(compare, eco, "recycled_fraction", 0.3)).toBeNull();

@@ -244,6 +244,10 @@ class Settings(BaseSettings):
     notebook_fetch_max_bytes: int = 5_000_000
     notebook_fetch_timeout_seconds: float = 10.0
     notebook_fetch_max_redirects: int = 3
+    # Which reader turns a fetched web page into text (D-252): ``trafilatura`` (default) reads
+    # the page's main content and falls back to the built-in reader whenever it fails or its
+    # answer does not pass the checks of ``app/notebooks/page_text.py``; ``builtin`` skips it.
+    notebook_html_extractor: str = "trafilatura"
     # Who to write to about this client, sent in the User-Agent (Wikimedia's
     # policy asks for a contact). Empty uses FRONTEND_URL — never the author's
     # personal e-mail by default.
@@ -310,6 +314,19 @@ class Settings(BaseSettings):
     # How many e-mails one process hands to the mail server at once; the next
     # waits briefly and is then refused, so a slow server cannot take every thread.
     email_send_concurrency: int = 2
+    # --- Resending a laudo e-mail that failed for a passing reason (D-252) ------
+    # A send that failed with a *transient* error (the mail server down, a timeout, a 4xx
+    # answer) goes into the queue (status ``na_fila``) instead of being lost: the process
+    # tries again after ``EMAIL_RETRY_BASE_SECONDS``, then three times that, then nine times…
+    # (capped at six hours) until ``EMAIL_RETRY_MAX_ATTEMPTS`` attempts in all, counting the
+    # first. A permanent failure (wrong password, refused address) is never retried. 1 turns the
+    # queue off: the first failure is final, as before. The queue is a loop of the API process
+    # (one Fly machine) and it only runs with ``EMAIL_PROVIDER=smtp``.
+    email_retry_max_attempts: int = Field(default=5, ge=1, le=20)
+    email_retry_base_seconds: int = Field(default=300, ge=1, le=86400)
+    # How often the loop looks for a send that is due. Short enough for the base delay above,
+    # long enough to cost nothing while the queue is empty (one indexed query).
+    email_retry_poll_seconds: int = Field(default=30, ge=1, le=3600)
 
     # --- Client link and signed PDF of an issued laudo (D-243) -----------------
     # How long the link in the e-mail keeps opening the laudo, counted from the

@@ -7,6 +7,7 @@ import {
   issueLaudo,
   laudoFileUrl,
   laudoPreviewUrl,
+  laudoVersionFileUrl,
   laudoVersionUrl,
   listLaudoDeliveries,
   listLaudoVersions,
@@ -17,7 +18,12 @@ import { describeApiError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { LAUDO_REQUIRED, laudoText as t } from "@/lib/i18n-laudo";
 import { DeliveriesDialog } from "./DeliveriesDialog";
-import { DeliveryStatusBadge, formatSentAt, openedText } from "./DeliveryList";
+import {
+  DeliveryStatusBadge,
+  formatSentAt,
+  openedText,
+  refetchWhileQueued,
+} from "./DeliveryList";
 import { SendLaudoDialog } from "./SendLaudoDialog";
 import { SignedPdfDialog } from "./SignedPdfDialog";
 import {
@@ -290,12 +296,15 @@ function DeliveriesCell({ issued }: { issued: IssuedLaudo }) {
   const history = useQuery({
     queryKey: ["laudo-deliveries", issued.id],
     queryFn: () => listLaudoDeliveries(issued.id),
+    refetchInterval: (query) => refetchWhileQueued(query.state.data),
   });
   if (history.isPending) return <span className="text-caption text-ink-muted">{t.deliveriesLoading}</span>;
   if (history.isError) return <span className="text-caption text-danger-fg">{t.deliveriesError}</span>;
   const last = history.data[0];
   if (!last) return <span className="text-caption text-ink-muted">{t.noDeliveries}</span>;
-  const delivered = history.data.filter((d) => d.status !== "falhou");
+  // Only a send that went has a link (a failed one never did, a queued one has not yet).
+  const delivered = history.data.filter((d) => d.status === "enviado" || d.status === "simulado");
+  const queued = history.data.filter((d) => d.status === "na_fila").length;
   const openings = delivered.reduce((sum, d) => sum + (d.open_count ?? 0), 0);
   const lastOpened = delivered
     .map((d) => d.last_opened_at)
@@ -312,8 +321,10 @@ function DeliveriesCell({ issued }: { issued: IssuedLaudo }) {
         <span className="text-ink-muted">{active === 1 ? "1 link ativo" : `${active} links ativos`}</span>
       ) : null}
       <span className="flex flex-wrap items-center gap-1 text-ink-muted">
-        {formatSentAt(last.created_at)} <DeliveryStatusBadge status={last.status} />
+        {formatSentAt(last.created_at)}{" "}
+        <DeliveryStatusBadge status={last.status} attempts={last.attempts} />
       </span>
+      {queued > 0 ? <span className="text-ink-muted">{t.queuedCount(queued)}</span> : null}
       {delivered.length > 0 ? (
         <span className="text-ink-muted">
           {openedText({ open_count: openings, last_opened_at: lastOpened ?? null })}
@@ -403,6 +414,24 @@ function VersionsList({
                         aria-label={t.openLabel(version.version)}
                       >
                         {t.open}
+                      </ButtonLink>
+                      <ButtonLink
+                        size="sm"
+                        href={laudoVersionFileUrl(studyId, version.version, "docx")}
+                        download
+                        title={t.versionWordHint}
+                        aria-label={t.versionWordLabel(version.version)}
+                      >
+                        {t.versionWord}
+                      </ButtonLink>
+                      <ButtonLink
+                        size="sm"
+                        href={laudoVersionFileUrl(studyId, version.version, "pptx")}
+                        download
+                        title={t.versionPptxHint}
+                        aria-label={t.versionPptxLabel(version.version)}
+                      >
+                        {t.versionPptx}
                       </ButtonLink>
                       <Button
                         size="sm"

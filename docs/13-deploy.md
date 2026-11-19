@@ -931,7 +931,13 @@ seed. Sem nenhuma variável nova o e-mail fica no `mock`: o envio é só **simul
 | `EMAIL_REPLY_TO` | Opcional: para onde vão as respostas quando o envio não leva o e-mail do engenheiro. Desde a D-249 cada envio leva, por padrão, o e-mail da **conta que envia** em `Reply-To`, e esse prevalece; a pessoa pode desmarcar no diálogo. | `engenharia@seudominio.com.br` |
 
 Opcionais, com padrão: `SMTP_TIMEOUT_SECONDS=10`, `RATE_LIMIT_EMAIL_PER_HOUR=10` (envios por conta e por
-hora, 429 ao estourar) e `EMAIL_SEND_CONCURRENCY=2` (envios simultâneos por processo). Com usuário e **sem**
+hora, 429 ao estourar), `EMAIL_SEND_CONCURRENCY=2` (envios simultâneos por processo) e, desde a D-252, a **fila de
+reenvio**: `EMAIL_RETRY_MAX_ATTEMPTS=5` (tentativas contando a primeira; `1` desliga), `EMAIL_RETRY_BASE_SECONDS=300`
+(a espera da primeira nova tentativa; triplica a cada falha, no máximo 6 h) e `EMAIL_RETRY_POLL_SECONDS=30` (a cada
+quanto a thread da API olha a tabela). Um envio que falha por motivo passageiro (servidor de e-mail fora, tempo
+esgotado) fica "Na fila" e é tentado de novo sozinho; **nada a gravar no Fly**: com `EMAIL_PROVIDER=smtp` a fila já
+liga, e a thread vive no processo da API (uma máquina, sempre de pé). O limite por hora é gasto uma vez, ao apertar
+Enviar. Com usuário e **sem**
 TLS o envio é recusado antes de conectar (a senha não viaja aberta), exceto em `localhost`.
 
 **Opção A — Gmail com senha de app (a mais curta; serve a uma turma ou a poucos laudos).**

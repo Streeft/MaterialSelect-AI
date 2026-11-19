@@ -56,7 +56,8 @@ from app.integrations.errors import ExternalUnavailableError
 from app.knowledge.readers import ExtractedText, decode_text, read_upload
 from app.models.notebook import Notebook
 from app.models.user import User
-from app.notebooks.html_text import decode_html, extract_html
+from app.notebooks.html_text import decode_html
+from app.notebooks.page_text import extract_page
 from app.schemas.notebook import (
     MAX_URL_CHARS,
     ExternalSourceIn,
@@ -478,7 +479,7 @@ class ExternalSourceService:
         """The text of a fetched page by its media type, with the readers the
         uploads use for PDF and plain text. Returns (title, text, paged)."""
         if fetched.content_type in _HTML_TYPES:
-            title, extracted = extract_html(fetched.body, fetched.charset)
+            title, extracted = extract_page(fetched.body, fetched.charset)
             return title, extracted, False
         if fetched.content_type == "application/pdf":
             extracted = read_upload(

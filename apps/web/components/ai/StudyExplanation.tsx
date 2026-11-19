@@ -7,6 +7,7 @@ import { ApiError, explainStudy, getAIStatus } from "@/lib/api";
 import type { Explanation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { Alert, Button, Card, CardBody, CardHeader } from "@/components/ui";
+import { RetrievalDegradedNote } from "./RetrievalDegradedNote";
 
 const t = ptBR.ai;
 
@@ -85,6 +86,7 @@ export function StudyExplanation({ studyId }: { studyId: number }) {
             </div>
           )}
 
+          <RetrievalDegradedNote show={explanation.retrieval_degraded} />
           <p className="max-w-prose text-support text-ink-subtle">{explanation.disclaimer}</p>
         </CardBody>
       </Card>

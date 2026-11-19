@@ -14,9 +14,12 @@ does not build a tree, and it does not repair broken markup — so the small tre
 builder below does both, following the parts of the WHATWG algorithm that decide
 *where text ends up* (implied ``</p>``, ``</li>`` and ``</td>``, end tags that
 cannot reach across a table cell). Dedicated extractors such as ``trafilatura``
-read boilerplate better. If extraction quality becomes the bottleneck, **this
-module is the single swap point**: ``extract_html`` keeps its signature and
-nothing else changes, exactly as ``app.knowledge.readers`` is for PDF.
+read boilerplate better, and since D-252 one stands in front of this reader:
+``app.notebooks.page_text.extract_page`` asks Trafilatura first — over the page as
+*this* module sees it, hidden subtrees and chrome already removed — and answers with
+this module's text whenever Trafilatura fails or its answer does not pass the checks
+there. So this reader is both the visibility rule (``_skipped``, ``mute``) and the
+fallback, and ``extract_html`` keeps its signature.
 
 Three rules shape what is kept:
 

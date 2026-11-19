@@ -939,8 +939,13 @@ class SuggestContextBuilder:
         )
 
     def _eco_compare(self, raw: Mapping[str, Any]) -> SuggestContext:
-        """The A × B comparison (D-234): recomputed here from the brief, like the audit."""
-        from app.schemas.eco import EcoComparisonRequest
+        """The A × B comparison (D-234), with C and D (D-252): recomputed here from the brief.
+
+        Everything the model sees — the totals, each extra against A, the lowest total — is the
+        server's own result; the parameters it may suggest for C and D are named like A's and B's
+        (``material_c.part_mass``…) and validated against the same allowed values and ranges.
+        """
+        from app.schemas.eco import EcoAuditResultOut, EcoComparisonRequest
         from app.services.defaults_service import DefaultsService
         from app.services.eco_service import EcoService
 
@@ -957,23 +962,31 @@ class SuggestContextBuilder:
         defaults = DefaultsService().get().eco
         a, b = result.material_a, result.material_b
         name_a, name_b = a.material_name or "A", b.material_name or "B"
-        labels = {
-            "material_a.part_mass": f"massa da peça A ({name_a})",
-            "material_b.part_mass": f"massa da peça B ({name_b})",
-            "material_a.recycled_fraction": f"fração reciclada de A ({name_a})",
-            "material_b.recycled_fraction": f"fração reciclada de B ({name_b})",
-            "material_a.end_of_life": f"fim de vida de A ({name_a})",
-            "material_b.end_of_life": f"fim de vida de B ({name_b})",
-            "transport_distance_km": "distância de transporte",
-        }
-        scenario: dict[str, list[float | str]] = {
-            "material_a.recycled_fraction": [defaults.recycled_fraction],
-            "material_b.recycled_fraction": [defaults.recycled_fraction],
-            "material_a.end_of_life": [defaults.end_of_life],
-            "material_b.end_of_life": [defaults.end_of_life],
-            "transport_distance_km": [defaults.transport_distance_km],
-        }
-        current = request.model_dump(exclude={"use"})
+        # Alternatives "C" and "D" (D-251/D-252): the model sees them like A and B, and the
+        # parameters it may suggest for them are named ``material_c.*`` / ``material_d.*``.
+        sides: list[tuple[str, str, EcoAuditResultOut]] = [
+            ("a", "A", a),
+            ("b", "B", b),
+            *((extra.label.lower(), extra.label, extra.audit) for extra in result.extras),
+        ]
+        names = {letter: (audit.material_name or label) for letter, label, audit in sides}
+        # Order matters: the first parameter that left its default is the one a card offers.
+        labels: dict[str, str] = {}
+        scenario: dict[str, list[float | str]] = {}
+        for field, text, default in (
+            ("part_mass", "massa da peça {}", None),
+            ("recycled_fraction", "fração reciclada de {}", defaults.recycled_fraction),
+            ("end_of_life", "fim de vida de {}", defaults.end_of_life),
+        ):
+            for letter, label, _audit in sides:
+                labels[f"material_{letter}.{field}"] = text.format(f"{label} ({names[letter]})")
+                if default is not None:
+                    scenario[f"material_{letter}.{field}"] = [default]
+        labels["transport_distance_km"] = "distância de transporte"
+        scenario["transport_distance_km"] = [defaults.transport_distance_km]
+        current = request.model_dump(exclude={"use", "extra_materials"})
+        for extra, (letter, _label, _audit) in zip(request.extra_materials, sides[2:], strict=True):
+            current[f"material_{letter}"] = extra.model_dump()
         params = _params(current, scenario, labels)
 
         def total(value: float | None, unit: str) -> str:
@@ -982,10 +995,21 @@ class SuggestContextBuilder:
         lines = [
             f"A: {name_a}, processo {a.process_name}; massa {fmt(a.mass_in_part)} kg",
             f"B: {name_b}, processo {b.process_name}; massa {fmt(b.mass_in_part)} kg",
-            f"Energia total: A {total(a.total_energy, a.energy_unit)}; "
-            f"B {total(b.total_energy, b.energy_unit)}",
-            f"Carbono total: A {total(a.total_carbon, a.carbon_unit)}; "
-            f"B {total(b.total_carbon, b.carbon_unit)}",
+            *(
+                f"{label}: {names[letter]}, processo {audit.process_name}; "
+                f"massa {fmt(audit.mass_in_part)} kg"
+                for letter, label, audit in sides[2:]
+            ),
+            "Energia total: "
+            + "; ".join(
+                f"{label} {total(audit.total_energy, audit.energy_unit)}"
+                for _letter, label, audit in sides
+            ),
+            "Carbono total: "
+            + "; ".join(
+                f"{label} {total(audit.total_carbon, audit.carbon_unit)}"
+                for _letter, label, audit in sides
+            ),
         ]
         extra: list[float] = []
         rules: list[dict] = []
@@ -1000,7 +1024,38 @@ class SuggestContextBuilder:
                     f"Menor {quantity}: {better} ({fmt(abs(percent))}% de diferença para {worse})"
                 )
                 extra.append(abs(percent))
-        if result.winner_energy in ("material_a", "material_b") and (
+        # Each extra against A, as the server measured it (the percent is the result's own).
+        for alternative in result.extras:
+            for quantity, percent in (
+                ("energia", alternative.delta_energy_percent),
+                ("carbono", alternative.delta_carbon_percent),
+            ):
+                if percent is not None:
+                    direction = "mais" if percent > 0 else "menos"
+                    lines.append(
+                        f"{alternative.label} em relação a A: {fmt(abs(percent))}% "
+                        f"{direction} {quantity}"
+                    )
+                    extra.append(abs(percent))
+        letters = {label: letter for letter, label, _audit in sides}
+        for quantity, lowest in (
+            ("energia", result.lowest_energy),
+            ("carbono", result.lowest_carbon),
+        ):
+            if lowest:
+                shown = " e ".join(f"{label} ({names[letters[label]]})" for label in lowest)
+                lines.append(f"Menor {quantity} entre todas as alternativas: {shown}")
+        if result.extras and result.lowest_energy and len(result.lowest_energy) == 1:
+            label = result.lowest_energy[0]
+            rules.append(
+                card(
+                    f"{names[letters[label]]} usa menos energia",
+                    f"Entre as {len(sides)} alternativas, {label} ({names[letters[label]]}) tem o "
+                    "menor total de energia do ciclo de vida.",
+                    act("open_route", "/app/eco"),
+                )
+            )
+        elif result.winner_energy in ("material_a", "material_b") and (
             result.delta_energy_percent is not None
         ):
             better = name_a if result.winner_energy == "material_a" else name_b
@@ -1031,7 +1086,7 @@ class SuggestContextBuilder:
             )
         rules.extend(_back_to_defaults(current, params, labels))
         routes = {}
-        for side in (a, b):
+        for _letter, _label, side in sides:
             if side.material_id is not None:
                 routes[f"/app/materiais/{side.material_id}"] = f"a ficha de {side.material_name}"
         if a.material_id is not None:
@@ -1053,10 +1108,7 @@ class SuggestContextBuilder:
             rules,
             "O que a comparação A × B calculada mostra.",
             extra_numbers=extra,
-            ranges={
-                "material_a.part_mass": _POSITIVE_MASS,
-                "material_b.part_mass": _POSITIVE_MASS,
-            },
+            ranges={f"material_{letter}.part_mass": _POSITIVE_MASS for letter, _l, _a in sides},
         )
 
     def _baterias(self, raw: Mapping[str, Any]) -> SuggestContext:

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Alert, Badge, ConfirmDialog, Disclosure } from "@/components/ui";
 import { PlanComponentCard } from "@/components/ai/PlanComponentCard";
+import { RetrievalDegradedNote } from "@/components/ai/RetrievalDegradedNote";
 import {
   type LimitEdit,
   confirmationRequest,
@@ -113,6 +114,7 @@ export function PlanView({
         </div>
         {plan.summary && <p className="max-w-prose text-body text-ink">{plan.summary}</p>}
         {plan.cached && <p className="text-support text-ink-subtle">{t.cached}</p>}
+        <RetrievalDegradedNote show={plan.retrieval_degraded} />
       </section>
 
       {plan.assumptions.length > 0 && (

@@ -7,11 +7,13 @@ network call for the query) are ranked separately, then combined by
 constant the RRF literature converged on; no tuning knob here because there
 is nothing yet to tune it against).
 
-Semantic search degrades to lexical-only, silently to the caller, whenever
+Semantic search degrades to lexical-only whenever
 embeddings are unconfigured or the call fails — a knowledge base is more
 useful with half its retrieval working than with none of it, and the
 alternative (raising) would make one flaky embedding provider take down every
-AI call in the product.
+AI call in the product. It is no longer *silent* (D-252): :func:`search_detailed` says
+when the semantic half was meant to rank and did not (``SearchResult.semantic_degraded``),
+and the screens that show an answer built on a search say so, discreetly.
 
 **Ranked in memory, read from the database only when it changed.** The
 Cérebro's search ranks over a process-resident index (``app/knowledge/index.py``)
@@ -71,6 +73,19 @@ class RetrievedChunk:
     score: float
 
 
+@dataclass(frozen=True)
+class SearchResult:
+    """The passages of one search, and whether the semantic half had to be given up (D-252)."""
+
+    chunks: list[RetrievedChunk]
+    #: ``True`` when embeddings were configured and the corpus had vectors, so the ranking was
+    #: meant to be hybrid, but the semantic half did not arrive (the embedding provider failed
+    #: or answered 429, the time budget ran out, the vectors did not fit): the passages came
+    #: from the lexical half alone. ``False`` both for a hybrid ranking and for a deployment
+    #: that simply has no embeddings (lexical is then the normal mode, not a fallback).
+    semantic_degraded: bool = False
+
+
 def search(
     db: Session,
     query: str,
@@ -79,6 +94,20 @@ def search(
     settings: Settings,
     embed_budget: float | None = None,
 ) -> list[RetrievedChunk]:
+    """The ``top_k`` passages most relevant to ``query``; see :func:`search_detailed`."""
+    return search_detailed(
+        db, query, top_k=top_k, settings=settings, embed_budget=embed_budget
+    ).chunks
+
+
+def search_detailed(
+    db: Session,
+    query: str,
+    *,
+    top_k: int,
+    settings: Settings,
+    embed_budget: float | None = None,
+) -> SearchResult:
     """The ``top_k`` passages most relevant to ``query``, lexical + semantic.
 
     Ranked over the process-resident index (``app/knowledge/index.py``), which
@@ -91,17 +120,19 @@ def search(
     """
     query_tokens = tokenize(query)
     if not query_tokens:
-        return []
+        return SearchResult(chunks=[])
 
     repo = KnowledgeIndexRepository(db)
     cache = get_cache()
     lexical_ranked = cache.lexical(repo).rank(query_tokens, _CANDIDATES)
-    semantic_ranked = _semantic_rank(repo, query, settings, embed_budget)
+    semantic = _semantic_rank(repo, query, settings, embed_budget)
 
-    fused = reciprocal_rank_fusion([lexical_ranked, semantic_ranked])
+    fused = reciprocal_rank_fusion([lexical_ranked, semantic.ranking])
     if not fused:
-        return []
-    return _materialise(repo, fused, top_k)
+        return SearchResult(chunks=[], semantic_degraded=semantic.degraded)
+    return SearchResult(
+        chunks=_materialise(repo, fused, top_k), semantic_degraded=semantic.degraded
+    )
 
 
 def lexical_rank(chunks: list[KnowledgeChunk], query_tokens: list[str]) -> list[tuple[int, float]]:
@@ -139,20 +170,32 @@ def embed_query(client: EmbeddingClient, query: str, budget: float | None) -> li
         return None
 
 
+@dataclass(frozen=True)
+class SemanticRank:
+    """The semantic ranking, and whether it is empty because it **failed** (D-252)."""
+
+    ranking: list[tuple[int, float]]
+    degraded: bool = False
+
+
+_NOT_USED = SemanticRank([])
+_FAILED = SemanticRank([], degraded=True)
+
+
 def _semantic_rank(
     repo: KnowledgeIndexRepository,
     query: str,
     settings: Settings,
     budget: float | None = None,
-) -> list[tuple[int, float]]:
+) -> SemanticRank:
     client = EmbeddingClient(settings)
     if not client.configured:
-        return []
+        return _NOT_USED
     # Asked before embedding the query: with no vector of this model stored,
     # the embedding call would spend a request of the daily quota for nothing.
     stored = repo.vector_fingerprints(client.model)
     if not stored:
-        return []
+        return _NOT_USED
     # The same for a configured size nothing is stored at — mid-migration, say,
     # with every vector still at the old size. 0 ("the model's own size") can
     # only be checked against the answer, below.
@@ -162,11 +205,11 @@ def _semantic_rank(
             client.model,
             client.dimensions,
         )
-        return []
+        return _FAILED
     try:
         query_vector = embed_query(client, query, budget)
         if query_vector is None:
-            return []
+            return _FAILED
         # Only vectors of this model *and* the query's own length are compared
         # (embedding_matches' rule, applied in SQL by the fingerprint and the
         # loader). The actual length, never the configured one: 0 there means
@@ -178,12 +221,12 @@ def _semantic_rank(
                 client.model,
                 len(query_vector),
             )
-            return []
+            return _FAILED
         vectors = get_cache().vectors(repo, client.model, len(query_vector), fingerprint)
-        return vectors.rank(query_vector, _CANDIDATES)
+        return SemanticRank(vectors.rank(query_vector, _CANDIDATES))
     except EmbeddingUnavailableError as exc:
         logger.warning("Busca semântica indisponível, usando só léxica: %s", exc)
-        return []
+        return _FAILED
     except ValidationError as exc:
         # EmbeddingUnavailableError is itself a ValidationError subclass, so
         # it's already caught above; this clause is for any other plain
@@ -192,7 +235,7 @@ def _semantic_rank(
         # promise stands: half the retrieval working beats a flaky row taking
         # down the call.
         logger.warning("Pontuação semântica falhou, usando só léxica: %s", exc)
-        return []
+        return _FAILED
 
 
 def reciprocal_rank_fusion(rankings: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:

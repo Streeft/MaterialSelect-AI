@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { PlanView } from "./PlanView";
 import { ConstraintOriginChip } from "./ConstraintOriginChip";
+import { ptBR } from "@/lib/i18n";
 import { planText } from "@/lib/i18n-plan";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import { makeComponent, makeConstraint, makePlan } from "@/lib/testing/planFixtures";
@@ -326,5 +327,12 @@ describe("PlanView (D-225)", () => {
     const { container } = render(wrap(<Host initial={makePlan({ cached: true, rejected: ["Uma recusa."] })} />));
     const violations = await findA11yViolations(container);
     expect(violations, describeViolations(violations)).toEqual([]);
+  });
+
+  it("says the reference passages were picked by words alone, only when the server said so (D-252)", () => {
+    const { rerender } = render(wrap(<Host initial={makePlan({ retrieval_degraded: true })} />));
+    expect(screen.getByText(ptBR.ai.retrievalDegraded)).toBeInTheDocument();
+    rerender(wrap(<Host initial={makePlan({ retrieval_degraded: false })} key="b" />));
+    expect(screen.queryByText(ptBR.ai.retrievalDegraded)).not.toBeInTheDocument();
   });
 });

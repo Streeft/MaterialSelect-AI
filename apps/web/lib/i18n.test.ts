@@ -30,3 +30,26 @@ describe("textos compartilhados com o backend", () => {
     expect(ptBR.catalog.searchHelpRule).toBe(pythonConstant(python, "RULE_TEXT"));
   });
 });
+
+/**
+ * D-252: the "interpretar enunciado" panel and its route left in D-234, and its texts lingered in
+ * `ptBR.ai` for three entregas. What the namespace holds now is what the explanation of a study
+ * and the notice about the search read; a key added here without a reader is dead text again.
+ */
+describe("ptBR.ai", () => {
+  it("holds only the explanation of a study and the notice about the search", () => {
+    expect(Object.keys(ptBR.ai).sort()).toEqual(
+      [
+        "caveats",
+        "close",
+        "explain",
+        "explainError",
+        "explaining",
+        "explainingWithKnowledge",
+        "explanationTitle",
+        "retrievalDegraded",
+        "sourcesConsulted",
+      ].sort(),
+    );
+  });
+});
