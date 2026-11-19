@@ -478,6 +478,35 @@ export interface OrdinalProperty {
   is_demo: boolean;
 }
 
+/** One level of a scale and what depends on it (D-251): what the curator must know to edit it. */
+export interface OrdinalScaleLevel {
+  id: number;
+  label: string;
+  rank: number;
+  /** Materials that hold exactly this level: it cannot be removed while any does. */
+  value_count: number;
+  /** Saved studies asking "at least this level": it cannot be renamed or removed. */
+  study_count: number;
+  /** Use scenarios of the project's table that ask for this label. */
+  scenario_count: number;
+}
+
+export interface OrdinalScale {
+  slug: string;
+  name: string;
+  description: string | null;
+  levels: OrdinalScaleLevel[];
+  scale_text: string;
+  is_demo: boolean;
+}
+
+/** The scale as the curator wants it, worst level first; a level without `id` is new. */
+export interface OrdinalScaleUpdate {
+  name?: string;
+  description?: string | null;
+  levels: { id?: number; label: string }[];
+}
+
 /** The level one material holds on one ordinal property — or a written absence. */
 export interface MaterialOrdinalValue {
   slug: string;
