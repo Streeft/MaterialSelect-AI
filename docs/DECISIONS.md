@@ -15049,3 +15049,50 @@ curvas e grava os valores demo); **`cadernos_reembedar_simular`**, conferir a co
 simulação dizer "nada a fazer".
 
 **Numeração.** D-255, Sessão 212 (conferidas em `origin/main` e nas branches abertas; o PR #276 entrou depois como D-252b, Sessão 209b).
+
+## D-256 — Ambiente "Oficina": o método de seleção vestido como um local de trabalho (camada 1)
+
+**Contexto.** Pedido do autor em 19/11/2026: o app está "muito pautado em uma coisa bem comercial, muito quadrada de engenharia". A proposta dele é
+contar o método como um lugar: abrir uma gaveta do arquivo (uma família), pegar envelopes de materiais, ferramentas e fixações, levar à bancada,
+projetar, montar, ensaiar e dar o problema por solucionado. Mais arrastar, menos tabela. Em conversa ficou decidido: **tema opcional** (o visual atual
+continua), **ilustrado e não fotográfico**, começar por **tema + gavetas**, e o **projeto com peças** (mesa = tampo + pernas + pregos) é central e vem
+logo depois. O rumo inteiro, as regras e o roteiro estão em [`22-oficina.md`](22-oficina.md).
+
+**Decisão (camada 1, só frontend).**
+
+1. **Ambiente é uma escolha em Aparência** (`lib/ambience.ts`): "Engenharia" (padrão) ou "Oficina". Fica **no aparelho**, como o tema e a densidade
+   (`localStorage`, `msai.ambience`), e o script da cabeça veste o documento antes da primeira pintura (`data-ambience="oficina"`). Não vai para a
+   conta nesta camada: `user_appearance` tem colunas fixas, e a coluna nova pede migração e deploy num PR que não toca a API. Entra com a camada 2.
+2. **Superfícies, e só elas.** Sob `[data-ambience="oficina"]`, `--surface`, `--surface-raised` e `--surface-sunken` passam a bancada, papel e kraft
+   (`--oficina-*`, claro e escuro). O `body` ganha o veio da madeira, o trilho ganha aço escovado, o poço (`.well`) ganha papel milimetrado, e a
+   tabela (`.ds-table`) lê como caderno de registro: cabeçalho sem faixa, uma régua firme sob os nomes das colunas.
+3. **Três regras de legibilidade, testadas** (`lib/design/ambience.test.ts`): (a) os tokens chapados mantêm todo token de texto (`--ink`,
+   `--ink-muted`, `--ink-subtle`, `--accent`, `--brand-700`) de toda paleta a ≥ 4,5:1, e a borda de campo a ≥ 3:1 (D-34); (b) a textura só se afasta
+   do texto, mais clara sobre claro e mais escura sobre escuro e sobre o aço, de modo que o token chapado é o pior caso; (c) painel nunca leva
+   textura, e nada é escrito sobre a madeira (a gaveta tem etiqueta de papel).
+4. **Textura sem arquivo.** O veio é ruído do próprio navegador (`feTurbulence` num `data:` URL de poucas centenas de bytes), com lado do ladrilho
+   múltiplo do período do ruído e a região do filtro igual ao ladrilho, para não emendar. Nenhuma imagem, nenhuma dependência.
+5. **Catálogo como arquivo de gavetas** (`components/workshop/FileCabinet.tsx`). No ambiente Oficina o arquivo fica **no lugar da seção "Famílias"**,
+   com as mesmas fontes: raízes de `listClasses` e a contagem das facetas do servidor. Uma gaveta é um botão com `aria-expanded` dono de uma região;
+   uma aberta por vez. Aberta, pergunta ao mesmo `/api/materials/busca` com a pergunta do leitor (texto e chips) estreitada à família, mostra até 12
+   **envelopes** (nome, subfamília, marcas de qualidade; leva à ficha), as **subfamílias como divisórias** (as que a resposta trouxe, com contagem) e
+   dois caminhos: "Filtrar a lista abaixo" e "Abrir a família". A lista, com Tabela, Galeria e Lista, continua abaixo.
+6. **Objetos no trilho** (`components/layout/workshopIcons.tsx`): no ambiente Oficina seis destinos trocam o desenho pelo objeto da bancada, Seleção
+   (bancada), Mapas (prancheta), Dimensionar (esquadro), Custo (calculadora), Catálogo (gaveta) e Processos (caixa de ferramentas). Cada ícone declara
+   o seu gesto (D-248). O rótulo, que é o nome acessível, não muda.
+
+**O que a leitura do código tirou do plano.** Não há visão nova "Arquivo" no `useDatabaseView`: o `kind` de uma visão salva é validado no backend. O
+envelope **não mostra "três propriedades-chave"**: o item da busca não carrega valor de propriedade, e buscar a ficha de cada um seria N requisições;
+vem quando o backend mandar (camada 2), nunca montado no cliente. **Arrastar** fica para a bandeja (camada 3): sem destino, seria enfeite. Cortar
+colunas com "detalhe da linha" pede mexer na tabela de resultados da Seleção e fica como camada própria.
+
+**Alternativas recusadas.** Fundo fotográfico (pesa, briga com número e gráfico, e não tem versão escura honesta). Trocar o visual de todo mundo (a
+monografia cita telas do visual atual, e é gosto de quem usa). Textura em PNG (arquivo, cache e uma emenda para cuidar). Textura dentro do painel
+(é onde se lê). Um véu translúcido sob cada texto da página (dezenas de pontos a manter; a regra "só se afasta do texto" resolve com um teste). Guardar
+o ambiente na conta já (migração num PR de frontend). Uma biblioteca de arrastar ou de animação (proibidas, REDESIGN §13).
+
+**Consequências.** Só frontend: **sem migração, sem seed, sem `apps/api`**; depois do merge, nada a disparar. 34 testes novos no Vitest e
+`e2e/oficina.spec.ts` (6 testes: axe nos dois temas, gaveta aberta, telefone a 375 px, movimento reduzido). O axe não julga contraste sobre
+`background-image`; por isso o contraste do ambiente é medido no token, pelo teste do item 3.
+
+**Numeração.** D-256, Sessão 213 (conferidas em `origin/main` e nas branches abertas).

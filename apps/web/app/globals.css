@@ -2790,6 +2790,187 @@ div[data-surface="rail"] .msds-rail-item {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * D-256 — Ambiente "Oficina": the same screens, dressed as a workshop.
+ *
+ * A costume over the surfaces, chosen in Aparência (`lib/ambience.ts`). The page is a wooden
+ * bench, a panel is a sheet of paper, a well is graph paper and the rail is brushed steel. Three
+ * rules keep it legible; `lib/design/ambience.test.ts` guards each one:
+ *
+ *   1. Bench, paper and kraft are flat tokens whose luminance keeps every text token of every
+ *      section palette at 4.5:1 (and the field border at 3:1, D-34).
+ *   2. A texture only ever moves away from the text over it: on light surfaces the grain is a
+ *      lighter streak, on dark ones and on the steel it is a darker one. The flat token is
+ *      therefore the worst case, and it is the one measured.
+ *   3. A panel never carries a texture. Paper is the solid sheet that text is read on.
+ *
+ * The grain is noise the browser draws (SVG feTurbulence in a data URL): no image file, a few
+ * hundred bytes, and the tile sizes are whole multiples of the noise period so it never seams.
+ * ------------------------------------------------------------------------- */
+:root {
+  --oficina-bench: 240 231 214;
+  --oficina-paper: 255 252 246;
+  --oficina-kraft: 239 233 221;
+  --oficina-wood: 203 174 132;
+  --oficina-bench-dark: 24 21 19;
+  --oficina-paper-dark: 31 28 26;
+  --oficina-kraft-dark: 17 15 14;
+  --oficina-wood-dark: 62 47 35;
+  /* The drawer pull, brushed steel in both themes. */
+  --oficina-pull-high: 236 238 242;
+  --oficina-pull-low: 150 156 168;
+  --oficina-grain-lighter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.00625 0.2' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.1 -0.48'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --oficina-grain-darker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.00625 0.2' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.3 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --oficina-steel-darker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8 0.003125' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 -0.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --oficina-steel-lighter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8 0.003125' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  /* What this theme wears; the dark block below swaps them. */
+  --oficina-grain: var(--oficina-grain-lighter);
+  --oficina-rule: 255 255 255;
+  --oficina-wood-now: var(--oficina-wood);
+}
+:root[data-theme="dark"] {
+  --oficina-grain: var(--oficina-grain-darker);
+  --oficina-rule: 0 0 0;
+  --oficina-wood-now: var(--oficina-wood-dark);
+}
+
+:root[data-ambience="oficina"]:not([data-theme="dark"]) {
+  --surface: var(--oficina-bench);
+  --surface-raised: var(--oficina-paper);
+  --surface-sunken: var(--oficina-kraft);
+}
+:root[data-ambience="oficina"][data-theme="dark"] {
+  --surface: var(--oficina-bench-dark);
+  --surface-raised: var(--oficina-paper-dark);
+  --surface-sunken: var(--oficina-kraft-dark);
+}
+:root[data-ambience="oficina"] body {
+  background-image: var(--oficina-grain);
+}
+/* The rail is dark in both themes unless the reader chose it light (D-236b). */
+:root[data-ambience="oficina"] [data-surface="rail"].bg-rail {
+  background-image: var(--oficina-steel-darker);
+}
+:root[data-ambience="oficina"][data-rail="light"]:not([data-theme="dark"]) [data-surface="rail"].bg-rail {
+  background-image: var(--oficina-steel-lighter);
+}
+/* Graph paper in the wells: 8 px squares, ruled away from the text like the grain. */
+:root[data-ambience="oficina"] .well {
+  background-image:
+    linear-gradient(rgb(var(--oficina-rule) / 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--oficina-rule) / 0.45) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+/* A table reads as a ledger: no filled header band, one firm rule under the column names. */
+:root[data-ambience="oficina"] .ds-table thead {
+  background: rgb(var(--surface-panel));
+  box-shadow: inset 0 -2px 0 rgb(var(--edge-strong));
+}
+
+/* The filing cabinet (components/workshop/FileCabinet.tsx). Text is never set on the wood: the
+ * name and the count sit on a paper label, and the envelopes inside are paper too. */
+.oficina-cabinet {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--shape-large);
+  border: 1px solid rgb(var(--edge-strong));
+  background-color: rgb(var(--oficina-wood-now));
+  background-image: var(--oficina-grain);
+}
+.oficina-drawer {
+  border-radius: var(--shape-medium);
+  border: 1px solid rgb(var(--edge-control));
+  background: rgb(var(--surface-well));
+  overflow: hidden;
+}
+.oficina-drawer-front {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 60px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  background-color: rgb(var(--oficina-wood-now));
+  background-image: var(--oficina-grain);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), inset 0 -2px 0 rgb(0 0 0 / 0.18);
+  cursor: pointer;
+}
+.oficina-drawer-front:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: -4px;
+}
+.oficina-drawer-label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 12px;
+  border-radius: var(--shape-extra-small);
+  border: 1px solid rgb(var(--edge-control));
+  background: rgb(var(--surface-panel));
+}
+/* The pull: a steel bar on two posts, drawn, not a picture. */
+.oficina-drawer-pull {
+  flex: none;
+  width: 72px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.45);
+  background: linear-gradient(rgb(var(--oficina-pull-high)), rgb(var(--oficina-pull-low)));
+  box-shadow: 0 2px 0 rgb(0 0 0 / 0.25);
+  transition: transform var(--motion-spatial-fast-dur) var(--motion-spatial-fast);
+}
+.oficina-drawer[data-open="true"] .oficina-drawer-pull {
+  transform: translateY(3px);
+}
+.oficina-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-top: 1px solid rgb(var(--edge-control));
+  box-shadow: inset 0 6px 8px -6px rgb(0 0 0 / 0.35);
+}
+.oficina-envelope {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 12px 10px;
+  border-radius: var(--shape-extra-small);
+  border: 1px solid rgb(var(--edge-strong));
+  background: rgb(var(--surface-panel));
+}
+/* The flap of the envelope: two hairlines meeting, behind nothing that is read. */
+.oficina-envelope::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 12px;
+  border-bottom: 1px solid rgb(var(--edge-subtle));
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.5px), rgb(var(--edge)) 50%, transparent calc(50% + 0.5px)) left / 50% 100% no-repeat,
+    linear-gradient(to bottom left, transparent calc(50% - 0.5px), rgb(var(--edge)) 50%, transparent calc(50% + 0.5px)) right / 50% 100% no-repeat;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="reduced"]) .oficina-drawer-body {
+    animation: oficina-drawer-open var(--motion-spatial-dur) var(--motion-spatial) backwards;
+  }
+}
+@keyframes oficina-drawer-open {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
 /* m3-roles:begin (generated by lib/design/m3Roles.test.ts, npm run tokens:m3; do not edit) */
 :root {
   --m3-primary: 42 79 142;

@@ -25,7 +25,7 @@ function svgOf(element: React.ReactElement): SVGSVGElement {
 
 describe("every icon has a gesture (D-248)", () => {
   it("finds the whole set", () => {
-    expect(ICONS.length).toBe(72);
+    expect(ICONS.length).toBe(78);
   });
 
   it.each(ICONS)("%s carries the gesture of the table", (name, Icon) => {

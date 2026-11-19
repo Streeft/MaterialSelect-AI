@@ -696,3 +696,59 @@ export const IconEyeOff = (p: IconProps) => (
     <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
   </Svg>
 );
+
+// D-256 — the workshop objects. In the "Oficina" ambience the rail draws six steps of the method
+// as the thing each one is on a real bench (`components/layout/workshopIcons.ts`).
+
+/** Catálogo: a cabinet of drawers. */
+export const IconDrawer = (p: IconProps) => (
+  <Svg {...p} gesture="slide-down">
+    <rect x="4" y="3.5" width="16" height="17" rx="1.5" />
+    <path d="M4 12h16" />
+    <path d="M10 7.75h4M10 16.25h4" />
+  </Svg>
+);
+
+/** Processos: the toolbox. */
+export const IconToolbox = (p: IconProps) => (
+  <Svg {...p} gesture="hop">
+    <path d="M3.5 10h17v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z" />
+    <path d="M8.5 10V6.5A1.5 1.5 0 0 1 10 5h4a1.5 1.5 0 0 1 1.5 1.5V10" />
+    <path d="M3.5 14h7M13.5 14h7M10.5 13v2.5h3V13Z" />
+  </Svg>
+);
+
+/** Mapas: a clipboard with a chart on it. */
+export const IconClipboard = (p: IconProps) => (
+  <Svg {...p} gesture="wobble">
+    <rect x="5" y="4.5" width="14" height="16" rx="1.5" />
+    <path d="M9.5 4.5V3h5v1.5" />
+    <path d="m8.5 16.5 2.5-3 2 1.5 2.5-4" />
+  </Svg>
+);
+
+/** Dimensionar: the set square. */
+export const IconSetSquare = (p: IconProps) => (
+  <Svg {...p} gesture="wobble">
+    <path d="M4.5 4.5v15h15Z" />
+    <path d="M8.5 15.5v-3.75l3.75 3.75Z" />
+  </Svg>
+);
+
+/** Custo: the calculator. */
+export const IconCalculator = (p: IconProps) => (
+  <Svg {...p} gesture="pulse">
+    <rect x="5" y="3" width="14" height="18" rx="2" />
+    <rect x="8" y="6" width="8" height="3.5" rx="0.5" />
+    <path d="M8.5 13.25h.01M12 13.25h.01M15.5 13.25h.01M8.5 17h.01M12 17h.01M15.5 17h.01" />
+  </Svg>
+);
+
+/** Seleção: the workbench where what was picked is tried. */
+export const IconWorkbench = (p: IconProps) => (
+  <Svg {...p} gesture="hop">
+    <path d="M3 9.5h18" />
+    <path d="M5.5 9.5v10M18.5 9.5v10M5.5 15h13" />
+    <path d="M8 9.5V6h4.5v3.5" />
+  </Svg>
+);

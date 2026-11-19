@@ -62,6 +62,7 @@ import {
 import { useCanEditCatalog } from "@/lib/billing";
 import { labelForPath } from "@/lib/design/sections";
 import { OPEN_SEARCH_EVENT } from "./GlobalSearch";
+import { NavIcon } from "./workshopIcons";
 
 const t = ptBR.nav;
 
@@ -228,7 +229,6 @@ function NavLink({
   active: boolean;
   collapsed?: boolean;
 }) {
-  const Icon = item.icon;
   return (
     <Link
       href={item.href}
@@ -238,7 +238,9 @@ function NavLink({
       title={collapsed ? item.label : undefined}
       className={cn("msds-rail-item text-body", collapsed && "justify-center")}
     >
-      <Icon
+      <NavIcon
+        href={item.href}
+        icon={item.icon}
         className={cn("msds-rail-icon", active && "text-rail-accent")}
       />
       <span className={cn("msds-rail-label", collapsed && "sr-only")}>

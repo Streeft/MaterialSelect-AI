@@ -43,6 +43,7 @@ afterEach(() => {
   delete root.dataset.contrast;
   delete root.dataset.motion;
   delete root.dataset.rail;
+  delete root.dataset.ambience;
   pathname = "/app/mapas";
 });
 
@@ -162,5 +163,21 @@ describe("Aparência (D-196)", () => {
       const violations = await findA11yViolations(container);
       expect(violations, describeViolations(violations)).toEqual([]);
     });
+  });
+
+  it("o ambiente Oficina veste o documento, fica no aparelho e não vai para a conta (D-256)", async () => {
+    account.get.mockResolvedValue({ color: "route", contrast: "standard", motion: "standard", rail: "dark", saved: true });
+    const user = userEvent.setup();
+    renderPage();
+    const group = screen.getByRole("group", { name: t.ambienceTitle });
+    expect(within(group).getByRole("button", { name: t.ambience.engenharia })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(within(group).getByRole("button", { name: t.ambience.oficina }));
+    expect(root.dataset.ambience).toBe("oficina");
+    expect(window.localStorage.getItem("msai.ambience")).toBe("oficina");
+    expect(account.put).not.toHaveBeenCalled();
+
+    await user.click(within(group).getByRole("button", { name: t.ambience.engenharia }));
+    expect(root.dataset.ambience).toBeUndefined();
   });
 });

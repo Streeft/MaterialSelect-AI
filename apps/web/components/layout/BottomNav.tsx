@@ -13,6 +13,7 @@ import {
   IconHome,
   IconScatter,
 } from "@/components/ui/icons";
+import { NavIcon } from "./workshopIcons";
 
 const t = ptBR.nav;
 
@@ -138,7 +139,6 @@ export function BottomNav() {
       <SlidingIndicator className="m3-ind-pill" />
       {ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
-        const Icon = item.icon;
         return (
           <Link
             key={item.href}
@@ -159,7 +159,7 @@ export function BottomNav() {
                 active ? "bg-rail-accent/20" : "group-hover:bg-rail-ink/[0.08] group-active:bg-rail-ink/10",
               )}
             >
-              <Icon className="h-[19px] w-[19px] shrink-0" />
+              <NavIcon href={item.href} icon={item.icon} className="h-[19px] w-[19px] shrink-0" />
             </span>
             <span className={cn("text-caption leading-4", active && "font-semibold")}>
               {item.label}

@@ -15,6 +15,7 @@ import {
   type RailPreference,
 } from "@/lib/appearance";
 import { serverSyncState, subscribeSyncState, syncState } from "@/lib/appearanceSync";
+import { AMBIENCES, setAmbience, useAmbience } from "@/lib/ambience";
 import { setTableDensity, useTableDensity, type TableDensity } from "@/lib/density";
 import { OKABE_ITO } from "@/lib/design/palette";
 import { useAnnounce } from "@/components/ui/Announcer";
@@ -59,6 +60,7 @@ function Setting({ title, hint, children, wide = false }: { title: string; hint:
 export default function AppearancePage() {
   const appearance = useSyncExternalStore(subscribeAppearance, readAppearance, serverAppearance);
   const density = useTableDensity();
+  const ambience = useAmbience();
   const announce = useAnnounce();
   // D-249: where the choice is kept, in words, so a device-only fallback is never silent.
   const sync = useSyncExternalStore(subscribeSyncState, syncState, serverSyncState);
@@ -146,6 +148,23 @@ export default function AppearancePage() {
             {t.colors[appearance.color]}
           </span>
         </div>
+      </Setting>
+
+      {/* D-256: surfaces and the rail's icons only; the preview beside repaints with it. */}
+      <Setting title={t.ambienceTitle} hint={t.ambienceHint} wide>
+        <ButtonGroup label={t.ambienceTitle}>
+          {AMBIENCES.map((option) => (
+            <ButtonGroupItem
+              key={option}
+              label={t.ambience[option]}
+              selected={ambience === option}
+              onClick={() => {
+                setAmbience(option);
+                announce(t.ambienceChosen(t.ambience[option]));
+              }}
+            />
+          ))}
+        </ButtonGroup>
       </Setting>
 
       <Setting title={t.motionTitle} hint={t.motionHint}>

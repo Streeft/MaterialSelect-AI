@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { M3Foundations } from "./M3Foundations";
 import { M3ExpressiveSpecimens } from "./M3ExpressiveSpecimens";
+import { WorkshopSpecimens } from "./WorkshopSpecimens";
 import { F1Specimens } from "./F1Specimens";
 import { MotionSpecimen } from "./MotionSpecimen";
 import { paletteSeats } from "@/lib/design/palette";
@@ -953,6 +954,14 @@ function StyleGuide() {
         headingLevel={2}
       >
         <M3ExpressiveSpecimens />
+      </Section>
+
+      <Section
+        title="Ambiente Oficina: bancada, papel, gavetas e objetos"
+        description="A mesma interface vestida como um local de trabalho (D-256): só as superfícies e os desenhos do trilho mudam. Nenhum número, cor de qualidade ou nome acessível é diferente."
+        headingLevel={2}
+      >
+        <WorkshopSpecimens />
       </Section>
 
       <Section title="Movimento" headingLevel={2}>

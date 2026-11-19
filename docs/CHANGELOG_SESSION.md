@@ -120,6 +120,28 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 213 — 19/11/26 — Ambiente "Oficina", camada 1: escolha em Aparência, texturas, objetos no trilho e o Catálogo como arquivo de gavetas (D-256)
+
+**O que mudou.** Aparência ganhou "Ambiente": Engenharia (padrão) ou Oficina, guardado no aparelho e vestido antes da primeira pintura
+(`lib/ambience.ts`). Na Oficina a página é uma bancada de madeira, o painel é papel, o poço é papel milimetrado, o trilho é aço escovado e a tabela lê
+como caderno de registro; a textura é ruído SVG do navegador, sem arquivo. Seis destinos do trilho e da barra inferior trocam o ícone pelo objeto da
+bancada (`NavIcon`). O Catálogo, na Oficina, mostra um arquivo de gavetas no lugar dos cartões de família: gaveta com etiqueta e puxador, uma aberta
+por vez, envelopes dos materiais vindos da mesma busca do servidor, subfamílias como divisórias. Vitrine em `/app/estilo` com a chave de ambiente.
+Rumo, regras e roteiro em `docs/22-oficina.md`.
+
+**Por quê.** Pedido do autor: um app menos "quadrado de engenharia", que conte o método como um lugar de trabalho (gaveta → bancada → ensaio →
+solucionado). Tema opcional, ilustrado, e o projeto com peças como próxima camada.
+
+**Como foi conferido.** `typecheck`, `lint` (0 erros), `vitest run` (2761 em 246 arquivos; novos: `ambience`, `FileCabinet`, `workshopIcons`,
+`WorkshopSpecimens`, um caso em `aparencia`). No Chromium: `e2e/oficina.spec.ts` (axe nos dois temas em quatro telas, gaveta aberta, 375 px sem
+rolagem lateral, movimento reduzido sem animação) e capturas dos dois temas e do telefone olhadas uma a uma (uma emenda do ladrilho do veio apareceu
+assim e foi corrigida).
+
+**Ficou de fora, com motivo.** Ambiente na conta e propriedades-chave no envelope (pedem backend: camada 2). Arrastar (camada 3, com a bandeja).
+Corte de colunas nas tabelas de resultado (camada própria).
+
+---
+
 ## Sessão 212 — 19/11/26 — Pendências do TODO, parte 12: vetores antigos dos Cadernos refeitos, qualidade e fonte na composição, edição por linha, G/K/Tm no CAE e no Sintetizador, curvas demo no alongamento, dureza Rockwell (D-255)
 
 **O que mudou.** *Cadernos:* `python -m app.knowledge.notebook_reembed` troca, só o vetor, os embeddings de fonte de caderno de outra identidade
