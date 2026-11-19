@@ -110,6 +110,10 @@ class AnswerOut(BaseModel):
     #: Why a paragraph was left out — a figure no cited passage contains. Said,
     #: never silently repaired (the guardrails' rule).
     withheld: list[str] = []
+    #: D-252: the search for passages could not use the embeddings this time (the provider
+    #: failed or answered 429, the time budget ran out), so the passages were picked by words
+    #: alone. Said on the answer, because the answer may be a little less well-aimed.
+    retrieval_degraded: bool = False
 
 
 class MessageOut(BaseModel):

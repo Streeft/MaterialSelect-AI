@@ -58,7 +58,8 @@ from app.domain.errors import (
 )
 from app.domain.rate_limit import FixedWindowLimiter
 from app.domain.use_scenarios import USE_SCENARIOS
-from app.knowledge.retrieval import search as knowledge_search
+from app.knowledge.retrieval import SearchResult
+from app.knowledge.retrieval import search_detailed as knowledge_search
 from app.models.user import User
 from app.repositories.chart_repository import ChartRepository
 from app.repositories.notebook_repository import NotebookRepository
@@ -450,17 +451,20 @@ class AIService:
         _RANGE_CACHE.put(key, ranges, self.settings.ai_context_cache_seconds)
         return ranges
 
-    def _retrieve(self, query: str, provider: AIProvider) -> list:
+    def _retrieve(self, query: str, provider: AIProvider) -> SearchResult:
         """Trechos do Cérebro para dar contexto ao provedor — nunca ao mock.
+
+        Devolve também se a metade semântica da busca falhou (``semantic_degraded``, D-252),
+        para a tela avisar que os trechos vieram só da busca por palavras.
 
         O mock é descrito como determinístico e sem rede; ligar retrieval nele
         quebraria essa garantia, e todo teste que usa AI_PROVIDER=mock (a
         maioria da suíte) ficaria mais lento sem nenhum ganho.
         """
         if provider.simulated:
-            return []
+            return SearchResult(chunks=[])
         started = time.monotonic()
-        chunks = knowledge_search(
+        found = knowledge_search(
             self.db,
             query,
             top_k=self.settings.knowledge_retrieval_top_k,
@@ -474,7 +478,7 @@ class AIService:
                 elapsed,
                 self.settings.knowledge_retrieval_budget_seconds,
             )
-        return chunks
+        return found
 
     # --- project assistant (D-224) -----------------------------------------
 
@@ -520,9 +524,12 @@ class AIService:
         cached = isinstance(raw, dict)
         notice: str | None = None
         degraded = False
+        retrieval_degraded = False
         if not cached:
             try:
-                context = replace(context, retrieved=tuple(self._retrieve(text, provider)))
+                found = self._retrieve(text, provider)
+                retrieval_degraded = found.semantic_degraded
+                context = replace(context, retrieved=tuple(found.chunks))
                 with self._spending(provider):
                     raw = provider.plan(context)
                 if not isinstance(raw, dict) or not raw.get("components"):
@@ -548,7 +555,8 @@ class AIService:
                     "locais do app."
                 )
         assert isinstance(raw, dict)
-        return self._build_plan(raw, text, request.mode, provider, facts, notice, degraded, cached)
+        plan = self._build_plan(raw, text, request.mode, provider, facts, notice, degraded, cached)
+        return plan.model_copy(update={"retrieval_degraded": retrieval_degraded})
 
     def _build_plan(
         self,
@@ -640,7 +648,8 @@ class AIService:
         # The prose is written about numbers this call just produced, not about
         # numbers the caller supplied.
         result = SelectionService(self.db, project_id, self.user).run_study(study_id)
-        retrieved = self._retrieve(study.function_text or study.name, provider)
+        found = self._retrieve(study.function_text or study.name, provider)
+        retrieved = found.chunks
         context = _result_context(study, result, retrieved)
 
         with self._spending(provider):
@@ -688,6 +697,7 @@ class AIService:
             paragraphs=paragraphs,
             caveats=caveats,
             sources=sources,
+            retrieval_degraded=found.semantic_degraded,
             provider=provider.name,
             simulated=provider.simulated,
             disclaimer=disclaimer_for(provider),

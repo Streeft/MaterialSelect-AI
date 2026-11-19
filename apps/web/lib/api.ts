@@ -1612,6 +1612,18 @@ export function laudoVersionUrl(studyId: number, version: number): string {
   return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.html`;
 }
 
+/**
+ * Word or PowerPoint of an issued version, made from what was frozen at the issue (D-252), not
+ * from today's study: the cover says "cópia editável da versão emitida N, código X".
+ */
+export function laudoVersionFileUrl(
+  studyId: number,
+  version: number,
+  format: "docx" | "pptx",
+): string {
+  return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.${format}`;
+}
+
 // --- Aparência na conta (D-249) --------------------------------------------------
 
 /** The four choices kept on the account (`GET/PUT /api/me/appearance`). */
@@ -1641,8 +1653,11 @@ export function putAccountAppearance(
 
 // --- Envio do laudo por e-mail (D-242) ----------------------------------------
 
-/** How one e-mailing ended; "simulado" is the mock provider: nothing left the server. */
-export type LaudoDeliveryStatus = "enviado" | "simulado" | "falhou";
+/**
+ * How one e-mailing stands; "simulado" is the mock provider: nothing left the server. "na_fila"
+ * (D-252) failed for a passing reason and waits for the server's next attempt.
+ */
+export type LaudoDeliveryStatus = "enviado" | "simulado" | "falhou" | "na_fila";
 
 /** What the dialog sends; the same body previews and sends. */
 export interface LaudoSendRequest {
@@ -1678,6 +1693,14 @@ export interface LaudoDelivery {
   last_opened_at?: string | null;
   /** SHA-256 of the signed PDF that went attached, when the message carried one. */
   attached_pdf_sha256?: string | null;
+  /**
+   * D-252: how many times the server tried to hand the message over, how many it may try in all,
+   * and when it tries next (only while `na_fila`). "Falhou após N tentativas" is `falhou` with
+   * `attempts > 1`.
+   */
+  attempts?: number;
+  max_attempts?: number;
+  next_attempt_at?: string | null;
 }
 
 export type LaudoLinkState = "ativo" | "vencido" | "revogado" | "sem_link";

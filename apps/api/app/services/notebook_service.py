@@ -683,7 +683,9 @@ class NotebookService:
             retry = dataclasses.replace(context, retry_note=note)
             raw = self._call(lambda: provider.answer(retry))
             answer = _check(raw, passages, found.chunks, question)
-        answer = _finalise(answer)
+        answer = _finalise(answer).model_copy(
+            update={"retrieval_degraded": found.semantic_degraded}
+        )
 
         asked = NotebookMessage(notebook_id=notebook.id, role="user", content={"text": question})
         answered = NotebookMessage(

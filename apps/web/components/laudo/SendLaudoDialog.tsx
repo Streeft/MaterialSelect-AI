@@ -21,6 +21,8 @@ import {
 } from "@/components/ui";
 import { useSnackbar } from "@/components/ui/Snackbar";
 
+import { formatSentAt } from "./DeliveryList";
+
 export { DeliveryStatusBadge, formatSentAt } from "./DeliveryList";
 
 /**
@@ -190,7 +192,15 @@ export function SendLaudoDialog({
     onSuccess: (delivery) => {
       const count = delivery.recipients.length + delivery.cc.length;
       notify({
-        message: delivery.status === "simulado" ? t.simulatedToast(count) : t.sentToast(count),
+        message:
+          delivery.status === "na_fila"
+            ? t.queuedToast(
+                count,
+                delivery.next_attempt_at ? formatSentAt(delivery.next_attempt_at) : null,
+              )
+            : delivery.status === "simulado"
+              ? t.simulatedToast(count)
+              : t.sentToast(count),
       });
       void queryClient.invalidateQueries({ queryKey: ["laudo-deliveries", issued.id] });
       setTo([]);

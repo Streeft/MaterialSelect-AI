@@ -58,12 +58,22 @@ export const laudoText = {
   versionLabel: (version: number) => `Versão ${version}`,
   linkLabel: "Laudo de engenharia",
   // --- Word e PowerPoint no visual novo (D-243) ---
-  docx: "Baixar Word",
+  docx: "Baixar Word do estudo atual",
   docxHint:
-    "Cópia editável com os campos acima: capa, resumo executivo, seções, gráficos e anexo técnico. Não é o laudo emitido: não tem código nem QR.",
-  pptx: "Baixar PowerPoint",
+    "Cópia editável do estudo como ele está hoje, com os campos acima: capa, resumo executivo, seções, gráficos e anexo técnico. Não é o laudo emitido nem uma versão emitida: não tem código nem QR. Para o Word de uma versão já emitida, use o botão Word na linha da versão.",
+  pptx: "Baixar PowerPoint do estudo atual",
   pptxHint:
-    "Apresentação com os campos acima: um slide de resumo e um por seção, com os gráficos, e o anexo técnico no fim (até 60 linhas por tabela; as tabelas inteiras ficam no Word e no laudo emitido).",
+    "Apresentação do estudo como ele está hoje, com os campos acima: um slide de resumo e um por seção, com os gráficos, e o anexo técnico no fim (até 60 linhas por tabela; as tabelas inteiras ficam no Word e no laudo emitido).",
+  // --- Word e PowerPoint de uma versão emitida, do que foi congelado (D-252) ---
+  versionWord: "Word",
+  versionWordLabel: (version: number) => `Word da versão ${version} emitida (cópia do que foi congelado)`,
+  versionWordHint:
+    "Cópia editável feita do documento congelado na emissão, não do estudo de hoje: mesmo texto e mesmos números do laudo emitido. A capa diz a versão e o código. Não tem selo nem QR.",
+  versionPptx: "PowerPoint",
+  versionPptxLabel: (version: number) =>
+    `PowerPoint da versão ${version} emitida (cópia do que foi congelado)`,
+  versionPptxHint:
+    "Apresentação feita do documento congelado na emissão, não do estudo de hoje. A capa diz a versão e o código; o anexo traz até 60 linhas por tabela.",
   linkHint: "Pré-visualizar, emitir e ver as versões emitidas",
   // --- Envio ao cliente por e-mail (D-242) ---
   colDeliveries: "Envios",
@@ -115,7 +125,24 @@ export const laudoText = {
     enviado: "Enviado",
     simulado: "Simulado",
     falhou: "Falhou",
+    na_fila: "Na fila",
   } as Record<string, string>,
+  // --- Fila de reenvio (D-252) ---
+  failedAfter: (attempts: number) => `Falhou após ${attempts} tentativas`,
+  queueLine: (attempts: number, max: number, next: string | null) =>
+    next
+      ? `Tentativa ${attempts} de ${max} falhou; o servidor tenta de novo em ${next}.`
+      : `Tentativa ${attempts} de ${max} falhou; o servidor tenta de novo em instantes.`,
+  queuedTitle: "O e-mail ficou na fila",
+  queuedToast: (count: number, next: string | null) =>
+    `O servidor de e-mail não respondeu: o envio a ${count === 1 ? "1 endereço" : `${count} endereços`} ficou na fila${next ? ` e será tentado de novo em ${next}` : ""}.`,
+  cancelQueued: "Cancelar envio",
+  cancelQueuedLabel: (who: string) => `Cancelar o envio na fila para ${who}`,
+  cancelQueuedToast: "Envio cancelado: nada será enviado.",
+  cancelQueuedErrorTitle: "Não foi possível cancelar o envio",
+  queueNote:
+    "Um envio que falha por motivo passageiro (servidor de e-mail fora do ar, tempo esgotado) é tentado de novo sozinho, com esperas cada vez maiores, até o limite de tentativas. Só então fica como Falhou.",
+  queuedCount: (count: number) => (count === 1 ? "1 na fila" : `${count} na fila`),
   copyPrefix: "cópia",
   cancel: "Cancelar",
   sendAction: "Enviar e-mail",

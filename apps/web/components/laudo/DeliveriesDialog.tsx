@@ -43,6 +43,12 @@ export function DeliveriesDialog({
     },
     onError: () => setRevoking(null),
   });
+  const cancelQueued = useMutation({
+    mutationFn: (delivery: LaudoDelivery) => revokeLaudoDelivery(delivery.id),
+    onSuccess: () => notify({ message: t.cancelQueuedToast }),
+    onSettled: () =>
+      void queryClient.invalidateQueries({ queryKey: ["laudo-deliveries", issued.id] }),
+  });
   const resend = useMutation({
     mutationFn: (delivery: LaudoDelivery) => resendLaudoDelivery(delivery.id),
     onSuccess: (sent) => {
@@ -74,6 +80,11 @@ export function DeliveriesDialog({
               {describeApiError(revoke.error)}
             </Alert>
           ) : null}
+          {cancelQueued.isError ? (
+            <Alert tone="danger" role="alert" title={t.cancelQueuedErrorTitle}>
+              {describeApiError(cancelQueued.error)}
+            </Alert>
+          ) : null}
           {resend.isError ? (
             <Alert tone="danger" role="alert" title={t.resendErrorTitle}>
               {describeApiError(resend.error)}
@@ -88,6 +99,10 @@ export function DeliveriesDialog({
             onResend={(delivery) => {
               resend.reset();
               resend.mutate(delivery);
+            }}
+            onCancel={(delivery) => {
+              cancelQueued.reset();
+              cancelQueued.mutate(delivery);
             }}
             resending={resend.isPending ? (resend.variables?.id ?? null) : null}
           />

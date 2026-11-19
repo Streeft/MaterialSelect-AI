@@ -99,3 +99,32 @@ describe("AnswerView — attribution in the citation (D-97)", () => {
     expect(within(panel).getByText(own.excerpt)).toBeInTheDocument();
   });
 });
+
+/** D-252: a search that fell back to words says so under the answer — a note, never an alert. */
+describe("AnswerView — the search fell back to words (D-252)", () => {
+  it("says so under the answer when the server reported it", async () => {
+    const { container } = render(
+      <AnswerView
+        answer={{ ...answerWith([citation()]), retrieval_degraded: true }}
+        liveSourceIds={new Set([7])}
+      />,
+    );
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(ptBR.ai.retrievalDegraded);
+    // The cited answer is untouched, and the note is not a warning that competes with it.
+    expect(screen.getByText("O aço é uma liga.", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const violations = await findA11yViolations(container);
+    expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+
+  it.each([false, undefined])("says nothing when the flag is %s", (flag) => {
+    render(
+      <AnswerView
+        answer={{ ...answerWith([citation()]), retrieval_degraded: flag }}
+        liveSourceIds={new Set([7])}
+      />,
+    );
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+});

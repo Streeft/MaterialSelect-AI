@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.mock import MockAIProvider
 from app.ai.provider import AIProvider, AIUnavailableError, ProblemContext
+from app.knowledge.retrieval import SearchResult
 from app.services import ai_service
 from app.services.ai_service import AIService
 
@@ -294,7 +295,9 @@ class TestExplanation:
                 return {"summary": "ok", "paragraphs": ["texto"], "sources": [1], "caveats": []}
 
         monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
-        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search", lambda *a, **k: SearchResult([chunk])
+        )
 
         study_id = self._study_id(client)
         body = client.post("/api/ai/explain", json={"study_id": study_id}).json()
@@ -334,7 +337,9 @@ class TestExplanation:
                 return {"summary": "ok", "paragraphs": ["texto"], "sources": [1], "caveats": []}
 
         monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
-        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search", lambda *a, **k: SearchResult([chunk])
+        )
 
         study_id = self._study_id(client)
         body = client.post("/api/ai/explain", json={"study_id": study_id}).json()
@@ -361,7 +366,9 @@ class TestExplanation:
                 return {"summary": "ok", "paragraphs": ["texto"], "sources": [99], "caveats": []}
 
         monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
-        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [])
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search", lambda *a, **k: SearchResult([])
+        )
 
         study_id = self._study_id(client)
         response = client.post("/api/ai/explain", json={"study_id": study_id})
@@ -403,7 +410,9 @@ class TestExplanation:
                 }
 
         monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _CitingProvider())
-        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search", lambda *a, **k: SearchResult([chunk])
+        )
 
         study_id = self._study_id(client)
         response = client.post("/api/ai/explain", json={"study_id": study_id})
@@ -448,7 +457,9 @@ class TestExplanation:
         monkeypatch.setattr(
             ai_service, "get_provider", lambda *_a, **_k: _CitingReferenceProvider()
         )
-        monkeypatch.setattr("app.services.ai_service.knowledge_search", lambda *a, **k: [chunk])
+        monkeypatch.setattr(
+            "app.services.ai_service.knowledge_search", lambda *a, **k: SearchResult([chunk])
+        )
 
         study_id = self._study_id(client)
         response = client.post("/api/ai/explain", json={"study_id": study_id})
@@ -485,9 +496,9 @@ class TestRetrievalGating:
         called = []
         monkeypatch.setattr(
             "app.services.ai_service.knowledge_search",
-            lambda *a, **k: called.append(1) or [],
+            lambda *a, **k: called.append(1) or SearchResult([]),
         )
-        assert AIService(db_session)._retrieve("uma viga leve", MockAIProvider()) == []
+        assert AIService(db_session)._retrieve("uma viga leve", MockAIProvider()).chunks == []
         assert called == []
 
     def test_real_provider_triggers_retrieval(
@@ -496,9 +507,9 @@ class TestRetrievalGating:
         called = []
         monkeypatch.setattr(
             "app.services.ai_service.knowledge_search",
-            lambda *a, **k: called.append(1) or [],
+            lambda *a, **k: called.append(1) or SearchResult([]),
         )
-        assert AIService(db_session)._retrieve("uma viga leve", _RecordingProvider()) == []
+        assert AIService(db_session)._retrieve("uma viga leve", _RecordingProvider()).chunks == []
         assert called == [1]
 
     def test_context_defaults_have_empty_retrieved(self) -> None:
