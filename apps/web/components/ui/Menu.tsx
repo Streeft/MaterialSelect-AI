@@ -264,7 +264,7 @@ export function MenuItem({
   /** A second, quieter line: what the entry produces. */
   hint?: ReactNode;
   /**
-   * D-252: the entry is one of a set of choices and this one is the current
+   * D-252b: the entry is one of a set of choices and this one is the current
    * choice (M3 vertical menu, selected state). It becomes a `menuitemradio`
    * with `aria-checked`, drawn on tertiary-container. Leave it undefined for
    * an action, which stays a plain `menuitem`.

@@ -48,7 +48,7 @@ const twMerge = extendTailwindMerge({
             "m3-label-large",
             "m3-label-medium",
             "m3-label-small",
-            // D-252: the emphasized set, so `cn` swaps baseline for emphasized.
+            // D-252b: the emphasized set, so `cn` swaps baseline for emphasized.
             "m3-display-large-emphasized",
             "m3-display-medium-emphasized",
             "m3-display-small-emphasized",

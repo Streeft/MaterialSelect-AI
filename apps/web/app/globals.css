@@ -1862,7 +1862,7 @@ div[data-surface="rail"] .msds-rail-item {
   background-color: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary));
 }
 
-/* D-252: the emphasized type styles of M3 Expressive, on selection. A tab label
+/* D-252b: the emphasized type styles of M3 Expressive, on selection. A tab label
    is title-small and a connected-group seat is label-large: baseline weight 500,
    emphasized 700 (TypeScaleTokens, androidx). Size, line height and tracking do
    not change. `.m3-emph-label` keeps the width of the bold form (an invisible
@@ -1876,7 +1876,7 @@ div[data-surface="rail"] .msds-rail-item {
   pointer-events: none; user-select: none;
 }
 
-/* D-252: the M3 Expressive segmented list (ListTokens, androidx-main). Each item
+/* D-252b: the M3 Expressive segmented list (ListTokens, androidx-main). Each item
    is its own segment on surface, 2 px apart (SegmentedGap), at CornerExtraSmall
    (4) with the list's outer corners at CornerLarge (16). Hover and focus morph
    the item to CornerMedium (12) under the 8 % state layer; a selected item is

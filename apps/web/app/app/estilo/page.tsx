@@ -949,7 +949,7 @@ function StyleGuide() {
 
       <Section
         title="M3 Expressive: tipografia enfatizada, menu vertical e lista segmentada"
-        description="O que a revisão de novembro de 2026 trouxe do m3.material.io (D-252): os 15 estilos enfatizados, o menu vertical com item escolhido e a lista segmentada."
+        description="O que a revisão de novembro de 2026 trouxe do m3.material.io (D-252b): os 15 estilos enfatizados, o menu vertical com item escolhido e a lista segmentada."
         headingLevel={2}
       >
         <M3ExpressiveSpecimens />

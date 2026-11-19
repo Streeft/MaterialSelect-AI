@@ -243,6 +243,19 @@ como estava (o dono o revoga à parte). O corpo do envio aceita `reply_to_engine
 conta que envia, que prevalece sobre `EMAIL_REPLY_TO`; desmarcado, vale `EMAIL_REPLY_TO` ou nenhum cabeçalho. A prévia devolve `reply_to`
 para o diálogo mostrar onde a resposta chegaria.
 
+**Fila de reenvio (D-252).** Um envio que falha por motivo **passageiro** — servidor de e-mail que desconectou ou recusou a conexão, tempo esgotado,
+nome que não resolveu, resposta `4xx` — não se perde: a linha fica `na_fila`, com `attempts`, `next_attempt_at` e o motivo em `error`, e a resposta do
+`POST …/enviar` é **201** com esse estado (a tela diz "o envio ficou na fila e será tentado de novo em …"). Falha **permanente** (senha, endereço ou
+remetente recusado, `5xx`) continua `falhou` na hora, com 503. A fila é uma thread da API (`delivery_retry_worker`), ligada só com `EMAIL_PROVIDER=smtp`:
+a cada `EMAIL_RETRY_POLL_SECONDS` (30) ela pega os envios vencidos, no máximo três, e tenta de novo com espera `EMAIL_RETRY_BASE_SECONDS` (300) × 3ⁿ⁻¹ — 5 min,
+15 min, 45 min, 2 h 15 min, nunca mais de 6 h — até `EMAIL_RETRY_MAX_ATTEMPTS` (5) tentativas contando a primeira; esgotadas, a linha vira `falhou` e a lista
+diz **"Falhou após N tentativas"**. `EMAIL_RETRY_MAX_ATTEMPTS=1` desliga a fila. O limite `RATE_LIMIT_EMAIL_PER_HOUR` é gasto **uma vez, ao apertar Enviar**; a
+nova tentativa é a mesma mensagem. Um envio na fila **não tem link** (`sem_link`; o token da tentativa que consegue é novo, porque o primeiro nunca saiu) e
+o anexo é o PDF assinado que a versão tem **na hora em que sai**. Só uma instrução `UPDATE` condicional (`claim_due`, com concessão de 10 min) leva uma
+tentativa, então dois ciclos ou duas máquinas não mandam duas vezes; o portão de envio cheio não conta como tentativa. **"Cancelar envio"** (`POST
+…/envios/{id}/revogar` numa linha na fila) a tira da fila; reenviar uma linha na fila é 400. A tela atualiza a lista a cada 30 s enquanto houver envio na fila.
+Limite: a entrega é "pelo menos uma vez" (tempo esgotado depois de o servidor aceitar a mensagem pode mandá-la duas vezes).
+
 ### PDF assinado, validade do link e aberturas (D-243)
 
 **PDF assinado.** O engenheiro imprime o HTML emitido em PDF, assina (à mão, gov.br ou certificado) e **anexa o arquivo à versão**:
@@ -281,6 +294,15 @@ continuação, de tabela ou de processos quando há mais figuras ou uma tabela),
 fica no Word e no laudo emitido) e avisos. São **cópias editáveis, não o laudo emitido**: sem selo, código nem QR,
 e a capa diz "Versão editável — não emitida". Os gráficos são o mesmo SVG de `figures.py`, rasterizado para PNG por `resvg`
 (`exporters/svg_png.py`, fonte DejaVu Sans embarcada); um que não desenha vira uma linha dizendo qual falta.
+
+**Da versão emitida (D-252).** `GET /api/exports/estudos/{id}/laudo/versoes/{n}.docx|.pptx` faz o Word e o PowerPoint **do que foi congelado**, não do
+estudo de hoje. O congelado é o HTML (`IssuedReport.html`); `exporters/laudo_frozen.py` o lê de volta num `LaudoDocument` — cartões, "por que este material",
+escopo, semáforo (lido dos `<text>` do SVG), seções, interpretação, anexo — e os mesmos escritores o desenham. Os gráficos são os SVG do HTML, byte a byte;
+quem assina, o cliente, a versão e a data vêm das colunas da linha. Nada é recalculado: mudar o catálogo depois da emissão não muda o arquivo. A capa diz **"Cópia
+editável da versão emitida N, código X"** (e o assunto do `.docx` também); segue sem selo e sem QR, porque o que se assina e se verifica é o PDF. O que o HTML
+não guarda, a cópia não inventa: um rótulo do semáforo cortado em 72 caracteres no desenho vem cortado, e uma tabela sem linhas não imprime cabeçalho. Só o
+dono; versão que não existe é 404; um HTML sem capa nem resumo é 400. Na tela, os botões do cabeçalho viram **"Baixar Word do estudo atual"** e **"Baixar PowerPoint do
+estudo atual"** (os dados de hoje, com os campos do formulário) e **cada versão ganha "Word" e "PowerPoint"** na linha.
 
 ## O Eco Audit (D-172)
 
@@ -469,6 +491,7 @@ faltando.
 | POST | `/api/exports/laudos/{id}/pdf?nome=` | anexa o PDF assinado a uma versão emitida: corpo = o PDF, até 10 MB, só pelos bytes `%PDF-` (D-243) |
 | GET | `/api/exports/laudos/{id}/pdf`, `…/pdf/versoes`, `…/pdf/{pdf_id}` | PDF atual, histórico de envios do PDF e um deles, só o dono (D-243) |
 | POST | `/api/exports/envios/{id}/revogar` | revoga o link de um envio; dali em diante responde 410 (D-243) |
+| GET | `/api/exports/estudos/{id}/laudo/versoes/{n}.{docx,pptx}` | Word e PowerPoint de uma versão emitida, lidos do HTML congelado: cópia editável, sem selo (D-252) |
 | POST | `/api/exports/envios/{id}/reenviar` | reenvia um envio com um clique: mesma mensagem e pessoas, link novo, mesmo limite de e-mails por hora (D-249) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |

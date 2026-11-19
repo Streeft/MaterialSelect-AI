@@ -34,6 +34,14 @@ EDITABLE_NOTE = (
     "Cópia editável (Word) gerada com os dados de hoje. Não é o laudo emitido: não tem código "
     "de verificação nem QR. O documento que se assina e se verifica é o PDF do laudo emitido."
 )
+
+#: The same note for a copy made from the **frozen** version (D-252): it names the version and
+#: the code, and says what is and is not the issued laudo.
+ISSUED_COPY_NOTE = (
+    "Cópia editável da versão emitida {version}, código {code}. O texto e os números são os do "
+    "documento congelado na emissão, não os de hoje. O laudo emitido, com o selo e o QR, segue "
+    "sendo o PDF assinado: esta cópia não os carrega."
+)
 FOOTER = "Gerado por MaterialSelect AI — cálculo determinístico, proveniência rastreável."
 
 #: Usable width of an A4 page with 0.8 in margins, in inches.
@@ -557,8 +565,25 @@ def _cover(doc, document: LaudoDocument) -> None:
     _hero(doc, document, large=True)
     _cards(doc, document.key_figures[:5])
     note = _para(doc, after=0, before=4)
-    _write(note, "Versão editável — não emitida. ", size=9.5, bold=True, color=STATUS["warn"].ink)
-    _write(note, EDITABLE_NOTE, size=9, color=token("ink-muted"))
+    if document.issued_code is not None:
+        _write(
+            note,
+            "Cópia editável da versão emitida. ",
+            size=9.5,
+            bold=True,
+            color=STATUS["warn"].ink,
+        )
+        _write(
+            note,
+            ISSUED_COPY_NOTE.format(version=document.version, code=document.issued_code),
+            size=9,
+            color=token("ink-muted"),
+        )
+    else:
+        _write(
+            note, "Versão editável — não emitida. ", size=9.5, bold=True, color=STATUS["warn"].ink
+        )
+        _write(note, EDITABLE_NOTE, size=9, color=token("ink-muted"))
 
 
 def _summary(doc, document: LaudoDocument, number: int) -> None:
@@ -699,7 +724,12 @@ def render_laudo_docx(document: LaudoDocument) -> bytes:
     _style_document(doc)
     doc.core_properties.title = xml_legal(f"Laudo de engenharia — {document.study_name}")
     doc.core_properties.author = xml_legal(document.engineer.name or "MaterialSelect AI")
-    doc.core_properties.subject = "Laudo de engenharia (cópia editável)"
+    doc.core_properties.subject = (
+        f"Laudo de engenharia (cópia editável da versão emitida {document.version}, "
+        f"código {document.issued_code})"
+        if document.issued_code is not None
+        else "Laudo de engenharia (cópia editável)"
+    )
 
     _cover(doc, document)
     number = 1

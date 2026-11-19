@@ -43,7 +43,9 @@ from app.dependencies import (
 from app.domain.errors import PayloadTooLargeError, ValidationError
 from app.exporters.docx import to_docx
 from app.exporters.html import to_html
+from app.exporters.laudo import LaudoDocument
 from app.exporters.laudo_docx import render_laudo_docx
+from app.exporters.laudo_frozen import document_from_issued
 from app.exporters.laudo_pptx import render_laudo_pptx
 from app.exporters.pptx import to_pptx
 from app.exporters.report import Report
@@ -222,18 +224,23 @@ def export_study_laudo(
     # of the gate (D-231) is held until the bytes exist.
     with get_gate().slot():
         document = service.document(study_id, project.id, inputs)
-        if fmt == "docx":
-            body_bytes = render_laudo_docx(document)
-            media_type = DOCX_MEDIA_TYPE
-        else:
-            body_bytes = render_laudo_pptx(document)
-            media_type = PPTX_MEDIA_TYPE
+        return _laudo_file(document, fmt, f"Laudo de engenharia — {document.study_name}")
+
+
+def _laudo_file(document: LaudoDocument, fmt: str, filename: str) -> Response:
+    """The Word or PowerPoint bytes of a laudo document, as a download."""
+    if fmt == "docx":
+        body_bytes = render_laudo_docx(document)
+        media_type = DOCX_MEDIA_TYPE
+    else:
+        body_bytes = render_laudo_pptx(document)
+        media_type = PPTX_MEDIA_TYPE
     response = Response(
         content=body_bytes,
         media_type=media_type,
         headers={"X-Content-Type-Options": "nosniff"},
     )
-    return _download_headers(response, f"Laudo de engenharia — {document.study_name}", fmt)
+    return _download_headers(response, filename, fmt)
 
 
 @router.post(
@@ -283,6 +290,36 @@ def get_study_laudo_version(
     return _html_response(
         report.html, f"Laudo de engenharia — {report.study_name} — versão {report.version}"
     )
+
+
+@router.get("/estudos/{study_id}/laudo/versoes/{version}.{fmt}")
+def get_study_laudo_version_file(
+    study_id: int,
+    version: int,
+    fmt: str,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """Word or PowerPoint of one **issued** version, made from what was frozen (D-252).
+
+    Not a re-run of the study: the frozen HTML of the version is read back into the laudo
+    document, so the copy carries the numbers and the text that were issued, and its cover
+    says "cópia editável da versão emitida N, código X". Still not the issued laudo (no seal,
+    no QR): the document that is signed and verified is the PDF.
+    """
+    if fmt not in ("docx", "pptx"):
+        raise ValidationError(
+            f"Formato não suportado para uma versão emitida: '{fmt}'. Use docx ou pptx."
+        )
+    service = LaudoService(db, user)
+    report = service.version(study_id, project.id, version)
+    # Rasterising the charts is the heavy part, as for the live study: one slot of the gate.
+    with get_gate().slot():
+        document = document_from_issued(report)
+        return _laudo_file(
+            document, fmt, f"Laudo de engenharia — {report.study_name} — versão {report.version}"
+        )
 
 
 @router.post(

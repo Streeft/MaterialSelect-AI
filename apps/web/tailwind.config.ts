@@ -190,7 +190,7 @@ const config: Config = {
         "m3-label-large": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500", letterSpacing: "0.007em" }],
         "m3-label-medium": ["0.75rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.042em" }],
         "m3-label-small": ["0.6875rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.045em" }],
-        // D-252: the 15 emphasized styles of M3 Expressive. Same size, line
+        // D-252b: the 15 emphasized styles of M3 Expressive. Same size, line
         // height and tracking as the baseline; only the weight moves —
         // display, headline, title-large and body to 500, title-medium,
         // title-small and label to 700 (TypeScaleTokens.kt, androidx-main).

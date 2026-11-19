@@ -93,9 +93,10 @@ passo em `13-deploy.md` §5-nonies —, enquanto o envio fica "Simulado" e a tel
 no e-mail no lugar do `.html`, "Baixar PDF assinado" no link e hash na verificação pública), link com validade (`REPORT_LINK_TTL_DAYS`, 90) e revogação (410
 em página em português), contagem de aberturas sem IP nem pixel, e DOCX/PPTX no visual novo (gráficos em PNG por `resvg-py`). **Entregue na D-249:**
 ~~reenviar com um clique~~, ~~`Reply-To` pelo e-mail do engenheiro~~, ~~anexo técnico no PowerPoint~~ (até 60 linhas por tabela) e ~~a memória do `laudo.html`~~
-(75,3 → 14,5 MB por requisição). Fica para depois, se o autor quiser: ler o texto do PDF para conferir que é o laudo certo, fila de reenvio
-(retentativa automática de um envio que falhou) e DOCX/PPTX de uma versão **emitida** a partir dos bytes congelados (hoje a cópia reexecuta o estudo e
-diz que não é a emitida).
+(75,3 → 14,5 MB por requisição). **Entregue na D-252:** ~~fila de reenvio~~ (um envio que falha por motivo passageiro fica `na_fila` e é tentado de novo, com espera 5 min × 3ⁿ e até 5
+tentativas, só com `EMAIL_PROVIDER=smtp`; "Falhou após N tentativas"; "Cancelar envio") e ~~DOCX/PPTX de uma versão emitida a partir do que foi
+congelado~~ (a capa diz "Cópia editável da versão emitida N, código X"). Fica para depois, se o autor quiser: ler o texto do PDF para conferir que é o
+laudo certo.
 
 **Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F9 entregues** (F9, D-238: Classes e Propriedades como tabelas editáveis — nome e descrição de classe na linha pelo `PATCH`, que nunca muda o slug —, árvore que dobra, busca e filtro por categoria, criação atrás de um botão; F8, D-236b: landing com o método em três passos e capturas reais, "O que garante" e rodapé; Entrar em tela dividida; Conta dentro do app com perfil, acesso, uso da IA de hoje, Aparência e Sair; "Barra lateral clara" na Aparência, só no tema claro; F7, D-235b: Cadernos com galeria de modelos ao criar e na lista vazia, notas em blocos com a alça, Alt+↑/↓ e "/" para inserir, ordem na conta, Estúdio monocromático e aviso do provedor como chip; F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,
@@ -545,7 +546,7 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ---
 
-**Material 3 — o que ficou de fora da D-252.** ▁ A onda (*wavy*) dos indicadores de progresso linear e circular, que o M3
+**Material 3 — o que ficou de fora da D-252b.** ▁ A onda (*wavy*) dos indicadores de progresso linear e circular, que o M3
 deixa opcional "para mais expressividade": candidata às esperas longas (importação, ingestão), nunca às curtas, que já têm o
 `LoadingIndicator`. O primeiro menu de escolha do app (ordenar, unidade) deve usar `MenuItem selected`, que hoje só aparece na
 vitrine. Outras listas de registros podem passar à `.m3-list-segmented` quando forem revistas.
@@ -654,11 +655,10 @@ cada uma tem o motivo de ter ficado de fora.
   é bloqueado. As saídas conhecidas (navegador *headless*, serviço pago)
   quebram o custo zero. O aluno cola a transcrição. Reavalie só se o YouTube
   voltar a servir legenda sem o token.
-- **Trafilatura no lugar do extrator de HTML.** ▁ `app/notebooks/html_text.py`
-  é o ponto único de troca, com a assinatura `extract_html(data, charset) ->
-  (title, ExtractedText)`. Troque se a qualidade da extração em páginas reais
-  não bastar. A regra de descartar nós ocultos (defesa contra injeção de prompt)
-  tem de sobreviver à troca.
+- ~~**Trafilatura no lugar do extrator de HTML.**~~ — feito na D-252: `app/notebooks/page_text.py` (`extract_page`) pergunta ao Trafilatura primeiro,
+  **sobre a página já sem os nós ocultos**, e cai no extrator embutido em qualquer falha. Resta **conferir em páginas reais** (um artigo de blog, um verbete,
+  um PDF-em-HTML) se a qualidade melhorou e ajustar `MIN_SHARE_OF_BASELINE` (20%) e `MAX_CLEAN_CHARS` (1,5 milhão) se o log de produção mostrar recaídas demais
+  ("Trafilatura guardou só … letras" / "escreveu número(s) que a página não tem").
 - **Conferir ao vivo as "Sugestões da Pesquisa Google".** ▁ Quando
   `WEB_SEARCH_PROVIDER=gemini` for ligado em produção, faça uma busca no modo
   Web e confirme que a faixa de sugestões aparece legível na moldura isolada
@@ -1878,18 +1878,27 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 - ~~Sugestão da IA na Eco, A × B e `part_mass`~~ — feitas no D-234 (`{comparison}` no contexto; `part_mass` = massa unitária de um produto de um só componente; faixa (0, 10⁶] kg).
 - Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
 - A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
-- ~~`claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída~~ e ~~o 429 dos embeddings com a mensagem genérica~~ — feitos no D-247 (teto de saída, tempo e tentativas nos dois provedores; o 429 diz quando tentar de novo e que a busca segue léxica). A busca ainda cai para a léxica sem aviso **na tela**.
+- ~~`claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída~~ e ~~o 429 dos embeddings com a mensagem genérica~~ — feitos no D-247 (teto de saída, tempo e tentativas nos dois provedores; o 429 diz quando tentar de novo e que a busca segue léxica). ~~A busca ainda cai para a léxica sem aviso na tela~~ — feito na D-252 (`retrieval_degraded` e uma linha discreta nos Cadernos, no assistente e na explicação).
 
 **Fluxos entre telas, parte 16 — pendências (D-234).**
 - ~~Cascata da diferença A × B na Eco~~, ~~curva Custo × Lote de cada material comparado~~ e ~~recaída do 429 da busca na web~~ (`WEB_SEARCH_FALLBACK_MODEL`; entrada `modelo_busca_web` no workflow Provedor de IA) — feitas no D-234.
 - Custo, Dimensionar e Baterias seguem sem número escolhido pelo modelo (só valores do contexto ou de cenário); dar faixa a um parâmetro é uma decisão por parâmetro.
-- ~~Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido~~ — feitas no D-251 (Eco até quatro alternativas, cada uma contra A; Custo com "Processo de cada curva"). Resíduo: a diferença é sempre contra A (não há "contra a melhor"), e a sugestão da IA da Eco só conhece os campos de A e B.
+- ~~Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido~~ — feitas no D-251 (Eco até quatro alternativas, cada uma contra A; Custo com "Processo de cada curva"). Resíduo: a diferença é sempre contra A (não há "contra a melhor"). ~~A sugestão da IA da Eco só conhece os campos de A e B~~ — a D-252 a ensinou a ler C e D (contexto do servidor e `material_c.*`/`material_d.*`).
 
 **Fluxos entre telas, parte 18 — pendências (D-236).**
 - ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
 - ~~Rótulo e licença de uma fonte seguem fixos depois do cadastro~~ (feito no D-244: o `PATCH` leva também rótulo, referência e licença; revisor segue fixo).
 - ~~Arrastar a classe não funciona em tela de toque~~ (feito no D-244: eventos de ponteiro; "Mover para…" segue pelo teclado).
 - ~~"Esvaziar o arquivo" é uma transação só~~ — feito na D-249: lotes de 50, andamento, Parar, e a contagem confirmada vale lote a lote.
+
+**Pendências do TODO, parte 10 (D-252).**
+- A fila de reenvio é **por processo**: a thread vive na API (uma máquina no Fly); com duas máquinas a concessão (`claim_due`) impede o envio duplo, mas
+  cada uma consulta a tabela. Uma falha de rede que o servidor SMTP aceitou depois do tempo esgotado manda a mensagem duas vezes (entrega "pelo menos uma vez").
+- A fila só olha `EMAIL_PROVIDER=smtp`. Não há tela de "fila de envios de todos os laudos" (só a lista por versão); um painel do administrador seria trabalho à parte.
+- A cópia Word/PowerPoint de uma versão emitida é lida do HTML: um rótulo do semáforo cortado em 72 caracteres no desenho vem cortado, e uma tabela sem
+  linhas não imprime cabeçalho. Se isso importar, congelar o `LaudoDocument` em JSON na emissão (migração; versões já emitidas ficariam como estão).
+- O aviso de busca léxica não diz **por quê** (provedor fora, 429, tempo); o motivo está no log (`fly logs`). Dizer o motivo na tela seria um campo a mais no contrato.
+- Trafilatura: +20 MB de RSS na primeira página lida e ~130 MB de pico numa página de 1,8 MB; medir de novo no Fly se a máquina voltar a apertar (D-231).
 
 **Pendências do TODO, parte 7 (D-249).**
 - Aparência na conta: tema e densidade seguem por aparelho (decisão da D-249); se o autor quiser o tema na conta também, é um campo a mais no `PUT` e no `AppearanceIn`.
@@ -1907,7 +1916,7 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
-- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa) e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair. (`check_property`/`check_chart` saíram no D-237.)
+- ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Fica o método `interpret` dos provedores (o `rule_plan` o usa). ~~Os textos `ptBR.ai.*` do painel antigo~~ — limpos na D-252 (31 textos; um teste fixa as chaves que sobram). (`check_property`/`check_chart` saíram no D-237.)
 - ~~Início: a proposta some ao navegar~~ — feito no D-251 (`sessionStorage` da aba, no Início e no painel da Seleção; some no logout). A proposta **editada** só existe ali: o servidor reaproveita o texto por 10 min, não a edição.
 - ~~Edição de um limite na própria proposta~~ — feita no D-251 (o número digitado passa a ser "Você" e a nota guarda a origem anterior). Segue aberto o **streaming** da resposta.
 - ~~`claude-api` e `claude-cli` respondem o plano sem o teto próprio~~ — feito no D-247 (junto com `suggest`/`probe`).

@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { MenuButton, MenuItem, Tabs } from "@/components/ui";
 
-/** The 15 M3 roles, baseline beside emphasized (D-252). */
+/** The 15 M3 roles, baseline beside emphasized (D-252b). */
 const ROLES = [
   "display-small",
   "headline-medium",
@@ -46,7 +46,7 @@ const EMPHASIZED: Record<(typeof ROLES)[number], string> = {
 const ORDERS = ["Nome", "Classe", "Densidade"] as const;
 
 /**
- * D-252: what M3 Expressive added and the app now has — the emphasized type
+ * D-252b: what M3 Expressive added and the app now has — the emphasized type
  * styles (shown on the selected tab and group seat), the vertical menu with a
  * selected item, and the segmented list.
  */

@@ -534,7 +534,7 @@ body {
 .msds-menu-trigger { appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-control); padding: 8px 12px; font: 500 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .msds-menu-trigger:hover { border-color: rgb(var(--accent)); }
-/* D-252: the M3 Expressive vertical menu (SegmentedMenuTokens, standard colour
+/* D-252b: the M3 Expressive vertical menu (SegmentedMenuTokens, standard colour
    style): container on surface-container-low at CornerLarge (16), 4 px group
    padding, items at CornerExtraSmall (4) with the first and last at
    CornerMedium (12), and the current choice on tertiary-container at

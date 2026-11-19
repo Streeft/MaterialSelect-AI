@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
 import { M3ExpressiveSpecimens } from "./M3ExpressiveSpecimens";
 
-describe("M3 Expressive specimens (D-252)", () => {
+describe("M3 Expressive specimens (D-252b)", () => {
   it("mostra cada papel nas duas formas, sem violação de acessibilidade", async () => {
     const { container } = render(<M3ExpressiveSpecimens />);
     expect(container.querySelector(".text-m3-title-small-emphasized")).not.toBeNull();

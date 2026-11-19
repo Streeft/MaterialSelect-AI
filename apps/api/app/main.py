@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Depends, FastAPI, Request
@@ -109,10 +111,28 @@ def docs_routes(enabled: bool) -> dict[str, str | None]:
     return {"docs_url": None, "redoc_url": None, "openapi_url": None}
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """What lives as long as the process (D-252): the loop that retries laudo e-mails.
+
+    It starts only with ``EMAIL_PROVIDER=smtp`` (see ``delivery_retry_worker``); under the
+    tests and in development with the ``mock`` provider there is no thread at all.
+    """
+    from app.services.delivery_retry_worker import start_delivery_retry_worker
+
+    worker = start_delivery_retry_worker()
+    try:
+        yield
+    finally:
+        if worker is not None:
+            worker.stop()
+
+
 app = FastAPI(
     title=settings.app_name,
     version=__version__,
     description="API determinística de apoio à seleção de materiais (metodologia Ashby).",
+    lifespan=lifespan,
     **docs_routes(settings.docs_enabled),
 )
 

@@ -683,6 +683,142 @@ def test_eco_comparison_takes_the_default_of_a_premise_but_not_a_number_of_the_m
     assert any("material_a.recycled_fraction" in r for r in body["rejected"])
 
 
+# --- Eco: the alternatives C and D (D-252) ---------------------------------------------
+
+
+def _with_extras(client: TestClient, count: int = 2) -> dict:
+    """A comparison of A, B and up to two more alternatives, C with the least energy."""
+    context = _comparison(client)
+    casting = context["comparison"]["material_a"]["process_id"]
+    sides = [
+        {"material_id": 1, "process_id": casting, "part_mass": 1.0, "recycled_fraction": 0.9},
+        {"material_id": 1, "process_id": casting, "part_mass": 9.0, "recycled_fraction": 0.1},
+    ]
+    context["comparison"]["extra_materials"] = sides[:count]
+    return context
+
+
+def _facts_seen_by_the_model(client: TestClient, monkeypatch: pytest.MonkeyPatch, context: dict):
+    seen: list[str] = []
+
+    class _Recorder(_LyingProvider):
+        def _complete_limited(self, system, user, schema, limits):  # type: ignore[override]
+            seen.append(f"{system}\n{user}")
+            return {"summary": "", "suggestions": []}
+
+    monkeypatch.setattr(ai_service, "get_provider", lambda *_a, **_k: _Recorder())
+    _ok(client, "eco", context)
+    return seen[0]
+
+
+def test_the_model_reads_alternatives_c_and_d_with_their_totals_and_difference_to_a(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prompt = _facts_seen_by_the_model(client, monkeypatch, _with_extras(client))
+    lines = prompt.splitlines()
+    for label in "ABCD":
+        assert any(line.startswith(f"{label}: ") and "processo" in line for line in lines), label
+    energy_line = next(line for line in prompt.splitlines() if line.startswith("Energia total"))
+    assert all(f"{label} " in energy_line for label in "ABCD")
+    assert "C em relação a A:" in prompt and "D em relação a A:" in prompt
+    # The lowest total over all four is the server's, named with its material.
+    assert "Menor energia entre todas as alternativas: C" in prompt
+
+
+def test_without_extras_the_context_is_the_one_of_a_and_b(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prompt = _facts_seen_by_the_model(client, monkeypatch, _comparison(client))
+    assert "C:" not in prompt and "em relação a A" not in prompt
+    assert "entre todas as alternativas" not in prompt
+    assert "material_c" not in prompt
+
+
+def test_the_suggestions_may_name_the_parameters_of_c_and_d(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(
+        monkeypatch,
+        {
+            "summary": "",
+            "suggestions": [
+                {
+                    "title": "Alternativa D mais leve",
+                    "body": "Uma massa de 5 kg para a peça D reduz o total.",
+                    "actions": [_action("set_param", "material_d.part_mass", "5")],
+                },
+                {
+                    "title": "Alternativa C",
+                    "body": "Volte a fração reciclada de C ao padrão.",
+                    "actions": [
+                        _action(
+                            "set_param",
+                            "material_c.recycled_fraction",
+                            str(client.get("/api/padroes").json()["eco"]["recycled_fraction"]),
+                        )
+                    ],
+                },
+            ],
+        },
+    )
+    body = _ok(client, "eco", _with_extras(client))
+    kept = {a["name"]: a for a in _params_of(body)}
+    assert kept["material_d.part_mass"]["origin"] == "sugestao_ia"
+    assert "peça D" in kept["material_d.part_mass"]["label"]
+    assert kept["material_c.recycled_fraction"]["origin"] == "contexto"
+    assert body["rejected"] == []
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "1000001"])
+def test_the_mass_of_an_extra_is_held_to_the_calculators_bounds(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    _serve(monkeypatch, _set_param_card("Massa", "Um ajuste.", "material_c.part_mass", value))
+    body = _ok(client, "eco", _with_extras(client))
+    assert not _params_of(body)
+    assert any("fora da faixa permitida" in r for r in body["rejected"])
+
+
+def test_an_alternative_the_screen_does_not_have_is_refused(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Only C exists: D (and C when nothing was sent) are names the server never offered.
+    _serve(monkeypatch, _set_param_card("Massa", "Um ajuste.", "material_d.part_mass", "5"))
+    body = _ok(client, "eco", _with_extras(client, count=1))
+    assert not _params_of(body)
+    assert any("material_d.part_mass" in r for r in body["rejected"])
+    _serve(monkeypatch, _set_param_card("Massa", "Um ajuste.", "material_c.part_mass", "5"))
+    body = _ok(client, "eco", _comparison(client))
+    assert not _params_of(body)
+    assert any("material_c.part_mass" in r for r in body["rejected"])
+
+
+def test_a_number_the_model_invents_about_an_extra_is_dropped(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _serve(
+        monkeypatch,
+        {
+            "summary": "",
+            "suggestions": [
+                {
+                    "title": "C",
+                    "body": "A alternativa C gasta 123456,789 MJ a menos.",
+                    "actions": [],
+                }
+            ],
+        },
+    )
+    body = _ok(client, "eco", _with_extras(client))
+    assert "123456" not in " ".join(s["body"] for s in body["suggestions"])
+
+
+def test_with_extras_the_rule_cards_name_the_lowest_of_all_alternatives(client: TestClient) -> None:
+    body = _ok(client, "eco", _with_extras(client))
+    titles = " ".join(s["title"] for s in body["suggestions"])
+    assert "usa menos energia" in titles
+
+
 def test_eco_product_offers_the_mass_only_for_a_single_component(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

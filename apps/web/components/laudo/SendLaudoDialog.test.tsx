@@ -249,6 +249,27 @@ describe("SendLaudoDialog (D-242)", () => {
     expect(await screen.findByText(t.simulatedToast(1))).toBeInTheDocument();
   });
 
+  it("says a send that went into the retry queue is waiting, and when it will be tried again (D-252)", async () => {
+    sendLaudo.mockResolvedValue(
+      delivery({
+        status: "na_fila",
+        error: "O servidor de e-mail não respondeu em 10 s. Tente de novo em instantes.",
+        attempts: 1,
+        max_attempts: 5,
+        next_attempt_at: "2026-11-19T18:15:00Z",
+      }),
+    );
+    const { onClose } = mount();
+    await screen.findByTitle(t.previewFrame);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(named(t.to)), "cliente@empresa.com.br{Enter}");
+    await user.click(sendButton());
+    // Not "enviado": the toast says it is queued, and the dialog closes (the history shows it).
+    expect(await screen.findByText(/ficou na fila e será tentado de novo em /)).toBeInTheDocument();
+    expect(screen.queryByText(t.sentToast(1))).not.toBeInTheDocument();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
   it("keeps the dialog open and says why when the send fails", async () => {
     const { ApiError } = await import("@/lib/api");
     sendLaudo.mockRejectedValue(

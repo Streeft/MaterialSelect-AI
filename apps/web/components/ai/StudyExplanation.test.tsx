@@ -105,4 +105,21 @@ describe("StudyExplanation", () => {
     // ...but the heading for sources must not appear when there are none.
     expect(screen.queryByText(ptBR.ai.sourcesConsulted + ":")).not.toBeInTheDocument();
   });
+
+  it("says the reference passages were picked by words alone when the search fell back (D-252)", async () => {
+    getAIStatus.mockResolvedValue({ enabled: true, provider: "openai-compat", simulated: false, disclaimer: "x" });
+    explainStudy.mockResolvedValue(makeExplanation({ retrieval_degraded: true }));
+    render(<StudyExplanation studyId={1} />, { wrapper });
+    await userEvent.click(await screen.findByShadowRole("button", { name: ptBR.ai.explain }));
+    expect(await screen.findByText(ptBR.ai.retrievalDegraded)).toBeInTheDocument();
+  });
+
+  it("says nothing about the search when it ran as configured", async () => {
+    getAIStatus.mockResolvedValue({ enabled: true, provider: "openai-compat", simulated: false, disclaimer: "x" });
+    explainStudy.mockResolvedValue(makeExplanation({ retrieval_degraded: false }));
+    render(<StudyExplanation studyId={1} />, { wrapper });
+    await userEvent.click(await screen.findByShadowRole("button", { name: ptBR.ai.explain }));
+    expect(await screen.findByText("Resumo do estudo.")).toBeInTheDocument();
+    expect(screen.queryByText(ptBR.ai.retrievalDegraded)).not.toBeInTheDocument();
+  });
 });

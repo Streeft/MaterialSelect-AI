@@ -562,7 +562,7 @@ function ProcessLines({
   rootOf: Map<string, ProcessClass>;
 }) {
   return (
-    // D-252: the M3 Expressive segmented list — each process its own segment.
+    // D-252b: the M3 Expressive segmented list — each process its own segment.
     <ul className="m3-list-segmented">
       {processes.map((process) => (
         // The checkbox sits beside the link, never inside it: a control

@@ -381,7 +381,7 @@ class TestRevoking:
     def test_a_failed_send_has_no_link_to_revoke(self, client, fake_smtp) -> None:
         import smtplib
 
-        fake_smtp.fail_at = {"connect": smtplib.SMTPConnectError(421, "x")}
+        fake_smtp.fail_at = {"login": smtplib.SMTPAuthenticationError(535, b"recusado")}
         issued = _issue(client)
         assert _send(client, issued["id"]).status_code == 503
         failed = client.get(f"/api/exports/laudos/{issued['id']}/envios").json()[0]

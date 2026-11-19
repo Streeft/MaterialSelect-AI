@@ -47,6 +47,10 @@ dependencies = [
     # one wheel of Rust (~3 MB), no system library; imported only when a Word/PowerPoint
     # laudo is asked for. Its fonts ship in ``app/exporters/fonts``.
     "resvg-py>=0.5,<1",
+    # Cadernos (D-252): the main content of a web page, boilerplate removed. Apache-2.0 (with
+    # courlan and htmldate; jusText is BSD-2 and dateparser BSD-3); imported only when a page is
+    # read, ~20 MB resident the first time. The built-in reader answers whenever it fails.
+    "trafilatura>=2.0,<3",
 ]
 
 [project.optional-dependencies]

@@ -70,7 +70,7 @@ display, headline, body e *title-large*; 500 em *title-medium/small* e em todo l
 Existe um segundo conjunto, **enfatizado** (15 estilos, mais pesados), para estado selecionado,
 não lido e ação principal. Os componentes não o usam por padrão.
 
-**Enfatizado (adotado na D-252).** Mesmo tamanho, linha e espaçamento do de base; só o peso sobe:
+**Enfatizado (adotado na D-252b).** Mesmo tamanho, linha e espaçamento do de base; só o peso sobe:
 **500** em display, headline, *title-large* e body; **700** em *title-medium/small* e em todo label.
 Fonte: `TypeScaleTokens.kt` (androidx-main, Compose), lido em 19/11/26, e a página *Styles ›
 Typography › Type scale & tokens* ("15 baseline and 15 emphasized"). No app: `text-m3-*-emphasized`;
@@ -164,7 +164,7 @@ M3 e vivem em `lib/design/iconGestures.ts` (D-248).
 | Alvo de toque (*target size*) | Botões de 32 px e chips sem área mínima no toque | `--target-min: 44px` e área invisível de `max(100%, 44px)` em ponteiro grosso; o desenho não muda (D-206). Fonte: *Foundations › Accessible design › Target sizes* e *Components › Icon buttons*, lidas em 11/11/26. |
 | *Filter chips*, *side sheet* modal e *small top app bar* | Filtros em cartão; prévia só no catálogo; busca larga com "Ctrl K" também no celular | `FilterBar` em chips com folha inferior no celular, `SidePeek` (folha lateral modal) e barra do topo com o nome da tela e a busca como ícone abaixo de `lg` (D-206). Fonte: *Components › Chips*, *Side sheets* e *Top app bar*, lidas em 11/11/26. |
 
-## Menu vertical e lista segmentada (M3 Expressive, adotados na D-252)
+## Menu vertical e lista segmentada (M3 Expressive, adotados na D-252b)
 
 **Menu vertical** (*Components › Menus*, atualização de novembro de 2025; `SegmentedMenuTokens.kt`,
 estilo de cor *standard* em `StandardMenuTokens.kt`, lidos em 19/11/26): contêiner em
@@ -189,7 +189,7 @@ JavaScript ligado) e da seção "M3 Expressive update" de cada componente. **38 
 | App bars, Toolbars (docked e floating) | `appBars`, `.m3-floating-toolbar`, `SheetActions` | Adotado (D-184, D-197, D-206) |
 | Badges (contagem/ponto em item de navegação) | `Badge` é selo de estado, não contagem | Não adotado: nenhum item da barra tem contagem a mostrar |
 | Buttons, Icon buttons, Split button | `Button`, `IconButton`, `SplitButton` | Adotado (D-134, D-186, D-248) |
-| Button groups (standard e connected) | `ButtonGroup` = grupo conectado | Adotado (D-183); escolhido com peso enfatizado (D-252) |
+| Button groups (standard e connected) | `ButtonGroup` = grupo conectado | Adotado (D-183); escolhido com peso enfatizado (D-252b) |
 | Segmented buttons | Substituídos pelo grupo conectado, como o M3 manda | Adotado (D-183) |
 | FAB, Extended FAB, FAB menu | `FabMenu` | Adotado (D-195); FAB estendido não tem uso (um só "Novo") |
 | Cards, Carousel | `Card`, `Carousel` (MSDS) | Adotado (D-136) |
@@ -198,18 +198,18 @@ JavaScript ligado) e da seção "M3 Expressive update" de cada componente. **38 
 | Date pickers, Time pickers | `DatePicker`/`TimePicker` no MSDS; formulários usam o `<input type="date">` nativo | Mantido o nativo: acessível, localizado pelo navegador, e a data é rara no app (fonte, laudo) |
 | Dialogs, Bottom sheets, Side sheets | `Dialog`, `BottomSheet`, `SidePeek` | Adotado (D-136, D-197, D-206) |
 | Divider | `.msds-divider` | Adotado |
-| Lists | `.msds-list`; **lista segmentada** `.m3-list-segmented` | Adotado; segmentada na D-252 |
+| Lists | `.msds-list`; **lista segmentada** `.m3-list-segmented` | Adotado; segmentada na D-252b |
 | Loading indicator, Progress indicators | `LoadingIndicator`, `LinearProgress`, `CircularProgress` | Adotado; **onda (wavy) não adotada** (opcional no M3; ver TODO) |
-| Menus | `MenuButton`/`MenuItem`, agora **menu vertical** com item escolhido | Adotado na D-252 |
+| Menus | `MenuButton`/`MenuItem`, agora **menu vertical** com item escolhido | Adotado na D-252b |
 | Navigation bar, drawer, rail | `AppSidebar` (trilho/gaveta), barra inferior | Adotado (D-37, D-137) |
 | Scroll fields | — | Não adotado: só existe no Compose; a entrada numérica do app é campo com unidade |
 | Search | `GlobalSearch`, `CommandPalette` | Adotado (D-129) |
 | Snackbar, Tooltips | `Snackbar`, `Tooltip` | Adotado (D-130, D-136) |
-| Tabs | `Tabs` com indicador que desliza | Adotado (D-137, D-248); aba ativa com peso enfatizado (D-252) |
+| Tabs | `Tabs` com indicador que desliza | Adotado (D-137, D-248); aba ativa com peso enfatizado (D-252b) |
 | Text fields | `Field` contornado | Adotado (D-135) |
 
 **Fundações e estilos:** cor (papéis, contraste, cor dinâmica escolhida pela pessoa), tipografia
-(15 de base e, desde a D-252, 15 enfatizados), forma (escala completa e forma que responde), elevação,
+(15 de base e, desde a D-252b, 15 enfatizados), forma (escala completa e forma que responde), elevação,
 movimento (molas expressivas), estados, layout (*breakpoints*, layouts canônicos, *scaffold*), alvo
 de toque e ícones animados estão adotados (D-133 a D-137, D-181 a D-183, D-196, D-206, D-248). Não
 adotados de propósito: a **biblioteca de 35 formas** decorativas (sem papel numa ferramenta de dados),

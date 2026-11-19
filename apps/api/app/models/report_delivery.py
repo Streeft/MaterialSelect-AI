@@ -28,11 +28,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
-#: The three ways a delivery can end. ``simulado`` is the ``mock`` provider:
-#: nothing left the server, and the screen says so instead of "enviado".
+#: The ways a delivery can stand. ``simulado`` is the ``mock`` provider: nothing left the
+#: server, and the screen says so instead of "enviado". ``na_fila`` (D-252) is a send that
+#: failed for a passing reason and is waiting for its next attempt; it ends as one of the
+#: other three.
 DELIVERY_SENT = "enviado"
 DELIVERY_SIMULATED = "simulado"
 DELIVERY_FAILED = "falhou"
+DELIVERY_QUEUED = "na_fila"
 
 
 def _utcnow() -> datetime:
@@ -60,7 +63,7 @@ class ReportDelivery(Base):
     cc: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     subject: Mapped[str] = mapped_column(String(200), nullable=False)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    #: ``enviado`` | ``simulado`` | ``falhou``.
+    #: ``enviado`` | ``simulado`` | ``falhou`` | ``na_fila``.
     status: Mapped[str] = mapped_column(String(12), nullable=False)
     #: The provider that handled it (``mock`` or ``smtp``).
     provider: Mapped[str] = mapped_column(String(12), nullable=False)
@@ -87,3 +90,14 @@ class ReportDelivery(Base):
     #: SHA-256 of the signed PDF that went attached in this message, when there was
     #: one (the e-mail then carried the PDF instead of the ``.html``).
     attached_pdf_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: How many times the server tried to hand this message to the mail server (D-252): 1 for a
+    #: send that went or failed at once, up to ``EMAIL_RETRY_MAX_ATTEMPTS`` for one that waited
+    #: in the queue.
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    #: When the queue tries this message next. ``NULL`` unless ``status`` is ``na_fila``.
+    next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    #: The ``Reply-To`` this message was asked to carry (the sending account's address, or
+    #: ``NULL``), kept so a retry writes the same header the first attempt would have.
+    reply_to: Mapped[str | None] = mapped_column(String(320), nullable=True)

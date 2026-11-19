@@ -48,6 +48,16 @@ class EmailSendError(Exception):
     """A send that did not happen. ``str(exc)`` is the Portuguese reason, fit to show."""
 
 
+class TransientEmailSendError(EmailSendError):
+    """A send that did not happen **for a passing reason** (D-252).
+
+    The mail server was down or slow, the connection dropped, a ``4xx`` asked to try later.
+    The same message may well go a few minutes on, so the laudo queue tries it again; every
+    other :class:`EmailSendError` (wrong password, refused address, a broken configuration) is
+    permanent and is never retried.
+    """
+
+
 @dataclass(frozen=True)
 class EmailAttachment:
     filename: str
@@ -107,6 +117,34 @@ def build_message(
             params=params,
         )
     return message
+
+
+def is_transient_smtp_failure(exc: BaseException) -> bool:
+    """Whether the same send may succeed later: the server or the network, not our message.
+
+    Permanent: the credentials, a refused sender or recipient, a server that does not offer the
+    TLS or login asked for, and a ``5xx`` answer. Transient: a dropped or refused connection, a
+    timeout, a name that did not resolve (DNS flickers), a TLS handshake that failed in flight
+    and a ``4xx`` answer ("try again later"). Anything unknown is permanent: a retry the code
+    cannot justify would only repeat an error five times.
+    """
+    if isinstance(
+        exc,
+        (
+            smtplib.SMTPAuthenticationError,
+            smtplib.SMTPRecipientsRefused,
+            smtplib.SMTPSenderRefused,
+            smtplib.SMTPNotSupportedError,
+        ),
+    ):
+        return False
+    if isinstance(exc, (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError)):
+        return True
+    if isinstance(exc, smtplib.SMTPResponseException):
+        return 400 <= int(exc.smtp_code) < 500
+    if isinstance(exc, smtplib.SMTPException):
+        return False
+    return isinstance(exc, (TimeoutError, ssl.SSLError, OSError))
 
 
 def explain_smtp_failure(exc: BaseException, timeout_seconds: float) -> str:
@@ -226,7 +264,10 @@ class SmtpEmailSender:
                     exc.__class__.__name__,
                     getattr(exc, "smtp_code", None),
                 )
-                raise EmailSendError(explain_smtp_failure(exc, timeout)) from None
+                reason = explain_smtp_failure(exc, timeout)
+                if is_transient_smtp_failure(exc):
+                    raise TransientEmailSendError(reason) from None
+                raise EmailSendError(reason) from None
 
 
 EmailSender = MockEmailSender | SmtpEmailSender

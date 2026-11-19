@@ -39,6 +39,11 @@ class Retrieval:
     #: True when nothing matched and the opening of each source was handed over
     #: instead — the model is told, and the mock answers "não encontrei".
     fallback: bool
+    #: True when the query's embedding was meant to take part and did not arrive (the provider
+    #: failed or answered 429, the time budget ran out): the passages are the lexical half's
+    #: alone (D-252). False for a hybrid ranking and for the simulated provider, which never
+    #: embeds.
+    semantic_degraded: bool = False
 
 
 def search(
@@ -62,16 +67,19 @@ def search(
         return Retrieval(chunks=[], fallback=False)
 
     rankings = [lexical_rank(chunks, tokenize(query))] if tokenize(query) else []
+    degraded = False
     if semantic:
-        rankings.append(_semantic_rank(chunks, query, settings))
+        ranked, degraded = _semantic_rank(chunks, query, settings)
+        rankings.append(ranked)
     fused = reciprocal_rank_fusion(rankings)
 
     if not fused:
-        return Retrieval(chunks=openings(chunks, top_k), fallback=True)
+        return Retrieval(chunks=openings(chunks, top_k), fallback=True, semantic_degraded=degraded)
     by_id = {chunk.id: chunk for chunk in chunks}
     return Retrieval(
         chunks=[by_id[chunk_id] for chunk_id, _ in fused[:top_k] if chunk_id in by_id],
         fallback=False,
+        semantic_degraded=degraded,
     )
 
 
@@ -130,17 +138,22 @@ def spread(chunks: list[NotebookChunk], limit: int) -> list[NotebookChunk]:
 
 def _semantic_rank(
     chunks: list[NotebookChunk], query: str, settings: Settings
-) -> list[tuple[int, float]]:
+) -> tuple[list[tuple[int, float]], bool]:
+    """The semantic ranking and whether it is empty because it **failed** (D-252).
+
+    No embeddings configured, or none stored for the notebook's passages, is the plain lexical
+    mode and not a failure: ``False``. A provider error, a 429 or an exhausted time budget is.
+    """
     client = EmbeddingClient(settings)
     if not client.configured:
-        return []
+        return [], False
     embedded = [c for c in chunks if c.embedding is not None and c.embedding.model == client.model]
     if not embedded:
-        return []
+        return [], False
     try:
         query_vector = embed_query(client, query, settings.notebook_retrieval_budget_seconds)
         if query_vector is None:
-            return []
+            return [], True
         # Model *and* the query's actual length (never 0, which would mean
         # "any"): a vector of another size is ignored, not compared — before,
         # one such vector made similarity() raise and dropped the whole
@@ -153,6 +166,6 @@ def _semantic_rank(
     except (EmbeddingUnavailableError, ValidationError) as exc:
         # Same degradation as the Cérebro: half the retrieval beats none.
         logger.warning("Busca semântica do caderno indisponível, usando só léxica: %s", exc)
-        return []
+        return [], True
     scored.sort(key=lambda item: -item[1])
-    return scored[:_CANDIDATES]
+    return scored[:_CANDIDATES], False

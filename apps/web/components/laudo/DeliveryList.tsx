@@ -9,6 +9,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   enviado: "success",
   simulado: "warning",
   falhou: "danger",
+  na_fila: "warning",
 };
 
 const LINK_TONE: Record<string, BadgeTone> = {
@@ -18,9 +19,30 @@ const LINK_TONE: Record<string, BadgeTone> = {
   sem_link: "neutral",
 };
 
-/** The status as a word with its colour: the word carries the meaning, the tone only helps. */
-export function DeliveryStatusBadge({ status }: { status: string }) {
-  return <Badge tone={STATUS_TONE[status] ?? "neutral"}>{t.statusLabels[status] ?? status}</Badge>;
+/**
+ * The status as a word with its colour: the word carries the meaning, the tone only helps. A
+ * send that gave up after retrying says how many attempts it took (D-252).
+ */
+export function DeliveryStatusBadge({
+  status,
+  attempts,
+}: {
+  status: string;
+  attempts?: number;
+}) {
+  const label =
+    status === "falhou" && (attempts ?? 1) > 1
+      ? t.failedAfter(attempts ?? 1)
+      : (t.statusLabels[status] ?? status);
+  return <Badge tone={STATUS_TONE[status] ?? "neutral"}>{label}</Badge>;
+}
+
+/** How often a screen that lists sends asks again while one waits in the queue (D-252). */
+export const QUEUE_REFETCH_MS = 30_000;
+
+/** `refetchInterval` for the history: poll only while some send is `na_fila`. */
+export function refetchWhileQueued(history: LaudoDelivery[] | undefined): number | false {
+  return history?.some((d) => d.status === "na_fila") ? QUEUE_REFETCH_MS : false;
 }
 
 export function formatSentAt(iso: string): string {
@@ -68,16 +90,20 @@ export function DeliveryHistory({
   issued,
   onRevoke,
   onResend,
+  onCancel,
   resending = null,
 }: {
   issued: IssuedLaudo;
   onRevoke?: (delivery: LaudoDelivery) => void;
   onResend?: (delivery: LaudoDelivery) => void;
+  /** D-252: take a send out of the queue; no confirmation, because nothing has gone yet. */
+  onCancel?: (delivery: LaudoDelivery) => void;
   resending?: number | null;
 }) {
   const history = useQuery({
     queryKey: ["laudo-deliveries", issued.id],
     queryFn: () => listLaudoDeliveries(issued.id),
+    refetchInterval: (query) => refetchWhileQueued(query.state.data),
   });
   return (
     <section aria-labelledby={`laudo-history-${issued.id}`} className="flex flex-col gap-2">
@@ -102,12 +128,16 @@ export function DeliveryHistory({
                 delivery={delivery}
                 onRevoke={onRevoke ? () => onRevoke(delivery) : undefined}
                 onResend={onResend ? () => onResend(delivery) : undefined}
+                onCancel={onCancel ? () => onCancel(delivery) : undefined}
                 resending={resending === delivery.id}
                 busy={resending !== null}
               />
             ))}
           </ul>
           <p className="text-caption text-ink-muted">{t.openedNote}</p>
+          {history.data.some((d) => d.status === "na_fila" || (d.attempts ?? 1) > 1) ? (
+            <p className="text-caption text-ink-muted">{t.queueNote}</p>
+          ) : null}
         </>
       )}
     </section>
@@ -118,23 +148,27 @@ function DeliveryItem({
   delivery,
   onRevoke,
   onResend,
+  onCancel,
   resending,
   busy,
 }: {
   delivery: LaudoDelivery;
   onRevoke?: () => void;
   onResend?: () => void;
+  onCancel?: () => void;
   resending?: boolean;
   busy?: boolean;
 }) {
   const state = delivery.link_state ?? "ativo";
   const validity = validityText(delivery);
   const who = delivery.recipients[0] ?? delivery.subject;
+  // A queued send has no link yet and a failed one never had one: both skip the link block.
+  const hasLink = delivery.status === "enviado" || delivery.status === "simulado";
   return (
     <li className="rounded-card border border-edge-subtle p-2 text-caption">
       <div className="flex flex-wrap items-center gap-2">
-        <DeliveryStatusBadge status={delivery.status} />
-        {delivery.status !== "falhou" ? (
+        <DeliveryStatusBadge status={delivery.status} attempts={delivery.attempts} />
+        {hasLink ? (
           <Badge tone={LINK_TONE[state] ?? "neutral"}>{t.linkStates[state] ?? state}</Badge>
         ) : null}
         <span className="text-ink">{formatSentAt(delivery.created_at)}</span>
@@ -144,12 +178,34 @@ function DeliveryItem({
         {[...delivery.recipients, ...delivery.cc.map((a) => `${a} (${t.copyPrefix})`)].join(", ")}
       </p>
       {delivery.error ? <p className="mt-1 text-danger-fg">{delivery.error}</p> : null}
+      {delivery.status === "na_fila" ? (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-ink-muted">
+            {t.queueLine(
+              delivery.attempts ?? 1,
+              delivery.max_attempts ?? delivery.attempts ?? 1,
+              delivery.next_attempt_at ? formatSentAt(delivery.next_attempt_at) : null,
+            )}
+          </p>
+          {onCancel ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              aria-label={t.cancelQueuedLabel(who)}
+              disabled={busy}
+              onClick={onCancel}
+            >
+              {t.cancelQueued}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {onResend && delivery.status === "falhou" ? (
         <div className="mt-1 flex justify-end">
           <ResendButton who={who} loading={resending} disabled={busy} onClick={onResend} />
         </div>
       ) : null}
-      {delivery.status !== "falhou" ? (
+      {hasLink ? (
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
           <p className="flex flex-col text-ink-muted">
             {validity ? <span>{validity}</span> : null}

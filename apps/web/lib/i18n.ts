@@ -925,47 +925,9 @@ export const ptBR = {
       judgmentExtremeReverse: "1/9 — extremamente menos importante",
     },
   },
+  // D-252: o painel de "interpretar enunciado" saiu no D-234 (a rota /ai/interpret também);
+  // sobraram aqui só os textos da explicação de um estudo e o aviso da busca.
   ai: {
-    title: "Interpretar enunciado (opcional)",
-    subtitle:
-      "A IA lê o enunciado e propõe função, limites e índices já cadastrados. Ela não calcula nada: todo número vem do servidor e toda sugestão passa pela sua revisão.",
-    disabled:
-      "Camada de IA desativada. O sistema funciona integralmente sem ela.",
-    simulatedBadge: "Provedor simulado",
-    // Um provedor externo é a exceção, não o padrão: quem está vendo a tela
-    // precisa saber que aquela leitura veio de um modelo — e que ela pode sair
-    // diferente da próxima vez. O detalhe fica na ressalva, ao pé da proposta.
-    modelBadge: (provider: string) => `Modelo externo: ${provider}`,
-    // §3.4 da proposta: a assistência é opcional e passa pela revisão de quem
-    // usa. Isso precisa estar dito no painel, não só na documentação.
-    optionalBadge: "Opcional",
-    reviewBadge: "Nada é aplicado sem sua revisão",
-    statementLabel: "Descreva o problema em português",
-    statementPlaceholder:
-      "Ex.: preciso de uma viga leve e rígida; a temperatura de serviço deve ser no mínimo 300 °C e a densidade no máximo 3 g/cm3.",
-    interpret: "Interpretar",
-    interpreting: "Interpretando…",
-    interpretingWithKnowledge: "Consultando a base de conhecimento…",
-    proposalTitle: "Proposta para sua revisão",
-    reading: "Leitura do enunciado",
-    functionRead: "Função",
-    objectiveRead: "Objetivo",
-    freeVariablesRead: "Variáveis livres",
-    constraintsRead: "Limites reconhecidos",
-    indicesRead: "Índices sugeridos do catálogo",
-    propertiesRead: "Propriedades citadas",
-    chartRead: "Mapa sugerido",
-    evidence: "Trecho do enunciado",
-    apply: "Aplicar selecionados",
-    applied: "Sugestões aplicadas. Revise antes de executar.",
-    selectAll: "Selecionar tudo",
-    selectNone: "Limpar seleção",
-    openQuestions: "O que a interpretação não conseguiu determinar",
-    rejected: "Sugestões recusadas pelas regras de segurança",
-    rejectedHint:
-      "Nada aqui foi aplicado. As regras recusam entidades inexistentes e qualquer número que não apareça no seu enunciado.",
-    nothingToApply: "Nenhuma sugestão selecionada.",
-    error: "Não foi possível interpretar o enunciado.",
     explain: "Explicar resultado",
     explaining: "Redigindo…",
     explainingWithKnowledge: "Consultando a base de conhecimento…",
@@ -974,6 +936,10 @@ export const ptBR = {
     caveats: "Limites desta leitura",
     explainError: "Não foi possível gerar a explicação.",
     close: "Fechar",
+    // D-252: a busca de trechos não conseguiu usar a busca por significado (embeddings
+    // fora do ar, cota esgotada ou tempo estourado) e escolheu os trechos só pelas palavras.
+    retrievalDegraded:
+      "A busca por significado não respondeu desta vez: os trechos de referência foram escolhidos só pelas palavras, e a resposta pode ficar menos precisa.",
   },
   exports: {
     title: "Exportar",

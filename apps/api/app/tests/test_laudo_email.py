@@ -549,8 +549,10 @@ class TestSmtpProvider:
         fake_smtp.fail_at["connect"] = TimeoutError("timed out")
         issued = _issue(client)
         response = _send(client, issued["id"])
-        assert response.status_code == 503
-        assert "não respondeu em 4 s" in response.json()["detail"]
+        # A timeout is a passing reason (D-252): the send waits in the queue and says why.
+        assert response.status_code == 201
+        assert response.json()["status"] == "na_fila"
+        assert "não respondeu em 4 s" in response.json()["error"]
         assert fake_smtp.instances[0].kwargs["timeout"] == pytest.approx(4.0)
 
     def test_refused_recipients_and_other_failures_have_their_own_sentence(self) -> None:
@@ -570,7 +572,7 @@ class TestSmtpProvider:
         )
         issued = _issue(client)
         response = _send(client, issued["id"])
-        assert response.status_code == 503
+        assert response.status_code == 201 and response.json()["status"] == "na_fila"
         assert SECRET not in response.text and "smtp.exemplo.com" not in response.text
 
     def test_credentials_do_not_cross_the_network_in_the_clear(
@@ -695,7 +697,9 @@ class TestResend:
 
     def test_a_failed_send_can_be_sent_again(self, client, fake_smtp) -> None:
         issued = _issue(client)
-        fake_smtp.fail_at = {"connect": ConnectionRefusedError()}
+        fake_smtp.fail_at = {
+            "login": smtplib.SMTPAuthenticationError(535, b"recusado")
+        }  # permanent: no queue
         assert _send(client, issued["id"]).status_code == 503
         failed = client.get(f"/api/exports/laudos/{issued['id']}/envios").json()[0]
         assert failed["status"] == "falhou"

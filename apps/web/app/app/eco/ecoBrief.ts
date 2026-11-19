@@ -331,8 +331,9 @@ const MAX_DISTANCE = 1.0e6;
  * of them — a suggestion to go back to the default fraction does not leave one
  * line behind — and `part_mass` (D-234) is the unit mass of a product of ONE
  * component, and nothing otherwise. **Comparison view**: `material_a.*` and
- * `material_b.*` write the scenario of that side, `transport_distance_km` the
- * shared distance. Never invents a value: the number or route is the server's
+ * `material_b.*` write the scenario of that side, `material_c.*` and `material_d.*` (D-252)
+ * the first and second extra alternative when the screen has them, and
+ * `transport_distance_km` the shared distance. Never invents a value: the number or route is the server's
  * (a number the model chose arrives marked and is confirmed before it gets here).
  */
 export function aiParamPatch(
@@ -347,17 +348,25 @@ export function aiParamPatch(
   const distance = number !== null && number >= 0 && number <= MAX_DISTANCE ? number : null;
 
   if (brief.view === "compare") {
-    const side = /^material_([ab])\.(part_mass|recycled_fraction|end_of_life)$/.exec(name);
+    const side = /^material_([abcd])\.(part_mass|recycled_fraction|end_of_life)$/.exec(name);
     if (side) {
-      const key = side[1] === "a" ? "a" : "b";
-      const current = brief[key];
+      // A and B are their own drafts; C and D (D-252) are the first and second of `extras`,
+      // and a letter with no draft on this screen writes nothing.
+      const letter = side[1] ?? "a";
+      const extraIndex = letter === "c" ? 0 : letter === "d" ? 1 : -1;
+      const current = letter === "a" ? brief.a : letter === "b" ? brief.b : brief.extras[extraIndex];
+      if (!current) return null;
+      const write = (draft: typeof current): Partial<EcoBrief> =>
+        extraIndex < 0
+          ? ({ [letter]: draft } as Partial<EcoBrief>)
+          : { extras: brief.extras.map((extra, i) => (i === extraIndex ? draft : extra)) };
       switch (side[2]) {
         case "part_mass":
-          return mass === null ? null : { [key]: { ...current, mass: String(mass) } };
+          return mass === null ? null : write({ ...current, mass: String(mass) });
         case "recycled_fraction":
-          return fraction === null ? null : { [key]: { ...current, recycled: String(fraction) } };
+          return fraction === null ? null : write({ ...current, recycled: String(fraction) });
         default:
-          return isRoute(value) ? { [key]: { ...current, endOfLife: value } } : null;
+          return isRoute(value) ? write({ ...current, endOfLife: value }) : null;
       }
     }
     if (name === "transport_distance_km") {

@@ -107,7 +107,7 @@ describe("M3 foundations (D-133)", () => {
     expect(Object.keys(colors)).toEqual(M3_ROLES);
   });
 
-  it("Tailwind exposes the 15 type roles, each with its emphasized twin (D-252)", () => {
+  it("Tailwind exposes the 15 type roles, each with its emphasized twin (D-252b)", () => {
     const fontSize = config.theme!.extend!.fontSize as Record<string, [string, { fontWeight: string; lineHeight: string }]>;
     const sizes = Object.keys(fontSize).filter((k) => k.startsWith("m3-"));
     const baseline = sizes.filter((k) => !k.endsWith("-emphasized"));

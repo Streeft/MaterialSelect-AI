@@ -222,7 +222,7 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `EditableText` (lápis → campo; Enter/sair salva, Esc desiste; recusa do servidor fica na célula). Classe se edita pelo `PATCH`
   (nunca o `PUT`, que muda o slug e apaga a prosa). Formulário de criação fica atrás de um botão no cabeçalho, não aberto em cima da tabela.
 
-- **O que o M3 Expressive trouxe por último** ([D-252](docs/DECISIONS.md)): o escolhido usa o peso **enfatizado** do seu papel
+- **O que o M3 Expressive trouxe por último** ([D-252b](docs/DECISIONS.md)): o escolhido usa o peso **enfatizado** do seu papel
   (`text-m3-*-emphasized`; aba ativa e assento do grupo conectado a 700) e reserva a largura com `.m3-emph-label`, nunca troca de peso
   que empurra o vizinho. Menu é o **vertical** (`surface-container-low`, raio 16, item 4/12); opção de escolha é `MenuItem selected`
   (`menuitemradio`, `tertiary-container`), nunca um ✓ à mão. Lista de registros nova é `.m3-list-segmented` sobre a página ou um poço,

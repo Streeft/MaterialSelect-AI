@@ -5,7 +5,6 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AIAssistPanel } from "./AIAssistPanel";
-import { ptBR } from "@/lib/i18n";
 import { planText } from "@/lib/i18n-plan";
 import { PLAN_DEBOUNCE_MS } from "@/lib/ai/plan";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
@@ -188,7 +187,7 @@ describe("AIAssistPanel — assistente de projeto na Seleção (D-225)", () => {
   it("keeps the old title for the disabled card", async () => {
     getAIStatus.mockResolvedValue({ enabled: false, provider: "none", simulated: false, disclaimer: "" });
     render(wrap(<AIAssistPanel onApply={vi.fn()} />));
-    expect(await screen.findByRole("heading", { name: ptBR.ai.title })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: t.panelTitle })).toBeInTheDocument();
   });
 
   it("remembers the proposal and does not ask again when the reader returns (D-251)", async () => {

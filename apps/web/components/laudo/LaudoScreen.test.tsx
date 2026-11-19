@@ -223,6 +223,49 @@ describe("LaudoScreen (D-241)", () => {
     expect(screen.queryByRole("button", { name: /Formatos editáveis/ })).not.toBeInTheDocument();
   });
 
+  it("the header copies say they are of today's study; each version has its own from the frozen laudo (D-252)", async () => {
+    listLaudoVersions.mockResolvedValue([version(2), version(1)]);
+    mount();
+    expect(await screen.findByText("Versão 2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: t.docx })).toHaveTextContent(/do estudo atual/);
+    const word = screen.getByRole("link", { name: t.versionWordLabel(2) });
+    expect(word).toHaveAttribute("href", expect.stringMatching(/\/api\/exports\/estudos\/7\/laudo\/versoes\/2\.docx$/));
+    expect(word).toHaveAttribute("download");
+    const deck = screen.getByRole("link", { name: t.versionPptxLabel(1) });
+    expect(deck).toHaveAttribute("href", expect.stringMatching(/\/laudo\/versoes\/1\.pptx$/));
+    // A frozen copy carries no form fields: they are the version's own.
+    expect(word.getAttribute("href")).not.toContain("?");
+  });
+
+  it("shows a send waiting in the queue in the version row", async () => {
+    listLaudoDeliveries.mockResolvedValue([
+      {
+        id: 9,
+        issued_report_id: 2,
+        recipients: ["cliente@empresa.com.br"],
+        cc: [],
+        subject: "Laudo",
+        message: null,
+        status: "na_fila",
+        provider: "smtp",
+        error: "O servidor de e-mail não respondeu.",
+        created_at: "2026-11-19T15:40:00Z",
+        sent_by: null,
+        link_state: "sem_link",
+        attempts: 1,
+        max_attempts: 5,
+        next_attempt_at: "2026-11-19T15:45:00Z",
+      },
+    ]);
+    listLaudoVersions.mockResolvedValue([version(2)]);
+    mount();
+    expect(await screen.findByText("1 envio")).toBeInTheDocument();
+    expect(screen.getByText(t.statusLabels.na_fila!)).toBeInTheDocument();
+    expect(screen.getByText(t.queuedCount(1))).toBeInTheDocument();
+    // Nothing has gone, so no link is counted as active and nothing is "aberto".
+    expect(screen.queryByText(/link ativo/)).not.toBeInTheDocument();
+  });
+
   it("shows the signed PDF and the link openings in the version row", async () => {
     listLaudoVersions.mockResolvedValue([
       {

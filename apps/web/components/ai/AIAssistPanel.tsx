@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAIStatus, planProject } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
-import { ptBR } from "@/lib/i18n";
 import { planText } from "@/lib/i18n-plan";
 import { PLAN_DEBOUNCE_MS, PLAN_MAX_CHARS, isInterpretable } from "@/lib/ai/plan";
 import { usePlanMemory } from "@/lib/ai/usePlanMemory";
@@ -91,7 +90,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
   if (status.data && !status.data.enabled) {
     return (
       <Card>
-        <CardHeader title={ptBR.ai.title} headingLevel={2} description={t.panelOff} />
+        <CardHeader title={t.panelTitle} headingLevel={2} description={t.panelOff} />
       </Card>
     );
   }

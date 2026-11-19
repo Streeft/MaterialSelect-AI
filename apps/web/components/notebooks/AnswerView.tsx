@@ -3,6 +3,7 @@
 import type { NotebookAnswer, NotebookCitation } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { Alert, CitationChip, RichText } from "@/components/ui";
+import { RetrievalDegradedNote } from "@/components/ai/RetrievalDegradedNote";
 import { useOpenSource } from "./sourceOpen";
 
 const t = ptBR.notebooks;
@@ -105,6 +106,7 @@ export function AnswerView({
           {answer.withheld.join(" ")}
         </Alert>
       ) : null}
+      <RetrievalDegradedNote show={answer.retrieval_degraded} />
     </div>
   );
 }
