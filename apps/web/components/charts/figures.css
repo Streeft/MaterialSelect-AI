@@ -77,6 +77,26 @@
 .chart-plotly .modebar { background: transparent !important; }
 .chart-plotly .modebar-group { background: transparent !important; padding-left: 0 !important; }
 
+/* D-249 closes what D-226 left out: on a touch screen the modebar's buttons (zoom, pan, reset)
+   are 22 px tall, below the 44 px a finger needs. Plotly injects its own rules at runtime
+   (`.js-plotly-plot .plotly .modebar-btn`, one class more than ours), so the override is
+   `!important`, scoped to the figure's own wrapper. Six buttons at 44 px are 264 px, which fits
+   a 390 px phone with the chart under them; the icon keeps its drawing and the box grows. A fine
+   pointer keeps Plotly's compact bar. */
+@media (pointer: coarse) {
+  .chart-plotly .modebar-btn {
+    box-sizing: border-box !important;
+    min-width: var(--target-min, 44px) !important;
+    height: var(--target-min, 44px) !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .chart-plotly .modebar-btn svg { top: 0 !important; }
+  .chart-plotly .modebar-btn .icon { height: 20px !important; width: 20px !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chart-bar-seg, .chart-fade-in { animation: none; }
 }

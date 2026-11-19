@@ -8,8 +8,8 @@ import { test, expect } from "./session";
  * 2. every control a finger has to hit is at least 44 px in both directions —
  *    its own box, or the invisible hit area (`::after`) that `globals.css` gives
  *    buttons and links on a coarse pointer (D-206, D-226). Native fields and
- *    summaries grow to 44 px instead. Left out on purpose: Plotly's modebar (a
- *    third-party widget; the same actions sit in the toolbar above the figure),
+ *    summaries grow to 44 px instead. Plotly's modebar is measured too since D-249
+ *    (`figures.css` grows its buttons on a coarse pointer). Left out on purpose:
  *    a link inside a sentence (WCAG 2.5.8 inline exception) and screen-reader
  *    only text.
  */
@@ -31,6 +31,13 @@ const PAGES: ReadonlyArray<readonly [string, string]> = [
   ["importar", "/app/importar"],
 ];
 
+/**
+ * Pages whose first screen carries a Plotly figure: its modebar draws after the library loads,
+ * later than the page settles, so the test waits for it (D-249) instead of measuring before it
+ * exists and passing for the wrong reason.
+ */
+const WITH_FIGURE = new Set(["mapas"]);
+
 async function smallTargets(page: import("@playwright/test").Page): Promise<string[]> {
   return page.evaluate(() => {
     const visible = (el: Element) => {
@@ -39,10 +46,10 @@ async function smallTargets(page: import("@playwright/test").Page): Promise<stri
       return box.width > 0 && box.height > 0 && style.visibility !== "hidden" && style.display !== "none";
     };
     const selector =
-      'a[href],button,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea,[role=button],[role=tab],[role=menuitem],[role=switch],summary,label:has(input[type=checkbox]),label:has(input[type=radio])';
+      'a[href],a.modebar-btn,button,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea,[role=button],[role=tab],[role=menuitem],[role=switch],summary,label:has(input[type=checkbox]),label:has(input[type=radio])';
     const found: string[] = [];
     for (const el of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
-      if (!visible(el) || el.closest(".sr-only, .modebar")) continue;
+      if (!visible(el) || el.closest(".sr-only")) continue;
       if (el.tagName === "A" && getComputedStyle(el).display === "inline") continue;
       const box = el.getBoundingClientRect();
       let width = box.width;
@@ -70,6 +77,9 @@ for (const [slug, path] of PAGES) {
     await expect(page.locator("main h1").first()).toBeVisible({ timeout: 45_000 });
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
+    if (WITH_FIGURE.has(slug)) {
+      await expect(page.locator(".modebar-btn").first()).toBeVisible({ timeout: 30_000 });
+    }
     const { scrollWidth, innerWidth } = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
