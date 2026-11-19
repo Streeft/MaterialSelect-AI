@@ -3367,6 +3367,10 @@ export const ptBR = {
     anyValue: "Qualquer",
     filterChip: (field: string, value: string) => `${field}: ${value}`,
     removeFilter: (field: string) => `Remover o filtro ${field}`,
+    // D-250: um filtro de várias escolhas — a primeira e quantas mais.
+    filterChipMany: (field: string, first: string, more: number) =>
+      `${field}: ${first} + ${more.toLocaleString("pt-BR")}`,
+    manyHint: "Marque uma ou mais; vale qualquer uma delas.",
     // D-217: quantos materiais a opção deixaria, os outros filtros aplicados.
     optionCount: (label: string, count: number) =>
       `${label}, ${count.toLocaleString("pt-BR")} ${count === 1 ? "resultado" : "resultados"}`,

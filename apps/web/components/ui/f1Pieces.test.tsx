@@ -143,6 +143,65 @@ function Filters({ onChange }: { onChange: (id: string, value: string | null) =>
   );
 }
 
+/** D-250: a field of several choices, its list kept by the screen. */
+function ManyFilters({ onChange }: { onChange: (id: string, value: string | null) => void }) {
+  const [chosen, setChosen] = useState<string[]>([]);
+  return (
+    <FilterBar
+      fields={[
+        {
+          id: "subclasse",
+          label: "Subclasse",
+          pinned: true,
+          multiple: true,
+          value: null,
+          values: chosen,
+          options: ["Aços", "Ligas leves", "Laminado"].map((name) => ({ value: name, label: name })),
+        },
+      ]}
+      onChange={(id, value) => {
+        onChange(id, value);
+        setChosen((list) =>
+          value === null ? [] : list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
+        );
+      }}
+    />
+  );
+}
+
+describe("FilterBar, várias escolhas (D-250)", () => {
+  it("toggles options without closing, and the chip names the first and how many more", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const { container } = render(<ManyFilters onChange={onChange} />);
+    await user.click(screen.getByRole("button", { name: t.filterChip("Subclasse", t.anyValue) }));
+    await user.click(screen.getByRole("button", { name: "Aços" }));
+    await user.click(screen.getByRole("button", { name: "Laminado" }));
+    expect(onChange.mock.calls).toEqual([
+      ["subclasse", "Aços"],
+      ["subclasse", "Laminado"],
+    ]);
+    expect(screen.getByRole("button", { name: "Aços" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Ligas leves" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText(t.manyHint)).toBeInTheDocument();
+    await expectAccessible(container);
+    expect(
+      screen.getAllByText(t.filterChipMany("Subclasse", "Aços", 1)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("'Qualquer' and the chip's ✕ clear every choice", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ManyFilters onChange={onChange} />);
+    await user.click(screen.getByRole("button", { name: t.filterChip("Subclasse", t.anyValue) }));
+    await user.click(screen.getByRole("button", { name: "Aços" }));
+    await user.click(screen.getByRole("button", { name: t.removeFilter("Subclasse") }));
+    expect(onChange).toHaveBeenLastCalledWith("subclasse", null);
+    expect(screen.getByRole("button", { name: t.filterChip("Subclasse", t.anyValue) })).toBeInTheDocument();
+  });
+});
+
 describe("FilterBar (D-206)", () => {
   it("writes each pinned field as a chip, unset as 'Qualquer'", async () => {
     const { container } = render(<Filters onChange={() => {}} />);

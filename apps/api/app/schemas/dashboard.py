@@ -13,6 +13,7 @@ not find is evidence, and a value nobody has entered yet is a to-do list.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -156,7 +157,8 @@ class FiltersOut(BaseModel):
     """
 
     class_slug: str | None = None
-    subclass: str | None = None
+    #: D-250: every subclass the view names (any of them passes); empty = all.
+    subclasses: list[str] = Field(default_factory=list)
     level: int = Field(ge=1, le=3, default=3)
     demo: DemoFilter = "todos"
     materials: int = Field(ge=0, description="Materiais que passam pelos filtros")
@@ -329,6 +331,28 @@ class CorrelationOut(BaseModel):
     cells: list[CorrelationCellOut]
 
 
+class CorrelationClassPanelOut(BaseModel):
+    """One class's matrix in the small multiples (D-250)."""
+
+    class_slug: str
+    class_name: str
+    materials: int = Field(ge=0)
+    #: Materials of this class carrying a number, per property slug.
+    counts: dict[str, int]
+    cells: list[CorrelationCellOut]
+
+
+class CorrelationByClassOut(BaseModel):
+    filters: FiltersOut
+    method: Literal["spearman"] = "spearman"
+    min_pairs: int
+    #: The same properties in every panel; ``count`` is over all the panels.
+    properties: list[CorrelationPropertyOut]
+    panels: list[CorrelationClassPanelOut]
+    #: Classes past the panel limit, counted rather than silently dropped.
+    omitted_classes: int = Field(ge=0, default=0)
+
+
 class MonthCountOut(BaseModel):
     month: str = Field(description="AAAA-MM")
     studies: int = Field(ge=0)
@@ -375,3 +399,45 @@ class ActivityOut(BaseModel):
 
 
 OverviewOut.model_rebuild()
+
+
+# --- Catalogue history by release (D-250) ------------------------------------
+
+
+class ReleaseCountsOut(BaseModel):
+    """Counts of one release — or, as ``change``, the difference to the previous."""
+
+    materials: int
+    classes: int
+    properties: int
+    values_filled: int
+    values_declared_missing: int
+    processes: int
+
+
+class ReleasePointOut(BaseModel):
+    slug: str
+    name: str
+    release: str | None = None
+    lineage: str | None = None
+    is_demo: bool
+    is_active: bool
+    imported_at: datetime
+    counted_at: datetime
+    #: ``import`` (counted by the import itself) or ``backfill`` (counted later
+    #: from the rows the release left, for releases older than the table).
+    origin: Literal["import", "backfill"]
+    counts: ReleaseCountsOut
+    #: Of the value rows the release wrote, the share carrying a number (0–100);
+    #: ``None`` when it wrote none — never 0 %.
+    filled_share_pct: float | None = None
+    #: The previous release of the same lineage, the one ``change`` is against.
+    previous_slug: str | None = None
+    change: ReleaseCountsOut | None = None
+
+
+class ReleaseHistoryOut(BaseModel):
+    #: Only the demonstration filter applies: the counts are of whole releases,
+    #: so a class, a subclass or a level cannot narrow them.
+    demo: DemoFilter = "todos"
+    points: list[ReleasePointOut]

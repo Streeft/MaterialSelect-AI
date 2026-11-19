@@ -12,7 +12,7 @@ rule: it reads only the caller's own rows.
 
 The four global filters (D-193) — ``classe``, ``subclasse``, ``nivel``,
 ``demo`` — are accepted by every catalogue route and echoed back in
-``filters``.
+``filters``. ``subclasse`` may repeat (D-250): several subclasses at once.
 """
 
 from __future__ import annotations
@@ -25,18 +25,20 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.dependencies import get_current_user, get_unit_choices
-from app.domain.dashboard_filters import DashboardFilters
+from app.domain.dashboard_filters import DashboardFilters, normalize_subclasses
 from app.domain.depth_profile import DepthLevel
 from app.exporters.spreadsheet import to_csv
 from app.models.user import User
 from app.schemas.dashboard import (
     ActivityOut,
     CompositionOut,
+    CorrelationByClassOut,
     CorrelationOut,
     DistributionOut,
     OverviewOut,
     ProcessPanelOut,
     PropertyStatsOut,
+    ReleaseHistoryOut,
     SourcesOut,
     TopOut,
 )
@@ -47,14 +49,17 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 def get_filters(
     classe: str | None = Query(default=None, max_length=120, description="Slug da classe"),
-    subclasse: str | None = Query(default=None, max_length=200, description="Subclasse exata"),
+    subclasse: list[str] | None = Query(
+        default=None,
+        description="Subclasse exata; repetida para várias (D-250), lidas como 'qualquer uma'",
+    ),
     nivel: int = Query(default=3, ge=1, le=3, description="Nível de profundidade (D-127)"),
     demo: Literal["todos", "demo", "reais"] = Query(default="todos"),
 ) -> DashboardFilters:
     """The panel's global filters, read from the URL so a view can be linked."""
     return DashboardFilters(
         class_slug=classe or None,
-        subclass=subclasse or None,
+        subclasses=normalize_subclasses(subclasse),
         level=DepthLevel(nivel),
         demo=demo,
     )
@@ -160,6 +165,35 @@ def correlation(
     """Spearman correlation matrix between properties (computed here, ADR 0004)."""
     slugs = [s.strip() for s in (propriedades or "").split(",") if s.strip()]
     return DashboardService(db, user.id, filters=filters).correlation(slugs or None)
+
+
+@router.get("/correlation/by-class", response_model=CorrelationByClassOut)
+def correlation_by_class(
+    propriedades: str | None = Query(
+        default=None,
+        max_length=4000,
+        description="Slugs separados por vírgula; omitido, as seis mais preenchidas do nível",
+    ),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    filters: DashboardFilters = Depends(get_filters),
+) -> CorrelationByClassOut:
+    """One Spearman matrix per material class, side by side (D-250)."""
+    slugs = [s.strip() for s in (propriedades or "").split(",") if s.strip()]
+    return DashboardService(db, user.id, filters=filters).correlation_by_class(slugs or None)
+
+
+@router.get("/releases", response_model=ReleaseHistoryOut)
+def releases(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    filters: DashboardFilters = Depends(get_filters),
+) -> ReleaseHistoryOut:
+    """What each catalogue release brought, oldest first (D-250).
+
+    Only ``demo`` applies: the counts are of whole releases.
+    """
+    return DashboardService(db, user.id, filters=filters).releases()
 
 
 @router.get("/activity", response_model=ActivityOut)

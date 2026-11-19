@@ -1435,6 +1435,29 @@ export interface SavedRun {
   created_at: string;
 }
 
+/** One candidate of a kept run, with the numbers the engine gave it then. */
+export interface SavedRunEntry {
+  record_id: number;
+  name: string;
+  class_name: string;
+  rank: number | null;
+  score: number | null;
+  index_value: number | null;
+}
+
+/**
+ * D-250: the last kept run of a material study, for the Comparar's shortcut.
+ * `top` is in the run's own rank order, only records still in the catalogue;
+ * `gone` counts the run's candidates that no longer are.
+ */
+export interface LatestRun {
+  study_id: number;
+  study_name: string;
+  run: SavedRun;
+  top: SavedRunEntry[];
+  gone: number;
+}
+
 export interface SavedRunCreated {
   run: SavedRun;
   result: RunResult;
@@ -2266,14 +2289,16 @@ export type DashboardDemoFilter = "todos" | "demo" | "reais";
 /** The panel's four global filters, as the URL and the API name them. */
 export interface DashboardFilters {
   classe?: string | null;
-  subclasse?: string | null;
+  /** D-250: several subclasses at once, read as "any of them"; empty = all. */
+  subclasses?: readonly string[];
   nivel?: 1 | 2 | 3;
   demo?: DashboardDemoFilter;
 }
 
 export interface DashboardFiltersOut {
   class_slug: string | null;
-  subclass: string | null;
+  /** D-250: every subclass the view names; empty = all. */
+  subclasses: string[];
   level: number;
   demo: DashboardDemoFilter;
   materials: number;
@@ -2434,6 +2459,59 @@ export interface DashboardCorrelation {
   min_pairs: number;
   properties: CorrelationProperty[];
   cells: CorrelationCell[];
+}
+
+/** D-250: one class's matrix in the small multiples. */
+export interface CorrelationClassPanel {
+  class_slug: string;
+  class_name: string;
+  materials: number;
+  /** Materials of this class carrying a number, per property slug. */
+  counts: Record<string, number>;
+  cells: CorrelationCell[];
+}
+
+export interface DashboardCorrelationByClass {
+  filters: DashboardFiltersOut;
+  method: "spearman";
+  min_pairs: number;
+  properties: CorrelationProperty[];
+  panels: CorrelationClassPanel[];
+  /** Classes past the panel limit, counted rather than dropped. */
+  omitted_classes: number;
+}
+
+/** D-250: what a catalogue release brought (or, as `change`, the difference). */
+export interface ReleaseCounts {
+  materials: number;
+  classes: number;
+  properties: number;
+  values_filled: number;
+  values_declared_missing: number;
+  processes: number;
+}
+
+export interface ReleasePoint {
+  slug: string;
+  name: string;
+  release: string | null;
+  lineage: string | null;
+  is_demo: boolean;
+  is_active: boolean;
+  imported_at: string;
+  counted_at: string;
+  origin: "import" | "backfill";
+  counts: ReleaseCounts;
+  /** Share of the release's value rows carrying a number; `null` without rows. */
+  filled_share_pct: number | null;
+  /** The previous release of the same lineage; `change` is against it. */
+  previous_slug: string | null;
+  change: ReleaseCounts | null;
+}
+
+export interface DashboardReleaseHistory {
+  demo: DashboardDemoFilter;
+  points: ReleasePoint[];
 }
 
 export interface ActivityMonth {

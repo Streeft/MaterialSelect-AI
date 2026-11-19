@@ -1361,7 +1361,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   // D-193: the overview tab also reads the composition and the processes.
   getDashboardComposition: () =>
     Promise.resolve({
-      filters: { class_slug: null, subclass: null, level: 3, demo: "todos", materials: 2 },
+      filters: { class_slug: null, subclasses: [], level: 3, demo: "todos", materials: 2 },
       width: 160,
       height: 90,
       cells: [
@@ -1371,7 +1371,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
     }),
   getDashboardProcesses: () =>
     Promise.resolve({
-      filters: { class_slug: null, subclass: null, level: 3, demo: "todos", materials: 2 },
+      filters: { class_slug: null, subclasses: [], level: 3, demo: "todos", materials: 2 },
       processes: 0,
       families: [],
       by_process: [],
@@ -1405,6 +1405,9 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   evaluateIndex: () => Promise.resolve(null),
   runSelection: () => Promise.resolve(null),
   runStudy: () => Promise.resolve(null),
+  // D-250: the Comparar's "último estudo executado" and the panel's history.
+  getLatestSelectionRun: () => Promise.resolve(null),
+  getDashboardReleases: () => Promise.resolve({ demo: "todos", points: [] }),
   // D-210: the light funnel, the ready-made studies and the run comparison.
   previewFunnel: () =>
     Promise.resolve({

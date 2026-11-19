@@ -176,6 +176,17 @@ própria e CSV por aba; clicar numa marca leva ao catálogo, ao mapa ou ao
 comparador. Os endpoints estão na tabela mais abaixo; a regra é a mesma — toda
 agregação é do backend.
 
+Desde o [D-250](DECISIONS.md): o filtro de subclasse aceita **várias** ao mesmo
+tempo (`?subclasse=A&subclasse=B`, lidas como "qualquer uma"); a aba Propriedades
+põe, abaixo da matriz do catálogo, **uma matriz de correlação por classe** lado
+a lado (pequenos múltiplos com as mesmas propriedades, pelo mesmo
+`app/calculations/correlation_matrix.py`; classe pequena fica sem ρ, nunca 0); e
+a Visão geral ganhou o bloco **"Catálogo por versão"**, uma coluna por release
+importada com os valores com número e as ausências declaradas empilhados, lidos
+de `catalog_release_count` — as contagens que a própria importação guarda (e que
+a migração `e62aba5c6884` preencheu para as releases anteriores). Só o filtro de
+demonstração vale nesse bloco: as contagens são da release inteira.
+
 Quartis, medianas, extremos e percentuais são computados no backend
 (`app/calculations/statistics.py`), como manda o [ADR 0004](adr/0004-geometria-de-graficos-no-backend.md)
 — um quartil é cálculo, e um quartil calculado no navegador poderia discordar do
@@ -263,6 +274,8 @@ uma figura: tabela, sem gráfico. Regras:
 | GET | `/api/dashboard/property/{property_slug}` | histograma (Freedman–Diaconis, log quando cabe), resumo e lacunas (D-193) |
 | GET | `/api/dashboard/top` | os N melhores/piores por propriedade ou índice de desempenho (D-193) |
 | GET | `/api/dashboard/correlation` | matriz de ρ de Spearman, pares completos, nulo abaixo de 5 pares (D-193) |
+| GET | `/api/dashboard/correlation/by-class` | a mesma matriz, uma por classe (pequenos múltiplos, até 12 classes) (D-250) |
+| GET | `/api/dashboard/releases` | o que cada release do catálogo trouxe, em ordem de importação, com a variação desde a anterior da mesma linha (D-250) |
 | GET | `/api/dashboard/activity` | estudos, gráficos, cadernos, auditoria e uso de IA **do próprio leitor** (D-193) |
 | GET | `/api/dashboard/export.csv` | as tabelas de uma aba do painel em CSV, com os filtros (D-193) |
 | GET | `/api/materials/{id}/curvas` | curvas do material e contagem por tipo (D-106) |

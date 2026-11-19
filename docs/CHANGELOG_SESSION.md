@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 207 — 19/11/26 — Pendências do TODO, parte 8: o catálogo por versão, várias subclasses e correlação por classe no Painel; "último estudo executado" no Comparar (D-250)
+
+**O que mudou.** *Painel:* bloco "Catálogo por versão" na Visão geral, uma coluna por release importada (valores com número e ausências
+declaradas empilhados, parcela com número, variação desde a anterior da mesma linha), lido da tabela nova `catalog_release_count` (migração
+`e62aba5c6884`, que preenche as releases já importadas) que a importação oficial e o seed das releases fictícias escrevem; `GET
+/api/dashboard/releases`, só com o filtro de demonstração. Filtro de subclasse com **várias** ao mesmo tempo (`?subclasse=A&subclasse=B`, "qualquer
+uma"; `FiltersOut.subclasses`; `FilterBar` com campo de várias escolhas). Correlação **por classe** em pequenos múltiplos na aba Propriedades
+(`GET /api/dashboard/correlation/by-class`; o cálculo foi para `app/calculations/correlation_matrix.py`, o mesmo da matriz do catálogo).
+*Comparar:* o atalho "Do seu último estudo executado" lê a última execução guardada no histórico (`GET /api/selection/runs/latest`), sem executar
+de novo; sem execução, estado vazio que explica como guardar uma e leva à Seleção.
+
+**Testes novos.** Backend: `test_dashboard_d250` (várias subclasses, `correlation_cells` com ausência e determinismo, painéis por classe iguais à
+matriz filtrada pela classe, histórico por release com a conta à mão, recontagem, `clear_demo`), `test_migration_release_counts` (preenchimento,
+descer e subir), casos em `test_selection_run_history` (última execução, candidato que saiu do catálogo, processo, outra pessoa, `ranked_first`)
+e em `test_official_catalog_import` (a importação guarda as contagens). Frontend: `dashboardState.test`, casos em `painel.test` (várias
+subclasses na URL e na requisição, histórico, correlação por classe, axe em todas as abas), `f1Pieces` (`FilterBar` de várias escolhas, axe),
+`comparar-vazio` (reescrito para a D-250, com axe). E2E: `painel-comparar-d250`. Migração `e62aba5c6884`; depois do merge: Deploy da API.
+
 ## Sessão 206 — 19/11/26 — Pendências do TODO, parte 7: laudo, fontes, árvore, CSV, barra do Plotly, aparência na conta, arquivo em etapas (D-249)
 
 **O que mudou.** *Laudo:* "Reenviar" com um clique no histórico de envios (`POST /api/exports/envios/{id}/reenviar`, mesmo caminho e mesmo

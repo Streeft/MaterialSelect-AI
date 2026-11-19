@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getMyRecords, listStudies, runStudy } from "@/lib/api";
-import { describeApiError } from "@/lib/errors";
+import { useQuery } from "@tanstack/react-query";
+import { getLatestSelectionRun, getMyRecords } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { compareViewText } from "@/lib/i18n-compare-view";
 import type { Bookmark } from "@/lib/types";
 import { MY_RECORDS_KEY } from "@/components/my-records/FavoriteButton";
@@ -25,20 +24,6 @@ const SHOWN = 8;
 
 /** D-232: how many candidates of a study the shortcut carries — a shortlist, not the whole result. */
 export const STUDY_TOP = 5;
-
-/**
- * The first `STUDY_TOP` candidates of a run, in the order the server ranked
- * them. A candidate with no rank (a study without an objective) follows the
- * ranked ones, in the order it came — nothing is scored or reordered here.
- */
-export function topCandidates(
-  candidates: readonly { record_id: number; rank: number | null }[],
-  limit = STUDY_TOP,
-): number[] {
-  const ranked = candidates.filter((c) => c.rank !== null).sort((a, b) => a.rank! - b.rank!);
-  const unranked = candidates.filter((c) => c.rank === null);
-  return [...ranked, ...unranked].slice(0, limit).map((c) => c.record_id);
-}
 
 interface Suggestion {
   id: number;
@@ -63,53 +48,60 @@ function materialsOf(
 }
 
 /**
- * D-232: "top do último estudo". The reader's most recent saved study of
- * materials, run again on click (the numbers are the server's, never kept
- * here), its first candidates handed to the comparator. Nothing is drawn until
- * there is such a study; a failed run says so and can be tried again.
+ * D-250: "último estudo executado". The last run the reader kept in a study's
+ * history (D-245), read from `GET /api/selection/runs/latest`: its first
+ * candidates in the run's own rank order (the server orders them and drops
+ * those no longer in the catalogue), handed to the comparator. Nothing is run
+ * again — the shortlist is what that run answered. Without a kept run the
+ * shelf explains how to keep one, with a way to the Seleção.
  */
-function LastStudyShelf({ onAdd }: { onAdd: (ids: number[]) => void }) {
-  const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
-  const [tooFew, setTooFew] = useState<string | null>(null);
-  const latest = [...(studies.data ?? [])]
-    .filter((s) => s.universe === "material")
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-
-  const run = useMutation({
-    mutationFn: (id: number) => runStudy(id),
-    onSuccess: (result, id) => {
-      const ids = topCandidates(result.candidates);
-      if (ids.length < 2) {
-        setTooFew(latest && latest.id === id ? latest.name : "");
-        return;
-      }
-      setTooFew(null);
-      onAdd(ids);
-    },
+function LastRunShelf({ onAdd }: { onAdd: (ids: number[]) => void }) {
+  const latest = useQuery({
+    queryKey: ["selection-latest-run", STUDY_TOP],
+    queryFn: () => getLatestSelectionRun(STUDY_TOP),
   });
 
-  if (!latest) return null;
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-col gap-0.5">
         <h3 className="text-body font-semibold text-ink">{t.lastStudy}</h3>
-        <p className="text-caption text-ink-muted">{t.lastStudyHint(STUDY_TOP)}</p>
+        {latest.data ? (
+          <p className="text-caption text-ink-muted">
+            {t.lastStudyHint(latest.data.top.length, formatDateTime(latest.data.run.created_at) ?? "—")}
+          </p>
+        ) : null}
       </div>
-      <div>
-        <Button
-          size="sm"
-          variant="tonal"
-          loading={run.isPending}
-          onClick={() => {
-            setTooFew(null);
-            run.mutate(latest.id);
-          }}
-        >
-          {t.compareStudyTop(latest.name)}
-        </Button>
-      </div>
-      {tooFew !== null ? <Alert tone="warning" role="status">{t.studyTooFew(tooFew)}</Alert> : null}
-      {run.isError ? <Alert tone="danger" role="alert">{describeApiError(run.error)}</Alert> : null}
+      {latest.isPending ? <ListSkeleton label={t.lastStudyLoading} count={1} /> : null}
+      {latest.isError ? <ErrorState error={latest.error} onRetry={() => void latest.refetch()} /> : null}
+      {latest.data === null ? (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-support font-medium text-ink">{t.noRunTitle}</p>
+          <p className="max-w-prose text-caption text-ink-muted">{t.noRunBody}</p>
+          <ButtonLink href="/app/selecao" size="sm" variant="secondary">
+            {t.openSelection}
+          </ButtonLink>
+        </div>
+      ) : null}
+      {latest.data ? (
+        latest.data.top.length >= 2 ? (
+          <div>
+            <Button
+              size="sm"
+              variant="tonal"
+              onClick={() => onAdd(latest.data!.top.map((entry) => entry.record_id))}
+            >
+              {t.compareStudyTop(latest.data.study_name)}
+            </Button>
+          </div>
+        ) : (
+          <Alert tone="warning" role="status">
+            {t.studyTooFew(latest.data.study_name)}
+          </Alert>
+        )
+      ) : null}
+      {latest.data && latest.data.gone > 0 ? (
+        <p className="text-caption text-ink-muted">{t.lastStudyGone(latest.data.gone)}</p>
+      ) : null}
     </div>
   );
 }
@@ -161,7 +153,8 @@ function Shelf({
  * or more materials and where to get them from. The shortcuts are what the app
  * already keeps for the reader — the materials they starred and the ones they
  * opened last, from the same `/my-records` payload (and query key) the sheet's
- * star and the home page read — so no new endpoint and no new state. A
+ * star and the home page read — so no new endpoint and no new state (the
+ * last-run shelf reads the run history's own endpoint, D-250). A
  * suggestion is only a way to fill step 1: the comparison itself is the same
  * request as one built by hand.
  */
@@ -201,7 +194,7 @@ export function CompareSuggestions({
           </>
         )}
 
-        <LastStudyShelf onAdd={onAdd} />
+        <LastRunShelf onAdd={onAdd} />
 
         {/* D-221: the third way in — pairs every course compares first, each
             found in this catalogue by name; a pair it lacks is not offered. */}

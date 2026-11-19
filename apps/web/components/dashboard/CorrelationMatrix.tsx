@@ -37,7 +37,24 @@ const rhoText = (rho: number) => (rho > 0 ? "+" : rho < 0 ? "−" : "") + format
  * Clicking (or Enter on) an off-diagonal cell opens that pair on the Ashby map,
  * where the correlation can be seen material by material.
  */
-export function CorrelationMatrix({ data }: { data: DashboardCorrelation }) {
+export function CorrelationMatrix({
+  data,
+  title = d.correlation.title,
+  description = d.correlation.hint(data.min_pairs),
+  figure = d.correlation.figure,
+  exportName = chartFileName("painel", "correlacao"),
+  showKey = true,
+}: {
+  data: Pick<DashboardCorrelation, "min_pairs" | "properties" | "cells">;
+  /** D-250: one panel of the per-class small multiples names its class here. */
+  title?: string;
+  /** `null` leaves the card without a description (the panels share their section's). */
+  description?: string | null;
+  figure?: string;
+  exportName?: string;
+  /** The list of the matrix's properties under it; off when a panel repeats its neighbours'. */
+  showKey?: boolean;
+}) {
   const router = useRouter();
   const [measure, width] = useChartWidth();
   const [active, setActive] = useState<{ x: string; y: string; focus: boolean } | null>(null);
@@ -89,14 +106,14 @@ export function CorrelationMatrix({ data }: { data: DashboardCorrelation }) {
 
   return (
     <ChartFrame
-      title={d.correlation.title}
-      description={d.correlation.hint(data.min_pairs)}
-      exportName={chartFileName("painel", "correlacao")}
+      title={title}
+      description={description ?? undefined}
+      exportName={exportName}
       exportDisabled={n < 2}
       empty={n < 2 ? <EmptyState title={d.correlation.empty} /> : undefined}
       table={
         <FigureData<CorrelationCell>
-          caption={d.correlation.figure}
+          caption={figure}
           rows={upper}
           rowKey={(c) => `${c.x}|${c.y}`}
           rowHeader={{ header: d.correlation.columnA, cell: (c) => names.get(c.x) ?? c.x }}
@@ -118,6 +135,7 @@ export function CorrelationMatrix({ data }: { data: DashboardCorrelation }) {
         />
       }
       footer={
+        showKey ? (
         <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-caption text-ink-muted" aria-label={d.correlation.pick}>
           {props.map((p) => (
             <li key={p.slug} className="flex items-center gap-1">
@@ -126,6 +144,7 @@ export function CorrelationMatrix({ data }: { data: DashboardCorrelation }) {
             </li>
           ))}
         </ul>
+        ) : undefined
       }
     >
       <div ref={measure} className="relative min-w-0 overflow-x-auto">
@@ -133,7 +152,7 @@ export function CorrelationMatrix({ data }: { data: DashboardCorrelation }) {
           <svg
             data-chart-figure
             role="figure"
-            aria-label={ptBR.chart.figureLabel(d.correlation.figure)}
+            aria-label={ptBR.chart.figureLabel(figure)}
             className="chart-svg"
             width={svgWidth}
             height={height}

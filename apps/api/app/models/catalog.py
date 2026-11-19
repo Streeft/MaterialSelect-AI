@@ -72,6 +72,9 @@ class CatalogDataset(Base):
     dataset_values: Mapped[list[CatalogDatasetValue]] = relationship(
         back_populates="dataset", cascade="all, delete-orphan"
     )
+    counts: Mapped[CatalogReleaseCount | None] = relationship(
+        back_populates="dataset", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class CatalogImportRun(Base):
@@ -257,3 +260,51 @@ class CatalogReleaseDiff(Base):
     record_count: Mapped[int] = mapped_column(nullable=False)
     payload: Mapped[list] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+#: How a release's counts were taken (D-250): at the import that wrote the
+#: release, or afterwards from the rows it left (the migration's backfill, for
+#: releases imported before the table existed).
+RELEASE_COUNT_ORIGINS = ("import", "backfill")
+
+
+class CatalogReleaseCount(Base):
+    """What one release brought, counted once and kept (D-250).
+
+    The panel's history of the catalogue draws these rows, one point per
+    release. A **record**, not a cache: it is written in the import's own
+    transaction (or by the backfill) and never recomputed when a curator later
+    edits a row, so the history says what each release *was* — which is also
+    why the D-123 invalidation does not watch this table.
+
+    Counts only, every one an integer counted from rows that exist: the
+    materials and processes the release's identity rows point at, the distinct
+    classes of those materials, and their value rows split into those carrying a
+    number and those declaring absence (principle 3: the two are never summed
+    into one "values" number, and absence is never a zero value).
+    """
+
+    __tablename__ = "catalog_release_count"
+    __table_args__ = (
+        CheckConstraint(
+            "materials >= 0 AND classes >= 0 AND properties >= 0 AND values_filled >= 0 "
+            "AND values_declared_missing >= 0 AND processes >= 0",
+            name="ck_catalog_release_count_non_negative",
+        ),
+        CheckConstraint("origin IN ('import', 'backfill')", name="ck_catalog_release_count_origin"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("catalog_dataset.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    materials: Mapped[int] = mapped_column(nullable=False)
+    classes: Mapped[int] = mapped_column(nullable=False)
+    properties: Mapped[int] = mapped_column(nullable=False)
+    values_filled: Mapped[int] = mapped_column(nullable=False)
+    values_declared_missing: Mapped[int] = mapped_column(nullable=False)
+    processes: Mapped[int] = mapped_column(nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
+    counted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    dataset: Mapped[CatalogDataset] = relationship(back_populates="counts")

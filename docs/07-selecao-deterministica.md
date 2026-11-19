@@ -691,7 +691,10 @@ se edita:
 - **Histórico do estudo salvo** (D-245) — `selection_run`: a pessoa guarda, com um nome opcional,
   a execução de um estudo salvo (contagens, vencedor, uma entrada por candidato com posição,
   escore e índice, e o estudo como estava). Comparar duas versões usa a mesma `diff_runs` sobre o
-  que cada uma guardou, sem executar de novo. Até 50 versões por estudo.
+  que cada uma guardou, sem executar de novo. Até 50 versões por estudo. A última execução
+  guardada de um estudo de materiais é o atalho "Do seu último estudo executado" do Comparar
+  (D-250, `GET /api/selection/runs/latest`): os primeiros candidatos na ordem dela, sem
+  executar de novo, só os que ainda estão no catálogo (os outros contados em `gone`).
 
 ## Endpoints
 
@@ -707,6 +710,7 @@ se edita:
 | GET/DELETE | `/api/selection/studies/{id}` | detalhe / excluir |
 | POST | `/api/selection/studies/{id}/run` | reexecutar um estudo salvo |
 | GET/POST | `/api/selection/studies/{id}/runs` | histórico: listar / executar e guardar uma versão (D-245) |
+| GET | `/api/selection/runs/latest?n=` | a última execução guardada de um estudo de materiais e os seus N primeiros (D-250) |
 | GET/DELETE | `/api/selection/studies/{id}/runs/{run_id}` | uma versão guardada, com entradas e o estudo / apagar |
 | GET | `/api/selection/studies/{id}/runs/compare?antes=&depois=` | diferenças entre duas versões guardadas |
 | GET/POST | `/api/performance-indices` | catálogo de índices |

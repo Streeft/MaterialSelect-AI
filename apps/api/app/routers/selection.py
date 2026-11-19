@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -27,6 +27,7 @@ from app.schemas.selection import (
     FunnelPreviewOut,
     IndexRequest,
     IndexResultOut,
+    LatestRunOut,
     PerformanceIndexIn,
     PerformanceIndexOut,
     RunDiffOut,
@@ -255,6 +256,20 @@ def get_study(
 
 
 # --- Run history (D-245) ------------------------------------------------------
+
+
+@router.get("/runs/latest", response_model=LatestRunOut | None)
+def latest_run(
+    n: int = Query(default=5, ge=1, le=20, description="Quantos candidatos levar"),
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> LatestRunOut | None:
+    """The last kept run of a material study, for the Comparar (D-250).
+
+    ``null`` when no run was kept yet — the screen explains how to keep one.
+    """
+    return SelectionService(db, project.id, user).latest_run(n)
 
 
 @router.get("/studies/{study_id}/runs", response_model=list[SavedRunOut])

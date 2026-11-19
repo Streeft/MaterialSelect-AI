@@ -1,7 +1,8 @@
 import type { ChartScale, DashboardDemoFilter, DashboardFilters, DashboardSection } from "@/lib/types";
 
 /**
- * The rich panel's state in the URL (D-193): the tab, the four global filters,
+ * The rich panel's state in the URL (D-193): the tab, the four global filters
+ * (the subclass one repeatable since D-250: `?subclasse=A&subclasse=B`),
  * the property being read and the scale of its distribution (D-212). In the URL rather than in component state so a
  * view can be linked, bookmarked and reopened — the same reason D-63 keeps the
  * reading unit there.
@@ -26,6 +27,22 @@ const DEMO: readonly DashboardDemoFilter[] = ["todos", "demo", "reais"];
 
 interface ParamReader {
   get(name: string): string | null;
+  getAll(name: string): string[];
+}
+
+/** D-250: the subclasses of a view, each once, blanks dropped, in the order picked. */
+export function uniqueSubclasses(names: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const raw of names) {
+    const name = raw.trim();
+    if (name && !out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
+/** D-250: the subclass list with `name` added, or taken out if it was there. */
+export function toggleSubclass(names: readonly string[], name: string): string[] {
+  return names.includes(name) ? names.filter((n) => n !== name) : [...names, name];
 }
 
 export function readDashboardState(params: ParamReader): DashboardViewState {
@@ -36,7 +53,7 @@ export function readDashboardState(params: ParamReader): DashboardViewState {
     tab: DASHBOARD_TABS.includes(tab as DashboardSection) ? (tab as DashboardSection) : "visao",
     filters: {
       classe: params.get("classe") || null,
-      subclasse: params.get("subclasse") || null,
+      subclasses: uniqueSubclasses(params.getAll("subclasse")),
       nivel: nivel === 1 || nivel === 2 ? nivel : 3,
       demo: DEMO.includes(demo as DashboardDemoFilter) ? (demo as DashboardDemoFilter) : "todos",
     },
@@ -50,7 +67,8 @@ export function dashboardSearch(state: DashboardViewState): string {
   const params = new URLSearchParams();
   if (state.tab !== "visao") params.set("aba", state.tab);
   if (state.filters.classe) params.set("classe", state.filters.classe);
-  if (state.filters.subclasse) params.set("subclasse", state.filters.subclasse);
+  // D-250: one `subclasse` per subclass — the same shape the API reads.
+  for (const name of state.filters.subclasses ?? []) params.append("subclasse", name);
   if (state.filters.nivel && state.filters.nivel !== 3) params.set("nivel", String(state.filters.nivel));
   if (state.filters.demo && state.filters.demo !== "todos") params.set("demo", state.filters.demo);
   if (state.property) params.set("prop", state.property);
@@ -63,7 +81,7 @@ export function dashboardSearch(state: DashboardViewState): string {
 export function activeFilterCount(filters: DashboardFilters): number {
   return (
     (filters.classe ? 1 : 0) +
-    (filters.subclasse ? 1 : 0) +
+    ((filters.subclasses?.length ?? 0) > 0 ? 1 : 0) +
     (filters.nivel && filters.nivel !== 3 ? 1 : 0) +
     (filters.demo && filters.demo !== "todos" ? 1 : 0)
   );
