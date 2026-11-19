@@ -28,6 +28,7 @@ import {
   ButtonGroupItem,
   Card,
   CardBody,
+  Checkbox,
   EmptyState,
   ErrorState,
   FilterBar,
@@ -416,9 +417,19 @@ function ProcessesPageContent() {
               </div>
             )
           ) : view.kind === "table" ? (
-            <ProcessTable processes={shown} rootOf={rootOf} />
+            <ProcessTable
+              processes={shown}
+              rootOf={rootOf}
+              selected={url.comparar}
+              onToggle={toggleCompare}
+            />
           ) : view.kind === "list" ? (
-            <ProcessLines processes={shown} rootOf={rootOf} />
+            <ProcessLines
+              processes={shown}
+              rootOf={rootOf}
+              selected={url.comparar}
+              onToggle={toggleCompare}
+            />
           ) : (
             // A grid, not a stack: three families at full width were three
             // thin strips of tiny badges with the right half of each empty.
@@ -439,6 +450,8 @@ function ProcessesPageContent() {
                     family={root}
                     classes={classes.data}
                     processes={shown}
+                    selected={url.comparar}
+                    onToggle={toggleCompare}
                   />
                 ))}
             </div>
@@ -457,10 +470,39 @@ function ProcessesPageContent() {
   );
 }
 
+/** Selection for "Comparação lado a lado", shared by every view (D-246). */
+interface CompareProps {
+  selected: string[];
+  onToggle: (slug: string) => void;
+}
+
+/**
+ * The checkbox that puts a process in the side-by-side comparison — the same
+ * control the matrix has, so the table, the list and the gallery offer it too.
+ * Past the limit an unchecked box is disabled, never silently ignored.
+ */
+function CompareCheck({
+  process,
+  selected,
+  onToggle,
+}: CompareProps & { process: Process }) {
+  const checked = selected.includes(process.slug);
+  return (
+    <Checkbox
+      label={<span className="sr-only">{t.compareRow(process.name)}</span>}
+      checked={checked}
+      disabled={!checked && selected.length >= MAX_COMPARE_PROCESSES}
+      onChange={() => onToggle(process.slug)}
+    />
+  );
+}
+
 function ProcessTable({
   processes,
   rootOf,
-}: {
+  selected,
+  onToggle,
+}: CompareProps & {
   processes: Process[];
   rootOf: Map<string, ProcessClass>;
 }) {
@@ -469,6 +511,9 @@ function ProcessTable({
       <Table>
         <THead>
           <Tr>
+            <Th>
+              <span className="sr-only">{t.columnCompare}</span>
+            </Th>
             <Th>{t.columnProcess}</Th>
             <Th>{t.columnFamily}</Th>
             <Th>{t.columnClass}</Th>
@@ -478,6 +523,9 @@ function ProcessTable({
         <TBody>
           {processes.map((process) => (
             <Tr key={process.slug}>
+              <Td>
+                <CompareCheck process={process} selected={selected} onToggle={onToggle} />
+              </Td>
               <RowHeader>
                 <Link
                   href={`/app/processos/${process.slug}`}
@@ -504,17 +552,22 @@ function ProcessTable({
 function ProcessLines({
   processes,
   rootOf,
-}: {
+  selected,
+  onToggle,
+}: CompareProps & {
   processes: Process[];
   rootOf: Map<string, ProcessClass>;
 }) {
   return (
     <ul className="divide-y divide-line-divider rounded-card border border-line bg-panel">
       {processes.map((process) => (
-        <li key={process.slug}>
+        // The checkbox sits beside the link, never inside it: a control
+        // nested in a link is the axe `nested-interactive` failure.
+        <li key={process.slug} className="flex items-center gap-1 pl-3">
+          <CompareCheck process={process} selected={selected} onToggle={onToggle} />
           <Link
             href={`/app/processos/${process.slug}`}
-            className="m3-state flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5"
+            className="m3-state flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-1 pr-4"
           >
             <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
               {process.name}
@@ -536,7 +589,9 @@ function FamilyCard({
   family,
   classes,
   processes,
-}: {
+  selected,
+  onToggle,
+}: CompareProps & {
   family: ProcessClass;
   classes: ProcessClass[];
   processes: Process[];
@@ -567,10 +622,11 @@ function FamilyCard({
         ) : (
           <ul className="-mx-2 flex flex-col">
             {inFamily.map((process) => (
-              <li key={process.slug}>
+              <li key={process.slug} className="flex items-center gap-1">
+                <CompareCheck process={process} selected={selected} onToggle={onToggle} />
                 <Link
                   href={`/app/processos/${process.slug}`}
-                  className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span>{process.name}</span>
                   <span aria-hidden className="text-ink-subtle">

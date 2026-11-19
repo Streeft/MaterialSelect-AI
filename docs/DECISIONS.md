@@ -14423,3 +14423,26 @@ material ainda vale.
 **Numeração.** D-245, Sessão 202 (conferidas em `origin/main`). Toca `apps/api` **com migração**: depois do merge, **Deploy da API**
 (que roda `alembic upgrade head`).
 
+## D-246 — Pacote de pendências pequenas: comparar processos em qualquer visão e atalho de passo na Seleção
+
+**Contexto.** Quatro pendências pequenas do `TODO.md`: comparar processos fora da matriz (D-219), atalhos de teclado para trocar de
+passo na Seleção (pendente da Etapa 3.1), a cascata das diferenças A × B no Eco e a curva inteira de cada material no Custo
+(pendentes da Etapa 4.5). Ao abrir o código, as duas últimas já estavam entregues na D-234 (`build_difference_waterfall` e
+`POST /api/custo/curvas`); o `TODO.md` é que não tinha sido atualizado. Ficaram as duas primeiras.
+
+**Decisão.**
+- **Processos: a caixa "Comparar" em toda visão.** A matriz já marcava até 4 processos para a "Comparação lado a lado" (`?comparar=`).
+  A galeria, a lista e a tabela ganham a mesma caixa (`CompareCheck`, o mesmo rótulo e o mesmo limite da matriz; passado o limite, a
+  caixa desmarcada fica desligada). Na lista e na galeria a caixa fica **ao lado** do link, nunca dentro dele (`nested-interactive`).
+  A comparação continua sendo a mesma `ProcessCompare`, e a escolha continua no endereço.
+- **Seleção: Alt + Shift + ← / → troca de passo**, como os botões Voltar e Próximo, que ganham `aria-keyshortcuts`. É um acorde com
+  modificador, nunca uma tecla só (WCAG 2.1.4), e não age dentro de um campo de texto, onde no Mac o mesmo acorde seleciona uma
+  palavra. Resultados sem execução continua fechado ao atalho, como no `Stepper`. A dica aparece ao lado de "Próximo" a partir de
+  `lg`, como a do Ctrl + Enter.
+
+**Alternativas recusadas.** Alt + ← / → (é Voltar/Avançar do navegador). Ctrl/⌘ + setas (no Mac, ⌘ + ← vai ao começo da linha, e
+⌘ + ↑ ao topo da página). Teclas soltas como `[` e `]` (atalho de um caractere precisa poder ser desligado ou remapeado, WCAG 2.1.4).
+Checkbox dentro do link da lista (o leitor de tela anuncia um controle dentro de outro).
+
+**Numeração.** D-246, Sessão 203 (conferidas em `origin/main`). Só frontend: sem migração, sem deploy da API.
+

@@ -30,6 +30,7 @@ export const wizardText = {
   },
   shortcut: {
     run: "Ctrl + Enter executa",
+    steps: "Alt + Shift + ← / → troca de passo",
   },
   blockers: {
     title: "Para executar, falta:",

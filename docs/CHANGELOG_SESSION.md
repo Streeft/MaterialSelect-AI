@@ -120,6 +120,16 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 203 — 19/11/26 — Comparar processos em qualquer visão e atalho de passo na Seleção (D-246)
+
+**O que mudou.** Frontend: a caixa "Comparar" de Processos também na galeria, na lista e na tabela (`CompareCheck`); na Seleção,
+Alt + Shift + ← / → troca de passo fora dos campos, com `aria-keyshortcuts` nos botões e a dica ao lado de "Próximo". As outras duas
+pendências do pacote (cascata da diferença A × B no Eco e curva inteira por material no Custo) já estavam na D-234; o `TODO.md` foi
+corrigido. Testes novos: vitest em `processos` (galeria, tabela e lista, com axe) e em `selecao` (o atalho, fora e dentro de um
+campo, e Resultados fechado sem execução). Só frontend: sem migração e sem deploy da API.
+
+---
+
 ## Sessão 202 — 18/11/26 — Histórico de execuções do estudo salvo (D-245)
 
 **O que mudou.** Backend: modelo `SelectionRun` e migração `dc672e36c7d8` (tabela `selection_run`); rotas
