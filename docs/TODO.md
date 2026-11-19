@@ -91,12 +91,11 @@ quitados".
 `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` (e `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` se quiser) — passo a
 passo em `13-deploy.md` §5-nonies —, enquanto o envio fica "Simulado" e a tela avisa. Entregue na D-243: anexar o PDF assinado à versão (histórico, hash,
 no e-mail no lugar do `.html`, "Baixar PDF assinado" no link e hash na verificação pública), link com validade (`REPORT_LINK_TTL_DAYS`, 90) e revogação (410
-em página em português), contagem de aberturas sem IP nem pixel, e DOCX/PPTX no visual novo (gráficos em PNG por `resvg-py`). Fica para depois, se o autor
-quiser: ler o texto do PDF para conferir que é o laudo certo, reenviar com um clique, `Reply-To` pelo e-mail do engenheiro, fila de reenvio, DOCX/PPTX de uma
-versão **emitida** a partir dos bytes congelados (hoje a cópia reexecuta o estudo e diz que não é a emitida) e o anexo técnico no PowerPoint (hoje só as
-notas do autor). Pendência de desempenho achada na medição da D-243, que **não** é do Word/PowerPoint: o `laudo.html` (a pré-visualização) já
-reexecuta o estudo e, com o catálogo demo inteiro, segura ~75 MB de Python por requisição (`tracemalloc`); cabe no portão pesado e na VM de 1 GB, mas é o maior da lista e
-as tabelas do anexo (proveniência de cada valor) são a parte que mais pesa.
+em página em português), contagem de aberturas sem IP nem pixel, e DOCX/PPTX no visual novo (gráficos em PNG por `resvg-py`). **Entregue na D-249:**
+~~reenviar com um clique~~, ~~`Reply-To` pelo e-mail do engenheiro~~, ~~anexo técnico no PowerPoint~~ (até 60 linhas por tabela) e ~~a memória do `laudo.html`~~
+(75,3 → 14,5 MB por requisição). Fica para depois, se o autor quiser: ler o texto do PDF para conferir que é o laudo certo, fila de reenvio
+(retentativa automática de um envio que falhou) e DOCX/PPTX de uma versão **emitida** a partir dos bytes congelados (hoje a cópia reexecuta o estudo e
+diz que não é a emitida).
 
 **Revisão das telas ("M3 na estrutura, Notion na superfície").** ▂ Plano em fases F0 a F9. **F0 a F9 entregues** (F9, D-238: Classes e Propriedades como tabelas editáveis — nome e descrição de classe na linha pelo `PATCH`, que nunca muda o slug —, árvore que dobra, busca e filtro por categoria, criação atrás de um botão; F8, D-236b: landing com o método em três passos e capturas reais, "O que garante" e rodapé; Entrar em tela dividida; Conta dentro do app com perfil, acesso, uso da IA de hoje, Aparência e Sair; "Barra lateral clara" na Aparência, só no tema claro; F7, D-235b: Cadernos com galeria de modelos ao criar e na lista vazia, notas em blocos com a alça, Alt+↑/↓ e "/" para inserir, ordem na conta, Estúdio monocromático e aviso do provedor como chip; F6, D-232b: Início em blocos móveis com a arrumação na conta, Favoritos na barra lateral, Meus registros com visões; F5, D-221: Seleção como documento com "Meus estudos" ao lado e passos numa linha no celular, Mapas com inspetor que vira folha inferior, legenda à vista e visões fixáveis no Início, Comparar com pares clássicos e uma barra de chips; F4, D-220: bancadas com resultado ao vivo, exemplo com clique, unidade no campo e `InlineTable` no Eco, por cima das calculadoras da D-216; F3, D-215: unidade no valor com `UnitChip`, sumário que marca a seção lida, processo e famílias no molde da ficha da D-214; F2, D-209: visões salvas na conta, Catálogo e Processos como bases com abas Tabela/Galeria/Lista, Painel com blocos móveis e layout na conta, Glossário como wiki; F1, D-206: alvo de toque, papéis de texto, hover em véu e as peças `Block`, `FilterBar`, `PropertyList`, `PageDoc`, `EmptyState` com modelos, `SidePeek`, `Workbench` e barra do topo; F0, D-205: unidades,
 textos, sobrescrito, ícone de enviar, etapa neutra). **PR 2.1 entregue** (D-207: paleta de comandos com ações sobre `GET /api/search`,
@@ -546,9 +545,8 @@ dos ícones no toque foi visto em emulação a 390 px; conferir num celular de v
 documento). (c) Aplicar `--state-disabled` (38 %) aos controles que ainda usam 40–50 % fixos fora do MSDS (`disabled:opacity-40` em
 `ExpressionBuilder` e afins), um por um, olhando a tela.
 
-**Aparência em todos os aparelhos (D-196).** ▁ Cor do app, contraste e movimento ficam no `localStorage` de cada aparelho, como o
-tema. Para valer "nos outros aparelhos em que entrar" é preciso guardar a preferência na conta (coluna ou tabela de preferências,
-migração, rota `GET/PUT /api/me/appearance`) e o script do `<head>` continuar lendo a cópia local para não piscar.
+~~**Aparência em todos os aparelhos (D-196).**~~ Entregue na D-249: cor do app, contraste, movimento e barra lateral ficam na conta
+(`GET/PUT /api/me/appearance`, tabela `user_appearance`), com a cópia local como primeira pintura e recuo. Tema e densidade seguem por aparelho.
 
 ~~**Resíduos do D-177 (upload e exportações).**~~ Feitos no D-247: (a) `name`/`description` de material, registro próprio,
 síntese e estudo perdem caracteres de controle na entrada (`app/domain/text_input.py`; TAB, LF e CR ficam); (b) as três cópias da regex XML
@@ -1820,8 +1818,8 @@ Registrados para não voltarem por engano:
 - ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). (Arquivar em lote é na **lista** de cadernos, D-233: a página de um caderno é de um caderno só e não tem seleção nem botão de arquivar, então não há o que "levar para a página" — conferido no código no D-247.)
 - Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end` (NULL) e usam a busca por palavras; reprocessar uma fonte a regravaria com posição.
 
-**Checklist pós-Deploy da API (D-223 a D-247) — uma vez, em produção, depois do deploy.** Nenhuma destas partes tem migração além das já
-aplicadas pelo próprio deploy; marque aqui e não repita a pendência em cada seção.
+**Checklist pós-Deploy da API (D-223 a D-249) — uma vez, em produção, depois do deploy.** Nenhuma destas partes tem migração além das já
+aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_appearance`); marque aqui e não repita a pendência em cada seção.
 - [ ] `fly logs` sem `exit code 137` e a memória da máquina no painel do Fly (D-231, D-237, D-247: o RSS de partida caiu de 118,5 para 115,3 MB).
 - [ ] Painel do Neon: a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue` (D-227).
 - [ ] Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando) (D-228).
@@ -1832,6 +1830,10 @@ aplicadas pelo próprio deploy; marque aqui e não repita a pendência em cada s
 - [ ] Um login novo apaga as sessões vencidas (`SELECT count(*) FROM user_session WHERE expires_at < now()` cai a zero depois dele) (D-247).
 - [ ] Um Estúdio que falhe por causa da IA mostra a frase genérica; o detalhe do provedor aparece só no `fly logs` (D-247).
 - [ ] Depois do próximo `ingerir` com PDF digitalizado: a linha `[lfs]` conta "já falharam" e o PDF não é baixado de novo (D-247).
+- [ ] `fly logs` mostra a migração `13dda33de502` aplicada; escolher uma cor em Aparência, limpar os dados do site e entrar de novo veste a cor da conta (D-249).
+- [ ] Com o e-mail ligado: "Reenviar" um envio do laudo chega ao cliente, e "Responder" no e-mail endereça o engenheiro (`Reply-To`); o 11º envio da hora diz o limite (D-249).
+- [ ] Administrar › Fontes: criar uma fonte, mesclá-la em outra e apagar a que ninguém cita; o evento `source` aparece na auditoria (D-249).
+- [ ] `laudo.html` do estudo maior: o `fly logs` sem `exit code 137` e a memória do pedido bem abaixo dos ~75 MB antigos (D-249).
 
 **Segurança, limite e cache — pendências (D-223).**
 - Limite por minuto em memória: com mais de uma máquina no Fly cada uma conta à parte; um contador compartilhado (Redis/Postgres) só se a escala pedir.
@@ -1840,7 +1842,7 @@ aplicadas pelo próprio deploy; marque aqui e não repita a pendência em cada s
 **Banco — pendências (D-227).**
 **Fechamento da revisão das telas — pendências (D-226).**
 - ~~Lighthouse: limiares só sobem até onde as medições sustentam~~ — medido e subido no D-235 (performance 0,9, acessibilidade 0,95, boas práticas 0,9; tabela em `13-deploy.md`).
-- Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
+- ~~Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px~~ — feito na D-249: 44 px em ponteiro grosso (`figures.css`), medido no `mobile.spec`.
 - ~~axe só no tema claro~~ — passada escura em todas as rotas no `a11y.spec.ts` (D-235); a auditoria a 1920 px não achou estouro nem corte. Resta: as amostras de cor de seção do `/app/estilo` mostram os tons claros no tema escuro (só especímen).
 - ~~`nested-interactive` da barra do Plotly (D-213)~~ — resolvido no D-226 (imagem só na camada `.main-svg`).
 - ~~Numeração repetida (D-130, D-199, Sessões 84, 98, 115)~~ — desambiguada no D-226 (sufixo `b`; regra registrada).
@@ -1872,10 +1874,16 @@ aplicadas pelo próprio deploy; marque aqui e não repita a pendência em cada s
 - ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
 - ~~Rótulo e licença de uma fonte seguem fixos depois do cadastro~~ (feito no D-244: o `PATCH` leva também rótulo, referência e licença; revisor segue fixo).
 - ~~Arrastar a classe não funciona em tela de toque~~ (feito no D-244: eventos de ponteiro; "Mover para…" segue pelo teclado).
-- "Esvaziar o arquivo" é uma transação só; com milhares de cadernos arquivados pediria etapas (e a contagem confirmada deixaria de valer de uma vez).
+- ~~"Esvaziar o arquivo" é uma transação só~~ — feito na D-249: lotes de 50, andamento, Parar, e a contagem confirmada vale lote a lote.
+
+**Pendências do TODO, parte 7 (D-249).**
+- Aparência na conta: tema e densidade seguem por aparelho (decisão da D-249); se o autor quiser o tema na conta também, é um campo a mais no `PUT` e no `AppearanceIn`.
+- "Esvaziar o arquivo": o lote é 50 (`EMPTY_ARCHIVE_BATCH`); com Postgres em produção, medir o tempo de um lote antes de subir o número.
+- O PowerPoint do laudo corta cada tabela do anexo em 60 linhas (`ANNEX_MAX_ROWS`); um anexo completo é o Word.
+- Mesclar fontes não tem Desfazer (move linhas demais); o que se pode refazer é separar de novo editando cada dado, ficha a ficha.
 
 **Pendências do TODO, parte 4 (D-244).**
-- Criar, apagar e mesclar fontes pela tela de Fontes; autoscroll ao arrastar numa árvore longa; avisar na tela que um CSV baixado veio cortado (hoje só a linha `# ERRO:` no fim do arquivo).
+- ~~Criar, apagar e mesclar fontes pela tela de Fontes; autoscroll ao arrastar numa árvore longa; avisar na tela que um CSV baixado veio cortado~~ — feitos na D-249.
 
 **Fluxos entre telas, parte 19 — pendências (D-237).**
 - ~~`import pint` (~14 MB de RSS) ainda na partida~~ — feito no D-247 (`pint_errors()` em `units.py`; `UnitsContainer` importado dentro da função).

@@ -924,7 +924,7 @@ seed. Sem nenhuma variável nova o e-mail fica no `mock`: o envio é só **simul
 | `SMTP_STARTTLS` | `true` (padrão) liga o TLS na 587. A 465 já é TLS e ignora. | `true` |
 | `EMAIL_FROM` | Endereço remetente, no domínio verificado no serviço. | `laudos@seudominio.com.br` |
 | `EMAIL_FROM_NAME` | Nome ao lado do endereço. Padrão `MaterialSelect AI`. | `Laudos MaterialSelect` |
-| `EMAIL_REPLY_TO` | Opcional: para onde vão as respostas do cliente. | `engenharia@seudominio.com.br` |
+| `EMAIL_REPLY_TO` | Opcional: para onde vão as respostas quando o envio não leva o e-mail do engenheiro. Desde a D-249 cada envio leva, por padrão, o e-mail da **conta que envia** em `Reply-To`, e esse prevalece; a pessoa pode desmarcar no diálogo. | `engenharia@seudominio.com.br` |
 
 Opcionais, com padrão: `SMTP_TIMEOUT_SECONDS=10`, `RATE_LIMIT_EMAIL_PER_HOUR=10` (envios por conta e por
 hora, 429 ao estourar) e `EMAIL_SEND_CONCURRENCY=2` (envios simultâneos por processo). Com usuário e **sem**
@@ -1010,11 +1010,13 @@ as demais rotas públicas, passa pela Vercel (§0), então o `BACKEND_BASE_URL` 
   `Dockerfile.api`: o `pip install .` já lê o `pyproject.toml` e o `COPY apps/api/app` leva as fontes.
 - **Migração `5e2405bef18d`, aditiva** (tabela nova e colunas novas em `report_delivery`), aplicada pelo `release_command` do deploy.
 - **Memória (medida, catálogo demo inteiro, SQLite, Linux, `test_memory_per_request.py`).** O `laudo.html` já reexecutava o estudo e segura
-  **75 MB** de Python por requisição (`tracemalloc`); `laudo.docx` e `laudo.pptx` **não somam nada visível a isso** (75,2 MB os três: o pico é o
-  documento, e a imagem PNG vive no Rust). Pela memória residente, amostrada durante o pedido: Word **+11,7 MB** e PowerPoint **+0 MB** sobre o
-  processo aquecido. Os imports, medidos à parte depois de `import app.main` (118,2 MB): `python-docx` e `python-pptx` com `lxml` **+14,8 MB** (já
+  **75 MB** de Python por requisição (`tracemalloc`) — **até a D-249**, que baixou isso para **14,5 MB**: 66 dos 75 MB eram os ~50 valores ORM de
+  cada candidato, carregados para uma tabela de proveniência que mostra só as propriedades da decisão; agora os candidatos vêm sem os valores
+  (`list_materials(with_values=False)`) e as linhas do anexo vêm de `ChartRepository.value_rows`. `laudo.docx` e `laudo.pptx` **não somam nada visível a isso**
+  (14,5 MB os três: o pico é o documento, e a imagem PNG vive no Rust). Pela memória residente, amostrada durante o pedido: Word **+12,2 MB** e PowerPoint
+  **+1,4 MB** (o anexo técnico entrou na D-249) sobre o processo aquecido. Os imports, medidos à parte depois de `import app.main` (118,2 MB): `python-docx` e `python-pptx` com `lxml` **+14,8 MB** (já
   eram pagos pelos DOCX da D-235) e `resvg` com 21 figuras **+3,2 MB** (+1,6 MB só de importar; pico transitório de ~14 MB). A primeira
-  requisição de um processo frio (imports mais a primeira execução do estudo): **+81,5 MB**. Para comparar: redesenhar os gráficos com matplotlib
+  requisição de um processo frio (imports mais a primeira execução do estudo): **+77,0 MB** (eram +81,5 MB antes da D-249). Para comparar: redesenhar os gráficos com matplotlib
   custaria **+55 MB só para importar** e ~65 MB para o primeiro gráfico. O pedido passa pelo portão pesado (D-231), então no máximo
   `HEAVY_REQUEST_CONCURRENCY` (2) rodam juntos. Importados sob demanda (D-235): o processo que nunca gera um Word não paga nem o `resvg` nem o
   `python-docx`.

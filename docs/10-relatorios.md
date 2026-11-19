@@ -236,6 +236,13 @@ a contagem e nunca os endereços). Provedor `mock` (padrão) grava `simulado`: *
 Limite de `RATE_LIMIT_EMAIL_PER_HOUR` (10) envios por conta e por hora. `/api/health` traz `email_provider` e `email_configured`.
 Configuração no Fly: `13-deploy.md` §5-nonies.
 
+**Reenviar e `Reply-To` (D-249).** `POST /api/exports/envios/{id}/reenviar` repete um envio do histórico com um clique (inclusive um que
+falhou): mesmos destinatários, cópia, assunto e mensagem, pelo mesmo caminho do primeiro envio — vale o limite por hora, a auditoria
+(`reenvio_do_envio`, só o id) e o anexo é o que a versão tem **agora**. É um envio novo, com link e validade próprios; o link antigo continua
+como estava (o dono o revoga à parte). O corpo do envio aceita `reply_to_engineer` (padrão `true`): o cabeçalho `Reply-To` leva o e-mail da
+conta que envia, que prevalece sobre `EMAIL_REPLY_TO`; desmarcado, vale `EMAIL_REPLY_TO` ou nenhum cabeçalho. A prévia devolve `reply_to`
+para o diálogo mostrar onde a resposta chegaria.
+
 ### PDF assinado, validade do link e aberturas (D-243)
 
 **PDF assinado.** O engenheiro imprime o HTML emitido em PDF, assina (à mão, gov.br ou certificado) e **anexa o arquivo à versão**:
@@ -269,8 +276,9 @@ coluna "Envios" com "Aberto 3× · última em …" e botão "Envios" (estado do 
 formulário por query. **Word**: capa; resumo executivo com os cartões e o semáforo como **tabelas de células coloridas** (estado em
 palavra e glifo); seções com os gráficos como imagens (texto alternativo = título e descrição do gráfico); interpretação; assinatura;
 anexo técnico completo; rodapé "página N de M". **PowerPoint**: capa, **um slide de resumo**, **um slide por seção** (mais um de
-continuação, de tabela ou de processos quando há mais figuras ou uma tabela), interpretação, assinatura, notas do autor e avisos; o
-anexo técnico não cabe em slides e a última página diz onde está. São **cópias editáveis, não o laudo emitido**: sem selo, código nem QR,
+continuação, de tabela ou de processos quando há mais figuras ou uma tabela), interpretação, assinatura, o **anexo técnico** (D-249: um slide
+"Anexo técnico" e as tabelas `A1`, `A2`…, até 60 linhas cada, com "(primeiras 60 de N linhas)" no título quando há mais; a tabela inteira
+fica no Word e no laudo emitido) e avisos. São **cópias editáveis, não o laudo emitido**: sem selo, código nem QR,
 e a capa diz "Versão editável — não emitida". Os gráficos são o mesmo SVG de `figures.py`, rasterizado para PNG por `resvg`
 (`exporters/svg_png.py`, fonte DejaVu Sans embarcada); um que não desenha vira uma linha dizendo qual falta.
 
@@ -461,6 +469,7 @@ faltando.
 | POST | `/api/exports/laudos/{id}/pdf?nome=` | anexa o PDF assinado a uma versão emitida: corpo = o PDF, até 10 MB, só pelos bytes `%PDF-` (D-243) |
 | GET | `/api/exports/laudos/{id}/pdf`, `…/pdf/versoes`, `…/pdf/{pdf_id}` | PDF atual, histórico de envios do PDF e um deles, só o dono (D-243) |
 | POST | `/api/exports/envios/{id}/revogar` | revoga o link de um envio; dali em diante responde 410 (D-243) |
+| POST | `/api/exports/envios/{id}/reenviar` | reenvia um envio com um clique: mesma mensagem e pessoas, link novo, mesmo limite de e-mails por hora (D-249) |
 | GET | `/api/exports/materiais/{id}.{html,csv,xlsx}?unidades=` | ficha técnica detalhada do material (D-125) |
 | GET | `/api/exports/materiais/{id}/cae?formato=&unidades=` | cartão de material para CAE (D-104) |
 | POST | `/api/eco/exportar.{csv,xlsx,html,docx,pptx}` | auditoria ambiental de um briefing (corpo de `/api/eco/auditar`), por componente e por trecho (D-172) |

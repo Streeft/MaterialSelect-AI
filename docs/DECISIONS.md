@@ -14558,3 +14558,87 @@ Checkbox dentro do link da lista (o leitor de tela anuncia um controle dentro de
 
 **Numeração.** D-246, Sessão 203 (conferidas em `origin/main`). Só frontend: sem migração, sem deploy da API.
 
+
+---
+## D-249 — Pendências do TODO, parte 7: laudo (reenvio, Reply-To, anexo no PowerPoint, memória), fontes (criar, apagar, mesclar), autoscroll, CSV cortado, barra do Plotly, aparência na conta, arquivo de cadernos em etapas
+
+**Contexto.** Sete pendências que as decisões D-196, D-226, D-236, D-243 e D-244 deixaram escritas no `TODO.md`. Cada uma é pequena; juntas
+mexem no laudo, no catálogo, na conta e nos cadernos. A migração (uma tabela) e o deploy da API vêm de duas delas: a aparência na conta e o
+reenvio.
+
+**Decisão — Laudo.**
+- **Reenviar com um clique.** `POST /api/exports/envios/{id}/reenviar` repete o envio de uma linha do histórico: mesmos destinatários, cópia,
+  assunto e mensagem, e passa por `ReportDeliveryService.send`, o mesmo caminho do primeiro envio. Logo vale `RATE_LIMIT_EMAIL_PER_HOUR` (429
+  escrito, o mesmo texto), o portão do provedor e a auditoria (`reenvio_do_envio`: o id da linha repetida; nunca endereços). É um **envio novo**
+  (linha, token e validade próprios), não a revivência do link velho: o link antigo continua como estava, e o dono o revoga à parte se quiser.
+  O anexo é o que a versão tem **agora** (um PDF assinado que chegou depois vai no reenvio). Um envio que falhou também pode ser reenviado. Na
+  tela (`DeliveriesDialog`) é um botão "Reenviar" por linha, sem confirmação (só repete o que a pessoa já mandou), com o erro do limite escrito.
+- **`Reply-To` com o e-mail do engenheiro.** A conta que envia é a do engenheiro que emitiu; o cabeçalho `Reply-To` leva o e-mail dela, por
+  mensagem (`OutgoingEmail.reply_to`). Prevalece sobre `EMAIL_REPLY_TO`, que vira o recuo quando a pessoa desmarca "Respostas do cliente chegam em
+  …" (`reply_to_engineer: false`) e, sem ele, nenhum cabeçalho. O diálogo mostra o endereço antes de enviar (a prévia devolve `reply_to`).
+  Um e-mail de conta que não é um endereço simples é deixado de fora em vez de escrito num cabeçalho.
+- **Anexo técnico no PowerPoint.** O deck ganhou um apêndice depois da assinatura: um slide "Anexo técnico" e as tabelas do estudo como `A1`,
+  `A2`…, as mesmas do Word e do HTML (as notas do autor, que eram a única que ia, entram na ordem). Uma tabela de centenas de linhas não é um
+  conjunto de slides: cada uma é **cortada em `ANNEX_MAX_ROWS` (60)** e o título diz "(primeiras 60 de 312 linhas)", nunca um corte calado;
+  a tabela inteira segue no Word e no laudo emitido, e o slide de avisos diz isso.
+- **Memória do `laudo.html`.** Medido com `test_memory_per_request` (catálogo demo inteiro, SQLite, Linux): **75,3 MB → 14,5 MB** de Python por
+  requisição (`tracemalloc`); RSS do Word +12,5 → +12,2 MB, do PowerPoint +0,0 → +1,4 MB (o anexo); primeira vez (imports) Word +81,6 → +77,0 MB.
+  A causa não era o semáforo nem a tabela de proveniência em si: era `ExportService._run`, que carregava como objeto ORM os ~50 valores de cada
+  candidato (66 dos 75 MB) para uma tabela que mostra só as propriedades em que a decisão se apoiou. Agora os candidatos vêm **sem os valores**
+  (`list_materials(with_values=False)`, a coleção segue preguiçosa e inteira, nada fica parcial) e as poucas linhas da proveniência (e o custo
+  dos finalistas) vêm de `ChartRepository.value_rows`, tuplas simples. `_run` caiu de 75,2 para 10,1 MB. O teto do teste desceu de 100 para 30 MB,
+  e `test_laudo_annex_memory.py` guarda a forma da correção.
+
+**Decisão — Fontes: criar, apagar e mesclar (só o curador, `/app/admin/fontes`).**
+- **Criar** (`POST /api/sources`): rótulo e licença obrigatórios (o mesmo portão do importador), rótulo que já existe é 409; quem cadastrou e quando
+  vêm da sessão, nunca do corpo; nunca nasce demonstrativa (o marcador é dado do seed). Auditoria `CRIADO`.
+- **Apagar** (`DELETE /api/sources/{id}`): só fonte **que nenhum dado cita**. As nove tabelas que levam `source_id` (valores, curvas, composição,
+  designações, valores ordinais, grupos de equivalência, atributos de processo, químicas de bateria, modais de transporte) são contadas em
+  `SourceRepository`; uma citada é 409 dizendo "N valores de propriedade e M designações" e o caminho ("Mescle-a em outra fonte"). Um teste
+  falha se uma tabela nova ganhar `source_id` sem entrar na lista. Fonte de demonstração não se apaga por aqui (`excluir_demo` é o único caminho,
+  docs/15). Na tela: botão só onde a contagem é zero, `ConfirmDialog` e **Desfazer** (a chamada fica retida alguns segundos, D-130); um 409 tardio
+  devolve a linha.
+- **Mesclar** (`POST /api/sources/{id}/mesclar`, `{target_id}`): um `UPDATE` por tabela leva todas as citações ao destino e a origem sai, na mesma
+  transação, com auditoria nas duas fontes (`mesclada`, `referencias_movidas`; `mesclada_em`). Duas recusas guardam a procedência: fonte
+  demonstrativa não se mescla (nem com real), e a fonte sinalizada como possível conteúdo de terceiros só mescla em outra sinalizada (o sinal não
+  some dos dados que a citavam). A tela escolhe o destino num diálogo, avisa quando as licenças diferem (os dados passam a citar a licença do
+  destino) e confirma num `ConfirmDialog` de irmão (modal não abre dentro de modal). Sem Desfazer: uma mescla move linhas demais para segurar.
+- A lista (`GET /api/sources`) ganhou `citations` por fonte.
+
+**Decisão — Autoscroll ao arrastar.** `useClassDrag` rola a página (ou a caixa que rola) enquanto o ponteiro está nos 72 px da borda, até 20 px
+por quadro, mais depressa quanto mais perto (`lib/autoScroll.ts`, regra pura testada). O alvo sob o ponteiro é recalculado depois de cada passo.
+No celular é a única forma de alcançar um alvo abaixo da dobra (`touch-action: none` na alça).
+
+**Decisão — CSV cortado, na tela.** O CSV do catálogo passou a ser **buscado** pelo app (`downloadCatalogueFile`) em vez de linkado: lê o fim do
+arquivo e, se a última linha é `# ERRO:`, mostra um aviso (`CatalogueExportButtons`) dizendo que o arquivo está incompleto e que não se confie
+nele. O arquivo é salvo de qualquer jeito (a pessoa pode querer olhar). Os outros formatos seguem como âncora. Efeito colateral corrigido: a
+API não expunha `Content-Disposition` à página de outra origem (`expose_headers`), e todo download buscado saía com o nome da página.
+
+**Decisão — Barra do Plotly.** Em ponteiro grosso (`@media (pointer: coarse)`) os botões da barra ganham 44 px (`--target-min`) em
+`figures.css`, com `!important` (o Plotly injeta regra mais específica em tempo de execução). Não é a área invisível `::after` da D-226, que
+sobreporia o botão vizinho; a caixa cresce e o ícone não. O `mobile.spec` passou a medir a barra e a esperar por ela (antes media antes de ela
+existir e passava pelo motivo errado). Ponteiro fino mantém a barra compacta. Revê o "fora da regra" da D-226.
+
+**Decisão — Aparência na conta (revê o "só no aparelho" da D-196).** Cor do app, contraste, movimento e barra lateral viram uma linha por usuário
+(`user_appearance`, migração `13dda33de502`, aditiva) em `GET/PUT /api/me/appearance` (só login, sem portão de assinatura; `PUT` escreve os quatro
+campos, conjuntos fechados, 422 para valor de fora; sem linha, `saved: false` e os padrões). **Tema e densidade ficam no aparelho** (são da tela e
+da luz do aparelho). O front mantém `localStorage` como a cópia que a primeira pintura lê (o script do `<head>` não espera requisição) e o recuo
+quando a conta não responde. `lib/appearanceSync.ts`, ligado uma vez no shell: a conta tem escolha → ela vale e refaz a cópia local; a conta não tem
+e o aparelho tem uma não padrão → o aparelho a oferece, uma vez; depois, cada mudança vai à conta após 400 ms (uma rajada é uma escrita). A tela
+de Aparência diz em palavras onde a escolha está: "Guardado na sua conta", "Guardando…" ou, se a conta não respondeu, um aviso de que vale só neste
+aparelho. Um aparelho novo pisca uma vez (padrão → conta) na primeira visita.
+
+**Decisão — "Esvaziar o arquivo" em etapas.** `DELETE /api/notebooks/archived?expected=N&limit=K` apaga um **lote** (padrão 50, no máximo 200, o mais
+antigo primeiro, uma transação) e devolve `{deleted, remaining}`. A contagem confirmada continua valendo: cada lote espera exatamente o
+`remaining` do anterior, e se o arquivo mudou no meio (outra aba) é 409 e a limpeza para onde está, só com cadernos inteiros apagados. As
+execuções em andamento do dono são lidas uma vez por lote. A tela (`lib/emptyArchive.ts`) repete a chamada, mostra "Apagando o arquivo: 150 de 2.500",
+deixa **Parar** entre duas etapas e, numa falha, diz quantos já tinham sido apagados. Um arquivo de até 50 continua sendo uma chamada só.
+
+**Alternativas recusadas.** Mesclar com Desfazer (move linhas demais). Apagar fonte citada deixando o valor sem origem (fere o princípio de
+rastreabilidade). Guardar a aparência numa coluna de `user` (a tabela é de login; uma linha à parte cabe um `PUT` inteiro e um `DELETE CASCADE`).
+Guardar tema e densidade na conta (são do aparelho). Autoscroll só por CSS (`scroll-snap` não resolve arrasto de ponteiro). Esconder a barra do
+Plotly no celular (a TODO sugeria; os botões a 44 px cabem em 390 px e a ação continua à mão). Recortar o anexo do PowerPoint em silêncio (o
+título diz quantas linhas). Pré-carregar o laudo em chunks por candidato (a correção foi não carregar o que a tabela não mostra).
+
+**Numeração.** D-249, Sessão 206 (conferidas em `origin/main` e nas branches abertas). **Migração `13dda33de502`** (aditiva, tabela nova).
+**Toca `apps/api`: Deploy da API** depois do merge; sem seed novo.
