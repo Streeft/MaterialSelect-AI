@@ -178,6 +178,11 @@ pior nível. O passo do funil traz `without_level`, e o rótulo gerado diz a
 escala e a regra. Ordinal não entra em operador numérico, ranking nem índice
 (400 com o nome); nível fora da escala é 404 nomeando a escala.
 
+**Editar a escala (D-251).** O curador reformula uma escala em Admin › Propriedades › "Propriedades ordinais"
+(`GET|PUT /api/properties/ordinais/{slug}/escala`). Insere, renomeia, reordena e remove níveis; recusa, com o motivo e a contagem, remover o
+nível que um material tem, remover ou renomear o que um estudo salvo ou um cenário do projeto pede, e mudar a ordem enquanto algum nível for
+pedido. Cada mudança aceita é um evento de auditoria (`ordinal_property`) com a escala antes e depois; nenhum valor de material é tocado.
+
 ### O estágio de gráfico (P1-2)
 
 O gráfico deixa de só mostrar e passa a **reprovar** ([D-60](DECISIONS.md)). Um

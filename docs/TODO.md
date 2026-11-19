@@ -258,9 +258,14 @@ do bundle~~ (migração `860cc669ff6a`). Resíduos:
   e vazio escritos. Nenhum nível é inventado nem a escala vira número.
 - **ORD-b — dado real.** Bloqueado: durabilidade por agente só com fonte
   APROVADA (`docs/catalogo/fontes.md`) ou pelo bundle do D-102.
-- **ORD-c — edição à mão e curadoria da escala.** ▁ Hoje só seed e bundle
-  escrevem; uma tela de edição precisa da auditoria do M2 e da guarda do
-  material oficial (D-116).
+- ~~**ORD-c — edição à mão e curadoria da escala.**~~ ✔ Feito no D-251:
+  `GET|PUT /api/properties/ordinais/{slug}/escala` (só o curador) e a seção
+  "Propriedades ordinais" em Admin › Propriedades. Acrescenta, renomeia, reordena
+  e remove níveis com a auditoria do M2 (`ordinal_property`, escala antes e
+  depois), recusando o que está em uso: nível que um material tem, que um estudo
+  salvo pede ou que um cenário do projeto pede. Resíduo: o rótulo de um nível
+  pedido por um estudo ou cenário não muda nem a ordem da escala; para isso o
+  estudo se refaz primeiro (não há "migrar o pedido" automático).
 
 **Glossário de propriedades (relatório de lacunas do EduPack, #7,
 [D-130b](DECISIONS.md), Sessão 84b).** ✔ Entregue: ~~verbetes conceituais e
@@ -1819,7 +1824,7 @@ Registrados para não voltarem por engano:
 - ~~A seção "Fontes desta ficha" sem as fontes das curvas e das equivalências~~ — feito no D-236.
 - ~~Árvore de classes: arrastar para mover~~ — feito no D-236 (HTML5 nativo; "Mover para…" segue como alternativa por teclado).
 - ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). (Arquivar em lote é na **lista** de cadernos, D-233: a página de um caderno é de um caderno só e não tem seleção nem botão de arquivar, então não há o que "levar para a página" — conferido no código no D-247.)
-- Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end` (NULL) e usam a busca por palavras; reprocessar uma fonte a regravaria com posição.
+- ~~Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end`~~ — feito no D-251: `python -m app.knowledge.chunk_positions` (`--apply` grava; ações `cadernos_posicao_trechos_simular` e `cadernos_posicao_trechos` no workflow **Administração do banco**) refaz o corte sobre o texto guardado e grava a posição só do trecho de texto idêntico; o que não bate segue NULL e na busca por palavras. Rodar uma vez em produção depois do Deploy da API.
 
 **Checklist pós-Deploy da API (D-223 a D-250) — uma vez, em produção, depois do deploy.** Nenhuma destas partes tem migração além das já
 aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_appearance`; a D-250 traz a `e62aba5c6884`, a tabela
@@ -1873,7 +1878,7 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 **Fluxos entre telas, parte 16 — pendências (D-234).**
 - ~~Cascata da diferença A × B na Eco~~, ~~curva Custo × Lote de cada material comparado~~ e ~~recaída do 429 da busca na web~~ (`WEB_SEARCH_FALLBACK_MODEL`; entrada `modelo_busca_web` no workflow Provedor de IA) — feitas no D-234.
 - Custo, Dimensionar e Baterias seguem sem número escolhido pelo modelo (só valores do contexto ou de cenário); dar faixa a um parâmetro é uma decisão por parâmetro.
-- Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido (hoje é sempre o mais barato em cada lote).
+- ~~Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido~~ — feitas no D-251 (Eco até quatro alternativas, cada uma contra A; Custo com "Processo de cada curva"). Resíduo: a diferença é sempre contra A (não há "contra a melhor"), e a sugestão da IA da Eco só conhece os campos de A e B.
 
 **Fluxos entre telas, parte 18 — pendências (D-236).**
 - ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
@@ -1898,8 +1903,8 @@ aplicadas pelo próprio deploy (a D-249 traz a `13dda33de502`, a tabela `user_ap
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
 - ~~Princípio 2 nos arquivos de instrução~~ — aplicado na D-225 (`CLAUDE.md`, `docs/CLAUDE.md` §1.5, `.claude/rules/backend-ai-exporters.md`), por decisão do usuário em 12/11/2026.
 - ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa) e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair. (`check_property`/`check_chart` saíram no D-237.)
-- Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
-- Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
+- ~~Início: a proposta some ao navegar~~ — feito no D-251 (`sessionStorage` da aba, no Início e no painel da Seleção; some no logout). A proposta **editada** só existe ali: o servidor reaproveita o texto por 10 min, não a edição.
+- ~~Edição de um limite na própria proposta~~ — feita no D-251 (o número digitado passa a ser "Você" e a nota guarda a origem anterior). Segue aberto o **streaming** da resposta.
 - ~~`claude-api` e `claude-cli` respondem o plano sem o teto próprio~~ — feito no D-247 (junto com `suggest`/`probe`).
 - O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.
 - Cenários: ampliar a tabela (impacto, abrasão, chama) e trocar faixas didáticas por referência publicada quando houver uma certa.

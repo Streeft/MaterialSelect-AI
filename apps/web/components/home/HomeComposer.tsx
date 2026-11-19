@@ -8,7 +8,7 @@ import { planText } from "@/lib/i18n-plan";
 import { getAIStatus, planProject } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth";
 import { PLAN_MAX_CHARS, compareHref } from "@/lib/ai/plan";
-import { usePlanMemory } from "@/lib/ai/planMemory";
+import { usePlanMemory } from "@/lib/ai/usePlanMemory";
 import { selectionHrefWithFunction } from "@/lib/selection/functionParam";
 import { PLAN_DRAFT_HREF, hasSelectionDraft, writePlanDraft } from "@/lib/selection/planDraft";
 import {

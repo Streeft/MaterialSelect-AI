@@ -13,7 +13,6 @@
  * window, a full quota or a value from another version simply means "no
  * proposal", never an error on the screen.
  */
-import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { ProjectPlan } from "@/lib/types";
 
 export type PlanSlot = "inicio" | "selecao";
@@ -25,7 +24,8 @@ export interface RememberedPlan {
 }
 
 const PREFIX = "msai.plan.";
-const EVENT = "msai:plan-memory";
+/** Fired on `window` after every write, so the screens that show a slot re-read it. */
+export const PLAN_MEMORY_EVENT = "msai:plan-memory";
 
 const keyOf = (slot: PlanSlot) => `${PREFIX}${slot}`;
 
@@ -38,7 +38,7 @@ function isRememberedPlan(value: unknown): value is RememberedPlan {
 }
 
 /** The raw stored text of a slot, or `null`. */
-function readRaw(slot: PlanSlot): string | null {
+export function readRaw(slot: PlanSlot): string | null {
   try {
     return window.sessionStorage.getItem(keyOf(slot));
   } catch {
@@ -63,7 +63,7 @@ export function writePlanMemory(slot: PlanSlot, value: RememberedPlan | null): v
   } catch {
     // Storage refused: the proposal stays on screen and is simply not kept.
   }
-  window.dispatchEvent(new Event(EVENT));
+  window.dispatchEvent(new Event(PLAN_MEMORY_EVENT));
 }
 
 /** Forget every remembered proposal (the logout: the next reader starts clean). */
@@ -73,32 +73,5 @@ export function clearPlanMemory(): void {
   } catch {
     // Nothing to forget where nothing can be stored.
   }
-}
-
-function subscribe(onChange: () => void): () => void {
-  window.addEventListener(EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
-
-/**
- * The slot's remembered proposal, as state. The server render and the first
- * client render see none (storage is the browser's), then the stored one appears
- * — the same as `ResumeWork` does for the draft.
- */
-export function usePlanMemory(slot: PlanSlot): {
-  saved: RememberedPlan | null;
-  save: (value: RememberedPlan | null) => void;
-} {
-  const raw = useSyncExternalStore(
-    subscribe,
-    () => readRaw(slot),
-    () => null,
-  );
-  const saved = useMemo(() => parseRememberedPlan(raw), [raw]);
-  const save = useCallback((value: RememberedPlan | null) => writePlanMemory(slot, value), [slot]);
-  return { saved, save };
+  window.dispatchEvent(new Event(PLAN_MEMORY_EVENT));
 }

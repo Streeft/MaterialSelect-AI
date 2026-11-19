@@ -7,7 +7,7 @@ import { describeApiError } from "@/lib/errors";
 import { ptBR } from "@/lib/i18n";
 import { planText } from "@/lib/i18n-plan";
 import { PLAN_DEBOUNCE_MS, PLAN_MAX_CHARS, isInterpretable } from "@/lib/ai/plan";
-import { usePlanMemory } from "@/lib/ai/planMemory";
+import { usePlanMemory } from "@/lib/ai/usePlanMemory";
 import type { PlanComponent, ProjectPlan } from "@/lib/types";
 import { Alert, Badge, Button, Card, CardBody, CardHeader, Textarea } from "@/components/ui";
 import { PlanView } from "@/components/ai/PlanView";

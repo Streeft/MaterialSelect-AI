@@ -795,6 +795,11 @@ também não gasta. As duas rotas contam no balde "IA" do limite por minuto (D-2
   sugestão vem **desmarcada**; marcar pede confirmação e roda `/ai/plan/run` com `confirmed: true`. Recusadas ficam recolhidas.
   `degraded` mostra "Proposta montada por regras locais porque a IA não respondeu"; `cached` aparece em letra pequena. Erro:
   `describeApiError` e "Tentar de novo"; o 429 traz o tempo de espera que o servidor escreveu.
+- **A proposta fica e o limite se edita (D-251).** A proposta e o texto que ela respondeu ficam em `sessionStorage` (`lib/ai/planMemory.ts`; um
+  espaço no Início, outro no painel da Seleção): voltar do comparador ou da ficha reabre a proposta sem nova consulta, e ela some ao fechar a
+  aba e no logout. "Editar" num limite com número abre o campo do valor (ou da faixa, na unidade do limite); o número volta em `/ai/plan/run`
+  como `origin: "usuario"` e `note` "Editado por você: era “<rótulo>” (<origem anterior>)", e o chip passa a dizer **Você** com a nota escrita
+  embaixo. Quem confere é o servidor (propriedade e unidade); o "bom valor" continua sendo da pessoa.
 - **Abrir na Seleção**: o `study` da parte (só limites aplicados) vira o rascunho da Seleção (D-139/D-210,
   `lib/selection/planDraft.ts`) e a Seleção o continua sem perguntar (`?rascunho=assistente`). **Comparar** vai a
   `/app/comparar?materiais=` na ordem do ranking.
