@@ -62,6 +62,7 @@ from app.routers import (
     knowledge,
     laudos,
     materials,
+    me,
     my_records,
     notebooks,
     part_cost,
@@ -367,6 +368,8 @@ app.include_router(
 app.include_router(
     saved_views.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
+# D-249: the account's own appearance needs a login and nothing more (no subscription gate).
+app.include_router(me.router, prefix="/api")
 app.include_router(
     charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )

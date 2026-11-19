@@ -1,4 +1,5 @@
 import { AuthGate } from "@/components/auth/AuthGate";
+import { AppearanceSync } from "@/components/layout/AppearanceSync";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { DocumentTitle } from "@/components/layout/DocumentTitle";
@@ -54,6 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <KeyboardShortcuts />
+      {/* D-249: the colour, contrast, motion and rail follow the reader across devices. */}
+      <AppearanceSync />
       {/* D-207: the tab title per page, and the menu's "Recentes". */}
       <DocumentTitle />
       <BottomNav />

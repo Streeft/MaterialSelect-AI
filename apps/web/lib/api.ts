@@ -1566,6 +1566,33 @@ export function laudoVersionUrl(studyId: number, version: number): string {
   return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.html`;
 }
 
+// --- Aparência na conta (D-249) --------------------------------------------------
+
+/** The four choices kept on the account (`GET/PUT /api/me/appearance`). */
+export interface AccountAppearance {
+  color: string;
+  contrast: string;
+  motion: string;
+  rail: string;
+  /** False when the account never saved one: the fields are then the defaults. */
+  saved: boolean;
+  updated_at?: string | null;
+}
+
+export function getAccountAppearance(): Promise<AccountAppearance> {
+  return request<AccountAppearance>("/api/me/appearance");
+}
+
+/** Replaces the whole choice: the server writes the four fields together. */
+export function putAccountAppearance(
+  body: Pick<AccountAppearance, "color" | "contrast" | "motion" | "rail">,
+): Promise<AccountAppearance> {
+  return request<AccountAppearance>("/api/me/appearance", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 // --- Envio do laudo por e-mail (D-242) ----------------------------------------
 
 /** How one e-mailing ended; "simulado" is the mock provider: nothing left the server. */

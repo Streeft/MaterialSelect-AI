@@ -3729,8 +3729,14 @@ export const ptBR = {
       n === 1 ? "Você pode rodar mais 1 diagnóstico nesta hora." : `Você pode rodar mais ${n} diagnósticos nesta hora.`,
   },
   appearance: {
+    syncIdle: "Cor, contraste, movimento e barra lateral ficam guardados na sua conta.",
+    syncSaving: "Guardando na sua conta…",
+    syncSaved: "Guardado na sua conta: vale em todos os aparelhos em que você entrar.",
+    syncLocal:
+      "Não foi possível guardar na sua conta agora. A escolha vale só neste aparelho; a próxima mudança tenta de novo.",
     title: "Aparência",
-    description: "Cor, contraste, movimento, barra lateral e densidade. Vale para você, neste aparelho.",
+    description:
+      "Cor, contraste, movimento e barra lateral ficam na sua conta e valem em todos os aparelhos em que você entrar. Tema e densidade valem só neste aparelho.",
     open: "Aparência",
     themeTitle: "Tema",
     themeHint: "Claro, escuro ou o mesmo do sistema.",
