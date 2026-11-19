@@ -2,6 +2,24 @@
  * Extra i18n strings for incremental features (PhaseBars and Stage Drag Reorder)
  * keeping apps/web/lib/i18n.ts lean and protected from merge conflicts.
  */
+/** The words of a difference cascade of alternative `label` ("B", "C" or "D") minus A. */
+export function differenceFor(label: string) {
+  return {
+    energyTitle: `Diferença ${label} − A por fase em energia (cascata)`,
+    carbonTitle: `Diferença ${label} − A por fase em carbono (cascata)`,
+    description: `Cada degrau é a diferença de uma fase (${label} menos A): sobe quando ${label} gasta mais naquela fase e desce quando gasta menos. A última coluna é a diferença total entre as duas auditorias. Fase sem dado em A ou em ${label} aparece tracejada, com o motivo escrito: nunca como zero.`,
+    figureLabel: (quantity: string) => `Cascata da diferença ${label} − A de ${quantity} por fase`,
+    columnContribution: `Diferença (${label} − A)`,
+    columnRunning: "Acumulado",
+    below: `${label} abaixo de A`,
+    above: `${label} acima de A`,
+    stepAria: (stepLabel: string, value: string, running: string) =>
+      `${stepLabel}: diferença de ${value}; acumulado ${running}`,
+    tipContribution: `Diferença (${label} − A)`,
+    summary: `Cascata da diferença ${label} − A, fase por fase`,
+  };
+}
+
 export const ecoPhaseI18n = {
   energyChartTitle: "Demanda de energia por fase do ciclo de vida",
   carbonChartTitle: "Pegada de carbono por fase do ciclo de vida",
@@ -35,22 +53,9 @@ export const ecoPhaseI18n = {
     tipRunning: "Acumulado",
     noTotal: "Sem total: ao menos uma fase não pôde ser calculada.",
     scenarioSummary: (name: string, material: string) => `Cascata do cenário ${name} — ${material}`,
-    // D-234: the waterfall of the B − A difference of a comparison.
-    difference: {
-      energyTitle: "Diferença B − A por fase em energia (cascata)",
-      carbonTitle: "Diferença B − A por fase em carbono (cascata)",
-      description:
-        "Cada degrau é a diferença de uma fase (B menos A): sobe quando B gasta mais naquela fase e desce quando gasta menos. A última coluna é a diferença total entre as duas auditorias. Fase sem dado em A ou em B aparece tracejada, com o motivo escrito: nunca como zero.",
-      figureLabel: (quantity: string) => `Cascata da diferença B − A de ${quantity} por fase`,
-      columnContribution: "Diferença (B − A)",
-      columnRunning: "Acumulado",
-      below: "B abaixo de A",
-      above: "B acima de A",
-      stepAria: (label: string, value: string, running: string) =>
-        `${label}: diferença de ${value}; acumulado ${running}`,
-      tipContribution: "Diferença (B − A)",
-      summary: "Cascata da diferença B − A, fase por fase",
-    },
+    // D-234: the waterfall of the B − A difference of a comparison. D-251: the same
+    // words for "C" and "D" (`differenceFor`), always measured against A.
+    difference: differenceFor("B"),
   },
   premises: {
     title: "Premissas desta conta",

@@ -69,6 +69,8 @@ export interface EcoBrief {
   legs: LegDraft[];
   a: ScenarioDraft;
   b: ScenarioDraft;
+  /** Alternatives "C" and "D" (D-251), each measured against A; at most {@link MAX_EXTRAS}. */
+  extras: ScenarioDraft[];
   /** Transport of a comparison: one mode and one distance for both scenarios. */
   mode: string;
   distance: string;
@@ -142,11 +144,15 @@ function isScenarioDraft(value: unknown): value is ScenarioDraft {
   );
 }
 
+/** How many alternatives a comparison takes beyond A and B (the server's limit). */
+export const MAX_EXTRAS = 2;
 const MAX_COMPONENTS = 50;
 const MAX_LEGS = 20;
 
 const isComponentList = (value: unknown): value is ComponentDraft[] =>
   Array.isArray(value) && value.length <= MAX_COMPONENTS && value.every(isComponentDraft);
+const isExtraList = (value: unknown): value is ScenarioDraft[] =>
+  Array.isArray(value) && value.length <= MAX_EXTRAS && value.every(isScenarioDraft);
 const isLegList = (value: unknown): value is LegDraft[] =>
   Array.isArray(value) && value.length <= MAX_LEGS && value.every(isLegDraft);
 
@@ -212,6 +218,7 @@ export function ecoUrlSpec(defaults: DefaultsResult["eco"]): UrlSpec<EcoBrief> {
     legs: { param: "trechos", codec: jsonCodec(isLegList), defaultValue: [] },
     a: { param: "a", codec: jsonCodec(isScenarioDraft), defaultValue: blankScenario(defaults) },
     b: { param: "b", codec: jsonCodec(isScenarioDraft), defaultValue: blankScenario(defaults) },
+    extras: { param: "extras", codec: jsonCodec(isExtraList), defaultValue: [] },
     mode: text("modal", ""),
     distance: text("distancia", String(defaults.transport_distance_km)),
     useModel: {
@@ -290,6 +297,7 @@ export function buildComparisonBrief(
   b: ScenarioDraft,
   transport: { mode: string; distance: string },
   premises: Premises,
+  extras: ScenarioDraft[] = [],
 ): EcoComparisonRequest {
   const side = (s: ScenarioDraft) => ({
     material_id: Number(s.material),
@@ -301,6 +309,7 @@ export function buildComparisonBrief(
   return {
     material_a: side(a),
     material_b: side(b),
+    ...(extras.length > 0 ? { extra_materials: extras.map(side) } : {}),
     transport_mode: transport.mode,
     transport_distance_km: Number(transport.distance),
     use: buildUse(premises),
@@ -464,6 +473,7 @@ export function compareBlocked(
   b: ScenarioDraft,
   transport: { mode: string; distance: string },
   premises: Premises,
+  extras: ScenarioDraft[] = [],
 ): Blocked | null {
   if (transport.mode === "") return { reason: t.blocked.mode, inPremises: false };
   if (!positive(transport.distance))
@@ -473,6 +483,7 @@ export function compareBlocked(
   for (const [name, scenario] of [
     [t.materialA, a],
     [t.materialB, b],
+    ...extras.map((extra, index) => [t.alternativeName(index + 3), extra] as const),
   ] as const) {
     if (scenario.material === "" || scenario.process === "")
       return { reason: `${name}: ${t.blocked.process}`, inPremises: false };

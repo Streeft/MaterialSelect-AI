@@ -23,9 +23,23 @@ export interface EcoMaterialInput {
 export interface EcoComparisonRequest {
   material_a: EcoMaterialInput;
   material_b: EcoMaterialInput;
+  /** Alternatives "C" and "D" (D-251), each measured against A. */
+  extra_materials?: EcoMaterialInput[];
   transport_mode: string;
   transport_distance_km: number;
   use: EcoUseIn;
+}
+
+/** Alternative "C" or "D" against A (D-251): every difference is this minus A. */
+export interface EcoExtraAlternative {
+  label: string;
+  audit: EcoAuditResult;
+  delta_energy: number | null;
+  delta_energy_percent: number | null;
+  delta_carbon: number | null;
+  delta_carbon_percent: number | null;
+  energy_difference_waterfall: EcoWaterfall;
+  carbon_difference_waterfall: EcoWaterfall;
 }
 
 export interface EcoComparisonResult {
@@ -42,6 +56,11 @@ export interface EcoComparisonResult {
   /** B minus A, step by step, in data coordinates; the total bar is the audits' totals subtracted (D-234). */
   energy_difference_waterfall: EcoWaterfall;
   carbon_difference_waterfall: EcoWaterfall;
+  /** Alternatives beyond B, in the order sent (D-251). */
+  extras: EcoExtraAlternative[];
+  /** Labels of the lowest total over all alternatives; `null` with a gap or without extras. */
+  lowest_energy: string[] | null;
+  lowest_carbon: string[] | null;
 }
 
 export interface EcoPhaseDelta {

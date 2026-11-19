@@ -275,3 +275,68 @@ def test_the_comparison_carries_both_difference_waterfalls_that_add_up(
         assert sum(known) == pytest.approx(wf["total"]["value"], abs=1e-6)
         assert wf["steps"][-1]["end"] == pytest.approx(wf["total"]["value"], abs=1e-6)
         assert wf["domain"][0] <= 0.0 <= wf["domain"][1]
+
+
+def _comparison_body(base: dict, masses: list[float]) -> dict:
+    def side(mass: float) -> dict:
+        return {
+            "material_id": base["material_id"],
+            "process_id": base["process_id"],
+            "part_mass": mass,
+        }
+
+    return {
+        "material_a": side(masses[0]),
+        "material_b": side(masses[1]),
+        "extra_materials": [side(mass) for mass in masses[2:]],
+        "transport_mode": "rodoviario",
+        "transport_distance_km": 1500.0,
+        "use": MOBILE_USE,
+    }
+
+
+def test_a_third_and_fourth_alternative_are_each_measured_against_a(
+    client: TestClient, db_session: Session
+) -> None:
+    """D-251: C and D carry their own cascade of ``this - A`` and the lowest total."""
+    base = _audit_body(db_session)
+    out = client.post("/api/eco/comparar", json=_comparison_body(base, [2.0, 3.0, 1.0, 5.0])).json()
+    assert [extra["label"] for extra in out["extras"]] == ["C", "D"]
+    total_a = out["material_a"]["total_energy"]
+    for extra in out["extras"]:
+        wf = extra["energy_difference_waterfall"]
+        assert [s["phase"] for s in wf["steps"]] == list(PHASES)
+        total = extra["audit"]["total_energy"]
+        assert extra["delta_energy"] == pytest.approx(total - total_a, abs=1e-3)
+        assert wf["total"]["value"] == total - total_a
+        assert wf["steps"][-1]["end"] == pytest.approx(wf["total"]["value"], abs=1e-6)
+    # The lightest part (C, 1 kg) has the lowest footprint; the heaviest does not.
+    assert out["lowest_energy"] == ["C"]
+    assert out["lowest_carbon"] == ["C"]
+    # The A × B answer is exactly what it was without the extras.
+    plain = client.post("/api/eco/comparar", json=_comparison_body(base, [2.0, 3.0])).json()
+    assert plain["extras"] == [] and plain["lowest_energy"] is None
+    assert plain["energy_difference_waterfall"] == out["energy_difference_waterfall"]
+
+
+def test_no_more_than_two_extra_alternatives(client: TestClient, db_session: Session) -> None:
+    base = _audit_body(db_session)
+    response = client.post(
+        "/api/eco/comparar", json=_comparison_body(base, [1.0, 2.0, 3.0, 4.0, 5.0])
+    )
+    assert response.status_code == 422
+
+
+def test_the_lowest_total_is_not_named_over_a_gap() -> None:
+    from app.services.eco_service import _lowest
+
+    assert _lowest(["A", "B", "C"], [3.0, 1.0, 1.0]) == ["B", "C"]
+    assert _lowest(["A", "B", "C"], [3.0, None, 1.0]) is None
+
+
+def test_the_difference_waterfall_names_the_alternative_in_a_written_gap() -> None:
+    a = _side((10.0, 5.0, 2.0, 30.0, 3.0))
+    c = _side((12.0, None, 2.0, 20.0, 5.0))
+    wf = build_difference_waterfall(a, c, "energy", ENERGY_UNIT, None, None, label_b="C")
+    reason = wf.steps[1].reason
+    assert reason is not None and "C:" in reason and "B:" not in reason

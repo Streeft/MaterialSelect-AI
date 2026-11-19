@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { EcoWaterfall, EcoWaterfallStep } from "@/lib/types";
 import { formatNumber } from "@/lib/format";
-import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { differenceFor, ecoPhaseI18n } from "@/lib/i18n-extras";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { ChartTooltip, tipValue } from "@/components/charts/ChartTooltip";
 import { FigureData, type FigureColumn } from "@/components/charts/FigureData";
@@ -48,6 +48,7 @@ export function PhaseWaterfall({
   title,
   exportName,
   variant = "contribution",
+  alternative = "B",
 }: {
   waterfall: EcoWaterfall;
   title: string;
@@ -59,10 +60,13 @@ export function PhaseWaterfall({
    * The server computed all of it; the words only change.
    */
   variant?: "contribution" | "difference";
+  /** `difference` only (D-251): which alternative is measured against A, "B", "C" or "D". */
+  alternative?: string;
 }) {
   const diff = variant === "difference";
-  const words = diff ? t.difference : t;
-  const lowerWord = diff ? t.difference.below : t.credit;
+  const differenceWords = differenceFor(alternative);
+  const words = diff ? differenceWords : t;
+  const lowerWord = diff ? differenceWords.below : t.credit;
   const [measure, width] = useChartWidth();
   const [active, setActive] = useState<number | null>(null);
 
@@ -274,7 +278,7 @@ export function PhaseWaterfall({
                     ? `${step.label}: ${formatNumber(step.value)} ${waterfall.unit}`
                     : words.stepAria(
                         step.label,
-                        `${formatNumber(step.value)} ${waterfall.unit}${step.value < 0 ? ` (${lowerWord})` : diff && step.value > 0 ? ` (${t.difference.above})` : ""}`,
+                        `${formatNumber(step.value)} ${waterfall.unit}${step.value < 0 ? ` (${lowerWord})` : diff && step.value > 0 ? ` (${differenceWords.above})` : ""}`,
                         `${runningText} ${waterfall.unit}`,
                       )
                 }

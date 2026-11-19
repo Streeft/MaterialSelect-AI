@@ -8,7 +8,7 @@ import { encodeUrlJson } from "@/lib/urlState";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { differenceFor, ecoPhaseI18n } from "@/lib/i18n-extras";
 import { suggestText } from "@/lib/i18n-suggest";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { installWideViewport } from "@/lib/testing/viewport";
@@ -31,7 +31,9 @@ const runEcoAudit =
   vi.fn<(payload: EcoAuditRequest) => Promise<EcoAuditResult>>();
 const compareEcoAudits =
   vi.fn<(payload: EcoComparisonRequest) => Promise<EcoComparisonResult>>();
-const getDefaults = vi.fn(async () => (await import("@/lib/defaults.fixture")).defaultsFixture);
+const getDefaults = vi.fn(
+  async () => (await import("@/lib/defaults.fixture")).defaultsFixture,
+);
 const downloadEcoAudit =
   vi.fn<
     (
@@ -120,7 +122,12 @@ const routes: EndOfLifeRouteInfo[] = [
   },
 ];
 
-const componentPhase = (phase: string, label: string, energy: number | null, reason: string | null = null) => ({
+const componentPhase = (
+  phase: string,
+  label: string,
+  energy: number | null,
+  reason: string | null = null,
+) => ({
   phase,
   label,
   energy,
@@ -152,7 +159,14 @@ function waterfall(
     const value = values[index] ?? null;
     if (value === null) {
       complete = false;
-      return { phase, label, value, start: running, end: running, reason: "Dados ausentes: x" };
+      return {
+        phase,
+        label,
+        value,
+        start: running,
+        end: running,
+        reason: "Dados ausentes: x",
+      };
     }
     const start = running;
     running += value;
@@ -163,8 +177,22 @@ function waterfall(
     unit,
     steps,
     total: complete
-      ? { phase: "total", label: "Total", value: running, start: 0, end: running, reason: null }
-      : { phase: "total", label: "Total", value: null, start: null, end: null, reason: "Sem total" },
+      ? {
+          phase: "total",
+          label: "Total",
+          value: running,
+          start: 0,
+          end: running,
+          reason: null,
+        }
+      : {
+          phase: "total",
+          label: "Total",
+          value: null,
+          start: null,
+          end: null,
+          reason: "Sem total",
+        },
     domain: [0, Math.max(running, 1)],
   };
 }
@@ -288,7 +316,11 @@ const result: EcoAuditResult = {
     refusal: null,
   },
   energy_waterfall: waterfall("energy", "MJ", [525, 27.5, 2.7, 1000, 48]),
-  carbon_waterfall: waterfall("carbon", "kg de CO₂", [31.25, 2.125, 0.204, 70, 3.2]),
+  carbon_waterfall: waterfall(
+    "carbon",
+    "kg de CO₂",
+    [31.25, 2.125, 0.204, 70, 3.2],
+  ),
   energy_unit: "MJ",
   carbon_unit: "kg de CO₂",
   carbon_unit_note:
@@ -315,12 +347,21 @@ vi.mock("next/navigation", () => ({
 const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({
-  getAIStatus: () => Promise.resolve({ enabled: true, provider: "mock", simulated: true, disclaimer: "x" }),
-  suggestNextSteps: (tool: string, context: unknown) => suggest.fn(tool, context),
+  getAIStatus: () =>
+    Promise.resolve({
+      enabled: true,
+      provider: "mock",
+      simulated: true,
+      disclaimer: "x",
+    }),
+  suggestNextSteps: (tool: string, context: unknown) =>
+    suggest.fn(tool, context),
   getDefaults: () => getDefaults(),
-  compareEcoAudits: (payload: EcoComparisonRequest) => compareEcoAudits(payload),
+  compareEcoAudits: (payload: EcoComparisonRequest) =>
+    compareEcoAudits(payload),
   listMaterials: () => Promise.resolve(materials),
-  getMaterial: () => Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
+  getMaterial: () =>
+    Promise.resolve(nav.noProcess ? { ...detail, processes: [] } : detail),
   listTransportModes: () => Promise.resolve(modes),
   listEndOfLifeRoutes: () => Promise.resolve(routes),
   runEcoAudit: (payload: EcoAuditRequest) => runEcoAudit(payload),
@@ -374,11 +415,19 @@ describe("Auditoria ambiental", () => {
     await open();
 
     // No disclosure: every premise is a field on screen, already filled.
-    expect(await screen.findByShadowLabelText(new RegExp(`^${t.lifeLabel}`))).toHaveValue(10);
-    expect(screen.getByShadowLabelText(new RegExp(`^${t.travelLabel}`))).toHaveValue(200000);
+    expect(
+      await screen.findByShadowLabelText(new RegExp(`^${t.lifeLabel}`)),
+    ).toHaveValue(10);
+    expect(
+      screen.getByShadowLabelText(new RegExp(`^${t.travelLabel}`)),
+    ).toHaveValue(200000);
     expect(screen.getByShadowLabelText(t.intensityLabel)).toHaveValue(0.0025);
-    expect(screen.getByShadowLabelText(t.carbonPerEnergyLabel)).toHaveValue(0.07);
-    expect(screen.getByText("Premissas iniciais da auditoria.")).toBeInTheDocument();
+    expect(screen.getByShadowLabelText(t.carbonPerEnergyLabel)).toHaveValue(
+      0.07,
+    );
+    expect(
+      screen.getByText("Premissas iniciais da auditoria."),
+    ).toBeInTheDocument();
   });
 
   it("usa os padrões que o servidor mandar, sem número copiado na tela", async () => {
@@ -394,14 +443,18 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    expect(await screen.findByShadowLabelText(new RegExp(`^${t.travelLabel}`))).toHaveValue(123456);
+    expect(
+      await screen.findByShadowLabelText(new RegExp(`^${t.travelLabel}`)),
+    ).toHaveValue(123456);
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
     expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
       transport_legs: [{ distance_km: 321 }],
       use: { distance_km: 123456 },
     });
     // At the server's value the premise leaves the address.
-    expect(new URLSearchParams(window.location.search).has("percurso")).toBe(false);
+    expect(new URLSearchParams(window.location.search).has("percurso")).toBe(
+      false,
+    );
   });
 
   it("restaura os padrões do servidor com um botão", async () => {
@@ -409,16 +462,23 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    expect(await screen.findByShadowLabelText(new RegExp(`^${t.lifeLabel}`))).toHaveValue(25);
+    expect(
+      await screen.findByShadowLabelText(new RegExp(`^${t.lifeLabel}`)),
+    ).toHaveValue(25);
     const restore = await screen.findByShadowRole("button", {
       name: ecoPhaseI18n.restoreDefaults,
     });
     expect(restore).toBeEnabled();
     await user.click(restore);
 
-    await waitFor(() => expect(screen.getByShadowLabelText(new RegExp(`^${t.lifeLabel}`))).toHaveValue(10));
+    await waitFor(() =>
+      expect(
+        screen.getByShadowLabelText(new RegExp(`^${t.lifeLabel}`)),
+      ).toHaveValue(10),
+    );
     const params = new URLSearchParams(window.location.search);
-    for (const key of ["vida", "uso", "potencia"]) expect(params.has(key)).toBe(false);
+    for (const key of ["vida", "uso", "potencia"])
+      expect(params.has(key)).toBe(false);
     // The solver's seed is not a premise: it stays.
     expect(params.get("massa")).toBe("2");
   });
@@ -429,7 +489,9 @@ describe("Auditoria ambiental", () => {
 
     await waitFor(() => expect(runEcoAudit).toHaveBeenCalledTimes(1));
     expect(runEcoAudit.mock.calls[0]![0]).toMatchObject({
-      components: [{ material_id: 7, process_id: 1, unit_mass: 2, quantity: 1 }],
+      components: [
+        { material_id: 7, process_id: 1, unit_mass: 2, quantity: 1 },
+      ],
       transport_legs: [{ mode: "maritimo", distance_km: 1500 }],
     });
     // Never both shapes: a single-part field next to the list is refused.
@@ -487,7 +549,9 @@ describe("Auditoria ambiental", () => {
 
     // The brief was complete from the link, so the mobile model was asked about
     // first; the switch asks again, with the static fields only (D-220).
-    await waitFor(() => expect(runEcoAudit.mock.calls.at(-1)![0]!.use.model).toBe("estatico"));
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0]!.use.model).toBe("estatico"),
+    );
     const sent = runEcoAudit.mock.calls.at(-1)![0]!.use;
     expect(sent.model).toBe("estatico");
     expect(sent.power_watts).toBeDefined();
@@ -505,7 +569,9 @@ describe("Auditoria ambiental", () => {
     // and the order is itself the claim, since the phases are never sorted by
     // magnitude.
     // The result region's first table: the inputs are tables too now (D-220).
-    const table = within(screen.getByRole("region", { name: ptBR.ui.resultPanel })).getAllByRole("table")[0]!;
+    const table = within(
+      screen.getByRole("region", { name: ptBR.ui.resultPanel }),
+    ).getAllByRole("table")[0]!;
     const firstCells = within(table)
       .getAllByRole("row")
       .map((row) => within(row).queryAllByRole("cell")[0]?.textContent)
@@ -568,7 +634,8 @@ describe("Auditoria ambiental", () => {
     await screen.findByText(t.dominanceTitle);
     // O motivo aparece tanto na célula da tabela quanto na barra proporcional do PhaseBars
     expect(
-      screen.getAllByText(/Dados ausentes: intensidade-carbono-do-modal/).length,
+      screen.getAllByText(/Dados ausentes: intensidade-carbono-do-modal/)
+        .length,
     ).toBeGreaterThanOrEqual(1);
     expect(
       screen.getByText(/Sem fase dominante em carbono/),
@@ -605,7 +672,9 @@ describe("Auditoria ambiental", () => {
     const user = userEvent.setup();
     await open();
 
-    await user.click(await screen.findByShadowRole("button", { name: t.addComponent }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.addComponent }),
+    );
     // O segundo componente começa sem massa: a auditoria espera e diz por quê.
     expect(
       await screen.findByText(t.blocked.component(2, t.blocked.mass)),
@@ -613,15 +682,25 @@ describe("Auditoria ambiental", () => {
     const first = t.componentLegend(1);
     const second = t.componentLegend(2);
     await user.type(
-      await screen.findByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, second)}`)),
+      await screen.findByShadowLabelText(
+        new RegExp(`^${t.cellLabel(t.colUnitMass, second)}`),
+      ),
       "0.5",
     );
-    const quantity = await screen.findByShadowLabelText(t.cellLabel(t.colQuantity, second));
+    const quantity = await screen.findByShadowLabelText(
+      t.cellLabel(t.colQuantity, second),
+    );
     await user.clear(quantity);
     await user.type(quantity, "4");
-    expect(screen.getByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, first)}`))).toHaveValue(2);
+    expect(
+      screen.getByShadowLabelText(
+        new RegExp(`^${t.cellLabel(t.colUnitMass, first)}`),
+      ),
+    ).toHaveValue(2);
 
-    await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.addLeg }),
+    );
 
     await waitFor(() => {
       const sent = runEcoAudit.mock.calls.at(-1)![0]!;
@@ -633,9 +712,13 @@ describe("Auditoria ambiental", () => {
     expect(sent.transport_legs![1]).toMatchObject({ distance_km: 0 });
 
     // D-220: removed from the row's ⋯, as in any table edited in place.
-    await user.click(screen.getByRole("button", { name: ptBR.ds.rowActions(second) }));
+    await user.click(
+      screen.getByRole("button", { name: ptBR.ds.rowActions(second) }),
+    );
     await user.click(screen.getByRole("menuitem", { name: ptBR.ds.removeRow }));
-    expect(screen.queryByShadowLabelText(t.cellLabel(t.colQuantity, second))).toBeNull();
+    expect(
+      screen.queryByShadowLabelText(t.cellLabel(t.colQuantity, second)),
+    ).toBeNull();
   });
 
   it("marca a rota sem fator no catálogo em vez de escondê-la", async () => {
@@ -650,7 +733,8 @@ describe("Auditoria ambiental", () => {
 
   it("mostra o detalhe por componente com o motivo escrito da ausência", async () => {
     const user = userEvent.setup();
-    const reason = "Dados ausentes: energia_reuso. A rota Reuso fica indisponível";
+    const reason =
+      "Dados ausentes: energia_reuso. A rota Reuso fica indisponível";
     runEcoAudit.mockResolvedValue({
       ...result,
       components: [
@@ -673,7 +757,9 @@ describe("Auditoria ambiental", () => {
     const table = await screen.findByRole("table", { name: t.componentsTitle });
     expect(within(table).getByText("Tampa")).toBeInTheDocument();
     expect(within(table).getAllByText(reason).length).toBeGreaterThan(0);
-    expect(screen.getByRole("table", { name: t.legsTitle })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: t.legsTitle }),
+    ).toBeInTheDocument();
   });
 
   it("leva o nome do material à ficha do registro, não a uma família", async () => {
@@ -720,7 +806,9 @@ describe("Auditoria ambiental", () => {
 
     // Each waterfall has its own "Exportar" (the figure's, D-91); the audit's
     // file menu is the first in reading order.
-    const trigger = screen.getAllByRole("button", { name: ptBR.exports.title })[0]!;
+    const trigger = screen.getAllByRole("button", {
+      name: ptBR.exports.title,
+    })[0]!;
     expect(trigger).toBeEnabled();
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     await user.click(trigger);
@@ -732,14 +820,20 @@ describe("Auditoria ambiental", () => {
       ptBR.exports.pptx,
       ptBR.exports.html,
     ]) {
-      expect(screen.getByRole("menuitem", { name: new RegExp(label) })).toBeInTheDocument();
+      expect(
+        screen.getByRole("menuitem", { name: new RegExp(label) }),
+      ).toBeInTheDocument();
     }
-    await user.click(screen.getByRole("menuitem", { name: new RegExp(ptBR.exports.xlsx) }));
+    await user.click(
+      screen.getByRole("menuitem", { name: new RegExp(ptBR.exports.xlsx) }),
+    );
 
     await waitFor(() => expect(downloadEcoAudit).toHaveBeenCalledTimes(1));
     expect(downloadEcoAudit.mock.calls[0]![1]).toBe("xlsx");
     // O mesmo briefing que o servidor auditou, não o que os campos dizem agora.
-    expect(downloadEcoAudit.mock.calls[0]![0]).toEqual(runEcoAudit.mock.calls[0]![0]);
+    expect(downloadEcoAudit.mock.calls[0]![0]).toEqual(
+      runEcoAudit.mock.calls[0]![0],
+    );
     await waitFor(() => expect(created).toHaveBeenCalled());
     expect(click).toHaveBeenCalled();
     click.mockRestore();
@@ -750,7 +844,13 @@ describe("Auditoria ambiental", () => {
     // tracejado com o motivo escrito, e o total é recusado.
     runEcoAudit.mockResolvedValue({
       ...result,
-      carbon_waterfall: waterfall("carbon", "kg de CO₂", [31.25, null, 0.204, 70, 3.2]),
+      carbon_waterfall: waterfall("carbon", "kg de CO₂", [
+        31.25,
+        null,
+        0.204,
+        70,
+        3.2,
+      ]),
     });
     const user = userEvent.setup();
     await open();
@@ -765,17 +865,24 @@ describe("Auditoria ambiental", () => {
         name: ecoPhaseI18n.waterfall.stepAria("Material", "525 MJ", "525 MJ"),
       }),
     ).toBeInTheDocument();
-    expect(within(energy).getByRole("img", { name: /^Total: 1\.603,2 MJ$/ })).toBeInTheDocument();
+    expect(
+      within(energy).getByRole("img", { name: /^Total: 1\.603,2 MJ$/ }),
+    ).toBeInTheDocument();
 
     const carbon = await screen.findByRole("figure", {
       name: ecoPhaseI18n.waterfall.figureLabel("carbono"),
     });
     expect(
       within(carbon).getByRole("img", {
-        name: ecoPhaseI18n.waterfall.absentAria("Manufatura", "Dados ausentes: x"),
+        name: ecoPhaseI18n.waterfall.absentAria(
+          "Manufatura",
+          "Dados ausentes: x",
+        ),
       }),
     ).toBeInTheDocument();
-    expect(within(carbon).getByRole("img", { name: /^Total: sem dado\./ })).toBeInTheDocument();
+    expect(
+      within(carbon).getByRole("img", { name: /^Total: sem dado\./ }),
+    ).toBeInTheDocument();
   });
 
   it("guarda o produto na URL e o reabre igual", async () => {
@@ -783,8 +890,12 @@ describe("Auditoria ambiental", () => {
     const { unmount } = render(wrap(<EcoPage />));
     await screen.findByRole("heading", { name: t.productStep });
 
-    await user.click(await screen.findByShadowRole("button", { name: t.addComponent }));
-    await user.click(await screen.findByShadowRole("button", { name: t.addLeg }));
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.addComponent }),
+    );
+    await user.click(
+      await screen.findByShadowRole("button", { name: t.addLeg }),
+    );
     // D-220: each cell names its column and its row.
     const second = await screen.findByShadowLabelText(
       new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(2))}`),
@@ -800,14 +911,22 @@ describe("Auditoria ambiental", () => {
     // A fresh render of the same address: the two components and two legs are back.
     render(wrap(<EcoPage />));
     await screen.findByRole("heading", { name: t.productStep });
-    expect(await screen.findAllByShadowLabelText(new RegExp(`^${t.colQuantity}`))).toHaveLength(2);
-    expect(screen.getByShadowLabelText(t.cellLabel(t.colMode, t.legLegend(2)))).toBeInTheDocument();
+    expect(
+      await screen.findAllByShadowLabelText(new RegExp(`^${t.colQuantity}`)),
+    ).toHaveLength(2);
+    expect(
+      screen.getByShadowLabelText(t.cellLabel(t.colMode, t.legLegend(2))),
+    ).toBeInTheDocument();
     // The first line keeps the solver's seed; the second holds what was typed.
     expect(
-      screen.getByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(1))}`)),
+      screen.getByShadowLabelText(
+        new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(1))}`),
+      ),
     ).toHaveValue(2);
     expect(
-      screen.getByShadowLabelText(new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(2))}`)),
+      screen.getByShadowLabelText(
+        new RegExp(`^${t.cellLabel(t.colUnitMass, t.componentLegend(2))}`),
+      ),
     ).toHaveValue(0.5);
   });
 
@@ -816,7 +935,9 @@ describe("Auditoria ambiental", () => {
     await open();
 
     // Back to the defaults: one blank component, individual view.
-    expect(await screen.findAllByShadowLabelText(new RegExp(`^${t.colQuantity}`))).toHaveLength(1);
+    expect(
+      await screen.findAllByShadowLabelText(new RegExp(`^${t.colQuantity}`)),
+    ).toHaveLength(1);
     expect(screen.getByText(t.blocked.mass)).toBeInTheDocument();
   });
 });
@@ -839,8 +960,21 @@ const comparedFixture: EcoComparisonResult = {
     delta_carbon: null,
   })),
   // The server's B − A steps (D-234), written by hand like the audits' waterfalls.
-  energy_difference_waterfall: waterfall("energy", "MJ", [120, -40.5, 0, 300, -3]),
-  carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [12, null, 0, 30, -0.3]),
+  energy_difference_waterfall: waterfall(
+    "energy",
+    "MJ",
+    [120, -40.5, 0, 300, -3],
+  ),
+  carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [
+    12,
+    null,
+    0,
+    30,
+    -0.3,
+  ]),
+  extras: [],
+  lowest_energy: null,
+  lowest_carbon: null,
 };
 
 describe("Auditoria ambiental: cenários A e B (D-216)", () => {
@@ -866,22 +1000,32 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     });
     expect(energy).toBeInTheDocument();
     expect(
-      screen.getByRole("figure", { name: ecoPhaseI18n.waterfall.difference.figureLabel("carbono") }),
+      screen.getByRole("figure", {
+        name: ecoPhaseI18n.waterfall.difference.figureLabel("carbono"),
+      }),
     ).toBeInTheDocument();
     // A step below zero says whose side it favours, in words and not by colour alone.
     expect(
-      within(energy).getByRole("img", { name: /Manufatura: diferença de -40,5 MJ \(B abaixo de A\)/ }),
+      within(energy).getByRole("img", {
+        name: /Manufatura: diferença de -40,5 MJ \(B abaixo de A\)/,
+      }),
     ).toBeInTheDocument();
     expect(
-      within(energy).getByRole("img", { name: /Uso: diferença de 300 MJ \(B acima de A\)/ }),
+      within(energy).getByRole("img", {
+        name: /Uso: diferença de 300 MJ \(B acima de A\)/,
+      }),
     ).toBeInTheDocument();
     // The total bar is the server's (120 − 40,5 + 0 + 300 − 3), not summed here.
-    expect(within(energy).getByRole("img", { name: /Total: 376,5 MJ/ })).toBeInTheDocument();
+    expect(
+      within(energy).getByRole("img", { name: /Total: 376,5 MJ/ }),
+    ).toBeInTheDocument();
     // A phase either side could not compute is a written gap.
     const carbon = screen.getByRole("figure", {
       name: ecoPhaseI18n.waterfall.difference.figureLabel("carbono"),
     });
-    expect(within(carbon).getByRole("img", { name: /Manufatura: sem dado/ })).toBeInTheDocument();
+    expect(
+      within(carbon).getByRole("img", { name: /Manufatura: sem dado/ }),
+    ).toBeInTheDocument();
   });
 
   it("não tem violação de acessibilidade com as cascatas da diferença", async () => {
@@ -901,10 +1045,14 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     const user = userEvent.setup();
     render(wrap(<EcoPage />));
     await screen.findByRole("heading", { name: t.materialA });
-    expect(screen.getByRole("heading", { name: t.materialB })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: t.materialB }),
+    ).toBeInTheDocument();
 
     // The same component twice: two scenarios, two mass fields.
-    const masses = await screen.findAllByShadowLabelText(new RegExp(`^${t.massLabel}`));
+    const masses = await screen.findAllByShadowLabelText(
+      new RegExp(`^${t.massLabel}`),
+    );
     expect(masses).toHaveLength(2);
     expect(masses[0]).toHaveValue(3);
     expect(masses[1]).toHaveValue(4);
@@ -918,21 +1066,122 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     expect(runEcoAudit).not.toHaveBeenCalled();
   });
 
+  it("a terceira alternativa vai no pedido e a cascata C − A é a do servidor (D-251)", async () => {
+    const withC: EcoComparisonResult = {
+      ...compared,
+      extras: [
+        {
+          label: "C",
+          audit: {
+            ...result,
+            material_name: "Cobre Demo C",
+            total_energy: 1500,
+          },
+          delta_energy: -100,
+          delta_energy_percent: -6.25,
+          delta_carbon: null,
+          delta_carbon_percent: null,
+          energy_difference_waterfall: waterfall(
+            "energy",
+            "MJ",
+            [-10, -20, 0, -70, 0],
+          ),
+          carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [
+            1,
+            null,
+            0,
+            3,
+            0,
+          ]),
+        },
+      ],
+      lowest_energy: ["C"],
+      lowest_carbon: null,
+    };
+    compareEcoAudits.mockResolvedValue(withC);
+    setQuery(
+      `modo=compare&a=${encodeUrlJson(scenario("7", "3"))}&extras=${encodeUrlJson([scenario("7", "5")])}`,
+    );
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.alternativeName(3) });
+    await waitFor(() => expect(compareEcoAudits).toHaveBeenCalled());
+    expect(compareEcoAudits.mock.calls[0]![0]).toMatchObject({
+      extra_materials: [{ material_id: 7, process_id: 1, part_mass: 5 }],
+    });
+    // The cascade of C minus A, named in words, with the server's total bar.
+    const figure = await screen.findByRole("figure", {
+      name: differenceFor("C").figureLabel("energia"),
+    });
+    expect(
+      within(figure).getByRole("img", { name: /Total: -100 MJ/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(figure).getByRole("img", {
+        name: /Manufatura: diferença de -20 MJ \(C abaixo de A\)/,
+      }),
+    ).toBeInTheDocument();
+    // The lowest is named for energy; carbon has a gap, so it names nobody.
+    expect(screen.getByText(t.lowestEnergy("Material C"))).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Menor carbono entre todas/),
+    ).not.toBeInTheDocument();
+    // A difference the server could not compute is written, never zero.
+    expect(
+      screen.getByText(/sem diferença \(um dos totais/),
+    ).toBeInTheDocument();
+  });
+
+  it("adiciona e remove uma alternativa, e para na quarta", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.materialA });
+    await user.click(screen.getByRole("button", { name: t.addAlternative }));
+    await screen.findByRole("heading", { name: t.alternativeName(3) });
+    await user.click(screen.getByRole("button", { name: t.addAlternative }));
+    await screen.findByRole("heading", { name: t.alternativeName(4) });
+    expect(
+      screen.queryByRole("button", { name: t.addAlternative }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: t.removeAlternative(t.alternativeName(3)),
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: t.alternativeName(4) }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("heading", { name: t.alternativeName(3) }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: t.addAlternative }),
+    ).toBeInTheDocument();
+  });
+
   it("escreve só o cenário editado na URL, sem tocar no outro", async () => {
     setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
     const user = userEvent.setup();
     render(wrap(<EcoPage />));
-    const masses = await screen.findAllByShadowLabelText(new RegExp(`^${t.massLabel}`));
+    const masses = await screen.findAllByShadowLabelText(
+      new RegExp(`^${t.massLabel}`),
+    );
 
     await user.clear(masses[1]!);
     await user.type(masses[1]!, "6");
 
     const params = new URLSearchParams(window.location.search);
     expect(params.get("modo")).toBe("compare");
-    expect(JSON.parse(atob(params.get("b")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({
+    expect(
+      JSON.parse(atob(params.get("b")!.replace(/-/g, "+").replace(/_/g, "/"))),
+    ).toMatchObject({
       mass: "6",
     });
-    expect(JSON.parse(atob(params.get("a")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({
+    expect(
+      JSON.parse(atob(params.get("a")!.replace(/-/g, "+").replace(/_/g, "/"))),
+    ).toMatchObject({
       mass: "3",
     });
   });
@@ -950,7 +1199,9 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
     expect(within(table).getAllByText(t.noDelta).length).toBeGreaterThan(0);
     // The winners and the premises that fed both scenarios are on screen.
     expect(screen.getByText(t.winnerEnergy)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: ecoPhaseI18n.premises.title })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: ecoPhaseI18n.premises.title }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -965,19 +1216,53 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
         title: "Aumente a fração reciclada",
         body: "Mais material reciclado reduz a energia de produção.",
         actions: [
-          { type: "set_param", label: "fração reciclada: 0,3", name: "recycled_fraction", value: 0.3 },
-          { type: "set_param", label: "fração reciclada: 7", name: "recycled_fraction", value: 7 },
-          { type: "set_param", label: "fim de vida: aterro", name: "end_of_life", value: "aterro" },
-          { type: "set_param", label: "fim de vida: inventado", name: "end_of_life", value: "magia" },
+          {
+            type: "set_param",
+            label: "fração reciclada: 0,3",
+            name: "recycled_fraction",
+            value: 0.3,
+          },
+          {
+            type: "set_param",
+            label: "fração reciclada: 7",
+            name: "recycled_fraction",
+            value: 7,
+          },
+          {
+            type: "set_param",
+            label: "fim de vida: aterro",
+            name: "end_of_life",
+            value: "aterro",
+          },
+          {
+            type: "set_param",
+            label: "fim de vida: inventado",
+            name: "end_of_life",
+            value: "magia",
+          },
         ],
       },
       {
         title: "Encurte o transporte",
         body: "A distância pesa na fase de transporte.",
         actions: [
-          { type: "set_param", label: "distância de transporte: 800", name: "transport_distance_km", value: 800 },
-          { type: "set_param", label: "massa da peça: 3", name: "part_mass", value: 3 },
-          { type: "open_route", label: "Ver a ficha do material", path: "/app/materiais/7" },
+          {
+            type: "set_param",
+            label: "distância de transporte: 800",
+            name: "transport_distance_km",
+            value: 800,
+          },
+          {
+            type: "set_param",
+            label: "massa da peça: 3",
+            name: "part_mass",
+            value: 3,
+          },
+          {
+            type: "open_route",
+            label: "Ver a ficha do material",
+            path: "/app/materiais/7",
+          },
         ],
       },
     ],
@@ -1012,60 +1297,105 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     await user.click(screen.getByRole("button", { name: suggestText.button }));
     await screen.findByText("Aumente a fração reciclada");
     expect(suggest.fn).toHaveBeenCalledTimes(1);
-    expect(suggest.fn).toHaveBeenCalledWith("eco", { request: runEcoAudit.mock.calls[0]![0] });
-    expect(screen.getByRole("link", { name: "Ver a ficha do material" })).toHaveAttribute(
-      "href",
-      "/app/materiais/7",
-    );
+    expect(suggest.fn).toHaveBeenCalledWith("eco", {
+      request: runEcoAudit.mock.calls[0]![0],
+    });
+    expect(
+      screen.getByRole("link", { name: "Ver a ficha do material" }),
+    ).toHaveAttribute("href", "/app/materiais/7");
   });
 
   it("aplica a fração, a rota e a distância no endereço, e a auditoria acompanha", async () => {
     const user = await ask();
     // A value outside the field's range, an unknown route and a field this
     // screen does not have are not buttons.
-    expect(screen.queryByRole("button", { name: "fração reciclada: 7" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "fim de vida: inventado" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "fração reciclada: 7" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "fim de vida: inventado" }),
+    ).toBeNull();
     // Nothing changed by the answer arriving.
     expect(runEcoAudit).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole("button", { name: "fração reciclada: 0,3" }));
+    await user.click(
+      screen.getByRole("button", { name: "fração reciclada: 0,3" }),
+    );
     const recycled = await screen.findByShadowLabelText(
       new RegExp(`^${t.cellLabel(t.colRecycled, t.componentLegend(1))}`),
     );
     await waitFor(() => expect(recycled).toHaveValue(0.3));
-    await waitFor(() => expect(recycled).toHaveAttribute("data-ai-changed", "true"));
     await waitFor(() =>
-      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ recycled_fraction: 0.3 }),
+      expect(recycled).toHaveAttribute("data-ai-changed", "true"),
+    );
+    await waitFor(() =>
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({
+        recycled_fraction: 0.3,
+      }),
     );
 
-    await user.click(screen.getByRole("button", { name: "fim de vida: aterro" }));
-    await waitFor(() =>
-      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ end_of_life: "aterro" }),
+    await user.click(
+      screen.getByRole("button", { name: "fim de vida: aterro" }),
     );
-    await user.click(screen.getByRole("button", { name: "distância de transporte: 800" }));
     await waitFor(() =>
-      expect(runEcoAudit.mock.calls.at(-1)![0].transport_legs![0]).toMatchObject({ distance_km: 800 }),
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({
+        end_of_life: "aterro",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "distância de transporte: 800" }),
+    );
+    await waitFor(() =>
+      expect(
+        runEcoAudit.mock.calls.at(-1)![0].transport_legs![0],
+      ).toMatchObject({ distance_km: 800 }),
     );
     // D-234: a product of ONE component takes the mass of its part.
     await user.click(screen.getByRole("button", { name: "massa da peça: 3" }));
     await waitFor(() =>
-      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({ unit_mass: 3 }),
+      expect(runEcoAudit.mock.calls.at(-1)![0].components![0]).toMatchObject({
+        unit_mass: 3,
+      }),
     );
   });
 
   it("um parâmetro de produto vale para todos os componentes, sem deixar linha para trás", async () => {
     const componentes = encodeUrlJson([
-      { name: "tampa", material: "7", process: "1", mass: "2", quantity: "1", recycled: "0", endOfLife: "reciclagem" },
-      { name: "corpo", material: "7", process: "1", mass: "3", quantity: "1", recycled: "0.1", endOfLife: "reciclagem" },
+      {
+        name: "tampa",
+        material: "7",
+        process: "1",
+        mass: "2",
+        quantity: "1",
+        recycled: "0",
+        endOfLife: "reciclagem",
+      },
+      {
+        name: "corpo",
+        material: "7",
+        process: "1",
+        mass: "3",
+        quantity: "1",
+        recycled: "0.1",
+        endOfLife: "reciclagem",
+      },
     ]);
     setQuery(`componentes=${componentes}`);
     const user = await ask();
-    await user.click(screen.getByRole("button", { name: "fração reciclada: 0,3" }));
+    await user.click(
+      screen.getByRole("button", { name: "fração reciclada: 0,3" }),
+    );
     await waitFor(() =>
-      expect(runEcoAudit.mock.calls.at(-1)![0].components!.map((c) => c.recycled_fraction)).toEqual([0.3, 0.3]),
+      expect(
+        runEcoAudit.mock.calls
+          .at(-1)![0]
+          .components!.map((c) => c.recycled_fraction),
+      ).toEqual([0.3, 0.3]),
     );
     // With two components "a massa da peça" has no single meaning: not offered.
-    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "massa da peça: 3" }),
+    ).toBeNull();
   });
 
   it("na comparação A × B pede ao servidor o pedido da comparação e aplica o lado certo (D-234)", async () => {
@@ -1084,10 +1414,34 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
           title: "Aproxime as massas",
           body: "Uma peça B mais leve aproxima as alternativas.",
           actions: [
-            { type: "set_param", label: "massa da peça B: 2,5 (sugestão da IA, revise)", name: "material_b.part_mass", value: 2.5, origin: "sugestao_ia" },
-            { type: "set_param", label: "fração reciclada de A: 0,3", name: "material_a.recycled_fraction", value: 0.3, origin: "contexto" },
-            { type: "set_param", label: "fim de vida de B: aterro", name: "material_b.end_of_life", value: "aterro", origin: "contexto" },
-            { type: "set_param", label: "massa da peça: 3", name: "part_mass", value: 3, origin: "contexto" },
+            {
+              type: "set_param",
+              label: "massa da peça B: 2,5 (sugestão da IA, revise)",
+              name: "material_b.part_mass",
+              value: 2.5,
+              origin: "sugestao_ia",
+            },
+            {
+              type: "set_param",
+              label: "fração reciclada de A: 0,3",
+              name: "material_a.recycled_fraction",
+              value: 0.3,
+              origin: "contexto",
+            },
+            {
+              type: "set_param",
+              label: "fim de vida de B: aterro",
+              name: "material_b.end_of_life",
+              value: "aterro",
+              origin: "contexto",
+            },
+            {
+              type: "set_param",
+              label: "massa da peça: 3",
+              name: "part_mass",
+              value: 3,
+              origin: "contexto",
+            },
           ],
         },
       ],
@@ -1101,27 +1455,58 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     await user.click(screen.getByRole("button", { name: suggestText.button }));
     await screen.findByText("Aproxime as massas");
     // The brief the comparison answers, never its numbers.
-    expect(suggest.fn).toHaveBeenCalledWith("eco", { comparison: compareEcoAudits.mock.calls[0]![0] });
+    expect(suggest.fn).toHaveBeenCalledWith("eco", {
+      comparison: compareEcoAudits.mock.calls[0]![0],
+    });
     // The audit's own name is not a field of the comparison.
-    expect(screen.queryByRole("button", { name: "massa da peça: 3" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "massa da peça: 3" }),
+    ).toBeNull();
 
     // A number the model chose waits for the yes.
-    await user.click(screen.getByRole("button", { name: /massa da peça B: 2,5/ }));
-    expect(screen.getByRole("dialog", { name: suggestText.confirmTitle })).toBeInTheDocument();
-    expect(JSON.parse(atob(new URLSearchParams(window.location.search).get("b")!.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({ mass: "4" });
-    await user.click(screen.getByRole("button", { name: suggestText.confirmAction }));
-    await waitFor(() =>
-      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({ part_mass: 2.5 }),
+    await user.click(
+      screen.getByRole("button", { name: /massa da peça B: 2,5/ }),
     );
-    expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({ part_mass: 3 });
+    expect(
+      screen.getByRole("dialog", { name: suggestText.confirmTitle }),
+    ).toBeInTheDocument();
+    expect(
+      JSON.parse(
+        atob(
+          new URLSearchParams(window.location.search)
+            .get("b")!
+            .replace(/-/g, "+")
+            .replace(/_/g, "/"),
+        ),
+      ),
+    ).toMatchObject({ mass: "4" });
+    await user.click(
+      screen.getByRole("button", { name: suggestText.confirmAction }),
+    );
+    await waitFor(() =>
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({
+        part_mass: 2.5,
+      }),
+    );
+    expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({
+      part_mass: 3,
+    });
 
-    await user.click(screen.getByRole("button", { name: "fração reciclada de A: 0,3" }));
-    await waitFor(() =>
-      expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({ recycled_fraction: 0.3 }),
+    await user.click(
+      screen.getByRole("button", { name: "fração reciclada de A: 0,3" }),
     );
-    await user.click(screen.getByRole("button", { name: "fim de vida de B: aterro" }));
     await waitFor(() =>
-      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({ end_of_life: "aterro" }),
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_a).toMatchObject({
+        recycled_fraction: 0.3,
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "fim de vida de B: aterro" }),
+    );
+    await waitFor(() =>
+      expect(compareEcoAudits.mock.calls.at(-1)![0].material_b).toMatchObject({
+        end_of_life: "aterro",
+      }),
     );
   });
 
@@ -1134,7 +1519,13 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
           title: "Aproxime as massas",
           body: "Uma peça B mais leve.",
           actions: [
-            { type: "set_param", label: "massa da peça B: 2,5 (sugestão da IA, revise)", name: "material_b.part_mass", value: 2.5, origin: "sugestao_ia" },
+            {
+              type: "set_param",
+              label: "massa da peça B: 2,5 (sugestão da IA, revise)",
+              name: "material_b.part_mass",
+              value: 2.5,
+              origin: "sugestao_ia",
+            },
           ],
         },
       ],
@@ -1147,7 +1538,9 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
     await waitFor(() => expect(compareEcoAudits).toHaveBeenCalled());
     const calls = compareEcoAudits.mock.calls.length;
     await user.click(screen.getByRole("button", { name: suggestText.button }));
-    await user.click(await screen.findByRole("button", { name: /massa da peça B: 2,5/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /massa da peça B: 2,5/ }),
+    );
     await user.click(screen.getByRole("button", { name: ptBR.actions.cancel }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(compareEcoAudits.mock.calls.length).toBe(calls);
@@ -1156,7 +1549,9 @@ describe("Auditoria ambiental — Sugestão da IA (D-230b)", () => {
   it("sem a massa não há o que perguntar", async () => {
     setQuery("");
     await open();
-    expect(screen.getByRole("button", { name: suggestText.button })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: suggestText.button }),
+    ).toBeDisabled();
     expect(screen.getByText(suggestText.needsBrief)).toBeInTheDocument();
   });
 

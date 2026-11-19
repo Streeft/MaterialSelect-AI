@@ -1374,6 +1374,18 @@ export const ptBR = {
     compareTitle: "Comparação lado a lado",
     materialA: "Material A",
     materialB: "Material B",
+    // D-251: alternatives beyond B, each measured against A.
+    alternativeName: (position: number) => `Material ${"ABCD"[position - 1] ?? position}`,
+    addAlternative: "Adicionar outra alternativa",
+    addAlternativeHint:
+      "Até quatro alternativas; a diferença de cada uma é sempre contra o material A.",
+    removeAlternative: (name: string) => `Remover ${name}`,
+    extrasTitle: "Alternativas além de A e B",
+    extraAgainstA: (name: string, material: string) => `${name} — ${material}, contra A`,
+    extraTotals: "Totais e diferença contra A",
+    extraNoDelta: "sem diferença (um dos totais não foi calculado)",
+    lowestEnergy: (names: string) => `Menor energia entre todas: ${names}`,
+    lowestCarbon: (names: string) => `Menor carbono entre todas: ${names}`,
     sharedPremises: "Premissas compartilhadas (transporte e uso)",
     deltaEnergy: "Diferença em energia",
     deltaCarbon: "Diferença em carbono",

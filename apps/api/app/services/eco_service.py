@@ -50,6 +50,7 @@ from app.schemas.eco import (
     EcoComparisonRequest,
     EcoComparisonResultOut,
     EcoComponentIn,
+    EcoExtraAlternativeOut,
     EndOfLifeRouteOut,
     PartFootprintOut,
     PhaseDeltaOut,
@@ -64,6 +65,22 @@ from app.schemas.eco import (
 def _difference(a: float | None, b: float | None) -> float | None:
     """B minus A, or ``None`` when either is unknown (an absence is not a zero)."""
     return None if a is None or b is None else b - a
+
+
+def _percent(base: float | None, delta: float | None) -> float | None:
+    """``delta`` as a percentage of ``base``; ``None`` when either is unknown."""
+    if base is None or delta is None:
+        return None
+    return round(delta / base * 100.0, 2) if base > 0 else 0.0
+
+
+def _lowest(labels: list[str], totals: list[float | None]) -> list[str] | None:
+    """Labels holding the lowest total (ties within 1e-4), or ``None`` with any gap."""
+    if any(total is None for total in totals):
+        return None
+    known = [total for total in totals if total is not None]
+    best = min(known)
+    return [label for label, total in zip(labels, known, strict=True) if total - best < 1e-4]
 
 
 class EcoService:
@@ -400,27 +417,60 @@ class EcoService:
 
     # --- comparison -------------------------------------------------------
 
+    @staticmethod
+    def _audit_request(side, request: EcoComparisonRequest) -> EcoAuditRequest:
+        """One alternative of a comparison as an audit; transport and use are shared."""
+        return EcoAuditRequest(
+            material_id=side.material_id,
+            process_id=side.process_id,
+            part_mass=side.part_mass,
+            recycled_fraction=side.recycled_fraction,
+            transport_mode=request.transport_mode,
+            transport_distance_km=request.transport_distance_km,
+            use=request.use,
+            end_of_life=side.end_of_life,
+        )
+
+    def _extra_alternative(
+        self, label: str, audit: EcoAuditResultOut, base: EcoAuditResultOut
+    ) -> EcoExtraAlternativeOut:
+        """``audit`` against ``base`` (A): differences and the two cascades (D-251)."""
+        delta_energy = _difference(base.total_energy, audit.total_energy)
+        delta_carbon = _difference(base.total_carbon, audit.total_carbon)
+        return EcoExtraAlternativeOut(
+            label=label,
+            audit=audit,
+            delta_energy=None if delta_energy is None else round(delta_energy, 4),
+            delta_energy_percent=_percent(base.total_energy, delta_energy),
+            delta_carbon=None if delta_carbon is None else round(delta_carbon, 4),
+            delta_carbon_percent=_percent(base.total_carbon, delta_carbon),
+            energy_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    base.phases,
+                    audit.phases,
+                    "energy",
+                    base.energy_unit,
+                    base.total_energy,
+                    audit.total_energy,
+                    label_b=label,
+                )
+            ),
+            carbon_difference_waterfall=self._waterfall_out(
+                build_difference_waterfall(
+                    base.phases,
+                    audit.phases,
+                    "carbon",
+                    base.carbon_unit,
+                    base.total_carbon,
+                    audit.total_carbon,
+                    label_b=label,
+                )
+            ),
+        )
+
     def compare(self, request: EcoComparisonRequest) -> EcoComparisonResultOut:
-        req_a = EcoAuditRequest(
-            material_id=request.material_a.material_id,
-            process_id=request.material_a.process_id,
-            part_mass=request.material_a.part_mass,
-            recycled_fraction=request.material_a.recycled_fraction,
-            transport_mode=request.transport_mode,
-            transport_distance_km=request.transport_distance_km,
-            use=request.use,
-            end_of_life=request.material_a.end_of_life,
-        )
-        req_b = EcoAuditRequest(
-            material_id=request.material_b.material_id,
-            process_id=request.material_b.process_id,
-            part_mass=request.material_b.part_mass,
-            recycled_fraction=request.material_b.recycled_fraction,
-            transport_mode=request.transport_mode,
-            transport_distance_km=request.transport_distance_km,
-            use=request.use,
-            end_of_life=request.material_b.end_of_life,
-        )
+        req_a = self._audit_request(request.material_a, request)
+        req_b = self._audit_request(request.material_b, request)
         res_a = self.run(req_a)
         res_b = self.run(req_b)
 
@@ -472,6 +522,18 @@ class EcoService:
             for pa, pb in zip(res_a.phases, res_b.phases, strict=True)
         ]
 
+        # Alternatives beyond B (D-251): each is measured against A, and the lowest
+        # total is named over all of them — only when every total exists.
+        extra_results = [
+            self.run(self._audit_request(side, request)) for side in request.extra_materials
+        ]
+        labels = ["A", "B", *("CD"[index] for index in range(len(extra_results)))]
+        audits = [res_a, res_b, *extra_results]
+        extras = [
+            self._extra_alternative(label, audit, res_a)
+            for label, audit in zip(labels[2:], extra_results, strict=True)
+        ]
+
         return EcoComparisonResultOut(
             material_a=res_a,
             material_b=res_b,
@@ -501,6 +563,13 @@ class EcoService:
                     res_a.total_carbon,
                     res_b.total_carbon,
                 )
+            ),
+            extras=extras,
+            lowest_energy=(
+                _lowest(labels, [audit.total_energy for audit in audits]) if extras else None
+            ),
+            lowest_carbon=(
+                _lowest(labels, [audit.total_carbon for audit in audits]) if extras else None
             ),
         )
 
