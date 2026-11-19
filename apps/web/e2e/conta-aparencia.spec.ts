@@ -24,13 +24,14 @@ test("aparência: a escolha vai para a conta e vale num aparelho sem nada guarda
 
   await page.getByRole("radio", { name: "Violeta" }).click();
   await page.getByRole("group", { name: "Contraste" }).getByRole("button", { name: "Alto" }).click();
-  await expect(page.getByText("Guardado na sua conta: vale em todos os aparelhos em que você entrar.")).toBeVisible({
-    timeout: 30_000,
-  });
 
-  // O servidor tem a escolha, inteira.
-  const stored = (await (await page.request.get(`${API}/api/me/appearance`)).json()) as Record<string, unknown>;
-  expect(stored).toMatchObject({ color: "violeta", contrast: "high", motion: "standard", rail: "dark", saved: true });
+  // O servidor tem a escolha, inteira (a escrita sai depois de uma pausa curta, juntando os cliques).
+  await expect
+    .poll(async () => (await (await page.request.get(`${API}/api/me/appearance`)).json()) as Record<string, unknown>, {
+      timeout: 30_000,
+    })
+    .toMatchObject({ color: "violeta", contrast: "high", motion: "standard", rail: "dark", saved: true });
+  await expect(page.getByText("Guardado na sua conta: vale em todos os aparelhos em que você entrar.")).toBeVisible();
 
   // "Outro aparelho": nada guardado no navegador; ao entrar, a conta decide.
   await page.evaluate((key) => window.localStorage.removeItem(key), KEY);

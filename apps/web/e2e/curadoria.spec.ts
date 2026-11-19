@@ -248,7 +248,7 @@ test("admin/fontes: o curador cria, mescla e apaga fontes, com confirmação e D
     await expect(dialog.getByText("Informe o rótulo da fonte.")).toBeVisible();
     await expect(dialog.getByText("Informe a licença ou a procedência da fonte.")).toBeVisible();
     await dialog.getByLabel(/^Rótulo/).fill(label);
-    await dialog.getByLabel(/^Licença$/).fill("Uso autorizado de teste");
+    await dialog.getByLabel(/^Licença/).fill("Uso autorizado de teste");
     await dialog.getByRole("button", { name: "Cadastrar fonte" }).click();
     await expect(page.getByText(`Fonte «${label}» cadastrada.`)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("rowheader", { name: new RegExp(label) })).toBeVisible();
@@ -262,14 +262,32 @@ test("admin/fontes: o curador cria, mescla e apaga fontes, com confirmação e D
   await page.getByRole("button", { name: "Nova fonte" }).click();
   const again = page.getByRole("dialog", { name: "Nova fonte" });
   await again.getByLabel(/^Rótulo/).fill(from);
-  await again.getByLabel(/^Licença$/).fill("Uso autorizado de teste");
+  await again.getByLabel(/^Licença/).fill("Uso autorizado de teste");
   await again.getByRole("button", { name: "Cadastrar fonte" }).click();
   await expect(again.getByRole("alert")).toContainText("Já existe uma fonte com o rótulo");
   await again.getByRole("button", { name: "Cancelar" }).click();
 
   // Uma fonte citada não se apaga: o servidor recusa e diz o que a cita; aqui, nem o botão existe.
-  const cited = (await listed()).find((s) => s.citations > 0)!;
-  await expect(page.getByRole("button", { name: `Apagar a fonte ${cited.label}` })).toHaveCount(0);
+  // A fonte citada nasce de um registro próprio com um valor que a cita (as do demo não contam: não se apagam por aqui).
+  const citedLabel = `Fonte E2E citada ${stamp}`;
+  const classes = (await (await page.request.get(`${API}/api/classes`)).json()) as { id: number }[];
+  const material = await page.request.post(`${API}/api/materials`, {
+    data: {
+      name: `Material E2E das fontes ${stamp}`,
+      class_id: classes[0]!.id,
+      description: "Registro próprio para citar uma fonte.",
+      keywords: [],
+      values: [
+        { property_slug: "densidade", kind: "scalar", value: 2.5, unit: "g/cm**3", source_label: citedLabel },
+      ],
+    },
+  });
+  expect(material.ok(), await material.text()).toBe(true);
+  const cited = (await listed()).find((s) => s.label === citedLabel)!;
+  expect(cited.citations).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.getByRole("rowheader", { name: new RegExp(citedLabel) })).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("button", { name: `Apagar a fonte ${citedLabel}` })).toHaveCount(0);
   const refused = await page.request.delete(`${API}/api/sources/${cited.id}`);
   expect(refused.status()).toBe(409);
   expect(((await refused.json()) as { detail: string }).detail).toMatch(/Mescle-a em outra fonte/);
