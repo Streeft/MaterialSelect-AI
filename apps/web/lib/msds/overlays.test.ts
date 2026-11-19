@@ -59,7 +59,17 @@ describe("containers and overlays on the M3 roles (D-136)", () => {
   });
 
   it("menu items answer hover with the veil, not a colour change", () => {
-    expect(css).toContain(".msds-menu-item:hover:not(:disabled) { background: rgb(var(--m3-on-surface) / var(--state-hover)); }");
+    // D-252b: the veil, plus the vertical menu's shape morph to CornerMedium.
+    expect(css).toContain(
+      ".msds-menu-item:hover:not(:disabled) { background: rgb(var(--m3-on-surface) / var(--state-hover)); border-radius: var(--shape-medium); }",
+    );
+  });
+
+  it("the menu is the M3 vertical menu, and the current choice is tertiary-container (D-252b)", () => {
+    expect(rule(".msds-menu")).toContain("--m3-surface-container-low");
+    expect(rule(".msds-menu")).toContain("var(--shape-large)");
+    expect(css).toContain('.msds-menu-item[aria-checked="true"]');
+    expect(css).toContain("--m3-tertiary-container");
   });
 
   it("snackbar and tooltip are inverse-surface", () => {

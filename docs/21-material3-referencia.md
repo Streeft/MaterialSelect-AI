@@ -76,6 +76,13 @@ display, headline, body e *title-large*; 500 em *title-medium/small* e em todo l
 Existe um segundo conjunto, **enfatizado** (15 estilos, mais pesados), para estado selecionado,
 não lido e ação principal. Os componentes não o usam por padrão.
 
+**Enfatizado (adotado na D-252b).** Mesmo tamanho, linha e espaçamento do de base; só o peso sobe:
+**500** em display, headline, *title-large* e body; **700** em *title-medium/small* e em todo label.
+Fonte: `TypeScaleTokens.kt` (androidx-main, Compose), lido em 19/11/26, e a página *Styles ›
+Typography › Type scale & tokens* ("15 baseline and 15 emphasized"). No app: `text-m3-*-emphasized`;
+a aba e o assento do grupo conectado escolhidos usam o peso enfatizado do seu papel, com a largura
+reservada (`.m3-emph-label`), e o item escolhido do menu vertical usa o de *body-large*.
+
 **Decisão do autor (16/10):** o app adota os **15 nomes** com os **tamanhos compactos que já
 usa** (a tabela acima é a referência, não o alvo): tabelas e mapas densos não cabem com
 `display-large` de 57 px. Fonte: Public Sans (o M3 usa Roboto por padrão e admite trocá-la).
@@ -163,3 +170,55 @@ M3 e vivem em `lib/design/iconGestures.ts` (D-248).
 | Molas como `linear()`, ícones animados, forma que responde (*shape morph*) e indicador que estica | Molas só como `cubic-bezier`; ícones parados; raio por JS só ao pressionar; indicador por item | `--m3-spring-expressive-*-linear` sob `@supports`, `data-gesture` em todo ícone, raio no hover e ao pressionar no `msds.css`, `SlidingIndicator` (D-248). Fonte: *Styles › Motion › Overview/Specs*, *Styles › Icons*, *Components › Buttons/Icon buttons/Navigation rail/Tabs* e `ExpressiveMotionTokens.kt`, lidos em 19/11/26. |
 | Alvo de toque (*target size*) | Botões de 32 px e chips sem área mínima no toque | `--target-min: 44px` e área invisível de `max(100%, 44px)` em ponteiro grosso; o desenho não muda (D-206). Fonte: *Foundations › Accessible design › Target sizes* e *Components › Icon buttons*, lidas em 11/11/26. |
 | *Filter chips*, *side sheet* modal e *small top app bar* | Filtros em cartão; prévia só no catálogo; busca larga com "Ctrl K" também no celular | `FilterBar` em chips com folha inferior no celular, `SidePeek` (folha lateral modal) e barra do topo com o nome da tela e a busca como ícone abaixo de `lg` (D-206). Fonte: *Components › Chips*, *Side sheets* e *Top app bar*, lidas em 11/11/26. |
+
+## Menu vertical e lista segmentada (M3 Expressive, adotados na D-252b)
+
+**Menu vertical** (*Components › Menus*, atualização de novembro de 2025; `SegmentedMenuTokens.kt`,
+estilo de cor *standard* em `StandardMenuTokens.kt`, lidos em 19/11/26): contêiner em
+`surface-container-low`, raio `large` (16), elevação 2, 4 dp de enchimento e 2 dp entre itens; item
+com raio `extra-small` (4), o primeiro e o último com `medium` (12) no lado de fora; hover e foco
+mudam o item para `medium`; o item **escolhido** fica em `tertiary-container` / `on-tertiary-container`
+com raio `medium`. Altura do item no M3: 44 dp; o app mantém a altura compacta (como na tipografia).
+O estilo *vibrant* (contêiner `tertiary-container`) não é adotado: cor de destaque fica para a escolha.
+
+**Lista segmentada** (*Components › Lists*, atualização de dezembro de 2025; `ListTokens.kt`): cada
+item é um segmento em `surface`, 2 dp de vão, raio `extra-small` (4), as pontas da lista em `large`
+(16); hover/foco `medium` (12); escolhido em `secondary-container` com raio `large`. No app o fundo da
+página faz o papel do `surface-container`, então o segmento é `surface-container-lowest`.
+
+## Inventário do site contra o app (19/11/2026)
+
+Leitura completa dos índices de `m3.material.io/components`, `/foundations` e `/styles` (Chromium,
+JavaScript ligado) e da seção "M3 Expressive update" de cada componente. **38 componentes:**
+
+| Componente M3 | No app | Situação |
+|---|---|---|
+| App bars, Toolbars (docked e floating) | `appBars`, `.m3-floating-toolbar`, `SheetActions` | Adotado (D-184, D-197, D-206) |
+| Badges (contagem/ponto em item de navegação) | `Badge` é selo de estado, não contagem | Não adotado: nenhum item da barra tem contagem a mostrar |
+| Buttons, Icon buttons, Split button | `Button`, `IconButton`, `SplitButton` | Adotado (D-134, D-186, D-248) |
+| Button groups (standard e connected) | `ButtonGroup` = grupo conectado | Adotado (D-183); escolhido com peso enfatizado (D-252b) |
+| Segmented buttons | Substituídos pelo grupo conectado, como o M3 manda | Adotado (D-183) |
+| FAB, Extended FAB, FAB menu | `FabMenu` | Adotado (D-195); FAB estendido não tem uso (um só "Novo") |
+| Cards, Carousel | `Card`, `Carousel` (MSDS) | Adotado (D-136) |
+| Checkbox, Radio button, Switch, Sliders | `Field`, `Switch`, `Slider` | Adotado (D-135) |
+| Chips | `FilterBar`, `ToggleChip`, `RemovableChip` | Adotado (D-206) |
+| Date pickers, Time pickers | `DatePicker`/`TimePicker` no MSDS; formulários usam o `<input type="date">` nativo | Mantido o nativo: acessível, localizado pelo navegador, e a data é rara no app (fonte, laudo) |
+| Dialogs, Bottom sheets, Side sheets | `Dialog`, `BottomSheet`, `SidePeek` | Adotado (D-136, D-197, D-206) |
+| Divider | `.msds-divider` | Adotado |
+| Lists | `.msds-list`; **lista segmentada** `.m3-list-segmented` | Adotado; segmentada na D-252b |
+| Loading indicator, Progress indicators | `LoadingIndicator`, `LinearProgress`, `CircularProgress` | Adotado; **onda (wavy) não adotada** (opcional no M3; ver TODO) |
+| Menus | `MenuButton`/`MenuItem`, agora **menu vertical** com item escolhido | Adotado na D-252b |
+| Navigation bar, drawer, rail | `AppSidebar` (trilho/gaveta), barra inferior | Adotado (D-37, D-137) |
+| Scroll fields | — | Não adotado: só existe no Compose; a entrada numérica do app é campo com unidade |
+| Search | `GlobalSearch`, `CommandPalette` | Adotado (D-129) |
+| Snackbar, Tooltips | `Snackbar`, `Tooltip` | Adotado (D-130, D-136) |
+| Tabs | `Tabs` com indicador que desliza | Adotado (D-137, D-248); aba ativa com peso enfatizado (D-252b) |
+| Text fields | `Field` contornado | Adotado (D-135) |
+
+**Fundações e estilos:** cor (papéis, contraste, cor dinâmica escolhida pela pessoa), tipografia
+(15 de base e, desde a D-252b, 15 enfatizados), forma (escala completa e forma que responde), elevação,
+movimento (molas expressivas), estados, layout (*breakpoints*, layouts canônicos, *scaffold*), alvo
+de toque e ícones animados estão adotados (D-133 a D-137, D-181 a D-183, D-196, D-206, D-248). Não
+adotados de propósito: a **biblioteca de 35 formas** decorativas (sem papel numa ferramenta de dados),
+o espelhamento **RTL** (o app é só pt-BR) e as diretrizes de relógio, XR e TV.
+

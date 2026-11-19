@@ -536,6 +536,11 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ---
 
+**Material 3 — o que ficou de fora da D-252b.** ▁ A onda (*wavy*) dos indicadores de progresso linear e circular, que o M3
+deixa opcional "para mais expressividade": candidata às esperas longas (importação, ingestão), nunca às curtas, que já têm o
+`LoadingIndicator`. O primeiro menu de escolha do app (ordenar, unidade) deve usar `MenuItem selected`, que hoje só aparece na
+vitrine. Outras listas de registros podem passar à `.m3-list-segmented` quando forem revistas.
+
 ## Baixa prioridade
 
 **Material 3 Expressive — o que a D-248 deixou de fora.** ▃ (a) Morph de caminho SVG (`d: path()`) e a biblioteca de 35 formas do

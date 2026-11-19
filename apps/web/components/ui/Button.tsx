@@ -398,7 +398,11 @@ export function ButtonGroupItem({
           {icon}
         </span>
       ) : null}
-      {label ? <span>{label}</span> : null}
+      {label ? (
+        <span className="m3-emph-label" data-text={label}>
+          {label}
+        </span>
+      ) : null}
     </button>
   );
 }

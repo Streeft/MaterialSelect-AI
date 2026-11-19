@@ -534,13 +534,29 @@ body {
 .msds-menu-trigger { appearance: none; border: 1px solid rgb(var(--border-control)); background: var(--surface-200); color: rgb(var(--ink));
   border-radius: var(--radius-control); padding: 8px 12px; font: 500 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .msds-menu-trigger:hover { border-color: rgb(var(--accent)); }
-.msds-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; margin: 0; padding: 6px; list-style: none;
-  min-width: 180px; background: rgb(var(--m3-surface-container)); border-radius: var(--shape-extra-small);
+/* D-252b: the M3 Expressive vertical menu (SegmentedMenuTokens, standard colour
+   style): container on surface-container-low at CornerLarge (16), 4 px group
+   padding, items at CornerExtraSmall (4) with the first and last at
+   CornerMedium (12), and the current choice on tertiary-container at
+   CornerMedium. Heights stay compact like the type scale (doc 21). */
+.msds-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; margin: 0; padding: 4px; list-style: none;
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 180px; background: rgb(var(--m3-surface-container-low)); border-radius: var(--shape-large);
   box-shadow: var(--elevation-2); animation: msds-fade-in 120ms var(--msds-ease-out) both; }
 .msds-menu-item { width: 100%; display: flex; align-items: center; gap: 8px; appearance: none; border: none; background: none;
-  text-align: left; padding: 8px 10px; border-radius: var(--radius-seat); font-size: 13px; color: rgb(var(--ink)); cursor: pointer; white-space: nowrap; }
-.msds-menu-item:hover:not(:disabled) { background: rgb(var(--m3-on-surface) / var(--state-hover)); }
-.msds-menu-item:focus-visible { background: rgb(var(--m3-on-surface) / var(--state-focus)); outline: none; }
+  text-align: left; padding: 8px 12px; border-radius: var(--shape-extra-small); font-size: 13px; color: rgb(var(--ink)); cursor: pointer; white-space: nowrap;
+  transition: border-radius var(--motion-spatial-fast-dur, 150ms) var(--motion-spatial-fast, ease),
+    background-color var(--motion-effects-fast-dur, 150ms) var(--motion-effects-fast, ease); }
+.msds-menu > :first-child .msds-menu-item, .msds-menu > .msds-menu-item:first-child {
+  border-top-left-radius: var(--shape-medium); border-top-right-radius: var(--shape-medium); }
+.msds-menu > :last-child .msds-menu-item, .msds-menu > .msds-menu-item:last-child {
+  border-bottom-left-radius: var(--shape-medium); border-bottom-right-radius: var(--shape-medium); }
+.msds-menu-item:hover:not(:disabled) { background: rgb(var(--m3-on-surface) / var(--state-hover)); border-radius: var(--shape-medium); }
+.msds-menu-item:focus-visible { background: rgb(var(--m3-on-surface) / var(--state-focus)); outline: none; border-radius: var(--shape-medium); }
+.msds-menu-item[aria-checked="true"],
+.msds-menu-item[aria-checked="true"]:hover:not(:disabled) {
+  background: rgb(var(--m3-tertiary-container)); color: rgb(var(--m3-on-tertiary-container));
+  border-radius: var(--shape-medium); font-weight: 500; /* body-large emphasized */ }
 .msds-menu-item:disabled { color: rgb(var(--ink-subtle)); cursor: not-allowed; }
 .msds-menu-icon { display: flex; color: rgb(var(--ink-subtle)); flex: none; }
 

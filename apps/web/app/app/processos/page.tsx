@@ -578,7 +578,8 @@ function ProcessLines({
   rootOf: Map<string, ProcessClass>;
 }) {
   return (
-    <ul className="divide-y divide-line-divider rounded-card border border-line bg-panel">
+    // D-252b: the M3 Expressive segmented list — each process its own segment.
+    <ul className="m3-list-segmented">
       {processes.map((process) => (
         // The checkbox sits beside the link, never inside it: a control
         // nested in a link is the axe `nested-interactive` failure.

@@ -190,6 +190,25 @@ const config: Config = {
         "m3-label-large": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500", letterSpacing: "0.007em" }],
         "m3-label-medium": ["0.75rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.042em" }],
         "m3-label-small": ["0.6875rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.045em" }],
+        // D-252b: the 15 emphasized styles of M3 Expressive. Same size, line
+        // height and tracking as the baseline; only the weight moves —
+        // display, headline, title-large and body to 500, title-medium,
+        // title-small and label to 700 (TypeScaleTokens.kt, androidx-main).
+        "m3-display-large-emphasized": ["1.75rem", { lineHeight: "2.25rem", fontWeight: "500", letterSpacing: "-0.01em" }],
+        "m3-display-medium-emphasized": ["1.5rem", { lineHeight: "2rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-display-small-emphasized": ["1.375rem", { lineHeight: "1.75rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-headline-large-emphasized": ["1.25rem", { lineHeight: "1.75rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-headline-medium-emphasized": ["1.125rem", { lineHeight: "1.5rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-headline-small-emphasized": ["1.0625rem", { lineHeight: "1.5rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-title-large-emphasized": ["1rem", { lineHeight: "1.5rem", fontWeight: "500", letterSpacing: "0" }],
+        "m3-title-medium-emphasized": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "700", letterSpacing: "0.009em" }],
+        "m3-title-small-emphasized": ["0.8125rem", { lineHeight: "1.25rem", fontWeight: "700", letterSpacing: "0.008em" }],
+        "m3-body-large-emphasized": ["0.9375rem", { lineHeight: "1.375rem", fontWeight: "500", letterSpacing: "0.03em" }],
+        "m3-body-medium-emphasized": ["0.875rem", { lineHeight: "1.375rem", fontWeight: "500", letterSpacing: "0.018em" }],
+        "m3-body-small-emphasized": ["0.75rem", { lineHeight: "1rem", fontWeight: "500", letterSpacing: "0.033em" }],
+        "m3-label-large-emphasized": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "700", letterSpacing: "0.007em" }],
+        "m3-label-medium-emphasized": ["0.75rem", { lineHeight: "1rem", fontWeight: "700", letterSpacing: "0.042em" }],
+        "m3-label-small-emphasized": ["0.6875rem", { lineHeight: "1rem", fontWeight: "700", letterSpacing: "0.045em" }],
       },
 
       letterSpacing: {
