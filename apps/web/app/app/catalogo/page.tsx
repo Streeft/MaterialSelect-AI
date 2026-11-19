@@ -55,6 +55,8 @@ import { enumCodec, textCodec, useUrlState, type UrlCodec, type UrlSpec } from "
 import { encodeIdList, parseIdList } from "@/lib/idList";
 import { useDebounced } from "@/lib/useDebounced";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
+import { FileCabinet } from "@/components/workshop/FileCabinet";
+import { useAmbience } from "@/lib/ambience";
 
 const t = ptBR.catalog;
 
@@ -150,6 +152,7 @@ export default function CatalogPage() {
 function CatalogPageContent() {
   const [url, setUrl] = useUrlState(CATALOG_URL);
   const router = useRouter();
+  const ambience = useAmbience();
   // D-209: the filters still belong to the saved views (tabs in the reader's
   // account); D-217 only moves where they are kept, into the URL. Any change
   // of chip or of text goes back to page 1.
@@ -421,6 +424,21 @@ function CatalogPageContent() {
           on this screen, a family card leaves for that family's own page. The
           count is the server's (D-217): the family and everything under it,
           for the current text and the other chips. */}
+      {ambience === "oficina" ? (
+        // D-256: the same families, as the drawers of a cabinet. Same roots, same server counts.
+        <Section id="familias" title={t.cabinet.title} description={t.cabinet.hint}>
+          <FileCabinet
+            families={roots(classes.data ?? [])}
+            counts={facets?.classe ?? null}
+            base={{ q: debouncedSearch, qualidade: question.qualidade, demo: question.demo }}
+            onFilterFamily={(slug) => {
+              setPreviewId(null);
+              setUrl({ classe: slug, subclasse: "", pagina: 1 });
+              document.getElementById("materiais")?.scrollIntoView({ block: "start" });
+            }}
+          />
+        </Section>
+      ) : (
       <Section id="familias" title={ptBR.family.families} description={t.browseHint}>
         <div className="flex flex-wrap gap-2">
           {roots(classes.data ?? []).map((family) => (
@@ -443,6 +461,7 @@ function CatalogPageContent() {
           ))}
         </div>
       </Section>
+      )}
 
       <Section
         id="materiais"

@@ -126,6 +126,13 @@ export const APP_ICON_GESTURES = {
   IconGrip: "pulse",
   IconMoreHorizontal: "pulse",
   IconEyeOff: "draw",
+  // D-256: the workshop objects.
+  IconDrawer: "slide-down",
+  IconToolbox: "hop",
+  IconClipboard: "wobble",
+  IconSetSquare: "wobble",
+  IconCalculator: "pulse",
+  IconWorkbench: "hop",
 } as const satisfies Record<string, GestureSpec>;
 
 /**

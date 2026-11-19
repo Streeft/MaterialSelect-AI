@@ -13,6 +13,7 @@ import { SectionTheme } from "@/components/layout/SectionTheme";
 import { ptBR } from "@/lib/i18n";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 import { APPEARANCE_BOOTSTRAP_SCRIPT } from "@/lib/appearance";
+import { AMBIENCE_BOOTSTRAP_SCRIPT } from "@/lib/ambience";
 
 export const metadata: Metadata = {
   title: ptBR.appName,
@@ -51,6 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         {/* D-196: the app colour, contrast and motion, for the same reason. */}
         <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP_SCRIPT }} />
+        {/* D-256: the ambience paints the whole page, so it also has to be on before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: AMBIENCE_BOOTSTRAP_SCRIPT }} />
       </head>
       <body>
         <SectionTheme />

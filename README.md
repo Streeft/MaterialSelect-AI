@@ -436,6 +436,7 @@ de leitura obrigatória. As regras vivem em [`CLAUDE.md`](CLAUDE.md) e
 | [`docs/18-catalogo-oficial-granta.md`](docs/18-catalogo-oficial-granta.md) | Pipeline, identidade, bundle e cutover do catálogo oficial licenciado. |
 | [`docs/19-inventario-instalacao-granta.md`](docs/19-inventario-instalacao-granta.md) | Inventário auditado dos bancos, ProductConfig, Templates, Attribute Notes, Exporters e módulos da instalação. |
 | [`docs/20-catalogo-fontes-abertas.md`](docs/20-catalogo-fontes-abertas.md) · [`docs/catalogo/fontes.md`](docs/catalogo/fontes.md) | Portão de licença do catálogo complementar: fontes abertas, bases comerciais recusadas e vereditos por fonte (D-103, rascunho). |
+| [`docs/22-oficina.md`](docs/22-oficina.md) | Ambiente "Oficina" (D-256): o método como um local de trabalho — regras das texturas, arquivo de gavetas e o roteiro das próximas camadas (projeto com peças, bandeja, bancada, ensaio). |
 
 ## Licença
 

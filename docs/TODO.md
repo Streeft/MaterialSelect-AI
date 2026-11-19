@@ -536,6 +536,13 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ---
 
+**Ambiente "Oficina" — próximas camadas (D-256, roteiro em `22-oficina.md`).** ▁ Camada 2: **projeto com peças** (estudo como peça de um
+`Project`, montagem somada no backend, tela "Projeto"), e junto dela o ambiente guardado na conta e as propriedades-chave no envelope (a busca
+passa a mandá-las). ▁ Camada 3: **bandeja** (materiais, fixações e ferramentas guardados no estudo, na conta), com arrastar e o mesmo gesto por
+teclado. ▁ Camada 4: **bancada** (levar da bandeja para o mapa, a calculadora e o comparador). ▁ Camada 5: **ensaio** por peça e "Solucionado".
+▁ Camada 6: tabelas de resultado com até 5 colunas e o resto no detalhe da linha. ▁ Miúdos: objetos para as outras seções do trilho (Eco,
+Cadernos, Comparar), cortiça no quadro de fixados, e as páginas de família e Processos como gavetas.
+
 **Material 3 — o que ficou de fora da D-252b.** ▁ A onda (*wavy*) dos indicadores de progresso linear e circular, que o M3
 deixa opcional "para mais expressividade": candidata às esperas longas (importação, ingestão), nunca às curtas, que já têm o
 `LoadingIndicator`. O primeiro menu de escolha do app (ordenar, unidade) deve usar `MenuItem selected`, que hoje só aparece na

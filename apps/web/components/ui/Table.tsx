@@ -40,7 +40,8 @@ export function TableScroll({
       // it the label's containing block was the page, and every badge in a wide
       // table widened the whole document on a phone (990 px at 375, /comparar).
       className={cn(
-        "scroll-x relative rounded-card border border-line bg-panel",
+        // `ds-table`: the hook the "Oficina" ambience skins as a ledger (D-256).
+        "ds-table scroll-x relative rounded-card border border-line bg-panel",
         className,
       )}
       data-density={density}

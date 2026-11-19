@@ -237,6 +237,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
   (`menuitemradio`, `tertiary-container`), nunca um ✓ à mão. Lista de registros nova é `.m3-list-segmented` sobre a página ou um poço,
   nunca dentro de cartão com borda. Inventário completo do site contra o app no doc 21.
 
+- **Ambiente "Oficina" é fantasia de superfície** ([D-256](docs/DECISIONS.md), rumo em `docs/22-oficina.md`): escolha em Aparência
+  (`lib/ambience.ts`, aparelho), lida no CSS por `[data-ambience="oficina"]` e no React por `useAmbience()`. Nenhum número, papel de cor ou nome
+  acessível muda. Superfície nova usa os tokens `--oficina-*`; textura **só se afasta do texto** e **nunca vai num painel** (papel é onde se lê;
+  nada escrito sobre a madeira). Sem imagem: o veio é `feTurbulence` em `data:` URL. Ícone de destino no trilho passa por `NavIcon`; gaveta é
+  `Drawer` (um disclosure), envelope é `Envelope`, e o que a gaveta mostra vem da busca do servidor. `ambience.test.ts` guarda as regras.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

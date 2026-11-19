@@ -2323,6 +2323,27 @@ export const ptBR = {
     columnClass: "Classe",
     columnKeywords: "Palavras-chave",
     columnQuality: "Dados",
+    // D-256: o arquivo de gavetas do ambiente Oficina.
+    cabinet: {
+      title: "Arquivo de materiais",
+      hint: "Uma gaveta por família. Abra uma para ver os envelopes dos materiais guardados nela.",
+      tray: (family: string) => `Gaveta de ${family}`,
+      dividers: (family: string) => `Subfamílias de ${family}`,
+      allDividers: "Todas",
+      divider: (name: string, n: number) => `${name} (${n})`,
+      envelopes: (family: string) => `Materiais de ${family}`,
+      loading: "Abrindo a gaveta",
+      error: "Não foi possível abrir a gaveta.",
+      empty: "Gaveta vazia: nenhum material desta família para a busca e os filtros atuais.",
+      shown: (shown: number, total: number) =>
+        shown === total
+          ? total === 1
+            ? "1 material na gaveta."
+            : `${total} materiais na gaveta.`
+          : `Mostrando ${shown} de ${total} materiais da gaveta.`,
+      filterList: "Filtrar a lista abaixo",
+      openFamily: (family: string) => `Abrir a família ${family}`,
+    },
     // D-131: seleção em massa e ordenação da tabela do catálogo.
     sortBy: (column: string) => `Ordenar por ${column}`,
     selectAll: "Selecionar todos os materiais listados",
@@ -3745,7 +3766,7 @@ export const ptBR = {
       "Não foi possível guardar na sua conta agora. A escolha vale só neste aparelho; a próxima mudança tenta de novo.",
     title: "Aparência",
     description:
-      "Cor, contraste, movimento e barra lateral ficam na sua conta e valem em todos os aparelhos em que você entrar. Tema e densidade valem só neste aparelho.",
+      "Cor, contraste, movimento e barra lateral ficam na sua conta e valem em todos os aparelhos em que você entrar. Tema, ambiente e densidade valem só neste aparelho.",
     open: "Aparência",
     themeTitle: "Tema",
     themeHint: "Claro, escuro ou o mesmo do sistema.",
@@ -3777,6 +3798,12 @@ export const ptBR = {
     railTitle: "Barra lateral",
     railHint: "Escura é o padrão. Clara vale no tema claro; no escuro a barra continua escura.",
     rail: { dark: "Escura", light: "Clara" },
+    // D-256: the ambience is a costume. It never changes a number, a colour role or a name.
+    ambienceTitle: "Ambiente",
+    ambienceHint:
+      "Engenharia é o app de sempre. Oficina veste as mesmas telas como um local de trabalho: bancada de madeira, papel, aço na barra lateral e o Catálogo como um arquivo de gavetas. Os números, as cores de qualidade e os gráficos são os mesmos. Vale neste aparelho.",
+    ambience: { engenharia: "Engenharia", oficina: "Oficina" },
+    ambienceChosen: (name: string) => `Ambiente: ${name}.`,
     previewTitle: "Prévia",
     previewEyebrow: "Início",
     previewHeading: "O que a peça precisa fazer?",
