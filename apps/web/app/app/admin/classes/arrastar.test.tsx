@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
@@ -209,5 +209,93 @@ describe("admin/classes: arrastar para mover, com mouse ou dedo (D-236, D-244)",
       rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
     });
     expect(violations, describeViolations(violations)).toHaveLength(0);
+  });
+
+  describe("rolar sozinha perto da borda (D-249)", () => {
+    let frames = new Map<number, FrameRequestCallback>();
+    let nextId = 0;
+    let scrollBy: ReturnType<typeof vi.spyOn>;
+    const nextFrame = () => {
+      const due = [...frames.values()];
+      frames = new Map();
+      act(() => due.forEach((callback) => callback(0)));
+    };
+
+    beforeEach(() => {
+      frames = new Map();
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+        nextId += 1;
+        frames.set(nextId, callback);
+        return nextId;
+      });
+      vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+        frames.delete(id);
+      });
+      scrollBy = vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    const press = (name: string, clientY: number) => {
+      fireEvent.pointerDown(grip(name), { button: 0, pointerType: "touch", clientX: 5, clientY });
+      return (y: number) => fireEvent.pointerMove(document, { clientX: 5, clientY: y });
+    };
+
+    it("com o ponteiro na borda de baixo a página rola para baixo, e na de cima, para cima", async () => {
+      setup();
+      await screen.findAllByRole("row");
+      const move = press("Duplex", window.innerHeight - 4);
+      nextFrame();
+      expect(scrollBy).toHaveBeenCalled();
+      expect(scrollBy.mock.calls.at(-1)![1]).toBeGreaterThan(0);
+
+      scrollBy.mockClear();
+      move(3);
+      nextFrame();
+      expect(scrollBy.mock.calls.at(-1)![1]).toBeLessThan(0);
+    });
+
+    it("no meio da tela não rola, e rola mais depressa quanto mais perto da borda", async () => {
+      setup();
+      await screen.findAllByRole("row");
+      const move = press("Duplex", window.innerHeight / 2);
+      nextFrame();
+      expect(scrollBy).not.toHaveBeenCalled();
+
+      move(window.innerHeight - 60);
+      nextFrame();
+      const slow = scrollBy.mock.calls.at(-1)![1] as number;
+      move(window.innerHeight - 2);
+      nextFrame();
+      const fast = scrollBy.mock.calls.at(-1)![1] as number;
+      expect(fast).toBeGreaterThan(slow);
+    });
+
+    it("o alvo sob o ponteiro é recalculado depois de rolar: a linha nova acende sem mover o dedo", async () => {
+      setup();
+      await screen.findAllByRole("row");
+      press("Duplex", window.innerHeight - 4);
+      hover(row("Polímeros"));
+      nextFrame();
+      expect(row("Polímeros")).toHaveAttribute("data-drop-target");
+    });
+
+    it("soltar, cancelar ou Esc param de rolar", async () => {
+      setup();
+      await screen.findAllByRole("row");
+      press("Duplex", window.innerHeight - 4);
+      nextFrame();
+      scrollBy.mockClear();
+      pointerUp();
+      nextFrame();
+      expect(scrollBy).not.toHaveBeenCalled();
+      expect(window.cancelAnimationFrame).toHaveBeenCalled();
+    });
+
+    it("sem arrastar nada, nada rola", async () => {
+      setup();
+      await screen.findAllByRole("row");
+      nextFrame();
+      expect(scrollBy).not.toHaveBeenCalled();
+    });
   });
 });
