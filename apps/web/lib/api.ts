@@ -1397,6 +1397,45 @@ export function catalogueExportUrl(format: ExportFormat): string {
   return `${API_URL}/api/exports/catalogo.${format}`;
 }
 
+/**
+ * The line the server writes at the end of a catalogue CSV that broke half way (D-244). The
+ * status was already sent, so the file itself says it is incomplete; D-249 reads it back so the
+ * screen can say so too, instead of leaving the reader to open the file and notice.
+ */
+export const CSV_STREAM_ERROR_PREFIX = "# ERRO:";
+
+/** Whether the end of a CSV carries the server's "interrupted" line (a line of its own, last). */
+export function csvEndsInStreamError(tail: string): boolean {
+  const lines = tail.split(/\r?\n/).filter((line) => line.trim() !== "");
+  return lines.length > 0 && lines[lines.length - 1]!.replace(/^\uFEFF/, "").startsWith(CSV_STREAM_ERROR_PREFIX);
+}
+
+/** How much of the end of the file is read to look for that line: it is one short line. */
+const CSV_TAIL_BYTES = 1024;
+
+/**
+ * The catalogue as a file, fetched (D-249) so the page can see how it ended: a CSV that came back
+ * cut says so in its last line, and `truncated` is true then. Only the CSV can end that way (it
+ * is streamed; the spreadsheet is built whole before it is sent). The caller saves the blob under
+ * the server's own filename, truncated or not, and tells the reader.
+ */
+export async function downloadCatalogueFile(
+  format: ExportFormat,
+): Promise<{ blob: Blob; filename: string; truncated: boolean }> {
+  const res = await fetch(catalogueExportUrl(format), {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(await errorMessage(res, "Falha ao gerar o arquivo do catálogo."), res.status);
+  }
+  const blob = await res.blob();
+  const match = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "");
+  const truncated =
+    format === "csv" && csvEndsInStreamError(await blob.slice(-CSV_TAIL_BYTES).text());
+  return { blob, filename: match?.[1] ?? `catalogo.${format}`, truncated };
+}
+
 export function studyExportUrl(studyId: number, format: ExportFormat): string {
   return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
 }

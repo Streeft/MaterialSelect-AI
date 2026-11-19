@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  catalogueExportUrl,
   listClasses,
   listProperties,
   searchMaterials,
@@ -14,7 +13,7 @@ import {
 import { ptBR } from "@/lib/i18n";
 import type { SuggestAction } from "@/lib/types";
 import { roots } from "@/lib/taxonomy";
-import { ExportButtons } from "@/components/ExportButtons";
+import { CatalogueExportButtons } from "@/components/catalog/CatalogueExportButtons";
 import { MaterialList } from "@/components/catalog/MaterialList";
 import { MaterialCards, MaterialLines } from "@/components/catalog/MaterialCards";
 import { MaterialPreview } from "@/components/catalog/MaterialPreview";
@@ -511,7 +510,7 @@ function CatalogPageContent() {
             ) : null}
             {/* The table exists from `sm` up; the cards below it have no rows to densify. */}
             {view.kind === "table" ? <DensityToggle className="hidden sm:inline-flex" /> : null}
-            <ExportButtons urlFor={catalogueExportUrl} label={ptBR.exports.catalogue} />
+            <CatalogueExportButtons />
           </div>
         }
       >

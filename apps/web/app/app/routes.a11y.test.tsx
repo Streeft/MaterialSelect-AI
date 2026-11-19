@@ -1466,6 +1466,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   cancelImport: () => Promise.resolve(null),
   rollbackImport: () => Promise.resolve(null),
   catalogueExportUrl: (format: string) => `#${format}`,
+  downloadCatalogueFile: vi.fn(),
   studyExportUrl: (id: number, format: string) => `#${id}-${format}`,
   studyFileUrl: (id: number) => `#${id}-json`,
   studyLaudoUrl: (id: number) => `#${id}-laudo`,

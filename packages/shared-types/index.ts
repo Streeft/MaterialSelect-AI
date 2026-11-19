@@ -412,6 +412,11 @@ export interface SourceRecord extends SourceReference {
   reviewed_by_email: string | null;
   /** ISO timestamp. */
   reviewed_at: string | null;
+  /**
+   * How many stored rows cite this source (D-249): values, curves, composition, designations and
+   * the rest. `0` is a source nobody cites, the only kind that can be deleted.
+   */
+  citations?: number | null;
 }
 
 /** A node of the process taxonomy — the process-side twin of `MaterialClass`. */

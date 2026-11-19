@@ -21,6 +21,14 @@ interface ExportButtonsProps {
   hint?: string;
   /** Further `MenuItem`s appended to the same menu (the study file, D-122). */
   extraItems?: ReactNode;
+  /**
+   * Formats the caller fetches itself (D-249: the catalogue CSV, to see how it ended) instead of
+   * handing the address to the browser. The entry still reads the same, in the same menu.
+   */
+  onSelect?: Partial<Record<ExportFormat, () => void>>;
+  /** Disables the menu while a fetched file is being made. */
+  busy?: boolean;
+  busyLabel?: string;
 }
 
 /**
@@ -40,13 +48,27 @@ interface ExportButtonsProps {
  * to PDF, which is how the report reaches a monograph without the project
  * taking on a PDF-generation dependency.
  */
-export function ExportButtons({ urlFor, label = t.title, hint, extraItems }: ExportButtonsProps) {
+export function ExportButtons({
+  urlFor,
+  label = t.title,
+  hint,
+  extraItems,
+  onSelect,
+  busy = false,
+  busyLabel,
+}: ExportButtonsProps) {
   const formats: ExportFormat[] = ["csv", "xlsx", "docx", "pptx", "html"];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <MenuButton label={label} icon={<IconDownload className="h-4 w-4" />}>
+      <MenuButton
+        label={busy && busyLabel ? busyLabel : label}
+        icon={<IconDownload className="h-4 w-4" />}
+        disabled={busy}
+      >
         {formats.map((format) => {
           const inBrowser = opensInBrowser(format);
+          const handler = onSelect?.[format];
+          if (handler) return <MenuItem key={format} onSelect={handler}>{LABELS[format]}</MenuItem>;
           return (
             <MenuItem
               key={format}

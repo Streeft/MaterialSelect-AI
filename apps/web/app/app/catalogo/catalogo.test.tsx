@@ -182,6 +182,7 @@ vi.mock("@/lib/api", () => ({
       composition: [],
     }),
   catalogueExportUrl: (format: string) => `#${format}`,
+  downloadCatalogueFile: vi.fn(),
   // D-209: the screen's saved views; none by default.
   listSavedViews: () => Promise.resolve(savedViews.list),
   createSavedView: (payload: Record<string, unknown>) =>
