@@ -95,7 +95,7 @@ test("assistente: a proposta volta ao Início e um limite editado vira número s
 
   // Edit the first numeric limit: the number typed is the reader's, and the note keeps whose it was.
   await outer.getByRole("button", { name: /^Editar o limite de / }).first().click();
-  const field = outer.getByLabel(/: novo valor$/).first();
+  const field = outer.getByLabel(/: novo valor/).first();
   const before = Number(await field.inputValue());
   await field.fill(String(before + 1));
   await outer.getByRole("button", { name: "Usar este valor" }).click();
