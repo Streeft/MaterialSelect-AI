@@ -154,6 +154,8 @@ class AuditEntityType(str, enum.Enum):
     REPORT_DELIVERY = "report_delivery"
     #: An issued laudo (D-243): the signed PDF attached to a version; project-scoped.
     ISSUED_REPORT = "issued_report"
+    #: An ordinal property and its scale, edited by hand (D-251). Catalogue-wide, not project-scoped.
+    ORDINAL_PROPERTY = "ordinal_property"
 
 
 class SourceAuthority(str, enum.Enum):

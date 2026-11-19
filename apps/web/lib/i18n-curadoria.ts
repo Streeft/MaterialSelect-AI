@@ -174,6 +174,51 @@ export const curadoriaText = {
     saved: (name: string) => `Propriedade “${name}” atualizada.`,
     failed: "Não foi possível salvar a propriedade.",
   },
+  // Admin › Propriedades: a escala de uma propriedade ordinal, à mão (D-251, ORD-c).
+  ordinalScale: {
+    title: "Propriedades ordinais",
+    hint: "Escalas ordenadas, do pior nível ao melhor (por exemplo, a durabilidade contra um agente). A ordem é o dado: mexer nela muda o que “pelo menos este nível” quer dizer.",
+    loading: "Carregando as escalas…",
+    error: "Não foi possível carregar as escalas.",
+    empty: "Nenhuma propriedade ordinal cadastrada.",
+    scaleColumn: "Escala (do pior ao melhor)",
+    action: "Editar escala",
+    actionFor: (name: string) => `Editar a escala de ${name}`,
+    dialogTitle: (name: string) => `Escala de “${name}”`,
+    dialogDescription:
+      "O pior nível vem primeiro. Cada mudança fica na auditoria, com a escala antes e depois. Um nível em uso só muda dentro dos limites abaixo.",
+    name: "Nome",
+    description: "Descrição",
+    levels: "Níveis (do pior ao melhor)",
+    levelLabel: (position: number) => `Nível ${position}`,
+    moveUp: (label: string) => `Subir “${label}” (pior para melhor)`,
+    moveDown: (label: string) => `Descer “${label}”`,
+    remove: (label: string) => `Remover o nível “${label}”`,
+    removeShort: "Remover",
+    up: "Subir",
+    down: "Descer",
+    add: "Adicionar nível",
+    newLevel: "Novo nível",
+    held: (n: number) => (n === 1 ? "é o nível de 1 material" : `é o nível de ${n} materiais`),
+    asked: (studies: number, scenarios: number) => {
+      const parts: string[] = [];
+      if (studies) parts.push(studies === 1 ? "1 estudo salvo" : `${studies} estudos salvos`);
+      if (scenarios) parts.push(scenarios === 1 ? "1 cenário do projeto" : `${scenarios} cenários do projeto`);
+      return `pedido por ${parts.join(" e ")}`;
+    },
+    lockedRename: "Não pode ser renomeado enquanto for pedido.",
+    lockedRemove: "Não pode ser removido enquanto for usado.",
+    lockedOrder:
+      "A ordem está travada: um estudo ou um cenário pede um nível desta escala, e mudar a ordem mudaria o que ele quer dizer.",
+    minLevels: "Uma escala tem pelo menos dois níveis.",
+    maxLevels: (n: number) => `Uma escala tem no máximo ${n} níveis.`,
+    blank: "Todo nível precisa de um nome.",
+    duplicate: "Dois níveis têm o mesmo nome.",
+    save: "Salvar a escala",
+    saved: (name: string) => `Escala de “${name}” atualizada.`,
+    failed: "Não foi possível salvar a escala.",
+    demo: "demonstrativa",
+  },
   // Cadernos: "Duplicar com conversa" and archiving several at once.
   notebooks: {
     duplicateWithChat: "Duplicar com conversa",

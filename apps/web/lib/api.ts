@@ -125,6 +125,8 @@ import type {
   ProcessDetail,
   ProcessMatrix,
   OrdinalProperty,
+  OrdinalScale,
+  OrdinalScaleUpdate,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -771,6 +773,19 @@ export function getMaterialOrdinals(materialId: number): Promise<MaterialOrdinal
 /** Ordinal material properties and their scales, worst level first (D-126). */
 export function listOrdinalProperties(): Promise<OrdinalProperty[]> {
   return request<OrdinalProperty[]>(`/api/properties/ordinais`, REVALIDATE);
+}
+
+/** The scale of an ordinal property with what depends on each level (curator, D-251). */
+export function getOrdinalScale(slug: string): Promise<OrdinalScale> {
+  return request<OrdinalScale>(`/api/properties/ordinais/${encodeURIComponent(slug)}/escala`);
+}
+
+/** Reshape an ordinal scale by hand; the server refuses what is in use and audits the rest (D-251). */
+export function updateOrdinalScale(slug: string, body: OrdinalScaleUpdate): Promise<OrdinalScale> {
+  return request<OrdinalScale>(`/api/properties/ordinais/${encodeURIComponent(slug)}/escala`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 }
 
 export function createProperty(

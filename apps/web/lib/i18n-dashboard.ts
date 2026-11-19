@@ -290,6 +290,7 @@ export const dashboardText = {
       selection_study: "estudo",
       equivalence_group: "grupo de equivalência",
       source: "fonte",
+      ordinal_property: "escala ordinal",
       report_delivery: "envio de laudo",
     } as Record<string, string>,
     actionsSummary: (counts: Record<string, number>) => {
