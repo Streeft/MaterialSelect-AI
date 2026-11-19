@@ -489,6 +489,9 @@ function CompareCheck({
   const checked = selected.includes(process.slug);
   return (
     <Checkbox
+      // The label holds only the box (its text is sr-only), so on its own it
+      // is 26 px wide: the cell keeps it at the 44 px touch target (D-206).
+      className="[&_label]:min-w-[var(--target-min)] [&_label]:justify-center"
       label={<span className="sr-only">{t.compareRow(process.name)}</span>}
       checked={checked}
       disabled={!checked && selected.length >= MAX_COMPARE_PROCESSES}
@@ -567,7 +570,10 @@ function ProcessLines({
           <CompareCheck process={process} selected={selected} onToggle={onToggle} />
           <Link
             href={`/app/processos/${process.slug}`}
-            className="m3-state flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-1 pr-4"
+            // `touch-target`: beside the checkbox the link is no longer the
+            // item's only child, which the global rule needs to give it the
+            // invisible 44 px hit area on a touch screen (D-226).
+            className="m3-state touch-target flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-1 pr-4"
           >
             <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">
               {process.name}
@@ -626,7 +632,7 @@ function FamilyCard({
                 <CompareCheck process={process} selected={selected} onToggle={onToggle} />
                 <Link
                   href={`/app/processos/${process.slug}`}
-                  className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="touch-target flex min-w-0 flex-1 items-center justify-between gap-2 rounded-control px-2 py-1.5 text-body text-ink transition hover:bg-brand-50 hover:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span>{process.name}</span>
                   <span aria-hidden className="text-ink-subtle">
