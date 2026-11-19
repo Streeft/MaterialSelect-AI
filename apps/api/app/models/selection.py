@@ -104,6 +104,43 @@ class SelectionStudy(Base):
         cascade="all, delete-orphan",
         order_by="SelectionStage.position",
     )
+    # D-245: the runs kept on purpose, newest first. Same cascade reasoning.
+    runs: Mapped[list[SelectionRun]] = relationship(
+        back_populates="study",
+        cascade="all, delete-orphan",
+        order_by="SelectionRun.id.desc()",
+    )
+
+
+class SelectionRun(Base):
+    """One run of a saved study, kept in its history on purpose (D-245).
+
+    A record of what the study answered on a given day, against the catalogue
+    as it stood: the study itself as its versioned file (``study_snapshot``,
+    the same dict ``build_study_file`` exports), the counts and winners, and
+    one entry per candidate with its rank, score and index value — exactly the
+    numbers the engine produced, never recomputed. Comparing two runs reads
+    these entries; nothing is re-run.
+    """
+
+    __tablename__ = "selection_run"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_id: Mapped[int] = mapped_column(
+        ForeignKey("selection_study.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # The reader's own name for this version ("antes da curadoria"). NULL when
+    # none was given; the screen then names it by its date.
+    label: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    universe: Mapped[str] = mapped_column(String(10), default="material", nullable=False)
+    initial_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    final_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    winner_names: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    study_snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    entries: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    study: Mapped[SelectionStudy] = relationship(back_populates="runs")
 
 
 class SelectionStage(Base):

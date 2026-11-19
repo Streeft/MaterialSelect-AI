@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countLabel, dimensionName, valueUnit, formatDate, formatNumber, formatScore, prettyUnit } from "./format";
+import { countLabel, dimensionName, valueUnit, formatDate, formatDateTime, formatNumber, formatScore, prettyUnit } from "./format";
 
 describe("formatNumber", () => {
   it("renders zero plainly", () => {
@@ -120,3 +120,13 @@ describe("valueUnit (D-184)", () => {
   });
 });
 
+
+describe("formatDateTime (D-245)", () => {
+  it("renders date and time in pt-BR order", () => {
+    expect(formatDateTime("2026-03-14T10:05:00Z")).toMatch(/^14\/03\/2026,? \d{2}:05$/);
+  });
+
+  it("returns null for something that is not a date", () => {
+    expect(formatDateTime("nao é data")).toBeNull();
+  });
+});

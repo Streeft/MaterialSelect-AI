@@ -131,6 +131,16 @@ caracteres de controle na entrada; a regex XML tem um só dono (`xml_text`); `pi
 lista tem seleção; a página de um caderno não arquiva). Sem migração. Testes novos: `test_batch_writes`, `test_text_input_controls`,
 `test_xml_text_shared`, e casos em `test_session_token_hash`, `test_knowledge_lfs_plan`, `test_ai_claude`, `test_knowledge_embeddings`,
 `test_units_lazy_registry`, `test_notebook_studio` (reescrito: o detalhe do provedor não vai ao artefato).
+## Sessão 202 — 18/11/26 — Histórico de execuções do estudo salvo (D-245)
+
+**O que mudou.** Backend: modelo `SelectionRun` e migração `dc672e36c7d8` (tabela `selection_run`); rotas
+`/api/selection/studies/{id}/runs` para guardar (executa o estudo salvo e guarda a resposta), listar, ler, apagar e comparar duas
+versões (`diff_runs` sobre as entradas guardadas); teto de 50 versões por estudo. Frontend: `RunHistory` nos resultados de um estudo
+executado de "Meus estudos" (nome da versão, tabela com Desfazer, Antes/Depois), `RunDiffBody` extraído de `RunComparison`,
+`formatDateTime`. Testes novos: pytest `test_selection_run_history`; vitest `RunHistory` e `format`; E2E `historico.spec.ts`. **Com
+migração.** **Depois do merge: Deploy da API.**
+
+---
 
 ## Sessão 201 — 17/11/26 — Pendências do TODO, parte 4: tela de fontes, arrastar por toque, CSV que diz quando quebrou (D-244)
 

@@ -94,6 +94,19 @@ export function formatDate(iso: string): string | null {
   });
 }
 
+/** A timestamp from the API as pt-BR date and time; `null` when it is not a date. */
+export function formatDateTime(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /**
  * Render a Pint unit or dimensionality string more readably.
  *

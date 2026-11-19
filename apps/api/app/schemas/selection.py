@@ -6,8 +6,11 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, Field, field_validator
+<<<<<<< HEAD
 
 from app.domain.text_input import strip_controls
+=======
+>>>>>>> origin/main
 
 OperatorLiteral = Literal[
     "gt",
@@ -808,6 +811,61 @@ class RunEntryIn(BaseModel):
 class RunDiffRequest(BaseModel):
     before: list[RunEntryIn] = Field(max_length=MAX_RUN_DIFF_ENTRIES)
     after: list[RunEntryIn] = Field(max_length=MAX_RUN_DIFF_ENTRIES)
+
+
+# --- Run history (D-245) ----------------------------------------------------
+
+#: How many runs one study keeps. A history is for a handful of versions worth
+#: comparing (before and after a curation, one per class), not a log of every
+#: click; past this the reader removes an old one first.
+MAX_RUNS_PER_STUDY = 50
+
+
+class SavedRunIn(BaseModel):
+    """Keep the run about to happen in the study's history, optionally named."""
+
+    label: Annotated[str | None, Field(max_length=120)] = None
+
+    @field_validator("label")
+    @classmethod
+    def _blank_is_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = " ".join(value.split())
+        return value or None
+
+
+class SavedRunEntryOut(BaseModel):
+    """One candidate of a kept run, with the numbers the engine gave it then."""
+
+    record_id: int
+    name: str
+    class_name: str
+    rank: int | None = None
+    score: float | None = None
+    index_value: float | None = None
+
+
+class SavedRunOut(BaseModel):
+    id: int
+    study_id: int
+    label: str | None = None
+    universe: UniverseLiteral = "material"
+    initial_count: int
+    final_count: int
+    winner_names: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
+class SavedRunDetailOut(SavedRunOut):
+    entries: list[SavedRunEntryOut] = Field(default_factory=list)
+    #: The study as it was when this run was kept (``StudyOut``, as JSON).
+    study: dict = Field(default_factory=dict)
+
+
+class SavedRunCreatedOut(BaseModel):
+    run: SavedRunOut
+    result: RunResultOut
 
 
 class RunDiffRowOut(BaseModel):

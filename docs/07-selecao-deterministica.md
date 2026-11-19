@@ -686,8 +686,12 @@ se edita:
   contribuições, exclusão por falta de dado, sensibilidade). Quem caiu num limite aparece
   só em contagem no funil: a resposta não lista os eliminados um a um.
 - **Execução anterior × atual** — `POST /api/selection/run-diff` (`app/domain/run_diff.py`):
-  entrou, saiu, subiu/caiu N posições, igual ou sem posição, e se o vencedor mudou. A tela
-  guarda só a execução anterior da sessão; histórico salvo no servidor exige migração (TODO).
+  entrou, saiu, subiu/caiu N posições, igual ou sem posição, e se o vencedor mudou, entre a
+  execução anterior e a atual da sessão.
+- **Histórico do estudo salvo** (D-245) — `selection_run`: a pessoa guarda, com um nome opcional,
+  a execução de um estudo salvo (contagens, vencedor, uma entrada por candidato com posição,
+  escore e índice, e o estudo como estava). Comparar duas versões usa a mesma `diff_runs` sobre o
+  que cada uma guardou, sem executar de novo. Até 50 versões por estudo.
 
 ## Endpoints
 
@@ -702,6 +706,9 @@ se edita:
 | GET/POST | `/api/selection/studies` | listar / criar estudos |
 | GET/DELETE | `/api/selection/studies/{id}` | detalhe / excluir |
 | POST | `/api/selection/studies/{id}/run` | reexecutar um estudo salvo |
+| GET/POST | `/api/selection/studies/{id}/runs` | histórico: listar / executar e guardar uma versão (D-245) |
+| GET/DELETE | `/api/selection/studies/{id}/runs/{run_id}` | uma versão guardada, com entradas e o estudo / apagar |
+| GET | `/api/selection/studies/{id}/runs/compare?antes=&depois=` | diferenças entre duas versões guardadas |
 | GET/POST | `/api/performance-indices` | catálogo de índices |
 | GET | `/api/baterias/quimicas` | catálogo de químicas de célula, com fonte e citação |
 | GET | `/api/baterias/quimicas/{slug}` | uma química (404 com o slug escrito) |

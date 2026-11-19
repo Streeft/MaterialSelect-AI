@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { RunDiffRow, RunResult } from "@/lib/types";
+import type { RunDiff, RunDiffRow, RunResult } from "@/lib/types";
 import { diffRuns } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import {
@@ -71,7 +71,6 @@ export function RunComparison({
   current: RunResult;
   runKey: number;
 }) {
-  const [onlyChanges, setOnlyChanges] = useState(true);
   const diff = useQuery({
     queryKey: ["run-diff", runKey],
     queryFn: () => diffRuns({ before: entries(previous), after: entries(current) }),
@@ -80,65 +79,97 @@ export function RunComparison({
 
   return (
     <Section title={w.title} description={w.hint}>
-      {diff.isPending ? (
-        <LoadingState label={w.loading} />
-      ) : diff.isError ? (
-        <Alert tone="danger" role="alert">
-          {describeApiError(diff.error, w.error)}
-        </Alert>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-body text-ink">
-            {diff.data.winner_changed
-              ? w.winnerChanged(
-                  diff.data.winners_before.join(" e ") || w.noWinner,
-                  diff.data.winners_after.join(" e ") || w.noWinner,
-                )
-              : w.winnerSame(diff.data.winners_after.join(" e ") || w.noWinner)}
-          </p>
-          <p className="text-support text-ink-muted">
-            {w.summary(diff.data.entered, diff.data.left, diff.data.moved)}
-          </p>
-          <Checkbox
-            label={w.onlyChanges}
-            checked={onlyChanges}
-            onChange={(e) => setOnlyChanges(e.target.checked)}
-          />
-          {(() => {
-            const rows = onlyChanges
-              ? diff.data.rows.filter((r) => r.change !== "same" && r.change !== "unranked")
-              : diff.data.rows;
-            if (rows.length === 0) return <p className="text-support text-ink-muted">{w.nothingChanged}</p>;
-            return (
-              <TableScroll label={w.title}>
-                <Table>
-                  <THead>
-                    <Tr>
-                      <Th>{w.columnMaterial}</Th>
-                      <Th numeric>{w.columnBefore}</Th>
-                      <Th numeric>{w.columnAfter}</Th>
-                      <Th>{w.columnChange}</Th>
-                    </Tr>
-                  </THead>
-                  <TBody>
-                    {rows.map((r) => (
-                      <Tr key={r.record_id}>
-                        <RowHeader>{r.name}</RowHeader>
-                        <Td numeric>{r.rank_before ?? "—"}</Td>
-                        <Td numeric>{r.rank_after ?? "—"}</Td>
-                        <Td>
-                          <Badge tone={TONE[r.change]}>{changeLabel(r)}</Badge>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </TBody>
-                </Table>
-              </TableScroll>
-            );
-          })()}
-          <p className="text-caption text-ink-muted">{w.unavailableNote}</p>
-        </div>
-      )}
+      <RunDiffBody
+        diff={diff.data}
+        pending={diff.isPending}
+        error={diff.isError ? diff.error : null}
+        afterLabel={w.columnAfter}
+        note={w.unavailableNote}
+      />
     </Section>
+  );
+}
+
+/**
+ * The comparison itself — winner sentence, counts and the row table — for any
+ * pair the backend compared: two consecutive runs of a session (D-210) or two
+ * runs kept in a study's history (D-245).
+ */
+export function RunDiffBody({
+  diff,
+  pending,
+  error,
+  afterLabel,
+  note,
+  tableLabel = w.title,
+}: {
+  diff: RunDiff | undefined;
+  pending: boolean;
+  error: unknown;
+  /** The newer run's column: "Agora" for the session, "Depois" for the history. */
+  afterLabel: string;
+  /** A line under the table about where the pair came from, when there is one. */
+  note?: string;
+  /** The table's accessible name, so two comparisons on one page are told apart. */
+  tableLabel?: string;
+}) {
+  const [onlyChanges, setOnlyChanges] = useState(true);
+  if (pending) return <LoadingState label={w.loading} />;
+  if (error || !diff) {
+    return (
+      <Alert tone="danger" role="alert">
+        {describeApiError(error, w.error)}
+      </Alert>
+    );
+  }
+  const rows = onlyChanges
+    ? diff.rows.filter((r) => r.change !== "same" && r.change !== "unranked")
+    : diff.rows;
+  return (
+    <div className="space-y-3">
+      <p className="text-body text-ink">
+        {diff.winner_changed
+          ? w.winnerChanged(
+              diff.winners_before.join(" e ") || w.noWinner,
+              diff.winners_after.join(" e ") || w.noWinner,
+            )
+          : w.winnerSame(diff.winners_after.join(" e ") || w.noWinner)}
+      </p>
+      <p className="text-support text-ink-muted">{w.summary(diff.entered, diff.left, diff.moved)}</p>
+      <Checkbox
+        label={w.onlyChanges}
+        checked={onlyChanges}
+        onChange={(e) => setOnlyChanges(e.target.checked)}
+      />
+      {rows.length === 0 ? (
+        <p className="text-support text-ink-muted">{w.nothingChanged}</p>
+      ) : (
+        <TableScroll label={tableLabel}>
+          <Table>
+            <THead>
+              <Tr>
+                <Th>{w.columnMaterial}</Th>
+                <Th numeric>{w.columnBefore}</Th>
+                <Th numeric>{afterLabel}</Th>
+                <Th>{w.columnChange}</Th>
+              </Tr>
+            </THead>
+            <TBody>
+              {rows.map((r) => (
+                <Tr key={r.record_id}>
+                  <RowHeader>{r.name}</RowHeader>
+                  <Td numeric>{r.rank_before ?? "—"}</Td>
+                  <Td numeric>{r.rank_after ?? "—"}</Td>
+                  <Td>
+                    <Badge tone={TONE[r.change]}>{changeLabel(r)}</Badge>
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </TableScroll>
+      )}
+      {note ? <p className="text-caption text-ink-muted">{note}</p> : null}
+    </div>
   );
 }

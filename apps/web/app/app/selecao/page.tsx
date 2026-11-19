@@ -222,7 +222,17 @@ function SelectionWizard() {
   const [runs, setRuns] = useState<Runs>({ current: null, previous: null, key: 0 });
   const result = runs.current;
   /** A different study is on screen: its runs are not comparable with the last one's. */
-  const forgetRuns = () => setRuns((r) => ({ current: null, previous: null, key: r.key + 1 }));
+  const forgetRuns = () => {
+    setRuns((r) => ({ current: null, previous: null, key: r.key + 1 }));
+    setSavedRun(null);
+  };
+  /**
+   * D-245: the saved study the result on screen is a run of — set only by
+   * "Executar" in "Meus estudos", where the result is exactly that study's.
+   * A run of the wizard's own state clears it: what is being edited may no
+   * longer be the saved study, and its history would describe something else.
+   */
+  const [savedRun, setSavedRun] = useState<{ id: number; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<LoadNotice | null>(null);
@@ -425,6 +435,7 @@ function SelectionWizard() {
     onSuccess: (data) => {
       // D-210: the run before this one stays, for "Execução anterior × atual".
       setRuns((r) => ({ current: data, previous: r.current, key: r.key + 1 }));
+      setSavedRun(null);
       goToStep("results");
       setError(null);
       announceRun(data);
@@ -507,9 +518,11 @@ function SelectionWizard() {
 
   const runSaved = useMutation({
     mutationFn: (id: number) => runStudy(id),
-    onSuccess: (data) => {
+    onSuccess: (data, id) => {
       // A saved study run from the list is not the one being edited.
       setRuns((r) => ({ current: data, previous: null, key: r.key + 1 }));
+      const saved = studies.data?.find((s) => s.id === id);
+      setSavedRun(saved ? { id, name: saved.name } : null);
       goToStep("results");
       announceRun(data);
     },
@@ -1111,6 +1124,10 @@ function SelectionWizard() {
               running={run.isPending}
               onRun={() => run.mutate(true)}
               onGoToLimits={() => goToStep(LAST_INPUT_STEP)}
+              savedStudy={savedRun}
+              onKept={(kept) =>
+                setRuns((r) => ({ current: kept, previous: r.current, key: r.key + 1 }))
+              }
             />
           )}
         </StepPanes>
