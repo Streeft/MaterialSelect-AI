@@ -46,6 +46,29 @@ class SourcePatch(BaseModel):
     accessed_on: date | None = None
 
 
+class SourceCreate(SourceBibliographyMixin):
+    """A source a curator registers by hand (D-249).
+
+    The label and the licence are required — the same gate the importer applies ("informe a
+    licença/procedência"): a source is registered with what it allows, or not at all. Who
+    registered it and when are stamped from the session, never taken from the body, and a source
+    made here is never a demonstration one (that marker is dado, set only by the seed).
+    """
+
+    label: str
+    license_label: str
+    license_url: str | None = None
+    reference: str | None = None
+    #: Set explicitly by whoever registers it, never inferred (M1).
+    contains_third_party_data: bool = False
+
+
+class SourceMergeIn(BaseModel):
+    """Move every citation of this source to ``target_id`` and remove this source (D-249)."""
+
+    target_id: int
+
+
 class SourceReferenceOut(SourceBibliographyMixin):
     """A source as the material sheet cites it, with its ABNT text (D-233).
 
@@ -73,3 +96,14 @@ class SourceOut(SourceBibliographyMixin):
     reviewed_at: datetime | None = None
     #: The ABNT text, assembled by the backend from the fields above (D-236).
     abnt: str
+    #: How many stored rows cite this source — values, curves, composition, designations and
+    #: the rest (D-249). ``None`` where it was not counted; ``0`` is a source nobody cites, the
+    #: only kind that can be deleted.
+    citations: int | None = None
+
+
+class SourceMergeOut(BaseModel):
+    """The source that kept the citations, and how many rows moved to it (D-249)."""
+
+    target: SourceOut
+    moved: int

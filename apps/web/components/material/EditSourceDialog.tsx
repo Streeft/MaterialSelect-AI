@@ -14,7 +14,7 @@ const t = curadoriaText.editSource;
 const reg = curadoriaText.sourcesAdmin;
 
 /** The server's limits (`app.domain.citation`): a longer text is refused there, not cut. */
-const LIMITS = {
+export const LIMITS = {
   authors: 500,
   title: 300,
   publisher: 200,
@@ -24,16 +24,16 @@ const LIMITS = {
   licenseLabel: 200,
   licenseUrl: 500,
 } as const;
-const FIRST_YEAR = 1000;
+export const FIRST_YEAR = 1000;
 
 /** Blank text is "nobody recorded it" (`null`), the same as the server reads it. */
-const blank = (text: string): string | null => {
+export const blank = (text: string): string | null => {
   const cleaned = text.trim().replace(/\s+/g, " ");
   return cleaned === "" ? null : cleaned;
 };
 
 /** Shape only, like the server: nothing is fetched and nothing is completed. */
-function isHttpAddress(value: string): boolean {
+export function isHttpAddress(value: string): boolean {
   if (/\s/.test(value)) return false;
   try {
     const parsed = new URL(value);

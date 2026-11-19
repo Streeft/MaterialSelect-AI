@@ -804,6 +804,44 @@ export type SourcePatch = Partial<
   /** D-244: the registration fields (`label` is never `null`; the others clear with `null`). */
   Partial<Pick<SourceRecord, "label" | "reference" | "license_label" | "license_url">>;
 
+/** D-249: a source registered by hand; label and licence are required, the rest may stay blank. */
+export interface SourceCreate {
+  label: string;
+  license_label: string;
+  license_url?: string | null;
+  reference?: string | null;
+  contains_third_party_data?: boolean;
+  authors?: string | null;
+  title?: string | null;
+  publisher?: string | null;
+  year?: number | null;
+  url?: string | null;
+  accessed_on?: string | null;
+}
+
+/** D-249: the source that kept the citations after a merge, and how many rows moved to it. */
+export interface SourceMergeResult {
+  target: SourceRecord;
+  moved: number;
+}
+
+export function createSource(body: SourceCreate): Promise<SourceRecord> {
+  return request<SourceRecord>("/api/sources", { method: "POST", body: JSON.stringify(body) });
+}
+
+/** D-249: only a source nothing cites; a cited one is a 409 that says what cites it. */
+export function deleteSource(id: number): Promise<void> {
+  return request<void>(`/api/sources/${id}`, { method: "DELETE" });
+}
+
+/** D-249: every citation of `id` moves to `targetId` and `id` is removed, audited. */
+export function mergeSource(id: number, targetId: number): Promise<SourceMergeResult> {
+  return request<SourceMergeResult>(`/api/sources/${id}/mesclar`, {
+    method: "POST",
+    body: JSON.stringify({ target_id: targetId }),
+  });
+}
+
 /** D-244: every registered source, for the Admin's list (`GET /api/sources`). */
 export function listSources(): Promise<SourceRecord[]> {
   return request<SourceRecord[]>("/api/sources");
