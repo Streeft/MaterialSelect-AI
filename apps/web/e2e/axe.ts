@@ -17,6 +17,19 @@ export interface Found {
 }
 
 export async function runAxe(page: Page): Promise<Found[]> {
+  // Measure the page at rest. A dialog that just opened fades in, and axe run
+  // mid-fade computes contrast from the blended colours: the laudo's
+  // "Envios" dialog failed `color-contrast` at opacity 0.74 and passed at 1,
+  // depending only on how fast the runner was. Every finite animation is
+  // awaited; an infinite one (a spinner) never finishes and is left alone.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
   await page.evaluate(AXE_SOURCE);
   return page.evaluate(async () => {
     // `window.axe` is injected by the script above.

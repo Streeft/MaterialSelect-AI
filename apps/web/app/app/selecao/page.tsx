@@ -116,6 +116,13 @@ import {
 const t = ptBR.selection;
 const w = wizardText;
 
+/** A field where the arrow chords edit text, so the step shortcut stays out. */
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return target.matches("input, textarea, select, [role='textbox'], [role='combobox']");
+}
+
 export default function SelectionPage() {
   // `useSearchParams` opts the subtree out of prerendering unless it sits
   // behind a boundary; without this, `next build` refuses the page.
@@ -452,7 +459,30 @@ function SelectionWizard() {
       const onRunStep = step === LAST_INPUT_STEP || (step === "results" && result === null);
       if (onRunStep && canRun && !runPending) runMutate(true);
     };
+    stepShortcut.current = (direction) => {
+      const target = neighbours(step)[direction];
+      // Results with no run is blocked (the stepper says why); the chord does
+      // not open what the stepper keeps closed.
+      if (!target || (target === "results" && result === null)) return;
+      goToStep(target);
+    };
   });
+
+  // D-246: Alt + Shift + ← / → moves one step back or forward, like the
+  // Back and Next buttons. A modifier chord, never a bare key (WCAG 2.1.4), and
+  // never inside a field: there, on a Mac, the same chord selects a word.
+  const stepShortcut = useRef<(direction: "prev" | "next") => void>(() => undefined);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (isEditable(e.target)) return;
+      e.preventDefault();
+      stepShortcut.current(e.key === "ArrowLeft" ? "prev" : "next");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const save = useMutation({
     mutationFn: () =>
@@ -795,6 +825,7 @@ function SelectionWizard() {
             variant="secondary"
             icon={<IconArrowLeft />}
             className="max-sm:px-3"
+            aria-keyshortcuts="Alt+Shift+ArrowLeft"
             onClick={() => goToStep(prev)}
           >
             <span className="max-sm:sr-only">{t.back}</span>
@@ -848,7 +879,13 @@ function SelectionWizard() {
                 {t.weights.notBlocking(gate.reason)}
               </p>
             ) : null}
-            <Button variant="primary" icon={<IconArrowRight />} onClick={() => goToStep(next)}>
+            <span className="hidden text-2xs text-ink-muted lg:inline">{w.shortcut.steps}</span>
+            <Button
+              variant="primary"
+              icon={<IconArrowRight />}
+              aria-keyshortcuts="Alt+Shift+ArrowRight"
+              onClick={() => goToStep(next)}
+            >
               {/* D-91: one word on a phone, so the bar stays one line; the
                   full "Próximo: Objetivo" is still the button's name. */}
               <span aria-hidden className="sm:hidden">
