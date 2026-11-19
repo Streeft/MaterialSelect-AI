@@ -52,8 +52,9 @@ class ReportDeliveryOut(BaseModel):
     cc: list[str]
     subject: str
     message: str | None = None
-    #: ``enviado``, ``simulado`` (the mock provider: nothing left) or ``falhou``.
-    status: Literal["enviado", "simulado", "falhou"]
+    #: ``enviado``, ``simulado`` (the mock provider: nothing left), ``falhou`` or ``na_fila`` (D-252:
+    #: failed for a passing reason and waiting for its next attempt).
+    status: Literal["enviado", "simulado", "falhou", "na_fila"]
     provider: str
     error: str | None = None
     created_at: datetime
@@ -70,3 +71,9 @@ class ReportDeliveryOut(BaseModel):
     last_opened_at: datetime | None = None
     #: SHA-256 of the signed PDF that went attached, when the message carried one.
     attached_pdf_sha256: str | None = None
+    #: D-252: how many times the server tried to hand the message over, how many it may try in
+    #: all, and when the queue tries next (only for ``na_fila``). "Falhou após N tentativas" is
+    #: ``status == "falhou"`` with ``attempts > 1``.
+    attempts: int = 1
+    max_attempts: int = 1
+    next_attempt_at: datetime | None = None

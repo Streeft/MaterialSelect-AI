@@ -40,6 +40,11 @@ EDITABLE_NOTE = (
     "Apresentação editável gerada com os dados de hoje. Não é o laudo emitido: não tem código "
     "de verificação nem QR."
 )
+#: The same note for a deck made from the **frozen** version (D-252).
+ISSUED_COPY_NOTE = (
+    "Cópia editável da versão emitida {version}, código {code}. Os números e o texto são os do "
+    "documento congelado na emissão. Não é o laudo emitido: não tem selo nem QR."
+)
 #: Rows of one annex table that go into the deck (D-249). The Word copy and the issued laudo
 #: carry every row; a deck is for presenting, and a candidate table of hundreds is not a slide.
 ANNEX_MAX_ROWS = 60
@@ -319,7 +324,16 @@ def _cover(presentation, document: LaudoDocument) -> None:
                 if document.client_name
                 else []
             ),
-            ("Versão editável — não emitida. " + EDITABLE_NOTE, 10, False, token("brand-200")),
+            (
+                (
+                    ISSUED_COPY_NOTE.format(version=document.version, code=document.issued_code)
+                    if document.issued_code is not None
+                    else "Versão editável — não emitida. " + EDITABLE_NOTE
+                ),
+                10,
+                False,
+                token("brand-200"),
+            ),
         ],
     )
 
