@@ -75,6 +75,7 @@ from app.models.selection import (
     ConstraintGroup,
     RankingCriterion,
     SelectionConstraint,
+    SelectionRun,
     SelectionStage,
     SelectionStudy,
 )
@@ -83,6 +84,7 @@ from app.repositories.audit_repository import AuditRepository
 from app.repositories.ordinal_repository import OrdinalRepository
 from app.repositories.selection_repository import MaterialRow, SelectionRepository
 from app.schemas.selection import (
+    MAX_RUNS_PER_STUDY,
     CandidateOut,
     ChartAxisIn,
     ChartStageIn,
@@ -110,6 +112,11 @@ from app.schemas.selection import (
     RunDiffRowOut,
     RunRequest,
     RunResultOut,
+    SavedRunCreatedOut,
+    SavedRunDetailOut,
+    SavedRunEntryOut,
+    SavedRunIn,
+    SavedRunOut,
     SensitivityScenarioOut,
     StageIn,
     StageOut,
@@ -2496,10 +2503,15 @@ class SelectionService:
     @staticmethod
     def run_diff(request: RunDiffRequest) -> RunDiffOut:
         """Rank by rank, what changed between two runs. Pure; no catalogue read."""
-        diff = diff_runs(
-            [RunEntry(e.record_id, e.name, e.rank) for e in request.before],
-            [RunEntry(e.record_id, e.name, e.rank) for e in request.after],
+        return SelectionService._diff_out(
+            diff_runs(
+                [RunEntry(e.record_id, e.name, e.rank) for e in request.before],
+                [RunEntry(e.record_id, e.name, e.rank) for e in request.after],
+            )
         )
+
+    @staticmethod
+    def _diff_out(diff) -> RunDiffOut:
         return RunDiffOut(
             rows=[
                 RunDiffRowOut(
@@ -2843,6 +2855,100 @@ class SelectionService:
         stages = self._load_stages(study)
         index, ranking = self._study_index_and_ranking(study)
         return self._run_with_stages(stages, index, ranking, universe=study.universe)
+
+    # --- run history (D-245) ----------------------------------------------
+
+    def _owned_study(self, study_id: int) -> SelectionStudy:
+        study = self.repo.get_study(study_id, self.project_id)
+        if study is None:
+            raise NotFoundError(f"Estudo não encontrado: {study_id}")
+        return study
+
+    @staticmethod
+    def _run_to_out(run: SelectionRun) -> SavedRunOut:
+        return SavedRunOut(
+            id=run.id,
+            study_id=run.study_id,
+            label=run.label,
+            universe=run.universe,
+            initial_count=run.initial_count,
+            final_count=run.final_count,
+            winner_names=list(run.winner_names or []),
+            created_at=run.created_at,
+        )
+
+    def save_run(self, study_id: int, payload: SavedRunIn) -> SavedRunCreatedOut:
+        """Run a saved study now and keep the answer in its history.
+
+        The run is the ordinary `run_study`; what is stored is what it returned
+        (entries, counts, winners) plus the study as it is at this moment, so
+        the record stands on its own when the catalogue changes later.
+        """
+        study = self._owned_study(study_id)
+        if self.repo.count_runs(study.id) >= MAX_RUNS_PER_STUDY:
+            raise ConflictError(
+                f"O histórico deste estudo já guarda {MAX_RUNS_PER_STUDY} execuções. "
+                "Apague uma antiga antes de guardar outra."
+            )
+        result = self.run_study(study.id)
+        run = SelectionRun(
+            study_id=study.id,
+            label=payload.label,
+            universe=result.universe,
+            initial_count=result.initial_count,
+            final_count=result.final_count,
+            winner_names=list(result.winner.names) if result.winner else [],
+            study_snapshot=self._study_to_out(study).model_dump(mode="json"),
+            entries=[
+                SavedRunEntryOut(
+                    record_id=c.record_id,
+                    name=c.name,
+                    class_name=c.class_name,
+                    rank=c.rank,
+                    score=c.score,
+                    index_value=c.index_value,
+                ).model_dump()
+                for c in result.candidates
+            ],
+        )
+        self.repo.add(run)
+        self.repo.commit()
+        return SavedRunCreatedOut(run=self._run_to_out(run), result=result)
+
+    def list_runs(self, study_id: int) -> list[SavedRunOut]:
+        study = self._owned_study(study_id)
+        return [self._run_to_out(r) for r in self.repo.list_runs(study.id)]
+
+    def _owned_run(self, study_id: int, run_id: int) -> SelectionRun:
+        study = self._owned_study(study_id)
+        run = self.repo.get_run(study.id, run_id)
+        if run is None:
+            raise NotFoundError(f"Execução não encontrada: {run_id}")
+        return run
+
+    def get_run(self, study_id: int, run_id: int) -> SavedRunDetailOut:
+        run = self._owned_run(study_id, run_id)
+        return SavedRunDetailOut(
+            **self._run_to_out(run).model_dump(),
+            entries=[SavedRunEntryOut(**e) for e in run.entries or []],
+            study=dict(run.study_snapshot or {}),
+        )
+
+    def delete_run(self, study_id: int, run_id: int) -> None:
+        run = self._owned_run(study_id, run_id)
+        self.repo.delete(run)
+        self.repo.commit()
+
+    def compare_runs(self, study_id: int, before_id: int, after_id: int) -> RunDiffOut:
+        """Two kept runs, record by record — the same `diff_runs` the wizard uses
+        between consecutive runs, over the stored entries. Nothing is re-run."""
+        before = self._owned_run(study_id, before_id)
+        after = self._owned_run(study_id, after_id)
+
+        def entries(run: SelectionRun) -> list[RunEntry]:
+            return [RunEntry(e["record_id"], e["name"], e.get("rank")) for e in run.entries or []]
+
+        return self._diff_out(diff_runs(entries(before), entries(after)))
 
     def _study_to_out(self, study: SelectionStudy) -> StudyOut:
         index = None

@@ -78,6 +78,7 @@ from app.models.selection import (
     RankingCriterion,
     SelectionConstraint,
     SelectionStage,
+    SelectionRun,
     SelectionStudy,
 )
 from app.models.source import Source
@@ -152,6 +153,7 @@ __all__ = [
     "SavedView",
     "SelectionConstraint",
     "SelectionStage",
+    "SelectionRun",
     "SelectionStudy",
     "Source",
     "SourceAuthority",
