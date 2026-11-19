@@ -354,9 +354,7 @@ class NotebookService:
         self._discard(self.notebook(notebook_id))
         self.db.commit()
 
-    def _discard(
-        self, notebook: Notebook, running: list[StudioArtifact] | None = None
-    ) -> None:
+    def _discard(self, notebook: Notebook, running: list[StudioArtifact] | None = None) -> None:
         """Remove one notebook with everything in it, without committing.
 
         A generation still running holds a reserved unit, and its job will

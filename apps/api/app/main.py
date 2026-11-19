@@ -126,6 +126,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # D-249: the web app fetches some downloads (the catalogue CSV, the Eco audit) to see how they
+    # ended, and a cross-origin page may read only the headers listed here: without this the
+    # server's own file name never reached it and every download was named by the page.
+    expose_headers=["Content-Disposition"],
 )
 
 
