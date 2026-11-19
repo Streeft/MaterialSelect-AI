@@ -43,6 +43,7 @@ from app.domain.errors import (
 from app.http_cache import StaticListCacheMiddleware
 from app.routers import (
     ai,
+    assemblies,
     audit,
     auth,
     battery,
@@ -391,6 +392,10 @@ app.include_router(
 )
 app.include_router(
     saved_views.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
+)
+# D-257: projects with parts live beside the studies and share their gate.
+app.include_router(
+    assemblies.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
 # D-249: the account's own appearance needs a login and nothing more (no subscription gate).
 app.include_router(me.router, prefix="/api")

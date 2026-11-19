@@ -18,6 +18,8 @@ export const ROUTES: ReadonlyArray<readonly [string, string]> = [
   ["painel", "/app/painel"],
   ["processos", "/app/processos"],
   ["cadernos", "/app/cadernos"],
+  // D-257: projects with parts.
+  ["projetos", "/app/projetos"],
   ["eco", "/app/eco"],
   ["custo", "/app/custo"],
   ["dimensionar", "/app/dimensionar"],

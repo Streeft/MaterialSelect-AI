@@ -100,6 +100,8 @@ export const ptBR = {
     myRecords: "Meus registros",
     // D-92: o caderno de estudo com fontes próprias (o NotebookLM do app).
     notebooks: "Cadernos",
+    // D-257: projects with parts.
+    projects: "Projetos",
     // D-130b: o que cada grandeza significa e como se mede — nunca quanto vale.
     glossary: "Glossário",
     // Eight links in a row said nothing about what belongs with what. The
@@ -1767,6 +1769,92 @@ export const ptBR = {
   },
 
   // D-92: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
+  // D-257: a project is a thing being designed, as a list of parts. Every number on these screens
+  // is the server's; the words here only name them.
+  projects: {
+    title: "Projetos",
+    description:
+      "Um projeto é o que você está fazendo, peça por peça: a mesa é o tampo, as pernas e os pregos. Cada peça tem a sua seleção e o seu material.",
+    privateNote: "Só você vê os seus projetos.",
+    loading: "Carregando os projetos",
+    error: "Não foi possível carregar os projetos.",
+    empty: "Nenhum projeto ainda",
+    emptyHint: "Dê um nome ao que você quer fazer e comece pela primeira peça.",
+    newLabel: "Nome do novo projeto",
+    newPlaceholder: "Ex.: Mesa de jantar",
+    create: "Criar projeto",
+    creating: "Criando…",
+    createError: "Não foi possível criar o projeto.",
+    listLabel: "Seus projetos",
+    progress: (chosen: number, total: number) =>
+      total === 0
+        ? "Sem peças ainda"
+        : `${chosen} de ${total} ${total === 1 ? "peça" : "peças"} com material`,
+    changed: (date: string) => `Alterado em ${date}`,
+    // The project's own page.
+    back: "Projetos",
+    titleLabel: "Nome do projeto",
+    notFound: "Projeto não encontrado",
+    notFoundHint: "Ele pode ter sido excluído, ou o endereço está errado.",
+    loadingOne: "Carregando o projeto",
+    errorOne: "Não foi possível carregar o projeto.",
+    saveError: "Não foi possível salvar a mudança.",
+    descriptionLabel: "Descrição",
+    descriptionPlaceholder: "Para que serve, medidas gerais, o que não pode faltar.",
+    delete: "Excluir projeto",
+    deleteTitle: (name: string) => `Excluir o projeto ${name}?`,
+    deleteBody: "As peças do projeto são excluídas com ele. Os estudos e os materiais continuam onde estão.",
+    deleted: (name: string) => `Projeto ${name} excluído.`,
+    parts: "Peças",
+    partsHint:
+      "Cada peça é uma decisão: o que ela é, quantas são, quanto pesa cada uma e de que material é feita. O material vem do catálogo; a massa é você quem informa.",
+    partsEmpty: "Nenhuma peça ainda. Comece pela que mais pesa na decisão.",
+    partRegion: (name: string) => `Peça ${name}`,
+    partName: "Nome da peça",
+    partNamePlaceholder: "Ex.: Tampo",
+    role: "Papel",
+    roles: {
+      estrutural: "Estrutural",
+      fixacao: "Fixação",
+      acabamento: "Acabamento",
+      outro: "Outro",
+    },
+    quantity: "Quantidade",
+    unitMass: "Massa de cada uma",
+    unitMassHint: "Em quilogramas. Em branco: não informada.",
+    material: "Material",
+    materialHint: "Escolha no catálogo. Em branco: ainda não escolhido.",
+    materialNone: "Sem material escolhido",
+    materialGone: "O material escolhido não está mais disponível no catálogo. Escolha outro.",
+    materialSheet: (name: string) => `Abrir a ficha de ${name}`,
+    clearMaterial: "Tirar o material",
+    study: "Estudo de seleção",
+    studyHint: "O estudo que decide o material desta peça.",
+    studyNone: "Nenhum",
+    openStudy: (name: string) => `Abrir o estudo ${name}`,
+    newStudy: "Nova seleção para esta peça",
+    partMenu: (name: string) => `Ações da peça ${name}`,
+    removePart: "Remover a peça",
+    partRemoved: (name: string) => `Peça ${name} removida.`,
+    partAdded: (name: string) => `Peça ${name} acrescentada.`,
+    addPart: "Acrescentar peça",
+    adding: "Acrescentando…",
+    figures: (name: string) => `Somas da peça ${name}`,
+    quantities: {
+      mass: "Massa",
+      material_cost: "Custo do material",
+      embodied_energy: "Energia incorporada",
+      carbon: "CO₂ da produção",
+    },
+    totals: "Soma do projeto",
+    totalsEmpty: "Acrescente uma peça para ver a soma.",
+    noTotal: (n: number, names: string) =>
+      n === 1 ? `Sem total: falta dado em ${names}.` : `Sem total: falta dado em ${n} peças (${names}).`,
+    partialSum: (value: string, n: number) =>
+      n === 1 ? `Soma parcial, de 1 peça: ${value}.` : `Soma parcial, de ${n} peças: ${value}.`,
+    noPartial: "Nenhuma peça tem este dado.",
+    qualityOf: (label: string) => `Valor do catálogo: ${label.toLowerCase()}`,
+  },
   notebooks: {
     title: "Cadernos",
     description:

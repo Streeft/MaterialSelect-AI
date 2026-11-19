@@ -2547,3 +2547,53 @@ export function saveStudioArtifactAsNote(id: number, artifactId: number): Promis
 export function studioExportUrl(id: number, artifactId: number, format: StudioExport): string {
   return `${API_URL}${nb(id)}/studio/${artifactId}/export.${format}`;
 }
+
+// --- Projects with parts (D-257) -------------------------------------------------------------
+
+/** The reader's projects, most recently changed first. */
+export function listAssemblies(): Promise<import("./types").AssemblyBrief[]> {
+  return request(`/api/assemblies`);
+}
+
+/** One project: its parts and what they add up to, from the catalogue as it stands. */
+export function getAssembly(id: number): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies/${id}`);
+}
+
+export function createAssembly(name: string): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies`, { method: "POST", body: JSON.stringify({ name }) });
+}
+
+export function updateAssembly(
+  id: number,
+  patch: { name?: string; description?: string | null },
+): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+export function deleteAssembly(id: number): Promise<void> {
+  return request<void>(`/api/assemblies/${id}`, { method: "DELETE" });
+}
+
+/** Every write to a part answers the whole project, with the sums redone by the server. */
+export function addAssemblyPart(
+  id: number,
+  part: import("./types").AssemblyPartInput,
+): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies/${id}/parts`, { method: "POST", body: JSON.stringify(part) });
+}
+
+export function updateAssemblyPart(
+  id: number,
+  partId: number,
+  patch: import("./types").AssemblyPartPatch,
+): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies/${id}/parts/${partId}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteAssemblyPart(id: number, partId: number): Promise<import("./types").Assembly> {
+  return request(`/api/assemblies/${id}/parts/${partId}`, { method: "DELETE" });
+}

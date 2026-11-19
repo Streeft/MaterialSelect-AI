@@ -1,0 +1,213 @@
+"""Contracts of a project and its parts (D-257)."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.calculations.part_cost import MONETARY_UNIT
+from app.schemas.part_cost import MONETARY_UNIT_NOTE
+
+#: What a part is for in the assembly. A fixing (a nail, a screw) is a part like
+#: any other — it has a material and a mass — and the role is what lets the
+#: screen keep it apart from the structure.
+PartRole = Literal["estrutural", "fixacao", "acabamento", "outro"]
+
+#: What the sums say, in words, on every surface that prints them.
+SCOPE_NOTE = (
+    "As somas cobrem só a fase de material, pela massa da peça pronta: custo do material, "
+    "energia incorporada e CO₂ da produção primária. Processo, refugo, transporte, uso e fim "
+    "de vida são do Custo e do Eco Audit, que pedem um processo por peça."
+)
+
+
+def _clean(value: str | None) -> str | None:
+    """Trimmed text, with "only spaces" stored as absence."""
+    if value is None:
+        return None
+    return value.strip() or None
+
+
+class AssemblyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("O nome do projeto não pode ficar em branco.")
+        return value.strip()
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, value: str | None) -> str | None:
+        return _clean(value)
+
+
+class AssemblyPatch(BaseModel):
+    """Only the fields sent are changed; ``description: null`` clears it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("O nome do projeto não pode ficar em branco.")
+        return value.strip() if value is not None else None
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, value: str | None) -> str | None:
+        return _clean(value)
+
+
+class PartIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=120)
+    role: PartRole = "estrutural"
+    quantity: int = Field(default=1, ge=1, le=100_000)
+    #: Kilograms per part. The same bounds as an Eco Audit component (D-121).
+    unit_mass: float | None = Field(default=None, gt=0, le=1.0e6)
+    material_id: int | None = Field(default=None, gt=0)
+    study_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("O nome da peça não pode ficar em branco.")
+        return value.strip()
+
+    @field_validator("notes")
+    @classmethod
+    def _notes(cls, value: str | None) -> str | None:
+        return _clean(value)
+
+
+class PartPatch(BaseModel):
+    """Only the fields sent are changed. A nullable field sent as ``null``
+    (mass, material, study, notes) is cleared: "not chosen" is a state the
+    reader can go back to."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    role: PartRole | None = None
+    quantity: int | None = Field(default=None, ge=1, le=100_000)
+    unit_mass: float | None = Field(default=None, gt=0, le=1.0e6)
+    material_id: int | None = Field(default=None, gt=0)
+    study_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=500)
+    position: int | None = Field(default=None, ge=0, le=10_000)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("O nome da peça não pode ficar em branco.")
+        return value.strip() if value is not None else None
+
+    @field_validator("notes")
+    @classmethod
+    def _notes(cls, value: str | None) -> str | None:
+        return _clean(value)
+
+
+class FigureOut(BaseModel):
+    """A number or the reason there is none (principle 3): never both."""
+
+    value: float | None = None
+    reason: str | None = None
+    #: Data quality of the catalogued value used; absent for the declared mass.
+    quality: str | None = None
+
+
+class TotalOut(BaseModel):
+    """The sum over every part, or its refusal with the parts that block it."""
+
+    value: float | None = None
+    #: Sum of the parts that have the datum. Equal to ``value`` when nothing is missing.
+    known_sum: float
+    known_parts: int
+    missing_parts: list[str] = Field(default_factory=list)
+    unit: str
+
+
+class PartMaterialOut(BaseModel):
+    id: int
+    name: str
+    class_name: str
+
+
+class PartStudyOut(BaseModel):
+    id: int
+    name: str
+
+
+class PartOut(BaseModel):
+    id: int
+    position: int
+    name: str
+    role: PartRole
+    quantity: int
+    unit_mass: float | None = None
+    #: The chosen material, when it can be read. ``None`` with
+    #: ``material_unavailable`` false means none was chosen.
+    material: PartMaterialOut | None = None
+    #: A material was chosen and can no longer be read by this reader.
+    material_unavailable: bool = False
+    study: PartStudyOut | None = None
+    notes: str | None = None
+    mass: FigureOut
+    material_cost: FigureOut
+    embodied_energy: FigureOut
+    carbon: FigureOut
+
+
+class AssemblyTotalsOut(BaseModel):
+    mass: TotalOut
+    material_cost: TotalOut
+    embodied_energy: TotalOut
+    carbon: TotalOut
+
+
+class AssemblyBriefOut(BaseModel):
+    """A project in the list: enough to recognise it and see how far along it is."""
+
+    id: int
+    name: str
+    description: str | None = None
+    part_count: int
+    #: Parts with a material chosen.
+    chosen_count: int
+    updated_at: datetime
+
+
+class AssemblyOut(AssemblyBriefOut):
+    created_at: datetime
+    parts: list[PartOut]
+    totals: AssemblyTotalsOut
+    scope_note: str = SCOPE_NOTE
+    #: Why a cost is printed without a currency symbol (D-65), in the estimator's own words.
+    monetary_unit_note: str = MONETARY_UNIT_NOTE
+
+
+#: The unit each total is printed in. Money and CO₂ are named in words: neither
+#: is a unit the catalogue's unit system knows (D-65).
+TOTAL_UNITS: dict[str, str] = {
+    "mass": "kg",
+    "material_cost": MONETARY_UNIT,
+    "embodied_energy": "MJ",
+    "carbon": "kg de CO₂",
+}
