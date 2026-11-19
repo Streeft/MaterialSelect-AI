@@ -496,10 +496,34 @@ class TestSmtpProvider:
         assert fake_smtp.instances[0].steps == ["connect", "login", "send", "quit"]
 
     def test_the_reply_to_goes_out_when_configured(self, client, fake_smtp, monkeypatch) -> None:
+        # The deployment-wide address is what a send falls back to when the engineer's own is
+        # switched off (D-249).
+        monkeypatch.setattr(settings, "email_reply_to", "engenharia@exemplo.com")
+        issued = _issue(client)
+        _send(client, issued["id"], reply_to_engineer=False)
+        assert fake_smtp.instances[0].sent[0]["Reply-To"] == "engenharia@exemplo.com"
+
+    def test_the_reply_goes_to_the_engineer_by_default(
+        self, client, fake_smtp, monkeypatch
+    ) -> None:
+        # D-249: the account that sends is the engineer; its address wins over EMAIL_REPLY_TO.
         monkeypatch.setattr(settings, "email_reply_to", "engenharia@exemplo.com")
         issued = _issue(client)
         _send(client, issued["id"])
-        assert fake_smtp.instances[0].sent[0]["Reply-To"] == "engenharia@exemplo.com"
+        assert fake_smtp.instances[0].sent[0]["Reply-To"] == "pesquisador@example.com"
+
+    def test_without_either_there_is_no_reply_to_header(self, client, fake_smtp) -> None:
+        issued = _issue(client)
+        _send(client, issued["id"], reply_to_engineer=False)
+        assert fake_smtp.instances[0].sent[0]["Reply-To"] is None
+
+    def test_the_preview_says_where_a_reply_would_go(self, client) -> None:
+        issued = _issue(client)
+        path = f"/api/exports/laudos/{issued['id']}/enviar/previa"
+        on = client.post(path, json={"recipients": []}).json()
+        off = client.post(path, json={"recipients": [], "reply_to_engineer": False}).json()
+        assert on["reply_to"] == "pesquisador@example.com"
+        assert off["reply_to"] is None
 
     def test_a_wrong_password_is_recorded_and_answered_without_the_secret(
         self, client, fake_smtp, db_session: Session, caplog
@@ -627,6 +651,109 @@ class TestQuota:
         monkeypatch.setattr(settings, "rate_limit_email_per_hour", 0)
         issued = _issue(client)
         assert all(_send(client, issued["id"]).status_code == 201 for _ in range(4))
+
+
+# --- sending again with one click (D-249) -----------------------------------
+
+
+def _resend(client: TestClient, delivery_id: int):
+    return client.post(f"/api/exports/envios/{delivery_id}/reenviar")
+
+
+class TestResend:
+    def test_it_sends_the_same_message_again_as_a_new_delivery(
+        self, client, db_session: Session
+    ) -> None:
+        issued = _issue(client)
+        first = _send(
+            client,
+            issued["id"],
+            recipients=["um@empresa.com.br"],
+            cc=["copia@empresa.com.br"],
+            subject="Laudo do suporte",
+            message="Segue.",
+        ).json()
+        response = _resend(client, first["id"])
+        assert response.status_code == 201, response.text
+        again = response.json()
+        assert again["id"] != first["id"]
+        assert again["recipients"] == ["um@empresa.com.br"]
+        assert again["cc"] == ["copia@empresa.com.br"]
+        assert again["subject"] == "Laudo do suporte" and again["message"] == "Segue."
+        assert again["status"] == "simulado" and again["link_state"] == "ativo"
+        rows = db_session.execute(select(ReportDelivery)).scalars().all()
+        assert len(rows) == 2
+        # Its own link: the two tokens are different hashes.
+        assert len({row.token_hash for row in rows}) == 2
+
+    def test_the_old_link_is_left_as_it_was(self, client) -> None:
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        _resend(client, first["id"])
+        history = client.get(f"/api/exports/laudos/{issued['id']}/envios").json()
+        assert [row["link_state"] for row in history] == ["ativo", "ativo"]
+
+    def test_a_failed_send_can_be_sent_again(self, client, fake_smtp) -> None:
+        issued = _issue(client)
+        fake_smtp.fail_at = {"connect": ConnectionRefusedError()}
+        assert _send(client, issued["id"]).status_code == 503
+        failed = client.get(f"/api/exports/laudos/{issued['id']}/envios").json()[0]
+        assert failed["status"] == "falhou"
+        fake_smtp.fail_at = {}
+        response = _resend(client, failed["id"])
+        assert response.status_code == 201, response.text
+        assert response.json()["status"] == "enviado"
+
+    def test_the_resend_is_audited_with_the_delivery_it_repeats(self, client) -> None:
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        _resend(client, first["id"])
+        events = client.get("/api/audit", params={"entity_type": "report_delivery"}).json()
+        assert len(events) == 2
+        assert any(
+            event["changes"].get("reenvio_do_envio", {}).get("after") == first["id"]
+            for event in events
+        )
+        assert "empresa.com.br" not in str(events)
+
+    def test_it_counts_against_the_hourly_quota(self, client, monkeypatch) -> None:
+        monkeypatch.setattr(settings, "rate_limit_enabled", True)
+        monkeypatch.setattr(settings, "rate_limit_exports_per_minute", 1000)
+        monkeypatch.setattr(settings, "rate_limit_email_per_hour", 2)
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        assert _resend(client, first["id"]).status_code == 201
+        third = _resend(client, first["id"])
+        assert third.status_code == 429
+        assert "2 e-mail(s) de laudo na última hora" in third.json()["detail"]
+
+    def test_the_reply_goes_to_whoever_resends(self, client, fake_smtp) -> None:
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        _resend(client, first["id"])
+        assert fake_smtp.instances[1].sent[0]["Reply-To"] == "pesquisador@example.com"
+
+    def test_only_the_owner_can_resend(self, client, other_user, login_as) -> None:
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        with login_as(other_user):
+            assert _resend(client, first["id"]).status_code == 404
+        assert _resend(client, 999999).status_code == 404
+
+    def test_a_resend_carries_the_signed_pdf_that_arrived_after_the_first_send(
+        self, client, fake_smtp
+    ) -> None:
+        issued = _issue(client)
+        first = _send(client, issued["id"]).json()
+        assert first["attached_pdf_sha256"] is None
+        upload = client.post(
+            f"/api/exports/laudos/{issued['id']}/pdf",
+            content=b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n",
+            headers={"content-type": "application/pdf"},
+        )
+        assert upload.status_code == 201, upload.text
+        again = _resend(client, first["id"]).json()
+        assert again["attached_pdf_sha256"] is not None
 
 
 # --- the public, read-only copy ---------------------------------------------

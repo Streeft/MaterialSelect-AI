@@ -1501,6 +1501,8 @@ export interface LaudoSendRequest {
   /** Blank: the server's default (study and version). */
   subject?: string | null;
   message?: string | null;
+  /** D-249: replies go to the account that sends (the engineer). Default on, on the server. */
+  reply_to_engineer?: boolean;
 }
 
 /** One row of an issued version's sending history. */
@@ -1541,6 +1543,8 @@ export interface LaudoEmailPreview {
   link_expires_at?: string | null;
   provider: string;
   email_configured: boolean;
+  /** Where a reply would go (the sending account's e-mail), or null when switched off (D-249). */
+  reply_to?: string | null;
 }
 
 export function sendLaudo(issuedId: number, body: LaudoSendRequest): Promise<LaudoDelivery> {
@@ -1552,7 +1556,7 @@ export function sendLaudo(issuedId: number, body: LaudoSendRequest): Promise<Lau
 
 export function previewLaudoEmail(
   issuedId: number,
-  body: Pick<LaudoSendRequest, "subject" | "message">,
+  body: Pick<LaudoSendRequest, "subject" | "message" | "reply_to_engineer">,
 ): Promise<LaudoEmailPreview> {
   return request<LaudoEmailPreview>(`/api/exports/laudos/${issuedId}/enviar/previa`, {
     method: "POST",
@@ -1562,6 +1566,11 @@ export function previewLaudoEmail(
 
 export function listLaudoDeliveries(issuedId: number): Promise<LaudoDelivery[]> {
   return request<LaudoDelivery[]>(`/api/exports/laudos/${issuedId}/envios`);
+}
+
+/** Send an earlier message again with one click (D-249): a new send, with a new link. */
+export function resendLaudoDelivery(deliveryId: number): Promise<LaudoDelivery> {
+  return request<LaudoDelivery>(`/api/exports/envios/${deliveryId}/reenviar`, { method: "POST" });
 }
 
 /** End the client link of one send (D-243): from then on it answers 410. */

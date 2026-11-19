@@ -949,20 +949,21 @@ class LaudoService:
         ]
         return section
 
-    @staticmethod
-    def _catalogue_cost_bars(finalists: list[_Finalist], records: dict) -> str:
+    def _catalogue_cost_bars(self, finalists: list[_Finalist], records: dict) -> str:
         """Cost per mass as catalogued, when the part mass is not known."""
         bars: list[HBar] = []
         unit = ""
+        # The cost of the finalists only, as plain rows (D-249): ``records`` holds the
+        # candidates' identity and not their values.
+        stored = self.export.chart_repo.value_rows(
+            [f.record_id for f in finalists if f.record_id in records], [MATERIAL_COST_SLUG]
+        )
         for position, finalist in enumerate(finalists):
-            material = records.get(finalist.record_id)
+            row = stored.get(finalist.record_id, {}).get(MATERIAL_COST_SLUG)
             value = None
-            for row in getattr(material, "property_values", []) or []:
-                if row.property_definition.slug != MATERIAL_COST_SLUG:
-                    continue
-                if not row.is_missing and row.normalized_value is not None:
-                    value = float(row.normalized_value)
-                    unit = pretty_unit(row.canonical_unit or row.property_definition.canonical_unit)
+            if row is not None and not row.is_missing and row.normalized_value is not None:
+                value = float(row.normalized_value)
+                unit = pretty_unit(row.canonical_unit or row.definition_unit)
             bars.append(HBar(label=finalist.name, value=value, highlighted=position == 0))
         if all(bar.value is None for bar in bars):
             return ""

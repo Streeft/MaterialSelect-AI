@@ -63,7 +63,7 @@ export const laudoText = {
     "Cópia editável com os campos acima: capa, resumo executivo, seções, gráficos e anexo técnico. Não é o laudo emitido: não tem código nem QR.",
   pptx: "Baixar PowerPoint",
   pptxHint:
-    "Apresentação com os campos acima: um slide de resumo e um por seção, com os gráficos. O anexo técnico fica no Word e no laudo emitido.",
+    "Apresentação com os campos acima: um slide de resumo e um por seção, com os gráficos, e o anexo técnico no fim (até 60 linhas por tabela; as tabelas inteiras ficam no Word e no laudo emitido).",
   linkHint: "Pré-visualizar, emitir e ver as versões emitidas",
   // --- Envio ao cliente por e-mail (D-242) ---
   colDeliveries: "Envios",
@@ -193,6 +193,22 @@ export const laudoText = {
   revokeConfirm: "Revogar link",
   revokedToast: "Link revogado.",
   revokeErrorTitle: "Não foi possível revogar o link",
+  // --- Reenviar com um clique e responder ao engenheiro (D-249) ---
+  resend: "Reenviar",
+  resendLabel: (who: string) => `Reenviar o laudo para ${who} com um novo link`,
+  resendHint:
+    "Reenviar manda a mesma mensagem às mesmas pessoas, com um link novo e a validade contada de hoje. O link antigo continua como estava; revogue-o à parte se quiser que pare.",
+  resendToast: (count: number) =>
+    count === 1 ? "Laudo reenviado a 1 endereço." : `Laudo reenviado a ${count} endereços.`,
+  resendSimulatedToast: (count: number) =>
+    count === 1
+      ? "Reenvio simulado a 1 endereço: o e-mail ainda não está ligado, nada saiu."
+      : `Reenvio simulado a ${count} endereços: o e-mail ainda não está ligado, nada saiu.`,
+  resendErrorTitle: "Não foi possível reenviar",
+  replyToMe: (address: string) => `Respostas do cliente chegam em ${address}`,
+  replyToMeShort: "Respostas do cliente chegam no meu e-mail",
+  replyToMeHint:
+    "O cliente que clicar em Responder escreve para o e-mail da sua conta. Desmarque para usar só o endereço de envio do servidor.",
 } as const;
 
 /** The fields the server requires to issue, in the order the form shows them. */

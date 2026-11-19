@@ -64,6 +64,9 @@ class OutgoingEmail:
     html: str
     cc: tuple[str, ...] = ()
     attachments: tuple[EmailAttachment, ...] = field(default_factory=tuple)
+    #: Where a reply goes (D-249): the engineer's own address, for this message only. ``None``
+    #: leaves ``EMAIL_REPLY_TO`` (the deployment-wide one, when set) in charge.
+    reply_to: str | None = None
 
 
 def _domain_of(address: str) -> str:
@@ -192,7 +195,7 @@ class SmtpEmailSender:
             email,
             sender=sender,
             sender_name=settings.email_from_name.strip() or "MaterialSelect AI",
-            reply_to=settings.email_reply_to.strip() or None,
+            reply_to=email.reply_to or settings.email_reply_to.strip() or None,
         )
         envelope = [*email.to, *email.cc]
         context = ssl.create_default_context()

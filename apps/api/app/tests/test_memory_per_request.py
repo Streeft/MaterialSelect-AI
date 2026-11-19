@@ -230,7 +230,9 @@ def test_no_heavy_screen_holds_the_whole_catalogue_per_request(
 # machine survives it. Measured on the full demo catalogue (Linux, CPython 3.11):
 # D-243 records the figures in docs/13-deploy.md.
 
-LAUDO_CEILING_MB = 100.0
+#: D-249: the annex read the ~50 stored values of every candidate (75 MB of Python per request);
+#: now it reads the few it prints (14.5 MB measured). The old ceiling, 100, could not tell.
+LAUDO_CEILING_MB = 30.0
 #: What Word or PowerPoint may add over the HTML laudo, which already re-runs the whole study
 #: (D-241): the document, the PNGs and the zip, not a second copy of the catalogue.
 LAUDO_EXTRA_CEILING_MB = 15.0

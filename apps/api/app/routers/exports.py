@@ -424,6 +424,20 @@ def _pdf_response(content: bytes, study_name: str, version: int) -> Response:
     )
 
 
+@router.post("/envios/{delivery_id}/reenviar", response_model=ReportDeliveryOut, status_code=201)
+def resend_laudo_delivery(
+    delivery_id: int,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> ReportDeliveryOut:
+    """Send an earlier message again with one click (D-249): a new send with a new link.
+
+    Same recipients, subject and text as the row; the e-mail quota applies as to any send.
+    """
+    return ReportDeliveryService(db, user).resend(project.id, delivery_id)
+
+
 @router.post("/envios/{delivery_id}/revogar", response_model=ReportDeliveryOut)
 def revoke_laudo_delivery(
     delivery_id: int,

@@ -11,6 +11,7 @@ import { DeliveryHistory, formatDay } from "./DeliveryList";
 import {
   Alert,
   Button,
+  Checkbox,
   Dialog,
   ErrorState,
   Input,
@@ -156,16 +157,18 @@ export function SendLaudoDialog({
   const [ccDraft, setCcDraft] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  // D-249: replies reach the engineer who sends, unless they switch it off.
+  const [replyToMe, setReplyToMe] = useState(true);
 
   const status = useQuery({ queryKey: ["email-status"], queryFn: getEmailStatus, enabled: open });
 
   // The preview follows what is typed, after a pause; the key is a string, not an object.
-  const draftKey = useDebounced(JSON.stringify([subject, message]), 400);
+  const draftKey = useDebounced(JSON.stringify([subject, message, replyToMe]), 400);
   const preview = useQuery({
     queryKey: ["laudo-email-preview", issued.id, draftKey],
     queryFn: () => {
-      const [s, m] = JSON.parse(draftKey) as [string, string];
-      return previewLaudoEmail(issued.id, { subject: s, message: m });
+      const [s, m, r] = JSON.parse(draftKey) as [string, string, boolean];
+      return previewLaudoEmail(issued.id, { subject: s, message: m, reply_to_engineer: r });
     },
     enabled: open,
     placeholderData: (previous) => previous,
@@ -181,6 +184,7 @@ export function SendLaudoDialog({
         cc: [...cc, ...pending(ccDraft, cc)].slice(0, MAX_ADDRESSES),
         subject: subject.trim() || null,
         message: message.trim() || null,
+        reply_to_engineer: replyToMe,
       });
     },
     onSuccess: (delivery) => {
@@ -274,6 +278,15 @@ export function SendLaudoDialog({
           rows={3}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+        />
+
+        <Checkbox
+          label={
+            preview.data?.reply_to ? t.replyToMe(preview.data.reply_to) : t.replyToMeShort
+          }
+          hint={t.replyToMeHint}
+          checked={replyToMe}
+          onChange={(event) => setReplyToMe(event.target.checked)}
         />
 
         <section aria-labelledby="laudo-email-preview" className="flex flex-col gap-2">

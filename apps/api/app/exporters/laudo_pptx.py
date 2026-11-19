@@ -9,10 +9,16 @@ signature block and the notices.
 It is built from the same :class:`~app.exporters.laudo.LaudoDocument` as the HTML and the Word
 copy, with the same tokens, so the three cannot disagree on a number. The charts are the
 very same SVG rasterised to PNG (``svg_png``); one that cannot be drawn becomes a line saying
-which, never a silent hole. The **technical annex is not in the deck** — a table of dozens of
-rows is not a slide — and the closing slide says where it is (the Word copy and the issued
-HTML). Like the Word copy, this is an editable presentation, **not** the issued laudo: no
-seal, no code.
+which, never a silent hole.
+
+D-249 brought the **technical annex** into the deck, as an appendix after the signature: every
+table of the study (problem, limits and funnel, candidates, contributions, exclusions,
+sensitivity, composition, provenance), ``A1``, ``A2``… like the Word copy and the issued HTML.
+A table of hundreds of rows is not a set of slides, so each one is **capped** at
+``ANNEX_MAX_ROWS`` rows (ten to a slide) and the slide title says so — "primeiras 60 de 312
+linhas" — never a silent cut; the whole table stays in the Word copy and in the issued laudo.
+Like the Word copy, this is an editable presentation, **not** the issued laudo: no seal, no
+code.
 
 python-pptx is imported inside the function (D-235); lengths come from ``emu`` so the
 module costs nothing at boot.
@@ -26,7 +32,7 @@ from app.exporters.emu import Inches, Pt
 from app.exporters.laudo import KeyFigure, LaudoDocument, LaudoSection, long_date
 from app.exporters.laudo_theme import STATUS, token
 from app.exporters.pptx import MARGIN, SLIDE_HEIGHT, SLIDE_WIDTH, _add_sheet_slides
-from app.exporters.report import Report
+from app.exporters.report import Report, Sheet
 from app.exporters.svg_png import FigureRasterError, figure_alt, svg_to_png
 from app.exporters.xml_text import xml_legal, xml_legal_report
 
@@ -34,10 +40,13 @@ EDITABLE_NOTE = (
     "Apresentação editável gerada com os dados de hoje. Não é o laudo emitido: não tem código "
     "de verificação nem QR."
 )
-AUTHOR_NOTES_SHEET = "Notas do autor"
+#: Rows of one annex table that go into the deck (D-249). The Word copy and the issued laudo
+#: carry every row; a deck is for presenting, and a candidate table of hundreds is not a slide.
+ANNEX_MAX_ROWS = 60
 ANNEX_NOTE = (
-    "O anexo técnico, com todas as tabelas do estudo, está na cópia em Word e no laudo emitido "
-    "(HTML); não cabe em slides. Daqui só vão as notas do autor."
+    "O anexo técnico está ao final desta apresentação, com as primeiras "
+    f"{ANNEX_MAX_ROWS} linhas de cada tabela. As tabelas completas estão na cópia em Word e no "
+    "laudo emitido (HTML)."
 )
 
 _TONES: dict[str, tuple[str, str]] = {
@@ -555,6 +564,49 @@ def _signature(presentation, document: LaudoDocument, number: int) -> None:
     )
 
 
+def _annex(presentation, document: LaudoDocument) -> None:
+    """The technical annex as an appendix: one capped table per sheet, ``A1``, ``A2``… (D-249)."""
+    if not document.annex:
+        return
+    slide = _new_slide(presentation, "Anexo técnico")
+    _text(
+        slide,
+        MARGIN,
+        _BODY_TOP + Inches(0.1),
+        _BODY_W,
+        Inches(1.6),
+        [
+            (
+                "As tabelas do estudo, para auditoria: o problema, os limites e o funil, os "
+                "candidatos, as contribuições, os excluídos por dado ausente, a sensibilidade, "
+                "a composição e a proveniência de cada valor.",
+                14,
+                False,
+                token("ink"),
+            ),
+            (
+                f"Cada tabela traz até {ANNEX_MAX_ROWS} linhas; quando há mais, o título diz "
+                "quantas. As tabelas completas estão na cópia em Word e no laudo emitido.",
+                12,
+                False,
+                token("ink-muted"),
+            ),
+        ],
+    )
+    for position, sheet in enumerate(document.annex, start=1):
+        shown = sheet.rows[:ANNEX_MAX_ROWS]
+        name = sheet.name
+        if len(sheet.rows) > len(shown):
+            name = f"{name} (primeiras {len(shown)} de {len(sheet.rows)} linhas)"
+        capped = Sheet(name=name, header=sheet.header, rows=shown, notes=sheet.notes)
+        clean = xml_legal_report(Report(title="", subtitle="", notices=[], sheets=[capped])).sheets[
+            0
+        ]
+        _add_sheet_slides(
+            presentation, f"A{position}", clean.name, clean.header, clean.rows, clean.notes
+        )
+
+
 def _closing(presentation, document: LaudoDocument) -> None:
     slide = _new_slide(presentation, "Avisos")
     lines = [(notice, 12, False, token("ink")) for notice in document.notices]
@@ -582,17 +634,7 @@ def render_laudo_pptx(document: LaudoDocument) -> bytes:
     _narrative(presentation, document, number)
     number += 1
     _signature(presentation, document, number)
-    # The author's own notes are the one annex table the deck keeps (D-122): they are short, they
-    # are the engineer's words, and a deck that dropped them would be silent about them.
-    for sheet in document.annex:
-        if sheet.name == AUTHOR_NOTES_SHEET:
-            number += 1
-            clean = xml_legal_report(
-                Report(title="", subtitle="", notices=[], sheets=[sheet])
-            ).sheets[0]
-            _add_sheet_slides(
-                presentation, number, clean.name, clean.header, clean.rows, clean.notes
-            )
+    _annex(presentation, document)
     _closing(presentation, document)
 
     buffer = io.BytesIO()

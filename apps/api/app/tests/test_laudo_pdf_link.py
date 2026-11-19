@@ -724,6 +724,36 @@ class TestPowerPointLaudo:
         assert "Atende" in text and "Por que este material" in text
         assert "MATERIAL RECOMENDADO" in text
 
+    def test_the_technical_annex_is_an_appendix_after_the_signature(self, client) -> None:
+        # D-249: the deck used to carry only the author's notes; now every table of the annex
+        # follows the signature as A1, A2…, before the notices.
+        deck = self._deck(client)
+        titles = [self._texts(s).split("\n")[0] for s in deck.slides]
+        assert "Anexo técnico" in titles
+        annex = [t for t in titles if t.startswith("A") and ". " in t[:5]]
+        assert len(annex) >= 5, titles
+        assert annex[0].startswith("A1. ")
+        assert titles.index("7. Responsabilidade técnica e assinatura") < titles.index(
+            "Anexo técnico"
+        )
+        assert titles.index(annex[-1]) < titles.index("Avisos")
+        everything = "\n".join(self._texts(s) for s in deck.slides)
+        assert "Proveniência" in everything and "Candidatos" in everything
+        # The closing slide says where the whole tables are.
+        closing = self._texts(deck.slides[len(deck.slides) - 1])
+        assert "primeiras 60 linhas de cada tabela" in closing
+
+    def test_a_long_annex_table_is_cut_out_loud_never_silently(self, client, monkeypatch) -> None:
+        from app.exporters import laudo_pptx
+
+        monkeypatch.setattr(laudo_pptx, "ANNEX_MAX_ROWS", 1)
+        deck = self._deck(client)
+        titles = [self._texts(s).split("\n")[0] for s in deck.slides]
+        cut = [t for t in titles if "(primeiras 1 de " in t and t.endswith(" linhas)")]
+        assert cut, titles
+        # A table that fits is not annotated.
+        assert any(t.startswith("A") and "primeiras" not in t for t in titles)
+
     def test_the_cover_says_it_is_not_the_issued_laudo(self, client) -> None:
         cover = self._texts(self._deck(client).slides[0])
         assert "Versão editável — não emitida" in cover and "Ana Souza" in cover

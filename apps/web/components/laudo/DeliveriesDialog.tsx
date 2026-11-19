@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { revokeLaudoDelivery, type IssuedLaudo, type LaudoDelivery } from "@/lib/api";
+import {
+  resendLaudoDelivery,
+  revokeLaudoDelivery,
+  type IssuedLaudo,
+  type LaudoDelivery,
+} from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { laudoText as t } from "@/lib/i18n-laudo";
 import { Alert, Button, ConfirmDialog, Dialog } from "@/components/ui";
@@ -12,7 +17,9 @@ import { DeliveryHistory } from "./DeliveryList";
 /**
  * Every send of one issued version with the life of its link (D-243): until when it opens, whether
  * it was revoked, how many times it was opened, and "Revogar link" behind a confirmation. Reading
- * and revoking are the owner's; nothing here is computed on the screen. The confirmation is a
+ * and revoking are the owner's; "Reenviar" (D-249) sends an earlier message again with one click,
+ * through the same route as a first send, so the hourly e-mail limit speaks here as it does there;
+ * nothing here is computed on the screen. The confirmation is a
  * sibling of this dialog, not a child: a modal does not open inside another modal.
  */
 export function DeliveriesDialog({
@@ -36,6 +43,18 @@ export function DeliveriesDialog({
     },
     onError: () => setRevoking(null),
   });
+  const resend = useMutation({
+    mutationFn: (delivery: LaudoDelivery) => resendLaudoDelivery(delivery.id),
+    onSuccess: (sent) => {
+      const count = sent.recipients.length + sent.cc.length;
+      notify({
+        message: sent.status === "simulado" ? t.resendSimulatedToast(count) : t.resendToast(count),
+      });
+    },
+    // The attempt is in the history either way (the server records a failed one too).
+    onSettled: () =>
+      void queryClient.invalidateQueries({ queryKey: ["laudo-deliveries", issued.id] }),
+  });
   return (
     <>
       <Dialog
@@ -55,13 +74,24 @@ export function DeliveriesDialog({
               {describeApiError(revoke.error)}
             </Alert>
           ) : null}
+          {resend.isError ? (
+            <Alert tone="danger" role="alert" title={t.resendErrorTitle}>
+              {describeApiError(resend.error)}
+            </Alert>
+          ) : null}
           <DeliveryHistory
             issued={issued}
             onRevoke={(delivery) => {
               revoke.reset();
               setRevoking(delivery);
             }}
+            onResend={(delivery) => {
+              resend.reset();
+              resend.mutate(delivery);
+            }}
+            resending={resend.isPending ? (resend.variables?.id ?? null) : null}
           />
+          <p className="text-caption text-ink-muted">{t.resendHint}</p>
         </div>
       </Dialog>
       <ConfirmDialog
