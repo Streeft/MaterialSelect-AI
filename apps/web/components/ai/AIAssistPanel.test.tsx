@@ -191,6 +191,24 @@ describe("AIAssistPanel — assistente de projeto na Seleção (D-225)", () => {
     expect(await screen.findByRole("heading", { name: ptBR.ai.title })).toBeInTheDocument();
   });
 
+  it("remembers the proposal and does not ask again when the reader returns (D-251)", async () => {
+    const user = userEvent.setup();
+    planProject.mockResolvedValue(singlePlan());
+    const first = render(wrap(<AIAssistPanel onApply={vi.fn()} />));
+    await user.type(await screen.findByRole("textbox", { name: t.statementLabel }), LONG);
+    await user.click(screen.getByRole("button", { name: t.interpret }));
+    await screen.findByRole("article", { name: "Camada externa" });
+
+    first.unmount();
+    planProject.mockClear();
+    render(wrap(<AIAssistPanel onApply={vi.fn()} />));
+    expect(await screen.findByRole("article", { name: "Camada externa" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: t.statementLabel })).toHaveValue(LONG);
+    // The text is the one the proposal answered: no new reading is scheduled for it.
+    await new Promise((resolve) => setTimeout(resolve, PLAN_DEBOUNCE_MS + 300));
+    expect(planProject).not.toHaveBeenCalled();
+  }, 10_000);
+
   it("has no accessibility violations, with a proposal on screen", async () => {
     const user = userEvent.setup();
     planProject.mockResolvedValue(singlePlan());

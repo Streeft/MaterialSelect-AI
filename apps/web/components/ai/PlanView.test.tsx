@@ -141,6 +141,96 @@ describe("PlanView (D-225)", () => {
     expect(screen.getByText(t.suggestionApplied)).toBeInTheDocument();
   });
 
+  it("edits a limit's number: it goes back as the person's own, with a note of where it came from (D-251)", async () => {
+    const user = userEvent.setup();
+    const component = makeComponent();
+    runPlan.mockImplementation(async (request) => {
+      const sent = request.components[0]!.constraints![1]!;
+      return {
+        components: [
+          makeComponent({
+            constraints: component.constraints.map((c, i) =>
+              i === 1
+                ? {
+                    ...c,
+                    origin: "usuario",
+                    value: sent.value ?? null,
+                    label: "Temperatura máxima de serviço ≥ 90 °C",
+                    note: sent.note ?? "",
+                  }
+                : c,
+            ),
+          }),
+        ],
+      };
+    });
+    render(wrap(<Host initial={makePlan({ components: [component] })} />));
+    const card = screen.getByRole("article", { name: "Camada externa" });
+
+    await user.click(
+      within(card).getByRole("button", { name: t.editLimitNamed("Temperatura máxima de serviço") }),
+    );
+    const field = within(card).getByLabelText(new RegExp(`^${t.editValue("Temperatura máxima de serviço")}`));
+    expect(field).toHaveValue(60);
+    await user.clear(field);
+    await user.type(field, "90");
+    await user.click(within(card).getByRole("button", { name: t.editApply }));
+
+    await waitFor(() => expect(runPlan).toHaveBeenCalledTimes(1));
+    const sent = runPlan.mock.calls[0]![0].components[0]!.constraints!;
+    // Only the edited limit changed: its number is the typed one, it is the person's
+    // now, and the note keeps the scenario's number and the scenario's name.
+    expect(sent[1]).toMatchObject({ origin: "usuario", value: 90, confirmed: undefined });
+    expect(sent[1]!.note).toContain("era “Temperatura máxima de serviço ≥ 60 °C”");
+    expect(sent[1]!.note).toContain("faixa do cenário Calor moderado");
+    expect(sent[0]).toMatchObject({ origin: "usuario", value: -40 });
+    expect(sent[2]).toMatchObject({ origin: "sugestao_ia", confirmed: false });
+
+    // The new answer shows the number as the person's, with the trace written.
+    expect(await within(card).findByText(/Editado por você: era “Temperatura máxima/)).toBeInTheDocument();
+    expect(within(card).getByText("Temperatura máxima de serviço ≥ 90 °C")).toBeInTheDocument();
+  });
+
+  it("refuses an empty or inverted edit without asking the server", async () => {
+    const user = userEvent.setup();
+    const between = makeConstraint({
+      property: "densidade",
+      property_name: "Densidade",
+      operator: "between",
+      value: null,
+      value_min: 1000,
+      value_max: 2000,
+      label: "Densidade entre 1.000 e 2.000 kg/m³",
+    });
+    render(
+      wrap(<Host initial={makePlan({ components: [makeComponent({ constraints: [between] })] })} />),
+    );
+    await user.click(screen.getByRole("button", { name: t.editLimitNamed("Densidade") }));
+    const low = screen.getByLabelText(new RegExp(`^${t.editMin("Densidade")}`));
+    await user.clear(low);
+    await user.type(low, "3000");
+    await user.click(screen.getByRole("button", { name: t.editApply }));
+    expect(await screen.findByText(t.editInvalid)).toBeInTheDocument();
+    expect(runPlan).not.toHaveBeenCalled();
+    // Cancel closes the editor and leaves the limit as it was.
+    await user.click(screen.getByRole("button", { name: t.editCancel }));
+    expect(screen.queryByText(t.editInvalid)).not.toBeInTheDocument();
+    expect(screen.getByText("Densidade entre 1.000 e 2.000 kg/m³")).toBeInTheDocument();
+  });
+
+  it("offers no editor for a limit that has no number", () => {
+    const level = makeConstraint({
+      property: "resistencia_uv",
+      property_name: "Resistência UV",
+      operator: "level_at_least",
+      value: null,
+      level: "boa",
+      label: "Resistência UV pelo menos boa",
+    });
+    render(wrap(<Host initial={makePlan({ components: [makeComponent({ constraints: [level] })] })} />));
+    expect(screen.queryByRole("button", { name: t.editLimitNamed("Resistência UV") })).not.toBeInTheDocument();
+  });
+
   it("does not run when the confirmation is cancelled", async () => {
     const user = userEvent.setup();
     render(wrap(<Host initial={makePlan({ components: [makeComponent()] })} />));

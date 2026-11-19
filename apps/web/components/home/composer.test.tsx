@@ -91,6 +91,51 @@ describe("Assistente de projeto no Início (D-225)", () => {
     await waitFor(() => expect(planProject).toHaveBeenCalledTimes(1));
   });
 
+  it("keeps the proposal and its text when the reader leaves and comes back (D-251)", async () => {
+    const user = userEvent.setup();
+    planProject.mockResolvedValue(makePlan());
+    const first = render(wrap(<HomeComposer />));
+    await user.type(screen.getByRole("textbox", { name: t.composer.label }), "quero fazer uma roupa de esqui");
+    await user.click(screen.getByRole("button", { name: t.composer.submit }));
+    expect(await screen.findByRole("article", { name: "Camada externa" })).toBeInTheDocument();
+
+    // Another page, then back: a fresh mount, the same tab.
+    first.unmount();
+    planProject.mockClear();
+    render(wrap(<HomeComposer />));
+    expect(await screen.findByRole("article", { name: "Camada externa" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: t.composer.label })).toHaveValue(
+      "quero fazer uma roupa de esqui",
+    );
+    // Nothing was asked again: the quota is not spent to see what was already shown.
+    expect(planProject).not.toHaveBeenCalled();
+  });
+
+  it("starts clean when the stored proposal is not one (another version, a damaged value)", async () => {
+    window.sessionStorage.setItem("msai.plan.inicio", '{"text":"x","plan":{"components":[]}}');
+    render(wrap(<HomeComposer />));
+    expect(screen.getByRole("textbox", { name: t.composer.label })).toHaveValue("");
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    window.sessionStorage.setItem("msai.plan.inicio", "{isto não é json");
+    render(wrap(<HomeComposer />));
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("a new request replaces the remembered proposal", async () => {
+    const user = userEvent.setup();
+    planProject.mockResolvedValueOnce(makePlan({ summary: "Primeira proposta." }));
+    render(wrap(<HomeComposer />));
+    const box = screen.getByRole("textbox", { name: t.composer.label });
+    await user.type(box, "quero fazer uma roupa de esqui");
+    await user.click(screen.getByRole("button", { name: t.composer.submit }));
+    await screen.findByText("Primeira proposta.");
+    planProject.mockResolvedValueOnce(makePlan({ summary: "Segunda proposta." }));
+    await user.click(screen.getByRole("button", { name: t.composer.submit }));
+    await screen.findByText("Segunda proposta.");
+    const stored = JSON.parse(window.sessionStorage.getItem("msai.plan.inicio")!);
+    expect(stored.plan.summary).toBe("Segunda proposta.");
+  });
+
   it("keeps Enter for a new line: it does not spend a call", async () => {
     const user = userEvent.setup();
     render(wrap(<HomeComposer />));

@@ -150,3 +150,20 @@ describe("materialExportUrl (D-125)", () => {
     expect(decodeURIComponent(url)).toContain("densidade:g/cm**3");
   });
 });
+
+describe("logout", () => {
+  it("forgets the project assistant's remembered proposals (D-251)", async () => {
+    const { logout } = await import("./api");
+    window.sessionStorage.setItem("msai.plan.inicio", "{}");
+    window.sessionStorage.setItem("msai.plan.selecao", "{}");
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await logout();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(window.sessionStorage.getItem("msai.plan.inicio")).toBeNull();
+    expect(window.sessionStorage.getItem("msai.plan.selecao")).toBeNull();
+  });
+});

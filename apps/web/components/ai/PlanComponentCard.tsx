@@ -1,12 +1,31 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Alert, Card, CardBody, CardFooter, CardHeader, Checkbox, Disclosure } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Checkbox,
+  Disclosure,
+  NumberInput,
+} from "@/components/ui";
 import { ConstraintOriginChip } from "@/components/ai/ConstraintOriginChip";
-import { isSuggestion, materialHref, originKind, scenarioId } from "@/lib/ai/plan";
+import {
+  EDIT_NOTE_PREFIX,
+  type LimitEdit,
+  isEditable,
+  isSuggestion,
+  isValidEdit,
+  materialHref,
+  originKind,
+  scenarioId,
+} from "@/lib/ai/plan";
 import { planText } from "@/lib/i18n-plan";
-import type { PlanComponent } from "@/lib/types";
+import type { PlanComponent, PlanConstraint } from "@/lib/types";
 
 const t = planText;
 
@@ -25,6 +44,7 @@ export function PlanComponentCard({
   busy,
   headingLevel = 3,
   onToggleSuggestion,
+  onEditLimit,
   actions,
 }: {
   component: PlanComponent;
@@ -34,8 +54,11 @@ export function PlanComponentCard({
   busy: boolean;
   headingLevel?: 3 | 4;
   onToggleSuggestion: (constraintIndex: number, confirmed: boolean) => void;
+  /** The person typed over a limit's number (D-251); without it the limits are read-only. */
+  onEditLimit?: (constraintIndex: number, edit: LimitEdit) => void;
   actions?: ReactNode;
 }) {
+  const [editing, setEditing] = useState<number | null>(null);
   const headingId = useId();
   const run = component.result;
   const materials = run?.materials ?? [];
@@ -124,6 +147,34 @@ export function PlanComponentCard({
                         {chip}
                       </div>
                     )}
+                    {onEditLimit && isEditable(constraint) ? (
+                      editing === i ? (
+                        <LimitEditor
+                          constraint={constraint}
+                          busy={busy}
+                          onCancel={() => setEditing(null)}
+                          onApply={(edit) => {
+                            setEditing(null);
+                            onEditLimit(i, edit);
+                          }}
+                        />
+                      ) : (
+                        <div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={busy}
+                            aria-label={t.editLimitNamed(constraint.property_name)}
+                            onClick={() => setEditing(i)}
+                          >
+                            {t.editLimit}
+                          </Button>
+                        </div>
+                      )
+                    ) : null}
+                    {kind === "usuario" && constraint.note.startsWith(EDIT_NOTE_PREFIX) ? (
+                      <p className="text-support text-ink-subtle">{constraint.note}</p>
+                    ) : null}
                     {kind !== "usuario" && kind !== "indice" && constraint.source ? (
                       <p className="text-support text-ink-subtle">{t.limitSource(constraint.source)}</p>
                     ) : null}
@@ -189,5 +240,90 @@ export function PlanComponentCard({
       </CardBody>
       {actions ? <CardFooter className="!justify-start">{actions}</CardFooter> : null}
     </Card>
+  );
+}
+
+/**
+ * The inline editor of one limit (D-251): the number(s) of the operator, in the
+ * limit's own unit, and the two ways out. The number is typed, never proposed; the
+ * server re-runs the selection with it and keeps the note of where it was.
+ */
+function LimitEditor({
+  constraint,
+  busy,
+  onApply,
+  onCancel,
+}: {
+  constraint: PlanConstraint;
+  busy: boolean;
+  onApply: (edit: LimitEdit) => void;
+  onCancel: () => void;
+}) {
+  const range = constraint.operator === "between";
+  const start = (value: number | null) => (value === null ? "" : String(value));
+  const [value, setValue] = useState(start(constraint.value));
+  const [low, setLow] = useState(start(constraint.value_min));
+  const [high, setHigh] = useState(start(constraint.value_max));
+  const [invalid, setInvalid] = useState(false);
+  const unit = constraint.unit ?? undefined;
+  const name = constraint.property_name;
+
+  function submit() {
+    const read = (raw: string) => (raw.trim() === "" ? undefined : Number(raw));
+    const edit: LimitEdit = range
+      ? { value_min: read(low), value_max: read(high) }
+      : { value: read(value) };
+    if (!isValidEdit(constraint, edit)) {
+      setInvalid(true);
+      return;
+    }
+    onApply(edit);
+  }
+
+  return (
+    <div className="well flex min-w-0 flex-col gap-3">
+      <p className="text-support text-ink-muted">{t.editHint}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {range ? (
+          <>
+            <NumberInput
+              label={t.editMin(name)}
+              unit={unit}
+              step="any"
+              value={low}
+              onChange={(e) => setLow(e.target.value)}
+            />
+            <NumberInput
+              label={t.editMax(name)}
+              unit={unit}
+              step="any"
+              value={high}
+              onChange={(e) => setHigh(e.target.value)}
+            />
+          </>
+        ) : (
+          <NumberInput
+            label={t.editValue(name)}
+            unit={unit}
+            step="any"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        )}
+      </div>
+      {invalid ? (
+        <Alert tone="warning" role="alert">
+          {t.editInvalid}
+        </Alert>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" disabled={busy} onClick={submit}>
+          {t.editApply}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          {t.editCancel}
+        </Button>
+      </div>
+    </div>
   );
 }

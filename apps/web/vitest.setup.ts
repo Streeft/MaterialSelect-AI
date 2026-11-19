@@ -1,4 +1,14 @@
 import "@testing-library/jest-dom/vitest";
+import { afterEach } from "vitest";
+
+/**
+ * What a test writes to `sessionStorage` (the project assistant's remembered
+ * proposal, D-251) must not reach the next one: a screen that restores state on
+ * mount would otherwise answer from a test that ran before it.
+ */
+afterEach(() => {
+  if (typeof window !== "undefined") window.sessionStorage.clear();
+});
 
 /**
  * jsdom ships no media-query engine, so `window.matchMedia` is simply absent

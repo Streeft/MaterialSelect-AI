@@ -165,6 +165,7 @@ import type {
   WeightsPreview,
   WeightsPreviewRequest,
 } from "./types";
+import { clearPlanMemory } from "./ai/planMemory";
 
 /**
  * Where the API lives, from the browser's point of view.
@@ -267,8 +268,10 @@ export function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>(`/api/auth/me`);
 }
 
-export function logout(): Promise<void> {
-  return request<void>(`/api/auth/logout`, { method: "POST" });
+export async function logout(): Promise<void> {
+  await request<void>(`/api/auth/logout`, { method: "POST" });
+  // D-251: the proposal of the project assistant is this reader's, kept in the tab.
+  clearPlanMemory();
 }
 
 /** For a plain `<a href>` — a full-page redirect into Google, not a fetch. */

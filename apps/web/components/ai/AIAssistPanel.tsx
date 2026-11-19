@@ -7,6 +7,7 @@ import { describeApiError } from "@/lib/errors";
 import { ptBR } from "@/lib/i18n";
 import { planText } from "@/lib/i18n-plan";
 import { PLAN_DEBOUNCE_MS, PLAN_MAX_CHARS, isInterpretable } from "@/lib/ai/plan";
+import { usePlanMemory } from "@/lib/ai/planMemory";
 import type { PlanComponent, ProjectPlan } from "@/lib/types";
 import { Alert, Badge, Button, Card, CardBody, CardHeader, Textarea } from "@/components/ui";
 import { PlanView } from "@/components/ai/PlanView";
@@ -34,10 +35,14 @@ interface AIAssistPanelProps {
  * study, and an AI suggestion goes in only if it was ticked and confirmed.
  */
 export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
-  const [statement, setStatement] = useState("");
-  const [plan, setPlan] = useState<ProjectPlan | null>(null);
+  // D-251: the proposal outlives a visit to another page; what the reader typed
+  // since wins over the remembered text.
+  const memory = usePlanMemory("selecao");
+  const [typed, setStatement] = useState<string | null>(null);
+  const statement = typed ?? memory.saved?.text ?? "";
+  const plan: ProjectPlan | null = memory.saved?.plan ?? null;
   /** The text the proposal on screen answered. */
-  const [asked, setAsked] = useState("");
+  const asked = memory.saved?.text ?? "";
   const [interpreting, setInterpreting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
@@ -45,6 +50,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
   const status = useQuery({ queryKey: ["ai-status"], queryFn: getAIStatus });
   const controller = useRef<AbortController | null>(null);
 
+  const save = memory.save;
   const interpret = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -57,8 +63,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
     try {
       const result = await planProject({ text: trimmed, mode: "single" }, mine.signal);
       if (controller.current !== mine) return;
-      setPlan(result);
-      setAsked(trimmed);
+      save({ text: trimmed, plan: result });
       setApplied(false);
     } catch (err) {
       if (mine.signal.aborted || controller.current !== mine) return;
@@ -69,7 +74,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
         setInterpreting(false);
       }
     }
-  }, []);
+  }, [save]);
 
   // Interpret while typing: debounced, never on a short text, never twice for
   // the same text. The timer is the cancellation of "the person is still typing".
@@ -151,7 +156,7 @@ export function AIAssistPanel({ onApply }: AIAssistPanelProps) {
             plan={plan}
             headingLevel={3}
             onPlanChange={(next) => {
-              setPlan(next);
+              memory.save({ text: asked, plan: next });
               setApplied(false);
             }}
             renderActions={(part, busy) => (
