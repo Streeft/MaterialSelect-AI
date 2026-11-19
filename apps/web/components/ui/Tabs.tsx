@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useId, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { SlidingIndicator, useSlidingIndicator } from "./SlidingIndicator";
 
 /**
  * Tabs, styled with MSDS's tab classes (D-77) — not delegated to MSDS's own
@@ -32,6 +33,10 @@ import { cn } from "@/lib/cn";
  * The panel stays exactly what it was: a sibling this component owns and
  * renders itself, not a separate `TabPanel` a caller could get the id wrong
  * for — `value` is the only source of truth for which one is selected.
+ *
+ * D-248: the indicator is one surface for the strip (`SlidingIndicator`),
+ * which slides to the chosen tab and stretches on the way. Until it is
+ * measured (server render), each tab draws its own `::after`.
  */
 
 export interface TabItem<T extends string> {
@@ -60,6 +65,8 @@ export function Tabs<T extends string>({
   children: ReactNode;
 }) {
   const base = useId();
+  const listRef = useRef<HTMLDivElement>(null);
+  useSlidingIndicator(listRef, '[role="tab"][aria-selected="true"]', value);
 
   const focusTab = useCallback((index: number) => {
     const el = document.getElementById(`${base}-tab-${items[index]?.id}`);
@@ -97,10 +104,12 @@ export function Tabs<T extends string>({
       {/* The strip scrolls in its own box: five views ("Coordenadas
           paralelas" alone is 169 px) pushed the whole page sideways at 375 px. */}
       <div
+        ref={listRef}
         role="tablist"
         aria-label={label}
-        className={cn("msds-tablist overflow-x-auto [scrollbar-width:thin]", className)}
+        className={cn("msds-tablist relative overflow-x-auto [scrollbar-width:thin]", className)}
       >
+        <SlidingIndicator />
         {items.map((item, index) => {
           const selected = item.id === value;
           return (

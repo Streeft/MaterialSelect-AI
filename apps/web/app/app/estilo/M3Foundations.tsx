@@ -115,7 +115,7 @@ export function M3Foundations() {
       <div>
         <h3 className="mb-2 text-m3-title-medium text-ink">Camadas de estado</h3>
         <p className="mb-2 text-m3-body-small text-ink-muted">
-          Passe o mouse, use Tab e clique: 8% ao passar, 10% no foco e ao pressionar. Sem movimento.
+          Passe o mouse, use Tab e clique: 8% ao passar, 10% no foco e ao pressionar. O véu não se move; a forma do botão, sim (D-248).
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary">Preenchido</Button>

@@ -94,7 +94,8 @@ sobreposição tonal (tinta `surface-tint` sobre o contêiner), não só pela so
 ## Camadas de estado
 
 Camada sobre o contêiner, na cor do conteúdo (normalmente a `on-…`), com opacidade fixa:
-**hover 8% · foco 10% · pressionado 10% · arrastado 16%**. Desabilitado tem regra própria.
+**hover 8% · foco 10% · pressionado 10% · arrastado 16%**. Desabilitado tem regra própria:
+conteúdo e contêiner a **38%** (`md.sys.state.disabled`, `--state-disabled`, D-248).
 
 ## Movimento
 
@@ -113,9 +114,28 @@ long1–4 = 450 · 500 · 550 · 600 ms; extra-long1–4 = 700 · 800 · 900 · 
 | legacy (e `-decelerate`/`-accelerate`) | 0,4·0·0,2·1 · 0·0·0,2·1 · 0,4·0·1·1 |
 
 O M3 Expressive troca a base de curvas por **molas** (rápida/padrão/lenta; *spatial* com
-overshoot para posição, tamanho e raio; *effects* sem overshoot para cor e opacidade). O app é
-utilitário e usa o esquema **standard** com o `useSpring` do MSDS; as molas do MSDS são
-"valores aproximados" até serem conferidas contra a especificação de movimento.
+overshoot para posição, tamanho e raio; *effects* sem overshoot para cor e opacidade). Desde a
+D-181/D-183 o app usa o esquema **expressivo**, e desde a D-248 com os valores conferidos:
+
+| Mola (Expressive) | Rigidez | Amortecimento | Sobressinal | Acomodação (0,1 %) |
+|---|---|---|---|---|
+| spatial fast | 800 | 0,6 | 9,5 % | 359 ms |
+| spatial default | 380 | 0,8 | 1,5 % | 435 ms |
+| spatial slow | 200 | 0,8 | 1,5 % | 599 ms |
+| effects fast | 3800 | 1 | 0 | 150 ms |
+| effects default | 1600 | 1 | 0 | 231 ms |
+| effects slow | 800 | 1 | 0 | 326 ms |
+
+Fonte: `ExpressiveMotionTokens.kt` (androidx-main, Compose), lido em 19/11/26; o sobressinal da
+curva "Expressive fast spatial" da página (*Styles › Motion › Specs*) bate com 0,6. Os tokens
+`md.sys.motion.spring.*` do `@material/web` (700/0,9, 1400/0,9, 300/0,9) são do esquema
+**Standard**, não do Expressive. Na web, o token `easing.emphasized` resolve para `standard`.
+As molas viram CSS `linear()` amostrado da própria mola (41 pontos), com a acomodação como duração.
+
+**Ícones animados.** A página *Styles › Icons* mostra a variação dos eixos (peso, preenchimento,
+grau, tamanho óptico) e não descreve gesto de hover; o NotebookLM exige login. Os sete gestos do
+app (preencher, girar, balançar, saltar, deslizar, pulsar, desenhar traço) são **inferidos** do
+M3 e vivem em `lib/design/iconGestures.ts` (D-248).
 
 ## Mapeamento M3 → app (o que este arquivo autoriza)
 
@@ -133,5 +153,6 @@ utilitário e usa o esquema **standard** com o `useSpring` do MSDS; as molas do 
 | Níveis de contraste e cor escolhida pela pessoa | Só o tema era escolha; contraste e movimento reduzido vinham só do sistema | `/app/aparencia`: contraste padrão/médio/alto, cor do app entre paletas verificadas, movimento reduzido (D-196). Fonte: *Styles › Color › Contrast* e *Dynamic color*, lidas em 03/11/26. |
 | Bottom sheet modal e barra flutuante *standard* | Popover de 288 px preso ao valor também no celular; ações só no cabeçalho | Abaixo de 600 px todo `Popover` vira folha inferior modal, e a ficha tem barra flutuante com as ações (D-197). Fonte: *Components › Bottom sheets* e *Toolbars*, lidas em 03/11/26. |
 | Molas (motion physics), conversão para web | Curvas e durações M3 como variáveis | 12 tokens `--m3-spring-*` com a curva e a duração exatas da tabela "Web: Convert springs to curves"; esquema expressivo nos `--motion-*` (D-183). Fonte: *Styles › Motion › Specs*, lida em 30/10/26. |
+| Molas como `linear()`, ícones animados, forma que responde (*shape morph*) e indicador que estica | Molas só como `cubic-bezier`; ícones parados; raio por JS só ao pressionar; indicador por item | `--m3-spring-expressive-*-linear` sob `@supports`, `data-gesture` em todo ícone, raio no hover e ao pressionar no `msds.css`, `SlidingIndicator` (D-248). Fonte: *Styles › Motion › Overview/Specs*, *Styles › Icons*, *Components › Buttons/Icon buttons/Navigation rail/Tabs* e `ExpressiveMotionTokens.kt`, lidos em 19/11/26. |
 | Alvo de toque (*target size*) | Botões de 32 px e chips sem área mínima no toque | `--target-min: 44px` e área invisível de `max(100%, 44px)` em ponteiro grosso; o desenho não muda (D-206). Fonte: *Foundations › Accessible design › Target sizes* e *Components › Icon buttons*, lidas em 11/11/26. |
 | *Filter chips*, *side sheet* modal e *small top app bar* | Filtros em cartão; prévia só no catálogo; busca larga com "Ctrl K" também no celular | `FilterBar` em chips com folha inferior no celular, `SidePeek` (folha lateral modal) e barra do topo com o nome da tela e a busca como ícone abaixo de `lg` (D-206). Fonte: *Components › Chips*, *Side sheets* e *Top app bar*, lidas em 11/11/26. |

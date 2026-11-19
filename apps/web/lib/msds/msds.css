@@ -3,13 +3,16 @@
    never a literal, so switching data-theme retints everything. */
 
 :root {
-  --msds-ease: cubic-bezier(0.2, 0, 0, 1);
-  --msds-dur: 180ms;
-  --msds-dur-slow: 320ms;
+  /* D-248: aliases of the M3 tokens in app/globals.css, not values of their own.
+     The 180 ms and 320 ms MSDS had were no M3 duration; the nearest ones are
+     short4 (200 ms) and medium2 (300 ms). */
+  --msds-ease: var(--m3-ease-standard);
+  --msds-dur: var(--m3-dur-short4);
+  --msds-dur-slow: var(--m3-dur-medium2);
   /* Extraídas da M3: quem entra desacelera, quem sai acelera — nunca a mesma curva
      nos dois sentidos (a curva única acima segue valendo para o resto do sistema). */
-  --msds-ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --msds-ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --msds-ease-out: var(--m3-ease-emphasized-decelerate);
+  --msds-ease-in: var(--m3-ease-emphasized-accelerate);
 }
 
 * { box-sizing: border-box; }
@@ -970,4 +973,58 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
 .msds-slider-input:focus-visible::-webkit-slider-thumb, .msds-slider-input:active::-webkit-slider-thumb { box-shadow: 0 0 0 8px rgb(var(--m3-primary) / var(--state-focus)); }
 @media (prefers-reduced-motion: reduce) {
   .msds-checkbox-box::after, .msds-radio-dot::after, .msds-switch-track, .msds-switch-thumb { transition: none; }
+}
+
+/* ---------- D-248: shape that answers the pointer (M3 Expressive) ----------
+   Hover softens the corners, press squares them and the box yields, and a
+   selected toggle is square where the resting one is round. The radius rides
+   the fast spatial spring and colour the effects spring (tokens in
+   app/globals.css). Buttons read `--btn-r`, so the split button's joined
+   corners (D-183) keep their own. Here and not in globals.css so that a
+   utility class on a call site still wins, as it did before. Hover changes
+   the shape only: nothing rises, grows or changes border (D-134). The JS
+   spring of `useShapeMorph` gave way to this; the hook keeps its API. */
+.msds-btn {
+  border-radius: var(--btn-r, var(--radius-control));
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    transform var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    background-color var(--motion-effects-dur) var(--motion-effects),
+    border-color var(--motion-effects-dur) var(--motion-effects),
+    box-shadow var(--motion-effects-dur) var(--motion-effects),
+    color var(--motion-effects-dur) var(--motion-effects);
+}
+@media (hover: hover) {
+  .msds-btn-md:hover:not(:disabled) { --btn-r: var(--shape-large-increased); }
+  .msds-btn-sm:hover:not(:disabled) { --btn-r: var(--shape-large); }
+}
+.msds-btn:active:not(:disabled),
+.msds-btn[data-force-state="pressed"] { --btn-r: var(--radius-seat); }
+
+.msds-icon-btn,
+.msds-chip,
+.msds-fab {
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    transform var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    background-color var(--motion-effects-dur) var(--motion-effects),
+    border-color var(--motion-effects-dur) var(--motion-effects),
+    box-shadow var(--motion-effects-dur) var(--motion-effects),
+    color var(--motion-effects-dur) var(--motion-effects);
+}
+.msds-icon-btn { border-radius: 50%; }
+.msds-icon-btn[aria-pressed="true"] { border-radius: var(--shape-medium); }
+@media (hover: hover) {
+  .msds-icon-btn:hover:not(:disabled) { border-radius: var(--shape-medium); }
+  .msds-chip:hover:not(:disabled) { border-radius: var(--shape-medium); }
+  .msds-fab:hover { border-radius: var(--shape-large-increased); }
+}
+.msds-icon-btn:active:not(:disabled) { border-radius: var(--shape-small); transform: scale(0.94); }
+.msds-chip { border-radius: var(--shape-large); }
+.msds-chip[aria-pressed="true"] { border-radius: var(--shape-small); }
+.msds-chip:active:not(:disabled) { border-radius: var(--radius-seat); transform: scale(0.97); }
+.msds-fab:active { border-radius: var(--shape-medium); }
+
+.msds-fab[aria-expanded="true"] { border-radius: var(--radius-full); }
+.msds-btn:disabled { opacity: var(--state-disabled); }
+@media (prefers-reduced-motion: reduce) {
+  .msds-btn, .msds-icon-btn, .msds-chip, .msds-fab { transition: none; }
 }

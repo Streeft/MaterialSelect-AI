@@ -14466,6 +14466,67 @@ material ainda vale.
 **Numeração.** D-245, Sessão 202 (conferidas em `origin/main`). Toca `apps/api` **com migração**: depois do merge, **Deploy da API**
 (que roda `alembic upgrade head`).
 
+
+
+## D-248 — Material 3 Expressive, parte 6: molas como `linear()`, ícones que se mexem, forma que responde ao ponteiro (revê D-134 e D-136)
+
+**Contexto.** O autor pediu o Material 3 "por completo" no app, com movimento e ícones que se mexem no hover como no Google NotebookLM, e
+escolheu a intensidade **Máximo**: gesto por ícone, molas do M3 Expressive e a forma dos botões mudando no hover e ao pressionar. O estudo
+(`m3.material.io`, *Styles › Motion*, *Icons* e páginas de componentes, lidas em 19/11/26; `@material/web` 2.5.0; `ExpressiveMotionTokens.kt`
+do `androidx-main`) achou duas armadilhas que decidem valores: os tokens de mola do `@material/web` (700/0,9…) são do esquema **Standard**; o
+**Expressive** espacial é 380/0,8 (padrão), 800/0,6 (rápida) e 200/0,8 (lenta), e os de efeitos 1600, 3800 e 800 com amortecimento 1 — o
+sobressinal publicado da curva "Expressive fast spatial" (~9 %) só bate com 0,6. E o token `easing.emphasized` resolve para `standard` na web.
+O NotebookLM pede login; os gestos são inferidos do M3, não copiados de uma tela.
+
+**Decisão.**
+- **Revê D-134 e D-136, a pedido.** Hover continua sendo o véu de estado (8/10/10 %), e **a caixa nunca sobe, cresce nem troca borda** no hover
+  (D-134 e o card sem `translateY` de D-136 ficam). O que muda: **o ícone pode se mexer e a forma pode mudar** no hover. O `.pressable` perdeu o
+  `hover:scale-[1.02]` (fica o `active`); a marca da barra lateral perdeu o `scale-105`. D-141 continua: nada de `transform` num ancestral do conteúdo.
+- **Tokens** (`globals.css`). As 16 durações do M3 (`--m3-dur-short1` … `--m3-dur-extra-long4`, 50 a 1000 ms), `--m3-ease-emphasized` (= standard),
+  `--state-disabled` (0,38, agora o desabilitado de botão, botão de ícone, chip e grupo). As seis molas expressivas também como CSS `linear()`
+  (`--m3-spring-expressive-*-linear` e `-linear-dur`, 41 pontos amostrados da própria mola, duração = tempo de acomodação a 0,1 %). Sob
+  `@supports (transition-timing-function: linear(0, 1))` os semânticos `--motion-*` (e o novo `--motion-effects-slow`) apontam para elas, curva e
+  duração juntas; sem suporte, ficam as conversões `cubic-bezier` da página (D-183). `--msds-dur`/`-ease*` do `msds.css` viraram apelidos dos tokens
+  M3 (180 → 200 ms, 320 → 300 ms). As constantes `SPRING` do `useSpring` passaram aos valores Expressive.
+- **Ícones animados.** Todo ícone tem um gesto (`data-gesture` no `<svg>`, mais `data-gesture-dir`): **preencher, girar, balançar, saltar,
+  deslizar, pulsar e desenhar traço**. Nos 72 de `components/ui/icons.tsx` o `Svg` exige a prop `gesture` (sem ela não compila); nos 34 do
+  `msdsIcon` a tabela `MSDS_ICON_GESTURES`. `lib/design/iconGestures.ts` guarda os nomes e `APP_ICON_GESTURES`. O gesto toca no `:hover`,
+  `:focus-visible` e `:active` do controle em volta (`a[href]`, `button`, `[role=button]`, `[role=tab]`, `[role=menuitem]`); só *keyframes* CSS com
+  tokens, propriedades individuais (`rotate`, `scale`, `translate`) para compor com o `transform` que o ícone já tenha; "desenhar" usa
+  `pathLength="1"` e `stroke-dashoffset`. Todas as regras ficam dentro de `@media (prefers-reduced-motion: no-preference)` **e** de
+  `:root:not([data-motion="reduced"])`: com movimento reduzido elas não existem.
+- **Forma que responde** (`msds.css`). Botão: raio de controle em repouso, mais redondo no hover (20 px; 16 no `sm`), mais reto ao pressionar
+  (`--radius-seat`) e cede 3 %. Botão de ícone: círculo → 12 px no hover → 8 px e 94 % ao pressionar; **alternância ligada é quadrada** (12 px). Chip:
+  16 → 12 no hover, 6 ao pressionar, 8 escolhido. FAB e o FAB do menu: 16 → 20 no hover, 12 ao pressionar, pílula aberto. Raio na mola espacial
+  rápida, cor na de efeitos. O botão lê `--btn-r`, para o botão dividido (D-183) manter os cantos internos. `useShapeMorph` deixou de pôr raio em linha
+  (ganharia do CSS); mantém a API. As regras vivem no `msds.css`, carregado antes do Tailwind: uma classe utilitária de quem chama ainda vence.
+- **Indicador que estica e desliza.** `SlidingIndicator` + `useSlidingIndicator` (`components/ui`): uma superfície por lista que vai do destino
+  antigo ao novo; a borda da frente anda na mola espacial rápida e a de trás na lenta. Nas abas (a linha de 3 px de D-137), no trilho e na gaveta
+  (o tom de `--row-accent`) e na barra inferior (a pílula 56 × 32). O que se mede é o lugar de um elemento para um enfeite, não grandeza de dado
+  (ADR 0004). Antes de medir (render do servidor) cada item mantém a própria marca.
+- **Sobreposições com mola.** Diálogo e paleta de comandos (escala, mola padrão), menu (cresce de cima, mola rápida), popover,
+  snackbar e aviso (sobem 16 px, mola rápida), folha inferior do MSDS (mola padrão). A **opacidade** vai à parte, na mola de efeitos
+  rápida (150 ms, sem sobressinal), como o M3 separa espacial de efeitos: com escala e opacidade numa animação só de 435 ms, o axe da
+  E2E do laudo mediu o contraste do diálogo "Envios" no meio do esmaecer e falhou (CI e local). Na própria superfície, nunca na página.
+- **Troca de tela** continua só opacidade (D-141), agora no padrão *top level* do M3 (*fade through*): a tela nova espera `short1` e esmaece em
+  `medium1` com `emphasized-decelerate`. A escala que o M3 acrescenta fica de fora, pela D-141.
+- **Vitrine.** `/app/estilo` ganhou a seção "Movimento" (`MotionSpecimen`): durações, curvas e molas que se tocam, a galeria dos 72 ícones agrupada
+  por gesto e os botões com forma que responde; passa no axe.
+
+**Fora.** Remover `--md-sys-color-*` e `lib/design/materialTheme.ts`: **não foi feito, porque estão em uso** (`--primary` e os demais papéis
+semânticos leem `--md-sys-color-*`; `materialTheme.ts` é a ferramenta de build que `materialTheme.test.ts` trava e `m3Roles.ts` cita). Morph de
+caminho SVG (`d: path()`) e a biblioteca de 35 formas do Expressive (o site diz "Web is not currently available"). Escala na troca de tela (D-141).
+
+**Verificado no navegador** (D-149): vídeo do hover nos ícones do menu lateral e da vitrine e do pressionar dos botões, a 1280 px nos temas
+claro e escuro, e capturas a 390 px; `getAnimations()` mostra os gestos com as durações dos tokens (o salto do "preencher" em 359 ms, a da mola
+rápida em `linear()`) e o raio do botão transita em `linear(0, 0.0292, …)`/359 ms. **Achado:** a 390 px a aba escolhida da barra de visões
+(`.ds-view-tab`, D-209) mostrava a faixa de 3 px atravessando o rótulo e saindo da tela: a área de toque invisível da D-226 usava o mesmo
+`::after` do indicador. A aba passou à lista de exceções, como `[role="tab"]` (ela já cresce até 44 px por conta própria).
+
+**Numeração.** D-248, Sessão 205 (conferidas em `origin/main` e nas branches abertas; o PR #270 usa D-246/Sessão 203). Só frontend: sem
+migração, sem deploy da API.
+
+
 ## D-246 — Pacote de pendências pequenas: comparar processos em qualquer visão e atalho de passo na Seleção
 
 **Contexto.** Quatro pendências pequenas do `TODO.md`: comparar processos fora da matriz (D-219), atalhos de teclado para trocar de

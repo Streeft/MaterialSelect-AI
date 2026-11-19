@@ -13,10 +13,28 @@
  * outside `lib/msds` should treat exports as `any` and narrow locally.
  */
 import * as React from "react";
+import { MSDS_ICON_GESTURES, gestureAttributes } from "@/lib/design/iconGestures";
 
 const h = React.createElement;
 
+/**
+ * D-248: the glyph, carrying its gesture (`data-gesture`, see
+ * `lib/design/iconGestures.ts`); a `draw` glyph gets `pathLength="1"` on each
+ * part. The switch below is the vendored set, untouched.
+ */
 export function msdsIcon(name) {
+  var svg = msdsGlyph(name);
+  if (!svg) return svg;
+  var attrs = gestureAttributes(MSDS_ICON_GESTURES[name] || "pulse");
+  if (attrs["data-gesture"] !== "draw") return React.cloneElement(svg, attrs);
+  // Children.map keys each part, so the array goes in as one argument.
+  var parts = React.Children.map(svg.props.children, function (c) {
+    return React.isValidElement(c) ? React.cloneElement(c, { pathLength: 1 }) : c;
+  });
+  return React.cloneElement(svg, attrs, parts);
+}
+
+function msdsGlyph(name) {
     var line = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
     var small = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.2, strokeLinecap: "round", strokeLinejoin: "round" };
     switch (name) {

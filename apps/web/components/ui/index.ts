@@ -106,6 +106,7 @@ export {
   Tr,
 } from "./Table";
 export { Tabs, type TabItem } from "./Tabs";
+export { SlidingIndicator, useSlidingIndicator } from "./SlidingIndicator";
 export { ThemeToggle, useResolvedTheme } from "./ThemeToggle";
 export { ToolTile, type ToolTone } from "./ToolTile";
 export { SplitButton } from "./SplitButton";

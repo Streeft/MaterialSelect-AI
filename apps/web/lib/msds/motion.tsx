@@ -78,13 +78,18 @@ const useEffect = React.useEffect;
   //   Spatial  (tamanho/posição, pode ultrapassar antes de assentar)
   //   Effects  (opacidade/cor, sempre crítica — nunca ultrapassa)
   // ---------------------------------------------------------------------
+  // D-248: the M3 *Expressive* scheme, as Compose ships it
+  // (`ExpressiveMotionTokens.kt`, androidx-main): spatial 800/0,6 (fast),
+  // 380/0,8 (default), 200/0,8 (slow); effects 3800, 1600 and 800 with damping
+  // ratio 1. The CSS `linear()` curves in app/globals.css are sampled from these
+  // same six springs, so a JS spring and a CSS one cannot drift apart.
   var SPRING = {
-    spatialFast: { stiffness: 1400, dampingRatio: 1 },
-    spatialDefault: { stiffness: 700, dampingRatio: 0.9 },
-    spatialSlow: { stiffness: 300, dampingRatio: 0.9 },
-    effectsFast: { stiffness: 1400, dampingRatio: 1 },
-    effectsDefault: { stiffness: 800, dampingRatio: 1 },
-    effectsSlow: { stiffness: 400, dampingRatio: 1 }
+    spatialFast: { stiffness: 800, dampingRatio: 0.6 },
+    spatialDefault: { stiffness: 380, dampingRatio: 0.8 },
+    spatialSlow: { stiffness: 200, dampingRatio: 0.8 },
+    effectsFast: { stiffness: 3800, dampingRatio: 1 },
+    effectsDefault: { stiffness: 1600, dampingRatio: 1 },
+    effectsSlow: { stiffness: 800, dampingRatio: 1 }
   };
 
   // Rodada 8, item 4: 4º parâmetro opcional "resetKey" — quando muda de um
@@ -297,14 +302,17 @@ const useEffect = React.useEffect;
   // checar a preferência de novo. Devolve { radius, bind } — "bind" traz os
   // handlers de pointer down/up/leave/cancel prontos para espalhar no
   // elemento, encadeados com um handler existente se houver.
+  //
+  // D-248: the shape is CSS now (lib/msds/msds.css): hover, press and the
+  // selected state each name a radius, and the change rides the expressive
+  // spring as a `linear()` curve. An inline radius here would outrank all of
+  // that, so `style` is empty; `radius` and `bind` stay for the callers.
   function useShapeMorph(rest, pressed, active) {
     var s = useState(false); var down = s[0], setDown = s[1];
     var target = (active !== undefined ? active : down) ? pressed : rest;
-    var radius = useSpring(target, SPRING.spatialFast, rest);
-    function chain(existing, fn) { return function (e) { fn(e); if (existing) existing(e); }; }
     return {
-      radius: radius,
-      style: { borderRadius: radius + "px" },
+      radius: target,
+      style: {},
       bind: {
         onPointerDown: function (e) { setDown(true); },
         onPointerUp: function (e) { setDown(false); },

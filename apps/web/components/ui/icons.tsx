@@ -1,5 +1,6 @@
-import type { SVGProps } from "react";
+import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode, type SVGProps } from "react";
 import { cn } from "@/lib/cn";
+import { gestureAttributes, type GestureSpec } from "@/lib/design/iconGestures";
 
 /**
  * Hand-rolled icon set.
@@ -11,6 +12,13 @@ import { cn } from "@/lib/cn";
  * Icons are decorative by default (`aria-hidden`), because in this codebase
  * they always sit next to their own written label. Pass `title` on the rare
  * occasion an icon is the only thing carrying the meaning.
+ *
+ * D-248: every icon declares a `gesture` (`lib/design/iconGestures.ts`) — the
+ * movement it makes when the control around it is hovered, focused or
+ * pressed. `Svg` requires it, so an icon without one does not compile; the
+ * keyframes are CSS in `app/globals.css`, off under reduced motion. A `draw`
+ * icon gets `pathLength="1"` on each part, which the dash animation needs and
+ * which changes nothing at rest.
  */
 
 type IconProps = SVGProps<SVGSVGElement> & { title?: string };
@@ -19,8 +27,18 @@ function Svg({
   children,
   className,
   title,
+  gesture,
   ...rest
-}: IconProps & { children: React.ReactNode }) {
+}: IconProps & { children: ReactNode; gesture: GestureSpec }) {
+  const attrs = gestureAttributes(gesture);
+  const parts =
+    attrs["data-gesture"] === "draw"
+      ? Children.map(children, (child) =>
+          isValidElement(child)
+            ? cloneElement(child as ReactElement<SVGProps<SVGElement>>, { pathLength: 1 })
+            : child,
+        )
+      : children;
   return (
     <svg
       viewBox="0 0 24 24"
@@ -32,10 +50,11 @@ function Svg({
       className={cn("h-4 w-4 shrink-0", className)}
       aria-hidden={title ? undefined : true}
       role={title ? "img" : undefined}
+      {...attrs}
       {...rest}
     >
       {title ? <title>{title}</title> : null}
-      {children}
+      {parts}
     </svg>
   );
 }
@@ -46,32 +65,32 @@ function Svg({
 // full name-mapping table between `lib/msds/icons.tsx`'s `msdsIcon(name)`
 // and these exports.
 export const IconCheck = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M4.5 12.8 9.2 17.5 19.5 6.5" />
   </Svg>
 );
 
 export const IconChevronDown = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-down">
     <path d="M6 9.2l6 6 6-6" />
   </Svg>
 );
 
 export const IconChevronRight = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-right">
     <path d="M9 5.2 15.5 12 9 18.8" />
   </Svg>
 );
 
 export const IconClose = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin">
     <path d="M6.5 6.5l11 11" />
     <path d="M17.5 6.5l-11 11" />
   </Svg>
 );
 
 export const IconMenu = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse-right">
     <path d="M4.5 7.2h15" />
     <path d="M4.5 12h15" />
     <path d="M4.5 16.8h15" />
@@ -79,21 +98,21 @@ export const IconMenu = (p: IconProps) => (
 );
 
 export const IconSearch = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <circle cx="10.5" cy="10.5" r="6.3" />
     <path d="M19.6 19.6l-4.4-4.4" />
   </Svg>
 );
 
 export const IconInfo = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <circle cx="12" cy="12" r="9" />
     <path d="M12 11v5M12 8h.01" />
   </Svg>
 );
 
 export const IconWarning = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="wobble" fill="currentColor" stroke="none">
     <path d="M10.6 3.8a1.6 1.6 0 0 1 2.8 0l8.2 14.6a1.6 1.6 0 0 1-1.4 2.4H3.8a1.6 1.6 0 0 1-1.4-2.4Z" />
     <rect x="11" y="9.5" width="2" height="5" rx="1" fill="var(--surface-200, #fff)" />
     <circle cx="12" cy="17" r="1.1" fill="var(--surface-200, #fff)" />
@@ -101,14 +120,14 @@ export const IconWarning = (p: IconProps) => (
 );
 
 export const IconDanger = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <circle cx="12" cy="12" r="9" />
     <path d="M12 7.5v5M12 16.5h.01" />
   </Svg>
 );
 
 export const IconSun = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin">
     <circle cx="12" cy="12" r="4" />
     <path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
   </Svg>
@@ -116,7 +135,7 @@ export const IconSun = (p: IconProps) => (
 
 /** D-196: Aparência (colour, contrast, motion). */
 export const IconPalette = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5C21 6.6 17 3 12 3Z" />
     <circle cx="7.5" cy="11" r="1.1" />
     <circle cx="10" cy="7" r="1.1" />
@@ -125,72 +144,72 @@ export const IconPalette = (p: IconProps) => (
 );
 
 export const IconMoon = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" />
   </Svg>
 );
 
 export const IconMonitor = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <rect x="2.5" y="4" width="19" height="12" rx="2" />
     <path d="M8.5 20h7M12 16v4" />
   </Svg>
 );
 
 export const IconExternal = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-up-right">
     <path d="M14 4h6v6M20 4l-8.5 8.5" />
     <path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" />
   </Svg>
 );
 
 export const IconArrowRight = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-right">
     <path d="M4 12h15M13 6l6 6-6 6" />
   </Svg>
 );
 
 export const IconArrowLeft = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-left">
     <path d="M20 12H5M11 6l-6 6 6 6" />
   </Svg>
 );
 
 export const IconPlus = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin">
     <path d="M12 5.5v13" />
     <path d="M5.5 12h13" />
   </Svg>
 );
 
 export const IconTrash = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <path d="M4 7h16M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4L17.5 7" />
   </Svg>
 );
 
 export const IconDownload = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-down">
     <path d="M12 3v11M7.5 10 12 14.5 16.5 10" />
     <path d="M4 17.5v1A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-1" />
   </Svg>
 );
 
 export const IconFilter = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="pulse" fill="currentColor" stroke="none">
     <path d="M3.6 4.6A1 1 0 0 1 4.4 4h15.2a1 1 0 0 1 .76 1.65l-6 7v6.6a1 1 0 0 1-1.45.9l-3.5-1.75A1 1 0 0 1 9 17.5v-4.85l-6-7A1 1 0 0 1 3.6 4.6Z" />
   </Svg>
 );
 
 export const IconTable = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <rect x="3" y="4.5" width="18" height="15" rx="2" />
     <path d="M3 9.5h18M9.5 9.5V19.5" />
   </Svg>
 );
 
 export const IconGrid = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="pulse" fill="currentColor" stroke="none">
     <rect x="3.4" y="3.4" width="7.4" height="7.4" rx="2.4" />
     <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.4" opacity={0.55} />
     <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.4" opacity={0.55} />
@@ -199,7 +218,7 @@ export const IconGrid = (p: IconProps) => (
 );
 
 export const IconBook = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <path d="M4 4.5h6a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5H4Z" />
     <path d="M20 4.5h-6a3 3 0 0 0-3 3V20a2.5 2.5 0 0 1 2.5-2.5H20Z" />
   </Svg>
@@ -212,20 +231,20 @@ export const IconBook = (p: IconProps) => (
 // property map, two columns for the comparison.
 
 export const IconHome = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="fill" fill="currentColor" stroke="none">
     <path d="M12 3.2a1.5 1.5 0 0 1 .98.36l7 6a1.5 1.5 0 0 1 .52 1.14V19a2 2 0 0 1-2 2h-3.5a1 1 0 0 1-1-1v-4.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V20a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2v-8.3a1.5 1.5 0 0 1 .52-1.14l7-6A1.5 1.5 0 0 1 12 3.2Z" />
   </Svg>
 );
 
 export const IconScatter = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <circle cx="12" cy="10" r="3.2" />
     <path d="M12 21.2c-1.4 0-7.5-6.8-7.5-11.2a7.5 7.5 0 1 1 15 0c0 4.4-6.1 11.2-7.5 11.2Z" />
   </Svg>
 );
 
 export const IconCompare = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M7.5 4.5v11.5a3 3 0 0 0 3 3H17" />
     <path d="M16.5 19.5V8a3 3 0 0 0-3-3H7" />
   </Svg>
@@ -234,7 +253,7 @@ export const IconCompare = (p: IconProps) => (
 // D-205: the arrow leaves the tray. It used to point down into it, which is
 // the download glyph, on every "Importar" in the app.
 export const IconUpload = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-up">
     <path d="M12 14.8V4.2" />
     <path d="M7.2 9l4.8-4.8L16.8 9" />
     <path d="M5 19.2h14" />
@@ -242,7 +261,7 @@ export const IconUpload = (p: IconProps) => (
 );
 
 export const IconLayers = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse">
     <path d="M12 3.4 20.6 8 12 12.6 3.4 8Z" />
     <path d="m4.4 12.4 7.6 4 7.6-4" />
     <path d="m4.4 16.4 7.6 4 7.6-4" />
@@ -250,7 +269,7 @@ export const IconLayers = (p: IconProps) => (
 );
 
 export const IconRuler = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <rect
       x="3.6"
       y="9.6"
@@ -269,7 +288,7 @@ export const IconRuler = (p: IconProps) => (
  * legible as two. Drawn like the rest of the set, at the same stroke weight.
  */
 export const IconBlend = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin-half">
     <circle cx="9" cy="12" r="6.5" />
     <circle cx="15" cy="12" r="6.5" />
   </Svg>
@@ -282,7 +301,7 @@ export const IconBlend = (p: IconProps) => (
  * set has one hand, and a stroke weight that matches the text beside it.
  */
 export const IconLeaf = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <path d="M5.2 18.8C4.6 10 10.8 4 19.8 4.2c.6 8.6-5.4 14.8-14.6 14.6Z" />
     <path d="M5.5 18.5c2.8-4.6 5.6-7.4 10.2-10" />
   </Svg>
@@ -290,7 +309,7 @@ export const IconLeaf = (p: IconProps) => (
 
 /** The collapse control: a panel with its rail marked off. */
 export const IconPanelLeft = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-left">
     <rect x="3" y="4.5" width="18" height="15" rx="2" />
     <path d="M9.5 4.5v15" />
   </Svg>
@@ -302,7 +321,7 @@ export const IconPanelLeft = (p: IconProps) => (
  * one; the word "Calculada" always sits beside it (D-153).
  */
 export const IconCalculated = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse">
     <rect x="5" y="3" width="14" height="18" rx="2" />
     <path d="M8.5 7.5h7" />
     <path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" />
@@ -311,7 +330,7 @@ export const IconCalculated = (p: IconProps) => (
 
 /** Painel — three bars of uneven height, the shape a coverage bar chart makes. */
 export const IconGauge = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M4 15.2a8 8 0 1 1 16 0" />
     <path d="M12 15.2 15.6 9.4" />
     <circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none" />
@@ -324,7 +343,7 @@ export const IconGauge = (p: IconProps) => (
  * choice between two screens.
  */
 export const IconCoins = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <ellipse cx="10" cy="7" rx="6" ry="2.6" />
     <path d="M4 7v4c0 1.4 2.7 2.6 6 2.6s6-1.2 6-2.6V7" />
     <path d="M8 16.2c.6 1.3 3.1 2.2 6 2.2 3.3 0 6-1.2 6-2.6v-4c0-1.2-1.9-2.2-4.6-2.5" />
@@ -336,7 +355,7 @@ export const IconCoins = (p: IconProps) => (
  * Processos and Classes shared the layer stack.
  */
 export const IconGear = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin">
     <circle cx="12" cy="12" r="3" />
     <path d="M12 3.5v2.3M12 18.2v2.3M3.5 12h2.3M18.2 12h2.3M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" />
   </Svg>
@@ -344,7 +363,7 @@ export const IconGear = (p: IconProps) => (
 
 /** Sair — a door with an arrow leaving through it. */
 export const IconLogout = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-right">
     <path d="M9 4.5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3" />
     <path d="M14 8.5 18 12l-4 3.5M18 12H9" />
   </Svg>
@@ -357,7 +376,7 @@ export const IconLogout = (p: IconProps) => (
 
 /** MEDIDO — measured directly. A closed mark: nothing inferred. */
 export const IconQualityMeasured = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <circle cx="12" cy="12" r="8" />
     <path d="m8.5 12 2.5 2.5 4.5-5" />
   </Svg>
@@ -365,7 +384,7 @@ export const IconQualityMeasured = (p: IconProps) => (
 
 /** IMPORTADO — came from an external dataset. An arrow into a tray. */
 export const IconQualityImported = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-down">
     <path d="M12 3.5v9M8.5 9 12 12.5 15.5 9" />
     <path d="M4.5 15v3.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V15" />
   </Svg>
@@ -373,7 +392,7 @@ export const IconQualityImported = (p: IconProps) => (
 
 /** ESTIMADO — inferred, not measured. The approximation sign. */
 export const IconQualityEstimated = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <circle cx="12" cy="12" r="8" />
     <path d="M8 10.8c1.4-2 2.6-2 4 0s2.6 2 4 0" />
     <path d="M8 14.6c1.4-2 2.6-2 4 0s2.6 2 4 0" />
@@ -382,7 +401,7 @@ export const IconQualityEstimated = (p: IconProps) => (
 
 /** AUSENTE — no value exists. Struck through, never an empty space. */
 export const IconQualityMissing = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <circle cx="12" cy="12" r="8" strokeDasharray="3 2.5" />
     <path d="m8.8 15.2 6.4-6.4" />
   </Svg>
@@ -401,7 +420,7 @@ export const IconStar = ({
   filled = false,
   ...p
 }: IconProps & { filled?: boolean }) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <path
       d="M12.7 2.9a.8.8 0 0 0-1.4 0L9.2 8.1l-5.6.6a.8.8 0 0 0-.46 1.4l4.2 3.8-1.2 5.5a.8.8 0 0 0 1.2.87L12 17.2l4.9 3.1a.8.8 0 0 0 1.2-.87l-1.2-5.5 4.2-3.8a.8.8 0 0 0-.46-1.4l-5.6-.6Z"
       fill={filled ? "currentColor" : "none"}
@@ -414,7 +433,7 @@ export const IconPin = ({
   filled = false,
   ...p
 }: IconProps & { filled?: boolean }) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <path
       d="M9 3.5h6l-1 5.2 3.5 3.3v1.5h-11V12L10 8.7 9 3.5Z"
       fill={filled ? "currentColor" : "none"}
@@ -425,14 +444,14 @@ export const IconPin = ({
 
 /** D-207: a clock face, for the "Recentes" section of the menu. */
 export const IconClock = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <circle cx="12" cy="12" r="8.5" />
     <path d="M12 7.5V12l3 2" />
   </Svg>
 );
 
 export const IconBattery = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="pulse" fill="currentColor" stroke="none">
     <rect x="2.6" y="6.6" width="16.8" height="10.8" rx="3.2" />
     <rect x="20.4" y="10" width="1.8" height="4" rx="0.9" />
     <rect x="5" y="9" width="4" height="6" rx="1.2" fill="var(--surface-200, #fff)" />
@@ -444,7 +463,7 @@ export const IconBattery = (p: IconProps) => (
 // tool makes: a waveform for audio, a screen for slides, a play mark for video.
 
 export const IconNotebook = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <rect x="5" y="3.2" width="14" height="17.6" rx="2.6" />
     <path d="M9 3.2v17.6" />
     <path d="M12.2 8h3.8" />
@@ -453,21 +472,21 @@ export const IconNotebook = (p: IconProps) => (
 );
 
 export const IconSend = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="slide-up-right">
     <path d="M4.2 11.6 19.4 4.6a.6.6 0 0 1 .8.8l-7 15.2a.6.6 0 0 1-1.1-.06l-1.9-5.9-5.9-1.9a.6.6 0 0 1-.1-1.1Z" />
     <path d="m10.2 13.8 4.4-4.4" />
   </Svg>
 );
 
 export const IconSparkle = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin-half">
     <path d="M12 3.5c.5 3.9 2.6 6 6.5 6.5-3.9.5-6 2.6-6.5 6.5-.5-3.9-2.6-6-6.5-6.5 3.9-.5 6-2.6 6.5-6.5Z" />
     <path d="M18.5 15.5c.2 1.5 1 2.3 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.2 2.3-1 2.5-2.5Z" />
   </Svg>
 );
 
 export const IconNote = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M5 4.5h14v9.8L13.8 19.5H5Z" />
     <path d="M13.8 19.5v-5.2H19" />
     <path d="M8.4 8.6h7.2" />
@@ -476,7 +495,7 @@ export const IconNote = (p: IconProps) => (
 );
 
 export const IconFileText = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M6.5 3.5h7.3l4.7 4.7v11.3a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
     <path d="M13.5 3.7v4.8h4.8" />
     <path d="M8.8 12.6h6.4" />
@@ -485,14 +504,14 @@ export const IconFileText = (p: IconProps) => (
 );
 
 export const IconPencil = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <path d="M15.2 5.2l3.6 3.6" />
     <path d="M4.5 19.5l1-4.4L16.4 4.2a1.6 1.6 0 0 1 2.3 0l1.1 1.1a1.6 1.6 0 0 1 0 2.3L8.9 18.5Z" />
   </Svg>
 );
 
 export const IconMoreVertical = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse">
     <circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
     <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
     <circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none" />
@@ -500,7 +519,7 @@ export const IconMoreVertical = (p: IconProps) => (
 );
 
 export const IconAudio = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse-up">
     <path d="M4.5 10.5v3" />
     <path d="M8.2 7.5v9" />
     <path d="M12 4.5v15" />
@@ -510,7 +529,7 @@ export const IconAudio = (p: IconProps) => (
 );
 
 export const IconSlides = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <rect x="3.5" y="4.5" width="17" height="11.5" rx="2" />
     <path d="M12 16v3.5" />
     <path d="M8.5 19.5h7" />
@@ -518,7 +537,7 @@ export const IconSlides = (p: IconProps) => (
 );
 
 export const IconVideo = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="fill">
     <rect x="3.5" y="5" width="17" height="14" rx="3" />
     <path d="M10.3 9.4v5.2a.4.4 0 0 0 .6.35l4.3-2.6a.4.4 0 0 0 0-.7l-4.3-2.6a.4.4 0 0 0-.6.35Z" />
   </Svg>
@@ -528,7 +547,7 @@ export const IconVideo = (p: IconProps) => (
 // scholarly article, an encyclopedia entry. Each sits beside the written kind
 // of the source, so the glyph stays decorative.
 export const IconGlobe = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="spin">
     <circle cx="12" cy="12" r="8.5" />
     <path d="M3.5 12h17" />
     <path d="M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5s1.2-6.1 3.5-8.5Z" />
@@ -536,7 +555,7 @@ export const IconGlobe = (p: IconProps) => (
 );
 
 export const IconArticle = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <rect x="4.5" y="3.5" width="15" height="17" rx="2" />
     <path d="M8 7.5h8" strokeWidth={2.6} />
     <path d="M8 11.5h3.2M12.8 11.5H16" />
@@ -546,7 +565,7 @@ export const IconArticle = (p: IconProps) => (
 );
 
 export const IconEncyclopedia = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M12 6.2c-2-1.5-4.6-2-7.5-1.7v13.8c2.9-.3 5.5.2 7.5 1.7 2-1.5 4.6-2 7.5-1.7V4.5c-2.9-.3-5.5.2-7.5 1.7Z" />
     <path d="M12 6.2V20" />
     <path d="M7.2 9.4h2.2" />
@@ -555,7 +574,7 @@ export const IconEncyclopedia = (p: IconProps) => (
 );
 
 export const IconMindMap = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse">
     <circle cx="6" cy="12" r="2.4" />
     <circle cx="18" cy="6" r="2.2" />
     <circle cx="18" cy="12" r="2.2" />
@@ -567,7 +586,7 @@ export const IconMindMap = (p: IconProps) => (
 );
 
 export const IconReport = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <rect x="5" y="3.5" width="14" height="17" rx="2" />
     <path d="M8.5 8h7" />
     <path d="M8.5 11.5h7" />
@@ -576,14 +595,14 @@ export const IconReport = (p: IconProps) => (
 );
 
 export const IconCards = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <rect x="7" y="6.5" width="13" height="13" rx="2.2" />
     <path d="M4 16.5V6a2 2 0 0 1 2-2h10.5" />
   </Svg>
 );
 
 export const IconQuiz = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="wobble">
     <circle cx="12" cy="12" r="8.5" />
     <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4" />
     <path d="M12 16.9v.1" />
@@ -591,7 +610,7 @@ export const IconQuiz = (p: IconProps) => (
 );
 
 export const IconInfographic = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse-up">
     <path d="M5 19.5V13" />
     <path d="M10 19.5V8.5" />
     <path d="M15 19.5v-8" />
@@ -603,21 +622,21 @@ export const IconInfographic = (p: IconProps) => (
 // this set (1.75 stroke, round caps). Each always sits in a button whose
 // `aria-label` names the view, so the glyph itself stays decorative.
 export const IconChartColumns = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse-up">
     <path d="M4 20h16" />
     <path d="M7 16.5v-5M12 16.5V6.5M17 16.5v-8" strokeWidth={2.6} />
   </Svg>
 );
 
 export const IconChartBarsHorizontal = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse-right">
     <path d="M4 4v16" />
     <path d="M7.5 7h9M7.5 12h12M7.5 17h6" strokeWidth={2.6} />
   </Svg>
 );
 
 export const IconChartScatter = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="pulse">
     <path d="M4 4v16h16" />
     <circle cx="9" cy="14" r="1.6" fill="currentColor" />
     <circle cx="13" cy="9.5" r="1.6" fill="currentColor" />
@@ -627,7 +646,7 @@ export const IconChartScatter = (p: IconProps) => (
 );
 
 export const IconChartBox = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M4 12h3M17 12h3" />
     <rect x="7" y="8" width="10" height="8" rx="1.5" />
     <path d="M11 8v8" />
@@ -635,7 +654,7 @@ export const IconChartBox = (p: IconProps) => (
 );
 
 export const IconArchive = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <rect x="3" y="4" width="18" height="4" rx="1" />
     <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
     <path d="M10 12h4" />
@@ -643,7 +662,7 @@ export const IconArchive = (p: IconProps) => (
 );
 
 export const IconCopy = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="hop">
     <rect x="9" y="9" width="11" height="11" rx="2" />
     <path d="M5 15V6a2 2 0 0 1 2-2h9" />
   </Svg>
@@ -651,7 +670,7 @@ export const IconCopy = (p: IconProps) => (
 
 /** D-206: the "⋮⋮" grip a block shows on hover; six dots, filled, so it reads at 16 px. */
 export const IconGrip = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="pulse" fill="currentColor" stroke="none">
     <circle cx="9" cy="6" r="1.5" />
     <circle cx="15" cy="6" r="1.5" />
     <circle cx="9" cy="12" r="1.5" />
@@ -663,7 +682,7 @@ export const IconGrip = (p: IconProps) => (
 
 /** "⋯": a row's or a block's menu, and the page header's overflow menu (D-212). */
 export const IconMoreHorizontal = (p: IconProps) => (
-  <Svg {...p} fill="currentColor" stroke="none">
+  <Svg {...p} gesture="pulse" fill="currentColor" stroke="none">
     <circle cx="6" cy="12" r="1.6" />
     <circle cx="12" cy="12" r="1.6" />
     <circle cx="18" cy="12" r="1.6" />
@@ -671,7 +690,7 @@ export const IconMoreHorizontal = (p: IconProps) => (
 );
 
 export const IconEyeOff = (p: IconProps) => (
-  <Svg {...p}>
+  <Svg {...p} gesture="draw">
     <path d="M3 3l18 18" />
     <path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c5 0 8.5 4.5 9.5 7a13 13 0 0 1-2.7 3.7M6.4 6.4A13.3 13.3 0 0 0 2.5 12c1 2.5 4.5 7 9.5 7a9.9 9.9 0 0 0 4.4-1" />
     <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />

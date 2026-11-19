@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { ptBR } from "@/lib/i18n";
+import { SlidingIndicator, useSlidingIndicator } from "@/components/ui/SlidingIndicator";
 import {
   IconBook,
   IconFilter,
@@ -102,11 +103,15 @@ function useHideOnScrollDown(pathname: string): boolean {
  * without it, the fifth item sits under it and stops being tappable.
  *
  * The active indicator is a 56 x 32 pill behind the icon (D-137, after the M3
- * navigation bar); it replaced the 3 px bar at the top of the item.
+ * navigation bar); it replaced the 3 px bar at the top of the item. D-248: once
+ * measured, one pill for the bar travels to the new destination and stretches
+ * on the way (`SlidingIndicator`); the item's own pill keeps the hover veil.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const hide = useHideOnScrollDown(pathname);
+  const navRef = useRef<HTMLElement>(null);
+  useSlidingIndicator(navRef, '[aria-current="page"] .m3-ind-own', pathname);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -118,6 +123,7 @@ export function BottomNav() {
 
   return (
     <nav
+      ref={navRef}
       aria-label={ptBR.ui.mainNav}
       // D-236b: reads the rail tokens, so "Barra lateral clara" repaints it too.
       data-surface="rail"
@@ -129,6 +135,7 @@ export function BottomNav() {
         hide && "translate-y-full focus-within:translate-y-0",
       )}
     >
+      <SlidingIndicator className="m3-ind-pill" />
       {ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
@@ -148,7 +155,7 @@ export function BottomNav() {
             <span
               aria-hidden
               className={cn(
-                "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+                "m3-ind-own flex h-8 w-14 items-center justify-center rounded-full transition-colors",
                 active ? "bg-rail-accent/20" : "group-hover:bg-rail-ink/[0.08] group-active:bg-rail-ink/10",
               )}
             >
