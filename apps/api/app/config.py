@@ -244,6 +244,10 @@ class Settings(BaseSettings):
     notebook_fetch_max_bytes: int = 5_000_000
     notebook_fetch_timeout_seconds: float = 10.0
     notebook_fetch_max_redirects: int = 3
+    # Which reader turns a fetched web page into text (D-252): ``trafilatura`` (default) reads
+    # the page's main content and falls back to the built-in reader whenever it fails or its
+    # answer does not pass the checks of ``app/notebooks/page_text.py``; ``builtin`` skips it.
+    notebook_html_extractor: str = "trafilatura"
     # Who to write to about this client, sent in the User-Agent (Wikimedia's
     # policy asks for a contact). Empty uses FRONTEND_URL — never the author's
     # personal e-mail by default.
