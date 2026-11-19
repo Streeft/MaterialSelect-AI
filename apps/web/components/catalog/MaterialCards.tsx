@@ -56,6 +56,8 @@ function MaterialCard({
             <span className="flex flex-wrap items-center gap-2">
               {selection ? (
                 <Checkbox
+                  // The label holds only the box, 26 px wide: the card keeps it at the 44 px target (D-206, D-254).
+                  className="[&_label]:min-w-[var(--target-min)] [&_label]:justify-center"
                   label={<span className="sr-only">{selection.label(material.name)}</span>}
                   checked={selection.isSelected(material.id)}
                   onChange={() => selection.onToggle(material.id)}

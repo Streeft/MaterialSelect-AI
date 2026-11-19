@@ -44,6 +44,12 @@ Pares obrigatórios: todo papel de preenchimento tem o seu `on-…` para texto e
 `primary-container`, hoje o azul saturado com texto branco; no M3 é o **tom claro** com texto
 escuro (conflito já previsto no plano; decide-se com a medição, ver D-133).
 
+**A cor de hoje e de onde vem (D-254).** O roxo `#6750A4` do Material You foi a fonte de cor das Rodadas 6 e 8 do artefato "MaterialSelect AI"; desde a D-133
+nada no app o usa. A raiz é azul: o `--accent` de cada seção (`#4567A8` no claro e `#97BEFF` no escuro, na raiz; cada rota tem o seu) alimenta o
+`SchemeContent` de `lib/design/m3Roles.ts`, que gera os papéis da rota na região `m3-roles` de `globals.css` (`npm run tokens:m3`, nunca à mão). A semente
+`#1A73E8` (`M3_SEED_HEX` em `lib/design/materialTheme.ts`, travada por `materialTheme.test.ts`) gera só o esquema global `--md-sys-color-*` de
+referência. Onde o artefato externo ainda cita `#6750A4`, é histórico e está marcado como tal.
+
 ## Tipografia — 15 papéis (px)
 
 Tamanho / altura de linha / espaçamento entre letras / peso. Os pesos vêm do pacote: 400 em
@@ -95,7 +101,8 @@ sobreposição tonal (tinta `surface-tint` sobre o contêiner), não só pela so
 
 Camada sobre o contêiner, na cor do conteúdo (normalmente a `on-…`), com opacidade fixa:
 **hover 8% · foco 10% · pressionado 10% · arrastado 16%**. Desabilitado tem regra própria:
-conteúdo e contêiner a **38%** (`md.sys.state.disabled`, `--state-disabled`, D-248).
+conteúdo e contêiner a **38%** (`md.sys.state.disabled`, `--state-disabled`, D-248). Todo controle que desbota usa o token
+(D-254); um teste de varredura reprova opacidade fixa de 30 a 55 % em `:disabled`.
 
 ## Movimento
 

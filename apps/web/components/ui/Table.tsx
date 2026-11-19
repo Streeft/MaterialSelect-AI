@@ -131,18 +131,22 @@ export function SortTh({
   label,
   sort,
   onSort,
+  numeric,
   className,
 }: {
   label: string;
   /** What this column is currently doing; `"none"` when another column is sorted or none is. */
   sort: "ascending" | "descending" | "none";
   onSort: () => void;
+  /** A column of counts: aligned like its cells (D-254). */
+  numeric?: boolean;
   className?: string;
 }) {
   return (
     <th
       scope="col"
       aria-sort={sort}
+      data-numeric={numeric ? "" : undefined}
       className={cn("whitespace-nowrap px-3 py-2 font-semibold", className)}
     >
       <button

@@ -69,7 +69,7 @@ body {
 }
 .msds-btn-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .msds-btn:active:not(:disabled), .msds-btn[data-force-state="pressed"] { transform: scale(0.97); }
-.msds-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.msds-btn:disabled { cursor: not-allowed; opacity: var(--state-disabled); }
 .msds-btn-md { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
 .msds-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
 
@@ -844,7 +844,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
   color: rgb(var(--ink)); width: 36px; height: 36px; border-radius: var(--radius-full); box-shadow: var(--shadow-raised);
   cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity var(--msds-dur) var(--msds-ease);
 }
-.msds-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.msds-carousel-arrow:disabled { opacity: var(--state-disabled); cursor: not-allowed; }
 .msds-carousel-arrow-prev { left: -8px; }
 .msds-carousel-arrow-next { right: -8px; }
 .msds-carousel-dots { display: flex; justify-content: center; gap: 6px; }
@@ -881,7 +881,7 @@ button.msds-list-item, [role="button"].msds-list-item { cursor: pointer; text-al
   transition: border-color var(--msds-dur) var(--msds-ease), color var(--msds-dur) var(--msds-ease);
 }
 .msds-fabmenu-item:hover:not(:disabled) { border-color: rgb(var(--accent)); color: rgb(var(--accent)); }
-.msds-fabmenu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.msds-fabmenu-item:disabled { opacity: var(--state-disabled); cursor: not-allowed; }
 .msds-fabmenu-item-label { pointer-events: none; }
 .msds-fabmenu-item-icon {
   width: 28px; height: 28px; border-radius: 50%; background: var(--surface-300); color: inherit;

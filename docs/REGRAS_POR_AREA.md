@@ -204,7 +204,7 @@ Na tela, expressão se edita com `ExpressionBuilder` e se mostra com
 usa os dois; uma legenda gerada no servidor usa `friendly_label`. KaTeX roda com
 `trust: false` e só recebe TeX do backend.
 
-## Processos (D-57, D-59, D-192, D-219)
+## Processos (D-57, D-59, D-192, D-219, D-254)
 
 **D-219: matriz e filtros por capacidade são do backend.** `GET /api/processes/matrix`
 devolve a junção material × processo por **família raiz de material** e aplica
@@ -213,6 +213,15 @@ lote (se paga a partir de no máximo N). A unidade é convertida por `units.py`;
 processo sem dado do atributo filtrado sai e é **contado** em `without_data`,
 nunca lido como 0. A tela não compara nem conta. Tolerância não é atributo
 cadastrado: não se cria filtro para dado que não existe.
+
+**D-254: o cartão de família agrupa por subfamília.** Com mais de 12 processos
+(`GROUP_FROM`, `lib/processGroups.ts`) o cartão agrupa pelo **filho direto da
+raiz** (quem está mais fundo sobe; quem está na própria raiz vai a "Sem
+subfamília", por último) em seções que dobram: fechadas ao começar, abertas com
+busca ou filtro, com contagem e "N marcados" na cabeça. Só a galeria agrupa; a
+Tabela é plana e ordena pelo cabeçalho (`useTableSort`: nome, família,
+subfamília, nº de materiais). É só agrupar o que o servidor mandou: nenhum valor
+é calculado na tela.
 
 **D-192: vínculo demo por subclasse, nunca só por classe** ([D-192](DECISIONS.md)).
 Processo demo novo entra em `app/db/process_catalog_ashby.py` (conformação com os

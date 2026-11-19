@@ -10,6 +10,7 @@ import { curadoriaText } from "@/lib/i18n-curadoria";
 import { matchesQuery } from "@/lib/search";
 import type { SourceRecord } from "@/lib/types";
 import { useUndoableDelete, withoutId } from "@/lib/useUndoableDelete";
+import { useTableSort } from "@/lib/useTableSort";
 import {
   Badge,
   Button,
@@ -20,6 +21,7 @@ import {
   LoadingState,
   PageHeader,
   RowHeader,
+  SortTh,
   TBody,
   THead,
   Table,
@@ -36,6 +38,18 @@ import { MergeSourceDialog } from "@/components/material/MergeSourceDialog";
 import { IconPencil, IconPlus, IconTrash } from "@/components/ui/icons";
 
 const t = curadoriaText.sourcesAdmin;
+
+/**
+ * What each sortable column sorts by (D-254). The licence, the review date and the citation count
+ * can be absent, and an absent one sits last either way: a source nobody has reviewed is not an
+ * "oldest review", and an unknown count is not a zero.
+ */
+const SORT_COLUMNS = {
+  label: (s: SourceRecord) => s.label,
+  license: (s: SourceRecord) => s.license_label,
+  reviewed: (s: SourceRecord) => s.reviewed_at,
+  citations: (s: SourceRecord) => (typeof s.citations === "number" ? s.citations : null),
+};
 
 /**
  * Admin › Fontes (D-244): every registered source, also the ones no material sheet cites (those
@@ -80,6 +94,8 @@ export default function SourcesAdminPage() {
       ),
     [data, query],
   );
+
+  const sorted = useTableSort(shown, SORT_COLUMNS);
 
   return (
     <div className="flex flex-col gap-5">
@@ -127,10 +143,10 @@ export default function SourcesAdminPage() {
               <TableCaption>{ptBR.admin.sourcesTitle}</TableCaption>
               <THead>
                 <Tr>
-                  <Th>{t.colLabel}</Th>
-                  <Th>{t.colLicense}</Th>
-                  <Th>{t.colReviewed}</Th>
-                  <Th>{t.colCitations}</Th>
+                  <SortTh label={t.colLabel} {...sorted.head("label")} />
+                  <SortTh label={t.colLicense} {...sorted.head("license")} />
+                  <SortTh label={t.colReviewed} {...sorted.head("reviewed")} />
+                  <SortTh label={t.colCitations} {...sorted.head("citations")} />
                   <Th>{t.colCitation}</Th>
                   <Th>
                     <span className="sr-only">{ptBR.actions.columnActions}</span>
@@ -145,7 +161,7 @@ export default function SourcesAdminPage() {
                     </Td>
                   </Tr>
                 ) : null}
-                {shown.map((s) => (
+                {sorted.rows.map((s) => (
                   <Tr key={s.id}>
                     <RowHeader>
                       <span className="break-words">{s.label}</span>
