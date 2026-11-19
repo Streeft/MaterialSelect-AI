@@ -1,7 +1,7 @@
 "use client";
 
 import { describeApiError } from "@/lib/errors";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,6 +12,7 @@ import {
   listNotebooks,
 } from "@/lib/api";
 import type { NotebookTemplateId } from "@/lib/types";
+import { EmptyArchiveInterrupted, emptyArchiveInBatches } from "@/lib/emptyArchive";
 import { useUrlState } from "@/lib/urlState";
 import { ptBR } from "@/lib/i18n";
 import { curadoriaText } from "@/lib/i18n-curadoria";
@@ -36,6 +37,9 @@ import { notebooksListUrlSpec } from "@/components/notebooks/urlState";
 
 const t = ptBR.notebooks;
 const c = curadoriaText.notebooks;
+
+/** From this many archived notebooks the confirmation also says the cleanup runs in stages. */
+const BATCH_HINT_FROM = 50;
 
 /**
  * Cadernos (D-92): the student's notebooks, newest first. Creating one goes
@@ -94,15 +98,34 @@ export default function NotebooksPage() {
   // names how many. The count travels with the request: the server deletes nothing if it changed.
   const [emptying, setEmptying] = useState(false);
   const [emptyCount, setEmptyCount] = useState(0);
+  // D-249: in stages. The server deletes a bounded batch per request; the screen repeats it, shows
+  // the progress and lets the person stop between two batches.
+  const [progress, setProgress] = useState<{ deleted: number; total: number } | null>(null);
+  const stopRequested = useRef(false);
+  const [stopping, setStopping] = useState(false);
   const emptyArchive = useMutation({
-    mutationFn: (expected: number) => emptyNotebookArchive(expected),
-    onSuccess: ({ deleted }) => {
+    mutationFn: (expected: number) => {
+      stopRequested.current = false;
+      setStopping(false);
+      setProgress({ deleted: 0, total: expected });
+      return emptyArchiveInBatches({
+        expected,
+        step: emptyNotebookArchive,
+        onProgress: (deleted, total) => setProgress({ deleted, total }),
+        shouldStop: () => stopRequested.current,
+      });
+    },
+    onSuccess: ({ deleted, total, stopped }) => {
       void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY });
-      snackbar?.notify({ message: c.emptiedArchive(deleted) });
+      snackbar?.notify({
+        message: stopped ? c.emptyArchiveStopped(deleted, total) : c.emptiedArchive(deleted),
+      });
     },
     // A 409 means the archive changed under the dialog: show the list as it is now.
     onError: () => void client.invalidateQueries({ queryKey: NOTEBOOKS_KEY }),
+    onSettled: () => setProgress(null),
   });
+  const emptyError = emptyArchive.error;
   const toggle = (id: number) =>
     setPicked((current) => {
       const next = new Set(current);
@@ -240,15 +263,45 @@ export default function NotebooksPage() {
           {describeApiError(batch.error, c.batchFailed)}
         </Alert>
       ) : null}
-      {emptyArchive.error ? (
+      {emptyArchive.isPending && progress ? (
+        <div role="status" className="flex flex-wrap items-center gap-3 text-body text-ink">
+          <span>{c.emptyArchiveProgress(progress.deleted, progress.total)}</span>
+          {stopping ? (
+            <span className="text-support text-ink-muted">{c.emptyArchiveStopping}</span>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                stopRequested.current = true;
+                setStopping(true);
+              }}
+            >
+              {c.emptyArchiveStop}
+            </Button>
+          )}
+        </div>
+      ) : null}
+      {emptyError ? (
         <Alert tone="danger" role="alert">
-          {describeApiError(emptyArchive.error, c.emptyArchiveFailed)}
+          {emptyError instanceof EmptyArchiveInterrupted ? (
+            <>
+              {describeApiError(emptyError.original, c.emptyArchiveFailed)}{" "}
+              {c.emptyArchivePartial(emptyError.deleted, emptyError.total)}
+            </>
+          ) : (
+            describeApiError(emptyError, c.emptyArchiveFailed)
+          )}
         </Alert>
       ) : null}
       <ConfirmDialog
         open={emptying}
         title={c.emptyArchiveTitle(emptyCount)}
-        message={c.emptyArchiveMessage}
+        message={
+          emptyCount > BATCH_HINT_FROM
+            ? `${c.emptyArchiveMessage} ${c.emptyArchiveStages}`
+            : c.emptyArchiveMessage
+        }
         confirmLabel={c.emptyArchiveConfirm}
         onCancel={() => setEmptying(false)}
         onConfirm={() => {

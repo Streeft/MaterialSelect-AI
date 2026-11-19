@@ -181,9 +181,14 @@ class BatchArchiveIn(BaseModel):
 
 
 class EmptiedArchiveOut(BaseModel):
-    """How many archived notebooks "Esvaziar o arquivo" deleted for good (D-236)."""
+    """How many archived notebooks one "Esvaziar o arquivo" request deleted for good (D-236, D-249).
+
+    ``remaining`` is how many are still archived after this request. Above zero the screen sends the
+    next batch, with that number as the one it expects; zero is done.
+    """
 
     deleted: int
+    remaining: int = 0
 
 
 class NotebookSummaryOut(BaseModel):

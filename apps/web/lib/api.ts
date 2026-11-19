@@ -2179,12 +2179,21 @@ export function batchArchiveNotebooks(
   });
 }
 
+/** One batch of "Esvaziar o arquivo" (D-249): how many went, and how many are still archived. */
+export interface EmptiedArchiveBatch {
+  deleted: number;
+  /** Absent on a server from before D-249, which deleted everything in one go. */
+  remaining?: number;
+}
+
 /**
- * D-236: delete for good every archived notebook of the caller, all or none. `expected` is the
- * count the person confirmed; the server answers 409 (and deletes nothing) if it changed.
+ * D-236, D-249: delete for good a batch of the caller's archived notebooks, all or none per batch.
+ * `expected` is the count the person confirmed (at first the whole archive, then the `remaining`
+ * of the previous batch); the server answers 409 (and deletes nothing) if it changed. Repeat with
+ * `remaining` until it is zero: `lib/emptyArchive.ts` does that, with progress.
  */
-export function emptyNotebookArchive(expected: number): Promise<{ deleted: number }> {
-  return request<{ deleted: number }>(`/api/notebooks/archived?expected=${expected}`, {
+export function emptyNotebookArchive(expected: number): Promise<EmptiedArchiveBatch> {
+  return request<EmptiedArchiveBatch>(`/api/notebooks/archived?expected=${expected}`, {
     method: "DELETE",
   });
 }

@@ -209,6 +209,19 @@ export const curadoriaText = {
     emptiedArchive: (n: number) =>
       n === 1 ? "1 caderno apagado de vez." : `${n} cadernos apagados de vez.`,
     emptyArchiveFailed: "Não foi possível esvaziar o arquivo. Nenhum caderno foi apagado.",
+    // In stages (D-249): thousands of notebooks are deleted in short batches, with progress.
+    emptyArchiveStages:
+      "São muitos cadernos: a limpeza roda em etapas curtas, mostra o andamento e pode ser parada entre uma etapa e outra. O que já foi apagado não volta.",
+    emptyArchiveProgress: (deleted: number, total: number) =>
+      `Apagando o arquivo: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos.`,
+    emptyArchiveStop: "Parar",
+    emptyArchiveStopping: "Parando depois desta etapa…",
+    emptyArchiveStopped: (deleted: number, total: number) =>
+      `Limpeza parada: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos apagados; o resto continua no arquivo.`,
+    emptyArchivePartial: (deleted: number, total: number) =>
+      deleted === 0
+        ? "Nenhum caderno foi apagado."
+        : `A limpeza parou no meio: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos já foram apagados; os outros continuam no arquivo.`,
   },
   // Meus registros: deleting several own records at once.
   records: {

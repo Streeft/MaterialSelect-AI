@@ -585,6 +585,106 @@ describe("duplicar com conversa e arquivar em lote (D-233)", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent(c.emptyArchiveFailed);
     });
 
+    describe("em etapas (D-249)", () => {
+      const many = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({
+          id: 100 + i,
+          title: `Velho ${i}`,
+          emoji: "📓",
+          source_count: 0,
+          archived: true,
+          created_at: "2026-11-10T10:00:00Z",
+          updated_at: "2026-11-10T10:00:00Z",
+        }));
+      const confirmAll = async (user: ReturnType<typeof userEvent.setup>) => {
+        await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+        const dialog = await screen.findByRole("dialog");
+        await user.click(within(dialog).getByRole("button", { name: c.emptyArchiveConfirm }));
+      };
+
+      it("com muitos cadernos a confirmação avisa que roda em etapas", async () => {
+        openArchive();
+        api.listNotebooks.mockResolvedValue(many(120));
+        const user = userEvent.setup();
+        render(wrap(<NotebooksPage />));
+        await screen.findAllByRole("link", { name: /Velho/ });
+        await user.click(screen.getByRole("button", { name: c.emptyArchive }));
+        const dialog = await screen.findByRole("dialog");
+        expect(within(dialog).getByText(new RegExp(c.emptyArchiveStages.slice(0, 30)))).toBeInTheDocument();
+      });
+
+      it("repete a chamada com o que sobrou, mostra o andamento e diz o total ao fim", async () => {
+        openArchive();
+        api.listNotebooks.mockResolvedValue(many(120));
+        const release: Array<() => void> = [];
+        const batches = [
+          { deleted: 50, remaining: 70 },
+          { deleted: 50, remaining: 20 },
+          { deleted: 20, remaining: 0 },
+        ];
+        api.emptyNotebookArchive.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              release.push(() => resolve(batches[api.emptyNotebookArchive.mock.calls.length - 1]!));
+            }),
+        );
+        const user = userEvent.setup();
+        render(wrap(<NotebooksPage />));
+        await screen.findAllByRole("link", { name: /Velho/ });
+        await confirmAll(user);
+
+        await waitFor(() => expect(release).toHaveLength(1));
+        expect(screen.getByText(c.emptyArchiveProgress(0, 120))).toBeInTheDocument();
+        release[0]!();
+        await waitFor(() => expect(release).toHaveLength(2));
+        expect(screen.getByText(c.emptyArchiveProgress(50, 120))).toBeInTheDocument();
+        release[1]!();
+        await waitFor(() => expect(release).toHaveLength(3));
+        release[2]!();
+        expect(await screen.findByText(c.emptiedArchive(120))).toBeInTheDocument();
+        expect(api.emptyNotebookArchive.mock.calls.map(([expected]) => expected)).toEqual([120, 70, 20]);
+        expect(screen.queryByText(/Apagando o arquivo/)).toBeNull();
+      });
+
+      it("Parar interrompe entre duas etapas e diz quantos foram apagados", async () => {
+        openArchive();
+        api.listNotebooks.mockResolvedValue(many(120));
+        let release: () => void = () => undefined;
+        api.emptyNotebookArchive.mockImplementation(
+          () => new Promise((resolve) => (release = () => resolve({ deleted: 50, remaining: 70 }))),
+        );
+        const user = userEvent.setup();
+        render(wrap(<NotebooksPage />));
+        await screen.findAllByRole("link", { name: /Velho/ });
+        await confirmAll(user);
+        await waitFor(() => expect(api.emptyNotebookArchive).toHaveBeenCalledTimes(1));
+        await user.click(await screen.findByRole("button", { name: c.emptyArchiveStop }));
+        expect(screen.getByText(c.emptyArchiveStopping)).toBeInTheDocument();
+        release();
+        expect(await screen.findByText(c.emptyArchiveStopped(50, 120))).toBeInTheDocument();
+        // No second batch was sent.
+        expect(api.emptyNotebookArchive).toHaveBeenCalledTimes(1);
+      });
+
+      it("uma falha no meio diz o motivo e quantos já tinham sido apagados", async () => {
+        openArchive();
+        api.listNotebooks.mockResolvedValue(many(120));
+        api.emptyNotebookArchive
+          .mockResolvedValueOnce({ deleted: 50, remaining: 70 })
+          .mockRejectedValueOnce(
+            new ApiError("O arquivo mudou: a confirmação era de 70 e agora há 69. Recarregue a lista.", 409),
+          );
+        const user = userEvent.setup();
+        render(wrap(<NotebooksPage />));
+        await screen.findAllByRole("link", { name: /Velho/ });
+        await confirmAll(user);
+        const alert = await screen.findByRole("alert");
+        expect(alert).toHaveTextContent(/O arquivo mudou/);
+        expect(alert).toHaveTextContent(c.emptyArchivePartial(50, 120));
+        expect(screen.queryByText(/Apagando o arquivo/)).toBeNull();
+      });
+    });
+
     it("a aba de arquivados com o botão e o diálogo não tem violações", async () => {
       openArchive();
       const user = userEvent.setup();
