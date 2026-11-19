@@ -38,6 +38,8 @@ on:
           - conhecimento_simular_remocao
           - conhecimento_remover
           - conhecimento_indexar_links
+          - cadernos_posicao_trechos_simular
+          - cadernos_posicao_trechos
           - conceder
           - revogar
       email:
@@ -177,6 +179,18 @@ jobs:
               # que é também onde `ingerir` com `arquivos` faz o mesmo para
               # qualquer arquivo do Cérebro.
               KNOWLEDGE_DIR="$GITHUB_WORKSPACE/Cérebro" python -m app.knowledge.ingest --no-embed --file=Links.md
+              ;;
+            cadernos_posicao_trechos_simular)
+              # Só conta: quantos trechos de fontes de caderno anteriores ao D-233
+              # (sem char_start/char_end) teriam a posição gravada. Imprime só
+              # contagens — o caderno é material de quem o fez e o log é público.
+              python -m app.knowledge.chunk_positions
+              ;;
+            cadernos_posicao_trechos)
+              # Grava a posição desses trechos refazendo o corte sobre o texto
+              # guardado e só aceitando o trecho de texto idêntico (D-251).
+              # Idempotente: uma segunda execução não encontra mais nada.
+              python -m app.knowledge.chunk_positions --apply
               ;;
             conceder)
               exigir_email
