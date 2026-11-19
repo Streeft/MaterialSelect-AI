@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
+
+from app.domain.text_input import strip_controls
 
 OperatorLiteral = Literal[
     "gt",
@@ -575,6 +577,11 @@ class StudyIn(BaseModel):
     method: MethodLiteral = "weighted_sum"
     criteria: list[CriterionIn] = Field(default_factory=list)
     notes: PlainNote = None
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def _no_control_characters(cls, value: object) -> object:
+        return strip_controls(value)
 
 
 class StudyNotesPatch(BaseModel):

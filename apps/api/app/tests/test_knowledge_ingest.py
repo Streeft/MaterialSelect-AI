@@ -1474,8 +1474,13 @@ class TestPointersOfIndexedFiles:
 
         (outcome,) = service.ingest().outcomes
 
-        assert (outcome.action, outcome.detail) == ("falhou", LFS_POINTER_DETAIL)
-        assert [f.relative for f in service.lfs_plan().fetch] == ["quebrado.pdf"]
+        # D-246: the same bytes already failed here, so the pointer is not
+        # downloaded again; the row keeps its reason and --force tries once more.
+        assert outcome.action == "falhou"
+        assert "não foi baixado de novo" in (outcome.detail or "")
+        assert service.lfs_plan().fetch == []
+        assert service.lfs_plan().known_failures == 1
+        assert [f.relative for f in service.lfs_plan(force=True).fetch] == ["quebrado.pdf"]
 
     def test_a_pointer_is_matched_by_content_on_the_removal_list(
         self, db_session, corpus: Path
@@ -1529,15 +1534,16 @@ class TestLfsPlan:
 
         plan = KnowledgeService(db_session).lfs_plan()
 
-        assert (plan.pointers, plan.unchanged, plan.copies, plan.removed, plan.malformed) == (
-            7,
-            1,
-            2,
-            1,
-            0,
-        )
+        assert (
+            plan.pointers,
+            plan.unchanged,
+            plan.known_failures,
+            plan.copies,
+            plan.removed,
+            plan.malformed,
+        ) == (7, 1, 1, 2, 1, 0)
         fetched = {f.relative: f for f in plan.fetch}
-        assert sorted(fetched) == ["falhou.pdf", "mudou.pdf", "novo.pdf"]
+        assert sorted(fetched) == ["mudou.pdf", "novo.pdf"]
         assert (fetched["novo.pdf"].in_base, fetched["mudou.pdf"].in_base) == (False, True)
         assert fetched["novo.pdf"].size == len(real["novo.pdf"])
         assert plan.fetch_bytes == sum(len(real[name]) for name in fetched)
@@ -1562,7 +1568,7 @@ class TestLfsPlan:
         report = service.ingest()
 
         assert not any(o.detail == LFS_POINTER_DETAIL for o in report.outcomes)
-        assert sorted(read) == ["falhou.pdf", "mudou.pdf", "novo.pdf"]
+        assert sorted(read) == ["mudou.pdf", "novo.pdf"]
         assert (report.created, report.updated, report.unchanged) == (1, 1, 2)
         assert report.duplicates == 2  # as duas da "z copia", nenhuma baixada
 

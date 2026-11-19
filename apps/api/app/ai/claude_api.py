@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.ai.model_base import ModelProviderBase, parse_json_object
+from app.ai.model_base import CallLimits, ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
@@ -40,22 +40,54 @@ class ClaudeAPIProvider(ModelProviderBase):
     # --- transport --------------------------------------------------------
 
     def _complete(self, system: str, user: str, schema: dict) -> dict:
+        return self._request(system, user, schema, self.settings.ai_max_output_tokens)
+
+    def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
+        """One call under the short budget of the plan, the suggestions and the
+        probe (D-246): their own output ceiling, their own timeout and their own
+        retry count, as ``openai-compat`` already did."""
+        return self._request(
+            system,
+            user,
+            schema,
+            limits.max_output_tokens,
+            timeout=limits.timeout_seconds,
+            max_retries=max(limits.max_retries, 0),
+        )
+
+    def _request(
+        self,
+        system: str,
+        user: str,
+        schema: dict,
+        max_tokens: int,
+        *,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+    ) -> dict:
         # The client comes first on purpose: it is the only step that genuinely
         # needs the SDK, so it is where the "install the extra" error belongs.
         # With a client injected, this method runs with anthropic absent.
         client = self._get_client()
+        if max_retries is not None and hasattr(client, "with_options"):
+            # The SDK's own retry count (default 2) would turn a one-retry budget
+            # into three requests while a person waits.
+            client = client.with_options(max_retries=max_retries)
         anthropic = _error_types()
+        extra: dict[str, Any] = {} if timeout is None else {"timeout": timeout}
+        seconds = self.settings.ai_timeout_seconds if timeout is None else timeout
         try:
             response = client.messages.create(
                 model=self.settings.ai_model or "claude-opus-5",
-                max_tokens=self.settings.ai_max_output_tokens,
+                max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user}],
                 output_config={"format": {"type": "json_schema", "schema": schema}},
+                **extra,
             )
         except anthropic.APITimeoutError as exc:
             raise AIUnavailableError(
-                f"O modelo não respondeu em {self.settings.ai_timeout_seconds:g}s. "
+                f"O modelo não respondeu em {seconds:g}s. "
                 "Tente novamente ou aumente AI_TIMEOUT_SECONDS."
             ) from exc
         except anthropic.AuthenticationError as exc:
@@ -94,7 +126,8 @@ class ClaudeAPIProvider(ModelProviderBase):
             )
         if stop_reason == "max_tokens":
             raise AIUnavailableError(
-                "A resposta do modelo foi truncada antes de fechar o JSON. "
+                "A resposta do modelo foi truncada antes de fechar o JSON "
+                f"(teto de {max_tokens} tokens). "
                 "Aumente AI_MAX_OUTPUT_TOKENS ou encurte o enunciado."
             )
         return parse_json_object(_text_of(response))

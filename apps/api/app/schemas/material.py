@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.domain.text_input import strip_controls
 from app.models.enums import DataQuality, DesignationSystem
 from app.schemas.process import ProcessOut
 from app.schemas.property import PropertyGroup
@@ -61,6 +62,11 @@ class MaterialCreate(BaseModel):
     is_own_record: bool = False
     values: list[PropertyValueIn] = Field(default_factory=list)
 
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def _no_control_characters(cls, value: object) -> object:
+        return strip_controls(value)
+
 
 class MaterialUpdate(BaseModel):
     """Partial update of a material's identity fields.
@@ -75,6 +81,11 @@ class MaterialUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
     keywords: list[str] | None = None
     is_active: bool | None = None
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def _no_control_characters(cls, value: object) -> object:
+        return strip_controls(value)
 
 
 class DataQualitySummary(BaseModel):

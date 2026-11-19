@@ -25,8 +25,6 @@ from functools import lru_cache
 from tokenize import TokenError
 from typing import TYPE_CHECKING
 
-from pint.errors import DimensionalityError, UndefinedUnitError
-
 if TYPE_CHECKING:
     from pint import UnitRegistry
 
@@ -79,7 +77,22 @@ class UnitError(ValueError):
 # plain ``TypeError`` would otherwise swallow it under the wrong message. Every
 # one of these left uncaught leaves the service layer as HTTP 500: the user
 # made a typo and the application answers with a defect of its own.
-_UNIT_PARSE_FAILURES = (UndefinedUnitError, AssertionError, TokenError, TypeError, ValueError)
+@lru_cache(maxsize=1)
+def pint_errors():
+    """``pint.errors``, imported the first time a unit is parsed (D-246).
+
+    ``import pint`` costs ~14 MB of resident memory and nothing at boot needs
+    it, so the exception classes are looked up here, inside the ``except``
+    clauses that name them, and not at the top of the module.
+    """
+    from pint import errors
+
+    return errors
+
+
+@lru_cache(maxsize=1)
+def unit_parse_failures() -> tuple[type[BaseException], ...]:
+    return (pint_errors().UndefinedUnitError, AssertionError, TokenError, TypeError, ValueError)
 
 
 # Pint parses a unit by *evaluating* it as an arithmetic expression, which means
@@ -204,7 +217,7 @@ def validate_dimension(unit: str, expected_dimension: str) -> bool:
         return True
     try:
         quantity = get_registry().Quantity(1.0, unit)
-    except _UNIT_PARSE_FAILURES as exc:
+    except unit_parse_failures() as exc:
         raise UnitError(f"Unidade desconhecida: {unit!r}") from exc
     return quantity.check(expected_dimension)
 
@@ -255,11 +268,11 @@ def to_canonical(value: float, from_unit: str, canonical_unit: str) -> tuple[flo
     # subclass, so it must be caught before the broader parse-failure tuple
     # below (which now includes plain TypeError) or it would be reported as
     # an unknown unit instead of an incompatible one.
-    except DimensionalityError as exc:
+    except pint_errors().DimensionalityError as exc:
         raise UnitError(
             f"Unidades incompatíveis: {from_unit!r} não pode ser convertido para {canonical_unit!r}"
         ) from exc
-    except _UNIT_PARSE_FAILURES as exc:
+    except unit_parse_failures() as exc:
         raise UnitError(
             f"Unidade desconhecida em conversão {from_unit!r}->{canonical_unit!r}"
         ) from exc

@@ -219,7 +219,8 @@ class AuthService:
         the raw token: it is accepted once and rewritten to the digest right
         here, keeping its expiry, so a deploy logs nobody out and the raw
         tokens leave the table as their owners come back. Rows nobody returns
-        to expire as before (``SESSION_TTL_HOURS``).
+        to expire as before (``SESSION_TTL_HOURS``) and are deleted at the next
+        login (``purge_expired``, D-246).
         """
         session = self.sessions.get_valid(token)
         if session is not None:
@@ -259,6 +260,9 @@ class AuthService:
             try:
                 user = self._upsert_user(claims)
                 session = self._create_session(user)
+                # A login is the one moment already writing to this table: drop
+                # the sessions past their expiry, raw-token legacy rows included.
+                self.sessions.purge_expired()
                 self.db.commit()
                 return session
             except OperationalError as exc:

@@ -23,7 +23,13 @@ from app.ai import claude_cli, factory
 from app.ai.claude_api import ClaudeAPIProvider
 from app.ai.claude_cli import ClaudeCLIProvider, _read_payload
 from app.ai.guardrails import check_constraint
-from app.ai.model_base import ModelProviderBase, parse_json_object
+from app.ai.model_base import (
+    CallLimits,
+    ModelProviderBase,
+    parse_json_object,
+    probe_limits,
+    suggest_limits,
+)
 from app.ai.prompts import explain_user, format_decimal, interpret_schema
 from app.ai.provider import (
     AIUnavailableError,
@@ -615,3 +621,114 @@ class TestAPITransportWithoutTheSDK:
         provider = ClaudeAPIProvider(Settings(), client=_BrokenClient())
         with pytest.raises(ValueError, match="malformada"):
             provider._complete("s", "u", {})
+
+
+_SHORT = CallLimits(timeout_seconds=7.0, max_output_tokens=123, max_retries=1)
+
+
+class TestShortCallsKeepTheirOwnBudget:
+    """D-246: the plan, the suggestions and the probe are bounded on claude-api and
+    claude-cli too, not only on openai-compat."""
+
+    def test_the_api_call_carries_its_own_ceiling_timeout_and_retries(self) -> None:
+        class _Optioned(_Client):
+            def __init__(self, response: _Response) -> None:
+                super().__init__(response)
+                self.options: dict = {}
+
+            def with_options(self, **options: object) -> _Optioned:
+                self.options = options
+                return self
+
+        client = _Optioned(_Response([_Block("text", '{"summary": "ok"}')]))
+        provider = ClaudeAPIProvider(Settings(ai_model="claude-opus-5"), client=client)
+
+        assert provider._complete_limited("s", "u", {}, _SHORT) == {"summary": "ok"}
+
+        sent = client.messages.calls[0]
+        assert (sent["max_tokens"], sent["timeout"]) == (123, 7.0)
+        assert client.options == {"max_retries": 1}
+
+    def test_the_default_call_is_not_given_the_short_budget(self) -> None:
+        provider = ClaudeAPIProvider(
+            Settings(ai_model="claude-opus-5", ai_max_output_tokens=4000),
+            client=_Client(_Response([_Block("text", "{}")])),
+        )
+        provider._complete("s", "u", {})
+        sent = provider._client.messages.calls[0]
+        assert sent["max_tokens"] == 4000
+        assert "timeout" not in sent
+
+    def test_a_truncated_short_answer_names_the_ceiling(self) -> None:
+        provider = ClaudeAPIProvider(
+            Settings(), client=_Client(_Response([_Block("text", "{")], stop_reason="max_tokens"))
+        )
+        with pytest.raises(AIUnavailableError, match="teto de 123 tokens"):
+            provider._complete_limited("s", "u", {}, _SHORT)
+
+    def test_the_probe_and_the_suggestions_use_the_limited_path(self) -> None:
+        seen: list[CallLimits] = []
+
+        class _Recorder(ClaudeAPIProvider):
+            def _complete_limited(self, system, user, schema, limits):  # type: ignore[override]
+                seen.append(limits)
+                return {"ok": True}
+
+        provider = _Recorder(Settings())
+        provider.probe()
+        assert seen == [probe_limits(Settings())]
+        assert suggest_limits(Settings()).max_output_tokens == 1500
+
+    def _run_cli(self, monkeypatch: pytest.MonkeyPatch, stdout: str):
+        calls: dict = {}
+
+        class _Done:
+            returncode = 0
+
+        _Done.stdout = stdout  # type: ignore[attr-defined]
+        _Done.stderr = ""  # type: ignore[attr-defined]
+
+        def fake_run(command, **kwargs):
+            calls.update(kwargs)
+            return _Done()
+
+        monkeypatch.setattr(claude_cli.shutil, "which", lambda _name: "/usr/bin/claude")
+        monkeypatch.setattr(claude_cli.subprocess, "run", fake_run)
+        return calls
+
+    def test_the_cli_call_gets_the_short_timeout_and_the_token_ceiling(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        envelope = json.dumps(
+            {"is_error": False, "subtype": "success", "structured_output": {"ok": True}}
+        )
+        calls = self._run_cli(monkeypatch, envelope)
+        provider = ClaudeCLIProvider(Settings(ai_timeout_seconds=90.0))
+
+        assert provider._complete_limited("s", "u", {}, _SHORT) == {"ok": True}
+
+        assert calls["timeout"] == 7.0
+        assert calls["env"]["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "123"
+
+    def test_the_default_cli_call_keeps_its_timeout_and_sets_no_ceiling(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        envelope = json.dumps(
+            {"is_error": False, "subtype": "success", "structured_output": {"ok": True}}
+        )
+        calls = self._run_cli(monkeypatch, envelope)
+        monkeypatch.delenv("CLAUDE_CODE_MAX_OUTPUT_TOKENS", raising=False)
+
+        ClaudeCLIProvider(Settings(ai_timeout_seconds=90.0))._complete("s", "u", {})
+
+        assert calls["timeout"] == 90.0
+        assert "CLAUDE_CODE_MAX_OUTPUT_TOKENS" not in calls["env"]
+
+    def test_the_cli_answer_far_beyond_the_ceiling_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        huge = json.dumps({"is_error": False, "subtype": "success", "result": "x" * 100_000})
+        self._run_cli(monkeypatch, huge)
+
+        with pytest.raises(AIUnavailableError, match="além do teto"):
+            ClaudeCLIProvider(Settings())._complete_limited("s", "u", {}, _SHORT)

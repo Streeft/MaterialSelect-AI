@@ -632,18 +632,32 @@ class MaterialService:
             self.repo.add(_copy_row(designation, material_id=copy.id))
         for entry in original.composition:
             self.repo.add(_copy_row(entry, material_id=copy.id))
-        for curve in original.curves:
-            new_curve = _copy_row(
-                curve, material_id=copy.id, dataset_id=None, external_id=None, raw_sha256=None
+        # Three flushes for any number of curves (was one per curve and per series,
+        # D-246): the curves first, so the series can name them, then the series,
+        # so the points can; the points need no id back.
+        new_curves = [
+            (
+                curve,
+                _copy_row(
+                    curve, material_id=copy.id, dataset_id=None, external_id=None, raw_sha256=None
+                ),
             )
-            self.repo.add(new_curve)
-            self.repo.flush()
-            for series in curve.series:
-                new_series = _copy_row(series, curve_id=new_curve.id)
-                self.repo.add(new_series)
-                self.repo.flush()
-                for point in series.points:
-                    self.repo.add(_copy_row(point, series_id=new_series.id))
+            for curve in original.curves
+        ]
+        self.repo.add_all(new for _, new in new_curves)
+        self.repo.flush()
+        new_series = [
+            (series, _copy_row(series, curve_id=new_curve.id))
+            for curve, new_curve in new_curves
+            for series in curve.series
+        ]
+        self.repo.add_all(new for _, new in new_series)
+        self.repo.flush()
+        self.repo.add_all(
+            _copy_row(point, series_id=new_s.id)
+            for series, new_s in new_series
+            for point in series.points
+        )
         copy.processes = list(original.processes)
         self.repo.sync_keywords(copy.id, list(original.keywords or []))
         record_change(

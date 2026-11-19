@@ -657,6 +657,10 @@ class MaterialRepository:
         """Stage a new ORM object for insertion."""
         self.db.add(obj)
 
+    def add_all(self, objs: Iterable[object]) -> None:
+        """Stage several new ORM objects for insertion."""
+        self.db.add_all(list(objs))
+
     def flush(self) -> None:
         """Flush pending changes (assigns primary keys without committing)."""
         self.db.flush()

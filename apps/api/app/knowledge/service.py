@@ -312,6 +312,9 @@ class _Action(Enum):
     UNCHANGED_POINTER = "unchanged_pointer"
     #: A pointer whose content the run would have to read: refused, unwritten.
     MISSING_CONTENT = "missing_content"
+    #: A pointer to bytes that already failed to read at this very path (D-246):
+    #: not downloaded again until the file changes or the run is forced.
+    KNOWN_FAILURE = "known_failure"
     INGEST = "ingest"
 
 
@@ -355,6 +358,8 @@ class LfsPlan:
     pointers: int = 0
     #: Pointers to the bytes already indexed (``EXTRAIDO``) at the same path.
     unchanged: int = 0
+    #: Pointers to bytes that already failed at the same path: not fetched (D-246).
+    known_failures: int = 0
     #: Pointers to a copy of a file indexed (or downloaded) under another path.
     copies: int = 0
     #: Pointers on the removal list — never downloaded.
@@ -596,6 +601,19 @@ class KnowledgeService:
                 # what a real copy would get from the checksum shortcut, without
                 # the file ever being downloaded.
                 outcome = self._unchanged(document, relative, declared.get(relative))
+            elif step.action is _Action.KNOWN_FAILURE and (
+                document := self.repo.get_by_path(relative)
+            ):
+                # These bytes already failed here (a scanned PDF, say): the row
+                # keeps its reason and is not downloaded to fail the same way.
+                outcome = DocumentOutcome(
+                    path=relative,
+                    action="falhou",
+                    detail=(
+                        f"{document.error or 'Falhou antes.'} Os mesmos bytes já falharam; "
+                        "o arquivo não foi baixado de novo (use --force para tentar outra vez)."
+                    )[:500],
+                )
             elif candidate.is_pointer:
                 # Refused before the catalogue is looked up: nothing about the
                 # document — row, passages, vectors, checksum — is touched.
@@ -641,8 +659,10 @@ class KnowledgeService:
         copies of a file indexed (or fetched) under another path, and pointers
         to the bytes already indexed at their own path are not fetched; the
         ingestion then reports the last as ``inalterado`` without reading them.
-        A document that failed before (``FALHOU``) is fetched again, as its
-        file is re-read on every run.
+        A document that failed before (``FALHOU``) with the same bytes at the
+        same path is not fetched again either (D-246): it is reported as failed
+        with its recorded reason, until the file changes or the run is forced
+        (``--force``, here and in the ingestion).
         """
         plan = LfsPlan()
         for step in self._prepare(force, paths).steps:
@@ -656,6 +676,8 @@ class KnowledgeService:
                 plan.copies += 1
             elif step.action is _Action.UNCHANGED_POINTER:
                 plan.unchanged += 1
+            elif step.action is _Action.KNOWN_FAILURE:
+                plan.known_failures += 1
             elif candidate.pointer_size is None:
                 plan.malformed += 1
             else:
@@ -730,7 +752,18 @@ class KnowledgeService:
                     and not force
                     and self._already_indexed(relative, candidate.digest)
                 )
-                action = _Action.UNCHANGED_POINTER if unchanged else _Action.MISSING_CONTENT
+                known_failure = (
+                    not unchanged
+                    and candidate.pointer_size is not None
+                    and not force
+                    and self._already_failed(relative, candidate.digest)
+                )
+                if unchanged:
+                    action = _Action.UNCHANGED_POINTER
+                elif known_failure:
+                    action = _Action.KNOWN_FAILURE
+                else:
+                    action = _Action.MISSING_CONTENT
                 steps.append(_Step(candidate, action))
             else:
                 steps.append(_Step(candidate, _Action.INGEST))
@@ -820,6 +853,15 @@ class KnowledgeService:
             document is not None
             and document.checksum == digest
             and document.status == IngestStatus.EXTRAIDO
+        )
+
+    def _already_failed(self, relative: str, digest: str) -> bool:
+        """These exact bytes already failed to read at this path (``FALHOU``)."""
+        document = self.repo.get_by_path(relative)
+        return (
+            document is not None
+            and document.checksum == digest
+            and document.status == IngestStatus.FALHOU
         )
 
     def _unchanged(

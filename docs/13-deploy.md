@@ -751,7 +751,7 @@ idênticos entram uma vez só.
      como se o tivesse inteiro. A leitura para assim que a conta fecha (o
      resto não é decodificado). Um livro novo não grava nada; um já indexado
      mantém os trechos da versão anterior. Como toda falha, a próxima
-     `ingerir` tenta de novo. Um `FALHOU …: Limit reached while decompressing`
+     `ingerir` tenta de novo — desde o D-246, só se o arquivo mudou ou com `forcar`: um ponteiro LFS cujos bytes já falharam naquele caminho não é baixado de novo (a linha `[lfs]` conta quantos). Um `FALHOU …: Limit reached while decompressing`
      sozinho não deveria mais aparecer no Cérebro — era o teto de 75 MB do
      pypdf, que derrubou os dois Ashby em português na `ingerir` de 06/10
      ([D-101](DECISIONS.md), atualização do teto de descompressão); o upload

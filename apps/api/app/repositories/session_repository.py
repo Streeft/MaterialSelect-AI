@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.domain.session_token import hash_session_token, looks_hashed
@@ -75,6 +75,20 @@ class SessionRepository:
             session = self.db.get(UserSession, key)
             if session is not None:
                 self.db.delete(session)
+
+    def purge_expired(self) -> int:
+        """Delete every session already past its expiry; return how many (D-246).
+
+        An expired row can never log anyone in, whatever it is keyed by, so this
+        is the safe cleanup for the pre-D-223 raw-token rows nobody came back
+        to: they cannot outlive ``SESSION_TTL_HOURS``, and this removes them
+        (and the expired digests) instead of leaving them until the database is
+        looked at by hand. It never touches a live session.
+        """
+        result = self.db.execute(
+            delete(UserSession).where(UserSession.expires_at <= datetime.now(UTC))
+        )
+        return int(result.rowcount or 0)
 
     def _live(self, stored_id: str) -> UserSession | None:
         stmt = (

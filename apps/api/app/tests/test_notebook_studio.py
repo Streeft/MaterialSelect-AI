@@ -314,11 +314,16 @@ def test_nothing_that_passes_is_a_failed_generation_and_costs_nothing(client, mo
     assert client.get(f"/api/notebooks/{notebook_id}/studio").json()["usage"]["used"] == 0
 
 
-def test_the_provider_s_own_message_is_the_failure(client, monkeypatch):
-    _script(monkeypatch, [AIUnavailableError("Limite do plano gratuito atingido (429).")])
-    artifact = _generate(client, _notebook(client), tool="report")
+def test_the_provider_s_message_is_logged_not_written_on_the_artifact(client, monkeypatch, caplog):
+    """D-246: a provider detail (URL, request id, reply slice) never reaches the reader."""
+    detail = "Limite do plano gratuito atingido (429) em https://api.exemplo.test/v1?key=abc"
+    _script(monkeypatch, [AIUnavailableError(detail)])
+    with caplog.at_level("WARNING"):
+        artifact = _generate(client, _notebook(client), tool="report")
     assert artifact["status"] == "falhou"
-    assert artifact["error"] == "Limite do plano gratuito atingido (429)."
+    assert artifact["error"] == studio_service.AI_FAILED
+    assert "api.exemplo.test" not in artifact["error"] and "429" not in artifact["error"]
+    assert detail in caplog.text
 
 
 def test_a_busy_provider_on_the_retry_keeps_the_first_answer(client, monkeypatch):

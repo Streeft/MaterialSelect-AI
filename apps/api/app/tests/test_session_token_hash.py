@@ -120,6 +120,23 @@ def test_an_expired_legacy_row_is_not_rewritten(db_session):
     assert db_session.get(UserSession, hash_session_token(token)) is None
 
 
+def test_a_login_deletes_expired_rows_and_keeps_live_ones(db_session):
+    """D-246: raw-token rows nobody came back to leave with the next login."""
+    stale = "token-legado-esquecido-0123456789abcdefghijklmnopqrstuvwxy"
+    live = "token-legado-vivo-0123456789abcdefghijklmnopqrstuvwxyzabcd"
+    _legacy_row(db_session, stale, expires_in=timedelta(seconds=-5))
+    user = db_session.get(UserSession, stale).user
+    db_session.add(
+        UserSession(id=live, user_id=user.id, expires_at=datetime.now(UTC) + timedelta(hours=1))
+    )
+    db_session.commit()
+
+    _login(db_session)
+
+    assert db_session.get(UserSession, stale) is None
+    assert db_session.get(UserSession, live) is not None
+
+
 def test_logout_removes_the_hashed_row(db_session):
     issued = _login(db_session)
 

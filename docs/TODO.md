@@ -544,11 +544,9 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 tema. Para valer "nos outros aparelhos em que entrar" é preciso guardar a preferência na conta (coluna ou tabela de preferências,
 migração, rota `GET/PUT /api/me/appearance`) e o script do `<head>` continuar lendo a cópia local para não piscar.
 
-**Resíduos do D-177 (upload e exportações).** ▁ (a) Limpar caracteres de
-controle também na **entrada** (`name`/`description` de material, estudo e
-registro próprio), como higiene; a exportação já não cai sem isso. (b) As cópias
-da regex XML em `exporters/studio.py`, `studio_pptx.py` e `cae/matml.py` podem
-passar a usar `exporters/xml_text.py`.
+~~**Resíduos do D-177 (upload e exportações).**~~ Feitos no D-246: (a) `name`/`description` de material, registro próprio,
+síntese e estudo perdem caracteres de controle na entrada (`app/domain/text_input.py`; TAB, LF e CR ficam); (b) as três cópias da regex XML
+(`exporters/studio.py`, `studio_pptx.py`, `cae/matml.py`) usam `exporters/xml_text.py` (`xml_legal(texto, substituto)`).
 
 **Cérebro em produção — pendências deixadas pelo D-101.** Nenhuma bloqueia o
 uso; as três primeiras são decisão ou conferência do autor.
@@ -563,14 +561,10 @@ uso; as três primeiras são decisão ou conferência do autor.
   histórico nem do armazenamento LFS. Eram 18 na raiz até 06/10/2026: a
   cópia do Ashby em português que saiu foi junto com ele (D-101), e só ela —
   as outras continuam esperando esta decisão.
-- **Documento que falhou é baixado de novo a cada `ingerir`.** ▁ O plano do
-  LFS só poupa o que está `EXTRAIDO` com os mesmos bytes; um `FALHOU` (um PDF
-  digitalizado, `SEM TEXTO`, inclusive) é baixado e lido de novo, como sempre
-  foi lido de novo. Se o Cérebro tiver digitalizados grandes, isso pesa na
-  banda de LFS do mês (o `[lfs] baixar …` diz quantos MB). Saída possível:
-  tratar um `FALHOU` com os mesmos bytes como falha conhecida, sem baixar,
-  com `--force` para tentar de novo — decisão do autor, porque é declarar a
-  falha permanente.
+- ~~**Documento que falhou é baixado de novo a cada `ingerir`.**~~ Feito no D-246: um ponteiro LFS cujos bytes (o `oid`) já falharam
+  naquele caminho (`FALHOU`, um PDF digitalizado inclusive) é tratado como falha conhecida: não é baixado, a ingestão o relata como
+  `falhou` com o motivo guardado e o plano (`lfs_plan`) o conta à parte; arquivo novo ou `--force` tentam de novo. Um arquivo real
+  (não ponteiro) que falhou segue sendo lido de novo, porque não custa banda.
 - **Confirmar os limites do Neon e a memória do Fly.** ▁ O D-101 supôs 0,5 GB de
   armazenamento e 5 GB de transferência por mês no Neon gratuito; confira no
   painel do Neon. Depois da primeira consulta com a IA real, olhe a memória da
@@ -712,7 +706,7 @@ Registrados para não voltarem por engano:
 
 - ~~**Erros crus na tela e menu que some com a API fora (Sessão 157, [D-200](DECISIONS.md))**~~ — `describeApiError`
   único, `ErrorState` com `error`/retry, fronteiras na raiz, `AuthGate` com menu e "Redirecionando…", 404 distinto de
-  falha. Pendente (baixo): `studio_service._fail` ainda grava `str(exc)` do provedor de IA no artefato.
+  falha. O resíduo (`studio_service._fail` gravava `str(exc)` do provedor no artefato) saiu no D-246: mensagem genérica em PT-BR, detalhe no log.
 - ~~**Pequenos acertos de UI da auditoria visual (Sessão 159, [D-202](DECISIONS.md))**~~ — barra inferior com rótulos de 12 px,
   rótulos de seção do menu com token AA, menu que cabe em 1280x800 e gaveta que rola, `/app/estilo` só para o curador em produção,
   resultados sem executar sem contradição nem truncamento, `<main>` em `/entrar` e `/assinatura`, chaves únicas no catálogo e vitrine
@@ -1817,17 +1811,27 @@ Registrados para não voltarem por engano:
 - ~~**Cadastrar os campos bibliográficos de uma fonte.**~~ Feito no D-236: `PATCH /api/sources/{id}` (curador, validado, nada inferido) e "Editar fonte" na ficha.
 - ~~A seção "Fontes desta ficha" sem as fontes das curvas e das equivalências~~ — feito no D-236.
 - ~~Árvore de classes: arrastar para mover~~ — feito no D-236 (HTML5 nativo; "Mover para…" segue como alternativa por teclado).
-- ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). Segue pendente arquivar em lote pela página do caderno (só a lista tem seleção).
+- ~~"Esvaziar o arquivo" de cadernos~~ — feito no D-236 (`DELETE /api/notebooks/archived?expected=N`). (Arquivar em lote é na **lista** de cadernos, D-233: a página de um caderno é de um caderno só e não tem seleção nem botão de arquivar, então não há o que "levar para a página" — conferido no código no D-246.)
 - Posição do trecho: fontes gravadas antes do D-233 seguem sem `char_start`/`char_end` (NULL) e usam a busca por palavras; reprocessar uma fonte a regravaria com posição.
+
+**Checklist pós-Deploy da API (D-223 a D-246) — uma vez, em produção, depois do deploy.** Nenhuma destas partes tem migração além das já
+aplicadas pelo próprio deploy; marque aqui e não repita a pendência em cada seção.
+- [ ] `fly logs` sem `exit code 137` e a memória da máquina no painel do Fly (D-231, D-237, D-246: o RSS de partida caiu de 118,5 para 115,3 MB).
+- [ ] Painel do Neon: a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue` (D-227).
+- [ ] Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando) (D-228).
+- [ ] `AI_MODEL` rápido do Gemini (um "flash") e os dois exemplos do assistente de projeto (D-224).
+- [ ] `fly logs` ao esgotar a cota da busca na web deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId` (D-234).
+- [ ] Editar uma fonte na ficha e conferir o evento `source` na auditoria (D-236); o mesmo para a licença em Administrar › Fontes (D-244).
+- [ ] Baixar `catalogo.csv`: abre no Excel (BOM, acentos) e termina sem a linha `# ERRO:` (D-237, D-244).
+- [ ] Um login novo apaga as sessões vencidas (`SELECT count(*) FROM user_session WHERE expires_at < now()` cai a zero depois dele) (D-246).
+- [ ] Um Estúdio que falhe por causa da IA mostra a frase genérica; o detalhe do provedor aparece só no `fly logs` (D-246).
+- [ ] Depois do próximo `ingerir` com PDF digitalizado: a linha `[lfs]` conta "já falharam" e o PDF não é baixado de novo (D-246).
 
 **Segurança, limite e cache — pendências (D-223).**
 - Limite por minuto em memória: com mais de uma máquina no Fly cada uma conta à parte; um contador compartilhado (Redis/Postgres) só se a escala pedir.
-- Importador (`app/importers/service.py`) ainda chama `_build_value_from_input` valor a valor (uma leitura de definição e de fonte por célula); levar para `_build_values`.
-- `duplicate_material` faz um `flush` por curva e por série para obter os ids; aceitável no tamanho atual, mas é N+1 de escrita.
-- Linhas de sessão com o token cru que ninguém reusar ficam até vencer (`SESSION_TTL_HOURS`); uma limpeza explícita é opcional.
+- ~~Importador valor a valor (uma leitura de definição e de fonte por célula)~~, ~~`duplicate_material` com um `flush` por curva e por série~~ e ~~linhas de sessão com o token cru que ninguém reusa~~ — feitos no D-246 (definições lidas uma vez por requisição e a fonte uma vez por arquivo; três `flush` para qualquer número de curvas; o login apaga as sessões vencidas, as de token cru inclusive).
 
 **Banco — pendências (D-227).**
-- Depois do Deploy da API, confirmar no painel do Neon que a computação suspende nos intervalos sem uso; se o *connect* por requisição pesar na latência, medir antes de voltar a `DB_POOL_MODE=queue`.
 **Fechamento da revisão das telas — pendências (D-226).**
 - ~~Lighthouse: limiares só sobem até onde as medições sustentam~~ — medido e subido no D-235 (performance 0,9, acessibilidade 0,95, boas práticas 0,9; tabela em `13-deploy.md`).
 - Barra do Plotly (zoom, pan, reinício): os botões têm 24 px e ficam de fora da regra de 44 px (biblioteca de terceiros). Se o uso no celular pedir, esconder a barra abaixo de 640 px e oferecer "Reiniciar zoom" na barra de ferramentas do cartão.
@@ -1842,8 +1846,7 @@ Registrados para não voltarem por engano:
   consultas leves na seleção, nos gráficos, nas calculadoras e no catálogo, `MALLOC_ARENA_MAX=2`; pico por requisição de 134–166 MB
   para 0,5–11 MB.
 - ~~Exportação: `catalogue_report` lia o catálogo inteiro~~ — em lotes de 100 e XLSX em fluxo no D-235 (pico 82,4 → 33,4 MB no CSV, 93,8 → 22,0 MB no XLSX; teto de 40 MB no `test_memory_per_request.py`). O CSV também saiu em fluxo no D-237 (pico 33,3 → 13,2 MB; teto de 20 MB no mesmo teste).
-- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). O registro de unidades do `pint` passou a ser criado no primeiro uso no D-237 (RSS 116,2 → 114,4 MB); resta o próprio `import pint` (~14 MB), que só sai com as classes de erro importadas dentro das funções.
-- Medir em produção depois do **Deploy da API**: `fly logs` sem `exit code 137`, e a memória da máquina no painel do Fly.
+- ~~Partida do processo: bibliotecas de exportação no import~~ — `openpyxl`, `python-docx` e `python-pptx` sob demanda no D-235 (RSS 137,0 → 115,8 MB; `pypdf` já era). O registro de unidades do `pint` passou a ser criado no primeiro uso no D-237 (RSS 116,2 → 114,4 MB); o próprio `import pint` (~14 MB) saiu da partida no D-246 (RSS de partida 118,5 → 115,3 MB).
 
 **IA em todas as ferramentas — pendências (D-228).**
 - ~~Etapa IA-2a (frontend)~~ — feita na D-229 (`AISuggestPanel` em Mapas, Comparar, Catálogo, Ficha, Glossário, Processos e Importar, aplicando as ações só no clique).
@@ -1851,32 +1854,26 @@ Registrados para não voltarem por engano:
 - ~~Sugestão da IA em Sintetizar~~ — feita no D-234: o `set_param` aceita um número que o modelo escolheu dentro da faixa do pedido (`origin: "sugestao_ia"`), marcado "revise" e só aplicado depois do `ConfirmDialog` do painel.
 - ~~Sugestão da IA na Eco, A × B e `part_mass`~~ — feitas no D-234 (`{comparison}` no contexto; `part_mass` = massa unitária de um produto de um só componente; faixa (0, 10⁶] kg).
 - Sugestão da IA: o painel não guarda a resposta ao trocar de página (o servidor reaproveita o mesmo contexto por 10 min); na Ficha do processo `search` abre a lista, e a ação `compare` no Catálogo não limita a 5 materiais no cliente (o servidor já manda 3).
-- Em produção, depois do **Deploy da API**: Aparência → "Testar a IA agora"; se o JSON vier em `object`, foi o Google recusando o schema estrito (o log diz quando).
 - A memória do modo JSON rebaixado, o cache das sugestões e o contador do diagnóstico são por máquina e somem num reinício (como o cache do plano).
-- `claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída; só o `openai-compat` o aplica.
-- O 429 dos embeddings fora do diagnóstico ainda usa a mensagem genérica de `EmbeddingClient` (a busca cai para a léxica sem aviso na tela, como antes).
+- ~~`claude-api` e `claude-cli` respondem `suggest`/`probe` sem o teto próprio de tempo e saída~~ e ~~o 429 dos embeddings com a mensagem genérica~~ — feitos no D-246 (teto de saída, tempo e tentativas nos dois provedores; o 429 diz quando tentar de novo e que a busca segue léxica). A busca ainda cai para a léxica sem aviso **na tela**.
 
 **Fluxos entre telas, parte 16 — pendências (D-234).**
 - ~~Cascata da diferença A × B na Eco~~, ~~curva Custo × Lote de cada material comparado~~ e ~~recaída do 429 da busca na web~~ (`WEB_SEARCH_FALLBACK_MODEL`; entrada `modelo_busca_web` no workflow Provedor de IA) — feitas no D-234.
 - Custo, Dimensionar e Baterias seguem sem número escolhido pelo modelo (só valores do contexto ou de cenário); dar faixa a um parâmetro é uma decisão por parâmetro.
 - Cascata da diferença para mais de duas alternativas; curva Custo × Lote por material também por processo escolhido (hoje é sempre o mais barato em cada lote).
-- Em produção, depois do **Deploy da API**: `fly logs` ao esgotar a cota da busca deve mostrar "recaindo para gemini-flash-lite-latest" com o `quotaId`.
 
 **Fluxos entre telas, parte 18 — pendências (D-236).**
 - ~~Fontes que nenhuma ficha cita não têm onde ser editadas~~ (feito no D-244: Administrar › Fontes lista todas; só o curador edita).
 - ~~Rótulo e licença de uma fonte seguem fixos depois do cadastro~~ (feito no D-244: o `PATCH` leva também rótulo, referência e licença; revisor segue fixo).
 - ~~Arrastar a classe não funciona em tela de toque~~ (feito no D-244: eventos de ponteiro; "Mover para…" segue pelo teclado).
 - "Esvaziar o arquivo" é uma transação só; com milhares de cadernos arquivados pediria etapas (e a contagem confirmada deixaria de valer de uma vez).
-- Em produção, depois do **Deploy da API** (sem migração): editar uma fonte na ficha e conferir o evento `source` na auditoria.
 
 **Pendências do TODO, parte 4 (D-244).**
 - Criar, apagar e mesclar fontes pela tela de Fontes; autoscroll ao arrastar numa árvore longa; avisar na tela que um CSV baixado veio cortado (hoje só a linha `# ERRO:` no fim do arquivo).
-- Em produção, depois do **Deploy da API** (sem migração): editar a licença de uma fonte em Administrar › Fontes e conferir o evento `source` na auditoria.
 
 **Fluxos entre telas, parte 19 — pendências (D-237).**
-- `import pint` (~14 MB de RSS) ainda na partida: pede importar `pint.errors`/`pint.util` dentro das funções de `units.py` e `expressions.py`.
+- ~~`import pint` (~14 MB de RSS) ainda na partida~~ — feito no D-246 (`pint_errors()` em `units.py`; `UnitsContainer` importado dentro da função).
 - Um erro no meio do CSV do catálogo entrega um arquivo truncado com status 200 (o que pode falhar é resolvido antes do primeiro byte); se virar problema, fechar o arquivo com uma linha de erro.
-- Em produção, depois do **Deploy da API** (sem migração): baixar `catalogo.csv` e conferir que abre no Excel (BOM, acentos) e que o `fly logs` não mostra `exit code 137`.
 
 **Assistente de projeto com IA — pendências (D-224).**
 - ~~Etapa B (frontend)~~ — feita na D-225 (Início, painel da Seleção, componentes `PlanView`/`PlanComponentCard`/`ConstraintOriginChip`, E2E com o `mock`).
@@ -1884,7 +1881,6 @@ Registrados para não voltarem por engano:
 - ~~`/ai/interpret` e `interpretStatement`~~ — removidos no D-234 (rota, `AIService.interpret`, esquemas e cliente). Ficam o método `interpret` dos provedores (o `rule_plan` o usa) e os textos `ptBR.ai.*` do `AIAssistPanel`: limpar numa passada própria se o painel antigo sair. (`check_property`/`check_chart` saíram no D-237.)
 - Início: a proposta some ao navegar; guardá-la (por exemplo em `sessionStorage`) só se o uso pedir. O servidor já reaproveita o mesmo texto por 10 min.
 - Interface do assistente: streaming da resposta e edição de um limite na própria proposta (hoje só se confirma ou recusa a sugestão; os demais ajustes são na Seleção).
-- Em produção: conferir o `AI_MODEL` rápido do Gemini (um "flash") e testar os dois exemplos depois do **Deploy da API**.
-- `claude-api` e `claude-cli` respondem o plano sem o teto próprio (tempo, saída, tentativas); só o `openai-compat` o aplica.
+- ~~`claude-api` e `claude-cli` respondem o plano sem o teto próprio~~ — feito no D-246 (junto com `suggest`/`probe`).
 - O cache do plano e do resumo do catálogo é por máquina, como o limite por minuto.
 - Cenários: ampliar a tabela (impacto, abrasão, chama) e trocar faixas didáticas por referência publicada quando houver uma certa.

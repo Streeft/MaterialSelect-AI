@@ -21,7 +21,6 @@ travels without the catalogue around it.
 
 from __future__ import annotations
 
-import re
 import xml.etree.ElementTree as ET
 
 from app.exporters.cae.card import CaeCard, CardValue
@@ -35,6 +34,7 @@ from app.exporters.cae.quantities import (
 )
 from app.exporters.cae.text import real, single_line
 from app.exporters.identity import composition_summary, designation_summary
+from app.exporters.xml_text import xml_legal
 
 LABEL = "MatML 3.1 (XML aberto)"
 REQUIRED = ()
@@ -51,12 +51,10 @@ _NAMES = {
     SPECIFIC_HEAT.key: "Specific Heat",
 }
 
-# Characters XML 1.0 forbids outright (escaping cannot represent them).
-_XML_FORBIDDEN = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
-
 
 def _text(value: str) -> str:
-    return single_line(_XML_FORBIDDEN.sub(" ", value))
+    # Characters XML 1.0 forbids outright (escaping cannot represent them).
+    return single_line(xml_legal(value, " "))
 
 
 def _sub(parent: ET.Element, tag: str, text: str | None = None, **attrs: str) -> ET.Element:

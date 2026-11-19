@@ -120,6 +120,18 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 203 — 18/11/26 — Pendências do TODO, parte 5: lote no importador e na duplicação, falha conhecida no Cérebro, teto nos provedores Claude (D-246)
+
+**O que mudou.** Backend: importador com definições lidas uma vez por requisição e a fonte uma vez por arquivo; `duplicate_material` em três `flush`;
+o login apaga sessões vencidas (`purge_expired`); ponteiro LFS que já falhou com os mesmos bytes não é baixado de novo (`KNOWN_FAILURE`, contado por
+`lfs_plan`; `--force` tenta outra vez); o Estúdio guarda uma frase genérica quando a IA falha e manda o detalhe ao log; `claude-api` e `claude-cli`
+respeitam tempo, teto de saída e tentativas das chamadas curtas; o 429 dos embeddings diz quando tentar de novo; `name`/`description` perdem
+caracteres de controle na entrada; a regex XML tem um só dono (`xml_text`); `pint` sai da partida (RSS 118,5 → 115,3 MB). Docs: o `TODO.md` ganhou uma
+única checklist pós-Deploy da API no lugar de oito pendências repetidas, e a duplicata "arquivar em lote pela página do caderno" foi resolvida (só a
+lista tem seleção; a página de um caderno não arquiva). Sem migração. Testes novos: `test_batch_writes`, `test_text_input_controls`,
+`test_xml_text_shared`, e casos em `test_session_token_hash`, `test_knowledge_lfs_plan`, `test_ai_claude`, `test_knowledge_embeddings`,
+`test_units_lazy_registry`, `test_notebook_studio` (reescrito: o detalhe do provedor não vai ao artefato).
+
 ## Sessão 201 — 17/11/26 — Pendências do TODO, parte 4: tela de fontes, arrastar por toque, CSV que diz quando quebrou (D-244)
 
 **O que mudou.** Backend: `PATCH /api/sources/{id}` leva também `label`, `reference`, `license_label` e `license_url` (`edit_registration`; rótulo em branco 400,

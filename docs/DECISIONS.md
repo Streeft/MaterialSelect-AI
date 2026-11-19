@@ -13737,7 +13737,7 @@ desalinhariam a ordem visual da ordem gravada; fica uma coluna.
 Visões salvas de verdade em "Meus registros" (filtros nomeados na conta): as quatro visões fixas cobrem o que a tela mostra; nomear
 filtros fica para quando houver pedido.
 
-**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-232b/Sessão 189b (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
 
@@ -14090,7 +14090,7 @@ fora do `PATCH` desde o D-233). Busca e filtro no servidor (quando o vocabulári
 `PATCH` para a mesma classe). Árvore como `treegrid` com navegação por setas (a tabela com botões de dobrar já é navegável e
 acessível, e o arrastar existente vive nas linhas).
 
-**Numeração.** D-238, Sessão 195 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-238, Sessão 195 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 ---
 
@@ -14117,7 +14117,7 @@ conhecido na linha de exemplo (seria propriedade sem fonte no arquivo, e import�
 importador lê é regra do backend; os dois ficam no mesmo lugar e no mesmo teste). Uma coluna por propriedade do catálogo (dezenas de
 colunas vazias; a pessoa acrescenta as que tiver, e o mapeamento as reconhece pelo slug).
 
-**Numeração.** D-239, Sessão 196 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-239, Sessão 196 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 
 ## D-240 — Resíduos da revisão das telas: por que cada material caiu, figura para relatório sempre clara e nota do estudo editável no lugar
@@ -14155,7 +14155,7 @@ funil é sequencial; a primeira falha é a que o tirou, e é ela que o funil con
 exportar (trocar o tema da página inteira pisca a tela; copiar os traços e trocar cor por cor no JSON repete o que a troca no SVG
 final já faz para as duas famílias de figura). Um `PUT` do estudo inteiro para mudar a nota (mudaria o que a execução salva descreve).
 
-**Numeração.** D-240, Sessão 197 (conferidas em `origin/main`). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
+**Numeração.** D-240, Sessão 197 (conferidas em `origin/main` e no PR #269). Toca `apps/api` sem migração: depois do merge, **Deploy da API**.
 
 ## D-241 — Laudo de engenharia repaginado: documento visual em A4 e versão emitida congelada (revisa a D-41)
 
@@ -14218,7 +14218,7 @@ Assinar no servidor (certificado A1/A3): a responsabilidade é do engenheiro, e 
 HTML inteiro: o QR e o código ficariam dentro do que resumem. Gerar as frases de "por que" pela IA: seria número e argumento sem
 garantia determinística. Página de verificação no frontend: o QR é lido por quem não tem conta, e a API já serve HTML com CSP.
 
-**Numeração.** D-241, Sessão 198 (conferidas em `origin/main`). Toca `apps/api` **com migração** e dependência nova (`segno`):
+**Numeração.** D-241, Sessão 198 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **com migração** e dependência nova (`segno`):
 depois do merge, **Deploy da API** (o `fly deploy` roda `alembic upgrade head`).
 
 ## D-242 — Laudo emitido enviado ao cliente por e-mail, pelo app (L2 da D-241)
@@ -14280,7 +14280,7 @@ na auditoria: a trilha é lida por mais gente que o histórico.
 **Fora desta decisão.** Anexar o PDF que o engenheiro assinou (o app não recebe o PDF; o anexo é o HTML congelado), revogar ou expirar
 um link, saber se o cliente abriu, `Reply-To` pelo e-mail do engenheiro, e fila de reenvio.
 
-**Numeração.** D-242, Sessão 199 (conferidas em `origin/main`). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
+**Numeração.** D-242, Sessão 199 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **com migração** (`report_delivery`, aplicada pelo
 `release_command`), sem dependência nova e sem seed: depois do merge, **Deploy da API**. Para o e-mail sair de verdade, o autor grava os
 segredos do Fly (`13-deploy.md` §5-nonies); sem isso o envio fica simulado e a tela diz.
 
@@ -14351,7 +14351,7 @@ Pixel de rastreio no e-mail (rastreia a leitura da mensagem, não do link, e é 
 `Reply-To` pelo e-mail do engenheiro; PDF gerado no servidor; DOCX/PPTX de uma versão **emitida** a partir dos bytes congelados (a cópia
 reexecuta o estudo com o catálogo de hoje, e diz que não é a emitida).
 
-**Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
+**Numeração.** D-243, Sessão 200 (conferidas em `origin/main` e no PR #269 e nas branches). Toca `apps/api` **com migração** (`5e2405bef18d`, aplicada pelo
 `release_command`) e **dependência nova** (`resvg-py`, mais as duas fontes em `exporters/fonts`): depois do merge, **Deploy da API**
 (a imagem é reconstruída). Sem seed. Variável nova opcional: `REPORT_LINK_TTL_DAYS` (e `SIGNED_PDF_MAX_BYTES`), `.env.example`.
 
@@ -14386,5 +14386,48 @@ sem dizer por quê, e proxies tentam de novo).
 **Fora desta decisão.** Criar e apagar fonte pela tela (apagar exigiria olhar os valores que a citam); mesclar fontes duplicadas; autoscroll
 durante o arrastar de uma árvore muito longa; avisar o usuário, na tela, de que o CSV baixado veio cortado (hoje a linha-marcador é a única pista).
 
-**Numeração.** D-244, Sessão 201 (conferidas em `origin/main`). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
+**Numeração.** D-244, Sessão 201 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
 
+
+---
+
+## D-246 — Pendências do TODO, parte 5: escrita em lote no importador e na duplicação, falha conhecida no Cérebro, Estúdio sem detalhe do provedor, teto nos provedores Claude, 429 de embeddings claro, entrada sem caracteres de controle, partida sem `import pint`
+
+**Contexto.** Resíduos mecânicos e medíveis deixados pelas D-101, D-177, D-200, D-223, D-224, D-228 e D-237, todos em `apps/api`.
+
+**Decisão.**
+- **Escrita em lote (D-223).** O importador lê o catálogo de propriedades **uma vez por requisição** (`_property_map`) e a fonte que o arquivo cita
+  **uma vez por arquivo** (a primeira linha a cria se for nova; as outras a reaproveitam), no lugar de uma leitura por célula na validação e na
+  efetivação. `duplicate_material` grava as curvas, depois as séries e depois os pontos em **três** `flush` (antes, um por curva e por série).
+  Testes contam consultas e `flush` e comparam 2 linhas com 12, 1 curva com 4: o número não cresce.
+- **Sessões (D-223).** `SessionRepository.purge_expired` apaga toda sessão já vencida, no login (que já escreve na tabela). Uma linha vencida não
+  loga ninguém, seja qual for a chave, então é seguro; as de token cru que ninguém reusou nunca passam de `SESSION_TTL_HOURS` e saem aqui. Nenhuma sessão viva é tocada.
+- **Cérebro (D-101).** Um **ponteiro** LFS cujo `oid` já falhou (`FALHOU`, mesmo `checksum`) naquele caminho vira a ação `KNOWN_FAILURE`:
+  não é baixado nem lido, a ingestão o relata como `falhou` com o motivo guardado e a frase "não foi baixado de novo (use --force)", e `lfs_plan`
+  o conta à parte (`known_failures`). Arquivo novo (outro `oid`) ou `--force` tentam de novo. Vale só para ponteiros: o que custa banda de
+  LFS é o download; um arquivo real que falhou continua sendo relido, e a linha do banco não muda.
+- **Estúdio (D-200).** `studio_service.run` não grava mais a mensagem do provedor de IA no artefato: ela vai ao log (`warning`) e o artefato
+  recebe `AI_FAILED` ("A IA não conseguiu responder agora. Tente de novo em alguns minutos."). Mensagens de validação (nossas) seguem como eram.
+- **IA (D-224, D-228).** `ClaudeAPIProvider` e `ClaudeCLIProvider` implementam `_complete_limited`: tempo da chamada, teto de saída e tentativas
+  de `CallLimits`. Na API, `max_tokens`, `timeout` por requisição e `with_options(max_retries=…)`; no CLI, o tempo, `CLAUDE_CODE_MAX_OUTPUT_TOKENS`
+  só no ambiente daquele processo e um limite de bytes lidos (retaguarda de uma versão que ignore a variável). O CLI faz uma execução só.
+  O **429 dos embeddings** diz em português quando tentar de novo (mesmo `wait_text` da cota do Google, que sabe "amanhã") e que a busca segue
+  só pela via léxica, em vez do texto só para o operador.
+- **Resíduos do D-177.** `app/domain/text_input.strip_controls` tira de `name`/`description` de material, registro próprio, síntese e estudo os
+  caracteres de controle (TAB, LF e CR ficam; um nome só de controles falha `min_length` em vez de ser gravado em branco). As três cópias da
+  regex XML (`studio.py`, `studio_pptx.py`, `cae/matml.py`) passam a `xml_text.xml_legal(texto, substituto="")`; a do slide e a do MatML ganham de
+  graça os *surrogates* soltos que as cópias não cobriam.
+- **`import pint` (D-237).** `units.pint_errors()` (com `lru_cache`) entrega `pint.errors` na primeira conversão; `expressions.py` importa
+  `UnitsContainer` dentro da função. A API pública de `app/calculations/units.py` não muda e nenhuma conta muda. RSS de partida
+  (`import app.main`, três medidas): **118,5 → 115,3 MB**; o `pint` entra na primeira requisição que converte uma unidade.
+
+**Alternativas recusadas.** Trocar a leitura por célula por um cache global de propriedades (ficaria velho entre requisições). Apagar sessões de
+token cru por idade, e não por vencimento (derrubaria quem volta no 10º dia). Tratar todo `FALHOU` como permanente, inclusive o de arquivo real
+(esconderia a falha transitória sem poupar banda). Esconder o detalhe do provedor também do log (o operador precisa dele). Criar um validador
+de texto por esquema (um só `strip_controls` serve aos quatro).
+
+**Fora desta decisão.** Aviso **na tela** de que a busca caiu para a léxica; cadeia de retentativas própria no CLI; sanear outros textos livres
+(notas já têm `clean_note`).
+
+**Numeração.** D-246, Sessão 203 (conferidas em `origin/main` e no PR #269). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API** (a checklist
+pós-deploy está no `TODO.md`). Sem seed.
