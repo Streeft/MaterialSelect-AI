@@ -31,7 +31,8 @@ ficou sem objeto. Três regras que não são questão de gosto:
   impressão monocromática.
 - **Forma e movimento também são token.** `rounded-card`/`rounded-control`
   cobrem quase tudo; a classe `.pressable` (em `globals.css`) é o gesto de
-  "maleável" — 2% de `transform` na curva do Material 3, sem biblioteca.
+  "maleável" — 2% de `transform` ao pressionar (nunca no hover, D-248), na
+  mola do Material 3, sem biblioteca.
 - **Primitivas em `components/ui/`**, importadas sempre pelo barril
   `@/components/ui` e documentadas ao vivo em `/estilo` — as figuras da
   monografia são capturas dessa rota, e por isso ela não pode envelhecer em
@@ -86,9 +87,16 @@ ficou sem objeto. Três regras que não são questão de gosto:
   `.m3-state`. Valor novo cita a linha de `docs/21-material3-referencia.md`. Onde o M3 pede
   menos que o projeto (contraste D-34, Okabe–Ito, um `primary`), vale o projeto.
 
-- **Hover é véu, não movimento** ([D-134](docs/DECISIONS.md)): botão, chip, FAB e demais
-  `.msds-ripple-host` usam a camada de estado 8/10/10 e nunca sobem, crescem nem trocam borda.
-  `tonal` é o botão quieto e não conta como `primary`.
+- **Hover é véu, não movimento da caixa** ([D-134](docs/DECISIONS.md), revista na [D-248](docs/DECISIONS.md)): botão,
+  chip, FAB e demais `.msds-ripple-host` usam a camada de estado 8/10/10 e nunca sobem, crescem nem trocam borda; desde a
+  D-248 **a forma** (raio) muda no hover e ao pressionar e **o ícone** faz o seu gesto. `tonal` é o botão quieto e não conta como `primary`.
+
+- **Movimento do M3 Expressive** ([D-248](docs/DECISIONS.md)): todo ícone novo declara `gesture` no `Svg` (preencher, girar,
+  balançar, saltar, deslizar, pulsar, desenhar) e entra em `APP_ICON_GESTURES` (`lib/design/iconGestures.ts`); glifo do `msdsIcon`
+  entra em `MSDS_ICON_GESTURES`. Regra de gesto só dentro do bloco `prefers-reduced-motion: no-preference` com
+  `:root:not([data-motion="reduced"])`. Duração e curva vêm em par (`--motion-*` + `-dur`; a mola é `linear()` sob `@supports`, nunca
+  com outra duração). Forma que responde vive no `msds.css` (raio no hover/pressão, alternância ligada quadrada; `--btn-r` no botão),
+  nunca raio em linha por JS. Indicador ativo de lista nova é `SlidingIndicator` + `useSlidingIndicator`.
 
 - **Campos no contorno M3** ([D-135](docs/DECISIONS.md)): raio 4, borda `--m3-outline` (≥ 3:1
   sobre o painel, testado), foco em contorno de 2 px, rótulo **acima**. Caixa, rádio, switch e
@@ -96,7 +104,8 @@ ficou sem objeto. Três regras que não são questão de gosto:
 
 - **Contêineres e sobreposições no M3** ([D-136](docs/DECISIONS.md)): card interativo sem
   `translateY` (véu + elevação 2); diálogo 28 px em `surface-container-high`; scrim `--m3-scrim`
-  a 32 %; menu/popover em `surface-container`; snackbar e dica em `inverse-surface`.
+  a 32 %; menu/popover em `surface-container`; snackbar e dica em `inverse-surface`. Sobreposição
+  entra com mola na própria superfície (escala/opacidade, D-248), nunca na página atrás.
 
 - **Navegação e dados no M3** ([D-137](docs/DECISIONS.md)): aba com indicador de 3 px em
   `--m3-primary`; barra inferior com pílula 56 × 32 **sobre o trilho escuro** (D-37 vale);

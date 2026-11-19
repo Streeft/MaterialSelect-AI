@@ -540,6 +540,12 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ## Baixa prioridade
 
+**Material 3 Expressive — o que a D-248 deixou de fora.** ▃ (a) Morph de caminho SVG (`d: path()`) e a biblioteca de 35 formas do
+Expressive: o M3 marca "Web is not currently available"; entra quando houver uma implementação web ou um motivo de produto. (b) O gesto
+dos ícones no toque foi visto em emulação a 390 px; conferir num celular de verdade (iOS dispara `:active` só com um ouvinte de toque no
+documento). (c) Aplicar `--state-disabled` (38 %) aos controles que ainda usam 40–50 % fixos fora do MSDS (`disabled:opacity-40` em
+`ExpressionBuilder` e afins), um por um, olhando a tela.
+
 **Aparência em todos os aparelhos (D-196).** ▁ Cor do app, contraste e movimento ficam no `localStorage` de cada aparelho, como o
 tema. Para valer "nos outros aparelhos em que entrar" é preciso guardar a preferência na conta (coluna ou tabela de preferências,
 migração, rota `GET/PUT /api/me/appearance`) e o script do `<head>` continuar lendo a cópia local para não piscar.

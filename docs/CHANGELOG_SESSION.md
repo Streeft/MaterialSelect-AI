@@ -120,6 +120,21 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 205 — 19/11/26 — Material 3 Expressive, parte 6: molas como `linear()`, ícones que se mexem, forma que responde (D-248)
+
+**O que mudou.** Frontend apenas (pedido do autor, intensidade "Máximo"). Tokens: as 16 durações do M3, `--m3-ease-emphasized`,
+`--state-disabled`, as seis molas expressivas como `linear()` com o tempo de acomodação, e `--motion-*` apontando para elas sob `@supports`
+(fallback: as curvas da D-183); `--msds-dur*` viraram apelidos; `SPRING` com os valores Expressive (380/0,8, 800/0,6, 200/0,8). Ícones: `data-gesture`
+em todo ícone (72 do app, com a prop obrigatória `gesture` no `Svg`; 34 do `msdsIcon`), sete gestos em CSS (preencher, girar, balançar, saltar,
+deslizar, pulsar, desenhar traço) disparados por hover, foco do teclado e toque do controle em volta, inexistentes com movimento reduzido.
+Forma: botão, botão de ícone, chip e FAB mudam o raio no hover e ao pressionar; alternância ligada é quadrada; `useShapeMorph` sem raio em linha.
+`SlidingIndicator` nas abas, no trilho, na gaveta e na barra inferior: o indicador desliza e estica. Diálogo, menu, popover, snackbar e folha
+entram com mola. Troca de tela em *fade through* (só opacidade). `.pressable` e a marca da barra lateral perderam o crescimento no hover.
+Vitrine: seção "Movimento" em `/app/estilo`. Achado na conferência a 390 px: a aba escolhida da barra de visões ganhava a área de toque da
+D-226 no mesmo `::after` do indicador (faixa atravessando o rótulo); saiu da regra. Revê D-134/D-136; D-141 vale. Testes novos: vitest `iconGestures` (gesto em todo ícone exportado e
+nas regras guardadas por movimento reduzido), `slidingIndicator`, `MotionSpecimen` (com axe) e casos em `m3Tokens` e `stateLayer`. Vídeos e
+capturas da conferência no navegador ficaram fora do repositório. Sem migração.
+
 ## Sessão 204 — 18/11/26 — Pendências do TODO, parte 5: lote no importador e na duplicação, falha conhecida no Cérebro, teto nos provedores Claude (D-247)
 
 **O que mudou.** Backend: importador com definições lidas uma vez por requisição e a fonte uma vez por arquivo; `duplicate_material` em três `flush`;

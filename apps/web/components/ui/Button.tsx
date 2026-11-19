@@ -4,6 +4,7 @@ import {
   forwardRef,
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type PointerEvent,
   type ReactNode,
 } from "react";
@@ -198,7 +199,7 @@ function usePressFeedback(
   const morph = useShapeMorph(restRadius, pressedRadius, active);
   return {
     layer: ripple.layer as ReactNode,
-    style: morph.style as { borderRadius: string },
+    style: morph.style as CSSProperties,
     bind: {
       onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
         ripple.onPointerDown(event);

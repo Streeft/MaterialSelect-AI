@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ptBR } from "@/lib/i18n";
 import { M3Foundations } from "./M3Foundations";
 import { F1Specimens } from "./F1Specimens";
+import { MotionSpecimen } from "./MotionSpecimen";
 import { paletteSeats } from "@/lib/design/palette";
 import { SECTIONS, type SectionId } from "@/lib/design/sections";
 import {
@@ -943,6 +944,10 @@ function StyleGuide() {
             />
           </div>
         </div>
+      </Section>
+
+      <Section title="Movimento" headingLevel={2}>
+        <MotionSpecimen />
       </Section>
 
       <Section title="Alternância de ícone" headingLevel={2}>

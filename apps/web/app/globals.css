@@ -279,6 +279,8 @@
   --state-focus: 0.1;
   --state-pressed: 0.1;
   --state-dragged: 0.16;
+  /* D-248: content and container of a disabled control (M3 `md.sys.state.disabled`). */
+  --state-disabled: 0.38;
 
   /* D-206: the smallest thing a finger is asked to hit. WCAG 2.5.8 asks 24 px,
    * Apple's HIG 44 pt, M3 48 dp; 44 is the floor here, 48 where M3 draws it. */
@@ -294,7 +296,17 @@
   --m3-dur-medium4: 400ms;
   --m3-dur-long1: 450ms;
   --m3-dur-long2: 500ms;
+  --m3-dur-long3: 550ms;
+  --m3-dur-long4: 600ms;
+  --m3-dur-extra-long1: 700ms;
+  --m3-dur-extra-long2: 800ms;
+  --m3-dur-extra-long3: 900ms;
+  --m3-dur-extra-long4: 1000ms;
   --m3-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* D-248: on the web the M3 token `easing.emphasized` resolves to standard
+   * (`_md-sys-motion.scss`, and the page: "the Standard set is also a fallback
+   * for platforms that don't support Emphasized easing, like iOS and Web"). */
+  --m3-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --m3-ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
   --m3-ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
   --m3-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
@@ -322,6 +334,29 @@
   --m3-spring-standard-default-spatial-dur: 500ms;
   --m3-spring-standard-slow-spatial: cubic-bezier(0.27, 1.06, 0.18, 1);
   --m3-spring-standard-slow-spatial-dur: 750ms;
+  /* D-248: the same six expressive springs as a CSS `linear()`, sampled from the
+   * spring itself (mass 1, stiffness and damping ratio of Compose's
+   * `ExpressiveMotionTokens.kt`, 41 points, settled at 0.1 %). The duration is
+   * the settling time and belongs to the curve: never pair one with another
+   * duration. Read through `--motion-*` only, under `@supports` below. */
+  /* spatial fast: stiffness 800, damping ratio 0.6, overshoot 9,48 % */
+  --m3-spring-expressive-fast-spatial-linear: linear(0, 0.0292, 0.1046, 0.2099, 0.3314, 0.458, 0.5814, 0.6955, 0.7966, 0.8823, 0.9485, 1.0034, 1.0436, 1.0709, 1.087, 1.094, 1.094, 1.0888, 1.08, 1.069, 1.0572, 1.0452, 1.0339, 1.0237, 1.0149, 1.0075, 1.0017, 0.9973, 0.9942, 0.9923, 0.9913, 0.991, 0.9913, 0.992, 0.9929, 0.994, 0.9952, 0.9963, 0.9973, 0.9982, 1);
+  --m3-spring-expressive-fast-spatial-linear-dur: 359ms;
+  /* effects fast: stiffness 3800, damping ratio 1.0, overshoot 0,0 % */
+  --m3-spring-expressive-fast-effects-linear: linear(0, 0.0202, 0.079, 0.1482, 0.2366, 0.3157, 0.4037, 0.476, 0.5517, 0.6113, 0.6718, 0.7183, 0.7645, 0.7993, 0.8335, 0.859, 0.8837, 0.9019, 0.9195, 0.9324, 0.9434, 0.9538, 0.9614, 0.9686, 0.9738, 0.9788, 0.9823, 0.9857, 0.9881, 0.9904, 0.9921, 0.9936, 0.9947, 0.9957, 0.9965, 0.9972, 0.9977, 0.9981, 0.9985, 0.9988, 1);
+  --m3-spring-expressive-fast-effects-linear-dur: 150ms;
+  /* spatial default: stiffness 380, damping ratio 0.8, overshoot 1,52 % */
+  --m3-spring-expressive-default-spatial-linear: linear(0, 0.0205, 0.0701, 0.1426, 0.2273, 0.3173, 0.4036, 0.4909, 0.5726, 0.6471, 0.7108, 0.7696, 0.8201, 0.8612, 0.8973, 0.9268, 0.9506, 0.9687, 0.9834, 0.9945, 1.0023, 1.008, 1.0117, 1.014, 1.015, 1.0151, 1.0147, 1.0138, 1.0127, 1.0114, 1.01, 1.0087, 1.0074, 1.0062, 1.0051, 1.0041, 1.0033, 1.0025, 1.0019, 1.0014, 1);
+  --m3-spring-expressive-default-spatial-linear-dur: 435ms;
+  /* effects default: stiffness 1600, damping ratio 1.0, overshoot 0,0 % */
+  --m3-spring-expressive-default-effects-linear: linear(0, 0.0246, 0.0783, 0.1558, 0.2348, 0.3229, 0.4012, 0.4815, 0.549, 0.6152, 0.6691, 0.7208, 0.762, 0.8009, 0.8314, 0.8598, 0.882, 0.9024, 0.9182, 0.9326, 0.9446, 0.9538, 0.9622, 0.9686, 0.9743, 0.9787, 0.9826, 0.9856, 0.9883, 0.9904, 0.9922, 0.9935, 0.9948, 0.9957, 0.9965, 0.9971, 0.9977, 0.9981, 0.9985, 0.9987, 1);
+  --m3-spring-expressive-default-effects-linear-dur: 231ms;
+  /* spatial slow: stiffness 200, damping ratio 0.8, overshoot 1,52 % */
+  --m3-spring-expressive-slow-spatial-linear: linear(0, 0.0201, 0.0716, 0.1436, 0.2275, 0.3166, 0.406, 0.4923, 0.573, 0.6467, 0.7106, 0.7688, 0.819, 0.8616, 0.8972, 0.9265, 0.9502, 0.9689, 0.9834, 0.9944, 1.0024, 1.0081, 1.0118, 1.0139, 1.015, 1.0151, 1.0147, 1.0138, 1.0126, 1.0113, 1.01, 1.0087, 1.0074, 1.0062, 1.0051, 1.0041, 1.0033, 1.0026, 1.0019, 1.0014, 1);
+  --m3-spring-expressive-slow-spatial-linear-dur: 599ms;
+  /* effects slow: stiffness 800, damping ratio 1.0, overshoot 0,0 % */
+  --m3-spring-expressive-slow-effects-linear: linear(0, 0.022, 0.0803, 0.1534, 0.2346, 0.3176, 0.4033, 0.479, 0.5485, 0.6149, 0.6703, 0.7191, 0.7641, 0.8006, 0.832, 0.8588, 0.883, 0.9022, 0.9184, 0.9328, 0.9442, 0.9537, 0.9621, 0.9686, 0.9741, 0.9786, 0.9826, 0.9857, 0.9882, 0.9904, 0.9921, 0.9936, 0.9948, 0.9957, 0.9965, 0.9972, 0.9977, 0.9981, 0.9985, 0.9988, 1);
+  --m3-spring-expressive-slow-effects-linear-dur: 326ms;
   /* The app's scheme is expressive (D-181). Components name these, never a
    * scheme directly, so switching scheme is one block. */
   --motion-spatial-fast: var(--m3-spring-expressive-fast-spatial);
@@ -334,6 +369,8 @@
   --motion-effects-fast-dur: var(--m3-spring-expressive-fast-effects-dur);
   --motion-effects: var(--m3-spring-expressive-default-effects);
   --motion-effects-dur: var(--m3-spring-expressive-default-effects-dur);
+  --motion-effects-slow: var(--m3-spring-expressive-slow-effects);
+  --motion-effects-slow-dur: var(--m3-spring-expressive-slow-effects-dur);
 
   /* The semantic layer (D-91). Components name the *role* — the page, a
    * panel, a well, the border of something operable, the main action — and
@@ -369,6 +406,28 @@
   --shadow-overlay: 0 18px 40px -18px rgb(46 38 26 / 0.40), 0 2px 6px 0 rgb(46 38 26 / 0.14);
   --shadow-lift: 0 16px 34px -18px rgb(46 38 26 / 0.36);
   --shadow-glow: 0 0 0 1px rgb(var(--brand-300) / 0.4), 0 10px 22px -12px rgb(var(--accent) / 0.85);
+}
+
+/* D-248: where the browser draws `linear()` (Chrome 113, Safari 17.2, Firefox
+ * 112), the semantic motion tokens are the springs themselves; elsewhere they
+ * stay the cubic-bezier conversions of the M3 page (D-183). Curve and duration
+ * switch together, so a component that names a pair never mixes the two. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root,
+  [data-theme="light"] {
+    --motion-spatial-fast: var(--m3-spring-expressive-fast-spatial-linear);
+    --motion-spatial-fast-dur: var(--m3-spring-expressive-fast-spatial-linear-dur);
+    --motion-spatial: var(--m3-spring-expressive-default-spatial-linear);
+    --motion-spatial-dur: var(--m3-spring-expressive-default-spatial-linear-dur);
+    --motion-spatial-slow: var(--m3-spring-expressive-slow-spatial-linear);
+    --motion-spatial-slow-dur: var(--m3-spring-expressive-slow-spatial-linear-dur);
+    --motion-effects-fast: var(--m3-spring-expressive-fast-effects-linear);
+    --motion-effects-fast-dur: var(--m3-spring-expressive-fast-effects-linear-dur);
+    --motion-effects: var(--m3-spring-expressive-default-effects-linear);
+    --motion-effects-dur: var(--m3-spring-expressive-default-effects-linear-dur);
+    --motion-effects-slow: var(--m3-spring-expressive-slow-effects-linear);
+    --motion-effects-slow-dur: var(--m3-spring-expressive-slow-effects-linear-dur);
+  }
 }
 
 /* --- Hue by section · light theme -------------------------------------------
@@ -1353,12 +1412,15 @@
     @apply overflow-x-auto overscroll-x-contain;
   }
 
-  /* The "malleable" gesture: grows slightly under the pointer and yields under pressure.
-   * Scales only — no `translate`, to avoid pushing neighbors. The reduced-motion
-   * block at the end turns this into instant state change:
-   * the return survives, the motion doesn't. */
+  /* The "malleable" gesture: yields under pressure and springs back. Scales only —
+   * no `translate`, to avoid pushing neighbors. D-248 took the 2 % growth on
+   * hover away (hover is the state veil, D-134; shape and icons move, the box
+   * does not); the press stays, on the expressive fast spring. The
+   * reduced-motion block at the end turns this into instant state change. */
   .pressable {
-    @apply transition ease-emphasized hover:scale-[1.02] active:scale-[0.98];
+    @apply transition active:scale-[0.98];
+    transition-duration: var(--motion-spatial-fast-dur);
+    transition-timing-function: var(--motion-spatial-fast);
   }
 
   /* Staggered entry of a list or card grid, no animation library. The call site
@@ -1428,7 +1490,7 @@
 .msds-chip:disabled,
 .msds-segmented-item:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: var(--state-disabled);
   transform: none;
 }
 
@@ -1684,7 +1746,9 @@ div[data-surface="rail"] .msds-rail-item {
 }
 
 /* Screen-to-screen fade (D-141). Opacity only: a transform here would turn this box into the
- * containing block of every fixed descendant. `backwards` so nothing is left applied afterwards. */
+ * containing block of every fixed descendant. `backwards` so nothing is left applied afterwards.
+ * D-248: the M3 "top level" pattern (fade through): the old screen is gone at once, the new one
+ * waits short1 and fades in on emphasized-decelerate — still no scale, which M3 adds and D-141 forbids. */
 @keyframes m3-route-enter {
   from {
     opacity: 0;
@@ -1694,7 +1758,7 @@ div[data-surface="rail"] .msds-rail-item {
   }
 }
 .m3-route-enter {
-  animation: m3-route-enter var(--m3-dur-medium1) var(--m3-ease-standard-decelerate) backwards;
+  animation: m3-route-enter var(--m3-dur-medium1) var(--m3-ease-emphasized-decelerate) var(--m3-dur-short1) backwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .m3-route-enter {
@@ -1903,6 +1967,244 @@ div[data-surface="rail"] .msds-rail-item {
   .m3-loading-shape, .m3-fabmenu-item { animation: none; }
 }
 
+/* ==========================================================================
+ * D-248: M3 Expressive motion — animated icons, shape that answers the
+ * pointer, a travelling active indicator, overlays that arrive on a spring.
+ * Revises D-134/D-136 at the author's request: hover may move an icon and
+ * change a control's shape; the box itself still never rises or grows on
+ * hover, and nothing transforms an ancestor of the page content (D-141).
+ * Every duration and curve is a token; every movement is off under reduced
+ * motion (the system setting or "Movimento reduzido" in Aparência).
+ * ========================================================================== */
+
+/* --- Animated icons (`data-gesture`, lib/design/iconGestures.ts) -----------
+ * The gesture plays when the control around the icon is hovered, focused from
+ * the keyboard or pressed. Individual `rotate`/`scale`/`translate` compose with
+ * any `transform` the icon already has (a chevron turned by its own class), and
+ * `backwards` leaves nothing applied once a gesture ends. All of it lives
+ * inside the guard below, so under reduced motion the rules do not exist. */
+@keyframes icon-pop {
+  from { scale: 0.78; }
+  to { scale: 1; }
+}
+@keyframes icon-spin {
+  from { rotate: var(--g-turn, -90deg); scale: 0.8; }
+  to { rotate: 0deg; scale: 1; }
+}
+@keyframes icon-wobble {
+  0% { rotate: 0deg; }
+  20% { rotate: -14deg; }
+  40% { rotate: 14deg; }
+  60% { rotate: -8deg; }
+  80% { rotate: 4deg; }
+  100% { rotate: 0deg; }
+}
+@keyframes icon-hop {
+  0% { translate: 0 0; animation-timing-function: var(--m3-ease-emphasized-decelerate); }
+  35% { translate: 0 -24%; animation-timing-function: var(--motion-spatial-fast); }
+  100% { translate: 0 0; }
+}
+@keyframes icon-slide {
+  from { translate: var(--g-dx, 0) var(--g-dy, 0); opacity: 0.2; }
+  to { translate: 0 0; opacity: 1; }
+}
+@keyframes icon-pulse {
+  from { scale: var(--g-sx, 0.6) var(--g-sy, 0.6); }
+  to { scale: 1; }
+}
+@keyframes icon-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="reduced"]) svg[data-gesture] {
+    transform-origin: 50% 50%;
+    animation-duration: var(--motion-spatial-dur);
+    animation-timing-function: var(--motion-spatial);
+    animation-fill-mode: backwards;
+  }
+  :root:not([data-motion="reduced"]) [data-gesture="spin"][data-gesture-dir="half"] { --g-turn: -180deg; }
+  :root:not([data-motion="reduced"]) [data-gesture="slide"][data-gesture-dir="right"] { --g-dx: -30%; }
+  :root:not([data-motion="reduced"]) [data-gesture="slide"][data-gesture-dir="left"] { --g-dx: 30%; }
+  :root:not([data-motion="reduced"]) [data-gesture="slide"][data-gesture-dir="up"] { --g-dy: 30%; }
+  :root:not([data-motion="reduced"]) [data-gesture="slide"][data-gesture-dir="down"] { --g-dy: -30%; }
+  :root:not([data-motion="reduced"]) [data-gesture="slide"][data-gesture-dir="up-right"] { --g-dx: -25%; --g-dy: 25%; }
+  :root:not([data-motion="reduced"]) [data-gesture="pulse"][data-gesture-dir="up"] { --g-sx: 1; --g-sy: 0.3; }
+  :root:not([data-motion="reduced"]) [data-gesture="pulse"][data-gesture-dir="right"] { --g-sx: 0.3; --g-sy: 1; }
+  /* `fill`: an outline that fills in. Only the parts drawn without a fill of
+     their own, on an outline icon, so a filled dot or a starred star keep theirs. */
+  :root:not([data-motion="reduced"]) [data-gesture="fill"][fill="none"] > :is(path, rect, circle, ellipse, polygon):is(:not([fill]), [fill="none"]) {
+    fill: currentColor;
+    fill-opacity: 0;
+    transition: fill-opacity var(--motion-effects-fast-dur) var(--motion-effects-fast);
+  }
+
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="fill"][fill="none"] > :is(path, rect, circle, ellipse, polygon):is(:not([fill]), [fill="none"]) {
+    fill-opacity: 0.28;
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="fill"] {
+    animation-name: icon-pop;
+    animation-duration: var(--motion-spatial-fast-dur);
+    animation-timing-function: var(--motion-spatial-fast);
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="spin"] {
+    animation-name: icon-spin;
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="wobble"] {
+    animation-name: icon-wobble;
+    animation-duration: var(--m3-dur-medium4);
+    animation-timing-function: var(--m3-ease-standard);
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="hop"] {
+    animation-name: icon-hop;
+    animation-duration: var(--m3-dur-long3);
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="slide"] {
+    animation-name: icon-slide;
+  }
+  /* `pulse` and `draw` move the parts, one after another. */
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="pulse"] > * {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: icon-pulse var(--motion-spatial-fast-dur) var(--motion-spatial-fast) backwards;
+    animation-delay: calc(var(--g-i, 0) * var(--m3-dur-short1));
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="pulse"][data-gesture-dir="up"] > * {
+    transform-origin: 50% 100%;
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="pulse"][data-gesture-dir="right"] > * {
+    transform-origin: 0% 50%;
+  }
+  :root:not([data-motion="reduced"]) :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"]):is(:hover, :focus-visible, :active) [data-gesture="draw"] > * {
+    animation: icon-draw var(--m3-dur-long2) var(--m3-ease-emphasized-decelerate) backwards;
+    animation-delay: calc(var(--g-i, 0) * var(--m3-dur-short2));
+  }
+  :root:not([data-motion="reduced"]) :is([data-gesture="pulse"], [data-gesture="draw"]) > :nth-child(2) { --g-i: 1; }
+  :root:not([data-motion="reduced"]) :is([data-gesture="pulse"], [data-gesture="draw"]) > :nth-child(3) { --g-i: 2; }
+  :root:not([data-motion="reduced"]) :is([data-gesture="pulse"], [data-gesture="draw"]) > :nth-child(4) { --g-i: 3; }
+  :root:not([data-motion="reduced"]) :is([data-gesture="pulse"], [data-gesture="draw"]) > :nth-child(5) { --g-i: 4; }
+  :root:not([data-motion="reduced"]) :is([data-gesture="pulse"], [data-gesture="draw"]) > :nth-child(n + 6) { --g-i: 5; }
+}
+
+/* --- Shape of the app's FAB menu (D-183) on the pointer (D-248); the MSDS
+ * buttons, icon buttons, chips and FAB morph in lib/msds/msds.css. */
+.m3-fabmenu-fab {
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    transform var(--motion-spatial-fast-dur) var(--motion-spatial-fast),
+    background-color var(--motion-effects-dur) var(--motion-effects),
+    color var(--motion-effects-dur) var(--motion-effects);
+}
+@media (hover: hover) {
+  .m3-fabmenu-fab:hover:not([aria-expanded="true"]) { border-radius: var(--shape-large-increased); }
+}
+.m3-fabmenu-fab:active:not([aria-expanded="true"]) { border-radius: var(--shape-medium); transform: scale(0.97); }
+
+/* --- The travelling active indicator (`SlidingIndicator`) -----------------
+ * Placed by the hook from four offsets; the edge in front of the move takes
+ * the fast spring and the edge behind the slow one, so it stretches and then
+ * catches up. Before it is measured, the item's own mark is the indicator. */
+.m3-ind {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: var(--ind-l, 0);
+  right: var(--ind-r, 0);
+  top: var(--ind-t, 0);
+  bottom: var(--ind-b, 0);
+  opacity: 0;
+}
+:is([data-ind="ready"], [data-ind="on"]) > .m3-ind { opacity: 1; }
+[data-ind="on"][data-ind-dir="fwd"] > .m3-ind {
+  transition-property: left, top, right, bottom;
+  transition-duration: var(--motion-spatial-slow-dur), var(--motion-spatial-slow-dur), var(--motion-spatial-fast-dur), var(--motion-spatial-fast-dur);
+  transition-timing-function: var(--motion-spatial-slow), var(--motion-spatial-slow), var(--motion-spatial-fast), var(--motion-spatial-fast);
+}
+[data-ind="on"][data-ind-dir="back"] > .m3-ind {
+  transition-property: left, top, right, bottom;
+  transition-duration: var(--motion-spatial-fast-dur), var(--motion-spatial-fast-dur), var(--motion-spatial-slow-dur), var(--motion-spatial-slow-dur);
+  transition-timing-function: var(--motion-spatial-fast), var(--motion-spatial-fast), var(--motion-spatial-slow), var(--motion-spatial-slow);
+}
+/* Tabs: the 3 px primary line of D-137, now one for the strip. */
+.msds-tablist > .m3-ind {
+  top: auto;
+  bottom: 0;
+  height: 3px;
+  margin: 0 8px;
+  border-radius: 3px 3px 0 0;
+  background: rgb(var(--m3-primary));
+}
+:is([data-ind="ready"], [data-ind="on"]) > .msds-tab[data-ind-target]::after { opacity: 0; }
+/* Rail and drawer: the tint of the current page (D-37, `--row-accent`). */
+.m3-ind-rail {
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--row-accent, rgb(var(--accent))) 20%, transparent);
+}
+:is([data-ind="ready"], [data-ind="on"]) > * .msds-rail-item[data-ind-target],
+:is([data-ind="ready"], [data-ind="on"]) .msds-rail-item[data-ind-target] { background: transparent; }
+/* Bottom bar: the 56 x 32 pill (D-137) on the rail accent. */
+.m3-ind-pill {
+  border-radius: 9999px;
+  background: rgb(var(--rail-accent) / 0.2);
+}
+:is([data-ind="ready"], [data-ind="on"]) .m3-ind-own[data-ind-target] { background-color: transparent; }
+
+/* The rail's left mark of the current page grows on the expressive spring. */
+.msds-rail-item[aria-current="page"]::before {
+  animation: msds-grow-y var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both;
+}
+
+/* --- Overlays arrive on a spring ------------------------------------------
+ * Scale and opacity on the surface itself (never on the page under it). The
+ * dialog and the sheet use the default spatial spring, the menu and the
+ * snackbar the fast one; the scrim stays a plain fade. */
+@keyframes m3-surface-in {
+  from { opacity: 0; scale: 0.92; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes m3-menu-in {
+  from { opacity: 0; scale: 1 0.82; }
+  to { opacity: 1; scale: 1 1; }
+}
+@keyframes m3-snackbar-in {
+  from { opacity: 0; translate: 0 16px; scale: 0.96; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+.msds-dialog,
+.msds-command { animation: m3-surface-in var(--motion-spatial-dur) var(--motion-spatial) both; }
+.msds-menu { transform-origin: top center; animation: m3-menu-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
+.msds-popover { transform-origin: top left; animation: m3-surface-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
+.msds-snackbar,
+.msds-toast { animation: m3-snackbar-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
+.msds-sheet { animation: msds-sheet-in var(--motion-spatial-dur) var(--motion-spatial) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .m3-fabmenu-fab, .m3-ind { transition: none; }
+  .msds-dialog, .msds-command, .msds-menu, .msds-popover, .msds-snackbar, .msds-toast, .msds-sheet,
+  .msds-rail-item[aria-current="page"]::before { animation: none; }
+}
+
+/* D-248: the motion specimen of /app/estilo. A demo is a button; its dot crosses
+ * the track on hover, focus or press with the curve and duration it names. */
+.m3-motion-demo {
+  display: grid; gap: 8px; width: 100%; padding: 10px 12px; text-align: left; cursor: pointer;
+  border: 1px solid rgb(var(--border-control)); border-radius: var(--radius-control);
+  background: rgb(var(--surface-panel)); color: rgb(var(--ink)); font: inherit; font-size: 14px;
+}
+.m3-motion-track { position: relative; display: block; height: 12px; border-radius: 9999px; background: rgb(var(--m3-surface-container-highest)); }
+.m3-motion-dot {
+  position: absolute; top: 0; left: 0; width: 12px; height: 12px; border-radius: 9999px;
+  background: rgb(var(--m3-primary)); transition: left var(--demo-dur) var(--demo-ease);
+}
+.m3-motion-demo:is(:hover, :focus-visible, :active) .m3-motion-dot { left: calc(100% - 12px); }
+.m3-gesture-tile {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 5.5rem; min-height: var(--target-min); padding: 10px 8px; cursor: pointer;
+  border: 1px solid rgb(var(--border-panel)); border-radius: var(--shape-large);
+  background: rgb(var(--surface-panel)); color: rgb(var(--ink)); font: inherit;
+}
+@media (prefers-reduced-motion: reduce) { .m3-motion-dot { transition: none; } }
+
 /* D-186: the live funnel beside the selection wizard. Its bars stay mounted
  * while the constraints change, so a new count slides the fill to its new width
  * on the expressive spring instead of jumping there. */
@@ -2096,13 +2398,15 @@ div[data-surface="rail"] .msds-rail-item {
    cannot have one (a native control draws its own box), grow to --target-min.
    Not covered, on purpose: Plotly's modebar (its own library, and the same
    actions are in the toolbar above the figure), tabs (their `::after` is the
-   indicator; the tab itself grows), and a link in a sentence (WCAG 2.5.8
-   inline exception). */
+   indicator; the tab itself grows) — the views bar's `.ds-view-tab` too, a tab
+   drawn as a pressed button: with this rule its indicator became a bar across
+   the label on a phone (seen in D-248's 390 px captures) —, and a link in a
+   sentence (WCAG 2.5.8 inline exception). */
 @media (pointer: coarse) {
   :where(button, a[href], summary):not(.modebar *) {
     position: relative;
   }
-  button:not(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target, [role="tab"], [role="switch"], .modebar-btn)::after,
+  button:not(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target, [role="tab"], [role="switch"], .modebar-btn, .ds-view-tab)::after,
   a[href]:not(.msds-btn, .msds-icon-btn, .msds-chip, .touch-target, [role="tab"], .modebar-btn):not(p a, dd a, dt a, li > a:not(:only-child), figcaption a, label a, .prose a)::after {
     content: "";
     position: absolute;

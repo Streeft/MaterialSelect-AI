@@ -424,7 +424,10 @@ Um PR só está pronto quando:
 
 ## 13. O que **não** fazer
 
-- Não instale biblioteca de componentes nem framework de animação.
+- Não instale biblioteca de componentes nem framework de animação. O movimento
+  do M3 Expressive ([D-248](DECISIONS.md)) é CSS: molas como `linear()`,
+  *keyframes* de gesto por ícone e transição de raio, tudo por token e nada com
+  movimento reduzido.
 - Não substitua o Plotly.
 - Não mova cálculo para o cliente para "ficar mais rápido".
 - Não troque "ausente" por um traço, um zero ou uma célula vazia — em nenhuma

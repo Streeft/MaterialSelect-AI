@@ -269,7 +269,9 @@ Cada linha: o que faz e a decisão que a justifica. A tela de cada módulo fica 
 
 Sistema de design **próprio**, sem biblioteca de componentes ([D-23](DECISIONS.md)),
 hoje apoiado no Material 3 ([D-133](DECISIONS.md) a [D-137](DECISIONS.md),
-[D-181](DECISIONS.md) a [D-183](DECISIONS.md)). Qualidade do dado em três canais,
+[D-181](DECISIONS.md) a [D-183](DECISIONS.md)), com o movimento do M3 Expressive: molas como curvas
+CSS, um gesto para cada ícone no hover e forma de botão que responde ao ponteiro, tudo desligado
+com movimento reduzido ([D-248](DECISIONS.md)). Qualidade do dado em três canais,
 nunca só cor ([D-24](DECISIONS.md)); paleta Okabe–Ito para classes
 ([D-28](DECISIONS.md)); alternativa textual de todo gráfico é a tabela que o
 originou ([D-31](DECISIONS.md)); número no padrão pt-BR ([D-30](DECISIONS.md));

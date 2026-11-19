@@ -27,7 +27,7 @@ import {
   type NavEntry,
 } from "@/lib/navMemory";
 import { useTitleOverride } from "@/lib/pageTitle";
-import { IconButton, ThemeToggle } from "@/components/ui";
+import { IconButton, SlidingIndicator, ThemeToggle, useSlidingIndicator } from "@/components/ui";
 import { useFocusTrap } from "@/components/ui/focusTrap";
 import {
   IconSearch,
@@ -581,7 +581,7 @@ function BrandLink({
           too narrow to paint it. */}
       <span
         aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-body font-bold text-brand-fg transition-all group-hover:scale-105 group-hover:rounded-[1.1rem]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[0.7rem] bg-brand text-body font-bold text-brand-fg transition-[border-radius] duration-[var(--motion-spatial-fast-dur)] ease-[var(--motion-spatial-fast)] group-hover:rounded-[1.1rem]"
       >
         M
       </span>
@@ -705,6 +705,12 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
   const panelRef = useRef<HTMLDivElement>(null);
+  const railNavRef = useRef<HTMLElement>(null);
+  const drawerNavRef = useRef<HTMLElement>(null);
+  // D-248: one active surface per list, that travels to the new destination.
+  const RAIL_TARGET = '.msds-rail-item[aria-current="page"]';
+  useSlidingIndicator(railNavRef, RAIL_TARGET, `${pathname}|${collapsed}`, "y");
+  useSlidingIndicator(drawerNavRef, RAIL_TARGET, `${pathname}|${open}`, "y");
 
   useFocusTrap(open, panelRef, () => setOpen(false));
 
@@ -769,10 +775,12 @@ export function AppSidebar() {
         </div>
 
         <nav
+          ref={railNavRef}
           aria-label={ptBR.ui.mainNav}
           style={railAccentStyle}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain"
+          className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain"
         >
+          <SlidingIndicator className="m3-ind-rail" />
           <ul className="flex flex-col gap-0.5">
             <li>
               <NavLink
@@ -857,9 +865,11 @@ export function AppSidebar() {
                 brand, the close button and the footer stay in place and the last
                 group ("Administrar") is reachable on a short phone. */}
             <nav
-              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain"
+              ref={drawerNavRef}
+              className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain"
               style={railAccentStyle}
             >
+              <SlidingIndicator className="m3-ind-rail" />
               <ul className="flex flex-col gap-0.5">
                 <li>
                   <NavLink item={HOME} active={isActive(pathname, HOME.href)} />
