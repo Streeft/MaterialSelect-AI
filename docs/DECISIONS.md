@@ -14504,8 +14504,10 @@ O NotebookLM pede login; os gestos são inferidos do M3, não copiados de uma te
   antigo ao novo; a borda da frente anda na mola espacial rápida e a de trás na lenta. Nas abas (a linha de 3 px de D-137), no trilho e na gaveta
   (o tom de `--row-accent`) e na barra inferior (a pílula 56 × 32). O que se mede é o lugar de um elemento para um enfeite, não grandeza de dado
   (ADR 0004). Antes de medir (render do servidor) cada item mantém a própria marca.
-- **Sobreposições com mola.** Diálogo e paleta de comandos (escala e opacidade, mola padrão), menu (cresce de cima, mola rápida), popover,
-  snackbar e aviso (sobem 16 px, mola rápida), folha inferior do MSDS (mola padrão). Na própria superfície, nunca na página.
+- **Sobreposições com mola.** Diálogo e paleta de comandos (escala, mola padrão), menu (cresce de cima, mola rápida), popover,
+  snackbar e aviso (sobem 16 px, mola rápida), folha inferior do MSDS (mola padrão). A **opacidade** vai à parte, na mola de efeitos
+  rápida (150 ms, sem sobressinal), como o M3 separa espacial de efeitos: com escala e opacidade numa animação só de 435 ms, o axe da
+  E2E do laudo mediu o contraste do diálogo "Envios" no meio do esmaecer e falhou (CI e local). Na própria superfície, nunca na página.
 - **Troca de tela** continua só opacidade (D-141), agora no padrão *top level* do M3 (*fade through*): a tela nova espera `short1` e esmaece em
   `medium1` com `emphasized-decelerate`. A escala que o M3 acrescenta fica de fora, pela D-141.
 - **Vitrine.** `/app/estilo` ganhou a seção "Movimento" (`MotionSpecimen`): durações, curvas e molas que se tocam, a galeria dos 72 ícones agrupada

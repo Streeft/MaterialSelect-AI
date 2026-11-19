@@ -2155,27 +2155,46 @@ div[data-surface="rail"] .msds-rail-item {
 }
 
 /* --- Overlays arrive on a spring ------------------------------------------
- * Scale and opacity on the surface itself (never on the page under it). The
- * dialog and the sheet use the default spatial spring, the menu and the
- * snackbar the fast one; the scrim stays a plain fade. */
-@keyframes m3-surface-in {
-  from { opacity: 0; scale: 0.92; }
-  to { opacity: 1; scale: 1; }
+ * On the surface itself (never on the page under it), and in two parts as M3
+ * splits them: the movement (scale, translate) on a spatial spring, the
+ * opacity on the fast effects spring (150 ms, no overshoot), so the content is
+ * fully legible long before the shape settles. The scrim stays a plain fade. */
+@keyframes m3-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes m3-scale-in {
+  from { scale: 0.92; }
+  to { scale: 1; }
 }
 @keyframes m3-menu-in {
-  from { opacity: 0; scale: 1 0.82; }
-  to { opacity: 1; scale: 1 1; }
+  from { scale: 1 0.82; }
+  to { scale: 1 1; }
 }
 @keyframes m3-snackbar-in {
-  from { opacity: 0; translate: 0 16px; scale: 0.96; }
-  to { opacity: 1; translate: 0 0; scale: 1; }
+  from { translate: 0 16px; scale: 0.96; }
+  to { translate: 0 0; scale: 1; }
 }
 .msds-dialog,
-.msds-command { animation: m3-surface-in var(--motion-spatial-dur) var(--motion-spatial) both; }
-.msds-menu { transform-origin: top center; animation: m3-menu-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
-.msds-popover { transform-origin: top left; animation: m3-surface-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
+.msds-command {
+  animation: m3-fade-in var(--motion-effects-fast-dur) var(--motion-effects-fast) both,
+    m3-scale-in var(--motion-spatial-dur) var(--motion-spatial) both;
+}
+.msds-menu {
+  transform-origin: top center;
+  animation: m3-fade-in var(--motion-effects-fast-dur) var(--motion-effects-fast) both,
+    m3-menu-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both;
+}
+.msds-popover {
+  transform-origin: top left;
+  animation: m3-fade-in var(--motion-effects-fast-dur) var(--motion-effects-fast) both,
+    m3-scale-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both;
+}
 .msds-snackbar,
-.msds-toast { animation: m3-snackbar-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both; }
+.msds-toast {
+  animation: m3-fade-in var(--motion-effects-fast-dur) var(--motion-effects-fast) both,
+    m3-snackbar-in var(--motion-spatial-fast-dur) var(--motion-spatial-fast) both;
+}
 .msds-sheet { animation: msds-sheet-in var(--motion-spatial-dur) var(--motion-spatial) both; }
 
 @media (prefers-reduced-motion: reduce) {
