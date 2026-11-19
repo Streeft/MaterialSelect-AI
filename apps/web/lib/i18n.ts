@@ -3548,7 +3548,7 @@ export const ptBR = {
     compareRow: (name: string) => `Comparar ${name}`,
     compareTitle: "Comparação lado a lado",
     compareHint: "Até 4 processos. Cada valor mantém a unidade e a qualidade do dado.",
-    comparePick: "Marque de 2 a 4 processos na matriz ou na tabela para comparar.",
+    comparePick: "Marque de 2 a 4 processos para comparar, em qualquer visão.",
     compareLimit: "O limite é de 4 processos por comparação.",
     compareClear: "Limpar comparação",
     compareAttribute: "Atributo",

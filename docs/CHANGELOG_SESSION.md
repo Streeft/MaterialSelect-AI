@@ -146,6 +146,21 @@ caracteres de controle na entrada; a regex XML tem um só dono (`xml_text`); `pi
 lista tem seleção; a página de um caderno não arquiva). Sem migração. Testes novos: `test_batch_writes`, `test_text_input_controls`,
 `test_xml_text_shared`, e casos em `test_session_token_hash`, `test_knowledge_lfs_plan`, `test_ai_claude`, `test_knowledge_embeddings`,
 `test_units_lazy_registry`, `test_notebook_studio` (reescrito: o detalhe do provedor não vai ao artefato).
+
+---
+
+## Sessão 203 — 19/11/26 — Comparar processos em qualquer visão e atalho de passo na Seleção (D-246)
+
+**O que mudou.** Frontend: a caixa "Comparar" de Processos também na galeria, na lista e na tabela (`CompareCheck`); na Seleção,
+Alt + Shift + ← / → troca de passo fora dos campos, com `aria-keyshortcuts` nos botões e a dica ao lado de "Próximo". As outras duas
+pendências do pacote (cascata da diferença A × B no Eco e curva inteira por material no Custo) já estavam na D-234; o `TODO.md` foi
+corrigido. Testes novos: vitest em `processos` (galeria, tabela e lista, com axe) e em `selecao` (o atalho, fora e dentro de um
+campo, e Resultados fechado sem execução). Na CI: a caixa "Comparar" com 44 px e `touch-target` nos links ao lado dela
+(`mobile.spec`), e `runAxe` passa a esperar as animações finitas, porque o `laudo.spec` media o contraste com o diálogo ainda
+aparecendo. Só frontend: sem migração e sem deploy da API.
+
+---
+
 ## Sessão 202 — 18/11/26 — Histórico de execuções do estudo salvo (D-245)
 
 **O que mudou.** Backend: modelo `SelectionRun` e migração `dc672e36c7d8` (tabela `selection_run`); rotas

@@ -1291,6 +1291,30 @@ describe("assistente em passos (D-210)", () => {
     );
   });
 
+  // D-246: the step chord, never a bare key and never inside a field.
+  it("moves between steps with Alt + Shift + arrows, outside fields only", async () => {
+    const user = userEvent.setup();
+    render(wrap(<SelectionPage />));
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    await user.keyboard("{Alt>}{Shift>}{ArrowRight}{/Shift}{/Alt}");
+    expect(stepButton(t.stepObjective)).toHaveAttribute("aria-current", "step");
+    await user.keyboard("{Alt>}{Shift>}{ArrowLeft}{/Shift}{/Alt}");
+    expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
+
+    // Typing in a field, the chord selects text and the step stays put.
+    const field = screen.getAllByRole("textbox")[0]!;
+    field.focus();
+    await user.keyboard("{Alt>}{Shift>}{ArrowRight}{/Shift}{/Alt}");
+    expect(stepButton(t.stepFunction)).toHaveAttribute("aria-current", "step");
+
+    // Results with no run stays closed to the chord, as it is in the stepper.
+    await user.click(stepButton(t.stepConstraints));
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.keyboard("{Alt>}{Shift>}{ArrowRight}{/Shift}{/Alt}");
+    expect(stepButton(t.stepConstraints)).toHaveAttribute("aria-current", "step");
+  });
+
   it("compares the second run of the study with the first, through the backend", async () => {
     diffRuns.mockResolvedValue({
       rows: [],

@@ -358,6 +358,38 @@ describe("matriz, capacidade e comparação (D-219)", () => {
     go("");
   });
 
+  // D-246: the selection lives in every view, not only in the matrix.
+  it("marca para comparar na galeria, sem abrir a matriz", async () => {
+    const user = userEvent.setup();
+    route.pathname = "/app/processos";
+    render(wrap(<ProcessesPage />));
+
+    await user.click(await screen.findByShadowLabelText(t.compareRow("Fundição")));
+    await user.click(screen.getByShadowLabelText(t.compareRow("Solda")));
+
+    expect(window.location.search).toContain("comparar=fundicao%2Csolda");
+    expect(window.location.search).not.toContain("modo=matriz");
+    expect(await screen.findByShadowText(t.compareTitle)).toBeInTheDocument();
+    const violations = await findA11yViolations(document.body);
+    expect(violations, describeViolations(violations)).toEqual([]);
+    go("");
+  });
+
+  for (const visao of ["table", "list"] as const) {
+    it(`marca para comparar também na visão ${visao}`, async () => {
+      const user = userEvent.setup();
+      route.pathname = "/app/processos";
+      go(`?visao=${visao}`);
+      render(wrap(<ProcessesPage />));
+
+      await user.click(await screen.findByShadowLabelText(t.compareRow("Solda")));
+      expect(window.location.search).toContain("comparar=solda");
+      const violations = await findA11yViolations(document.body);
+      expect(violations, describeViolations(violations)).toEqual([]);
+      go("");
+    });
+  }
+
   it("filtra pela família vinda do endereço", async () => {
     route.pathname = "/app/processos";
     go("?familia=uniao");
