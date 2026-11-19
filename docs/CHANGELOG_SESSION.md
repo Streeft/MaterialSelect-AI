@@ -126,7 +126,9 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 Alt + Shift + ← / → troca de passo fora dos campos, com `aria-keyshortcuts` nos botões e a dica ao lado de "Próximo". As outras duas
 pendências do pacote (cascata da diferença A × B no Eco e curva inteira por material no Custo) já estavam na D-234; o `TODO.md` foi
 corrigido. Testes novos: vitest em `processos` (galeria, tabela e lista, com axe) e em `selecao` (o atalho, fora e dentro de um
-campo, e Resultados fechado sem execução). Só frontend: sem migração e sem deploy da API.
+campo, e Resultados fechado sem execução). Na CI: a caixa "Comparar" com 44 px e `touch-target` nos links ao lado dela
+(`mobile.spec`), e `runAxe` passa a esperar as animações finitas, porque o `laudo.spec` media o contraste com o diálogo ainda
+aparecendo. Só frontend: sem migração e sem deploy da API.
 
 ---
 

@@ -14444,5 +14444,13 @@ passo na Seleção (pendente da Etapa 3.1), a cascata das diferenças A × B no 
 ⌘ + ↑ ao topo da página). Teclas soltas como `[` e `]` (atalho de um caractere precisa poder ser desligado ou remapeado, WCAG 2.1.4).
 Checkbox dentro do link da lista (o leitor de tela anuncia um controle dentro de outro).
 
+- **E2E: o axe mede a página parada** (`e2e/axe.ts`, `runAxe`). A CI deste PR pegou o `laudo.spec` falhando em `color-contrast` nos
+  badges do diálogo "Envios": o axe rodava com o diálogo ainda aparecendo (opacidade 0,74) e media as cores misturadas; com a
+  opacidade em 1 não havia violação. A falha dependia só da velocidade da máquina e aparecia também com o código do `main`.
+  `runAxe` agora espera toda animação finita terminar antes de medir (uma infinita, como um indicador de carregamento, fica de fora).
+  O mesmo vale para todas as rotas do `a11y.spec`.
+- **No celular, a caixa "Comparar" tem 44 px de largura** e os links ao lado dela levam `touch-target`: fora de ser o único filho do
+  item, o link perdia a área de toque invisível da D-226 (pego pelo `mobile.spec`).
+
 **Numeração.** D-246, Sessão 203 (conferidas em `origin/main`). Só frontend: sem migração, sem deploy da API.
 
